@@ -51,9 +51,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Deserializes from the <paramref name="cloudEvent"/> into the <paramref name="event"/>.
         /// </summary>
-        /// <param name="cloudEvent">The <see cref="CloudEvent"/>.</param>
-        /// <param name="event">The <see cref="EventData"/>.</param>
-        protected void DeserializeFromCloudEvent(CloudEvent cloudEvent, EventData @event)
+        private void DeserializeFromCloudEvent(CloudEvent cloudEvent, EventDataBase @event)
         {
             @event.Id = cloudEvent.Id;
             @event.Timestamp = cloudEvent.Time;
@@ -100,7 +98,7 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="event">The source <see cref="EventData"/>.</param>
         /// <param name="cloudEvent">The corresponding <see cref="CloudEvent"/>.</param>
-        protected virtual void OnDeserialize(CloudEvent cloudEvent, EventData @event) { }
+        protected virtual void OnDeserialize(CloudEvent cloudEvent, EventDataBase @event) { }
 
         /// <summary>
         /// Decodes (deserializes) the JSON <paramref name="eventData"/> into a <see cref="CloudEvent"/>.
@@ -115,12 +113,30 @@ namespace CoreEx.Events
         protected abstract Task<CloudEvent> DecodeAsync<T>(BinaryData eventData);
 
         /// <inheritdoc/>
-        public async Task<BinaryData> SerializeAsync(EventData @event)
+        public Task<BinaryData> SerializeAsync(EventData @event)
         {
             if (@event == null)
                 throw new ArgumentNullException(nameof(@event));
 
             @event = @event.Copy();
+            return SerializeToCloudEventAsync(@event);
+        }
+
+        /// <inheritdoc/>
+        public Task<BinaryData> SerializeAsync<T>(EventData<T> @event)
+        {
+            if (@event == null)
+                throw new ArgumentNullException(nameof(@event));
+
+            @event = @event.Copy();
+            return SerializeToCloudEventAsync(@event);
+        }
+
+        /// <summary>
+        /// Serializes the <paramref name="event"/>.
+        /// </summary>
+        private async Task<BinaryData> SerializeToCloudEventAsync(EventDataBase @event)
+        {
             EventDataFormatter.Format(@event);
 
             var ce = new CloudEvent
@@ -149,7 +165,7 @@ namespace CoreEx.Events
             OnSerialize(@event, ce);
 
             ce.DataContentType = MediaTypeNames.Application.Json;
-            ce.Data = @event.Value;
+            ce.Data = @event.GetValue();
 
             return await EncodeAsync(ce).ConfigureAwait(false);
         }
@@ -164,9 +180,9 @@ namespace CoreEx.Events
         /// <summary>
         /// Invoked after the standard <see cref="EventData"/> properties have been updated to the <see cref="CloudEvent"/> to enable further customization where required.
         /// </summary>
-        /// <param name="event">The source <see cref="EventData"/>.</param>
+        /// <param name="event">The source <see cref="EventDataBase"/>.</param>
         /// <param name="cloudEvent">The corresponding <see cref="CloudEvent"/>.</param>
-        protected virtual void OnSerialize(EventData @event, CloudEvent cloudEvent) { }
+        protected virtual void OnSerialize(EventDataBase @event, CloudEvent cloudEvent) { }
 
         /// <summary>
         /// Sets the <see cref="CloudEvent"/> extension attribute where not default value.

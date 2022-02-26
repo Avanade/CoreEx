@@ -24,6 +24,7 @@ namespace CoreEx.Newtonsoft.Json
         ///  <item><description><see cref="JsonSerializerSettings.DefaultValueHandling"/> = <see cref="DefaultValueHandling.Ignore"/>.</description></item>
         ///  <item><description><see cref="JsonSerializerSettings.NullValueHandling"/> = <see cref="NullValueHandling.Ignore"/></description></item>
         ///  <item><description><see cref="JsonSerializerSettings.Formatting"/> = <see cref="Formatting.None"/></description></item>
+        ///  <item><description><see cref="JsonSerializerSettings.ContractResolver"/> = <see cref="ContractResolver.Default"/></description></item>
         /// </list>
         /// </remarks>
         public JsonSerializer(JsonSerializerSettings? settings = null)
@@ -32,7 +33,8 @@ namespace CoreEx.Newtonsoft.Json
             {
                 DefaultValueHandling = DefaultValueHandling.Ignore,
                 NullValueHandling = NullValueHandling.Ignore,
-                Formatting = Formatting.None
+                Formatting = Formatting.None,
+                ContractResolver = ContractResolver.Default
             };
         }
 

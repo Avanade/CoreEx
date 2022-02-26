@@ -18,6 +18,14 @@ namespace CoreEx.Events
         Task<BinaryData> SerializeAsync(EventData @event);
 
         /// <summary>
+        /// Serializes the <see cref="EventData{T}"/> to a <see cref="BinaryData"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="event">The <see cref="EventData{T}"/>.</param>
+        /// <returns>The event <see cref="BinaryData"/>.</returns>
+        Task<BinaryData> SerializeAsync<T>(EventData<T> @event);
+
+        /// <summary>
         /// Deserializes the <see cref="BinaryData"/> to an <see cref="EventData"/>.
         /// </summary>
         /// <param name="eventData">The event <see cref="BinaryData"/>.</param>
@@ -27,6 +35,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Deserializes the <see cref="BinaryData"/> to an <see cref="EventData{T}"/>.
         /// </summary>
+        /// <typeparam name="T">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="eventData">The event <see cref="BinaryData"/>.</param>
         /// <returns>The <see cref="EventData{T}"/>.</returns>
         Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData);
