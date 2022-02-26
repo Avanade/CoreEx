@@ -9,10 +9,10 @@ using UnitTestEx.NUnit;
 namespace CoreEx.Test.Framework.Events
 {
     [TestFixture]
-    public class EventSerializerTest
+    public class CloudEventSerializerTest
     {
         [Test]
-        public async Task SystemTextJson_CloudSerializer_Serialize_Deserialize1()
+        public async Task SystemTextJson_Serialize_Deserialize1()
         {
             var es = new CoreEx.Text.Json.CloudEventSerializer() as IEventSerializer;
             var ed = CreateProductEvent1();
@@ -25,7 +25,7 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
-        public async Task SystemTextJson_CloudSerializer_Serialize_Deserialize2()
+        public async Task SystemTextJson_Serialize_Deserialize2()
         {
             var es = new CoreEx.Text.Json.CloudEventSerializer() as IEventSerializer;
             var ed = CreateProductEvent2();
@@ -40,7 +40,7 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
-        public async Task NewtonsoftJson_CloudSerializer_Serialize_Deserialize1()
+        public async Task NewtonsoftJson_Serialize_Deserialize1()
         {
             var es = new CoreEx.Newtonsoft.Json.CloudEventSerializer() as IEventSerializer;
             var ed = CreateProductEvent1();
@@ -53,7 +53,7 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
-        public async Task NewtonsoftJson_CloudSerializer_Serialize_Deserialize2()
+        public async Task NewtonsoftJson_Serialize_Deserialize2()
         {
             var es = new CoreEx.Newtonsoft.Json.CloudEventSerializer() as IEventSerializer;
             var ed = CreateProductEvent2();
@@ -67,7 +67,7 @@ namespace CoreEx.Test.Framework.Events
             Assert.AreEqual("coreex.testfunction.models.product", ed2.Type);
         }
 
-        private EventData<Product> CreateProductEvent1() => new EventData<Product>
+        internal static EventData<Product> CreateProductEvent1() => new EventData<Product>
         {
             Id = "id",
             Type = "product.created",
@@ -80,14 +80,15 @@ namespace CoreEx.Test.Framework.Events
             PartitionKey = "pid",
             ETag = "etag",
             Attributes = new Dictionary<string, string> { { "fruit", "bananas" } },
-            Data = new Product { Id = "A", Name = "B", Price = 1.99m }
+            Value = new Product { Id = "A", Name = "B", Price = 1.99m }
         };
 
-        private EventData<Product> CreateProductEvent2() => new EventData<Product>
+        private static EventData<Product> CreateProductEvent2() => new EventData<Product>
         {
             Id = "id",
             Timestamp = new DateTime(2022, 02, 22, 22, 02, 22),
-            Data = new Product { Id = "A", Name = "B", Price = 1.99m }
+            Value = new Product { Id = "A", Name = "B", Price = 1.99m },
+            CorrelationId = null
         };
 
         private const string CloudEvent1 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22-08:00\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";

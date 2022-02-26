@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Represents the core event data.
+    /// Represents the core event data with a generic <see cref="object"/> <see cref="Value"/>.
     /// </summary>
     public class EventData : IIdentifier<string?>, ITenantId, IPartitionKey, IETag
     {
@@ -16,41 +16,24 @@ namespace CoreEx.Events
         public EventData() { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventData"/> class copying from another <paramref name="event"/> per the <paramref name="propertySelection"/> (excludes <see cref="Data"/>).
+        /// Initializes a new instance of the <see cref="EventData"/> class copying from another <paramref name="event"/> (excludes <see cref="Value"/>).
         /// </summary>
         /// <param name="event">The <paramref name="event"/> to copy from.</param>
-        /// <param name="propertySelection">The <see cref="EventDataProperty"/> selection.</param>
-        /// <remarks>Does not copy the underlying <see cref="Data"/>; this must be set explicitly.</remarks>
-        public EventData(EventData @event, EventDataProperty propertySelection = EventDataProperty.All)
+        /// <remarks>Does not copy the underlying <see cref="Value"/>; this must be set explicitly.</remarks>
+        public EventData(EventData @event)
         {
             Id = (@event ?? throw new ArgumentNullException(nameof(@event))).Id;
             Timestamp = @event.Timestamp;
+            Subject = @event.Subject;
+            Action = @event.Action;
+            Type = @event.Type;
+            Source = @event.Source;
+            CorrelationId = @event.CorrelationId;
+            TenantId = @event.TenantId;
+            PartitionKey = @event.PartitionKey;
+            ETag = @event.ETag;
 
-            if (propertySelection.HasFlag(EventDataProperty.Subject))
-                Subject = @event.Subject;
-
-            if (propertySelection.HasFlag(EventDataProperty.Action))
-                Action = @event.Action;
-
-            if (propertySelection.HasFlag(EventDataProperty.Type))
-                Type = @event.Type;
-
-            if (propertySelection.HasFlag(EventDataProperty.Source))
-                Source = @event.Source;
-
-            if (propertySelection.HasFlag(EventDataProperty.CorrelationId))
-                CorrelationId = @event.CorrelationId;
-
-            if (propertySelection.HasFlag(EventDataProperty.TenantId))
-                TenantId = @event.TenantId;
-
-            if (propertySelection.HasFlag(EventDataProperty.PartitionKey))
-                PartitionKey = @event.PartitionKey;
-
-            if (propertySelection.HasFlag(EventDataProperty.ETag))
-                ETag = @event.ETag;
-
-            if (@event.Attributes != null && propertySelection.HasFlag(EventDataProperty.Attributes))
+            if (@event.Attributes != null)
             {
                 Attributes = new Dictionary<string, string>();
                 foreach (var att in @event.Attributes)
@@ -99,7 +82,8 @@ namespace CoreEx.Events
         /// <summary>
         /// Gets or sets the event correlation identifier.
         /// </summary>
-        public string? CorrelationId { get; set; }
+        /// <remarks>Default to <see cref="Executor.GetCorrelationId"/>.</remarks>
+        public string? CorrelationId { get; set; } = Executor.GetCorrelationId();
 
         /// <summary>
         /// Gets or sets the tenant identifier.
@@ -124,13 +108,12 @@ namespace CoreEx.Events
         /// <summary>
         /// Gets or sets the underlying data.
         /// </summary>
-        public object? Data { get; set; }
+        public object? Value { get; set; }
 
         /// <summary>
-        /// Copies the <see cref="EventData"/> per the <paramref name="propertySelection"/> (including the <see cref="Data"/>) creating a new instance.
+        /// Copies the <see cref="EventData"/> (including the <see cref="Value"/>) creating a new instance.
         /// </summary>
-        /// <param name="propertySelection">The <see cref="EventDataProperty"/> selection.</param>
-        /// <returns></returns>
-        public EventData Copy(EventDataProperty propertySelection = EventDataProperty.All) => new(this, propertySelection) { Data = Data };
+        /// <returns>A new <see cref="EventData"/> instance.</returns>
+        public EventData Copy() => new(this) { Value = Value };
     }
 }

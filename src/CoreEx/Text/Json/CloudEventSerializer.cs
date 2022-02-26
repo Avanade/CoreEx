@@ -18,12 +18,12 @@ namespace CoreEx.Text.Json
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudEventSerializer"/> class.
         /// </summary>
-        /// <param name="eventDataserializerOptions">The <see cref="EventDataSerializerOptions"/>; where <c>null</c> these will default.</param>
-        /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>; where <c>null</c> these will default.</param>
-        public CloudEventSerializer(EventDataSerializerOptions? eventDataserializerOptions = null, Stj.JsonSerializerOptions? options = null) : base(eventDataserializerOptions)
+        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>; where <c>null</c> this will default.</param>
+        /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>; where <c>null</c> this will default.</param>
+        public CloudEventSerializer(EventDataFormatter? eventDataFormatter = null, Stj.JsonSerializerOptions? options = null) : base(eventDataFormatter)
         {
-            EventDataSerializerOptions.JsonSerializer ??= new JsonSerializer(options);
-            Options = options ?? (Stj.JsonSerializerOptions)EventDataSerializerOptions.JsonSerializer.Options;
+            EventDataFormatter.JsonSerializer ??= new JsonSerializer(options);
+            Options = options ?? (Stj.JsonSerializerOptions)EventDataFormatter.JsonSerializer.Options;
         }
 
         /// <summary>

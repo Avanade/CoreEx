@@ -16,7 +16,7 @@ namespace CoreEx.Globalization
         /// <param name="text">The text to convert.</param>
         /// <param name="casing">The selected <see cref="TextInfoCasing"/>.</param>
         /// <returns>The converted text.</returns>
-        public static string ToCasing(this TextInfo textInfo, string text, TextInfoCasing casing) => casing switch
+        public static string? ToCasing(this TextInfo textInfo, string? text, TextInfoCasing casing) => casing switch
         {
             TextInfoCasing.Lower => textInfo.ToLower(text),
             TextInfoCasing.Upper => textInfo.ToUpper(text),

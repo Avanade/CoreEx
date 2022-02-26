@@ -155,7 +155,7 @@ namespace CoreEx.Functions
                 if (beforeEvent != null)
                     await beforeEvent(vr.Value).ConfigureAwait(false);
 
-                var @event = new EventData { Data = vr.Value };
+                var @event = new EventData { Value = vr.Value };
                 eventModifier?.Invoke(@event, vr.Value);
 
                 if (eventName == null)
@@ -185,7 +185,7 @@ namespace CoreEx.Functions
                 var events = new List<EventData>();
                 foreach (var item in vr.Value)
                 {
-                    var ed = new EventData { Data = item };
+                    var ed = new EventData { Value = item };
                     eventModifier?.Invoke(ed, item);
                 }
 

@@ -7,7 +7,7 @@ namespace CoreEx.Events
     /// <summary>
     /// Represents the <see cref="EventData"/> property selection.
     /// </summary>
-    /// <remarks>The <see cref="EventData.Id"/>, <see cref="EventData.Timestamp"/> and <see cref="EventData.Data"/> are non-selectable; i.e. are always included.</remarks>
+    /// <remarks>The <see cref="EventData.Id"/>, <see cref="EventData.Timestamp"/> and <see cref="EventData.Value"/> are non-selectable; i.e. are always included.</remarks>
     [Flags]
     public enum EventDataProperty
     {

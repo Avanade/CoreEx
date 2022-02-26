@@ -78,7 +78,7 @@ namespace CoreEx.Functions
                 try
                 {
                     @event = await EventSerializer.DeserializeAsync<T>(message.Body).ConfigureAwait(false)!;
-                    if (valueIsRequired && @event.Data == null)
+                    if (valueIsRequired && @event.Value == null)
                         vex = new ValidationException($"{_errorText} Value is mandatory.");
                 }
                 catch (Exception ex)

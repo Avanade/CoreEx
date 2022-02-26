@@ -22,19 +22,19 @@ namespace CoreEx.Events
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudEventSerializerBase"/> class.
         /// </summary>
-        /// <param name="eventDataSerializerOptions">The <see cref="Events.EventDataSerializerOptions"/>.</param>
-        protected CloudEventSerializerBase(EventDataSerializerOptions? eventDataSerializerOptions) => EventDataSerializerOptions = eventDataSerializerOptions ?? new EventDataSerializerOptions();
+        /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
+        protected CloudEventSerializerBase(EventDataFormatter? eventDataFormatter) => EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
 
         /// <summary>
-        /// Gets the <see cref="Events.EventDataSerializerOptions"/>.
+        /// Gets the <see cref="Events.EventDataFormatter"/>.
         /// </summary>
-        public EventDataSerializerOptions EventDataSerializerOptions { get; }
+        public EventDataFormatter EventDataFormatter { get; }
 
         /// <inheritdoc/>
         public async Task<EventData> DeserializeAsync(BinaryData eventData)
         {
             var ce = await DecodeAsync(eventData).ConfigureAwait(false);
-            var @event = new EventData { Data = ce.Data };
+            var @event = new EventData { Value = ce.Data };
             DeserializeFromCloudEvent(ce, @event);
             return @event;
         }
@@ -43,7 +43,7 @@ namespace CoreEx.Events
         public async Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData)
         {
             var ce = await DecodeAsync<T>(eventData).ConfigureAwait(false);
-            var @event = new EventData<T> { Data = (T)ce.Data! };
+            var @event = new EventData<T> { Value = (T)ce.Data! };
             DeserializeFromCloudEvent(ce, @event);
             return @event;
         }
@@ -68,6 +68,8 @@ namespace CoreEx.Events
 
             if (TryGetExtensionAttribute(cloudEvent, "correlationid", out val))
                 @event.CorrelationId = val;
+            else
+                @event.CorrelationId = null;
 
             if (TryGetExtensionAttribute(cloudEvent, "partitionkey", out val))
                 @event.PartitionKey = val;
@@ -119,7 +121,7 @@ namespace CoreEx.Events
                 throw new ArgumentNullException(nameof(@event));
 
             @event = @event.Copy();
-            EventDataSerializerOptions.Apply(@event);
+            EventDataFormatter.Format(@event);
 
             var ce = new CloudEvent
             {
@@ -147,7 +149,7 @@ namespace CoreEx.Events
             OnSerialize(@event, ce);
 
             ce.DataContentType = MediaTypeNames.Application.Json;
-            ce.Data = @event.Data;
+            ce.Data = @event.Value;
 
             return await EncodeAsync(ce).ConfigureAwait(false);
         }

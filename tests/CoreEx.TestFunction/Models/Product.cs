@@ -3,7 +3,7 @@ using Stj = System.Text.Json.Serialization;
 
 namespace CoreEx.TestFunction.Models
 {
-    public class Product
+    public class Product : IIdentifier<string>
     {
         [Nsj.JsonProperty("id")]
         [Stj.JsonPropertyName("id")]
@@ -18,7 +18,7 @@ namespace CoreEx.TestFunction.Models
         public decimal Price { get; set; }
     }
 
-    public class BackendProduct
+    public class BackendProduct : IPrimaryKey
     {
         [Nsj.JsonProperty("code")]
         [Stj.JsonPropertyName("code")]
@@ -35,5 +35,9 @@ namespace CoreEx.TestFunction.Models
         [Nsj.JsonIgnore]
         [Stj.JsonIgnore]
         public string Secret { get; set; }
+
+        [Nsj.JsonIgnore]
+        [Stj.JsonIgnore]
+        public CompositeKey PrimaryKey => new CompositeKey(Code);
     }
 }

@@ -21,12 +21,12 @@ namespace CoreEx.Newtonsoft.Json
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudEventSerializer"/> class.
         /// </summary>
-        /// <param name="eventDataserializerOptions">The <see cref="EventDataSerializerOptions"/>; where <c>null</c> these will default.</param>
-        /// <param name="settings">The <see cref="Nsj.JsonSerializerSettings"/>; where <c>null</c> these will default.</param>
-        public CloudEventSerializer(EventDataSerializerOptions? eventDataserializerOptions = null, JsonSerializerSettings? settings = null) : base(eventDataserializerOptions)
+        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>; where <c>null</c> this will default.</param>
+        /// <param name="settings">The <see cref="Nsj.JsonSerializerSettings"/>; where <c>null</c> this will default.</param>
+        public CloudEventSerializer(EventDataFormatter? eventDataFormatter = null, JsonSerializerSettings? settings = null) : base(eventDataFormatter)
         {
-            EventDataSerializerOptions.JsonSerializer ??= new JsonSerializer(settings);
-            Settings = settings ?? (JsonSerializerSettings)EventDataSerializerOptions.JsonSerializer.Options;
+            EventDataFormatter.JsonSerializer ??= new JsonSerializer(settings);
+            Settings = settings ?? (JsonSerializerSettings)EventDataFormatter.JsonSerializer.Options;
         }
 
         /// <summary>
