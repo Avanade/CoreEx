@@ -10,6 +10,6 @@ namespace CoreEx
         /// <summary>
         /// Gets the <i>primary key</i> (represented as a <see cref="CompositeKey"/>).
         /// </summary>
-        CompositeKey PrimaryKey { get; }
+        CompositeKey? PrimaryKey { get; }
     }
 }

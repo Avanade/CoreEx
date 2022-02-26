@@ -20,12 +20,6 @@ namespace CoreEx
         /// <returns><c>true</c> if the values are equal; otherwise, <c>false</c>.</returns>
         public bool Equals(CompositeKey x, CompositeKey y)
         {
-            if (x.Args == null && y.Args == null)
-                return true;
-
-            if ((x.Args != null && y.Args == null) || (x.Args == null && y.Args != null))
-                return false;
-
             if (x.Args!.Length != y.Args!.Length)
                 return false;
 
@@ -45,8 +39,8 @@ namespace CoreEx
         /// <returns>A hash code for the <see cref="CompositeKey"/>.</returns>
         public int GetHashCode(CompositeKey key)
         {
-            if (key.Args == null)
-                return GetArgValue(null).GetHashCode();
+            if (key.Args.Length == 0)
+                return 0;
 
             int hashCode = 0;
             for (int i = 0; i < key.Args.Length; i++)
