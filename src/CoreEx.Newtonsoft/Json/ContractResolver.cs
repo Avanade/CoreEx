@@ -1,21 +1,25 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Events;
+using CoreEx.RefData;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
+using Stj = System.Text.Json.Serialization;
 
 namespace CoreEx.Newtonsoft.Json
 {
     /// <summary>
-    /// 
+    /// Extends the <see cref="DefaultContractResolver"/> to enable runtime configurable of JSON serialization property rename and ignore.
     /// </summary>
     public class ContractResolver : DefaultContractResolver
     {
         private readonly static ContractResolver _default = new();
+
+        private readonly HashSet<Type> _typeDict = new();
         private readonly ConcurrentDictionary<Type, Dictionary<string, string>> _renameDict = new();
         private readonly ConcurrentDictionary<Type, HashSet<string>> _ignoreDict = new();
 
@@ -24,30 +28,36 @@ namespace CoreEx.Newtonsoft.Json
         /// </summary>
         static ContractResolver()
         {
-            _default.Rename(typeof(EventDataBase), new Dictionary<string, string> 
-            { 
-                { nameof(EventDataBase.Id), "id" },
-                { nameof(EventDataBase.Subject), "subject" },
-                { nameof(EventDataBase.Action), "action" },
-                { nameof(EventDataBase.Type), "type" },
-                { nameof(EventDataBase.Source), "source" },
-                { nameof(EventDataBase.Timestamp), "timestamp" },
-                { nameof(EventDataBase.CorrelationId), "correlationId" },
-                { nameof(EventDataBase.TenantId), "tenantId" },
-                { nameof(EventDataBase.PartitionKey), "partitionKey" },
-                { nameof(EventDataBase.ETag), "etag" },
-                { nameof(EventDataBase.Attributes), "attributes" },
-            });
-
-            _default.Rename(typeof(EventData), nameof(EventData.Value), "value");
-            _default.Rename(typeof(EventData<>), nameof(EventData.Value), "value");
+            _default.AddType<EventDataBase>()
+                    .AddType<EventData>()
+                    .AddType(typeof(EventData<>))
+                    .AddType<ChangeLog>()
+                    .AddType(typeof(ReferenceDataBase<>));
         }
 
         /// <summary>
         /// Gets the default <see cref="ContractResolver"/>.
         /// </summary>
-        /// <remarks>Automatically adds the serialization property renames and ignores for <see cref="EventDataBase"/>, <see cref="EventData"/> and <see cref="EventData{T}"/> types.</remarks>
+        /// <remarks>Automatically adds the serialization property renames and ignores for <see cref="EventDataBase"/>, <see cref="EventData"/>, <see cref="EventData{T}"/>, <see cref="ChangeLog"/> and <see cref="ReferenceDataBase{T}"/> types.</remarks>
         public static ContractResolver Default => _default;
+
+        /// <summary>
+        /// Adds the <typeparamref name="T"/> <see cref="Type"/> by reflecting all <c>System.Text.Json.Serialization</c> property attributes to infer rename (<see cref="Stj.JsonPropertyNameAttribute"/>) or ignore (<see cref="Stj.JsonIgnoreAttribute"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/>.</typeparam>
+        /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
+        public ContractResolver AddType<T>() => AddType(typeof(T));
+
+        /// <summary>
+        /// Adds the <paramref name="type"/> by reflecting all <c>System.Text.Json.Serialization</c> property attributes to infer rename (<see cref="Stj.JsonPropertyNameAttribute"/>) or ignore (<see cref="Stj.JsonIgnoreAttribute"/>).
+        /// </summary>
+        /// <param name="type">The <see cref="Type"/>.</param>
+        /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
+        public ContractResolver AddType(Type type)
+        {
+            _typeDict.Add(type);
+            return this;
+        }
 
         /// <summary>
         /// Renames one or more properties for a <see cref="Type"/>.
@@ -55,7 +65,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <param name="type">The <see cref="Type"/>.</param>
         /// <param name="pairs">One or more property and JSON name pairs.</param>
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
-        public ContractResolver Rename(Type type, IDictionary<string, string> pairs)
+        public ContractResolver AddRename(Type type, IDictionary<string, string> pairs)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -64,7 +74,7 @@ namespace CoreEx.Newtonsoft.Json
             {
                 foreach (var pair in pairs)
                 {
-                    Rename(type, pair.Key, pair.Value);
+                    AddRename(type, pair.Key, pair.Value);
                 }
             }
 
@@ -78,7 +88,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <param name="propertyName">The property name.</param>
         /// <param name="jsonName">The JSON name.</param>
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
-        public ContractResolver Rename(Type type, string propertyName, string jsonName)
+        public ContractResolver AddRename(Type type, string propertyName, string jsonName)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -103,7 +113,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <param name="type">The <see cref="Type"/>.</param>
         /// <param name="propertyNames">One or more property names.</param>
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
-        public ContractResolver Ignore(Type type, params string[] propertyNames)
+        public ContractResolver AddIgnore(Type type, params string[] propertyNames)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -125,7 +135,7 @@ namespace CoreEx.Newtonsoft.Json
             {
                 if (hs.Contains(property.PropertyName!))
                 {
-                    property.ShouldSerialize = i => false;
+                    property.ShouldSerialize = x => false;
                     property.Ignored = true;
                     return property;
                 }
@@ -133,6 +143,23 @@ namespace CoreEx.Newtonsoft.Json
 
             if (_renameDict.TryGetValue(type, out var d) && d.TryGetValue(property.PropertyName!, out var jn))
                 property.PropertyName = jn;
+            else if (_typeDict.TryGetValue(type, out _))
+            {
+                var jpna = member.GetCustomAttribute<Stj.JsonPropertyNameAttribute>(true);
+                if (jpna != null)
+                {
+                    property.PropertyName = jpna.Name;
+                    property.Order = member.GetCustomAttribute<Stj.JsonPropertyOrderAttribute>(true)?.Order;
+                    return property;
+                }
+
+                var jpia = member.GetCustomAttribute<Stj.JsonIgnoreAttribute>(true);
+                if (jpia != null)
+                {
+                    property.ShouldSerialize = x => false;
+                    property.Ignored = true;
+                }
+            }
 
             return property;
         }

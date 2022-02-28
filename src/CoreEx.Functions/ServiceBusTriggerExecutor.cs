@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using Azure.Messaging.ServiceBus;
+using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
-using CoreEx.Json;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
@@ -18,23 +18,16 @@ namespace CoreEx.Functions
     /// </summary>
     /// <remarks>Each <c>Run</c> is wrapped with the same logic. The correlation identifier is set (<see cref="Executor.SetCorrelationId(string?)"/>) using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a
     /// <see cref="Guid.NewGuid"/> is used as the default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="Executor.GetCorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic
-    /// with the correlation and message identifiers. The following exceptions are caught and handled as follows: <see cref="ValidationException"/> results in 
-    /// <see cref="ServiceBusMessageActions.DeadLetterMessageAsync(ServiceBusReceivedMessage, string, string, System.Threading.CancellationToken)"/> with the <see cref="DeadLetterValidationReason"/>,
-    /// <see cref="TransientException"/> results in the message being re-processed by the Azure Function runtime/fabric; and finally, any unhandled exception results in 
-    /// <see cref="ServiceBusMessageActions.DeadLetterMessageAsync(ServiceBusReceivedMessage, string, string, System.Threading.CancellationToken)"/> with the <see cref="DeadLetterUnhandledReason"/>.</remarks>
+    /// with the correlation and message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically 
+    /// deadletter; otherwise, it will be immediately deadletted with a resaon of <see cref="IExtendedException.ErrorType"/> or <see cref="DeadLetterUnhandledReason"/> depending on the exception <see cref="Type"/>.</remarks>
     public class ServiceBusTriggerExecutor : Executor, IServiceBusTriggerExecutor
     {
         private const string _errorText = "Invalid message: body was not provided, contained invalid JSON, or was incorrectly formatted:";
 
         /// <summary>
-        /// Gets or sets the dead letter reason for a <see cref="ValidationException"/>.
+        /// Gets or sets the dead letter reason for an unhandled <see cref="Exception"/>.
         /// </summary>
-        public static string DeadLetterValidationReason { get; set; } = "Validation exception";
-
-        /// <summary>
-        /// Gets or sets the dead letter reason for a unhandled <see cref="Exception"/>.
-        /// </summary>
-        public static string DeadLetterUnhandledReason { get; set; } = "Unhandled exception";
+        public static string DeadLetterUnhandledReason { get; set; } = "UnhandledError";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceBusTriggerExecutor"/> class.
@@ -88,7 +81,7 @@ namespace CoreEx.Functions
 
                 if (vex != null)
                 {
-                    await DeadLetterValidationExceptionAsync(message, messageActions, vex).ConfigureAwait(false);
+                    await DeadLetterExceptionAsync(message, messageActions, ErrorType.ValidationError.ToString(), vex).ConfigureAwait(false);
                     return;
                 }
 
@@ -102,20 +95,21 @@ namespace CoreEx.Functions
                 await messageActions.CompleteMessageAsync(message).ConfigureAwait(false);
                 Logger.LogDebug("Completed Service Bus message '{Message}'.", message.MessageId);
             }
-            catch (TransientException tex)
-            {
-                // Do not abandon the message, as there may be a Function Retry Policy configured; otherwise, it will eventaully be dead-lettered by the Azure Function runtime/fabric.
-                Logger.LogWarning(tex, "Transient error while processing message '{Message}'. Processing attempt {Count}", message.MessageId, message.DeliveryCount);
-                throw;
-            }
-            catch (ValidationException vex)
-            {
-                await DeadLetterValidationExceptionAsync(message, messageActions, vex).ConfigureAwait(false);
-            }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Unhandled exception while processing message '{Message}': {Error}", message.MessageId, ex.Message);
-                await messageActions.DeadLetterMessageAsync(message, DeadLetterUnhandledReason, ToDeadLetterReason(ex.ToString())).ConfigureAwait(false);
+                if (ex is IExtendedException eex)
+                {
+                    if (eex.IsTransient)
+                    {
+                        // Do not abandon the message when transient, as there may be a Function Retry Policy configured; otherwise, it will eventaully be dead-lettered by the Azure Function runtime/fabric.
+                        Logger.LogWarning(ex, "{Reason} while processing message '{Message}'. Processing attempt {Count}", eex.ErrorType.ToString(), message.MessageId, message.DeliveryCount);
+                        throw;
+                    }
+
+                    await DeadLetterExceptionAsync(message, messageActions, eex.ErrorType.ToString(), ex);
+                }
+                else
+                    await messageActions.DeadLetterMessageAsync(message, DeadLetterUnhandledReason, ToDeadLetterReason(ex.ToString())).ConfigureAwait(false);
             }
             finally
             {
@@ -124,13 +118,19 @@ namespace CoreEx.Functions
             }
         }
 
+        private async Task DeadLetterExceptionAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, string reason, Exception ex)
+        {
+            Logger.LogError(ex, "{Reason} for message '{Message}': {Error}", reason, message.MessageId, ex.Message);
+            await messageActions.DeadLetterMessageAsync(message, reason, ToDeadLetterReason(ex.ToString())).ConfigureAwait(false);
+        }
+
         /// <summary>
         /// Performs the <see cref="ValidationException"/> dead-lettering.
         /// </summary>
         private async Task DeadLetterValidationExceptionAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, ValidationException vex)
         {
             Logger.LogError(vex, "Validation error for message '{Message}': {Error}", message.MessageId, vex.Message);
-            await messageActions.DeadLetterMessageAsync(message, DeadLetterValidationReason, ToDeadLetterReason(vex.ToString())).ConfigureAwait(false);
+            await messageActions.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), ToDeadLetterReason(vex.ToString())).ConfigureAwait(false);
         }
 
         /// <summary>

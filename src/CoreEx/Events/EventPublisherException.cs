@@ -1,14 +1,19 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 
 namespace CoreEx.Events
 {
     /// <summary>
     /// Represents a <see cref="IEventPublisher"/> exception.
     /// </summary>
-    public class EventPublisherException : Exception
+    public class EventPublisherException : Exception, IExceptionResult
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EventPublisherException"/> class.
@@ -38,6 +43,21 @@ namespace CoreEx.Events
         /// Gets the underlying <see cref="EventData"/> errors.
         /// </summary>
         public IEnumerable<EventPublisherDataError>? Errors { get; }
+
+        /// <inheritdoc/>
+        public IActionResult ToResult()
+        {
+            if (Errors == null || !Errors.Any())
+                return new BadRequestObjectResult(Message);
+
+            var msd = new ModelStateDictionary();
+            foreach (var item in Errors)
+            {
+                msd.AddModelError($"value[{item.Index}]", item.Message);
+            }
+
+            return new BadRequestObjectResult(msd) { StatusCode = (int)HttpStatusCode.InternalServerError };
+        }
     }
 
     /// <summary>

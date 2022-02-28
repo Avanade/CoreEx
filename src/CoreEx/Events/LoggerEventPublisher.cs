@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Represents as <see cref="ILogger"/> event publisher; whereby the events are output using <see cref="LoggerExtensions.LogInformation(ILogger, string, object[])"/>.
+    /// Represents an <see cref="ILogger"/> event publisher; whereby the events are output using <see cref="LoggerExtensions.LogInformation(ILogger, string, object[])"/>.
     /// </summary>
     /// <remarks>This in intended for testing and/or prototyping purposes.</remarks>
     public class LoggerEventPublisher : IEventPublisher

@@ -23,17 +23,17 @@ namespace CoreEx.Test.Framework.Events
         public void TypeCasing()
         {
             var ed = new EventData { Type = "AbCd" };
-            var ef = new EventDataFormatter { TypeCasing = Globalization.TextInfoCasing.None };
+            var ef = new EventDataFormatter { TypeCasing = CoreEx.Globalization.TextInfoCasing.None };
             ef.Format(ed);
             Assert.AreEqual("AbCd", ed.Type);
 
             ed = new EventData { Type = "AbCd" };
-            ef = new EventDataFormatter { TypeCasing = Globalization.TextInfoCasing.Lower };
+            ef = new EventDataFormatter { TypeCasing = CoreEx.Globalization.TextInfoCasing.Lower };
             ef.Format(ed);
             Assert.AreEqual("abcd", ed.Type);
 
             ed = new EventData { Type = "AbCd" };
-            ef = new EventDataFormatter { TypeCasing = Globalization.TextInfoCasing.Upper };
+            ef = new EventDataFormatter { TypeCasing = CoreEx.Globalization.TextInfoCasing.Upper };
             ef.Format(ed);
             Assert.AreEqual("ABCD", ed.Type);
         }
@@ -77,17 +77,17 @@ namespace CoreEx.Test.Framework.Events
         public void SubjectCasing()
         {
             var ed = new EventData { Subject = "AbCd" };
-            var ef = new EventDataFormatter { SubjectCasing = Globalization.TextInfoCasing.None };
+            var ef = new EventDataFormatter { SubjectCasing = CoreEx.Globalization.TextInfoCasing.None };
             ef.Format(ed);
             Assert.AreEqual("AbCd", ed.Subject);
 
             ed = new EventData { Subject = "AbCd" };
-            ef = new EventDataFormatter { SubjectCasing = Globalization.TextInfoCasing.Lower };
+            ef = new EventDataFormatter { SubjectCasing = CoreEx.Globalization.TextInfoCasing.Lower };
             ef.Format(ed);
             Assert.AreEqual("abcd", ed.Subject);
 
             ed = new EventData { Subject = "AbCd" };
-            ef = new EventDataFormatter { SubjectCasing = Globalization.TextInfoCasing.Upper };
+            ef = new EventDataFormatter { SubjectCasing = CoreEx.Globalization.TextInfoCasing.Upper };
             ef.Format(ed);
             Assert.AreEqual("ABCD", ed.Subject);
         }
@@ -131,17 +131,17 @@ namespace CoreEx.Test.Framework.Events
         public void ActionCasing()
         {
             var ed = new EventData { Action = "AbCd" };
-            var ef = new EventDataFormatter { ActionCasing = Globalization.TextInfoCasing.None };
+            var ef = new EventDataFormatter { ActionCasing = CoreEx.Globalization.TextInfoCasing.None };
             ef.Format(ed);
             Assert.AreEqual("AbCd", ed.Action);
 
             ed = new EventData { Action = "AbCd" };
-            ef = new EventDataFormatter { ActionCasing = Globalization.TextInfoCasing.Lower };
+            ef = new EventDataFormatter { ActionCasing = CoreEx.Globalization.TextInfoCasing.Lower };
             ef.Format(ed);
             Assert.AreEqual("abcd", ed.Action);
 
             ed = new EventData { Action = "AbCd" };
-            ef = new EventDataFormatter { ActionCasing = Globalization.TextInfoCasing.Upper };
+            ef = new EventDataFormatter { ActionCasing = CoreEx.Globalization.TextInfoCasing.Upper };
             ef.Format(ed);
             Assert.AreEqual("ABCD", ed.Action);
         }

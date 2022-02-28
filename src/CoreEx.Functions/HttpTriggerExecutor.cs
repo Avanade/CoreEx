@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.AspNetCore;
+using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Http;
@@ -68,14 +68,6 @@ namespace CoreEx.Functions
             {
                 return await function().ConfigureAwait(false);
             }
-            catch (ValidationException vex)
-            {
-                return vex.ToResult();
-            }
-            catch (TransientException tex)
-            {
-                return tex.ToResult();
-            }
             catch (EventPublisherException epex)
             {
                 Logger.LogCritical(epex, epex.Message);
@@ -83,8 +75,16 @@ namespace CoreEx.Functions
             }
             catch (Exception ex)
             {
+                if (ex is IExtendedException eex)
+                {
+                    if (eex.ShouldBeLogged)
+                        Logger.LogError(ex, "{Error}", ex.Message);
+
+                    return eex.ToResult();
+                }
+
                 Logger.LogCritical(ex, "Executor encountered an Unhandled Exception: {Error}", ex.Message);
-                return ex.ToResult(Settings.IncludeExceptionInResult);
+                return (ex is IExceptionResult rex) ? rex.ToResult() : ex.ToUnexpectedResult(Settings.IncludeExceptionInResult);
             }
             finally
             {

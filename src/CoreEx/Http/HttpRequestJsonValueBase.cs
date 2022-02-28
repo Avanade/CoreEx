@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Text;
 
@@ -45,6 +46,19 @@ namespace CoreEx.Http
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Converts the <see cref="HttpRequestJsonValueBase"/> into a <see cref="BadRequestObjectResult"/>.
+        /// </summary>
+        /// <returns>The corresponding <see cref="BadRequestObjectResult"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="HttpRequestJsonValueBase.IsValid"/>.</exception>
+        public IActionResult ToBadRequestResult()
+        {
+            if (IsValid)
+                throw new InvalidOperationException($"The request {nameof(IsValid)} and therefore can not be converted into a {nameof(BadRequestObjectResult)}.");
+
+            return ValidationException!.ToResult();
         }
     }
 }

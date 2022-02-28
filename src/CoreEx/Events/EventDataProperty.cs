@@ -5,9 +5,9 @@ using System;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Represents the <see cref="EventData"/> property selection.
+    /// Represents the <see cref="EventDataBase"/> property selection.
     /// </summary>
-    /// <remarks>The <see cref="EventData.Id"/>, <see cref="EventData.Timestamp"/> and <see cref="EventData.Value"/> are non-selectable; i.e. are always included.</remarks>
+    /// <remarks>The <see cref="EventDataBase.Id"/>, <see cref="EventDataBase.Timestamp"/> and <see cref="EventDataBase.GetValue"/> are non-selectable; i.e. are always included.</remarks>
     [Flags]
     public enum EventDataProperty
     {
@@ -17,47 +17,47 @@ namespace CoreEx.Events
         None = 0,
 
         /// <summary>
-        /// Selects the <see cref="EventData.Subject"/> property.
+        /// Selects the <see cref="EventDataBase.Subject"/> property.
         /// </summary>
         Subject = 1,
 
         /// <summary>
-        /// Selects the <see cref="EventData.Action"/> property.
+        /// Selects the <see cref="EventDataBase.Action"/> property.
         /// </summary>
         Action = 2,
 
         /// <summary>
-        /// Selects the <see cref="EventData.Type"/> property.
+        /// Selects the <see cref="EventDataBase.Type"/> property.
         /// </summary>
         Type = 4,
 
         /// <summary>
-        /// Selects the <see cref="EventData.Source"/> property.
+        /// Selects the <see cref="EventDataBase.Source"/> property.
         /// </summary>
         Source = 8,
 
         /// <summary>
-        /// Selects the <see cref="EventData.TenantId"/> property.
+        /// Selects the <see cref="EventDataBase.TenantId"/> property.
         /// </summary>
         TenantId = 16,
 
         /// <summary>
-        /// Selects the <see cref="EventData.PartitionKey"/> property.
+        /// Selects the <see cref="EventDataBase.PartitionKey"/> property.
         /// </summary>
         PartitionKey = 32,
 
         /// <summary>
-        /// Selects the <see cref="EventData.ETag"/> property.
+        /// Selects the <see cref="EventDataBase.ETag"/> property.
         /// </summary>
         ETag = 64,
 
         /// <summary>
-        /// Selects the <see cref="EventData.CorrelationId"/> property.
+        /// Selects the <see cref="EventDataBase.CorrelationId"/> property.
         /// </summary>
         CorrelationId = 128,
 
         /// <summary>
-        /// Selects the <see cref="EventData.Attributes"/> property.
+        /// Selects the <see cref="EventDataBase.Attributes"/> property.
         /// </summary>
         Attributes = 256,
 

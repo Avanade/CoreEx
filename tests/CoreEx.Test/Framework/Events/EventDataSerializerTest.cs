@@ -58,6 +58,22 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
+        public async Task SystemTextJson_Serialize_Deserialize_EventData4()
+        {
+            var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
+            var ped = CloudEventSerializerTest.CreateProductEvent1();
+            var ed = new EventData(ped);
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.IsNotNull(bd);
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2);
+
+            var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed3);
+        }
+
+        [Test]
         public async Task SystemTextJson_Serialize_Deserialize_ValueOnly()
         {
             var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = true } as IEventSerializer;
@@ -68,6 +84,19 @@ namespace CoreEx.Test.Framework.Events
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(new EventData<Product> { Value = ed.Value }, ed2);
+        }
+
+        [Test]
+        public async Task SystemTextJson_Serialize_Deserialize_ValueOnly2()
+        {
+            var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = true } as IEventSerializer;
+            var ped = CloudEventSerializerTest.CreateProductEvent1();
+            var ed = new EventData(ped);
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.IsNotNull(bd);
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(new EventData<Product>(), ed2);
         }
 
         [Test]
@@ -117,6 +146,22 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
+        public async Task NewtonsoftJson_Serialize_Deserialize_EventData4()
+        {
+            var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
+            var ped = CloudEventSerializerTest.CreateProductEvent1();
+            var ed = new EventData(ped);
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.IsNotNull(bd);
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2);
+
+            var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed3);
+        }
+
+        [Test]
         public async Task NewtonsoftJson_Serialize_Deserialize_ValueOnly()
         {
             var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = true } as IEventSerializer;
@@ -127,6 +172,19 @@ namespace CoreEx.Test.Framework.Events
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(new EventData<Product> { Value = ed.Value }, ed2);
+        }
+
+        [Test]
+        public async Task NewtonsoftTextJson_Serialize_Deserialize_ValueOnly2()
+        {
+            var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = true } as IEventSerializer;
+            var ped = CloudEventSerializerTest.CreateProductEvent1();
+            var ed = new EventData(ped);
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.IsNotNull(bd);
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(new EventData<Product>(), ed2);
         }
 
         private const string CloudEvent1 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22-08:00\",\"correlationId\":\"cid\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
