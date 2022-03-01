@@ -14,6 +14,17 @@ namespace CoreEx.Events
     {
         private readonly ConcurrentDictionary<string?, ConcurrentQueue<EventData>> _dict = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InMemoryPublisher"/> class.
+        /// </summary>
+        /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
+        public InMemoryPublisher(EventDataFormatter? eventDataFormatter = null) => EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
+
+        /// <summary>
+        /// Gets the <see cref="Events.EventDataFormatter"/>.
+        /// </summary>
+        public EventDataFormatter EventDataFormatter { get; }
+
         /// <inheritdoc/>
         public Task SendAsync(params EventData[] events) => SendInternalAsync(null, events);
 
@@ -32,8 +43,10 @@ namespace CoreEx.Events
         private Task SendInternalAsync(string? name, EventData[] events)
         {
             var queue = _dict.GetOrAdd(name, _ => new ConcurrentQueue<EventData>());
-            foreach (var e in events)
+            foreach (var @event in events)
             {
+                var e = @event.Copy();
+                EventDataFormatter.Format(e);
                 queue.Enqueue(e);
             }
 

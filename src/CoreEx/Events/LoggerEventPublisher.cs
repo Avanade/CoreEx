@@ -14,24 +14,29 @@ namespace CoreEx.Events
     public class LoggerEventPublisher : IEventPublisher
     {
         private readonly ILogger _logger;
+        private readonly EventDataFormatter _eventDataFormatter;
         private readonly IEventSerializer _eventSerializer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LoggerEventPublisher"/> class.
         /// </summary>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
+        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>.</param>
         /// <param name="eventSerializer">The <see cref="IEventSerializer"/>.</param>
-        public LoggerEventPublisher(ILogger<LoggerEventPublisher> logger, IEventSerializer eventSerializer)
+        public LoggerEventPublisher(ILogger<LoggerEventPublisher> logger, EventDataFormatter? eventDataFormatter, IEventSerializer eventSerializer)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _eventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
             _eventSerializer = eventSerializer ?? throw new ArgumentNullException(nameof(eventSerializer));
         }
 
         /// <inheritdoc/>
         public async Task SendAsync(params EventData[] events)
         {
-            foreach (var e in events)
+            foreach (var @event in events)
             {
+                var e = @event.Copy();
+                _eventDataFormatter.Format(e);
                 var bd = await _eventSerializer.SerializeAsync(e).ConfigureAwait(false);
 
                 try

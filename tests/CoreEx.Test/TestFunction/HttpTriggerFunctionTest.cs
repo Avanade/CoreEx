@@ -12,7 +12,7 @@ namespace CoreEx.Test.TestFunction
     public class HttpTriggerFunctionTest
     {
         [Test]
-        public void NoValidator_NoBody()
+        public void NoBody()
         {
             using var test = FunctionTester.Create<Startup>();
             test.HttpTrigger<HttpTriggerFunction>()
@@ -22,7 +22,7 @@ namespace CoreEx.Test.TestFunction
         }
 
         [Test]
-        public void NoValidator_InvalidBody()
+        public void InvalidBody()
         {
             using var test = FunctionTester.Create<Startup>();
             test.HttpTrigger<HttpTriggerFunction>()
@@ -32,7 +32,7 @@ namespace CoreEx.Test.TestFunction
         }
 
         [Test]
-        public void NoValidator_InvalidBody_Newtonsoft()
+        public void InvalidBody_Newtonsoft()
         {
             using var test = FunctionTester.Create<Startup>();
             test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer>(new CoreEx.Newtonsoft.Json.JsonSerializer()))
@@ -43,7 +43,7 @@ namespace CoreEx.Test.TestFunction
         }
 
         [Test]
-        public void NoValidator_InvalidJson()
+        public void InvalidJson()
         {
             using var test = FunctionTester.Create<Startup>();
             test.HttpTrigger<HttpTriggerFunction>()
@@ -53,7 +53,7 @@ namespace CoreEx.Test.TestFunction
         }
 
         [Test]
-        public void NoValidator_InvalidJson_Newtonsoft()
+        public void InvalidJson_Newtonsoft()
         {
             using var test = FunctionTester.Create<Startup>();
             test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer>(new CoreEx.Newtonsoft.Json.JsonSerializer()))
@@ -64,7 +64,7 @@ namespace CoreEx.Test.TestFunction
         }
 
         [Test]
-        public void NoValidator_Success()
+        public void Success()
         {
             var mcf = MockHttpClientFactory.Create();
             var mc = mcf.CreateClient("Backend", "https://backend/");
@@ -72,6 +72,27 @@ namespace CoreEx.Test.TestFunction
 
             using var test = FunctionTester.Create<Startup>();
             test.ConfigureServices(sc => mcf.Replace(sc))
+                .HttpTrigger<HttpTriggerFunction>()
+                .Run(f => f.RunNoValidatorAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/novalidator", new { id = "A", name = "B", price = 1.99m })))
+                .AssertOK()
+                .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void Success_Newtonsoft()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Post, "").WithJsonBody(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }).Respond.WithJson(new BackendProduct { Code = "AX", Description = "BX", RetailPrice = 10.99m });
+
+            using var test = FunctionTester.Create<Startup>();
+                test.ConfigureServices(sc =>
+                {
+                    sc.ReplaceScoped<IJsonSerializer>(new CoreEx.Newtonsoft.Json.JsonSerializer());
+                    mcf.Replace(sc);
+                })
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.RunNoValidatorAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/novalidator", new { id = "A", name = "B", price = 1.99m })))
                 .AssertOK()

@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Events;
+using CoreEx.Json;
+using System;
 
 namespace CoreEx.Newtonsoft.Json
 {
@@ -12,8 +14,12 @@ namespace CoreEx.Newtonsoft.Json
         /// <summary>
         /// Initializes a new instance of the <see cref="EventDataSerializer"/> class.
         /// </summary>
-        /// <param name="jsonSerializer">The <see cref="JsonSerializer"/>.</param>
+        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
-        public EventDataSerializer(JsonSerializer jsonSerializer, EventDataFormatter? eventDataFormatter = null) : base(jsonSerializer, eventDataFormatter) { }
+        public EventDataSerializer(IJsonSerializer jsonSerializer, EventDataFormatter? eventDataFormatter = null) : base(jsonSerializer, eventDataFormatter)
+        {
+            if (jsonSerializer is not CoreEx.Newtonsoft.Json.JsonSerializer)
+                throw new ArgumentException($"The {nameof(IJsonSerializer)} instance must be of Type '{typeof(CoreEx.Newtonsoft.Json.JsonSerializer).FullName}'.", nameof(jsonSerializer));
+        }
     }
 }

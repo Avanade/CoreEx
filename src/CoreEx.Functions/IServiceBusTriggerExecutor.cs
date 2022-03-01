@@ -15,14 +15,14 @@ namespace CoreEx.Functions
     public interface IServiceBusTriggerExecutor : IExecutor
     {
         /// <summary>
-        /// Encapsulates the execution enabling standard functionality to be applied.
+        /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData{T}"/> for processing.
         /// </summary>
-        /// <typeparam name="T">The event value <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TValue">The event value <see cref="Type"/>.</typeparam>
         /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
-        /// <param name="function">The function logic to invoke.</param>
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
-        Task RunAsync<T>(ServiceBusReceivedMessage message, Func<EventData<T>, Task> function, ServiceBusMessageActions messageActions, bool valueIsRequired = true, Func<EventData<T>, Task>? afterReceive = null);
+        Task RunAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, Task> function, bool valueIsRequired = true, Func<EventData<TValue>, Task>? afterReceive = null);
     }
 }

@@ -2,7 +2,6 @@
 
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Text;
 
 namespace CoreEx.Http
 {
@@ -26,27 +25,6 @@ namespace CoreEx.Http
         /// </summary>
         /// <remarks>This is typically set as the result of JSON deserialization.</remarks>
         public ValidationException? ValidationException { get; set; }
-
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            var sb = new StringBuilder();
-            sb.Append($"{nameof(IsValid)}: {IsValid}, Error: {ValidationException?.Message ?? "none"}");
-
-            if (ValidationException is ValidationException vex && vex.ModelStateDictionary != null && vex.ModelStateDictionary.ErrorCount > 0)
-            {
-                sb.Append($", Errors: {vex.ModelStateDictionary.ErrorCount}");
-                foreach (var kvp in vex.ModelStateDictionary)
-                {
-                    foreach (var e in kvp.Value.Errors)
-                    {
-                        sb.Append($"{Environment.NewLine}\t{kvp.Key}: {e.ErrorMessage}");
-                    }
-                }
-            }
-
-            return sb.ToString();
-        }
 
         /// <summary>
         /// Converts the <see cref="HttpRequestJsonValueBase"/> into a <see cref="BadRequestObjectResult"/>.

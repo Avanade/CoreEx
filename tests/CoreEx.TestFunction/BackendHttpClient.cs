@@ -8,7 +8,7 @@ namespace CoreEx.TestFunction
 {
     public class BackendHttpClient : TypedHttpClientCore<BackendHttpClient>
     {
-        public BackendHttpClient(HttpClient client, IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<TypedHttpClientCore<BackendHttpClient>> logger) 
-            : base(client, jsonSerializer, settings, logger) { }
+        public BackendHttpClient(HttpClient client, ExecutionContext executionContext, IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<TypedHttpClientCore<BackendHttpClient>> logger) 
+            : base(client, executionContext, jsonSerializer, settings, logger) { }
     }
 }

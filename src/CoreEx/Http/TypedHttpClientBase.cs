@@ -38,12 +38,14 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="TypedHttpClientBase{TBase}"/>.
         /// </summary>
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
+        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public TypedHttpClientBase(HttpClient client, IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<TypedHttpClientBase<TSelf>> logger)
+        public TypedHttpClientBase(HttpClient client, ExecutionContext executionContext, IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<TypedHttpClientBase<TSelf>> logger)
         {
             Client = client ?? throw new ArgumentNullException(nameof(client));
+            ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -54,6 +56,11 @@ namespace CoreEx.Http
         /// Gets the underlying <see cref="HttpClient"/>.
         /// </summary>
         protected HttpClient Client { get; }
+
+        /// <summary>
+        /// Gets the <see cref="CoreEx.ExecutionContext"/>.
+        /// </summary>
+        protected ExecutionContext ExecutionContext { get; }
 
         /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.
@@ -141,7 +148,7 @@ namespace CoreEx.Http
             {
                 foreach (var name in CorrelationHeaderNames)
                 {
-                    request.Headers.Add(name, Executor.GetCorrelationId());
+                    request.Headers.Add(name, ExecutionContext.CorrelationId);
                 }
 
                 await RequestLogger.LogRequestAsync(request).ConfigureAwait(false);

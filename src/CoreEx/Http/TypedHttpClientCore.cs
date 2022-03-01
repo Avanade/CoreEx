@@ -20,11 +20,12 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="TypedHttpClientCore{TBase}"/>.
         /// </summary>
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
+        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public TypedHttpClientCore(HttpClient client, IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<TypedHttpClientCore<TSelf>> logger)
-            : base(client, jsonSerializer, settings, logger) { }
+        public TypedHttpClientCore(HttpClient client, ExecutionContext executionContext, IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<TypedHttpClientCore<TSelf>> logger)
+            : base(client, executionContext, jsonSerializer, settings, logger) { }
 
         /// <summary>
         /// Send a <see cref="HttpMethod.Head"/> request to the specified Uri as an asynchronous operation.

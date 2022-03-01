@@ -4,7 +4,6 @@ using CoreEx.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx
@@ -14,29 +13,23 @@ namespace CoreEx
     /// </summary>
     public class Executor : IExecutor
     {
-        private static readonly AsyncLocal<string?> _correlationId = new();
-
-        /// <summary>
-        /// Gets the correlation identifier for the current execution.
-        /// </summary>
-        public static string GetCorrelationId() => _correlationId.Value ??= Guid.NewGuid().ToString().ToLowerInvariant();
-
-        /// <summary>
-        /// Sets the correlation identifier for the current execution.
-        /// </summary>
-        /// <param name="value">The correlation identifier.</param>
-        public static void SetCorrelationId(string? value) => _correlationId.Value = value;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Executor"/> class.
         /// </summary>
+        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        protected Executor(SettingsBase settings, ILogger<Executor> logger)
+        protected Executor(ExecutionContext executionContext, SettingsBase settings, ILogger<Executor> logger)
         {
+            ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
+
+        /// <summary>
+        /// Gets the <see cref="CoreEx.ExecutionContext"/>.
+        /// </summary>
+        public ExecutionContext ExecutionContext { get; }
 
         /// <summary>
         /// Gets the <see cref="SettingsBase"/>.
@@ -61,7 +54,7 @@ namespace CoreEx
         /// <summary>
         /// Gets the list of correlation identifier names, being <see cref="CorrelationIdName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The list of correlation identifier names.</returns>
         protected virtual IEnumerable<string> GetCorrelationIdNames()
         {
             var list = new List<string>(new string[] { CorrelationIdName });
@@ -75,7 +68,7 @@ namespace CoreEx
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
-            var scope = Logger.BeginScope(new Dictionary<string, object>() { { CorrelationIdName, GetCorrelationId() } });
+            var scope = Logger.BeginScope(new Dictionary<string, object>() { { CorrelationIdName, ExecutionContext.CorrelationId } });
 
             try
             {
@@ -89,7 +82,6 @@ namespace CoreEx
             finally
             {
                 scope.Dispose();
-                SetCorrelationId(null);
             }
         }
     }

@@ -21,8 +21,8 @@ namespace CoreEx.Functions
     /// <summary>
     /// Provides the standard <see cref="HttpTriggerAttribute"/> execution encapsulation to run the underlying function logic in a consistent manner.
     /// </summary>
-    /// <remarks>Each <c>Run</c> is wrapped with the same logic. The correlation identifier is set (<see cref="Executor.SetCorrelationId(string?)"/>) using the <see cref="Executor.GetCorrelationIdNames"/> (names in priority order) to retrieve
-    /// the corresponding HTTP Header value; where not found a <see cref="Guid.NewGuid"/> is used as the default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="Executor.GetCorrelationId"/> is performed to wrap the logic
+    /// <remarks>Each <c>Run</c> is wrapped with the same logic. The correlation identifier is set using the <see cref="Executor.GetCorrelationIdNames"/> (names in priority order) to retrieve
+    /// the corresponding HTTP Header value; where not found a <see cref="Guid.NewGuid"/> is used as the default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> is performed to wrap the logic
     /// with the correlation identifier. The following exceptions are caught and handled as follows: <see cref="ValidationException"/> results in <see cref="HttpStatusCode.BadRequest"/>, <see cref="TransientException"/> results in
     /// <see cref="HttpStatusCode.ServiceUnavailable"/>, <see cref="EventPublisherException"/> results in <see cref="HttpStatusCode.InternalServerError"/>; and finally, any unhandled exception results in <see cref="HttpStatusCode.InternalServerError"/>.</remarks>
     public class HttpTriggerExecutor : Executor, IHttpTriggerExecutor
@@ -31,10 +31,11 @@ namespace CoreEx.Functions
         /// Initializes a new instance of the <see cref="HttpTriggerExecutor"/> class.
         /// </summary>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/></param>
+        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public HttpTriggerExecutor(IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<HttpTriggerExecutor> logger) : base(settings, logger)
+        public HttpTriggerExecutor(IJsonSerializer jsonSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<HttpTriggerExecutor> logger) : base(executionContext, settings, logger)
             => JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
 
         /// <summary>
@@ -55,14 +56,14 @@ namespace CoreEx.Functions
             {
                 if (request.Headers.TryGetValue(name, out var values))
                 {
-                    SetCorrelationId(values.First());
+                    ExecutionContext.Current.CorrelationId = values.First();
                     break;
                 }
             }
 
-            request.HttpContext.Response.Headers.Add(CorrelationIdName, GetCorrelationId());
+            request.HttpContext.Response.Headers.Add(CorrelationIdName, ExecutionContext.Current.CorrelationId);
 
-            var scope = Logger.BeginScope(new Dictionary<string, object>() { { CorrelationIdName, GetCorrelationId() } });
+            var scope = Logger.BeginScope(new Dictionary<string, object>() { { CorrelationIdName, ExecutionContext.Current.CorrelationId } });
 
             try
             {
@@ -89,7 +90,6 @@ namespace CoreEx.Functions
             finally
             {
                 scope.Dispose();
-                SetCorrelationId(null);
             }
         }
 
@@ -187,6 +187,7 @@ namespace CoreEx.Functions
                 {
                     var ed = new EventData { Value = item };
                     eventModifier?.Invoke(ed, item);
+                    events.Add(ed);
                 }
 
                 if (events.Count == 0)

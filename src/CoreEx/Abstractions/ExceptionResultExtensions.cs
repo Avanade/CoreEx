@@ -28,7 +28,7 @@ namespace CoreEx.Abstractions
         /// <param name="includeExceptionInResult">Indicates whether to the include the underlying <paramref name="exception"/> content in the result.</param>
         /// <returns>The corresponding <see cref="ContentResult"/>.</returns>
         public static IActionResult ToUnexpectedResult(this Exception exception, bool includeExceptionInResult) => includeExceptionInResult
-            ? new ContentResult { StatusCode = (int)HttpStatusCode.InternalServerError, ContentType = MediaTypeNames.Text.Plain, Content = $"An unexpected internal server error has occurred. CorrelationId={Executor.GetCorrelationId()} Exception={exception}" }
-            : new ContentResult { StatusCode = (int)HttpStatusCode.InternalServerError, ContentType = MediaTypeNames.Text.Plain, Content = $"An unexpected internal server error has occurred. CorrelationId={Executor.GetCorrelationId()}" };
+            ? new ContentResult { StatusCode = (int)HttpStatusCode.InternalServerError, ContentType = MediaTypeNames.Text.Plain, Content = $"An unexpected internal server error has occurred. CorrelationId={ExecutionContext.Current.CorrelationId} Exception={exception}" }
+            : new ContentResult { StatusCode = (int)HttpStatusCode.InternalServerError, ContentType = MediaTypeNames.Text.Plain, Content = $"An unexpected internal server error has occurred. CorrelationId={ExecutionContext.Current.CorrelationId}" };
     }
 }

@@ -1,9 +1,11 @@
-﻿using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
-using CoreEx.TestFunction.Services;
+﻿using CoreEx.Configuration;
+using CoreEx.DependencyInjection;
+using CoreEx.Events;
 using CoreEx.Functions;
 using CoreEx.Json;
-using CoreEx.Configuration;
+using CoreEx.TestFunction.Services;
+using Microsoft.Azure.Functions.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CoreEx.TestFunction
 {
@@ -18,9 +20,11 @@ namespace CoreEx.TestFunction
             // Register the core services.
             builder.Services
                 .AddSingleton<TestSettings>()
+                .AddExecutionContext()
                 .AddScoped<IExecutor, Executor>()
                 .AddScoped<SettingsBase, TestSettings>()
                 .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
+                .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
                 .AddScoped<IHttpTriggerExecutor, HttpTriggerExecutor>()
                 .AddScoped<IServiceBusTriggerExecutor, ServiceBusTriggerExecutor>();
 

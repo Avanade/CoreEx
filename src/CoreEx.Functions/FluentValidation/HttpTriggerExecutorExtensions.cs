@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.AspNetCore;
 using CoreEx.Events;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
@@ -40,7 +39,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <typeparam name="TValidator">The <typeparamref name="TRequest"/> validator <see cref="Type"/>.</typeparam>
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
-        /// <param name="validator">The  <see cref="AbstractValidator{T}"/>.</param>
+        /// <param name="validator">The  <see cref="AbstractValidator{TRequest}"/>.</param>
         /// <param name="function">The function logic to invoke that is passed the converted HTTP JSON <see cref="HttpRequest.Body"/> for use.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.NoContent"/>.</param>
@@ -48,6 +47,9 @@ namespace CoreEx.Functions.FluentValidation
         public static async Task<IActionResult> RunAsync<TRequest, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, TValidator validator, Func<TRequest, Task> function, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.NoContent)
             where TValidator : AbstractValidator<TRequest>
         {
+            if (executor == null)
+                throw new ArgumentNullException(nameof(executor));
+
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
@@ -76,7 +78,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
         public static Task<IActionResult> RunWithResultAsync<TRequest, TValidator, TResult>(this IHttpTriggerExecutor executor, HttpRequest request, Func<TRequest, Task<TResult>> function, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.OK)
             where TValidator : AbstractValidator<TRequest>, new()
-            => RunAsync(executor, request, new TValidator(), function, valueIsRequired, successStatusCode);
+            => RunWithResultAsync(executor, request, new TValidator(), function, valueIsRequired, successStatusCode);
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="HttpRequest"/> <paramref name="function"/> including converting the HTTP JSON <see cref="HttpRequest.Body"/> to <see cref="Type"/> <typeparamref name="TRequest"/> returning the JSON-serialized <typeparamref name="TResult"/> value and <paramref name="successStatusCode"/>.
@@ -86,7 +88,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <typeparam name="TResult">The result value <see cref="Type"/>.</typeparam>
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
-        /// <param name="validator">The  <see cref="AbstractValidator{T}"/>.</param>
+        /// <param name="validator">The  <see cref="AbstractValidator{TRequest}"/>.</param>
         /// <param name="function">The function logic to invoke that is passed the converted HTTP JSON <see cref="HttpRequest.Body"/> for use.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.OK"/>.</param>
@@ -94,6 +96,9 @@ namespace CoreEx.Functions.FluentValidation
         public static async Task<IActionResult> RunWithResultAsync<TRequest, TValidator, TResult>(this IHttpTriggerExecutor executor, HttpRequest request, TValidator validator, Func<TRequest, Task<TResult>> function, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.OK)
             where TValidator : AbstractValidator<TRequest>
         {
+            if (executor == null)
+                throw new ArgumentNullException(nameof(executor));
+
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
@@ -133,7 +138,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <typeparam name="TValidator">The <typeparamref name="TRequest"/> validator <see cref="Type"/>.</typeparam>
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/></param>
-        /// <param name="validator">The <see cref="AbstractValidator{T}"/>.</param>
+        /// <param name="validator">The <see cref="AbstractValidator{TRequest}"/>.</param>
         /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable the <see cref="EventData"/> instance to be updated prior to publish.</param>
@@ -180,7 +185,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <typeparam name="TValidator">The <typeparamref name="TColl"/> validator <see cref="Type"/>.</typeparam>
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/></param>
-        /// <param name="validator">The <see cref="AbstractValidator{T}"/>.</param>
+        /// <param name="validator">The <see cref="AbstractValidator{TRequest}"/>.</param>
         /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable each <see cref="EventData"/> instance to be updated prior to publish.</param>

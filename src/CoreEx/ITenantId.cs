@@ -8,7 +8,7 @@ namespace CoreEx
     public interface ITenantId
     {
         /// <summary>
-        /// Gets the partition key.
+        /// Gets the tenant identifier.
         /// </summary>
         public string? TenantId { get; }
     }

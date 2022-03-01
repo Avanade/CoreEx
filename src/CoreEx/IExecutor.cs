@@ -13,6 +13,11 @@ namespace CoreEx
     public interface IExecutor
     {
         /// <summary>
+        /// Gets the <see cref="CoreEx.ExecutionContext"/>.
+        /// </summary>
+        ExecutionContext ExecutionContext { get; }
+
+        /// <summary>
         /// Gets the <see cref="SettingsBase"/>.
         /// </summary>
         SettingsBase Settings { get; }

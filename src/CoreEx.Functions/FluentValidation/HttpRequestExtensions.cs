@@ -5,6 +5,7 @@ using CoreEx.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CoreEx.Functions.FluentValidation
@@ -42,6 +43,9 @@ namespace CoreEx.Functions.FluentValidation
         {
             var jv = await httpRequest.ReadAsJsonValueAsync<T>(jsonSerializer, valueIsRequired).ConfigureAwait(false);
             if (jv.IsInvalid)
+                return jv;
+
+            if (!valueIsRequired && Comparer<T>.Default.Compare(jv.Value, default!) == 0)
                 return jv;
 
             var fvr = (validator ?? throw new ArgumentNullException(nameof(validator))).Validate(jv.Value);

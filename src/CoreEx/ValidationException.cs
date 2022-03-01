@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
 using System.Net;
+using System.Text;
 
 namespace CoreEx
 {
@@ -44,7 +45,7 @@ namespace CoreEx
         /// </summary>
         /// <param name="modelStateDictionary">The <see cref="ModelStateDictionary"/> that contains the validation errors.</param>
         /// <param name="message">The error message.</param>
-        public ValidationException(ModelStateDictionary modelStateDictionary, string? message = null) : this(message)
+        public ValidationException(ModelStateDictionary modelStateDictionary, string? message = null) : this(CreateMessage(modelStateDictionary, message ?? _message))
             => ModelStateDictionary = modelStateDictionary ?? throw new ArgumentNullException(nameof(modelStateDictionary));
 
         /// <summary>
@@ -78,5 +79,25 @@ namespace CoreEx
 
         /// <inheritdoc/>
         public IActionResult ToResult() => ModelStateDictionary == null || ModelStateDictionary.IsValid ? new BadRequestObjectResult(Message) : new BadRequestObjectResult(ModelStateDictionary);
+
+        /// <summary>
+        /// Creates the exception message.
+        /// </summary>
+        private static string CreateMessage(ModelStateDictionary msd, string message)
+        {
+            if (msd == null || msd.IsValid)
+                return message;
+
+            var sb = new StringBuilder(message);
+            foreach (var kvp in msd)
+            {
+                foreach (var e in kvp.Value.Errors)
+                {
+                    sb.Append($"{Environment.NewLine}\t{kvp.Key}: {e.ErrorMessage}");
+                }
+            }
+
+            return sb.ToString();
+        }
     }
 }
