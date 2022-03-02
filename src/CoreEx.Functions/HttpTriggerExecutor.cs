@@ -141,7 +141,7 @@ namespace CoreEx.Functions
         }
 
         /// <inheritdoc/>
-        public async Task<IActionResult> RunPublishAsync<TRequest>(HttpRequest request, IEventPublisher eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null)
+        public async Task<IActionResult> RunPublishAsync<TRequest>(HttpRequest request, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null)
         {
             if (eventPublisher == null)
                 throw new ArgumentNullException(nameof(eventPublisher));
@@ -168,7 +168,7 @@ namespace CoreEx.Functions
         }
 
         /// <inheritdoc/>
-        public async Task<IActionResult> RunPublishCollAsync<TColl, TItem>(HttpRequest request, IEventPublisher eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null) where TColl : IEnumerable<TItem>
+        public async Task<IActionResult> RunPublishCollAsync<TColl, TItem>(HttpRequest request, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null) where TColl : IEnumerable<TItem>
         {
             if (eventPublisher == null)
                 throw new ArgumentNullException(nameof(eventPublisher));

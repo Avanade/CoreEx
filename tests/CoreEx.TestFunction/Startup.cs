@@ -25,6 +25,7 @@ namespace CoreEx.TestFunction
                 .AddScoped<SettingsBase, TestSettings>()
                 .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                 .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
+                .AddScoped<IEventPublisherBase, NullEventPublisher>()
                 .AddScoped<IHttpTriggerExecutor, HttpTriggerExecutor>()
                 .AddScoped<IServiceBusTriggerExecutor, ServiceBusTriggerExecutor>();
 
@@ -32,13 +33,13 @@ namespace CoreEx.TestFunction
             builder.Services.AddHttpClient<BackendHttpClient>("Backend", (sp, hc) =>
             {
                 var settings = sp.GetService<TestSettings>();
-                hc.BaseAddress = settings.BackendEndpoint;
+                hc.BaseAddress = settings.BackendBaseAddress;
             });
 
             // Register the underlying function services.
             builder.Services
-                .AddAutoMapper(typeof(HttpTriggerService).Assembly)
-                .AddScoped<HttpTriggerService>();
+                .AddAutoMapper(typeof(ProductService).Assembly)
+                .AddScoped<ProductService>();
         }
     }
 }

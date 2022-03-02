@@ -11,7 +11,7 @@ using System.Net;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Represents a <see cref="IEventPublisher"/> exception.
+    /// Represents a <see cref="IEventPublisherBase"/> exception.
     /// </summary>
     public class EventPublisherException : Exception, IExceptionResult
     {
@@ -61,7 +61,7 @@ namespace CoreEx.Events
     }
 
     /// <summary>
-    /// Represents an <see cref="IEventPublisher"/> data (<see cref="EventData"/>) error.
+    /// Represents an <see cref="IEventPublisherBase"/> data (<see cref="EventData"/>) error.
     /// </summary>
     public class EventPublisherDataError
     {

@@ -10,11 +10,10 @@ using System.Runtime.CompilerServices;
 namespace CoreEx.Configuration
 {
     /// <summary>
-    /// Provides the base <see cref="IConfiguration"/>-backed settings; see <see cref="GetValue{T}(string, T)"/> to understand capabilities.
+    /// Provides the base <see cref="Configuration"/>-backed settings; see <see cref="GetValue{T}(string, T)"/> to further understand capabilities.
     /// </summary>
     public abstract class SettingsBase
     {
-        private readonly IConfiguration _configuration;
         private readonly List<string> _prefixes = new();
 
         /// <summary>
@@ -24,7 +23,7 @@ namespace CoreEx.Configuration
         /// <param name="prefixes">The key prefixes to use in order of precedence, first through to last. At least one prefix must be specified.</param>
         public SettingsBase(IConfiguration configuration, params string[] prefixes)
         {
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
             if ((prefixes ?? throw new ArgumentNullException(nameof(prefixes))).Length == 0)
                 throw new ArgumentException("At least one prefix must be specified.", nameof(prefixes));
@@ -37,6 +36,11 @@ namespace CoreEx.Configuration
                 _prefixes.Add(prefix.EndsWith('/') ? prefix : string.Concat(prefix, '/'));
             }
         }
+
+        /// <summary>
+        /// Gets the underlying <see cref="IConfiguration"/>.
+        /// </summary>
+        public IConfiguration Configuration { get; }
 
         /// <summary>
         /// Gets the value using the specified <paramref name="key"/> excluding any prefix (key is inferred where not specified using <see cref="CallerMemberNameAttribute"/>).
@@ -55,11 +59,11 @@ namespace CoreEx.Configuration
             foreach (var prefix in _prefixes)
             {
                 var fullKey = string.Concat(prefix, key);
-                if (_configuration.GetSection(fullKey)?.Value != null)
-                    return _configuration.GetValue<T>(fullKey);
+                if (Configuration.GetSection(fullKey)?.Value != null)
+                    return Configuration.GetValue<T>(fullKey);
             }
             
-            return _configuration.GetValue(key, defaultValue);
+            return Configuration.GetValue(key, defaultValue);
         }
 
         /// <summary>
@@ -80,14 +84,14 @@ namespace CoreEx.Configuration
             foreach (var prefix in _prefixes)
             {
                 var fullKey = string.Concat(prefix, key);
-                if (_configuration.GetSection(fullKey)?.Value != null)
-                    return _configuration.GetValue<T>(fullKey);
+                if (Configuration.GetSection(fullKey)?.Value != null)
+                    return Configuration.GetValue<T>(fullKey);
             }
 
-            if (_configuration.GetSection(key)?.Value == null)
+            if (Configuration.GetSection(key)?.Value == null)
                 throw new ArgumentException($"Configuration key '{key}' has not been configured and the value is required.", nameof(key));
 
-            return _configuration.GetValue<T>(key);
+            return Configuration.GetValue<T>(key);
         }
 
         /// <summary>

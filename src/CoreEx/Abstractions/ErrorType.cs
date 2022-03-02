@@ -50,6 +50,11 @@ namespace CoreEx.Abstractions
         /// <summary>
         /// Indicates a Transient error.
         /// </summary>
-        TransientError = 9
+        TransientError = 9,
+
+        /// <summary>
+        /// Indicates an unknown/unhandled error.
+        /// </summary>
+        UnhandledError = 88
     }
 }

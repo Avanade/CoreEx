@@ -144,6 +144,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResponseMessage"/>.</returns>
         protected virtual async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            HttpResponseMessage? response = null;
+
             try
             {
                 foreach (var name in CorrelationHeaderNames)
@@ -154,7 +156,7 @@ namespace CoreEx.Http
                 await RequestLogger.LogRequestAsync(request).ConfigureAwait(false);
 
                 var req = request;
-                var response = await
+                response = await
                     (_retryPolicy ?? HttpPolicyExtensions.HandleTransientHttpError())
                     .WaitAndRetryAsync(_retryCount ?? 0, attempt => TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500))), async (result, timeSpan, retryCount, context) =>
                     {
@@ -180,11 +182,6 @@ namespace CoreEx.Http
 
                 if (_throwValidationException && response.StatusCode == HttpStatusCode.BadRequest)
                     throw new ValidationException(_throwValidationMessage ?? await response.Content.ReadAsStringAsync().ConfigureAwait(false));
-
-                if (_ensureSuccess)
-                    response.EnsureSuccessStatusCode();
-
-                return response;
             }
             catch (HttpRequestException hrex)
             {
@@ -193,6 +190,11 @@ namespace CoreEx.Http
 
                 throw;
             }
+
+            if (_ensureSuccess)
+                response.EnsureSuccessStatusCode();
+
+            return response;
         }
 
         /// <summary>
@@ -246,7 +248,7 @@ namespace CoreEx.Http
         /// <param name="predicate">An oprtional predicate to determine whether the error is considered transient. Defaults to <see cref="IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/> or <see cref="WithRetry(PolicyBuilder{HttpResponseMessage}, int?, double?)"/>.</remarks>
-        public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, bool>? predicate)
+        public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, bool>? predicate = null)
         {
             _throwTransientException = true;
             _isTransient = predicate ?? IsTransient;

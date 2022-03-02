@@ -8,7 +8,7 @@ namespace CoreEx.Events
     /// <summary>
     /// Represents a <c>null</c> event publisher; whereby the events are simply swallowed/discarded on send.
     /// </summary>
-    public class NullEventPublisher : IEventPublisher
+    public class NullEventPublisher : IEventPublisherBase
     {
         /// <inheritdoc/>
         public Task SendAsync(params EventData[] events) => Task.CompletedTask;

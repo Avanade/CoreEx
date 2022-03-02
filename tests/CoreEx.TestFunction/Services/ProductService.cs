@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace CoreEx.TestFunction.Services
 {
-    public class HttpTriggerService
+    public class ProductService
     {
         private readonly BackendHttpClient _backend;
         private readonly IMapper _mapper;
         private readonly ILogger _logger;
 
-        public HttpTriggerService(BackendHttpClient backend, IMapper mapper, ILogger<HttpTriggerService> logger)
+        public ProductService(BackendHttpClient backend, IMapper mapper, ILogger<ProductService> logger)
         {
             _backend = backend;
             _mapper = mapper;
@@ -27,7 +27,7 @@ namespace CoreEx.TestFunction.Services
                     throw new ValidationException("Zed is dead.");
 
                 var bep = _mapper.Map<BackendProduct>(product);
-                var r = await _backend.EnsureSuccess().PostAsync<BackendProduct, BackendProduct>("", bep).ConfigureAwait(false);
+                var r = await _backend.ThrowTransientException().EnsureSuccess().PostAsync<BackendProduct, BackendProduct>("products", bep).ConfigureAwait(false);
 
                 return _mapper.Map<Product>(r);
             }

@@ -18,17 +18,17 @@ namespace CoreEx.TestFunction
         public TestSettings(IConfiguration configuration) : base(configuration, Prefixes) { }
 
         /// <summary>
-        /// Gets the <see cref="BackendHttpClient"/> endpoint URI.
+        /// Gets the <see cref="BackendHttpClient"/> base endpoint/address URI.
         /// </summary>
-        public Uri BackendEndpoint
+        public Uri BackendBaseAddress
         {
             get
             {
-                var uri = GetRequiredValue<string>(nameof(BackendEndpoint));
+                var uri = GetRequiredValue<string>(nameof(BackendBaseAddress));
                 if (Uri.IsWellFormedUriString(uri, UriKind.Absolute))
                     return new Uri(uri, UriKind.Absolute);
                 else
-                    throw new InvalidOperationException($"Configuration key '{nameof(BackendEndpoint)}' is not valid URI: {uri}");
+                    throw new InvalidOperationException($"Configuration key '{nameof(BackendBaseAddress)}' is not a valid URI: {uri}");
             }
         }
     }

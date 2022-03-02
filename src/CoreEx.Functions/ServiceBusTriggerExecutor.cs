@@ -19,15 +19,10 @@ namespace CoreEx.Functions
     /// <remarks>Each <c>Run</c> is wrapped with the same logic. The correlation identifier is set using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a
     /// <see cref="Guid.NewGuid"/> is used as the default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic
     /// with the correlation and message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically 
-    /// deadletter; otherwise, it will be immediately deadletted with a resaon of <see cref="IExtendedException.ErrorType"/> or <see cref="DeadLetterUnhandledReason"/> depending on the exception <see cref="Type"/>.</remarks>
+    /// deadletter; otherwise, it will be immediately deadletted with a resaon of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
     public class ServiceBusTriggerExecutor : Executor, IServiceBusTriggerExecutor
     {
         private const string _errorText = "Invalid message: body was not provided, contained invalid JSON, or was incorrectly formatted:";
-
-        /// <summary>
-        /// Gets or sets the dead letter reason for an unhandled <see cref="Exception"/>.
-        /// </summary>
-        public static string DeadLetterUnhandledReason { get; set; } = "UnhandledError";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceBusTriggerExecutor"/> class.
@@ -86,7 +81,7 @@ namespace CoreEx.Functions
 
                 if (vex != null)
                 {
-                    await DeadLetterExceptionAsync(message, messageActions, ErrorType.ValidationError.ToString(), vex).ConfigureAwait(false);
+                    await DeadLetterExceptionAsync(message, messageActions, ErrorType.ValidationError, vex).ConfigureAwait(false);
                     return;
                 }
 
@@ -111,10 +106,10 @@ namespace CoreEx.Functions
                         throw;
                     }
 
-                    await DeadLetterExceptionAsync(message, messageActions, eex.ErrorType.ToString(), ex).ConfigureAwait(false);
+                    await DeadLetterExceptionAsync(message, messageActions, eex.ErrorType, ex).ConfigureAwait(false);
                 }
                 else
-                    await DeadLetterExceptionAsync(message, messageActions, DeadLetterUnhandledReason, ex).ConfigureAwait(false);
+                    await DeadLetterExceptionAsync(message, messageActions, ErrorType.UnhandledError, ex).ConfigureAwait(false);
             }
             finally
             {
@@ -125,10 +120,10 @@ namespace CoreEx.Functions
         /// <summary>
         /// Performs the dead-lettering.
         /// </summary>
-        private async Task DeadLetterExceptionAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, string reason, Exception ex)
+        private async Task DeadLetterExceptionAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, ErrorType errorType, Exception ex)
         {
-            Logger.LogError(ex, "{Reason} for message '{Message}': {Error}", reason, message.MessageId, ex.Message);
-            await messageActions.DeadLetterMessageAsync(message, reason, ToDeadLetterReason(ex.ToString())).ConfigureAwait(false);
+            Logger.LogError(ex, "{Reason} for Service Bus message '{Message}': {Error}", errorType.ToString(), message.MessageId, ex.Message);
+            await messageActions.DeadLetterMessageAsync(message, errorType.ToString(), ToDeadLetterReason(ex.ToString())).ConfigureAwait(false);
         }
 
         /// <summary>

@@ -120,14 +120,14 @@ namespace CoreEx.Functions.FluentValidation
         /// <typeparam name="TValidator">The <typeparamref name="TRequest"/> validator <see cref="Type"/>.</typeparam>
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/></param>
-        /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
+        /// <param name="eventPublisher">The <see cref="IEventPublisherBase"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable the <see cref="EventData"/> instance to be updated prior to publish.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="beforeEvent">A function that enables the item to be processed before the underlying event publishing logic is enacted.</param>
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.Accepted"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        public static Task<IActionResult> RunPublishAsync<TRequest, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, IEventPublisher eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null)
+        public static Task<IActionResult> RunPublishAsync<TRequest, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null)
             where TValidator : AbstractValidator<TRequest>, new ()
             => RunPublishAsync(executor, request, new TValidator(), eventPublisher, eventName, eventModifier, valueIsRequired, successStatusCode, beforeEvent);
 
@@ -139,14 +139,14 @@ namespace CoreEx.Functions.FluentValidation
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/></param>
         /// <param name="validator">The <see cref="AbstractValidator{TRequest}"/>.</param>
-        /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
+        /// <param name="eventPublisher">The <see cref="IEventPublisherBase"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable the <see cref="EventData"/> instance to be updated prior to publish.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="beforeEvent">A function that enables the item to be processed before the underlying event publishing logic is enacted.</param>
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.Accepted"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        public static async Task<IActionResult> RunPublishAsync<TRequest, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, TValidator validator, IEventPublisher eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null)
+        public static async Task<IActionResult> RunPublishAsync<TRequest, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, TValidator validator, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null)
             where TValidator : AbstractValidator<TRequest>
             => await executor.RunPublishAsync<TRequest>(request, eventPublisher, eventName, eventModifier, valueIsRequired, successStatusCode, async (item) =>
             {
@@ -164,7 +164,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <typeparam name="TValidator">The <typeparamref name="TColl"/> validator <see cref="Type"/>.</typeparam>
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/></param>
-        /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
+        /// <param name="eventPublisher">The <see cref="IEventPublisherBase"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable each <see cref="EventData"/> instance to be updated prior to publish.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
@@ -172,7 +172,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.Accepted"/>.</param>
         /// <param name="beforeEvents">A function that enables the list to be processed before the underlying event publishing logic is enacted.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        public static Task<IActionResult> RunPublishCollAsync<TColl, TItem, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, IEventPublisher eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null)
+        public static Task<IActionResult> RunPublishCollAsync<TColl, TItem, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null)
             where TColl : IEnumerable<TItem>
             where TValidator : AbstractValidator<TColl>, new()
             => RunPublishCollAsync(executor, request, new TValidator(), eventPublisher, eventName, eventModifier, valueIsRequired, maxListSize, successStatusCode, beforeEvents);
@@ -186,7 +186,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <param name="executor">The <see cref="IHttpTriggerExecutor"/>.</param>
         /// <param name="request">The <see cref="HttpRequest"/></param>
         /// <param name="validator">The <see cref="AbstractValidator{TRequest}"/>.</param>
-        /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
+        /// <param name="eventPublisher">The <see cref="IEventPublisherBase"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable each <see cref="EventData"/> instance to be updated prior to publish.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
@@ -194,7 +194,7 @@ namespace CoreEx.Functions.FluentValidation
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.Accepted"/>.</param>
         /// <param name="beforeEvents">A function that enables the list to be processed before the underlying event publishing logic is enacted.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        public static async Task<IActionResult> RunPublishCollAsync<TColl, TItem, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, TValidator validator, IEventPublisher eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null)
+        public static async Task<IActionResult> RunPublishCollAsync<TColl, TItem, TValidator>(this IHttpTriggerExecutor executor, HttpRequest request, TValidator validator, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null)
             where TColl : IEnumerable<TItem>
             where TValidator : AbstractValidator<TColl>
             => await executor.RunPublishCollAsync<TColl, TItem>(request, eventPublisher, eventName, eventModifier, valueIsRequired, maxListSize, successStatusCode, async (list) =>

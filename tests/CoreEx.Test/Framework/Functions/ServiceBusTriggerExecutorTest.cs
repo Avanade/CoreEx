@@ -112,7 +112,7 @@ namespace CoreEx.Test.Framework.Functions
                 .Run(f => f.RunAsync<Product>(message, actionsMock.Object, ed => throw new DivideByZeroException()))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ServiceBusTriggerExecutor.DeadLetterUnhandledReason, It.IsAny<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.UnhandledError.ToString(), It.IsAny<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 

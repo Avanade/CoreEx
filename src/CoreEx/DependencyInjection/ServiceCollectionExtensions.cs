@@ -1,7 +1,11 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Events;
+using CoreEx.Json;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Linq;
+using Stj = System.Text.Json;
 
 namespace CoreEx.DependencyInjection
 {
@@ -10,6 +14,21 @@ namespace CoreEx.DependencyInjection
     /// </summary>
     public static class ServiceCollectionExtensions
     {
+        /// <summary>
+        /// Removes all items from the <see cref="IServiceCollection"/> for the specified <typeparamref name="TService"/>.
+        /// </summary>
+        /// <typeparam name="TService">The service <see cref="Type"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns><c>true</c> if item was successfully removed; otherwise, <c>false</c>. Also returns <c>false</c> where item was not found.</returns>
+        public static bool Remove<TService>(this IServiceCollection services) where TService : class
+        {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+
+            var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(TService));
+            return descriptor != null && services.Remove(descriptor);
+        }
+
         /// <summary>
         /// Adds a scoped service to instantiate a new <see cref="ExecutionContext"/> instance.
         /// </summary>

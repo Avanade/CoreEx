@@ -19,9 +19,9 @@ namespace CoreEx.Newtonsoft.Json
     {
         private readonly static ContractResolver _default = new();
 
-        private readonly HashSet<Type> _typeDict = new();
-        private readonly ConcurrentDictionary<Type, Dictionary<string, string>> _renameDict = new();
-        private readonly ConcurrentDictionary<Type, HashSet<string>> _ignoreDict = new();
+        private HashSet<Type>? _typeDict;
+        private ConcurrentDictionary<Type, Dictionary<string, string>>? _renameDict;
+        private ConcurrentDictionary<Type, HashSet<string>>? _ignoreDict;
 
         /// <summary>
         /// Static constructor.
@@ -55,7 +55,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
         public ContractResolver AddType(Type type)
         {
-            _typeDict.Add(type);
+            (_typeDict ??= new HashSet<Type>()).Add(type);
             return this;
         }
 
@@ -102,7 +102,7 @@ namespace CoreEx.Newtonsoft.Json
             if (propertyName == jsonName)
                 return this;
 
-            _renameDict.AddOrUpdate(type, t => new Dictionary<string, string> { { propertyName, jsonName } }, (t, d) => { d.TryAdd(propertyName, jsonName); return d; });
+            (_renameDict ??= new ConcurrentDictionary<Type, Dictionary<string, string>>()).AddOrUpdate(type, t => new Dictionary<string, string> { { propertyName, jsonName } }, (t, d) => { d.TryAdd(propertyName, jsonName); return d; });
 
             return this;
         }
@@ -121,7 +121,7 @@ namespace CoreEx.Newtonsoft.Json
             if (propertyNames == null || propertyNames.Length == 0)
                 return this;
 
-            _ignoreDict.AddOrUpdate(type, t => new HashSet<string>(propertyNames), (t, hs) => { hs.UnionWith(propertyNames); return hs; });
+            (_ignoreDict ??= new ConcurrentDictionary<Type, HashSet<string>>()).AddOrUpdate(type, t => new HashSet<string>(propertyNames), (t, hs) => { hs.UnionWith(propertyNames); return hs; });
             return this;
         }
 
@@ -131,7 +131,7 @@ namespace CoreEx.Newtonsoft.Json
             var property = base.CreateProperty(member, memberSerialization);
             var type = property.DeclaringType!.IsGenericType ? property.DeclaringType!.GetGenericTypeDefinition() : property.DeclaringType!;
 
-            if (_ignoreDict.TryGetValue(type, out var hs))
+            if (_ignoreDict != null && _ignoreDict.TryGetValue(type, out var hs))
             {
                 if (hs.Contains(property.PropertyName!))
                 {
@@ -141,9 +141,9 @@ namespace CoreEx.Newtonsoft.Json
                 }
             }
 
-            if (_renameDict.TryGetValue(type, out var d) && d.TryGetValue(property.PropertyName!, out var jn))
+            if (_renameDict != null && _renameDict.TryGetValue(type, out var d) && d.TryGetValue(property.PropertyName!, out var jn))
                 property.PropertyName = jn;
-            else if (_typeDict.TryGetValue(type, out _))
+            else if (_typeDict != null && _typeDict.TryGetValue(type, out _))
             {
                 var jpna = member.GetCustomAttribute<Stj.JsonPropertyNameAttribute>(true);
                 if (jpna != null)

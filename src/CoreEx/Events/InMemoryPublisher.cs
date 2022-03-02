@@ -1,29 +1,50 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Json;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Provides an in-memory publisher which can be used for the likes of testing.
+    /// Provides an in-memory publisher base which can be used for the likes of testing.
     /// </summary>
-    public class InMemoryPublisher : IEventPublisher
+    /// <remarks>Where a <see cref="Logger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
+    public class InMemoryPublisher : IEventPublisherBase
     {
         private readonly ConcurrentDictionary<string?, ConcurrentQueue<EventData>> _dict = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InMemoryPublisher"/> class.
         /// </summary>
-        /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
-        public InMemoryPublisher(EventDataFormatter? eventDataFormatter = null) => EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
+        /// <param name="logger">The optional <see cref="ILogger"/> for logging the events (each <see cref="EventData"/>).</param>
+        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/> used specifically for logging. Defaults to <see cref="CoreEx.Json.JsonSerializer.Default"/>.</param>
+        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>; defaults where not specified.</param>
+        public InMemoryPublisher(ILogger? logger = null, IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null)
+        {
+            Logger = logger;
+            JsonSerializer = jsonSerializer ?? CoreEx.Json.JsonSerializer.Default;
+            EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
+        }
 
         /// <summary>
-        /// Gets the <see cref="Events.EventDataFormatter"/>.
+        /// Gets the <see cref="Logger"/>.
         /// </summary>
-        public EventDataFormatter EventDataFormatter { get; }
+        protected ILogger? Logger { get; }
+
+        /// <summary>
+        /// Gets the <see cref="IJsonSerializer"/>.
+        /// </summary>
+        protected IJsonSerializer JsonSerializer { get; }
+
+        /// <summary>
+        /// Gets the <see cref="EventDataFormatter"/>.
+        /// </summary>
+        protected EventDataFormatter EventDataFormatter { get; }
 
         /// <inheritdoc/>
         public Task SendAsync(params EventData[] events) => SendInternalAsync(null, events);
@@ -42,14 +63,20 @@ namespace CoreEx.Events
         /// </summary>
         private Task SendInternalAsync(string? name, EventData[] events)
         {
+            var sb = new StringBuilder($"The following events were sent{(name == null ? ":" : $" to '{name}':")}");
+
             var queue = _dict.GetOrAdd(name, _ => new ConcurrentQueue<EventData>());
-            foreach (var @event in events)
+            foreach (var @event in events.Where(e => e != null))
             {
                 var e = @event.Copy();
                 EventDataFormatter.Format(e);
                 queue.Enqueue(e);
+
+                sb.AppendLine();
+                sb.Append(JsonSerializer.Serialize(e, JsonWriteFormat.Indented));
             }
 
+            Logger?.LogInformation("{Events}", sb.ToString());
             return Task.CompletedTask;
         }
 

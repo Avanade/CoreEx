@@ -68,14 +68,14 @@ namespace CoreEx.Functions
         /// </summary>
         /// <typeparam name="TRequest">The request value <see cref="Type"/>.</typeparam>
         /// <param name="request">The <see cref="HttpRequest"/></param>
-        /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
+        /// <param name="eventPublisher">The <see cref="IEventPublisherBase"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable the <see cref="EventData"/> instance to be updated prior to publish.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="beforeEvent">A function that enables the item to be processed before the underlying event publishing logic is enacted.</param>
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.Accepted"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        Task<IActionResult> RunPublishAsync<TRequest>(HttpRequest request, IEventPublisher eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null);
+        Task<IActionResult> RunPublishAsync<TRequest>(HttpRequest request, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TRequest>? eventModifier = null, bool valueIsRequired = true, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TRequest, Task>? beforeEvent = null);
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="HttpRequest"/> that contains a collection of items to be published (<paramref name="eventPublisher"/>) returning an <see cref="AcceptedResult"/> where successful.
@@ -83,7 +83,7 @@ namespace CoreEx.Functions
         /// <typeparam name="TColl">The batch list <see cref="Type"/>.</typeparam>
         /// <typeparam name="TItem">The list item <see cref="Type"/>.</typeparam>
         /// <param name="request">The <see cref="HttpRequest"/></param>
-        /// <param name="eventPublisher">The <see cref="IEventPublisher"/>.</param>
+        /// <param name="eventPublisher">The <see cref="IEventPublisherBase"/>.</param>
         /// <param name="eventName">The optional event destintion name.</param>
         /// <param name="eventModifier">An action to enable each <see cref="EventData"/> instance to be updated prior to publish.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
@@ -91,7 +91,7 @@ namespace CoreEx.Functions
         /// <param name="beforeEvents">A function that enables the list to be processed before the underlying event publishing logic is enacted.</param>
         /// <param name="successStatusCode">The success <see cref="HttpStatusCode"/>; defaults to <see cref="HttpStatusCode.Accepted"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        Task<IActionResult> RunPublishCollAsync<TColl, TItem>(HttpRequest request, IEventPublisher eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null)
+        Task<IActionResult> RunPublishCollAsync<TColl, TItem>(HttpRequest request, IEventPublisherBase eventPublisher, string? eventName, Action<EventData, TItem>? eventModifier = null, bool valueIsRequired = true, int? maxListSize = null, HttpStatusCode successStatusCode = HttpStatusCode.Accepted, Func<TColl, Task>? beforeEvents = null)
             where TColl : IEnumerable<TItem>;
     }
 }
