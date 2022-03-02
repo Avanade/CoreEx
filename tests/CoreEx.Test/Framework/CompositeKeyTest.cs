@@ -1,6 +1,6 @@
+using CoreEx.Entities;
 using NUnit.Framework;
 using System;
-using System.Buffers;
 
 namespace CoreEx.Test.Framework
 {

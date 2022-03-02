@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
     /// Represents an immutable composite key.

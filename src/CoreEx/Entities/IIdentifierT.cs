@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
     /// Enables the identifier (<see cref="Id"/>) capability.

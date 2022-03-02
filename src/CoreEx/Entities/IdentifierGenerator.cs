@@ -3,7 +3,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
     /// Provides an <see cref="IIdentifierGenerator{T}"/> for both a <see cref="string"/> and <see cref="Guid"/> where each is created using <see cref="Guid.NewGuid()"/>.

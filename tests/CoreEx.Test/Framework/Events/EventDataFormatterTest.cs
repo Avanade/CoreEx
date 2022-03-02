@@ -1,4 +1,5 @@
-﻿using CoreEx.Events;
+﻿using CoreEx.Entities;
+using CoreEx.Events;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using System;

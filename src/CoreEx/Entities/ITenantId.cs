@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
-    /// Provides the <see cref="PartitionKey"/>.
+    /// Provides the <see cref="TenantId"/>.
     /// </summary>
-    public interface IPartitionKey
+    public interface ITenantId
     {
         /// <summary>
-        /// Gets the partition key.
+        /// Gets the tenant identifier.
         /// </summary>
-        public string? PartitionKey { get; }
+        public string? TenantId { get; }
     }
 }

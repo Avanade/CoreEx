@@ -2,7 +2,7 @@
 
 using System.Collections.Generic;
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
     /// Represents a comparer of equality for a <see cref="CompositeKey"/>.

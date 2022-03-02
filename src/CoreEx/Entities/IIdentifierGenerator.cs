@@ -2,7 +2,7 @@
 
 using System.Threading.Tasks;
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
     /// Enables the generation of a new identifier value.

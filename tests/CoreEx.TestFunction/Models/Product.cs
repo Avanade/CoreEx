@@ -1,4 +1,5 @@
-﻿using Nsj = Newtonsoft.Json;
+﻿using CoreEx.Entities;
+using Nsj = Newtonsoft.Json;
 using Stj = System.Text.Json.Serialization;
 
 namespace CoreEx.TestFunction.Models

@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
-    /// Enables the <see cref="GetIdentifier"/> capability.
+    /// Provides the <see cref="PartitionKey"/>.
     /// </summary>
-    public interface IIdentifier
+    public interface IPartitionKey
     {
         /// <summary>
-        /// Gets the identifier.
+        /// Gets the partition key.
         /// </summary>
-        object? GetIdentifier();
+        public string? PartitionKey { get; }
     }
 }

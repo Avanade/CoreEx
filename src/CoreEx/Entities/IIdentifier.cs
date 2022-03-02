@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
-    /// Provides the <see cref="TenantId"/>.
+    /// Enables the <see cref="GetIdentifier"/> capability.
     /// </summary>
-    public interface ITenantId
+    public interface IIdentifier
     {
         /// <summary>
-        /// Gets the tenant identifier.
+        /// Gets the identifier.
         /// </summary>
-        public string? TenantId { get; }
+        object? GetIdentifier();
     }
 }

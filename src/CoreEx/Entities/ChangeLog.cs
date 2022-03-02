@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx
+namespace CoreEx.Entities
 {
     /// <summary>
     /// Represents a change log audit.
