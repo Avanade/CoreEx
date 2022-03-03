@@ -2,7 +2,7 @@ using CoreEx.Entities;
 using NUnit.Framework;
 using System;
 
-namespace CoreEx.Test.Framework
+namespace CoreEx.Test.Framework.Entities
 {
     [TestFixture]
     public class CompositeKeyTest
