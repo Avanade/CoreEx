@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Collections.Specialized;
-using System.ComponentModel;
 
 namespace CoreEx.Entities
 {
@@ -10,53 +8,58 @@ namespace CoreEx.Entities
     /// Represents the base capabilities for a full featured <b>Entity</b>.
     /// </summary>
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
+    /// <remarks>To leverage this base class correctly the following <b>must</b> be overridden: <see cref="Equals(TSelf)"/>, <see cref="GetHashCode"/>, <see cref="CopyFrom(TSelf)"/>, <see cref="IsInitial"/> and <see cref="EntityCore.OnApplyAction(EntityAction)"/>.
+    /// <para>Also, note that when inheriting from a class that already inherits from <see cref="EntityBase{TSelf}"/> then the following interfaces must be added for the new type: <see cref="ICloneable{T}"/>, <see cref="ICopyFrom{T}"/>
+    /// and <see cref="IEquatable{T}"/> to ensure correctness and consistency.</para></remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBase<TSelf> : EntityBase, IEditableObject, ICloneable<TSelf>, ICopyFrom<TSelf>, IEquatable<TSelf>, ICleanUp, IChangeTrackingLogging where TSelf : EntityBase<TSelf>
+    public abstract class EntityBase<TSelf> : EntityBase, ICloneable<TSelf>, ICopyFrom<TSelf>, IEquatable<TSelf>, ICleanUp, IInitial where TSelf : EntityBase<TSelf>, new()
     {
-        private TSelf? _editCopy;
-
 #pragma warning disable IDE0060 // Remove unused parameter; needed to support inheritance.
         /// <summary>
         /// Performs a deep copy from another object updating this instance.
         /// </summary>
         /// <param name="from">The object to copy from.</param>
-        protected void CopyFrom(object? from) { }
+        public void CopyFrom(EntityBase<TSelf> from) { }
 #pragma warning restore IDE0060 // Remove unused parameter
 
         /// <summary>
         /// Performs a deep copy from another object updating this instance.
         /// </summary>
         /// <param name="from">The object to copy from.</param>
-        public abstract void CopyFrom(TSelf from);
+        public virtual void CopyFrom(TSelf from) { }
 
         /// <summary>
-        /// Creates a deep copy of the <see cref="EntityBase{TSelf}"/>.
+        /// Creates a deep clone (copy) of the <see cref="EntityBase{TSelf}"/>.
         /// </summary>
-        /// <returns>A deep copy of the <see cref="EntityBase{TSelf}"/>.</returns>
-        public abstract TSelf Clone();
+        /// <returns>A deep clone of the <see cref="EntityBase{TSelf}"/>.</returns>
+        public TSelf Clone()
+        {
+            var clone = new TSelf();
+            clone.CopyFrom((TSelf)this);
+            return clone;
+        }
 
         /// <inheritdoc/>
         public override bool Equals(object? obj) => (obj is TSelf other) && Equals(other);
 
         /// <inheritdoc/>
-        public abstract bool Equals(TSelf other);
+        public virtual bool Equals(TSelf other) => true;
 
         /// <summary>
-        /// Facilitates the equals comparison to determine whether the specified <paramref name="other"/> is equal to the current instance by comparing the values of all the properties.
+        /// Compares two values for equality.
         /// </summary>
-        /// <param name="other">The object to compare with the current object.</param>
-        /// <param name="compare">The function to perform extended property comparisons.</param>
-        /// <returns><c>true</c> if the specified object is equal to the current object; otherwise, <c>false</c>.</returns>
-        /// <remarks>Performs standardized <c>null</c> and reference equality comparisons before invoking the <paramref name="compare"/> function.</remarks>
-        protected bool Equals(TSelf other, Func<bool> compare)
-        {
-            if (((object)other!) == ((object)this))
-                return true;
-            else if (((object)other!) == null)
-                return false;
+        /// <param name="a"><see cref="ChangeLog"/> A.</param>
+        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <returns><c>true</c> indicates equal; otherwise, <c>false</c> for not equal.</returns>
+        public static bool operator ==(EntityBase<TSelf>? a, EntityBase<TSelf>? b) => Equals(a, b);
 
-            return compare?.Invoke() ?? true;
-        }
+        /// <summary>
+        /// Compares two values for non-equality.
+        /// </summary>
+        /// <param name="a"><see cref="ChangeLog"/> A.</param>
+        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
+        public static bool operator !=(EntityBase<TSelf>? a, EntityBase<TSelf>? b) => !Equals(a, b);
 
         /// <summary>
         /// Returns a hash code for the <see cref="EntityBase{TSelf}"/> (always returns the same value regardless; inheritors should override).
@@ -64,104 +67,24 @@ namespace CoreEx.Entities
         /// <returns>A hash code for the <see cref="EntityBase{TSelf}"/>.</returns>
         public override int GetHashCode() => 0;
 
-        /// <summary>
-        /// Resets the entity state to unchanged by accepting the changes (resets <see cref="ChangeTracking"/>).
-        /// </summary>
-        /// <remarks>Ends and commits the entity changes (see <see cref="EndEdit"/>).</remarks>
-        public override void AcceptChanges()
+        /// <inheritdoc/>
+        public override string ToString()
         {
-            base.AcceptChanges();
-            _editCopy = null;
-            ChangeTracking = null;
-        }
-
-        #region IEditableObject
-
-        /// <summary>
-        /// Begins an edit on an entity.
-        /// </summary>
-        /// <remarks>Sets the entity state to unchanged (see <see cref="AcceptChanges"/>).</remarks>
-        public void BeginEdit()
-        {
-            // Exit where already in edit mode.
-            if (_editCopy != null)
-                return;
-
-            AcceptChanges();
-            _editCopy = Clone();
+            if (this is IIdentifier ii)
+                return $"{base.ToString()} Id={ii.GetIdentifier()}";
+            else if (this is IPrimaryKey pk)
+                return $"{base.ToString()} PrimaryKey={pk}";
+            else
+                return base.ToString();
         }
 
         /// <summary>
-        /// Discards the entity changes since the last <see cref="BeginEdit"/>.
+        /// <inheritdoc/>
         /// </summary>
-        /// <remarks>Resets the entity state to unchanged (see <see cref="AcceptChanges"/>) after the changes have been discarded.</remarks>
-        public void CancelEdit()
-        {
-            if (_editCopy != null)
-                CopyFrom(_editCopy);
+        /// This will trigger the <see cref="EntityCore.OnApplyAction(EntityAction)"/> with <see cref="EntityAction.CleanUp"/>.
+        public void CleanUp() => OnApplyAction(EntityAction.CleanUp);
 
-            AcceptChanges();
-        }
-
-        /// <summary>
-        /// Ends and commits the entity changes since the last <see cref="BeginEdit"/>.
-        /// </summary>
-        /// <remarks>Resets the entity state to unchanged (see <see cref="AcceptChanges"/>).</remarks>
-        public void EndEdit()
-        {
-            if (_editCopy != null)
-                AcceptChanges();
-        }
-
-        #endregion
-
-        #region ICleanup
-
-        /// <summary>
-        /// Performs a clean-up of the <see cref="EntityBase{TSelf}"/> resetting property values as appropriate to ensure a basic level of data consistency.
-        /// </summary>
-        public virtual void CleanUp() { }
-
-        /// <summary>
-        /// Indicates whether considered initial; i.e. all properties have their initial value.
-        /// </summary>
-        public abstract bool IsInitial { get; }
-
-        #endregion
-
-        #region IChangeTracking
-
-        /// <summary>
-        /// Determines that until <see cref="AcceptChanges"/> is invoked property changes are to be logged (see <see cref="ChangeTracking"/>).
-        /// </summary>
-        public virtual void TrackChanges()
-        {
-            if (ChangeTracking == null)
-                ChangeTracking = new StringCollection();
-        }
-
-        /// <summary>
-        /// Listens to the <see cref="OnPropertyChanged"/> to perform <see cref="ChangeTracking"/>.
-        /// </summary>
-        /// <param name="propertyName">The property name.</param>
-        protected override void OnPropertyChanged(string propertyName)
-        {
-            base.OnPropertyChanged(propertyName);
-
-            if (ChangeTracking != null && !ChangeTracking.Contains(propertyName))
-                ChangeTracking.Add(propertyName);
-        }
-
-        /// <summary>
-        /// Lists the properties (names of) that have been changed (note that this property is not JSON serialized).
-        /// </summary>
-        public StringCollection? ChangeTracking { get; private set; }
-
-        /// <summary>
-        /// Indicates whether entity is currently <see cref="ChangeTracking"/>; <see cref="TrackChanges"/> and <see cref="IChangeTracking.AcceptChanges"/>.
-        /// </summary>
-        public bool IsChangeTracking => ChangeTracking != null;
-
-        #endregion
+        /// <inheritdoc/>
+        public virtual bool IsInitial => true;
     }
 }

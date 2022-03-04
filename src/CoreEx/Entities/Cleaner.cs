@@ -180,7 +180,7 @@ namespace CoreEx.Entities
         /// <typeparam name="T">The <see cref="Type"/>.</typeparam>
         /// <param name="value">The value to clean.</param>
         /// <returns>The cleaned value.</returns>
-        /// <remarks>This invokes <see cref="Clean{T}(T, bool)"/> with <c>overrideWithNullWhenIsInitial</c> set to <c>true</c>.</remarks>
+        /// <remarks>This invokes <see cref="Clean{T}(T, bool)"/> with '<c>overrideWithNullWhenIsInitial</c>' parameter set to <c>true</c>.</remarks>
         public static T Clean<T>(T value) => Clean(value, true);
 
         /// <summary>
@@ -193,9 +193,9 @@ namespace CoreEx.Entities
         public static T Clean<T>(T value, bool overrideWithNullWhenIsInitial)
         {
             if (value is string str)
-                return (T)Convert.ChangeType(Clean(str, StringTrim.UseDefault, StringTransform.UseDefault), typeof(T), CultureInfo.CurrentCulture);
+                return (T)Convert.ChangeType(Clean(str, StringTrim.UseDefault, StringTransform.UseDefault), typeof(string), CultureInfo.CurrentCulture);
             else if (value is DateTime dte)
-                return (T)Convert.ChangeType(Clean(dte, DateTimeTransform.UseDefault), typeof(T), CultureInfo.CurrentCulture);
+                return (T)Convert.ChangeType(Clean(dte, DateTimeTransform.UseDefault), typeof(DateTime), CultureInfo.CurrentCulture);
 
             if (value is ICleanUp ic)
                 ic.CleanUp();
@@ -223,20 +223,12 @@ namespace CoreEx.Entities
         }
 
         /// <summary>
-        /// Indicates whether a value is considered in its initial/default state.
+        /// Indicates whether a value is considered in its default state.
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/>.</typeparam>
         /// <param name="value">The value to check.</param>
         /// <returns><c>true</c> indicates that the value is initial; otherwise, <c>false</c>.</returns>
-        public static bool IsInitial<T>(T value)
-        {
-            if (value == null || Comparer<T>.Default.Compare(value, default!) == 0)
-                return true;
-
-            if (value is IInitial ii)
-                return ii.IsInitial;
-
-            return false;
-        }
+        /// <remarks>This determines whether is initial by comparing against its default value; this does not leverage <see cref="IInitial.IsInitial"/>.</remarks>
+        public static bool IsDefault<T>(T value) => value == null || Comparer<T>.Default.Compare(value, default!) == 0;
     }
 }

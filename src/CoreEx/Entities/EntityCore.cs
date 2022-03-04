@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents the code <b>Entity</b> capabilities including <see cref="INotifyPropertyChanged"/> support.
+    /// Represents the core <b>Entity</b> capabilities including <see cref="INotifyPropertyChanged"/> support.
     /// </summary>
     /// <remarks>The <see cref="EntityCore"/> is not thread-safe; it does however, place a lock around all <b>set</b> operations to minimise concurrency challenges.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
@@ -127,7 +127,7 @@ namespace CoreEx.Entities
         /// <param name="propertyName">The name of the primary property that changed.</param>
         /// <param name="secondaryPropertyNames">The names of the secondary properties that need to be advised of the change.</param>
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
-        private bool SetValue<T>(ref T propertyValue, T setValue, bool immutable = false, bool bubblePropertyChanged = false, Func<T, bool>? beforeChange = null, [CallerMemberName] string? propertyName = null, params string[] secondaryPropertyNames)
+        private bool SetValue<T>(ref T propertyValue, T setValue, bool immutable = false, bool bubblePropertyChanged = true, Func<T, bool>? beforeChange = null, [CallerMemberName] string? propertyName = null, params string[] secondaryPropertyNames)
         {
             if (string.IsNullOrEmpty(propertyName))
                 throw new ArgumentNullException(nameof(propertyName));
@@ -137,13 +137,13 @@ namespace CoreEx.Entities
                 // Check and see if the value has changed or not; exit if being set to same value.
                 var isChanged = true;
                 T val = Cleaner.Clean(setValue, false);
-                if (propertyValue is IComparable<T>)
+                if (ReferenceEquals(propertyValue, val))
+                    isChanged = false;
+                else if (propertyValue is IComparable<T>)
                 {
                     if (Comparer<T>.Default.Compare(val, propertyValue) == 0)
                         isChanged = false;
                 }
-                else if (Equals(propertyValue, val))
-                    isChanged = false;
 
                 if (!isChanged && !RaisePropertyChangedWhenSame)
                     return false;
@@ -174,10 +174,6 @@ namespace CoreEx.Entities
                     if (npc != null)
                         npc.PropertyChanged -= GetValue_PropertyChanged(propertyName);
                 }
-
-                // Track changes for the new value where parent (this) is tracking.
-                if (this is IChangeTrackingLogging ct && ct.IsChangeTracking && val is IChangeTrackingLogging sct && !sct.IsChangeTracking)
-                    sct.TrackChanges();
 
                 // Update the property and trigger the property changed.
                 propertyValue = val;
@@ -382,7 +378,12 @@ namespace CoreEx.Entities
         /// <summary>
         /// Resets the entity state to unchanged by accepting the changes.
         /// </summary>
-        public virtual void AcceptChanges() => IsChanged = false;
+        /// <remarks>This will trigger the <see cref="OnApplyAction(EntityAction)"/> with <see cref="EntityAction.AcceptChanges"/>.</remarks>
+        public void AcceptChanges()
+        {
+            OnApplyAction(EntityAction.AcceptChanges);
+            IsChanged = false;
+        }
 
         /// <summary>
         /// Indicates whether the entity has changed.
@@ -395,13 +396,50 @@ namespace CoreEx.Entities
         public bool IsReadOnly { get; private set; }
 
         /// <summary>
-        /// Makes the entity readonly; such that it will no longer support any property changes (see <see cref="IsReadOnly"/>).
+        /// Makes the entity read-only; such that it will no longer support any property changes (see <see cref="IsReadOnly"/>).
         /// </summary>
-        /// <remarks>This will also <see cref="AcceptChanges"/>.</remarks>
+        /// <remarks>This will trigger the <see cref="OnApplyAction(EntityAction)"/> with <see cref="EntityAction.AcceptChanges"/>.</remarks>
         public void MakeReadOnly()
         {
-            AcceptChanges();
+            OnApplyAction(EntityAction.AcceptChanges);
+            IsChanged = false;
             IsReadOnly = true;
+        }
+
+        /// <summary>
+        /// Apply the specified <paramref name="action"/>.
+        /// </summary>
+        /// <param name="action">The <see cref="EntityAction"/> to perform.</param>
+        protected virtual void OnApplyAction(EntityAction action) { }
+
+        /// <summary>
+        /// Applies the specified <paramref name="action"/> on the <paramref name="value"/>.
+        /// </summary>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to perform the <paramref name="action"/> on.</param>
+        /// <param name="action">The <see cref="EntityAction"/> to perform.</param>
+        /// <returns>The value.</returns>
+        protected static T ApplyAction<T>(T value, EntityAction action)
+        {
+            switch (action)
+            {
+                case EntityAction.AcceptChanges:
+                    if (value is EntityCore ac)
+                        ac.AcceptChanges();
+
+                    break;
+
+                case EntityAction.MakeReadOnly:
+                    if (value is EntityCore mro)
+                        mro.MakeReadOnly();
+
+                    break;
+
+                case EntityAction.CleanUp:
+                    return Cleaner.Clean(value);
+            }
+
+            return value;
         }
     }
 }

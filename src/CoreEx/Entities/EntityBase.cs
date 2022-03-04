@@ -11,7 +11,7 @@ namespace CoreEx.Entities
     public abstract class EntityBase : EntityCore
     {
         /// <summary>
-        /// Inializes a new instance of the <see cref="EntityBase"/> class.
+        /// Initializes a new instance of the <see cref="EntityBase"/> class.
         /// </summary>
         internal EntityBase() { }
 
