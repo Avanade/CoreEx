@@ -39,8 +39,6 @@ namespace CoreEx.Entities
         [JsonPropertyName("updatedBy")]
         public string? UpdatedBy { get => _updatedBy; set => SetValue(ref _updatedBy, value); }
 
-        #region IEquatable
-
         /// <summary>
         /// Determines whether the other <see cref="ChangeLog"/> is equal to the current <see cref="ChangeLog"/> by comparing all property values.
         /// </summary>
@@ -66,9 +64,8 @@ namespace CoreEx.Entities
             return base.GetHashCode() ^ hash.ToHashCode();
         }
 
-        #endregion
-
-        #region ICopyFrom
+        /// <inheritdoc/>
+        public override object Clone() => CreateClone(this);
 
         /// <summary>
         /// Performs a copy from another <see cref="ChangeLog"/> updating this instance.
@@ -83,10 +80,6 @@ namespace CoreEx.Entities
             UpdatedBy = from.UpdatedBy;
         }
 
-        #endregion
-
-        #region OnApplyAction
-
         /// <inheritdoc/>
         protected override void OnApplyAction(EntityAction action)
         {
@@ -97,17 +90,11 @@ namespace CoreEx.Entities
             UpdatedBy = ApplyAction(UpdatedBy, action);
         }
 
-        #endregion
-
-        #region IInitial
-
         /// <inheritdoc/>
         public override bool IsInitial => base.IsInitial
             && Cleaner.IsDefault(CreatedDate)
             && Cleaner.IsDefault(CreatedBy)
             && Cleaner.IsDefault(UpdatedDate)
             && Cleaner.IsDefault(UpdatedBy);
-
-        #endregion
     }
 }

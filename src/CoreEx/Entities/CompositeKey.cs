@@ -13,7 +13,7 @@ namespace CoreEx.Entities
     /// </summary>
     /// <remarks>May contain zero or more <see cref="Args"/> that represent the composite key. A subset of the the .NET <see href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types">built-in types</see>
     /// are supported: <see cref="string"/>, <see cref="char"/>, <see cref="short"/>, <see cref="int"/>, <see cref="long"/>, <see cref="ushort"/>, <see cref="uint"/>, <see cref="ulong"/>, <see cref="Guid"/>, <see cref="DateTimeOffset"/> (converted to a <see cref="DateTime"/>) and <see cref="DateTime"/>.</remarks>
-    //[System.Diagnostics.DebuggerStepThrough]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Diagnostics.DebuggerDisplay("Key = {ToString()}")]
     public struct CompositeKey : IEquatable<CompositeKey>
     {

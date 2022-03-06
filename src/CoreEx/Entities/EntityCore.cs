@@ -8,11 +8,11 @@ using System.Runtime.CompilerServices;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents the core <b>Entity</b> capabilities including <see cref="INotifyPropertyChanged"/> support.
+    /// Represents the core <b>Entity</b> capabilities including <see cref="INotifyPropertyChanged"/> <see cref="IChangeTracking"/> support.
     /// </summary>
     /// <remarks>The <see cref="EntityCore"/> is not thread-safe; it does however, place a lock around all <b>set</b> operations to minimise concurrency challenges.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityCore : INotifyPropertyChanged
+    public abstract class EntityCore : INotifyPropertyChanged, IChangeTracking, IReadOnly
     {
         internal const string ValueIsImmutableMessage = "Value is immutable; cannot be changed once already set to a value.";
         internal const string EntityIsReadOnlyMessage = "Entity is read only; property cannot be changed.";
@@ -376,7 +376,7 @@ namespace CoreEx.Entities
         protected bool RaisePropertyChangedWhenSame => NotifyChangesWhenSameValue ?? ShouldNotifyChangesWhenSameValue;
 
         /// <summary>
-        /// Resets the entity state to unchanged by accepting the changes.
+        /// <inheritdoc/>
         /// </summary>
         /// <remarks>This will trigger the <see cref="OnApplyAction(EntityAction)"/> with <see cref="EntityAction.AcceptChanges"/>.</remarks>
         public void AcceptChanges()
@@ -385,23 +385,19 @@ namespace CoreEx.Entities
             IsChanged = false;
         }
 
-        /// <summary>
-        /// Indicates whether the entity has changed.
-        /// </summary>
+        /// <inheritdoc/>
         public bool IsChanged { get; private set; }
 
-        /// <summary>
-        /// Indicates whether the entity is read only (see <see cref="MakeReadOnly"/>).
-        /// </summary>
+        /// <inheritdoc/>
         public bool IsReadOnly { get; private set; }
 
         /// <summary>
-        /// Makes the entity read-only; such that it will no longer support any property changes (see <see cref="IsReadOnly"/>).
+        /// <inheritdoc/>
         /// </summary>
-        /// <remarks>This will trigger the <see cref="OnApplyAction(EntityAction)"/> with <see cref="EntityAction.AcceptChanges"/>.</remarks>
+        /// <remarks>This will trigger the <see cref="OnApplyAction(EntityAction)"/> with <see cref="EntityAction.MakeReadOnly"/>.</remarks>
         public void MakeReadOnly()
         {
-            OnApplyAction(EntityAction.AcceptChanges);
+            OnApplyAction(EntityAction.MakeReadOnly);
             IsChanged = false;
             IsReadOnly = true;
         }
@@ -423,6 +419,9 @@ namespace CoreEx.Entities
         {
             switch (action)
             {
+                case EntityAction.CleanUp:
+                    return Cleaner.Clean(value);
+
                 case EntityAction.AcceptChanges:
                     if (value is EntityCore ac)
                         ac.AcceptChanges();
@@ -434,9 +433,6 @@ namespace CoreEx.Entities
                         mro.MakeReadOnly();
 
                     break;
-
-                case EntityAction.CleanUp:
-                    return Cleaner.Clean(value);
             }
 
             return value;

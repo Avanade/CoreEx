@@ -1,6 +1,7 @@
 ﻿using CoreEx.Entities;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 
 namespace CoreEx.Test.Framework.Entities
 {
@@ -11,7 +12,7 @@ namespace CoreEx.Test.Framework.Entities
         public void ChangeLog_Clone()
         {
             var cl = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            var co = cl.Clone();
+            var co = (ChangeLog)cl.Clone();
 
             Assert.IsNotNull(co);
             Assert.AreEqual("username", co.CreatedBy);
@@ -41,7 +42,7 @@ namespace CoreEx.Test.Framework.Entities
             var cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(cl1.Equals(cl2));
 
-            cl2 = cl1.Clone();
+            cl2 = (ChangeLog)cl1.Clone();
             Assert.IsTrue(cl1.Equals(cl2));
 
             cl2.CreatedBy = "username2";
@@ -62,7 +63,7 @@ namespace CoreEx.Test.Framework.Entities
             cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(cl1 == cl2);
 
-            cl2 = cl1.Clone();
+            cl2 = (ChangeLog)cl1.Clone();
             Assert.IsTrue(cl1 == cl2);
 
             cl2.CreatedBy = "username2";
@@ -76,7 +77,7 @@ namespace CoreEx.Test.Framework.Entities
         public void ChangeLog_HashCode()
         {
             var cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            var cl2 = cl1.Clone();
+            var cl2 = (ChangeLog)cl1.Clone();
             Assert.AreEqual(cl1.GetHashCode(), cl2.GetHashCode());
 
             cl2.CreatedBy = "username2";
@@ -128,7 +129,7 @@ namespace CoreEx.Test.Framework.Entities
         public void Person_Clone()
         {
             var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            var po = p.Clone();
+            var po = (Person)p.Clone();
 
             Assert.IsNotNull(po);
             Assert.AreEqual("dave", po.Name);
@@ -162,7 +163,7 @@ namespace CoreEx.Test.Framework.Entities
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1.Equals(p2));
 
-            p2 = p1.Clone();
+            p2 = (Person)p1.Clone();
             Assert.IsTrue(p1.Equals(p2));
 
             p2.ChangeLog.CreatedBy = "username2";
@@ -186,7 +187,7 @@ namespace CoreEx.Test.Framework.Entities
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1 == p2);
 
-            p2 = p1.Clone();
+            p2 = (Person)p1.Clone();
             Assert.IsTrue(p1 == p2);
 
             p2.ChangeLog.CreatedBy = "username2";
@@ -206,7 +207,7 @@ namespace CoreEx.Test.Framework.Entities
         public void Person_HashCode()
         {
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            var p2 = p1.Clone();
+            var p2 = (Person)p1.Clone();
             Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
 
             p1.Name = "mike";
@@ -317,7 +318,7 @@ namespace CoreEx.Test.Framework.Entities
         public void PersonEx_Clone()
         {
             var p = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            var po = p.Clone();
+            var po = (PersonEx)p.Clone();
 
             Assert.IsNotNull(po);
             Assert.AreEqual("dave", po.Name);
@@ -354,7 +355,7 @@ namespace CoreEx.Test.Framework.Entities
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1.Equals(p2));
 
-            p2 = p1.Clone();
+            p2 = (PersonEx)p1.Clone();
             Assert.IsTrue(p1.Equals(p2));
 
             p2.ChangeLog.CreatedBy = "username2";
@@ -384,7 +385,7 @@ namespace CoreEx.Test.Framework.Entities
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1 == p2);
 
-            p2 = p1.Clone();
+            p2 = (PersonEx)p1.Clone();
             Assert.IsTrue(p1 == p2);
 
             p2.ChangeLog.CreatedBy = "username2";
@@ -410,7 +411,7 @@ namespace CoreEx.Test.Framework.Entities
         public void PersonEx_HashCode()
         {
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            var p2 = p1.Clone();
+            var p2 = (PersonEx)p1.Clone();
             Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
 
             p1.Name = "mike";
@@ -457,9 +458,182 @@ namespace CoreEx.Test.Framework.Entities
             Assert.IsTrue(p.IsInitial);
         }
 
+        [Test]
+        public void Collection_Person_Clone()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+
+            var pc2 = (PersonCollection)pc.Clone();
+            Assert.IsNotNull(pc2);
+            Assert.AreEqual(2, pc2.Count);
+            Assert.IsFalse(ReferenceEquals(pc2[0], p1));
+            Assert.IsFalse(ReferenceEquals(pc2[1], p2));
+            Assert.AreEqual(pc2[0], p1);
+            Assert.AreEqual(pc2[1], p2);
+        }
+
+        [Test]
+        public void Collection_Person_Equals()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+
+            Assert.IsFalse(pc.Equals(null));
+            Assert.IsTrue(pc.Equals(pc));
+
+            var pc2 = (PersonCollection)pc.Clone();
+            Assert.IsTrue(pc.Equals(pc2));
+            pc2.Add(new Person { Name = "john", Age = 35 });
+            Assert.IsFalse(pc.Equals(pc2));
+
+            pc2 = (PersonCollection)pc.Clone();
+            Assert.IsTrue(pc.Equals(pc2));
+            pc2[1].Name = "jenny";
+            Assert.IsFalse(pc.Equals(pc2));
+        }
+
+        [Test]
+        public void Collection_Person_Equals2()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+            var pc2 = pc;
+
+            Assert.IsFalse(pc == null);
+            Assert.IsTrue(pc == pc2);
+
+            pc2 = (PersonCollection)pc.Clone();
+            Assert.IsTrue(pc == pc2);
+            pc2.Add(new Person { Name = "john", Age = 35 });
+            Assert.IsFalse(pc == pc2);
+
+            pc2 = (PersonCollection)pc.Clone();
+            Assert.IsTrue(pc == pc2);
+            pc2[1].Name = "jenny";
+            Assert.IsFalse(pc == pc2);
+        }
+
+        [Test]
+        public void Collection_Person_HashCode()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+            var pc2 = (PersonCollection)pc.Clone();
+            Assert.AreEqual(pc.GetHashCode(), pc2.GetHashCode());
+
+            pc2[0].ChangeLog.CreatedBy = "username2";
+            Assert.AreNotEqual(pc.GetHashCode(), pc2.GetHashCode());
+        }
+
+        [Test]
+        public void Collection_Person_AcceptChanges()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1 };
+            Assert.IsTrue(pc.IsChanged);
+            Assert.IsTrue(pc[0].IsChanged);
+            Assert.IsTrue(pc[0].ChangeLog.IsChanged);
+
+            pc.AcceptChanges();
+            Assert.IsFalse(pc.IsChanged);
+            Assert.IsFalse(pc[0].IsChanged);
+            Assert.IsFalse(pc[0].ChangeLog.IsChanged);
+
+            pc.Add(p2);
+            Assert.IsTrue(pc.IsChanged);
+            Assert.IsFalse(pc[0].IsChanged);
+            Assert.IsFalse(pc[0].ChangeLog.IsChanged);
+            Assert.IsTrue(pc[1].IsChanged);
+
+            pc.AcceptChanges();
+            Assert.IsFalse(pc.IsChanged);
+            Assert.IsFalse(pc[0].IsChanged);
+            Assert.IsFalse(pc[0].ChangeLog.IsChanged);
+            Assert.IsFalse(pc[1].IsChanged);
+
+            pc[0].ChangeLog.CreatedBy = "username2";
+            Assert.IsTrue(pc.IsChanged);
+            Assert.IsTrue(pc[0].IsChanged);
+            Assert.IsTrue(pc[0].ChangeLog.IsChanged);
+            Assert.IsFalse(pc[1].IsChanged);
+        }
+
+        [Test]
+        public void Collection_Person_MakeReadOnly()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1 };
+            pc.MakeReadOnly();
+            Assert.IsTrue(pc.IsReadOnly);
+            Assert.IsTrue(pc[0].IsReadOnly);
+            Assert.IsTrue(pc[0].ChangeLog.IsReadOnly);
+            Assert.Throws<InvalidOperationException>(() => pc.Add(p2));
+            Assert.AreEqual(1, pc.Count);
+
+            Assert.Throws<InvalidOperationException>(() => pc.Clear());
+            Assert.AreEqual(1, pc.Count);
+
+            Assert.Throws<InvalidOperationException>(() => pc.Remove(p1));
+            Assert.AreEqual(1, pc.Count);
+
+            Assert.Throws<InvalidOperationException>(() => pc.RemoveAt(0));
+            Assert.AreEqual(1, pc.Count);
+
+            Assert.Throws<InvalidOperationException>(() => pc[0] = p2);
+            Assert.AreEqual(1, pc.Count);
+        }
+
+        [Test]
+        public void Collection_Person_GetByPrimaryKey()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+
+            var pi = pc.GetByPrimaryKey();
+            Assert.IsNull(pi);
+
+            pi = pc.GetByPrimaryKey("dave");
+            Assert.AreEqual(pi, p1);
+
+            pi = pc.GetByPrimaryKey("bazza");
+            Assert.IsNull(pi);
+
+            pi = pc.GetByPrimaryKey(p1.PrimaryKey);
+            Assert.AreEqual(pi, p1);
+
+            pi = pc.GetByPrimaryKey(new CompositeKey("bazza"));
+            Assert.IsNull(pi);
+        }
+
+        [Test]
+        public void CollectionResult_Person()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+            var pcr = new PersonCollectionResult(pc);
+            Assert.AreSame(pcr.Result, pc);
+
+            var pc2 = (PersonCollection)pcr;
+            Assert.AreSame(pc, pc2);
+
+            var pcr2 = (PersonCollectionResult)pcr.Clone();
+            Assert.IsFalse(ReferenceEquals(pcr2, pcr));
+            Assert.IsTrue(pcr2.Equals(pcr));
+            Assert.IsTrue(pcr2 == pcr);
+        }
+
         private DateTime CreateDateTime() => new DateTime(2000, 01, 01, 12, 45, 59);
 
-        internal class Person : EntityBase<Person>
+        public class Person : EntityBase<Person>, IPrimaryKey
         {
             private string _name;
             private int _age;
@@ -468,6 +642,10 @@ namespace CoreEx.Test.Framework.Entities
             public string Name { get => _name; set => SetValue(ref _name, value); }
             public int Age { get => _age; set => SetValue(ref _age, value); }
             public ChangeLog ChangeLog { get => _changeLog; set => SetValue(ref _changeLog, value); }
+
+            public CompositeKey PrimaryKey => new CompositeKey(Name);
+
+            public override object Clone() => CreateClone(this);
 
             public override bool Equals(Person other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
                 && Equals(Name, other!.Name)
@@ -505,7 +683,25 @@ namespace CoreEx.Test.Framework.Entities
                 && Cleaner.IsDefault(ChangeLog);
         }
 
-        internal class PersonEx : Person, ICloneable<PersonEx>, ICopyFrom<PersonEx>, IEquatable<PersonEx>
+        public class PersonCollection : EntityBaseCollection<Person, PersonCollection>
+        {
+            public PersonCollection() { }
+
+            public PersonCollection(IEnumerable<Person> entities) : base(entities) { }
+
+            public static implicit operator PersonCollection(PersonCollectionResult result) => result?.Result!;
+        }
+
+        public class PersonCollectionResult : EntityCollectionResult<PersonCollection, Person, PersonCollectionResult>
+        {
+            public PersonCollectionResult() { }
+
+            public PersonCollectionResult(PagingArgs paging) : base(paging) { }
+
+            public PersonCollectionResult(PersonCollection collection, PagingArgs paging = null) : base(paging) => Result = collection;
+        }
+
+        public class PersonEx : Person, ICopyFrom<PersonEx>, IEquatable<PersonEx>
         {
             private decimal? _salary;
 
@@ -527,12 +723,7 @@ namespace CoreEx.Test.Framework.Entities
                 return base.GetHashCode() ^ hash.ToHashCode();
             }
 
-            public new PersonEx Clone()
-            {
-                var clone = new PersonEx();
-                clone.CopyFrom(this);
-                return clone;
-            }
+            public override object Clone() => CreateClone(this);
 
             public void CopyFrom(PersonEx from)
             {
@@ -549,6 +740,20 @@ namespace CoreEx.Test.Framework.Entities
 
             public override bool IsInitial => base.IsInitial
                 && Cleaner.IsDefault(Salary);
+        }
+
+        public class PersonExCollection : EntityBaseCollection<PersonEx, PersonExCollection>
+        {
+            public PersonExCollection() { }
+
+            public PersonExCollection(IEnumerable<PersonEx> entities) : base(entities) { }
+
+            ///// <summary>
+            ///// An implicit cast from the <see cref="PersonCollectionResult"/> to a corresponding <see cref="PersonCollection"/>.
+            ///// </summary>
+            ///// <param name="result">The <see cref="PersonCollectionResult"/>.</param>
+            ///// <returns>The corresponding <see cref="PersonCollection"/>.</returns>
+            //public static implicit operator PersonCollection(PersonCollectionResult result) => result?.Result!;
         }
     }
 }
