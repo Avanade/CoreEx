@@ -2,6 +2,7 @@
 
 using CoreEx.Abstractions;
 using CoreEx.AspNetCore;
+using CoreEx.Localization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
@@ -32,20 +33,26 @@ namespace CoreEx
         /// Initializes a new instance of the <see cref="TransientException"/> class using the specified <paramref name="message"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
-        public TransientException(string? message) : base(message ?? _message) { }
+        public TransientException(string? message) : base(message ?? new LText(typeof(TransientException).FullName, _message)) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TransientException"/> class using the specified <paramref name="message"/> and <paramref name="innerException"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <param name="innerException">The inner <see cref="Exception"/>.</param>
-        public TransientException(string? message, Exception innerException) : base(message ?? _message, innerException) { }
+        public TransientException(string? message, Exception innerException) : base(message ?? new LText(typeof(TransientException).FullName, _message), innerException) { }
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <returns>The <see cref="ErrorType.TransientError"/> value.</returns>
-        public ErrorType ErrorType => ErrorType.TransientError;
+        /// <returns>The <see cref="ErrorType.TransientError"/> value as a <see cref="string"/>.</returns>
+        public string ErrorReason => ErrorType.TransientError.ToString();
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <returns>The <see cref="ErrorType.TransientError"/> value as a <see cref="string"/>.</returns>
+        public int ErrorCode => (int)ErrorType.TransientError;
 
         /// <summary>
         /// <inheritdoc/>

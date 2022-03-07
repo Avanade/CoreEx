@@ -1,9 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Entities;
+using CoreEx.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 
@@ -25,39 +29,55 @@ namespace CoreEx
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class.
         /// </summary>
-        public ValidationException() : this(null!) { }
+        public ValidationException() : this((string?)null!) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class using the specified <paramref name="message"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
-        public ValidationException(string? message) : base(message ?? _message) { }
+        public ValidationException(string? message) : base(message ?? new LText(typeof(ValidationException).FullName, _message)) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class using the specified <paramref name="message"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <param name="innerException">The inner <see cref="Exception"/>.</param>
-        public ValidationException(string? message, Exception innerException) : base(message ?? _message, innerException) { }
+        public ValidationException(string? message, Exception innerException) : base(message ?? new LText(typeof(ValidationException).FullName, _message), innerException) { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ValidationException"/> class using the specified <paramref name="modelStateDictionary"/> and <paramref name="message"/>.
+        /// Initializes a new instance of the <see cref="ValidationException"/> with a <see cref="MessageItem"/> list and optional <paramref name="message"/>.
         /// </summary>
-        /// <param name="modelStateDictionary">The <see cref="ModelStateDictionary"/> that contains the validation errors.</param>
+        /// <param name="messages">The <see cref="MessageItem"/> list.</param>
         /// <param name="message">The error message.</param>
-        public ValidationException(ModelStateDictionary modelStateDictionary, string? message = null) : this(CreateMessage(modelStateDictionary, message ?? _message))
-            => ModelStateDictionary = modelStateDictionary ?? throw new ArgumentNullException(nameof(modelStateDictionary));
+        public ValidationException(IEnumerable<MessageItem> messages, string? message = null) : base(CreateMessage(messages, message ?? new LText(typeof(ValidationException).FullName, _message)))
+        {
+            if (messages != null)
+                Messages = new(messages.Where(x => x.Type == MessageType.Error));
+        }
 
         /// <summary>
-        /// Gets the <see cref="Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary"/>.
+        /// Initializes a new instance of the <see cref="ValidationException"/> with a single <see cref="MessageItem"/>.
         /// </summary>
-        public ModelStateDictionary? ModelStateDictionary { get; }
+        /// <param name="item">The <see cref="MessageItem"/>.</param>
+        /// <param name="message">The error message.</param>
+        public ValidationException(MessageItem item, string? message = null) : this(new MessageItem[] { item }, message) { }
+
+        /// <summary>
+        /// Gets the underlying messages.
+        /// </summary>
+        public MessageItemCollection? Messages { get; }
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <returns>The <see cref="ErrorType.ValidationError"/> value.</returns>
-        public ErrorType ErrorType => ErrorType.ValidationError;
+        /// <returns>The <see cref="ErrorType.ValidationError"/> value as a <see cref="string"/>.</returns>
+        public string ErrorReason => ErrorType.ValidationError.ToString();
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <returns>The <see cref="ErrorType.ValidationError"/> value as a <see cref="string"/>.</returns>
+        public int ErrorCode => (int)ErrorType.ValidationError;
 
         /// <summary>
         /// <inheritdoc/>
@@ -78,23 +98,32 @@ namespace CoreEx
         public bool ShouldBeLogged => ShouldExceptionBeLogged;
 
         /// <inheritdoc/>
-        public IActionResult ToResult() => ModelStateDictionary == null || ModelStateDictionary.IsValid ? new BadRequestObjectResult(Message) : new BadRequestObjectResult(ModelStateDictionary);
+        public IActionResult ToResult()
+        {
+            if (Messages == null || Messages.Count == 0)
+                return new BadRequestObjectResult(Message);
+
+            var msd = new ModelStateDictionary();
+            foreach (var item in Messages.GetMessagesForType(MessageType.Error))
+            {
+                msd.AddModelError(item.Property, item.Text);
+            }
+
+            return new BadRequestObjectResult(msd);
+        }
 
         /// <summary>
         /// Creates the exception message.
         /// </summary>
-        private static string CreateMessage(ModelStateDictionary msd, string message)
+        private static string CreateMessage(IEnumerable<MessageItem> mic, string message)
         {
-            if (msd == null || msd.IsValid)
+            if (mic == null)
                 return message;
 
             var sb = new StringBuilder(message);
-            foreach (var kvp in msd)
+            foreach (var mi in mic.Where(x => x.Type == MessageType.Error))
             {
-                foreach (var e in kvp.Value.Errors)
-                {
-                    sb.Append($"{Environment.NewLine}\t{kvp.Key}: {e.ErrorMessage}");
-                }
+                sb.Append($"{Environment.NewLine}\t{mi.Property}: {mi.Text}");
             }
 
             return sb.ToString();

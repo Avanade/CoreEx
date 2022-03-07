@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Localization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
@@ -30,20 +31,26 @@ namespace CoreEx
         /// Initializes a new instance of the <see cref="BusinessException"/> class using the specified <paramref name="message"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
-        public BusinessException(string? message) : base(message ?? _message) { }
+        public BusinessException(string? message) : base(message ?? new LText(typeof(BusinessException).FullName, _message)) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BusinessException"/> class using the specified <paramref name="message"/> and <paramref name="innerException"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <param name="innerException">The inner <see cref="Exception"/>.</param>
-        public BusinessException(string? message, Exception innerException) : base(message ?? _message, innerException) { }
+        public BusinessException(string? message, Exception innerException) : base(message ?? new LText(typeof(BusinessException).FullName, _message), innerException) { }
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <returns>The <see cref="ErrorType.BusinessError"/> value.</returns>
-        public ErrorType ErrorType => ErrorType.BusinessError;
+        /// <returns>The <see cref="ErrorType.BusinessError"/> value as a <see cref="string"/>.</returns>
+        public string ErrorReason => ErrorType.BusinessError.ToString();
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <returns>The <see cref="ErrorType.BusinessError"/> value as a <see cref="string"/>.</returns>
+        public int ErrorCode => (int)ErrorType.BusinessError;
 
         /// <summary>
         /// <inheritdoc/>

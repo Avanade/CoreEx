@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Localization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
@@ -29,20 +30,26 @@ namespace CoreEx
         /// Initializes a new instance of the <see cref="ConcurrencyException"/> class using the specified <paramref name="message"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
-        public ConcurrencyException(string? message) : base(message ?? _message) { }
+        public ConcurrencyException(string? message) : base(message ?? new LText(typeof(ConcurrencyException).FullName, _message)) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConcurrencyException"/> class using the specified <paramref name="message"/> and <paramref name="innerException"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <param name="innerException">The inner <see cref="Exception"/>.</param>
-        public ConcurrencyException(string? message, Exception innerException) : base(message ?? _message, innerException) { }
+        public ConcurrencyException(string? message, Exception innerException) : base(message ?? new LText(typeof(ConcurrencyException).FullName, _message), innerException) { }
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <returns>The <see cref="ErrorType.ConcurrencyError"/> value.</returns>
-        public ErrorType ErrorType => ErrorType.ConcurrencyError;
+        /// <returns>The <see cref="ErrorType.ConcurrencyError"/> value as a <see cref="string"/>.</returns>
+        public string ErrorReason => ErrorType.ConcurrencyError.ToString();
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <returns>The <see cref="ErrorType.ConcurrencyError"/> value as a <see cref="string"/>.</returns>
+        public int ErrorCode => (int)ErrorType.ConcurrencyError;
 
         /// <summary>
         /// <inheritdoc/>

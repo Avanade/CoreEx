@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading;
 
@@ -48,9 +49,45 @@ namespace CoreEx
         }
 
         /// <summary>
+        /// Gets the service of <see cref="Type"/> <typeparamref name="T"/> from the <see cref="Current"/> <see cref="ServiceProvider"/>.
+        /// </summary>
+        /// <typeparam name="T">The service <see cref="Type"/>.</typeparam>
+        /// <param name="throwExceptionOnNull">Indicates whether to throw an <see cref="InvalidOperationException"/> where the underlying <see cref="IServiceProvider.GetService(Type)"/> returns <c>null</c>.</param>
+        /// <returns>The corresponding instance.</returns>
+        public static T? GetService<T>(bool throwExceptionOnNull = true)
+        {
+            if (HasCurrent && Current.ServiceProvider != null)
+                return Current.ServiceProvider.GetService<T>() ??
+                    (throwExceptionOnNull ? throw new InvalidOperationException($"Attempted to get service '{typeof(T).FullName}' but null was returned; this would indicate that the service has not been configured correctly.") : default(T)!);
+
+            if (throwExceptionOnNull)
+                throw new InvalidOperationException($"Attempted to get service '{typeof(T).FullName}' but there is either no ExecutionContext.Current or the ExecutionContext.ServiceProvider has not been configured.");
+
+            return default!;
+        }
+
+        /// <summary>
+        /// Gets the service of <see cref="Type"/> <paramref name="type"/> from the <see cref="Current"/> <see cref="ServiceProvider"/>.
+        /// </summary>
+        /// <param name="type">The service <see cref="Type"/>.</param>
+        /// <param name="throwExceptionOnNull">Indicates whether to throw an <see cref="InvalidOperationException"/> where the underlying <see cref="IServiceProvider.GetService(Type)"/> returns <c>null</c>.</param>
+        /// <returns>The corresponding instance.</returns>
+        public static object? GetService(Type type, bool throwExceptionOnNull = true)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (HasCurrent && Current.ServiceProvider != null)
+                return Current.ServiceProvider.GetService(type) ??
+                    (throwExceptionOnNull ? throw new InvalidOperationException($"Attempted to get service '{type.FullName}' but null was returned; this would indicate that the service has not been configured correctly.") : (object?)null);
+
+            throw new InvalidOperationException($"Attempted to get service '{type.FullName}' but there is either no ExecutionContext.Current or the ExecutionContext.ServiceProvider has not been configured.");
+        }
+
+        /// <summary>
         /// Gets the <see cref="ServiceProvider"/>.
         /// </summary>
-        /// <remarks>This is automaticall set via the <see cref="DependencyInjection.ServiceCollectionExtensions.AddExecutionContext(Microsoft.Extensions.DependencyInjection.IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
+        /// <remarks>This is automatically set via the <see cref="DependencyInjection.ServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
         public IServiceProvider? ServiceProvider { get; set; }
 
         /// <summary>

@@ -15,9 +15,14 @@ namespace CoreEx.Abstractions
         string Message { get; }
 
         /// <summary>
-        /// Gets the <see cref="Abstractions.ErrorType"/>.
+        /// Gets the error reason/code.
         /// </summary>
-        ErrorType ErrorType { get; }
+        string ErrorReason { get; }
+
+        /// <summary>
+        /// Gets the error code.
+        /// </summary>
+        int ErrorCode { get; }
 
         /// <summary>
         /// Gets the corresponding <see cref="HttpStatusCode"/>.

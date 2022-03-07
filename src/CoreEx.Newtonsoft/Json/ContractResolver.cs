@@ -33,7 +33,8 @@ namespace CoreEx.Newtonsoft.Json
                     .AddType<EventData>()
                     .AddType(typeof(EventData<>))
                     .AddType<ChangeLog>()
-                    .AddType(typeof(ReferenceDataBase<>));
+                    .AddType(typeof(ReferenceDataBase<>))
+                    .AddType<MessageItem>();
         }
 
         /// <summary>

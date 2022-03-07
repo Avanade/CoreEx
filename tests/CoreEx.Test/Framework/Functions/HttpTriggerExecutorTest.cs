@@ -1,4 +1,5 @@
-﻿using CoreEx.Events;
+﻿using CoreEx.Entities;
+using CoreEx.Events;
 using CoreEx.Functions;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
@@ -58,9 +59,9 @@ namespace CoreEx.Test.Framework.Functions
             test.Type<HttpTriggerExecutor>()
                 .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), () =>
                 {
-                    var msd = new ModelStateDictionary();
-                    msd.AddModelError("Test", "Invalid.");
-                    throw new ValidationException(msd);
+                    var mic = new MessageItemCollection();
+                    mic.AddPropertyError("Test", "Invalid.");
+                    throw new ValidationException(mic);
                 }))
                 .ToActionResultAssertor()
                 .AssertBadRequest()

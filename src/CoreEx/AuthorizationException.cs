@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Localization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
@@ -29,20 +30,26 @@ namespace CoreEx
         /// Initializes a new instance of the <see cref="AuthorizationException"/> class using the specified <paramref name="message"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
-        public AuthorizationException(string? message) : base(message ?? _message) { }
+        public AuthorizationException(string? message) : base(message ?? new LText(typeof(AuthorizationException).FullName, _message)) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AuthorizationException"/> class using the specified <paramref name="message"/> and <paramref name="innerException"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <param name="innerException">The inner <see cref="Exception"/>.</param>
-        public AuthorizationException(string? message, Exception innerException) : base(message ?? _message, innerException) { }
+        public AuthorizationException(string? message, Exception innerException) : base(message ?? new LText(typeof(AuthorizationException).FullName, _message), innerException) { }
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <returns>The <see cref="ErrorType.AuthorizationError"/> value.</returns>
-        public ErrorType ErrorType => ErrorType.AuthorizationError;
+        /// <returns>The <see cref="ErrorType.AuthorizationError"/> value as a <see cref="string"/>.</returns>
+        public string ErrorReason => ErrorType.AuthorizationError.ToString();
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <returns>The <see cref="ErrorType.AuthorizationError"/> value as a <see cref="string"/>.</returns>
+        public int ErrorCode => (int)ErrorType.AuthorizationError;
 
         /// <summary>
         /// <inheritdoc/>

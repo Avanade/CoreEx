@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
@@ -33,13 +34,13 @@ namespace CoreEx.Functions.FluentValidation
             if ((validationResult ?? throw new ArgumentNullException(nameof(validationResult))).IsValid)
                 return null;
 
-            var msd = new ModelStateDictionary();
+            var mic = new MessageItemCollection();
             foreach (var error in validationResult.Errors)
             {
-                msd.AddModelError(error.PropertyName, error.ErrorMessage);
+                mic.AddPropertyError(error.PropertyName, error.ErrorMessage);
             }
 
-            return new ValidationException(msd);
+            return new ValidationException(mic);
         }
     }
 }
