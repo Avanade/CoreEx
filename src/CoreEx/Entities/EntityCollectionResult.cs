@@ -3,6 +3,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -34,18 +35,20 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets or sets the result.
         /// </summary>
+        [JsonPropertyName("result")]
         public TColl Result { get => _result ??= new TColl(); set => SetValue(ref _result, value); }
 
         /// <summary>
         /// Gets or sets the <see cref="PagingResult"/>.
         /// </summary>
         /// <remarks>Where this value is <c>null</c> it indicates that the paging was unable to be determined.</remarks>
+        [JsonPropertyName("paging")]
         public PagingResult? Paging { get => _paging; set => SetValue(ref _paging, value); }
 
         /// <summary>
-        /// Gets or sets the item <see cref="Type"/>.
+        /// Gets the item <see cref="Type"/>.
         /// </summary>
-        public Type ItemType => typeof(TEntity);
+        Type ICollectionResult.ItemType => typeof(TEntity);
 
         /// <summary>
         /// Gets the underlying <see cref="ICollection"/>.

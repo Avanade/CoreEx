@@ -111,9 +111,9 @@ namespace CoreEx.Test.Framework.Http
     {
         public TestHttpClient() : base(new HttpClient { BaseAddress = new Uri("https://unittest") }, new CoreEx.Text.Json.JsonSerializer()) { }
 
-        public string VerifyUri(string requestUri, HttpRequestOptions requestOptions = null, params HttpArg[] args)
+        public string VerifyUri(string requestUri, HttpRequestOptions requestOptions = null, params IHttpArg[] args)
         {
-            var request = CreateRequest(HttpMethod.Post, requestUri, requestOptions, args);
+            var request = CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args).Result;
             return request.RequestUri.ToString();
         }
 

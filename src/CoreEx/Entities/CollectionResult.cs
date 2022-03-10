@@ -3,6 +3,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -11,6 +12,7 @@ namespace CoreEx.Entities
     /// </summary>
     /// <typeparam name="TColl">The result collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The underlying entity <see cref="Type"/>.</typeparam>
+    [System.Diagnostics.DebuggerStepThrough]
     public abstract class CollectionResult<TColl, TItem> : ICollectionResult<TColl, TItem>, IPagingResult
         where TColl : List<TItem>, new()
         where TItem : class
@@ -28,6 +30,7 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
+        [JsonPropertyName("result")]
         public TColl Result
         {
             get => _result ??= new TColl();
@@ -35,12 +38,13 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
+        [JsonPropertyName("paging")]
         public PagingResult? Paging { get; set; }
 
         /// <summary>
         /// Gets or sets the item <see cref="Type"/>.
         /// </summary>
-        public Type ItemType { get; } = typeof(TItem);
+        Type ICollectionResult.ItemType { get; } = typeof(TItem);
 
         /// <summary>
         /// Gets the underlying <see cref="ICollection"/>.

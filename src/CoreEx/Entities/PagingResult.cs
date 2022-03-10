@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -37,11 +38,13 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets or sets the total count of the elements in the sequence (a <c>null</c> value indicates that the total count is unknown).
         /// </summary>
+        [JsonPropertyName("totalCount")]
         public long? TotalCount { get; set; }
 
         /// <summary>
-        /// Gets the calculated total pages for all elements in the sequence (needs <see cref="TotalCount"/>, <see cref="PagingArgs.Take"/> values as well as not being an <see cref="PagingArgs.IsSkipTake"/>).
+        /// Gets the calculated total pages for all elements in the sequence (needs <see cref="TotalCount"/> and <see cref="PagingArgs.Take"/> values as well as not being an <see cref="PagingArgs.IsSkipTake"/>).
         /// </summary>
+        [JsonIgnore()]
         public long? TotalPages => !IsSkipTake && TotalCount.HasValue ? (long)System.Math.Ceiling(TotalCount.Value / (double)Take) : null;
     }
 }

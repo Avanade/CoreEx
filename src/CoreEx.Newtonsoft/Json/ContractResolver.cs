@@ -2,7 +2,6 @@
 
 using CoreEx.Entities;
 using CoreEx.Events;
-using CoreEx.RefData;
 using CoreEx.RefData.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -35,7 +34,12 @@ namespace CoreEx.Newtonsoft.Json
                     .AddType(typeof(EventData<>))
                     .AddType<ChangeLog>()
                     .AddType(typeof(ReferenceDataBase<>))
-                    .AddType<MessageItem>();
+                    .AddType(typeof(ReferenceDataExtendedBase<>))
+                    .AddType<MessageItem>()
+                    .AddType(typeof(CollectionResult<,>))
+                    .AddType(typeof(EntityCollectionResult<,,>))
+                    .AddType<PagingArgs>()
+                    .AddType<PagingResult>();
         }
 
         /// <summary>

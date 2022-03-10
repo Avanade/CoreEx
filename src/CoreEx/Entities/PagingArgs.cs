@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -109,26 +110,31 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the page number for the elements in a sequence to select (see <see cref="CreatePageAndSize(long, long?, bool?)"/>).
         /// </summary>
+        [JsonPropertyName("page")]
         public long? Page { get; internal protected set; }
 
         /// <summary>
         /// Indicates whether the paging was created with a <see cref="Skip"/> and <see cref="Take"/> (see <see cref="CreateSkipAndTake(long, long?, bool?)"/>); versus <see cref="Page"/> and <see cref="Size"/> (see <see cref="CreatePageAndSize(long, long?, bool?)"/>).
         /// </summary>
+        [JsonIgnore]
         public bool IsSkipTake => Page == null;
 
         /// <summary>
         /// Gets the page size (see <see cref="Take"/>).
         /// </summary>
+        [JsonPropertyName("size")]
         public long Size => Take;
 
         /// <summary>
         /// Gets the specified number of elements in a sequence to bypass.
         /// </summary>
+        [JsonPropertyName("skip")]
         public long Skip { get; internal protected set; }
 
         /// <summary>
         /// Gets the specified number of contiguous elements from the start of a sequence.
         /// </summary>
+        [JsonPropertyName("take")]
         public long Take { get; internal protected set; }
 
         /// <summary>
@@ -159,6 +165,7 @@ namespace CoreEx.Entities
         /// <summary>
         /// Indicates whether to get the total count (see <see cref="PagingResult.TotalCount"/>) when performing the underlying query (defaults to <c>false</c>).
         /// </summary>
+        [JsonPropertyName("count")]
         public bool IsGetCount { get; set; } = false;
     }
 }

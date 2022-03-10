@@ -2,6 +2,7 @@
 
 using CoreEx.Abstractions;
 using CoreEx.Configuration;
+using CoreEx.Entities;
 using CoreEx.Json;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -9,7 +10,9 @@ using Polly.Extensions.Http;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -80,6 +83,85 @@ namespace CoreEx.Http
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/>.</remarks>
         public PolicyBuilder<HttpResponseMessage> RetryPolicy { get => _retryPolicy; set => _retryPolicy = value ?? throw new ArgumentNullException(nameof(RetryPolicy)); }
+
+        /// <summary>
+        /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.
+        /// </summary>
+        /// <param name="predicate">An oprtional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, bool>? predicate = null)
+        {
+            _throwTransientException = true;
+            _isTransient = predicate ?? IsTransient;
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be thrown.
+        /// </summary>
+        /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        public TSelf ThrowKnownException(bool useContentAsErrorMessage = false)
+        {
+            _throwKnownException = true;
+            _throwKnownUseContentAsMessage = useContentAsErrorMessage;
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Indicates whether to perform a retry where an underlying transient error occurs; see <see cref="RetryPolicy"/>.
+        /// </summary>
+        /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
+        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/></param>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        public TSelf WithRetry(int? count = null, double? seconds = null)
+        { 
+            var retryCount = Settings.HttpRetryCount;
+            var retrySeconds = Settings.HttpRetrySeconds;
+
+            _retryCount = count ?? retryCount;
+            if (_retryCount < 0)
+                _retryCount = retryCount;
+
+            _retrySeconds = seconds ?? retrySeconds;
+            if (_retrySeconds < retrySeconds)
+                _retrySeconds = retrySeconds;
+
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Indicates whether to automatically perform an <see cref="HttpResponseMessage.EnsureSuccessStatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        public TSelf EnsureSuccess()
+        {
+            _ensureSuccess = true;
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Resets the <see cref="TypedHttpClientBase{TSelf}"/> to its initial state.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        public virtual TSelf Reset()
+        {
+            _retryCount = null;
+            _retrySeconds = null;
+            _throwTransientException = false;
+            _throwKnownException = false;
+            _throwKnownUseContentAsMessage = false;
+            _isTransient = IsTransient;
+            _ensureSuccess = false;
+
+            return (TSelf)this;
+        }
+
+        #region SendAsync
 
         /// <summary>
         /// Sends the <paramref name="request"/> returning the <see cref="HttpResponseMessage"/>.
@@ -191,81 +273,319 @@ namespace CoreEx.Http
             return clone;
         }
 
+        #endregion
+
+        #region HeadAsync
+
         /// <summary>
-        /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.
+        /// Send a <see cref="HttpMethod.Head"/> request to the specified Uri as an asynchronous operation.
         /// </summary>
-        /// <param name="predicate">An oprtional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
-        public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, bool>? predicate = null)
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        public async Task<HttpResult> HeadAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Head, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        #endregion
+
+        #region GetAsync
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation.
+        /// </summary>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        protected async Task<HttpResult> GetAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
+        /// </summary>
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> GetAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            _throwTransientException = true;
-            _isTransient = predicate ?? IsTransient;
-            return (TSelf)this;
+            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be thrown.
+        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
         /// </summary>
-        /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
-        public TSelf ThrowKnownException(bool useContentAsErrorMessage = false)
+        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> response <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TCollResult>> GetCollectionResultAsync<TCollResult, TColl, TItem>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            where TCollResult : ICollectionResult<TColl, TItem>, new()
+            where TColl : ICollection<TItem>
         {
-            _throwKnownException = true;
-            _throwKnownUseContentAsMessage = useContentAsErrorMessage;
-            return (TSelf)this;
+            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TCollResult, TColl, TItem>(response, JsonSerializer).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Indicates whether to perform a retry where an underlying transient error occurs; see <see cref="RetryPolicy"/>.
-        /// </summary>
-        /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
-        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/></param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
-        public TSelf WithRetry(int? count = null, double? seconds = null)
-        { 
-            var retryCount = Settings.HttpRetryCount;
-            var retrySeconds = Settings.HttpRetrySeconds;
+        #endregion
 
-            _retryCount = count ?? retryCount;
-            if (_retryCount < 0)
-                _retryCount = retryCount;
-
-            _retrySeconds = seconds ?? retrySeconds;
-            if (_retrySeconds < retrySeconds)
-                _retrySeconds = retrySeconds;
-
-            return (TSelf)this;
-        }
+        #region PostAsync
 
         /// <summary>
-        /// Indicates whether to automatically perform an <see cref="HttpResponseMessage.EnsureSuccessStatusCode"/>.
+        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation.
         /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
-        public TSelf EnsureSuccess()
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        protected async Task<HttpResult> PostAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/>.
+        /// </summary>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="content">The <see cref="HttpContent"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        protected async Task<HttpResult> PostAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/>.
+        /// </summary>
+        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="value">The request value.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        protected async Task<HttpResult> PostAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            _ensureSuccess = true;
-            return (TSelf)this;
+            var response = (value is HttpContent content)
+                ? await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
+                : await SendAsync(await CreateJsonRequestAsync(HttpMethod.Post, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+            return await HttpResult.CreateAsync(response).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Resets the <see cref="TypedHttpClientBase{TSelf}"/> to its initial state.
+        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
         /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        public virtual TSelf Reset()
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            _retryCount = null;
-            _retrySeconds = null;
-            _throwTransientException = false;
-            _throwKnownException = false;
-            _throwKnownUseContentAsMessage = false;
-            _isTransient = IsTransient;
-            _ensureSuccess = false;
-
-            return (TSelf)this;
+            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
         }
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
+        /// </summary>
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="content">The <see cref="HttpContent"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+        }
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
+        /// </summary>
+        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="value">The request value.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> PostAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            var response = await SendAsync(await CreateJsonRequestAsync(HttpMethod.Post, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+        }
+
+        #endregion
+
+        #region PutAsync
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/>.
+        /// </summary>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="content">The <see cref="HttpContent"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        protected async Task<HttpResult> PutAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/>.
+        /// </summary>
+        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="value">The request value.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult> PutAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            var response = (value is HttpContent content)
+                ? await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
+                : await SendAsync(await CreateJsonRequestAsync(HttpMethod.Put, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+            return await HttpResult.CreateAsync(response).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
+        /// </summary>
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="content">The <see cref="HttpContent"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> PutAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+        }
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
+        /// </summary>
+        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="value">The request value.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> PutAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            var response = await SendAsync(await CreateJsonRequestAsync(HttpMethod.Put, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+        }
+
+        #endregion
+
+        #region PatchAsync
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/>.
+        /// </summary>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="content">The <see cref="HttpContent"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        protected async Task<HttpResult> PatchAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="json"/>.
+        /// </summary>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="patchOption">The <see cref="HttpPatchOption"/>.</param>
+        /// <param name="json">The JSON formatted as per the selected <paramref name="patchOption"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult> PatchAsync(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            if (patchOption == HttpPatchOption.NotSpecified)
+                throw new ArgumentException("A valid patch option must be specified.", nameof(patchOption));
+
+            var content = new StringContent(json, Encoding.UTF8, patchOption == HttpPatchOption.JsonPatch ? HttpConsts.JsonPatchMediaTypeName : HttpConsts.MergePatchMediaTypeName);
+            return await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
+        /// </summary>
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="content">The <see cref="HttpContent"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="json"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
+        /// </summary>
+        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="patchOption">The <see cref="HttpPatchOption"/>.</param>
+        /// <param name="json">The JSON formatted as per the selected <paramref name="patchOption"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
+        protected async Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        {
+            if (patchOption == HttpPatchOption.NotSpecified)
+                throw new ArgumentException("A valid patch option must be specified.", nameof(patchOption));
+
+            var content = new StringContent(json, Encoding.UTF8, patchOption == HttpPatchOption.JsonPatch ? HttpConsts.JsonPatchMediaTypeName : HttpConsts.MergePatchMediaTypeName);
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer).ConfigureAwait(false);
+        }
+
+        #endregion
+
+        #region Delete
+
+        /// <summary>
+        /// Send a <see cref="HttpMethod.Delete"/> request to the specified Uri as an asynchronous operation.
+        /// </summary>
+        /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        protected async Task<HttpResult> DeleteAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Delete, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        #endregion
     }
 }

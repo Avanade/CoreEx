@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using CoreEx.Json;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -45,10 +46,10 @@ namespace CoreEx.Http
         /// <param name="method">The <see cref="HttpMethod"/>.</param>
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="HttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected HttpRequestMessage CreateRequest(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, params HttpArg[] args) 
-            => CreateRequestInternal(method, requestUri, null, requestOptions, args);
+        protected Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args) 
+            => CreateRequestInternalAsync(method, requestUri, null, requestOptions, args);
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> with the specified <paramref name="content"/>.
@@ -57,10 +58,10 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="HttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected HttpRequestMessage CreateContentRequest(HttpMethod method, string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params HttpArg[] args)
-            => CreateRequestInternal(method, requestUri, content, requestOptions, args);
+        protected Task<HttpRequestMessage> CreateContentRequestAsync(HttpMethod method, string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
+            => CreateRequestInternalAsync(method, requestUri, content, requestOptions, args);
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> serializing the <paramref name="value"/> as JSON content.
@@ -70,15 +71,34 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="value">The request value to be serialized to JSON.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="HttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected HttpRequestMessage CreateJsonRequest<TReq>(HttpMethod method, string requestUri, TReq value, HttpRequestOptions? requestOptions = null, params HttpArg[] args)
-            => CreateContentRequest(method, requestUri, new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json), requestOptions, args);
+        protected Task<HttpRequestMessage> CreateJsonRequestAsync<TReq>(HttpMethod method, string requestUri, TReq value, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
+            => CreateContentRequestAsync(method, requestUri, new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json), ApplyValueETagToRequestOptions(value, requestOptions), args);
+
+        /// <summary>
+        /// Applies the <paramref name="value"/> <see cref="IETag"/> to the <see cref="HttpRequestOptions"/> where not already specified.
+        /// </summary>
+        private static HttpRequestOptions? ApplyValueETagToRequestOptions<TReq>(TReq value, HttpRequestOptions? requestOptions = null)
+        {
+            if (value == null || (requestOptions != null && requestOptions.ETag != null))
+                return requestOptions;
+
+            if (value is IETag et && et.ETag != null)
+            {
+                if (requestOptions == null)
+                    return new HttpRequestOptions { ETag = et.ETag };
+
+                requestOptions.ETag = et.ETag;
+            }
+
+            return requestOptions;
+        }
 
         /// <summary>
         /// Create the request applying the specified options and args.
         /// </summary>
-        private HttpRequestMessage CreateRequestInternal(HttpMethod method, string requestUri, HttpContent? content, HttpRequestOptions? requestOptions = null, params HttpArg[] args)
+        private async Task<HttpRequestMessage> CreateRequestInternalAsync(HttpMethod method, string requestUri, HttpContent? content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
         {
             // Replace any format placeholders within request uri.
             requestUri = FormatReplacement(requestUri, args);
@@ -94,11 +114,10 @@ namespace CoreEx.Http
 
             var qs = QueryString.FromUriComponent(ub.Query);
 
-            // Extend the query string from the HttpArgs.
-            foreach (var arg in (args ??= Array.Empty<HttpArg>()).Where(x => x != null && !x.IsUsed && x.ArgType != HttpArgType.FromBody && !x.IsDefault))
+            // Extend the query string from the IHttpArgs.
+            foreach (var arg in (args ??= Array.Empty<IHttpArg>()).Where(x => x != null))
             {
                 qs = arg.AddToQueryString(qs, JsonSerializer);
-                arg.IsUsed = true;
             }
 
             // Extend the query string to include additional options.
@@ -111,19 +130,10 @@ namespace CoreEx.Http
             if (content != null)
                 request.Content = content;
 
-            // Apply the body/content HttpArg.
-            var bodyArgs = args.Where(x => x != null && x.ArgType == HttpArgType.FromBody).ToList();
-            if (bodyArgs.Count > 1)
-                throw new ArgumentException("Only a single argument can have an ArgType of FromBody.", nameof(args));
-
-            if (bodyArgs.Count > 0)
+            // Apply the body/content IHttpArg.
+            foreach (var arg in args.Where(x => x != null))
             {
-                if (content != null)
-                    throw new ArgumentException("An argument with an ArgType of FromBody is not supported where HttpContent is also provided.", nameof(args));
-
-                var value = bodyArgs[0].GetValue();
-                if (value != null)
-                    request.Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json);
+                await arg.ModifyHttpRequestAsync(request, JsonSerializer).ConfigureAwait(false);
             }
 
             return request;
@@ -132,7 +142,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Format replacement inspired by: https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/LogValuesFormatter.cs
         /// </summary>
-        private static string FormatReplacement(string requestUri, HttpArg[] args)
+        private static string FormatReplacement(string requestUri, IHttpArg[] args)
         {
             var sb = new StringBuilder();
             var scanIndex = 0;
@@ -154,12 +164,9 @@ namespace CoreEx.Http
                 {
                     sb.Append(requestUri, scanIndex, openBraceIndex - scanIndex);
 
-                    var arg = args.Where(x => x != null && MemoryExtensions.Equals(requestUri.AsSpan(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1), x.Name, StringComparison.Ordinal)).FirstOrDefault();
+                    var arg = args.OfType<IHttpArgTypeArg>().Where(x => x != null && MemoryExtensions.Equals(requestUri.AsSpan(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1), x.Name, StringComparison.Ordinal)).FirstOrDefault();
                     if (arg != null)
-                    {
                         sb.Append(arg.ToEscapeDataString());
-                        arg.IsUsed = true;
-                    }
 
                     scanIndex = closeBraceIndex + 1;
                 }

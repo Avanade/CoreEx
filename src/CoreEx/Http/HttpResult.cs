@@ -17,7 +17,7 @@ namespace CoreEx.Http
     /// <summary>
     /// Provides the <see cref="HttpResponseMessage"/> result with no value.
     /// </summary>
-    public class HttpResult : IHttpResult
+    public class HttpResult
     {
         private readonly Lazy<string?> _errorType;
         private readonly Lazy<int?> _errorCode;
@@ -146,32 +146,53 @@ namespace CoreEx.Http
             });
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the <see cref="HttpResponseMessage"/>.
+        /// </summary>
         public HttpResponseMessage Response { get; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync"/>).
+        /// </summary>
         public string? Content { get; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the underlying <see cref="HttpRequestMessage"/>.
+        /// </summary>
         public HttpRequestMessage Request => Response.RequestMessage;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the <see cref="HttpStatusCode"/>.
+        /// </summary>
         public HttpStatusCode StatusCode => Response.StatusCode;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Indicates whether the request was successful.
+        /// </summary>
         public bool IsSuccess => Response.IsSuccessStatusCode;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the <see cref="MessageItemCollection"/>.
+        /// </summary>
         public MessageItemCollection? Messages => _messages.Value;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the error type using the <see cref="HttpConsts.ErrorTypeHeaderName"/>.
+        /// </summary>
         public string? ErrorType => _errorType.Value;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the error code using the <see cref="HttpConsts.ErrorCodeHeaderName"/>
+        /// </summary>
         public int? ErrorCode => _errorCode.Value;
 
-        /// <inheritdoc/>
-        public IHttpResult ThrowOnError(bool throwKnownException = false, bool useContentAsErrorMessage = false)
+        /// <summary>
+        /// Throws an exception if the request was not successful (see <see cref="IsSuccess"/>).
+        /// </summary>
+        /// <param name="throwKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be thrown.</param>
+        /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
+        /// <returns>The <see cref="HttpResult"/> instance to support fluent-style method-chaining.</returns>
+        public HttpResult ThrowOnError(bool throwKnownException = true, bool useContentAsErrorMessage = false)
         {
             if (IsSuccess)
                 return this;

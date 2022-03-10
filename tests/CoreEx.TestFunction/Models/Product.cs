@@ -1,4 +1,5 @@
 ﻿using CoreEx.Entities;
+using System.Collections.Generic;
 using Nsj = Newtonsoft.Json;
 using Stj = System.Text.Json.Serialization;
 
@@ -18,6 +19,10 @@ namespace CoreEx.TestFunction.Models
         [Stj.JsonPropertyName("price")]
         public decimal Price { get; set; }
     }
+
+    public class ProductCollection : List<Product> { }
+
+    public class ProductCollectionResult : CollectionResult<ProductCollection, Product> { }
 
     public class BackendProduct : IPrimaryKey
     {
