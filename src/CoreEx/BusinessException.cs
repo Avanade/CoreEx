@@ -44,13 +44,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.BusinessError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.BusinessError.ToString();
+        public string ErrorType => Abstractions.ErrorType.BusinessError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.BusinessError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.BusinessError;
+        public int ErrorCode => (int)Abstractions.ErrorType.BusinessError;
 
         /// <summary>
         /// <inheritdoc/>

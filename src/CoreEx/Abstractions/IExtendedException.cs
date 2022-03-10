@@ -15,13 +15,15 @@ namespace CoreEx.Abstractions
         string Message { get; }
 
         /// <summary>
-        /// Gets the error reason/code.
+        /// Gets the error type/reason.
         /// </summary>
-        string ErrorReason { get; }
+        /// <remarks>See <see cref="Abstractions.ErrorType"/> for standard values.</remarks>
+        string ErrorType { get; }
 
         /// <summary>
         /// Gets the error code.
         /// </summary>
+        /// <remarks>See <see cref="Abstractions.ErrorType"/> for standard values.</remarks>
         int ErrorCode { get; }
 
         /// <summary>

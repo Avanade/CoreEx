@@ -37,19 +37,19 @@ namespace CoreEx
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <param name="innerException">The inner <see cref="Exception"/>.</param>
-        public AuthenticationException(string? message, Exception innerException) : base(message ?? new LText(typeof(AuthenticationException).FullName, _message)) { }
+        public AuthenticationException(string? message, Exception innerException) : base(message ?? new LText(typeof(AuthenticationException).FullName, _message), innerException) { }
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.AuthenticationError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.AuthenticationError.ToString();
+        public string ErrorType => Abstractions.ErrorType.AuthenticationError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.AuthenticationError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.AuthenticationError;
+        public int ErrorCode => (int)Abstractions.ErrorType.AuthenticationError;
 
         /// <summary>
         /// <inheritdoc/>

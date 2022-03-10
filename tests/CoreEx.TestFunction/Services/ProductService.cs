@@ -27,9 +27,9 @@ namespace CoreEx.TestFunction.Services
                     throw new ValidationException("Zed is dead.");
 
                 var bep = _mapper.Map<BackendProduct>(product);
-                var r = await _backend.ThrowTransientException().EnsureSuccess().PostAsync<BackendProduct, BackendProduct>("products", bep).ConfigureAwait(false);
+                var r = await _backend.ThrowTransientException().ThrowKnownException().EnsureSuccess().PostAsync<BackendProduct, BackendProduct>("products", bep).ConfigureAwait(false);
 
-                return _mapper.Map<Product>(r);
+                return _mapper.Map<Product>(r.Value);
             }
         }
     }

@@ -71,13 +71,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.ValidationError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.ValidationError.ToString();
+        public string ErrorType => Abstractions.ErrorType.ValidationError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.ValidationError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.ValidationError;
+        public int ErrorCode => (int)Abstractions.ErrorType.ValidationError;
 
         /// <summary>
         /// <inheritdoc/>

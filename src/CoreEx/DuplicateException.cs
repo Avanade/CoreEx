@@ -43,13 +43,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.DuplicateError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.DuplicateError.ToString();
+        public string ErrorType => Abstractions.ErrorType.DuplicateError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.DuplicateError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.DuplicateError;
+        public int ErrorCode => (int)Abstractions.ErrorType.DuplicateError;
 
         /// <summary>
         /// <inheritdoc/>

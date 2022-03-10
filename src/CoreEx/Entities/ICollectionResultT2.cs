@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Collections.Generic;
 
 namespace CoreEx.Entities
 {
@@ -9,10 +10,10 @@ namespace CoreEx.Entities
     /// </summary>
     /// <typeparam name="TColl">The result collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The underlying item <see cref="Type"/>.</typeparam>
-    public interface IEntityCollectionResult<TColl, TItem> : IEntityCollectionResult<TItem>
+    public interface ICollectionResult<TColl, TItem> : ICollectionResult<TItem> where TColl : ICollection<TItem>
     {
         /// <summary>
-        /// Gets the result.
+        /// Gets or sets the collection result.
         /// </summary>
         TColl Result { get; set; }
     }

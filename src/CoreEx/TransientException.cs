@@ -46,13 +46,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.TransientError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.TransientError.ToString();
+        public string ErrorType => Abstractions.ErrorType.TransientError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.TransientError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.TransientError;
+        public int ErrorCode => (int)Abstractions.ErrorType.TransientError;
 
         /// <summary>
         /// <inheritdoc/>

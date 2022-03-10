@@ -8,7 +8,7 @@ namespace CoreEx.Entities
     /// <summary>
     /// Provides the <see cref="Paging"/> and <see cref="Collection"/> for a collection result.
     /// </summary>
-    public interface IEntityCollectionResult
+    public interface ICollectionResult
     {
         /// <summary>
         /// Gets the underlying item <see cref="Type"/>.

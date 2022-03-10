@@ -4,6 +4,7 @@ using Azure.Messaging.ServiceBus;
 using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
+using CoreEx.Http;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,7 @@ namespace CoreEx.Functions
     /// <remarks>Each <c>Run</c> is wrapped with the same logic. The correlation identifier is set using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a
     /// <see cref="Guid.NewGuid"/> is used as the default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic
     /// with the correlation and message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically 
-    /// deadletter; otherwise, it will be immediately deadletted with a resaon of <see cref="IExtendedException.ErrorReason"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
+    /// deadletter; otherwise, it will be immediately deadletted with a resaon of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
     public class ServiceBusTriggerExecutor : Executor, IServiceBusTriggerExecutor
     {
         private const string _errorText = "Invalid message: body was not provided, contained invalid JSON, or was incorrectly formatted:";
@@ -57,7 +58,7 @@ namespace CoreEx.Functions
 
             var scope = Logger.BeginScope(new Dictionary<string, object>()
             {
-                { CorrelationIdName, ExecutionContext.CorrelationId },
+                { HttpConsts.CorrelationIdHeaderName, ExecutionContext.CorrelationId },
                 { "MessageId", message.MessageId }
             });
 
@@ -81,7 +82,7 @@ namespace CoreEx.Functions
 
                 if (vex != null)
                 {
-                    await DeadLetterExceptionAsync(message, messageActions, vex.ErrorReason, vex).ConfigureAwait(false);
+                    await DeadLetterExceptionAsync(message, messageActions, vex.ErrorType, vex).ConfigureAwait(false);
                     return;
                 }
 
@@ -102,11 +103,11 @@ namespace CoreEx.Functions
                     if (eex.IsTransient)
                     {
                         // Do not abandon the message when transient, as there may be a Function Retry Policy configured; otherwise, it will eventaully be dead-lettered by the Azure Function runtime/fabric.
-                        Logger.LogWarning("{Reason} while processing message '{Message}'. Processing attempt {Count}", eex.ErrorReason, message.MessageId, message.DeliveryCount);
+                        Logger.LogWarning("{Reason} while processing message '{Message}'. Processing attempt {Count}", eex.ErrorType, message.MessageId, message.DeliveryCount);
                         throw;
                     }
 
-                    await DeadLetterExceptionAsync(message, messageActions, eex.ErrorReason, ex).ConfigureAwait(false);
+                    await DeadLetterExceptionAsync(message, messageActions, eex.ErrorType, ex).ConfigureAwait(false);
                 }
                 else
                     await DeadLetterExceptionAsync(message, messageActions, ErrorType.UnhandledError.ToString(), ex).ConfigureAwait(false);

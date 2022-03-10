@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.RefData;
+using CoreEx.RefData.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;

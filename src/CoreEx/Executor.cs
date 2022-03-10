@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Configuration;
+using CoreEx.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -42,22 +43,17 @@ namespace CoreEx
         public ILogger Logger { get; }
 
         /// <summary>
-        /// Gets the primary correlation identifier name.
-        /// </summary>
-        protected string CorrelationIdName { get; set; } = "x-correlation-id";
-
-        /// <summary>
         /// Gets or sets the list of secondary correlation identifier names.
         /// </summary>
         protected virtual IEnumerable<string> SecondaryCorrelationIdNames { get; set; } = new string[] { "x-ms-client-tracking-id" };
 
         /// <summary>
-        /// Gets the list of correlation identifier names, being <see cref="CorrelationIdName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
+        /// Gets the list of correlation identifier names, being <see cref="HttpConsts.CorrelationIdHeaderName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
         /// </summary>
         /// <returns>The list of correlation identifier names.</returns>
         protected virtual IEnumerable<string> GetCorrelationIdNames()
         {
-            var list = new List<string>(new string[] { CorrelationIdName });
+            var list = new List<string>(new string[] { HttpConsts.CorrelationIdHeaderName });
             list.AddRange(SecondaryCorrelationIdNames);
             return list;
         }
@@ -68,7 +64,7 @@ namespace CoreEx
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
-            var scope = Logger.BeginScope(new Dictionary<string, object>() { { CorrelationIdName, ExecutionContext.CorrelationId } });
+            var scope = Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, ExecutionContext.CorrelationId } });
 
             try
             {

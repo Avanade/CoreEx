@@ -61,9 +61,9 @@ namespace CoreEx.Functions
                 }
             }
 
-            request.HttpContext.Response.Headers.Add(CorrelationIdName, ExecutionContext.Current.CorrelationId);
+            request.HttpContext.Response.Headers.Add(HttpConsts.CorrelationIdHeaderName, ExecutionContext.Current.CorrelationId);
 
-            var scope = Logger.BeginScope(new Dictionary<string, object>() { { CorrelationIdName, ExecutionContext.Current.CorrelationId } });
+            var scope = Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, ExecutionContext.Current.CorrelationId } });
 
             try
             {

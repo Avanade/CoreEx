@@ -42,6 +42,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the calculated total pages for all elements in the sequence (needs <see cref="TotalCount"/>, <see cref="PagingArgs.Take"/> values as well as not being an <see cref="PagingArgs.IsSkipTake"/>).
         /// </summary>
-        public long? TotalPages => !IsSkipTake && TotalCount.HasValue ? (long)System.Math.Ceiling(TotalCount.Value / (double)Take) : (long?)null;
+        public long? TotalPages => !IsSkipTake && TotalCount.HasValue ? (long)System.Math.Ceiling(TotalCount.Value / (double)Take) : null;
     }
 }

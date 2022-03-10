@@ -4,14 +4,15 @@ using CoreEx.Entities;
 using System;
 using System.Text.Json.Serialization;
 
-namespace CoreEx.RefData
+namespace CoreEx.RefData.Models
 {
     /// <summary>
-    /// Represents the base <b>Reference Data</b> type.
+    /// Represents the extended <see cref="IReferenceDataExtended"/> model.
     /// </summary>
-    public abstract class ReferenceDataBase<T> : IReferenceData, IIdentifier<T>, IChangeLog
+    public abstract class ReferenceDataExtendedBase<T> : IReferenceDataExtended, IIdentifier<T>
     {
         /// <inheritdoc/>
+        [JsonPropertyName("id")]
         public T Id { get; set; } = default!;
 
         /// <inheritdoc/>
@@ -41,13 +42,5 @@ namespace CoreEx.RefData
         /// <inheritdoc/>
         [JsonPropertyName("endDate")]
         public DateTime? EndDate { get; set; }
-
-        /// <inheritdoc/>
-        [JsonPropertyName("etag")]
-        public string? ETag { get; set; }
-
-        /// <inheritdoc/>
-        [JsonPropertyName("changeLog")]
-        public ChangeLog? ChangeLog { get; set; }
     }
 }

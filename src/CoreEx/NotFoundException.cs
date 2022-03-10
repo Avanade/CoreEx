@@ -43,13 +43,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.NotFoundError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.NotFoundError.ToString();
+        public string ErrorType => Abstractions.ErrorType.NotFoundError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.NotFoundError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.NotFoundError;
+        public int ErrorCode => (int)Abstractions.ErrorType.NotFoundError;
 
         /// <summary>
         /// <inheritdoc/>

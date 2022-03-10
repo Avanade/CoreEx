@@ -13,7 +13,7 @@ namespace CoreEx.Entities
     /// <typeparam name="TEntity">The entity item <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<EntityCollectionResult<TColl, TEntity, TSelf>>, IEntityCollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom<EntityCollectionResult<TColl, TEntity, TSelf>>
+    public abstract class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<EntityCollectionResult<TColl, TEntity, TSelf>>, ICollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom<EntityCollectionResult<TColl, TEntity, TSelf>>
         where TColl : EntityBaseCollection<TEntity, TColl>, new()
         where TEntity : EntityBase<TEntity>
         where TSelf : EntityCollectionResult<TColl, TEntity, TSelf>, new()
@@ -50,12 +50,12 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the underlying <see cref="ICollection"/>.
         /// </summary>
-        ICollection? IEntityCollectionResult.Collection => Result;
+        ICollection? ICollectionResult.Collection => Result;
 
         /// <summary>
         /// Gets the underlying <see cref="ICollection{TEntity}"/>.
         /// </summary>
-        ICollection<TEntity>? IEntityCollectionResult<TEntity>.Collection => Result;
+        ICollection<TEntity>? ICollectionResult<TEntity>.Collection => Result;
 
         /// <inheritdoc/>
         public override bool Equals(EntityCollectionResult<TColl, TEntity, TSelf> other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)

@@ -43,13 +43,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.AuthorizationError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.AuthorizationError.ToString();
+        public string ErrorType => Abstractions.ErrorType.AuthorizationError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.AuthorizationError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.AuthorizationError;
+        public int ErrorCode => (int)Abstractions.ErrorType.AuthorizationError;
 
         /// <summary>
         /// <inheritdoc/>

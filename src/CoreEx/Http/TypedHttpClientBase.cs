@@ -1,13 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Configuration;
 using CoreEx.Json;
-using Microsoft.Extensions.Logging;
-using Polly;
-using Polly.Extensions.Http;
+using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Mime;
@@ -18,38 +14,19 @@ using System.Threading.Tasks;
 namespace CoreEx.Http
 {
     /// <summary>
-    /// Represents a typed <see cref="HttpClient"/> base wrapper.
+    /// Represents a typed <see cref="HttpClient"/> foundation wrapper.
     /// </summary>
-    /// <typeparam name="TSelf">The self <see cref="Type"/> for support fluent-style method-chaining.</typeparam>
-    public abstract class TypedHttpClientBase<TSelf> where TSelf : TypedHttpClientBase<TSelf>
+    public abstract class TypedHttpClientBase
     {
-        private static readonly Random _random = new(); // Used to add jitter (random 0-500ms) per retry.
-
-        private int? _retryCount;
-        private double? _retrySeconds;
-        private bool _ensureSuccess = false;
-        private bool _throwTransientException;
-        private bool _throwValidationException;
-        private string? _throwValidationMessage;
-        private PolicyBuilder<HttpResponseMessage>? _retryPolicy;
-        private Func<HttpResponseMessage?, Exception?, bool> _isTransient = IsTransient;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="TypedHttpClientBase{TBase}"/>.
         /// </summary>
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public TypedHttpClientBase(HttpClient client, ExecutionContext executionContext, IJsonSerializer jsonSerializer, SettingsBase settings, ILogger<TypedHttpClientBase<TSelf>> logger)
+        public TypedHttpClientBase(HttpClient client, IJsonSerializer jsonSerializer)
         {
             Client = client ?? throw new ArgumentNullException(nameof(client));
-            ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
-            Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            RequestLogger = HttpRequestLogger.Create(settings, logger);
         }
 
         /// <summary>
@@ -58,42 +35,20 @@ namespace CoreEx.Http
         protected HttpClient Client { get; }
 
         /// <summary>
-        /// Gets the <see cref="CoreEx.ExecutionContext"/>.
-        /// </summary>
-        protected ExecutionContext ExecutionContext { get; }
-
-        /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.
         /// </summary>
         protected IJsonSerializer JsonSerializer { get; }
 
         /// <summary>
-        /// Gets the <see cref="SettingsBase"/>.
-        /// </summary>
-        protected SettingsBase Settings { get; }
-
-        /// <summary>
-        /// Gets the <see cref="ILogger"/>.
-        /// </summary>
-        protected ILogger Logger { get; }
-
-        /// <summary>
-        /// Gets the list of correlation header names.
-        /// </summary>
-        protected virtual IEnumerable<string> CorrelationHeaderNames => new string[] { "x-correlation-id", "x-ms-client-tracking-id" };
-
-        /// <summary>
-        /// Gets the <see cref="HttpRequestLogger"/>.
-        /// </summary>
-        protected HttpRequestLogger RequestLogger { get; }
-
-        /// <summary>
-        /// Create an <see cref="HttpRequestMessage"/> with no content.
+        /// Create an <see cref="HttpRequestMessage"/> with no specified content.
         /// </summary>
         /// <param name="method">The <see cref="HttpMethod"/>.</param>
         /// <param name="requestUri">The Uri the request is sent to.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="HttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected HttpRequestMessage CreateRequest(HttpMethod method, string requestUri) => new(method, requestUri);
+        protected HttpRequestMessage CreateRequest(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, params HttpArg[] args) 
+            => CreateRequestInternal(method, requestUri, null, requestOptions, args);
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> with the specified <paramref name="content"/>.
@@ -101,13 +56,11 @@ namespace CoreEx.Http
         /// <param name="method">The <see cref="HttpMethod"/>.</param>
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="content">The <see cref="HttpContent"/>.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="HttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected HttpRequestMessage CreateRequest(HttpMethod method, string requestUri, HttpContent content)
-        {
-            var request = CreateRequest(method, requestUri);
-            request.Content = content;
-            return request;
-        }
+        protected HttpRequestMessage CreateContentRequest(HttpMethod method, string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params HttpArg[] args)
+            => CreateRequestInternal(method, requestUri, content, requestOptions, args);
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> serializing the <paramref name="value"/> as JSON content.
@@ -116,9 +69,155 @@ namespace CoreEx.Http
         /// <param name="method">The <see cref="HttpMethod"/>.</param>
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="value">The request value to be serialized to JSON.</param>
+        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="args">Zero or more <see cref="HttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected HttpRequestMessage CreateJsonRequest<TReq>(HttpMethod method, string requestUri, TReq value)
-            => CreateRequest(method, requestUri, new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json));
+        protected HttpRequestMessage CreateJsonRequest<TReq>(HttpMethod method, string requestUri, TReq value, HttpRequestOptions? requestOptions = null, params HttpArg[] args)
+            => CreateContentRequest(method, requestUri, new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json), requestOptions, args);
+
+        /// <summary>
+        /// Create the request applying the specified options and args.
+        /// </summary>
+        private HttpRequestMessage CreateRequestInternal(HttpMethod method, string requestUri, HttpContent? content, HttpRequestOptions? requestOptions = null, params HttpArg[] args)
+        {
+            // Replace any format placeholders within request uri.
+            requestUri = FormatReplacement(requestUri, args);
+
+            // Access the query string.
+            var uri = new Uri(requestUri, UriKind.RelativeOrAbsolute);
+
+            UriBuilder ub;
+            if (uri.IsAbsoluteUri)
+                ub = new UriBuilder(uri.Scheme, uri.Host, uri.Port, uri.PathAndQuery);
+            else
+                ub = new UriBuilder("https", "coreex", 8080, requestUri);
+
+            var qs = QueryString.FromUriComponent(ub.Query);
+
+            // Extend the query string from the HttpArgs.
+            foreach (var arg in (args ??= Array.Empty<HttpArg>()).Where(x => x != null && !x.IsUsed && x.ArgType != HttpArgType.FromBody && !x.IsDefault))
+            {
+                qs = arg.AddToQueryString(qs, JsonSerializer);
+                arg.IsUsed = true;
+            }
+
+            // Extend the query string to include additional options.
+            if (requestOptions != null)
+                qs = requestOptions.AddToQueryString(qs);
+
+            // Create the request and include ETag if any.
+            ub.Query = qs.ToUriComponent();
+            var request = new HttpRequestMessage(method, uri.IsAbsoluteUri ? ub.Uri.ToString() : ub.Uri.PathAndQuery).ApplyETag(requestOptions?.ETag);
+            if (content != null)
+                request.Content = content;
+
+            // Apply the body/content HttpArg.
+            var bodyArgs = args.Where(x => x != null && x.ArgType == HttpArgType.FromBody).ToList();
+            if (bodyArgs.Count > 1)
+                throw new ArgumentException("Only a single argument can have an ArgType of FromBody.", nameof(args));
+
+            if (bodyArgs.Count > 0)
+            {
+                if (content != null)
+                    throw new ArgumentException("An argument with an ArgType of FromBody is not supported where HttpContent is also provided.", nameof(args));
+
+                var value = bodyArgs[0].GetValue();
+                if (value != null)
+                    request.Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json);
+            }
+
+            return request;
+        }
+
+        /// <summary>
+        /// Format replacement inspired by: https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/LogValuesFormatter.cs
+        /// </summary>
+        private static string FormatReplacement(string requestUri, HttpArg[] args)
+        {
+            var sb = new StringBuilder();
+            var scanIndex = 0;
+            var endIndex = requestUri.Length;
+
+            while (scanIndex < endIndex)
+            {
+                var openBraceIndex = FindBraceIndex(requestUri, '{', scanIndex, endIndex);
+                if (scanIndex == 0 && openBraceIndex == endIndex)
+                    return requestUri;  // No holes found.
+
+                var closeBraceIndex = FindBraceIndex(requestUri, '}', openBraceIndex, endIndex);
+                if (closeBraceIndex == endIndex)
+                {
+                    sb.Append(requestUri, scanIndex, endIndex - scanIndex);
+                    scanIndex = endIndex;
+                }
+                else
+                {
+                    sb.Append(requestUri, scanIndex, openBraceIndex - scanIndex);
+
+                    var arg = args.Where(x => x != null && MemoryExtensions.Equals(requestUri.AsSpan(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1), x.Name, StringComparison.Ordinal)).FirstOrDefault();
+                    if (arg != null)
+                    {
+                        sb.Append(arg.ToEscapeDataString());
+                        arg.IsUsed = true;
+                    }
+
+                    scanIndex = closeBraceIndex + 1;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Find the brace index within specified range.
+        /// </summary>
+        private static int FindBraceIndex(string format, char brace, int startIndex, int endIndex)
+        {
+            // Example: {{prefix{{{Argument}}}suffix}}.
+            var braceIndex = endIndex;
+            var scanIndex = startIndex;
+            var braceOccurenceCount = 0;
+
+            while (scanIndex < endIndex)
+            {
+                if (braceOccurenceCount > 0 && format[scanIndex] != brace)
+                {
+                    if (braceOccurenceCount % 2 == 0)
+                    {
+                        // Even number of '{' or '}' found. Proceed search with next occurence of '{' or '}'.
+                        braceOccurenceCount = 0;
+                        braceIndex = endIndex;
+                    }
+                    else
+                    {
+                        // An unescaped '{' or '}' found.
+                        break;
+                    }
+                }
+                else if (format[scanIndex] == brace)
+                {
+                    if (brace == '}')
+                    {
+                        if (braceOccurenceCount == 0)
+                        {
+                            // For '}' pick the first occurence.
+                            braceIndex = scanIndex;
+                        }
+                    }
+                    else
+                    {
+                        // For '{' pick the last occurence.
+                        braceIndex = scanIndex;
+                    }
+
+                    braceOccurenceCount++;
+                }
+
+                scanIndex++;
+            }
+
+            return braceIndex;
+        }
 
         /// <summary>
         /// Deserialize the JSON <see cref="HttpResponseMessage.Content"/> into <see cref="Type"/> of <typeparamref name="TResp"/>.
@@ -142,192 +241,7 @@ namespace CoreEx.Http
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResponseMessage"/>.</returns>
-        protected virtual async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            HttpResponseMessage? response = null;
-
-            try
-            {
-                foreach (var name in CorrelationHeaderNames)
-                {
-                    request.Headers.Add(name, ExecutionContext.CorrelationId);
-                }
-
-                await RequestLogger.LogRequestAsync(request).ConfigureAwait(false);
-
-                var req = request;
-                response = await
-                    (_retryPolicy ?? HttpPolicyExtensions.HandleTransientHttpError())
-                    .WaitAndRetryAsync(_retryCount ?? 0, attempt => TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500))), async (result, timeSpan, retryCount, context) =>
-                    {
-                        if (result.Exception == null)
-                            Logger.LogWarning("Request failed with {HttpStatusCodeText} ({HttpStatusCode}). Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
-                                result.Result.StatusCode, (int)result.Result.StatusCode, timeSpan, retryCount);
-                        else
-                            Logger.LogWarning(result.Exception, "Request failed with '{ErrorMessage}' Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
-                                result.Exception.Message, timeSpan, retryCount);
-
-                        // Clone and dispose of existing request to avoid error: The request message was already sent. Cannot send the same request message multiple times.
-                        var tmp = await CloneAsync(req).ConfigureAwait(false);
-                        req.Dispose();
-                        req = tmp;
-                    })
-                    .ExecuteAsync(() => Client.SendAsync(req, cancellationToken));
-
-                await RequestLogger.LogResponseAsync(request, response).ConfigureAwait(false);
-
-                // This is the result of the final request after leaving the retry policy logic.
-                if (_throwTransientException && _isTransient(response, null))
-                    throw new TransientException();
-
-                if (_throwValidationException && response.StatusCode == HttpStatusCode.BadRequest)
-                    throw new ValidationException(_throwValidationMessage ?? await response.Content.ReadAsStringAsync().ConfigureAwait(false));
-            }
-            catch (HttpRequestException hrex)
-            {
-                if (_throwTransientException && _isTransient(null, hrex))
-                    throw new TransientException(null, hrex);
-
-                throw;
-            }
-
-            if (_ensureSuccess)
-                response.EnsureSuccessStatusCode();
-
-            return response;
-        }
-
-        /// <summary>
-        /// Clones the <see cref="HttpRequestMessage"/>; inspired by <see href="https://stackoverflow.com/questions/18000583/re-send-httprequestmessage-exception"/>.
-        /// </summary>
-        private static async Task<HttpRequestMessage> CloneAsync(HttpRequestMessage request)
-        {
-            var clone = new HttpRequestMessage(request.Method, request.RequestUri)
-            {
-                Content = await CloneAsync(request.Content).ConfigureAwait(false),
-                Version = request.Version
-            };
-
-            foreach (KeyValuePair<string, object> prop in request.Properties)
-            {
-                clone.Properties.Add(prop);
-            }
-
-            foreach (KeyValuePair<string, IEnumerable<string>> header in request.Headers)
-            {
-                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
-
-            return clone;
-        }
-
-        /// <summary>
-        /// Clones the <see cref="HttpContent"/>.
-        /// </summary>
-        private static async Task<HttpContent?> CloneAsync(HttpContent? content)
-        {
-            if (content == null)
-                return null;
-
-            var ms = new MemoryStream();
-            await content.CopyToAsync(ms).ConfigureAwait(false);
-            ms.Position = 0;
-
-            var clone = new StreamContent(ms);
-            foreach (KeyValuePair<string, IEnumerable<string>> header in content.Headers)
-            {
-                clone.Headers.Add(header.Key, header.Value);
-            }
-
-            return clone;
-        }
-
-        /// <summary>
-        /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.
-        /// </summary>
-        /// <param name="predicate">An oprtional predicate to determine whether the error is considered transient. Defaults to <see cref="IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/> or <see cref="WithRetry(PolicyBuilder{HttpResponseMessage}, int?, double?)"/>.</remarks>
-        public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, bool>? predicate = null)
-        {
-            _throwTransientException = true;
-            _isTransient = predicate ?? IsTransient;
-            return (TSelf)this;
-        }
-
-        /// <summary>
-        /// Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where <see cref="HttpStatusCode.BadRequest"/> throw a <see cref="ValidationException"/>.
-        /// </summary>
-        /// <param name="message">The message override; otherwise, by default will use the <see cref="HttpResponseMessage.Content"/>.</param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/> or <see cref="WithRetry(PolicyBuilder{HttpResponseMessage}, int?, double?)"/>.</remarks>
-        public TSelf ThrowValidationException(string? message = null)
-        {
-            _throwValidationException = true;
-            _throwValidationMessage = message;
-            return (TSelf)this;
-        }
-
-        /// <summary>
-        /// Indicates whether to perform a retry where an underlying transient error occurs using the default policy (<see cref="HttpPolicyExtensions.HandleTransientHttpError"/>).
-        /// </summary>
-        /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
-        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/></param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        public TSelf WithRetry(int? count = null, double? seconds = null) => WithRetry(HttpPolicyExtensions.HandleTransientHttpError(), count, seconds);
-
-        /// <summary>
-        /// Indicates whether to perform a retry where an underlying transient error occurs using an alternate <see cref="PolicyBuilder"/>.
-        /// </summary>
-        /// <param name="policyBuilder">The alternate <see cref="PolicyBuilder"/>.</param>
-        /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
-        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/></param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        public TSelf WithRetry(PolicyBuilder<HttpResponseMessage> policyBuilder, int? count = null, double? seconds = null)
-        {
-            _retryPolicy = policyBuilder ?? throw new ArgumentNullException(nameof(policyBuilder));
-
-            var retryCount = Settings.HttpRetryCount;
-            var retrySeconds = Settings.HttpRetrySeconds;
-
-            _retryCount = count ?? retryCount;
-            if (_retryCount < 0)
-                _retryCount = retryCount;
-
-            _retrySeconds = seconds ?? retrySeconds;
-            if (_retrySeconds < retrySeconds)
-                _retrySeconds = retrySeconds;
-
-            return (TSelf)this;
-        }
-
-        /// <summary>
-        /// Indicates whether to automatically perform an <see cref="HttpResponseMessage.EnsureSuccessStatusCode"/>.
-        /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        public TSelf EnsureSuccess()
-        {
-            _ensureSuccess = true;
-            return (TSelf)this;
-        }
-
-        /// <summary>
-        /// Resets the <see cref="TypedHttpClientBase{TSelf}"/> to its initial state.
-        /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        public virtual TSelf Reset()
-        {
-            _retryCount = null;
-            _retrySeconds = null;
-            _throwTransientException = false;
-            _throwValidationException = false;
-            _throwValidationMessage = null;
-            _retryPolicy = null;
-            _isTransient = IsTransient;
-            _ensureSuccess = false;
-
-            return (TSelf)this;
-        }
+        protected abstract Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken);
 
         /// <summary>
         /// Determines whether the <paramref name="response"/> or <paramref name="exception"/> result is transient in nature, and as such is a candidate for a retry.

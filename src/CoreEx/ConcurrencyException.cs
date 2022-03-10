@@ -43,13 +43,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.ConcurrencyError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.ConcurrencyError.ToString();
+        public string ErrorType => Abstractions.ErrorType.ConcurrencyError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.ConcurrencyError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.ConcurrencyError;
+        public int ErrorCode => (int)Abstractions.ErrorType.ConcurrencyError;
 
         /// <summary>
         /// <inheritdoc/>

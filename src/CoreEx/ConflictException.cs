@@ -44,13 +44,13 @@ namespace CoreEx
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.ConflictError"/> value as a <see cref="string"/>.</returns>
-        public string ErrorReason => ErrorType.ConflictError.ToString();
+        public string ErrorType => Abstractions.ErrorType.ConflictError.ToString();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>The <see cref="ErrorType.ConflictError"/> value as a <see cref="string"/>.</returns>
-        public int ErrorCode => (int)ErrorType.ConflictError;
+        public int ErrorCode => (int)Abstractions.ErrorType.ConflictError;
 
         /// <summary>
         /// <inheritdoc/>
