@@ -3,7 +3,7 @@
 namespace CoreEx.Http
 {
     /// <summary>
-    /// Defines the <see cref="HttpArg.ArgType"/>.
+    /// Defines the <see cref="HttpArg{T}.ArgType"/>.
     /// </summary>
     public enum HttpArgType
     {

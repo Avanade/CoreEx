@@ -140,7 +140,7 @@ namespace CoreEx.Test.Framework.Http
 
             Assert.IsTrue(r.Result.IsSuccess);
             Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            ObjectComparer.Assert(new ProductCollectionResult { Result = pc }, r.Result.Value);
+            ObjectComparer.Assert(new ProductCollectionResult { Collection = pc }, r.Result.Value);
 
             mcf.VerifyAll();
         }
@@ -167,7 +167,7 @@ namespace CoreEx.Test.Framework.Http
 
             Assert.IsTrue(r.Result.IsSuccess);
             Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            ObjectComparer.Assert(new ProductCollectionResult { Result = pc, Paging = new PagingResult(PagingArgs.CreateSkipAndTake(100, 25), 1000) }, r.Result.Value);
+            ObjectComparer.Assert(new ProductCollectionResult { Collection = pc, Paging = new PagingResult(PagingArgs.CreateSkipAndTake(100, 25), 1000) }, r.Result.Value);
 
             mcf.VerifyAll();
         }

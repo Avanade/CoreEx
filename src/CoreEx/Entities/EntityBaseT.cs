@@ -32,7 +32,7 @@ namespace CoreEx.Entities
         public override bool Equals(object? obj) => (obj is TSelf other) && Equals(other);
 
         /// <inheritdoc/>
-        public virtual bool Equals(TSelf other) => true;
+        public virtual bool Equals(TSelf? other) => true;
 
         /// <summary>
         /// Compares two values for equality.
@@ -57,11 +57,11 @@ namespace CoreEx.Entities
         public override int GetHashCode() => 0;
 
         /// <inheritdoc/>
-        public override string ToString()
+        public override string? ToString()
         {
             if (this is IIdentifier ii)
                 return $"{base.ToString()} Id={ii.GetIdentifier()}";
-            else if (this is IPrimaryKey pk && pk.PrimaryKey != null)
+            else if (this is IPrimaryKey pk)
                 return $"{base.ToString()} PrimaryKey={pk.PrimaryKey}";
             else
                 return base.ToString();

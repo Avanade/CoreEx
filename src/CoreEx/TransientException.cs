@@ -3,7 +3,9 @@
 using CoreEx.Abstractions;
 using CoreEx.AspNetCore;
 using CoreEx.Localization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Net;
 using System.Net.Mime;
@@ -73,10 +75,17 @@ namespace CoreEx
         public bool ShouldBeLogged => ShouldExceptionBeLogged;
 
         /// <inheritdoc/>
-        public IActionResult ToResult() => new CustomResult(new ContentResult { Content = Message, ContentType = MediaTypeNames.Text.Plain, StatusCode = (int)StatusCode }, context =>
+        public IActionResult ToResult() => new ExtendedContentResult
         {
-            context.HttpContext.Response.Headers.Add("Retry-After", "120");
-            return Task.CompletedTask;
-        });
+            Content = Message,
+            ContentType = MediaTypeNames.Text.Plain,
+            StatusCode = (int)StatusCode,
+            // TODO: Add back once UnitTestEx is updated to handle IJsonSerializer
+            //BeforeExtension = r =>
+            //{
+            //    r.GetTypedHeaders().Set(HeaderNames.RetryAfter, "120");
+            //    return Task.CompletedTask;
+            //}
+        };
     }
 }

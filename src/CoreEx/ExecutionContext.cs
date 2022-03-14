@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
+using CoreEx.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading;
@@ -95,5 +97,20 @@ namespace CoreEx
         /// </summary>
         /// <remarks>Defaults to <see cref="Guid.NewGuid"/>.</remarks>
         public string CorrelationId { get; set; } = Guid.NewGuid().ToString().ToLowerInvariant();
+
+        /// <summary>
+        /// Gets or sets the <see cref="OperationType"/>.
+        /// </summary>
+        public OperationType OperationType { get; set; }
+
+        /// <summary>
+        /// Indicates whether text serialization is enabled; see <see cref="HttpConsts.IncludeTextQueryStringName"/>.
+        /// </summary>
+        public bool IsTextSerializationEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <b>result</b> entity tag (where value does not support <see cref="IETag"/>).
+        /// </summary>
+        public string? ETag { get; set; }
     }
 }

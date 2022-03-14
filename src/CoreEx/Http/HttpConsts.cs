@@ -104,6 +104,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets or sets the <see cref="HttpRequestOptions.IncludeText"/> query string name.
         /// </summary>
+        /// <remarks>See <see cref="ExecutionContext.IsTextSerializationEnabled"/>.</remarks>
         public static string IncludeTextQueryStringName { get; set; } = "$text";
 
         /// <summary>
@@ -118,42 +119,42 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Page"/> query string names.
         /// </summary>
-        public static IEnumerable<string> PagingArgsPageQueryStringNames { get; set; } = new List<string>(new string[] { "$page", "$pageNumber" });
+        public static IEnumerable<string> PagingArgsPageQueryStringNames { get; set; } = new List<string>(new string[] { "$page", "$pageNumber", "paging-page" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Skip"/> query string names.
         /// </summary>
-        public static IEnumerable<string> PagingArgsSkipQueryStringNames { get; set; } = new List<string>(new string[] { "$skip", "$offset" });
+        public static IEnumerable<string> PagingArgsSkipQueryStringNames { get; set; } = new List<string>(new string[] { "$skip", "$offset", "paging-skip" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Take"/> query string names.
         /// </summary>
-        public static IEnumerable<string> PagingArgsTakeQueryStringNames { get; set; } = new List<string>(new string[] { "$take", "$top", "$size", "$pageSize", "$limit" });
+        public static IEnumerable<string> PagingArgsTakeQueryStringNames { get; set; } = new List<string>(new string[] { "$take", "$top", "$size", "$pageSize", "$limit", "paging-take", "paging-size" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.IsGetCount"/> query string names.
         /// </summary>
-        public static IEnumerable<string> PagingArgsCountQueryStringNames { get; set; } = new List<string>(new string[] { "$count", "$totalCount" });
+        public static IEnumerable<string> PagingArgsCountQueryStringNames { get; set; } = new List<string>(new string[] { "$count", "$totalCount", "paging-count" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="HttpRequestOptions.IncludeFields"/> query string names.
         /// </summary>
-        public static IEnumerable<string> IncludeFieldsQueryStringNames { get; set; } = new List<string>(new string[] { "$fields", "$includeFields", "$include" });
+        public static IEnumerable<string> IncludeFieldsQueryStringNames { get; set; } = new List<string>(new string[] { "$fields", "$includeFields", "$include", "include-fields" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="HttpRequestOptions.ExcludeFields"/> query string names.
         /// </summary>
-        public static IEnumerable<string> ExcludeFieldsQueryStringNames { get; set; } = new List<string>(new string[] { "$excludeFields", "$exclude" });
+        public static IEnumerable<string> ExcludeFieldsQueryStringNames { get; set; } = new List<string>(new string[] { "$excludeFields", "$exclude", "exclude-fields" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="HttpRequestOptions.IncludeText"/> query string names.
         /// </summary>
-        public static IEnumerable<string> IncludeTextQueryStringNames { get; set; } = new List<string>(new string[] { "$text", "$includeText" });
+        public static IEnumerable<string> IncludeTextQueryStringNames { get; set; } = new List<string>(new string[] { "$text", "$includeText", "include-text" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="HttpRequestOptions.IncludeInactive"/> query string names.
         /// </summary>
-        public static IEnumerable<string> IncludeInactiveQueryStringNames { get; set; } = new List<string>(new string[] { "$inactive", "$includeInactive" });
+        public static IEnumerable<string> IncludeInactiveQueryStringNames { get; set; } = new List<string>(new string[] { "$inactive", "$includeInactive", "include-inactive" });
 
         #endregion
 

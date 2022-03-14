@@ -3,6 +3,8 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "ServiceBusConnection":  "supersecretconnectionstring"
+    "ServiceBusConnection": "supersecretconnectionstring",
+    "Test/BackendBaseAddress": "https://backend/",
+    "BindingRedirects": "[ { \"ShortName\": \"System.Memory.Data\", \"RedirectToVersion\": \"6.0.0.0\", \"PublicKeyToken\": \"cc7b13ffcd2ddd51\" } ]"
   }
 }

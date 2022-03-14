@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using CoreEx.Json;
 using System;
+using System.Globalization;
 using System.Text;
 
 namespace CoreEx.Utility
@@ -33,7 +34,7 @@ namespace CoreEx.Utility
             if (value == null)
                 return null;
 
-            // Where value is IComparable use ToString otherwise JSON serialize.
+            // Where value is IFormattable/IComparable use ToString; otherwise, JSON serialize.
             var txt = ConvertToString(jsonSerializer, value);
 
             if (parts.Length > 0)
@@ -81,9 +82,9 @@ namespace CoreEx.Utility
             if (value is DateTime dte)
                 return dte.ToString("o");
 
-            return (value is IConvertible ic)
-                ? ic.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                : ((value is IComparable) ? value.ToString() : jsonSerializer.Serialize(value));
+            return (value is IFormattable ic)
+                ? ic.ToString(null, CultureInfo.InvariantCulture)
+                : ((value is IComparable) ? value.ToString() : jsonSerializer.Serialize(value)) ?? string.Empty;
         }
     }
 }

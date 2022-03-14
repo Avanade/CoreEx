@@ -620,7 +620,7 @@ namespace CoreEx.Test.Framework.Entities
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             var pcr = new PersonCollectionResult(pc);
-            Assert.AreSame(pcr.Result, pc);
+            Assert.AreSame(pcr.Collection, pc);
 
             var pc2 = (PersonCollection)pcr;
             Assert.AreSame(pc, pc2);
@@ -689,7 +689,7 @@ namespace CoreEx.Test.Framework.Entities
 
             public PersonCollection(IEnumerable<Person> entities) : base(entities) { }
 
-            public static implicit operator PersonCollection(PersonCollectionResult result) => result?.Result!;
+            public static implicit operator PersonCollection(PersonCollectionResult result) => result?.Collection!;
         }
 
         public class PersonCollectionResult : EntityCollectionResult<PersonCollection, Person, PersonCollectionResult>
@@ -698,7 +698,7 @@ namespace CoreEx.Test.Framework.Entities
 
             public PersonCollectionResult(PagingArgs paging) : base(paging) { }
 
-            public PersonCollectionResult(PersonCollection collection, PagingArgs paging = null) : base(paging) => Result = collection;
+            public PersonCollectionResult(PersonCollection collection, PagingArgs paging = null) : base(paging) => Collection = collection;
         }
 
         public class PersonEx : Person, ICopyFrom<PersonEx>, IEquatable<PersonEx>

@@ -14,11 +14,11 @@ namespace CoreEx.Entities
         /// </summary>
         /// <param name="item">The item that had the property change.</param>
         /// <param name="propertyName">The name of the property that changed.</param>
-        public ItemPropertyChangedEventArgs(object item, string propertyName) : base(propertyName) => Item = item;
+        public ItemPropertyChangedEventArgs(object? item, string? propertyName) : base(propertyName) => Item = item;
 
         /// <summary>
         /// Gets the item that had the property change.
         /// </summary>
-        public object Item { get; }
+        public object? Item { get; }
     }
 }

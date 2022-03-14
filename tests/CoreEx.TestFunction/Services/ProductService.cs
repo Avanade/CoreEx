@@ -19,6 +19,14 @@ namespace CoreEx.TestFunction.Services
             _logger = logger;
         }
 
+        public Task<Product> GetProductAsync(string id)
+        {
+            if (id == "Zed")
+                return null;
+
+            return Task.FromResult(new Product { Id = id, Name = "Apple", Price = 0.79m });
+        }
+
         public async Task<Product> UpdateProductAsync(Product product)
         {
             using (_logger.BeginScope(new Dictionary<string, object>() { { "ProductId", product.Id } }))

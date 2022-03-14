@@ -1,17 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-
-    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
-    <PackageReference Include="coverlet.collector" Version="3.0.2" />
-    <PackageReference Include="UnitTestEx.NUnit" Version="1.0.11" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CoreEx.Functions\CoreEx.Functions.csproj" />
@@ -19,5 +10,6 @@
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\CoreEx.TestFunction\CoreEx.TestFunction.csproj" />
   </ItemGroup>
+
 
 </Project>

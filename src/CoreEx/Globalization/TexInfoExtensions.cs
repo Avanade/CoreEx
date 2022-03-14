@@ -18,8 +18,8 @@ namespace CoreEx.Globalization
         /// <returns>The converted text.</returns>
         public static string? ToCasing(this TextInfo textInfo, string? text, TextInfoCasing casing) => casing switch
         {
-            TextInfoCasing.Lower => textInfo.ToLower(text),
-            TextInfoCasing.Upper => textInfo.ToUpper(text),
+            TextInfoCasing.Lower => text == null ? null : textInfo.ToLower(text),
+            TextInfoCasing.Upper => text == null ? null : textInfo.ToUpper(text),
             _ => text
         };
     }
