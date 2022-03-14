@@ -1,8 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
+using System.Net.Http;
 
 namespace CoreEx.DependencyInjection
 {
@@ -47,6 +49,19 @@ namespace CoreEx.DependencyInjection
 
                 return ec;
             });
+        }
+
+        /// <summary>
+        /// Adds a <see cref="TypedHttpClientBase"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="TypedHttpClientBase"/> <see cref="Type"/>.</typeparam>
+        /// <param name="serviceCollection">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
+        /// <param name="configureClient">The delegate to configure the underlying <see cref="HttpClient"/> for the .</param>
+        public static IServiceCollection AddTypedHttpClient<T>(this IServiceCollection serviceCollection, string name, Action<IServiceProvider, HttpClient> configureClient) where T : TypedHttpClientBase
+        {
+            serviceCollection.AddHttpClient<T>(name, configureClient);
+            return serviceCollection;
         }
     }
 }

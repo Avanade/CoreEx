@@ -36,7 +36,7 @@ namespace CoreEx.TestApi
                 .AddScoped<WebApi, WebApi>();
 
             // Register the typed backend http client.
-            services.AddHttpClient<BackendHttpClient>("Backend", (sp, hc) =>
+            services.AddTypedHttpClient<BackendHttpClient>("Backend", (sp, hc) =>
             {
                 var settings = sp.GetService<TestSettings>();
                 hc.BaseAddress = settings.BackendBaseAddress;

@@ -33,7 +33,7 @@ namespace CoreEx.TestFunction
                 .AddScoped<IServiceBusTriggerExecutor, ServiceBusTriggerExecutor>();
 
             // Register the typed backend http client.
-            builder.Services.AddHttpClient<BackendHttpClient>("Backend", (sp, hc) =>
+            builder.Services.AddTypedHttpClient<BackendHttpClient>("Backend", (sp, hc) =>
             {
                 var settings = sp.GetService<TestSettings>();
                 hc.BaseAddress = settings.BackendBaseAddress;
