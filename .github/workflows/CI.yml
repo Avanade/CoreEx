@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet: [ '2.x', '3.1.x', '5.0.x', '6.0.x' ]
+        dotnet: [ '6.0.x' ]
     name: Dotnet ${{ matrix.dotnet }} coreEx
     steps:
       - uses: actions/checkout@v2
