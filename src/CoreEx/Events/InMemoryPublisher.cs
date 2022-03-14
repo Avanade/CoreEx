@@ -16,7 +16,8 @@ namespace CoreEx.Events
     /// <remarks>Where a <see cref="Logger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
     public class InMemoryPublisher : IEventPublisherBase
     {
-        private readonly ConcurrentDictionary<string?, ConcurrentQueue<EventData>> _dict = new();
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<EventData>> _dict = new();
+        private const string NullName = "!@#$%";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InMemoryPublisher"/> class.
@@ -65,7 +66,7 @@ namespace CoreEx.Events
         {
             var sb = new StringBuilder($"The following events were sent{(name == null ? ":" : $" to '{name}':")}");
 
-            var queue = _dict.GetOrAdd(name, _ => new ConcurrentQueue<EventData>());
+            var queue = _dict.GetOrAdd(name ?? NullName, _ => new ConcurrentQueue<EventData>());
             foreach (var @event in events.Where(e => e != null))
             {
                 var e = @event.Copy();
@@ -92,6 +93,6 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <returns>The corresponding events.</returns>
-        public EventData[] GetEvents(string? name = null) => _dict.TryGetValue(name, out var queue) ? queue.ToArray() : Array.Empty<EventData>();
+        public EventData[] GetEvents(string? name = null) => _dict.TryGetValue(name ?? NullName, out var queue) ? queue.ToArray() : Array.Empty<EventData>();
     }
 }

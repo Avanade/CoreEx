@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,16 +9,17 @@ using System.Text.Json.Serialization;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class (not <see cref="EntityBaseCollection{TEntity, TSelf}"/>) with a <see cref="PagingResult"/> and corresponding <see cref="Result"/> collection.
+    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class (not <see cref="EntityBaseCollection{TEntity, TSelf}"/>) with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.
     /// </summary>
     /// <typeparam name="TColl">The result collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The underlying entity <see cref="Type"/>.</typeparam>
+    /// <remarks>Generally an <see cref="CollectionResult{TColl, TItem}"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Collection"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
     public abstract class CollectionResult<TColl, TItem> : ICollectionResult<TColl, TItem>, IPagingResult
         where TColl : List<TItem>, new()
         where TItem : class
     {
-        private TColl? _result;
+        private TColl? _collection;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionResult{TColl, TEntity}"/> class.
@@ -30,11 +32,11 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
-        [JsonPropertyName("result")]
-        public TColl Result
+        [JsonPropertyName("collection")]
+        public TColl Collection
         {
-            get => _result ??= new TColl();
-            set => _result = value ?? throw new ArgumentNullException(nameof(value));
+            get => _collection ??= new TColl();
+            set => _collection = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         /// <inheritdoc/>
@@ -49,11 +51,11 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the underlying <see cref="ICollection"/>.
         /// </summary>
-        ICollection? ICollectionResult.Collection => _result;
+        ICollection? ICollectionResult.Collection => _collection;
 
         /// <summary>
         /// Gets the underlying <see cref="ICollection{TEntity}"/>.
         /// </summary>
-        ICollection<TItem>? ICollectionResult<TItem>.Collection => _result;
+        ICollection<TItem>? ICollectionResult<TItem>.Collection => _collection;
     }
 }

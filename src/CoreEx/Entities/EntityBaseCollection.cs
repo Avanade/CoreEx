@@ -71,7 +71,7 @@ namespace CoreEx.Entities
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <returns>The first item where found; otherwise, <c>default</c>. Where the underlying entity item does not implement <see cref="IPrimaryKey"/> this will always return <c>null</c>.</returns>
-        public TEntity GetByPrimaryKey(CompositeKey key) => !_hasPrimaryKey.Value ? default! : Items.Where(x => x is IPrimaryKey pk && key.Equals(pk.PrimaryKey)).FirstOrDefault();
+        public TEntity? GetByPrimaryKey(CompositeKey key) => !_hasPrimaryKey.Value ? default! : Items.Where(x => x is IPrimaryKey pk && key.Equals(pk.PrimaryKey)).FirstOrDefault();
 
         /// <inheritdoc/>
         object? IEntityBaseCollection.GetByPrimaryKey(params object?[] args) => GetByPrimaryKey(args);
@@ -81,7 +81,7 @@ namespace CoreEx.Entities
         /// </summary>
         /// <param name="args">The argument values for the key.</param>
         /// <returns>The first item where found; otherwise, <c>default</c>. Where the underlying entity item does not implement <see cref="IPrimaryKey"/> this will always return <c>null</c>.</returns>
-        public TEntity GetByPrimaryKey(params object?[] args) => GetByPrimaryKey(new CompositeKey(args));
+        public TEntity? GetByPrimaryKey(params object?[] args) => GetByPrimaryKey(new CompositeKey(args));
 
         /// <summary>
         /// Gets a <see cref="IEnumerable{TEntity}"/> wrapper around the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.
@@ -105,10 +105,10 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => (obj is TSelf other) && Equals(other);
+        public override bool Equals(object? obj) => (obj is TSelf other) && Equals(other);
 
         /// <inheritdoc/>
-        public bool Equals(TSelf other)
+        public bool Equals(TSelf? other)
         {
             if (ReferenceEquals(this, other))
                 return true;
@@ -204,7 +204,7 @@ namespace CoreEx.Entities
         /// <summary>
         /// Updates IsChanged where required.
         /// </summary>
-        private void Item_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             IsChanged = true;
             OnPropertyChanged(new ItemPropertyChangedEventArgs(sender, e.PropertyName));

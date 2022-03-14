@@ -274,7 +274,7 @@ namespace CoreEx.Entities
                         switch (jp.Name)
                         {
                             case "string": args[i] = jp.Value.GetString(); break;
-                            case "char": args[i] = Convert.ToChar(jp.Value.GetString()); break;
+                            case "char": args[i] = Convert.ToChar(jp.Value.GetString() ?? string.Empty); break;
                             case "short": args[i] = jp.Value.GetInt16(); break;
                             case "int": args[i] = jp.Value.GetInt32(); break;
                             case "long": args[i] = jp.Value.GetInt64(); break;

@@ -59,16 +59,19 @@ namespace CoreEx.Http
                 return null;
 
             _isUsed = true;
+            string? str;
             if (Value == null)
                 return null;
             else if (Value is IReferenceData rd)
-                return Uri.EscapeDataString(rd?.Code);
+                str = rd?.Code;
             else if (Value is DateTime dt)
-                return Uri.EscapeDataString(dt.ToString("o", CultureInfo.InvariantCulture));
+                str = dt.ToString("o", CultureInfo.InvariantCulture);
             else if (Value is IFormattable fmt)
-                return Uri.EscapeDataString(fmt.ToString(null, CultureInfo.InvariantCulture));
+                str = fmt.ToString(null, CultureInfo.InvariantCulture);
             else
-                return Uri.EscapeDataString(Value.ToString());
+                str = Value.ToString();
+
+            return str == null ? null : Uri.EscapeDataString(str);
         }
 
         /// <inheritdoc/>

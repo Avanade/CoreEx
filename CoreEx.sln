@@ -8,13 +8,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 		CONTRIBUTING.md = CONTRIBUTING.md
 		LICENCE = LICENCE
+		nuget-publish.ps1 = nuget-publish.ps1
 		README.md = README.md
 		SECURITY.md = SECURITY.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx", "src\CoreEx\CoreEx.csproj", "{A4B64F4F-224D-492C-8B0D-DAB27D510007}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.AspNetCore", "src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj", "{94669710-0960-4129-81FA-D6DAC0353096}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx", "src\CoreEx\CoreEx.csproj", "{A4B64F4F-224D-492C-8B0D-DAB27D510007}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Functions", "src\CoreEx.Functions\CoreEx.Functions.csproj", "{829D44C3-C0B5-4A56-96C4-C25AF0647CEC}"
 EndProject
@@ -22,9 +21,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Newtonsoft", "src\Co
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{3145DCB9-98FB-4519-BCC0-75A22A252EDC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Test", "tests\CoreEx.Test\CoreEx.Test.csproj", "{29C58371-9B52-47DA-99A0-D3B696BA74C9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Test", "tests\CoreEx.Test\CoreEx.Test.csproj", "{29C58371-9B52-47DA-99A0-D3B696BA74C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.TestFunction", "tests\CoreEx.TestFunction\CoreEx.TestFunction.csproj", "{284E43D8-26F9-4D9C-8C71-9BD4436FBD8A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.TestFunction", "tests\CoreEx.TestFunction\CoreEx.TestFunction.csproj", "{284E43D8-26F9-4D9C-8C71-9BD4436FBD8A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.TestApi", "tests\CoreEx.TestApi\CoreEx.TestApi.csproj", "{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,10 +37,6 @@ Global
 		{A4B64F4F-224D-492C-8B0D-DAB27D510007}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4B64F4F-224D-492C-8B0D-DAB27D510007}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A4B64F4F-224D-492C-8B0D-DAB27D510007}.Release|Any CPU.Build.0 = Release|Any CPU
-		{94669710-0960-4129-81FA-D6DAC0353096}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{94669710-0960-4129-81FA-D6DAC0353096}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{94669710-0960-4129-81FA-D6DAC0353096}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{94669710-0960-4129-81FA-D6DAC0353096}.Release|Any CPU.Build.0 = Release|Any CPU
 		{829D44C3-C0B5-4A56-96C4-C25AF0647CEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{829D44C3-C0B5-4A56-96C4-C25AF0647CEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{829D44C3-C0B5-4A56-96C4-C25AF0647CEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -56,6 +53,10 @@ Global
 		{284E43D8-26F9-4D9C-8C71-9BD4436FBD8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{284E43D8-26F9-4D9C-8C71-9BD4436FBD8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{284E43D8-26F9-4D9C-8C71-9BD4436FBD8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -63,6 +64,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{29C58371-9B52-47DA-99A0-D3B696BA74C9} = {3145DCB9-98FB-4519-BCC0-75A22A252EDC}
 		{284E43D8-26F9-4D9C-8C71-9BD4436FBD8A} = {3145DCB9-98FB-4519-BCC0-75A22A252EDC}
+		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC} = {3145DCB9-98FB-4519-BCC0-75A22A252EDC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8B4566D2-9B22-4E27-9654-402BDBA6C744}

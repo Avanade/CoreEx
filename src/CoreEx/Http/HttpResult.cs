@@ -90,7 +90,7 @@ namespace CoreEx.Http
             {
                 var result = new TCollResult
                 {
-                    Result = (jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).Deserialize<TColl>(content)!,
+                    Collection = (jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).Deserialize<TColl>(content)!,
                 };
 
                 if (response.TryGetPagingResult(out var paging))
@@ -108,7 +108,7 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="HttpResult"/> class.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync"/>).</param>
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
         protected HttpResult(HttpResponseMessage response, string? content)
         {
             Response = response ?? throw new ArgumentNullException(nameof(response));
@@ -152,14 +152,14 @@ namespace CoreEx.Http
         public HttpResponseMessage Response { get; }
 
         /// <summary>
-        /// Gets the <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync"/>).
+        /// Gets the <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).
         /// </summary>
         public string? Content { get; }
 
         /// <summary>
         /// Gets the underlying <see cref="HttpRequestMessage"/>.
         /// </summary>
-        public HttpRequestMessage Request => Response.RequestMessage;
+        public HttpRequestMessage? Request => Response.RequestMessage;
 
         /// <summary>
         /// Gets the <see cref="HttpStatusCode"/>.
@@ -212,7 +212,7 @@ namespace CoreEx.Http
         /// Creates an <see cref="IExtendedException"/> from the <see cref="HttpResponseMessage"/> based on the <see cref="HttpStatusCode"/>.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync"/>).</param>
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>The corresponding <see cref="IExtendedException"/> where applicable; otherwise, <c>null</c>.</returns>
         internal static IExtendedException? CreateExtendedException(HttpResponseMessage response, string? content, bool useContentAsErrorMessage = false)
@@ -252,7 +252,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Create <see cref="MessageItemCollection"/> from <paramref name="content"/>.
         /// </summary>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync"/>).</param>
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
         /// <returns>The <see cref="MessageItemCollection"/> where successfully deserialized; otherwise, <c>null</c>.</returns>
         internal static MessageItemCollection? CreateMessageItems(string? content)
         {

@@ -1,4 +1,5 @@
-﻿using CoreEx.Configuration;
+﻿using CoreEx.AspNetCore;
+using CoreEx.Configuration;
 using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Functions;
@@ -6,6 +7,8 @@ using CoreEx.Json;
 using CoreEx.TestFunction.Services;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+
+[assembly: FunctionsStartup(typeof(CoreEx.TestFunction.Startup))]
 
 namespace CoreEx.TestFunction
 {
@@ -21,11 +24,11 @@ namespace CoreEx.TestFunction
             builder.Services
                 .AddSingleton<TestSettings>()
                 .AddExecutionContext()
-                .AddScoped<IExecutor, Executor>()
                 .AddScoped<SettingsBase, TestSettings>()
                 .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                 .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
                 .AddScoped<IEventPublisherBase, NullEventPublisher>()
+                .AddScoped<WebApi, WebApi>()
                 .AddScoped<IHttpTriggerExecutor, HttpTriggerExecutor>()
                 .AddScoped<IServiceBusTriggerExecutor, ServiceBusTriggerExecutor>();
 

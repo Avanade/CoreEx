@@ -193,7 +193,7 @@ namespace CoreEx.Entities
         public static T Clean<T>(T value, bool overrideWithNullWhenIsInitial)
         {
             if (value is string str)
-                return (T)Convert.ChangeType(Clean(str, StringTrim.UseDefault, StringTransform.UseDefault), typeof(string), CultureInfo.CurrentCulture);
+                return (T)Convert.ChangeType(Clean(str, StringTrim.UseDefault, StringTransform.UseDefault), typeof(string), CultureInfo.CurrentCulture)!;
             else if (value is DateTime dte)
                 return (T)Convert.ChangeType(Clean(dte, DateTimeTransform.UseDefault), typeof(DateTime), CultureInfo.CurrentCulture);
 

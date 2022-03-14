@@ -52,7 +52,7 @@ namespace CoreEx.Http
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Unexpected error encountered whilst logging HTTP Request: {ex.Message}");
+                _logger.LogError(ex, "Unexpected error encountered whilst logging HTTP Request: {Message}", ex.Message);
             }
         }
 
@@ -71,7 +71,7 @@ namespace CoreEx.Http
                     if (_settings.HttpLogContent)
                     {
                         _logger.LogInformation("Received HTTP Response {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode}) {HttpResponseContent} ({HttpResponseMediaType})",
-                            request.RequestUri.Host,
+                            request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode,
                             response.Content == null ? "No content." : await response.Content.ReadAsStringAsync().ConfigureAwait(false),
@@ -83,7 +83,7 @@ namespace CoreEx.Http
                     if (_settings.HttpLogContent)
                     {
                         _logger.LogError("Unexpected HTTP Response {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode}) {HttpResponseContent} ({HttpResponseMediaType})",
-                            request.RequestUri.Host,
+                            request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode,
                             response.Content == null ? "No content." : await response.Content.ReadAsStringAsync().ConfigureAwait(false),
@@ -92,7 +92,7 @@ namespace CoreEx.Http
                     else
                     {
                         _logger.LogError("Unexpected HTTP Response {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode})",
-                            request.RequestUri.Host,
+                            request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode);
                     }
@@ -100,13 +100,13 @@ namespace CoreEx.Http
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Unexpected error encountered whilst logging HTTP Response: {ex.Message}");
+                _logger.LogError(ex, "Unexpected error encountered whilst logging HTTP Response: {Message}", ex.Message);
             }
         }
 
         /// <summary>
         /// Determine whether the response is considered successful.
         /// </summary>
-        private bool IsConsideredSuccessful(HttpResponseMessage response) => response.IsSuccessStatusCode;
+        private static bool IsConsideredSuccessful(HttpResponseMessage response) => response.IsSuccessStatusCode;
     }
 }

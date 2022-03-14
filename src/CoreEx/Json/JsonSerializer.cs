@@ -20,5 +20,10 @@ namespace CoreEx.Json
             get => _jsonSerializer ?? throw new InvalidOperationException($"No default {nameof(IJsonSerializer)} has been defined; this must be set prior to access.");
             set => _jsonSerializer = value ?? throw new ArgumentNullException(nameof(value));
         }
+
+        internal static string Serialize(object? value)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

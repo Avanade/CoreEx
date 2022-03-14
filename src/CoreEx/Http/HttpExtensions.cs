@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -31,6 +32,9 @@ namespace CoreEx.Http
         /// <remarks>This will automatically invoke <see cref="ApplyETag(HttpRequestMessage, string)"/> where there is an <see cref="HttpRequestOptions.ETag"/> value.</remarks>
         public static HttpRequestMessage ApplyRequestOptions(this HttpRequestMessage httpRequest, HttpRequestOptions requestOptions)
         {
+            if (httpRequest == null)
+                throw new ArgumentNullException(nameof(httpRequest));
+
             if (requestOptions == null)
                 return httpRequest;
 
@@ -40,7 +44,9 @@ namespace CoreEx.Http
             // Apply updates to the query string.
             var queryString = QueryString.FromUriComponent(httpRequest.RequestUri);
             queryString = requestOptions.AddToQueryString(queryString);
-            httpRequest.RequestUri = new UriBuilder(httpRequest.RequestUri) { Query = queryString.ToUriComponent() }.Uri;
+            var ub = httpRequest.RequestUri == null ? new UriBuilder() : new UriBuilder(httpRequest.RequestUri);
+            ub.Query = queryString.ToUriComponent();
+            httpRequest.RequestUri = ub.Uri;
 
             return httpRequest;
         }
@@ -158,6 +164,42 @@ namespace CoreEx.Http
             => HttpRequestOptions.TryGetPagingArgs((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Query, out var paging) ? paging : null;
 
         /// <summary>
+        /// Adds the <see cref="PagingArgs"/> to the <see cref="HttpResponse"/>.
+        /// </summary>
+        /// <param name="httpResponse">The <see cref="HttpResponse"/>.</param>
+        /// <param name="paging">The <see cref="PagingResult"/>.</param>
+        public static void AddPagingResult(this HttpResponse httpResponse, PagingResult? paging)
+            => httpResponse.Headers.AddPagingResult(paging);
+
+        /// <summary>
+        /// Adds the <see cref="PagingArgs"/> to the <see cref="IHeaderDictionary"/>.
+        /// </summary>
+        /// <param name="headers">The <see cref="IHeaderDictionary"/>.</param>
+        /// <param name="paging">The <see cref="PagingResult"/>.</param>
+        public static void AddPagingResult(this IHeaderDictionary headers, PagingResult? paging)
+        {
+            if (paging == null)
+                return;
+
+            if (paging.IsSkipTake)
+            {
+                headers[HttpConsts.PagingSkipHeaderName] = paging.Skip.ToString(CultureInfo.InvariantCulture);
+                headers[HttpConsts.PagingTakeHeaderName] = paging.Take.ToString(CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                headers[HttpConsts.PagingPageNumberHeaderName] = paging.Page!.Value.ToString(CultureInfo.InvariantCulture);
+                headers[HttpConsts.PagingPageSizeHeaderName] = paging.Take.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (paging.TotalCount.HasValue)
+                headers[HttpConsts.PagingTotalCountHeaderName] = paging.TotalCount.Value.ToString(CultureInfo.InvariantCulture);
+
+            if (paging.TotalPages.HasValue)
+                headers[HttpConsts.PagingTotalPagesHeaderName] = paging.TotalPages.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
         /// Converts the <see cref="HttpResponseMessage"/> to the equivalent <see cref="IExtendedException"/> based on the <see cref="HttpStatusCode"/>.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
@@ -169,7 +211,7 @@ namespace CoreEx.Http
                 return null;
 
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return HttpResult.CreateExtendedException(response, content);
+            return HttpResult.CreateExtendedException(response, content, useContentAsErrorMessage);
         }
 
         /// <summary>
@@ -185,7 +227,7 @@ namespace CoreEx.Http
             if (response == null || response.Headers == null || string.IsNullOrEmpty(name))
                 return false;
 
-            if (response.Headers.TryGetValues(name, out IEnumerable<string> values))
+            if (response.Headers.TryGetValues(name, out IEnumerable<string>? values))
             {
                 value = values.FirstOrDefault();
                 return true;

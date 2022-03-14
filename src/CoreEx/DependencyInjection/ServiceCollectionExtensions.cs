@@ -1,11 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Events;
-using CoreEx.Json;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
-using Stj = System.Text.Json;
 
 namespace CoreEx.DependencyInjection
 {

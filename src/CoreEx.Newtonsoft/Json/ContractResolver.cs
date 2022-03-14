@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.AspNetCore;
 using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.RefData.Models;
@@ -39,7 +40,8 @@ namespace CoreEx.Newtonsoft.Json
                     .AddType(typeof(CollectionResult<,>))
                     .AddType(typeof(EntityCollectionResult<,,>))
                     .AddType<PagingArgs>()
-                    .AddType<PagingResult>();
+                    .AddType<PagingResult>()
+                    .AddType<ExtendedContentResult>();
         }
 
         /// <summary>

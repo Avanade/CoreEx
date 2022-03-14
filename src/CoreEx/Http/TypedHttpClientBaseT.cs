@@ -239,9 +239,9 @@ namespace CoreEx.Http
                 Version = request.Version
             };
 
-            foreach (KeyValuePair<string, object> prop in request.Properties)
+            foreach (KeyValuePair<string, object?> prop in request.Properties)
             {
-                clone.Properties.Add(prop);
+                clone.Properties.Add(prop.Key, prop.Value);
             }
 
             foreach (KeyValuePair<string, IEnumerable<string>> header in request.Headers)
