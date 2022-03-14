@@ -76,7 +76,7 @@ namespace CoreEx.Test.Framework.Events
             Action = "created",
             CorrelationId = "cid",
             TenantId = "tid",
-            Timestamp = new DateTime(2022, 02, 22, 22, 02, 22),
+            Timestamp = new DateTime(2022, 02, 22, 22, 02, 22, DateTimeKind.Utc),
             PartitionKey = "pid",
             ETag = "etag",
             Attributes = new Dictionary<string, string> { { "fruit", "bananas" } },
@@ -86,13 +86,13 @@ namespace CoreEx.Test.Framework.Events
         internal static EventData<Product> CreateProductEvent2() => new EventData<Product>
         {
             Id = "id",
-            Timestamp = new DateTime(2022, 02, 22, 22, 02, 22),
+            Timestamp = new DateTime(2022, 02, 22, 22, 02, 22, DateTimeKind.Utc),
             Value = new Product { Id = "A", Name = "B", Price = 1.99m },
             CorrelationId = "cid"
         };
 
-        private const string CloudEvent1 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22-08:00\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
+        private const string CloudEvent1 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
 
-        private const string CloudEvent2 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22-08:00\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"correlationid\":\"cid\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
+        private const string CloudEvent2 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"correlationid\":\"cid\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
     }
 }
