@@ -113,5 +113,10 @@ namespace CoreEx.Configuration
         /// Indicates whether to the include the underlying <see cref="Exception"/> content in the externally returned result. Defaults to <c>false</c>.
         /// </summary>
         public bool IncludeExceptionInResult => GetValue(nameof(IncludeExceptionInResult), false);
+
+        /// <summary>
+        /// Gets the default maximum event publish collection size. Defaults to <c>100</c>.
+        /// </summary>
+        public int MaxPublishCollSize => GetValue(nameof(MaxPublishCollSize), 100);
     }
 }

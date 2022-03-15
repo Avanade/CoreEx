@@ -1,15 +1,12 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
-using CoreEx.AspNetCore;
 using CoreEx.Localization;
-using Microsoft.AspNetCore.Http;
+using CoreEx.WebApis;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
 using System;
 using System.Net;
 using System.Net.Mime;
-using System.Threading.Tasks;
 
 namespace CoreEx
 {

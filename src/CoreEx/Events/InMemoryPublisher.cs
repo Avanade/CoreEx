@@ -14,7 +14,7 @@ namespace CoreEx.Events
     /// Provides an in-memory publisher base which can be used for the likes of testing.
     /// </summary>
     /// <remarks>Where a <see cref="Logger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
-    public class InMemoryPublisher : IEventPublisherBase
+    public class InMemoryPublisher : IEventPublisher
     {
         private readonly ConcurrentDictionary<string, ConcurrentQueue<EventData>> _dict = new();
         private const string NullName = "!@#$%";

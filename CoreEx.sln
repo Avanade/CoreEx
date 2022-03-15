@@ -25,7 +25,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Test", "tests\CoreEx
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.TestFunction", "tests\CoreEx.TestFunction\CoreEx.TestFunction.csproj", "{284E43D8-26F9-4D9C-8C71-9BD4436FBD8A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.TestApi", "tests\CoreEx.TestApi\CoreEx.TestApi.csproj", "{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.TestApi", "tests\CoreEx.TestApi\CoreEx.TestApi.csproj", "{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.FluentValidation", "src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj", "{40AFC397-8B33-45D2-B16B-457ABF8C3D8D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +59,10 @@ Global
 		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE9992CC-CCC1-46C2-B78C-F8F55A41D4DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40AFC397-8B33-45D2-B16B-457ABF8C3D8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40AFC397-8B33-45D2-B16B-457ABF8C3D8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40AFC397-8B33-45D2-B16B-457ABF8C3D8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40AFC397-8B33-45D2-B16B-457ABF8C3D8D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

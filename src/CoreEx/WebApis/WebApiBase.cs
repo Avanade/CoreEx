@@ -10,15 +10,14 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
-namespace CoreEx.AspNetCore
+namespace CoreEx.WebApis
 {
     /// <summary>
-    /// Provides the Web API execution encapsulation to run the underlying logic in a consistent manner.
+    /// Provides the base Web API execution encapsulation to <see cref="RunAsync(HttpRequest, Func{WebApiParam, Task{IActionResult}}, OperationType)"/> the underlying logic in a consistent manner.
     /// </summary>
-    public class WebApi
+    public abstract class WebApiBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="WebApi"/> class.
@@ -27,7 +26,7 @@ namespace CoreEx.AspNetCore
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public WebApi(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApi> logger)
+        protected WebApiBase(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApiBase> logger)
         {
             ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -58,7 +57,8 @@ namespace CoreEx.AspNetCore
         /// <summary>
         /// Gets or sets the list of secondary correlation identifier names.
         /// </summary>
-        protected virtual IEnumerable<string> SecondaryCorrelationIdNames { get; set; } = new string[] { "x-ms-client-tracking-id" };
+        /// <remarks>Searches the <see cref="HttpRequest.Headers"/> for <see cref="HttpConsts.CorrelationIdHeaderName"/> or one of the other <see cref="SecondaryCorrelationIdNames"/> to determine the <see cref="ExecutionContext.CorrelationId"/> (uses first value found in sequence).</remarks>
+        public IEnumerable<string> SecondaryCorrelationIdNames { get; set; } = new string[] { "x-ms-client-tracking-id" };
 
         /// <summary>
         /// Gets the list of correlation identifier names, being <see cref="HttpConsts.CorrelationIdHeaderName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
@@ -78,7 +78,8 @@ namespace CoreEx.AspNetCore
         /// <param name="function">The function logic to invoke.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        protected async Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, Task<IActionResult>> function, OperationType operationType)
+        /// <remarks>This is, and must be, used by all methods that process an <see cref="HttpRequest"/> to ensure that the standardized before and after, success and error, handling occurs as required.</remarks>
+        protected async Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -104,7 +105,11 @@ namespace CoreEx.AspNetCore
 
             try
             {
-                return await function(wap).ConfigureAwait(false);
+                var ar = await function(wap).ConfigureAwait(false);
+                if (ar == null)
+                    throw new InvalidOperationException("The underlying function must return an IActionResult instance.");
+
+                return ar;
             }
             catch (Exception ex)
             {
@@ -116,8 +121,18 @@ namespace CoreEx.AspNetCore
                     return eex.ToResult();
                 }
 
+                if (ex is IExceptionResult rex)
+                {
+                    Logger.LogCritical(ex, "Executor encountered an Unhandled Exception: {Error}", ex.Message);
+                    return rex.ToResult();
+                }
+
+                var ar = OnUnhandledExceptionAsync(ex); ;
+                if (ar != null)
+                    return ar;
+
                 Logger.LogCritical(ex, "Executor encountered an Unhandled Exception: {Error}", ex.Message);
-                return (ex is IExceptionResult rex) ? rex.ToResult() : ex.ToUnexpectedResult(Settings.IncludeExceptionInResult);
+                return ex.ToUnexpectedResult(Settings.IncludeExceptionInResult);
             }
             finally
             {
@@ -126,31 +141,11 @@ namespace CoreEx.AspNetCore
         }
 
         /// <summary>
-        /// Performs a <see cref="HttpMethods.Get"/> operation.
+        /// Provides an opportunity to handle an unhandled exception.
         /// </summary>
-        /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
-        /// <param name="request">The <see cref="HttpRequest"/>.</param>
-        /// <param name="function">The function to execute.</param>
-        /// <param name="statusCode">The primary status code where successful.</param>
-        /// <param name="alternateStatusCode">The alternate status code where result is <c>null</c>.</param>
-        /// <param name="operationType">The <see cref="OperationType"/>.</param>
-        /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> GetAsync<TResult>(HttpRequest request, Func<WebApi, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NotFound, OperationType operationType = OperationType.Read)
-        {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
-
-            if (request.Method != HttpMethods.Get)
-                throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Get}' to use {nameof(GetAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
-
-            return await RunAsync(request, async wap =>
-            {
-                var result = await function(this).ConfigureAwait(false);
-                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, nullReplacement: null, location: null);
-            }, operationType).ConfigureAwait(false);
-        }
+        /// <param name="ex">The unhandled <see cref="Exception"/>.</param>
+        /// <returns>The <see cref="IActionResult"/> to return where handled; otherwise, <c>null</c> which in turn will result in <see cref="ExceptionResultExtensions.ToUnexpectedResult(Exception, bool)"/>.</returns>
+        /// <remarks>Any <see cref="IExtendedException"/> exceptions will be handled per their implementation; see <see cref="IExceptionResult.ToResult"/>.</remarks>
+        protected virtual IActionResult? OnUnhandledExceptionAsync(Exception ex) => null;
     }
 }

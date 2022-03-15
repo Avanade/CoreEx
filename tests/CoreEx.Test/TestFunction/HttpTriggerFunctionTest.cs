@@ -17,7 +17,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             test.HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products")))
+                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products")))
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
         }
@@ -27,7 +27,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             test.HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
+                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: '<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
         }
@@ -38,7 +38,7 @@ namespace CoreEx.Test.TestFunction
             using var test = FunctionTester.Create<Startup>();
             test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
+                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Unexpected character encountered while parsing value: <. Path '', line 0, position 0.");
         }
@@ -48,7 +48,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             test.HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "{\"price\": \"xx.xx\"}")))
+                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "{\"price\": \"xx.xx\"}")))
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: The JSON value could not be converted to System.Decimal. Path: $.price | LineNumber: 0 | BytePositionInLine: 17.");
         }
@@ -59,7 +59,7 @@ namespace CoreEx.Test.TestFunction
             using var test = FunctionTester.Create<Startup>();
             test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "{\"price\": \"xx.xx\"}")))
+                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "{\"price\": \"xx.xx\"}")))
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Could not convert string to decimal: xx.xx. Path 'price', line 1, position 17.");
         }
@@ -69,7 +69,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             test.HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
+                .Run(f => f.PostAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
                 .AssertErrors(new ApiError("Name", "'Name' must not be empty."));
         }
@@ -80,7 +80,7 @@ namespace CoreEx.Test.TestFunction
             using var test = FunctionTester.Create<Startup>();
             test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
+                .Run(f => f.PostAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
                 .AssertErrors(new ApiError("Name", "'Name' must not be empty."));
         }
@@ -95,7 +95,7 @@ namespace CoreEx.Test.TestFunction
             using var test = FunctionTester.Create<Startup>();
             test.ConfigureServices(sc => mcf.Replace(sc))
                 .HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
+                .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertOK()
                 .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
 
@@ -116,7 +116,7 @@ namespace CoreEx.Test.TestFunction
                     mcf.Replace(sc);
                 })
                 .HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
+                .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertOK()
                 .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
 

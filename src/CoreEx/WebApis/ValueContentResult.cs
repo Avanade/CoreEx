@@ -15,7 +15,7 @@ using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CoreEx.AspNetCore
+namespace CoreEx.WebApis
 {
     /// <summary>
     /// Represents a <see cref="ContentResult"/> with a <see cref="Value"/> that will be JSON serialized.
@@ -39,7 +39,7 @@ namespace CoreEx.AspNetCore
             ETag = etag;
             PagingResult = pagingResult;
             Location = location;
-            BeforeExtension = ModifyResponse;
+            //BeforeExtension = ModifyResponse;  // TODO: Add back after UnitTestEx becomes CoreEx aware - serialization issue pending.
         }
 
         /// <summary>

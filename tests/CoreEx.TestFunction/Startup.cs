@@ -1,10 +1,10 @@
-﻿using CoreEx.AspNetCore;
-using CoreEx.Configuration;
+﻿using CoreEx.Configuration;
 using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Functions;
 using CoreEx.Json;
 using CoreEx.TestFunction.Services;
+using CoreEx.WebApis;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,9 +27,9 @@ namespace CoreEx.TestFunction
                 .AddScoped<SettingsBase, TestSettings>()
                 .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                 .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
-                .AddScoped<IEventPublisherBase, NullEventPublisher>()
+                .AddScoped<IEventPublisher, NullEventPublisher>()
                 .AddScoped<WebApi, WebApi>()
-                .AddScoped<IHttpTriggerExecutor, HttpTriggerExecutor>()
+                .AddScoped<WebApiPublisher, WebApiPublisher>()
                 .AddScoped<IServiceBusTriggerExecutor, ServiceBusTriggerExecutor>();
 
             // Register the typed backend http client.

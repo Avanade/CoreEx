@@ -7,7 +7,7 @@ namespace CoreEx.Events
     /// <summary>
     /// Defines the standardised <b>Event</b> publishing and sending. 
     /// </summary>
-    public interface IEventPublisherBase
+    public interface IEventPublisher
     {
         /// <summary>
         /// Sends one or more <see cref="EventData"/> objects.

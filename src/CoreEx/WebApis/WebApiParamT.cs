@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx.AspNetCore
+namespace CoreEx.WebApis
 {
     /// <summary>
     /// Represents a <see cref="WebApi"/> parameter with a request <see cref="Value"/>.
@@ -14,7 +14,7 @@ namespace CoreEx.AspNetCore
         /// </summary>
         /// <param name="wap">The <see cref="WebApiParam"/> to copy from.</param>
         /// <param name="value">The deserialized request value.</param>
-        public WebApiParam(WebApiParam wap, T value) : base((wap ?? throw new ArgumentNullException(nameof(wap))).WebApi, wap.Request, wap.RequestOptions) => Value = value;
+        public WebApiParam(WebApiParam wap, T value) : base((wap ?? throw new ArgumentNullException(nameof(wap))).WebApi, wap.Request, wap.RequestOptions) => Value = InspectValue(value);
 
         /// <summary>
         /// Gets the deserialized request value.

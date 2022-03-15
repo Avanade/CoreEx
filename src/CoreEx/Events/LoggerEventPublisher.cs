@@ -11,7 +11,7 @@ namespace CoreEx.Events
     /// Represents an <see cref="ILogger"/> event publisher; whereby the events are output using <see cref="LoggerExtensions.LogInformation(ILogger, string, object[])"/>.
     /// </summary>
     /// <remarks>This in intended for testing and/or prototyping purposes.</remarks>
-    public class LoggerEventPublisher : IEventPublisherBase
+    public class LoggerEventPublisher : IEventPublisher
     {
         private readonly ILogger _logger;
         private readonly EventDataFormatter _eventDataFormatter;

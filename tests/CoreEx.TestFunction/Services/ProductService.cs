@@ -27,8 +27,15 @@ namespace CoreEx.TestFunction.Services
             return Task.FromResult(new Product { Id = id, Name = "Apple", Price = 0.79m });
         }
 
-        public async Task<Product> UpdateProductAsync(Product product)
+        public Task<Product> AddProductAsync(Product product)
         {
+            product.Id = "new";
+            return Task.FromResult(product);
+        }
+
+        public async Task<Product> UpdateProductAsync(Product product, string id)
+        {
+            product.Id = id;
             using (_logger.BeginScope(new Dictionary<string, object>() { { "ProductId", product.Id } }))
             {
                 if (product.Id == "Zed")
@@ -39,6 +46,12 @@ namespace CoreEx.TestFunction.Services
 
                 return _mapper.Map<Product>(r.Value);
             }
+        }
+
+        public Task DeleteProductAsync(string id)
+        {
+            _logger.LogInformation($"Deleting product {id}.");
+            return Task.CompletedTask;
         }
     }
 }

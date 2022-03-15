@@ -1,9 +1,8 @@
-using CoreEx.AspNetCore;
-using CoreEx.Functions;
-using CoreEx.Functions.FluentValidation;
+using CoreEx.FluentValidation;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Services;
 using CoreEx.TestFunction.Validators;
+using CoreEx.WebApis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -15,12 +14,10 @@ namespace CoreEx.TestFunction.Functions
     public class HttpTriggerFunction
     {
         private readonly WebApi _webApi;
-        private readonly IHttpTriggerExecutor _executor;
         private readonly ProductService _service;
 
-        public HttpTriggerFunction(IHttpTriggerExecutor executor, WebApi webApi, ProductService service)
+        public HttpTriggerFunction(WebApi webApi, ProductService service)
         {
-            _executor = executor;
             _webApi = webApi;
             _service = service;
         }
@@ -30,7 +27,11 @@ namespace CoreEx.TestFunction.Functions
             => _webApi.GetAsync(request, _ => _service.GetProductAsync(id));
 
         [FunctionName("HttpTriggerProductPost")]
-        public Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "products")] HttpRequest request)
-            => _executor.RunWithResultAsync<Product, ProductValidator, Product>(request, _service.UpdateProductAsync);
+        public Task<IActionResult> PostAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "products")] HttpRequest request)
+            => _webApi.PostAsync<Product, Product>(request, r => _service.AddProductAsync(r.Validate<Product, ProductValidator>()));
+
+        [FunctionName("HttpTriggerProductPut")]
+        public Task<IActionResult> PutAsync([HttpTrigger(AuthorizationLevel.Function, "put", Route = "products")] HttpRequest request)
+            => _webApi.PutAsync<Product, Product>(request, r => _service.UpdateProductAsync(r.Validate<Product, ProductValidator>(), r.Value.Id));
     }
 }

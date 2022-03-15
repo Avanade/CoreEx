@@ -3,16 +3,23 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace CoreEx.AspNetCore
+namespace CoreEx.WebApis
 {
     /// <summary>
-    /// Represents an extended <see cref="ContentResult"/> that enables customization of the <see cref="HttpResponse"/>.
+    /// Represents an extended <see cref="StatusCodeResult"/> that enables customization of the <see cref="HttpResponse"/>.
     /// </summary>
-    public class ExtendedContentResult : ContentResult
+    public class ExtendedStatusCodeResult : StatusCodeResult
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExtendedStatusCodeResult"/> class.
+        /// </summary>
+        /// <param name="statusCode">The <see cref="HttpStatusCode"/>.</param>
+        public ExtendedStatusCodeResult(HttpStatusCode statusCode) : base((int)statusCode) { }
+
         /// <summary>
         /// Gets or sets the function to perform the extended <see cref="HttpResponse"/> customization.
         /// </summary>
