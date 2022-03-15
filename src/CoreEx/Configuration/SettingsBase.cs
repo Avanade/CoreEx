@@ -28,6 +28,8 @@ namespace CoreEx.Configuration
             if ((prefixes ?? throw new ArgumentNullException(nameof(prefixes))).Length == 0)
                 throw new ArgumentException("At least one prefix must be specified.", nameof(prefixes));
 
+            Deployment = new DeploymentInfo(configuration);
+
             foreach (var prefix in prefixes)
             {
                 if (string.IsNullOrEmpty(prefix))
@@ -62,7 +64,12 @@ namespace CoreEx.Configuration
                 if (Configuration.GetSection(fullKey)?.Value != null)
                     return Configuration.GetValue<T>(fullKey);
             }
-            
+
+            // double underscore is read as ":" by Configuration
+            var keyWithoutUnderscore = key.Replace("__", ":");
+            if (Configuration.GetSection(keyWithoutUnderscore)?.Value != null)
+                return Configuration.GetValue<T>(keyWithoutUnderscore);
+
             return Configuration.GetValue(key, defaultValue);
         }
 
@@ -118,5 +125,8 @@ namespace CoreEx.Configuration
         /// Gets the default maximum event publish collection size. Defaults to <c>100</c>.
         /// </summary>
         public int MaxPublishCollSize => GetValue(nameof(MaxPublishCollSize), 100);
+
+        /// <summary> Deployment information read from environment variables. </summary>
+        public virtual DeploymentInfo Deployment { get; private set; }
     }
 }

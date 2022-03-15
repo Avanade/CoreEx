@@ -27,6 +27,7 @@ namespace CoreEx.TestFunction
                 .AddScoped<SettingsBase, TestSettings>()
                 .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                 .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
+                // replace by your own implementation of IEventPublisher to send events to e.g. service bus
                 .AddScoped<IEventPublisher, NullEventPublisher>()
                 .AddScoped<WebApi, WebApi>()
                 .AddScoped<WebApiPublisher, WebApiPublisher>()
