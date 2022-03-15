@@ -126,19 +126,6 @@ namespace CoreEx.Configuration
         /// </summary>
         public int MaxPublishCollSize => GetValue(nameof(MaxPublishCollSize), 100);
 
-        /// <summary>
-        /// The Azure Service Bus connection string used for <b>Publishing</b> when service bus is used.
-        /// </summary>
-        /// <remarks>It defaults to managed identity connection string used by triggers 'ServiceBusConnection__fullyQualifiedNamespace'</remarks>
-        public string ServiceBusConnection => GetValue<string>(defaultValue: ServiceBusConnection__fullyQualifiedNamespace);
-
-        /// <summary>
-        /// The Azure Service Bus connection string used by <b>Triggers</b> using managed identity.
-        /// </summary>
-        /// <remarks> <b>Caution</b> this key is used implicitly by function triggers when 'ServiceBusConnection' is not set. </remarks>
-        /// <remarks> Underscores in environment variables are replaced by semicolon ':' in configuration object, hence lookup also replaces '__' with ':'</remarks>
-        public string ServiceBusConnection__fullyQualifiedNamespace => GetValue<string>();
-
         /// <summary> Deployment information read from environment variables. </summary>
         public virtual DeploymentInfo Deployment { get; private set; }
     }
