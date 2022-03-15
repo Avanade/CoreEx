@@ -23,7 +23,7 @@ namespace CoreEx.TestFunction.Functions
 
         [FunctionName("ServiceBusFunction")]
         [ExponentialBackoffRetry(3, "00:02:00", "00:30:00")]
-        public async Task RunAsync([ServiceBusTrigger("%QueueName%", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
+        public async Task RunAsync([ServiceBusTrigger("%"+nameof(TestSettings.QueueName)+"%", Connection = nameof(TestSettings.ServiceBusConnection))] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
             => await _executor.RunAsync<Product, ProductValidator>(message, messageActions, ed => _service.UpdateProductAsync(ed.Value, ed.Value.Id)).ConfigureAwait(false);
     }
 }
