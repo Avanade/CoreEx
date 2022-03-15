@@ -118,7 +118,7 @@ namespace CoreEx.Http
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TSelf WithRetry(int? count = null, double? seconds = null)
-        { 
+        {
             var retryCount = Settings.HttpRetryCount;
             var retrySeconds = Settings.HttpRetrySeconds;
 
@@ -585,6 +585,17 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> DeleteAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
             => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Delete, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+        #endregion
+
+        #region Healthcheck
+
+        /// <summary>
+        /// Performs a health check by sending a HEAD request to base Uri as an asynchronous operation.
+        /// </summary>
+        /// <returns>The <see cref="HttpResult"/>.</returns>
+        public virtual async Task<HttpResult> HealthCheckAsync()
+         => await HeadAsync(string.Empty, null, null, new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token).ConfigureAwait(false);
 
         #endregion
     }

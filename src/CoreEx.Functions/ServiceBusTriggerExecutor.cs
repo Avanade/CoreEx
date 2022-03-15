@@ -20,7 +20,7 @@ namespace CoreEx.Functions
     /// <remarks>Each <c>Run</c> is wrapped with the same logic. The correlation identifier is set using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a
     /// <see cref="Guid.NewGuid"/> is used as the default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic
     /// with the correlation and message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically 
-    /// deadletter; otherwise, it will be immediately deadletted with a resaon of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
+    /// deadletter; otherwise, it will be immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
     public class ServiceBusTriggerExecutor : Executor, IServiceBusTriggerExecutor
     {
         private const string _errorText = "Invalid message: body was not provided, contained invalid JSON, or was incorrectly formatted:";
