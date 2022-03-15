@@ -10,7 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />
-    <ProjectReference Include="..\..\src\CoreEx.Functions\CoreEx.Functions.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Messaging.Azure\CoreEx.Messaging.Azure.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
   </ItemGroup>

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
-using CoreEx.Http;
 using Microsoft.AspNetCore.Http;
 using System;
 
@@ -16,12 +15,10 @@ namespace CoreEx.WebApis
         /// Initializes a new instance of the <see cref="WebApiParam"/> class.
         /// </summary>
         /// <param name="webApi">The parent <see cref="WebApiBase"/> instance.</param>
-        /// <param name="request">The <see cref="HttpRequest"/>.</param>
-        /// <param name="requestOptions">The <see cref="RequestOptions"/>.</param>
-        public WebApiParam(WebApiBase webApi, HttpRequest request, HttpRequestOptions requestOptions)
+        /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
+        public WebApiParam(WebApiBase webApi, WebApiRequestOptions requestOptions)
         {
             WebApi = webApi ?? throw new ArgumentNullException(nameof(webApi));
-            Request = request ?? throw new ArgumentNullException(nameof(request));
             RequestOptions = requestOptions ?? throw new ArgumentNullException(nameof(requestOptions));
         }
 
@@ -33,12 +30,12 @@ namespace CoreEx.WebApis
         /// <summary>
         /// Gets or sets the <see cref="HttpRequest"/>.
         /// </summary>
-        public HttpRequest Request { get; }
+        public HttpRequest Request => RequestOptions.Request;
 
         /// <summary>
-        /// Gets or sets the <see cref="HttpRequestOptions"/>.
+        /// Gets or sets the <see cref="WebApiRequestOptions"/>.
         /// </summary>
-        public HttpRequestOptions RequestOptions { get; }
+        public WebApiRequestOptions RequestOptions { get; }
 
         /// <summary>
         /// Gets the <see cref="Entities.PagingArgs"/>.
@@ -46,7 +43,7 @@ namespace CoreEx.WebApis
         public PagingArgs? Paging => RequestOptions.Paging;
 
         /// <summary>
-        /// Inspects the <paramref name="value"/> to update the <see cref="RequestOptions"/> (for example the <see cref="HttpRequestOptions.ETag"/>) where appropriate.
+        /// Inspects the <paramref name="value"/> to update the <see cref="WebApiRequestOptions.ETag"/> where appropriate.
         /// </summary>
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="value">The value.</param>

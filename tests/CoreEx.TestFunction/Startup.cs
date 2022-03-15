@@ -1,7 +1,7 @@
 ﻿using CoreEx.Configuration;
 using CoreEx.DependencyInjection;
 using CoreEx.Events;
-using CoreEx.Functions;
+using CoreEx.Messaging.Azure.ServiceBus;
 using CoreEx.Json;
 using CoreEx.TestFunction.Services;
 using CoreEx.WebApis;
@@ -30,7 +30,7 @@ namespace CoreEx.TestFunction
                 .AddScoped<IEventPublisher, NullEventPublisher>()
                 .AddScoped<WebApi, WebApi>()
                 .AddScoped<WebApiPublisher, WebApiPublisher>()
-                .AddScoped<IServiceBusTriggerExecutor, ServiceBusTriggerExecutor>();
+                .AddScoped<ServiceBusSubscriber>();
 
             // Register the typed backend http client.
             builder.Services.AddTypedHttpClient<BackendHttpClient>("Backend", (sp, hc) =>

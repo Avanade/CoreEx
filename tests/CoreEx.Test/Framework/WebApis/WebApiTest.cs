@@ -97,7 +97,18 @@ namespace CoreEx.Test.Framework.WebApis
             test.Type<WebApi>()
                 .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), _ => throw new DivideByZeroException()))
                 .ToActionResultAssertor()
-                .Assert(HttpStatusCode.InternalServerError); ;
+                .Assert(HttpStatusCode.InternalServerError);
+        }
+
+        [Test]
+        public void RunAsync_WithValue()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            test.Type<WebApi>()
+                .Run(f => f.RunAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new { id = "A", name = "B", price = 1.99m }),
+                        r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, r.Value); return Task.FromResult((IActionResult)new StatusCodeResult(201)); }))
+                .ToActionResultAssertor()
+                .AssertCreated();
         }
 
         [Test]

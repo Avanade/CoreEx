@@ -1,6 +1,6 @@
 ﻿using Azure.Messaging.ServiceBus;
-using CoreEx.Functions;
-using CoreEx.Functions.FluentValidation;
+using CoreEx.FluentValidation;
+using CoreEx.Messaging.Azure.ServiceBus;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Services;
 using CoreEx.TestFunction.Validators;
@@ -12,18 +12,18 @@ namespace CoreEx.TestFunction.Functions
 {
     public class ServiceBusTriggerFunction
     {
-        private readonly IServiceBusTriggerExecutor _executor;
+        private readonly ServiceBusSubscriber _subscriber;
         private readonly ProductService _service;
 
-        public ServiceBusTriggerFunction(IServiceBusTriggerExecutor executor, ProductService service)
+        public ServiceBusTriggerFunction(ServiceBusSubscriber subscriber, ProductService service)
         {
-            _executor = executor;
+            _subscriber = subscriber;
             _service = service;
         }
 
         [FunctionName("ServiceBusFunction")]
         [ExponentialBackoffRetry(3, "00:02:00", "00:30:00")]
-        public async Task RunAsync([ServiceBusTrigger("%QueueName%", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
-            => await _executor.RunAsync<Product, ProductValidator>(message, messageActions, ed => _service.UpdateProductAsync(ed.Value, ed.Value.Id)).ConfigureAwait(false);
+        public Task RunAsync([ServiceBusTrigger("%QueueName%", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
+            => _subscriber.ReceiveAsync<Product>(message, messageActions, ed => _service.UpdateProductAsync(ed.Validate<Product, ProductValidator>(), ed.Value.Id));
     }
 }
