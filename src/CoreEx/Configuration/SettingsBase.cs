@@ -28,6 +28,8 @@ namespace CoreEx.Configuration
             if ((prefixes ?? throw new ArgumentNullException(nameof(prefixes))).Length == 0)
                 throw new ArgumentException("At least one prefix must be specified.", nameof(prefixes));
 
+            Deployment = new DeploymentInfo(configuration);
+
             foreach (var prefix in prefixes)
             {
                 if (string.IsNullOrEmpty(prefix))
@@ -62,7 +64,12 @@ namespace CoreEx.Configuration
                 if (Configuration.GetSection(fullKey)?.Value != null)
                     return Configuration.GetValue<T>(fullKey);
             }
-            
+
+            // double underscore is read as ":" by Configuration
+            var keyWithoutUnderscore = key.Replace("__", ":");
+            if (Configuration.GetSection(keyWithoutUnderscore)?.Value != null)
+                return Configuration.GetValue<T>(keyWithoutUnderscore);
+
             return Configuration.GetValue(key, defaultValue);
         }
 
@@ -118,5 +125,21 @@ namespace CoreEx.Configuration
         /// Gets the default maximum event publish collection size. Defaults to <c>100</c>.
         /// </summary>
         public int MaxPublishCollSize => GetValue(nameof(MaxPublishCollSize), 100);
+
+        /// <summary>
+        /// The Azure Service Bus connection string used for <b>Publishing</b> when service bus is used.
+        /// </summary>
+        /// <remarks>It defaults to managed identity connection string used by triggers 'ServiceBusConnection__fullyQualifiedNamespace'</remarks>
+        public string ServiceBusConnection => GetValue<string>(defaultValue: ServiceBusConnection__fullyQualifiedNamespace);
+
+        /// <summary>
+        /// The Azure Service Bus connection string used by <b>Triggers</b> using managed identity.
+        /// </summary>
+        /// <remarks> <b>Caution</b> this key is used implicitly by function triggers when 'ServiceBusConnection' is not set. </remarks>
+        /// <remarks> Underscores in environment variables are replaced by semicolon ':' in configuration object, hence lookup also replaces '__' with ':'</remarks>
+        public string ServiceBusConnection__fullyQualifiedNamespace => GetValue<string>();
+
+        /// <summary> Deployment information read from environment variables. </summary>
+        public virtual DeploymentInfo Deployment { get; private set; }
     }
 }

@@ -48,7 +48,7 @@ namespace CoreEx.Http
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args) 
+        protected Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
             => CreateRequestInternalAsync(method, requestUri, null, requestOptions, args);
 
         /// <summary>
@@ -255,7 +255,7 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="exception">The <see cref="Exception"/>.</param>
-        /// <returns><c>true</c> indicates transient; otherwaise, <c>false</c>.</returns>
+        /// <returns><c>true</c> indicates transient; otherwise, <c>false</c>.</returns>
         public static bool IsTransient(HttpResponseMessage? response = null, Exception? exception = null)
         {
             if (exception != null)
