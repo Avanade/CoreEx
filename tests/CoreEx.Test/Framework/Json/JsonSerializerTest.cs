@@ -1,5 +1,6 @@
 ﻿using CoreEx.Json;
 using CoreEx.TestFunction.Models;
+using FluentAssertions;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -36,7 +37,8 @@ namespace CoreEx.Test.Framework.Json
             Assert.IsNull(p.Secret);
 
             json = js.Serialize(p, JsonWriteFormat.Indented);
-            Assert.AreEqual(json, "{\r\n  \"code\": \"A\",\r\n  \"description\": \"B\",\r\n  \"retailPrice\": 1.99\r\n}");
+            json.Should().Be("{\n  \"code\": \"A\",\n  \"description\": \"B\",\n  \"retailPrice\": 1.99\n}"
+                .Replace("\n", Environment.NewLine), because: "Line breaks should be preserved in indented JSON with different line endings on Linux and Windows");
         }
 
         [Test]
@@ -170,7 +172,8 @@ namespace CoreEx.Test.Framework.Json
             Assert.IsNull(p.Secret);
 
             json = js.Serialize(p, JsonWriteFormat.Indented);
-            Assert.AreEqual(json, "{\r\n  \"code\": \"A\",\r\n  \"description\": \"B\",\r\n  \"retailPrice\": 1.99\r\n}");
+            json.Should().Be("{\n  \"code\": \"A\",\n  \"description\": \"B\",\n  \"retailPrice\": 1.99\n}"
+                .Replace("\n", Environment.NewLine), because: "Line breaks should be preserved in indented JSON with different line endings on Linux and Windows");
         }
 
         [Test]

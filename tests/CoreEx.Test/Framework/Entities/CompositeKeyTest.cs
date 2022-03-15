@@ -95,7 +95,7 @@ namespace CoreEx.Test.Framework.Entities
 
             var str = $"line1{Environment.NewLine}line2";
             ck = new CompositeKey(str);
-            Assert.AreEqual("line1\\r\\nline2", ck.ToString());
+            Assert.AreEqual($"line1{(Environment.NewLine == "\n" ? "\\n" : "\\r\\n")}line2", ck.ToString());
 
             ck = new CompositeKey(char.MinValue);
             Assert.AreEqual("\\u0000", ck.ToString());
