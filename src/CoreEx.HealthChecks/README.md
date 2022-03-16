@@ -95,3 +95,18 @@ Once health checks are added, following information can be read from `/api/healt
   }
 }
 ```
+
+## Open Source Health Check implementations
+
+There are open sourced implementations for popular health checks - [AspNetCore.Diagnostics.HealthChecks](https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks) which can be utilized in CoreEx projects.
+
+## Health Checks for http clients
+
+By default HttpClient will use **HEAD** request for health checks. It's important that HTTP call doesn't affect state, hence `Task<HttpResult> HealthCheckAsync()` can be overridden and customized for specific scenarios (different HTTP methods, parameters).
+
+```csharp
+public override Task<HttpResult> HealthCheckAsync()
+{
+    return base.HeadAsync("/health", null, null, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
+}
+```

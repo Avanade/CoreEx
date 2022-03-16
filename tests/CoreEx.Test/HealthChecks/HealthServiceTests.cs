@@ -33,7 +33,7 @@ namespace CoreEx.Test.HealthChecks
             // Assert
             result.AssertSuccess();
             jsonObj.Should().NotBeNull();
-            jsonObj.GetProperty("healthReport").GetProperty("Status").GetString().Should().Be("Healthy");
+            jsonObj.GetProperty("healthReport").GetProperty("Status").GetString().Should().Be("Unhealthy", because: "Registered http backend is not healthy");
             jsonObj.GetProperty("Deployment").GetProperty("By").GetString().Should().Be("me");
             jsonObj.GetProperty("Deployment").GetProperty("Build").GetString().Should().Be("build no");
             jsonObj.GetProperty("Deployment").GetProperty("Name").GetString().Should().Be("my deployment");
