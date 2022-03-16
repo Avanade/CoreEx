@@ -16,7 +16,8 @@ namespace CoreEx.Test.TestFunction
         public void NoBody()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.HttpTrigger<HttpTriggerFunction>()
+            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+                .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products")))
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
@@ -26,10 +27,12 @@ namespace CoreEx.Test.TestFunction
         public void InvalidBody()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
-                .AssertBadRequest()
-                .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: '<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
+            test
+               .ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+               .HttpTrigger<HttpTriggerFunction>()
+               .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
+               .AssertBadRequest()
+               .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: '<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
         }
 
         [Test]
@@ -47,7 +50,8 @@ namespace CoreEx.Test.TestFunction
         public void InvalidJson()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.HttpTrigger<HttpTriggerFunction>()
+            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+                .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "{\"price\": \"xx.xx\"}")))
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: The JSON value could not be converted to System.Decimal. Path: $.price | LineNumber: 0 | BytePositionInLine: 17.");
@@ -68,7 +72,8 @@ namespace CoreEx.Test.TestFunction
         public void InvalidValue()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.HttpTrigger<HttpTriggerFunction>()
+            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+                .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
                 .AssertErrors(new ApiError("Name", "'Name' must not be empty."));
@@ -110,15 +115,15 @@ namespace CoreEx.Test.TestFunction
             mc.Request(HttpMethod.Post, "").WithJsonBody(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }).Respond.WithJson(new BackendProduct { Code = "AX", Description = "BX", RetailPrice = 10.99m });
 
             using var test = FunctionTester.Create<Startup>();
-                test.ConfigureServices(sc =>
-                {
-                    sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>();
-                    mcf.Replace(sc);
-                })
-                .HttpTrigger<HttpTriggerFunction>()
-                .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
-                .AssertOK()
-                .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
+            test.ConfigureServices(sc =>
+            {
+                sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>();
+                mcf.Replace(sc);
+            })
+            .HttpTrigger<HttpTriggerFunction>()
+            .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
+            .AssertOK()
+            .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
 
             mcf.VerifyAll();
         }

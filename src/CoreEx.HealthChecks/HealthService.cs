@@ -48,7 +48,11 @@ namespace CoreEx.Healthchecks
 
             var json = _jsonSerializer.Serialize(new
             {
-                healthReport,
+                healthReport = new {
+                    Status = healthReport.Status.ToString(),
+                    TotalDuration = healthReport.TotalDuration.ToString(),
+                    Entries = healthReport.Entries
+                },
                 _settings.Deployment
             }, JsonWriteFormat.Indented);
 

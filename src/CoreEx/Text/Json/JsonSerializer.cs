@@ -31,7 +31,7 @@ namespace CoreEx.Text.Json
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
                 WriteIndented = false,
-                Converters = { new JsonStringEnumConverter() }
+                Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
             };
         }
 
