@@ -2,6 +2,7 @@
 using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Functions;
+using CoreEx.Healthchecks;
 using CoreEx.Json;
 using CoreEx.TestFunction.Services;
 using CoreEx.WebApis;
@@ -32,6 +33,11 @@ namespace CoreEx.TestFunction
                 .AddScoped<WebApi, WebApi>()
                 .AddScoped<WebApiPublisher, WebApiPublisher>()
                 .AddScoped<IServiceBusTriggerExecutor, ServiceBusTriggerExecutor>();
+
+            // Register the health checks.
+            builder.Services
+                .AddScoped<HealthService>()
+                .AddHealthChecks();
 
             // Register the typed backend http client.
             builder.Services.AddTypedHttpClient<BackendHttpClient>("Backend", (sp, hc) =>
