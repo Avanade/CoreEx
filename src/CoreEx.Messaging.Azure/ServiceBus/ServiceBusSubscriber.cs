@@ -5,44 +5,43 @@ using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Http;
-using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CoreEx.Functions
+namespace CoreEx.Messaging.Azure.ServiceBus
 {
     /// <summary>
-    /// Provides the standard <see cref="ServiceBusTriggerAttribute"/> execution encapsulation to run the underlying function logic in a consistent manner.
+    /// Provides the standard <see cref="ServiceBusReceivedMessage"/> subscribe (receive) execution encapsulation to run the underlying function logic in a consistent manner.
     /// </summary>
-    /// <remarks>Each <c>Run</c> is wrapped with the same logic. The correlation identifier is set using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a
-    /// <see cref="Guid.NewGuid"/> is used as the default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic
-    /// with the correlation and message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically 
-    /// deadletter; otherwise, it will be immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
-    public class ServiceBusTriggerExecutor : Executor, IServiceBusTriggerExecutor
+    /// <remarks>The <c>ReceiveAsync</c> enables the standardized logic. The correlation identifier is set using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a <see cref="Guid.NewGuid"/> will be used as the 
+    /// default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic logging with the correlation and
+    /// message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically deadletter; otherwise, it will be
+    /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
+    public class ServiceBusSubscriber : EventSubscriberBase
     {
-        private const string _errorText = "Invalid message: body was not provided, contained invalid JSON, or was incorrectly formatted:";
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceBusTriggerExecutor"/> class.
+        /// Initializes a new instance of the <see cref="ServiceBusSubscriber"/> class.
         /// </summary>
         /// <param name="eventSerializer">The <see cref="IEventSerializer"/>.</param>
         /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <exception cref="ArgumentNullException"></exception>
-        public ServiceBusTriggerExecutor(IEventSerializer eventSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusTriggerExecutor> logger) : base(executionContext, settings, logger)
-            => EventSerializer = eventSerializer ?? throw new ArgumentNullException(nameof(eventSerializer));
+        public ServiceBusSubscriber(IEventSerializer eventSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSubscriber> logger)
+            : base(eventSerializer, executionContext, settings, logger) { }
 
         /// <summary>
-        /// Gets the <see cref="IEventSerializer"/>.
+        /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData{T}"/> for processing.
         /// </summary>
-        public IEventSerializer EventSerializer { get; }
-
-        /// <inheritdoc/>
-        public async Task RunAsync<T>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<T>, Task> function, bool valueIsRequired = true, Func<EventData<T>, Task>? afterReceive = null)
+        /// <typeparam name="TValue">The event value <see cref="Type"/>.</typeparam>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
+        /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
+        public async Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, Task> function, bool valueIsRequired = true, Func<EventData<TValue>, Task>? afterReceive = null)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
@@ -67,19 +66,7 @@ namespace CoreEx.Functions
                 Logger.LogDebug("Received Service Bus message '{Message}'.", message.MessageId);
 
                 // Deserialize the JSON into the selected type.
-                EventData<T> @event = default!;
-                ValidationException? vex = null;
-                try
-                {
-                    @event = await EventSerializer.DeserializeAsync<T>(message.Body).ConfigureAwait(false)!;
-                    if (valueIsRequired && @event.Value == null)
-                        vex = new ValidationException($"{_errorText} Value is mandatory.");
-                }
-                catch (Exception ex)
-                {
-                    vex = new ValidationException($"{_errorText} {ex.Message}", ex);
-                }
-
+                (var @event, var vex) = await DeserializeEventAsync<TValue>(message.Body, valueIsRequired).ConfigureAwait(false);
                 if (vex != null)
                 {
                     await DeadLetterExceptionAsync(message, messageActions, vex.ErrorType, vex).ConfigureAwait(false);
@@ -87,10 +74,10 @@ namespace CoreEx.Functions
                 }
 
                 if (afterReceive != null)
-                    await afterReceive(@event).ConfigureAwait(false);
+                    await afterReceive(@event!).ConfigureAwait(false);
 
                 // Invoke the actual function logic.
-                await function(@event).ConfigureAwait(false);
+                await function(@event!).ConfigureAwait(false);
 
                 // Everything is good, so complete the message.
                 await messageActions.CompleteMessageAsync(message).ConfigureAwait(false);

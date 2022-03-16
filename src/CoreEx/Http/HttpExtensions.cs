@@ -3,6 +3,7 @@
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Json;
+using CoreEx.WebApis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using System;
@@ -73,6 +74,50 @@ namespace CoreEx.Http
         }
 
         /// <summary>
+        /// Applies the <see cref="HttpRequestOptions"/> to the <see cref="HttpRequest"/>.
+        /// </summary>
+        /// <param name="httpRequest">The <see cref="HttpRequestMessage"/>.</param>
+        /// <param name="requestOptions">The <see cref="HttpRequestOptions"/>.</param>
+        /// <returns>The <see cref="HttpRequest"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>This will automatically invoke <see cref="ApplyETag(HttpRequestMessage, string)"/> where there is an <see cref="HttpRequestOptions.ETag"/> value.</remarks>
+        public static HttpRequest ApplyRequestOptions(this HttpRequest httpRequest, HttpRequestOptions requestOptions)
+        {
+            if (httpRequest == null)
+                throw new ArgumentNullException(nameof(httpRequest));
+
+            if (requestOptions == null)
+                return httpRequest;
+
+            // Apply the ETag header.
+            ApplyETag(httpRequest, requestOptions.ETag);
+
+            // Apply updates to the query string.
+            httpRequest.QueryString = requestOptions.AddToQueryString(httpRequest.QueryString);
+            return httpRequest;
+        }
+
+        /// <summary>
+        /// Applies the <i>ETag</i> to the <see cref="HttpRequest"/> <see cref="HttpRequest.Headers"/> as an <see cref="HttpRequestHeader.IfNoneMatch"/> (where <see cref="HttpRequest.Method"/> is <see cref="HttpMethod.Get"/>
+        /// or <see cref="HttpMethod.Head"/>); otherwise, an <see cref="HttpRequestHeader.IfMatch"/>.
+        /// </summary>
+        /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
+        /// <param name="etag">The <i>ETag</i> value.</param>
+        /// <returns>The <see cref="HttpRequest"/> to support fluent-style method-chaining.</returns>
+        public static HttpRequest ApplyETag(this HttpRequest httpRequest, string? etag)
+        {
+            // Apply the ETag header.
+            if (!string.IsNullOrEmpty(etag))
+            {
+                if (httpRequest.Method.Equals(HttpMethod.Get.Method, StringComparison.InvariantCultureIgnoreCase) || httpRequest.Method.Equals(HttpMethod.Head.Method, StringComparison.InvariantCultureIgnoreCase))
+                    httpRequest.Headers.Add(HeaderNames.IfNoneMatch, etag);
+                else
+                    httpRequest.Headers.Add(HeaderNames.IfMatch, etag);
+            }
+
+            return httpRequest;
+        }
+
+        /// <summary>
         /// Deserialize the HTTP JSON <see cref="HttpRequest.Body"/> to a specified .NET object <see cref="Type"/> via a <see cref="HttpRequestJsonValue{T}"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
@@ -134,34 +179,12 @@ namespace CoreEx.Http
         }
 
         /// <summary>
-        /// Gets the <see cref="PagingArgs"/> from the <see cref="HttpRequest"/>.
+        /// Gets the <see cref="WebApiRequestOptions"/> from the <see cref="HttpRequest"/>.
         /// </summary>
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
-        /// <param name="includePaging">Indicates whether to include the get of the <see cref="PagingArgs"/>.</param>
         /// <returns>The <see cref="HttpRequestOptions"/>.</returns>
-        public static HttpRequestOptions GetRequestOptions(this HttpRequest httpRequest, bool includePaging = true)
-        {
-            var ro = HttpRequestOptions.GetRequestOptions((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Query, includePaging);
-            if (httpRequest.Headers != null && httpRequest.Headers.Count > 0)
-            {
-                if (httpRequest.Headers.TryGetValue(HeaderNames.IfNoneMatch, out var vals) || httpRequest.Headers.TryGetValue(HeaderNames.IfMatch, out vals))
-                {
-                    var etag = vals.FirstOrDefault()?.Trim();
-                    if (!string.IsNullOrEmpty(etag))
-                        ro.ETag = etag;
-                }
-            }
-
-            return ro;
-        }
-
-        /// <summary>
-        /// Gets the <see cref="PagingArgs"/> from the <see cref="HttpRequest"/>.
-        /// </summary>
-        /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
-        /// <returns>The <see cref="PagingArgs"/> where found; otherwise, <c>null</c>.</returns>
-        public static PagingArgs? GetPagingArgs(this HttpRequest httpRequest)
-            => HttpRequestOptions.TryGetPagingArgs((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Query, out var paging) ? paging : null;
+        public static WebApiRequestOptions GetRequestOptions(this HttpRequest httpRequest)
+            => new(httpRequest ?? throw new ArgumentNullException(nameof(httpRequest)));
 
         /// <summary>
         /// Adds the <see cref="PagingArgs"/> to the <see cref="HttpResponse"/>.

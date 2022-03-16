@@ -8,10 +8,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CoreEx.Functions.FluentValidation
+namespace CoreEx.FluentValidation
 {
     /// <summary>
-    /// Extension methods for <see cref="HttpRequest"/>.
+    /// <c>FluentValidation</c> extension methods for <see cref="HttpRequest"/>.
     /// </summary>
     public static class HttpRequestExtensions
     {

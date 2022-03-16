@@ -38,6 +38,33 @@ namespace CoreEx.WebApis
         public new Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified)
             => base.RunAsync(request, function, operationType);
 
+        /// <summary>
+        /// Encapsulates the execution of an <see cref="HttpRequest"/> <paramref name="function"/> with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> returning a corresponding <see cref="IActionResult"/>.
+        /// </summary>
+        /// <typeparam name="TValue">The request JSON content value <see cref="Type"/>.</typeparam>
+        /// <param name="request">The <see cref="HttpRequest"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
+        /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
+        /// <returns>The resulting <see cref="IActionResult"/>.</returns>
+        public async Task<IActionResult> RunAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified, bool valueIsRequired = true)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            if (function == null)
+                throw new ArgumentNullException(nameof(function));
+
+            return await RunAsync(request, async wap =>
+            {
+                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired).ConfigureAwait(false);
+                if (vr.IsInvalid)
+                    return vr.ToBadRequestResult();
+
+                return await function(new WebApiParam<TValue>(wap, vr.Value)).ConfigureAwait(false);
+            }, operationType).ConfigureAwait(false);
+        }
+
         #region GetAsync
 
         /// <summary>

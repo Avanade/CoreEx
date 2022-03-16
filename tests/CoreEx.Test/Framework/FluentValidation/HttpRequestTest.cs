@@ -1,4 +1,4 @@
-﻿using CoreEx.Functions.FluentValidation;
+﻿using CoreEx.FluentValidation;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Validators;
@@ -7,7 +7,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 
-namespace CoreEx.Test.Framework.Functions.FluentValidation
+namespace CoreEx.Test.Framework.FluentValidation
 {
     [TestFixture]
     public class HttpRequestTest

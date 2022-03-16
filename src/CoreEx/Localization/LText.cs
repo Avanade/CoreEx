@@ -10,7 +10,7 @@ namespace CoreEx.Localization
     public struct LText
     {
         /// <summary>
-        /// Gets or sets the numeric (<see cref="long"/>) key/identifier format to convert to a standardised <see cref="string"/>.
+        /// Gets or sets the numeric (<see cref="long"/>) key/identifier format to convert to a standardized <see cref="string"/>.
         /// </summary>
         public static string NumericKeyFormat { get; set; } = "000000";
 

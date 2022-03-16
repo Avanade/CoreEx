@@ -86,12 +86,12 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The primary status code where there is a value.</param>
         /// <param name="alternateStatusCode">The alternate status code where there is not a value (i.e. <c>null</c>).</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="requestOptions">The <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
         /// <param name="checkForNotModified">Indicates whether to check for <see cref="HttpStatusCode.NotModified"/> by comparing request and response <see cref="IETag.ETag"/> values.</param>
         /// <param name="nullReplacement">The replacement value where <paramref name="value"/> is <c>null</c>.</param>
         /// <param name="location">The  <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/>.</returns>
-        public static IActionResult CreateResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, HttpRequestOptions requestOptions, bool checkForNotModified, object? nullReplacement, Uri? location)
+        public static IActionResult CreateResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, object? nullReplacement, Uri? location)
             => TryCreateValueContentResult(value, statusCode, alternateStatusCode, jsonSerializer, requestOptions, checkForNotModified, nullReplacement, location, out var vcr, out var ar) ? vcr! : ar!;
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The primary status code where there is a value.</param>
         /// <param name="alternateStatusCode">The alternate status code where there is not a value (i.e. <c>null</c>).</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="requestOptions">The <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
         /// <param name="checkForNotModified">Indicates whether to check for <see cref="HttpStatusCode.NotModified"/> by comparing request and response <see cref="IETag.ETag"/> values.</param>
         /// <param name="nullReplacement">The replacement value where <paramref name="value"/> is <c>null</c>.</param>
         /// <param name="location">The  <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
@@ -109,7 +109,7 @@ namespace CoreEx.WebApis
         /// <param name="alternateResult">The alternate result where <paramref name="valueContentResult"/> not created.</param>
         /// <returns><c>true</c> indicates that the <paramref name="valueContentResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, HttpRequestOptions requestOptions, bool checkForNotModified, object? nullReplacement, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
+        public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, object? nullReplacement, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
         {
             object? val;
             PagingResult? paging;

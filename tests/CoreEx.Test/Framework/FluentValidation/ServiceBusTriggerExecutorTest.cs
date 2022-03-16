@@ -1,30 +1,26 @@
 ﻿using CoreEx.Abstractions;
-using CoreEx.Functions;
-using CoreEx.Functions.FluentValidation;
 using CoreEx.TestFunction;
+using CoreEx.TestFunction.Functions;
 using CoreEx.TestFunction.Models;
-using CoreEx.TestFunction.Validators;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Moq;
 using NUnit.Framework;
-using System;
-using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 
-namespace CoreEx.Test.Framework.Functions.FluentValidation
+namespace CoreEx.Test.Framework.FluentValidation
 {
     [TestFixture]
     public class ServiceBusTriggerExecutorTest
     {
         [Test]
-        public void RunAsync_Message_ValidationException()
+        public void ReceiveAsync_ValidationException_Validation()
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage<Product>(new Product { Id = "A", Price = 1.99m });
+            var message = test.CreateServiceBusMessage(new Product { Id = "Zed", Name = "is dead", Price = 1.99m });
 
-            test.Type<ServiceBusTriggerExecutor>()
-                .Run(f => f.RunAsync<Product, ProductValidator>(message, actionsMock.Object, ed => throw new InvalidOperationException("Should not get here.")))
+            test.ServiceBusTrigger<ServiceBusTriggerFunction>()
+                .Run(s => s.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
             actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsAny<string>(), default), Times.Once);

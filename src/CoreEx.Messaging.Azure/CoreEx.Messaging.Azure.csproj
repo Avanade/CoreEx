@@ -3,12 +3,12 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <RootNamespace>CoreEx.Functions</RootNamespace>
+    <RootNamespace>CoreEx.Messaging.Azure</RootNamespace>
     <Version>1.0.1</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>CoreEx Developers</Authors>
     <Company>Avanade</Company>
-    <Description>CoreEx - Core Extensions for Azure Functions.</Description>
+    <Description>CoreEx - Core Extensions for Azure Messaging.</Description>
     <Copyright>Avanade (c)</Copyright>
     <PackageProjectUrl>https://github.com/Avanade/CoreEx</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Avanade/CoreEx</RepositoryUrl>
@@ -21,7 +21,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Title>CoreEx - Core Extensions for Azure Functions.</Title>
+    <Title>CoreEx - Core Extensions for Azure Messaging.</Title>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <PackageTags>CoreEx</PackageTags>
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>

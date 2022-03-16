@@ -2,15 +2,14 @@
 
 using CoreEx.Entities;
 using FluentValidation.Results;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
 
-namespace CoreEx.Functions.FluentValidation
+namespace CoreEx.FluentValidation
 {
     /// <summary>
-    /// Extension methods for <c>FluentValidation</c>.
+    /// <c>FluentValidation</c> extension methods for <see cref="ValidationResult"/>.
     /// </summary>
-    public static class FluentValidationExtensions
+    public static class ValidationResultExtensions
     {
         /// <summary>
         /// Throws a <see cref="ValidationException"/> where the <see cref="ValidationResult"/> has errors (is not <see cref="ValidationResult.IsValid"/>).

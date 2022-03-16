@@ -88,7 +88,7 @@ namespace CoreEx.WebApis
                 throw new ArgumentNullException(nameof(function));
 
             ExecutionContext.OperationType = operationType;
-            var wap = new WebApiParam(this, request, request.GetRequestOptions(true));
+            var wap = new WebApiParam(this, new WebApiRequestOptions(request));
 
             foreach (var name in GetCorrelationIdNames())
             {

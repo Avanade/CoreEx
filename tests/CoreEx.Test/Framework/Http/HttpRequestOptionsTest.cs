@@ -1,11 +1,8 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Http;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.WebUtilities;
 using NUnit.Framework;
 using System.Linq;
 using System.Net.Http;
-using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -137,28 +134,6 @@ namespace CoreEx.Test.Framework.Http
             ro = new HttpRequestOptions() { UrlQueryString = "fruit=apple" };
             hr.ApplyRequestOptions(ro);
             Assert.AreEqual("https://unittest/testing?fruit=banana&fruit=apple", hr.RequestUri.AbsoluteUri);
-        }
-
-        [Test]
-        public void GetRequestOptionsFromQuery()
-        {
-            var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
-            var ro = new HttpRequestOptions { IncludeText = true, IncludeInactive = true, Paging = PagingArgs.CreateSkipAndTake(20, 25, true) }.Include("fielda", "fieldb").Exclude("fieldc");
-            hr.ApplyRequestOptions(ro);
-            var ro2 = HttpRequestOptions.GetRequestOptions(new QueryCollection(QueryHelpers.ParseQuery(hr.RequestUri.Query)));
-            ObjectComparer.Assert(ro, ro2);
-
-            hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
-            ro = new HttpRequestOptions { IncludeText = true, IncludeInactive = true, Paging = PagingArgs.CreatePageAndSize(2, 15) }.Include("fielda", "fieldb").Exclude("fieldc");
-            hr.ApplyRequestOptions(ro);
-            ro2 = HttpRequestOptions.GetRequestOptions(new QueryCollection(QueryHelpers.ParseQuery(hr.RequestUri.Query)));
-            ObjectComparer.Assert(ro, ro2);
-
-            hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
-            ro = new HttpRequestOptions();
-            hr.ApplyRequestOptions(ro);
-            ro2 = HttpRequestOptions.GetRequestOptions(new QueryCollection(QueryHelpers.ParseQuery(hr.RequestUri.Query)));
-            ObjectComparer.Assert(ro, ro2);
         }
     }
 }
