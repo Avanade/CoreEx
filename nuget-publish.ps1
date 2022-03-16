@@ -49,7 +49,8 @@ param(
     [string]$NugetCacheFolder = "$($env:USERPROFILE)\.nuget\packages",
     [String[]]$ProjectsToPublish = @(
         "src\CoreEx",
-        "src\CoreEx.Functions",
+        "src\CoreEx.FluentValidation",
+        "src\CoreEx.Messaging.Azure",
         "src\CoreEx.Newtonsoft")
     )
 
