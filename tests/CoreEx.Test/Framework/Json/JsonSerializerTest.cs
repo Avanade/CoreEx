@@ -145,6 +145,25 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"FirstName\":\"John\",\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
         }
 
+        [Test]
+        public void SystemTextJson_Serialize_Deserialize_Exceptions()
+        {
+            // Arrange
+            var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
+            Exception realException;
+
+            try { throw new Exception("Test"); }
+            catch (Exception ex) { realException = ex; }
+
+            // Act
+            var serialized = js.Serialize(realException);
+            var deserialized = js.Deserialize<Exception>(serialized);
+
+            // Assert
+            deserialized.Data.Should().BeEquivalentTo(realException.Data);
+            deserialized.Message.Should().BeEquivalentTo(realException.Message, because: "Custom converter only handles Message on deserialization");
+        }
+
         #endregion
 
         #region NewtonsoftJson
@@ -298,25 +317,6 @@ namespace CoreEx.Test.Framework.Json
             deserialized.Data.Should().BeEquivalentTo(realException.Data);
             deserialized.Message.Should().BeEquivalentTo(realException.Message);
             deserialized.StackTrace.Should().BeEquivalentTo(realException.StackTrace);
-        }
-
-        [Test]
-        public void SystemTextJson_Serialize_Deserialize_Exceptions()
-        {
-            // Arrange
-            var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
-            Exception realException;
-
-            try { throw new Exception("Test"); }
-            catch (Exception ex) { realException = ex; }
-
-            // Act
-            var serialized = js.Serialize(realException);
-            var deserialized = js.Deserialize<Exception>(serialized);
-
-            // Assert
-            deserialized.Data.Should().BeEquivalentTo(realException.Data);
-            deserialized.Message.Should().BeEquivalentTo(realException.Message);
         }
 
         #endregion
