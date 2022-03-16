@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.HealthChecks\CoreEx.HealthChecks.csproj" />
   </ItemGroup>
 
   <ItemGroup>
