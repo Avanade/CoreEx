@@ -1,6 +1,7 @@
 ﻿using CoreEx.Configuration;
 using CoreEx.DependencyInjection;
 using CoreEx.Events;
+using CoreEx.Healthchecks;
 using CoreEx.Messaging.Azure.ServiceBus;
 using CoreEx.Json;
 using CoreEx.TestFunction.Services;
