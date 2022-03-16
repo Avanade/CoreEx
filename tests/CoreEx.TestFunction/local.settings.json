@@ -5,6 +5,12 @@
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
     "ServiceBusConnection": "supersecretconnectionstring",
     "Test/BackendBaseAddress": "https://backend/",
-    "BindingRedirects": "[ { \"ShortName\": \"System.Memory.Data\", \"RedirectToVersion\": \"6.0.0.0\", \"PublicKeyToken\": \"cc7b13ffcd2ddd51\" } ]"
+    "BindingRedirects": "[ { \"ShortName\": \"System.Memory.Data\", \"RedirectToVersion\": \"6.0.0.0\", \"PublicKeyToken\": \"cc7b13ffcd2ddd51\" } ]",
+
+    "Deployment.By": "me",
+    "Deployment.Build": "build no",
+    "Deployment.Name": "my deployment",
+    "Deployment.Version": "1.0.0",
+    "Deployment.Date": "today"
   }
 }
