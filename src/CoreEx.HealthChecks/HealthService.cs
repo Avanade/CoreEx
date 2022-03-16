@@ -1,11 +1,12 @@
 using CoreEx.Configuration;
+using CoreEx.Json;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using CoreEx.Json;
 
 namespace CoreEx.Healthchecks
 {
@@ -59,7 +60,7 @@ namespace CoreEx.Healthchecks
             return new ContentResult
             {
                 Content = json,
-                ContentType = "application/json",
+                ContentType = MediaTypeNames.Application.Json,
                 StatusCode = (int)code
             };
         }
