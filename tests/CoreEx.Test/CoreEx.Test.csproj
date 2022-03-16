@@ -10,14 +10,14 @@
     <PackageReference Include="FluentAssertions" Version="6.5.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
-		<PackageReference Include="coverlet.collector" Version="3.1.0">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
+    <PackageReference Include="coverlet.collector" Version="3.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="coverlet.msbuild" Version="3.1.0">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="UnitTestEx.NUnit" Version="1.0.11" />
   </ItemGroup>
 
@@ -26,6 +26,13 @@
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.HealthChecks\CoreEx.HealthChecks.csproj" />
     <ProjectReference Include="..\CoreEx.TestFunction\CoreEx.TestFunction.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.unittest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
