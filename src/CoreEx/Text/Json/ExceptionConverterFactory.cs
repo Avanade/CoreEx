@@ -17,7 +17,7 @@ namespace CoreEx.Text.Json
         /// Converter for <see cref="Exception"/>. see <see href="https://github.com/dotnet/runtime/issues/43026"/>.
         /// It can serialize <see cref="Exception"/> to <see cref="JsonElement"/> and vice versa, but deserialization is very basic - only handles <see cref="Exception.Message"/>
         /// </summary>
-        public class ExceptionConverter<TExceptionType> : JsonConverter<TExceptionType>
+        private class ExceptionConverter<TExceptionType> : JsonConverter<TExceptionType>
          where TExceptionType : Exception
         {
             /// <inheritdoc/>
