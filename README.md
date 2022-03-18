@@ -6,11 +6,19 @@
 
 ## Introduction
 
+_CoreEx_ provides the base capabilities for building business services by _extending_ the core capabilities of .NET.
+
 <br/>
 
 ## Status
 
 The build and packaging status is as follows.
+
+CI | `CoreEx` | `CoreEx.FluentValidation` | `CoreEx.HealthChecks` | `CoreEx.Messaging.Azure` | `CoreEx.Newtonsoft`
+-|-|-|-|-|-
+[![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.svg)](https://github.com/Avanade/CoreEx/actions?query=workflow%3ACI) | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [![NuGet version](https://badge.fury.io/nu/CoreEx.HealthChecks.svg)](https://badge.fury.io/nu/CoreEx.HealthChecks) | [![NuGet version](https://badge.fury.io/nu/CoreEx.Messaging.Azure.svg)](https://badge.fury.io/nu/CoreEx.Messaging.Azure) | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft)
+
+The included [change log](CHANGELOG.md) details all key changes per published version.
 
 <br/>
 
