@@ -50,6 +50,7 @@ param(
     [String[]]$ProjectsToPublish = @(
         "src\CoreEx",
         "src\CoreEx.FluentValidation",
+        "src\CoreEx.HealthChecks",
         "src\CoreEx.Messaging.Azure",
         "src\CoreEx.Newtonsoft")
     )

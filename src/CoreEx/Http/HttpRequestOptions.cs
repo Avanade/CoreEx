@@ -14,7 +14,7 @@ namespace CoreEx.Http
     /// Represents additional (optional) request options for an <see cref="HttpRequestOptions"/>.
     /// </summary>
     /// <remarks>Usage assumes that the HTTP endpoint supports and actions accordingly; i.e. by sending there is no guarantee that the desired outcome will occur as selected.</remarks>
-    public class HttpRequestOptions : IETag
+    public class HttpRequestOptions
     {
         private string? _etag;
 
