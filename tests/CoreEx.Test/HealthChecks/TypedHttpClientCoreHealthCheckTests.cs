@@ -24,7 +24,7 @@ namespace CoreEx.Test.HealthChecks
             var mcf = MockHttpClientFactory.Create();
             mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Head, string.Empty).Respond.With(statusCode: HttpStatusCode.OK);
             using var test = FunctionTester.Create<Startup>()
-                 .ConfigureServices(sc => mcf.Replace(sc));
+                 .ReplaceHttpClientFactory(mcf);
             var mock = new Mock<IHealthCheck>();
 
             var context = new HealthCheckContext()
@@ -47,7 +47,7 @@ namespace CoreEx.Test.HealthChecks
             var mcf = MockHttpClientFactory.Create();
             mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Head, string.Empty).Respond.With(statusCode: HttpStatusCode.ServiceUnavailable);
             using var test = FunctionTester.Create<Startup>()
-                 .ConfigureServices(sc => mcf.Replace(sc));
+                 .ReplaceHttpClientFactory(mcf);
             var mock = new Mock<IHealthCheck>();
 
             var context = new HealthCheckContext()
@@ -71,7 +71,7 @@ namespace CoreEx.Test.HealthChecks
             mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Head, String.Empty)
             .Respond.With(string.Empty, response: x => throw new Exception("Sample API is down"));
             using var test = FunctionTester.Create<Startup>()
-                 .ConfigureServices(sc => mcf.Replace(sc));
+                 .ReplaceHttpClientFactory(mcf);
             var mock = new Mock<IHealthCheck>();
 
             var context = new HealthCheckContext()

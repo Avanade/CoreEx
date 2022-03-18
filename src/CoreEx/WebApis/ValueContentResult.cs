@@ -39,7 +39,7 @@ namespace CoreEx.WebApis
             ETag = etag;
             PagingResult = pagingResult;
             Location = location;
-            //BeforeExtension = ModifyResponse;  // TODO: Add back after UnitTestEx becomes CoreEx aware - serialization issue pending.
+            BeforeExtension = ModifyResponse;
         }
 
         /// <summary>

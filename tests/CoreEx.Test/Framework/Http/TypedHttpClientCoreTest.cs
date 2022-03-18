@@ -21,7 +21,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Get, "test").Respond.With("{\"Name\":[\"'Name' must not be empty.\"]}", HttpStatusCode.BadRequest);
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.GetAsync("test"))
                 .AssertSuccess();
@@ -66,7 +66,7 @@ namespace CoreEx.Test.Framework.Http
             });
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.GetAsync("test"))
                 .AssertSuccess();
@@ -91,7 +91,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Get, "test").Respond.With("test-content");
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.GetAsync("test"))
                 .AssertSuccess();
@@ -111,7 +111,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Get, "product/abc").Respond.WithJson(new Product { Id = "abc", Name = "banana", Price = 0.99m });
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.GetAsync<Product>("product/abc"))
                 .AssertSuccess();
@@ -133,7 +133,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Get, "product").Respond.WithJson(pc);
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.GetCollectionResultAsync<ProductCollectionResult, ProductCollection, Product>("product"))
                 .AssertSuccess();
@@ -160,7 +160,7 @@ namespace CoreEx.Test.Framework.Http
             });
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.GetCollectionResultAsync<ProductCollectionResult, ProductCollection, Product>("product"))
                 .AssertSuccess();
@@ -180,7 +180,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Post, "test").Respond.With("test-content");
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PostAsync("test"))
                 .AssertSuccess();
@@ -200,7 +200,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Post, "test").WithJsonBody(new Product { Id = "abc", Name = "banana", Price = 0.99m }).Respond.With("test-content");
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m }))
                 .AssertSuccess();
@@ -220,7 +220,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Post, "test").Respond.WithJson(new Product { Id = "abc", Name = "banana", Price = 0.99m });
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PostAsync<Product>("test"))
                 .AssertSuccess();
@@ -240,7 +240,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Post, "test").WithJsonBody(new BackendProduct {  Code = "def", Description = "apple", RetailPrice = 0.49m }).Respond.WithJson(new Product { Id = "abc", Name = "banana", Price = 0.99m });
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PostAsync<BackendProduct, Product>("test", new BackendProduct { Code = "def", Description = "apple", RetailPrice = 0.49m }))
                 .AssertSuccess();
@@ -260,7 +260,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Put, "test").WithJsonBody(new Product { Id = "abc", Name = "banana", Price = 0.99m }).Respond.With("test-content");
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PutAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m }))
                 .AssertSuccess();
@@ -280,7 +280,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Put, "test").WithJsonBody(new BackendProduct { Code = "def", Description = "apple", RetailPrice = 0.49m }).Respond.WithJson(new Product { Id = "abc", Name = "banana", Price = 0.99m });
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PutAsync<BackendProduct, Product>("test", new BackendProduct { Code = "def", Description = "apple", RetailPrice = 0.49m }))
                 .AssertSuccess();
@@ -300,7 +300,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Delete, "test/1").Respond.With(HttpStatusCode.OK);
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.DeleteAsync("test/1"))
                 .AssertSuccess();
@@ -320,7 +320,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Head, "test/1").Respond.With(HttpStatusCode.OK);
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.HeadAsync("test/1"))
                 .AssertSuccess();
@@ -340,7 +340,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Patch, "test/1").WithBody("{\"name\":\"jenny\"}", HttpConsts.MergePatchMediaTypeName).Respond.With(HttpStatusCode.OK);
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PatchAsync("test/1", HttpPatchOption.MergePatch, "{\"name\":\"jenny\"}"))
                 .AssertSuccess();
@@ -360,7 +360,7 @@ namespace CoreEx.Test.Framework.Http
             mc.Request(HttpMethod.Patch, "test/1").WithBody("{\"name\":\"jenny\"}", HttpConsts.JsonPatchMediaTypeName).Respond.With(HttpStatusCode.OK);
 
             using var test = FunctionTester.Create<Startup>();
-            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+            var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
                 .Run(f => f.PatchAsync("test/1", HttpPatchOption.JsonPatch, "{\"name\":\"jenny\"}"))
                 .AssertSuccess();
