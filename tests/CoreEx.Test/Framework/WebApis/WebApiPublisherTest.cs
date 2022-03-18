@@ -17,7 +17,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
                 .Run(f => f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }), "test"))
                 .ToActionResultAssertor()
@@ -37,7 +37,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
                 .Run(f => f.PublishAsync<Product>(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), "test"))
                 .ToActionResultAssertor()
@@ -60,7 +60,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
                 .Run(f => f.PublishAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
                 .ToActionResultAssertor()
@@ -92,7 +92,7 @@ namespace CoreEx.Test.Framework.WebApis
             var hr = test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products);
             hr.Headers.Add("x-correlation-id", "corr-id"); // Send through a known correlation id.
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
                 .Run(f => f.PublishAsync<ProductCollection, Product>(hr, "test"))
                 .ToActionResultAssertor()
@@ -126,7 +126,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
                 .Run(f => f.PublishAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
                 .ToActionResultAssertor()

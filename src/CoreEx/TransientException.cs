@@ -3,10 +3,13 @@
 using CoreEx.Abstractions;
 using CoreEx.Localization;
 using CoreEx.WebApis;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Net;
 using System.Net.Mime;
+using System.Threading.Tasks;
 
 namespace CoreEx
 {
@@ -77,12 +80,11 @@ namespace CoreEx
             Content = Message,
             ContentType = MediaTypeNames.Text.Plain,
             StatusCode = (int)StatusCode,
-            // TODO: Add back once UnitTestEx is updated to handle IJsonSerializer
-            //BeforeExtension = r =>
-            //{
-            //    r.GetTypedHeaders().Set(HeaderNames.RetryAfter, "120");
-            //    return Task.CompletedTask;
-            //}
+            BeforeExtension = r =>
+            {
+                r.GetTypedHeaders().Set(HeaderNames.RetryAfter, "120");
+                return Task.CompletedTask;
+            }
         };
     }
 }

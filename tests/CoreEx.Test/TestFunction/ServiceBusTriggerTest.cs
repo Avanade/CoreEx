@@ -50,11 +50,9 @@ namespace CoreEx.Test.TestFunction
         [Test]
         public void InvalidMessage_Newtonsoft()
         {
-            using var test = FunctionTester.Create<Startup>().ConfigureServices(sc =>
-            {
-                sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
-                  .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
-            });
+            using var test = FunctionTester.Create<Startup>()
+                .ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
+                .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
 
             var actionsMock = new Mock<ServiceBusMessageActions>();
             var message = test.CreateServiceBusMessage("<xml/>");
@@ -85,11 +83,9 @@ namespace CoreEx.Test.TestFunction
         [Test]
         public void InvalidValue_Newtonsoft()
         {
-            using var test = FunctionTester.Create<Startup>().ConfigureServices(sc =>
-            {
-                sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
-                  .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
-            });
+            using var test = FunctionTester.Create<Startup>()
+                .ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
+                .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
 
             var actionsMock = new Mock<ServiceBusMessageActions>();
             var message = test.CreateServiceBusMessage(new { id = "A", price = 1.99m });
@@ -113,7 +109,7 @@ namespace CoreEx.Test.TestFunction
             var actionsMock = new Mock<ServiceBusMessageActions>();
             var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
 
-            test.ConfigureServices(sc => mcf.Replace(sc))
+            test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertException<TransientException>();
@@ -133,7 +129,7 @@ namespace CoreEx.Test.TestFunction
             var actionsMock = new Mock<ServiceBusMessageActions>();
             var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
 
-            test.ConfigureServices(sc => mcf.Replace(sc))
+            test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
@@ -154,7 +150,7 @@ namespace CoreEx.Test.TestFunction
             var actionsMock = new Mock<ServiceBusMessageActions>();
             var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
 
-            test.ConfigureServices(sc => mcf.Replace(sc))
+            test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
@@ -171,16 +167,14 @@ namespace CoreEx.Test.TestFunction
             var mc = mcf.CreateClient("Backend", "https://backend/");
             mc.Request(HttpMethod.Post, "products").WithJsonBody(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }).Respond.WithJson(new BackendProduct { Code = "AX", Description = "BX", RetailPrice = 10.99m });
 
-            using var test = FunctionTester.Create<Startup>().ConfigureServices(sc =>
-            {
-                sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
-                  .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
-            });
+            using var test = FunctionTester.Create<Startup>()
+                .ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
+                .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
 
             var actionsMock = new Mock<ServiceBusMessageActions>();
             var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
 
-            test.ConfigureServices(sc => mcf.Replace(sc))
+            test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();

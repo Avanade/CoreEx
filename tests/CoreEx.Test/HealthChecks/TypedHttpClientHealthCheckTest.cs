@@ -42,14 +42,10 @@ namespace CoreEx.Test.HealthChecks
             mcf.CreateClient("Test", "https://testing/").Request(HttpMethod.Head, "health").Respond.With(HttpStatusCode.OK);
             
             using var test = FunctionTester.Create<Startup>()
-                 .ConfigureServices(sc =>
-                 {
-                     sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/"));
-                     mcf.Replace(sc);
-                 }
-                );
-            var mock = new Mock<IHealthCheck>();
+                .ReplaceHttpClientFactory(mcf)
+                .ConfigureServices(sc => sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/")));
 
+            var mock = new Mock<IHealthCheck>();
             var context = new HealthCheckContext()
             {
                 Registration = new HealthCheckRegistration("test", mock.Object, null, null)
@@ -71,14 +67,10 @@ namespace CoreEx.Test.HealthChecks
             mcf.CreateClient("Test", "https://testing/").Request(HttpMethod.Head, "health").Respond.With(HttpStatusCode.ServiceUnavailable);
 
             using var test = FunctionTester.Create<Startup>()
-                 .ConfigureServices(sc =>
-                 {
-                     sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/"));
-                     mcf.Replace(sc);
-                 }
-                );
-            var mock = new Mock<IHealthCheck>();
+                .ReplaceHttpClientFactory(mcf)
+                .ConfigureServices(sc => sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/")));
 
+            var mock = new Mock<IHealthCheck>();
             var context = new HealthCheckContext()
             {
                 Registration = new HealthCheckRegistration("test", mock.Object, null, null)
@@ -101,14 +93,10 @@ namespace CoreEx.Test.HealthChecks
                 .Respond.With(string.Empty, response: x => throw new Exception("Testing service is down"));
 
             using var test = FunctionTester.Create<Startup>()
-                 .ConfigureServices(sc =>
-                 {
-                     sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/"));
-                     mcf.Replace(sc);
-                 }
-                );
-            var mock = new Mock<IHealthCheck>();
+                .ReplaceHttpClientFactory(mcf)
+                .ConfigureServices(sc => sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/")));
 
+            var mock = new Mock<IHealthCheck>();
             var context = new HealthCheckContext()
             {
                 Registration = new HealthCheckRegistration("test", mock.Object, null, null)

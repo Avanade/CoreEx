@@ -16,7 +16,7 @@ namespace CoreEx.Test.TestFunction
         public void NoBody()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+            test.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products")))
                 .AssertBadRequest()
@@ -28,7 +28,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             test
-               .ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+               .ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                .HttpTrigger<HttpTriggerFunction>()
                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
                .AssertBadRequest()
@@ -39,7 +39,7 @@ namespace CoreEx.Test.TestFunction
         public void InvalidBody_Newtonsoft()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
+            test.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
                 .AssertBadRequest()
@@ -50,7 +50,7 @@ namespace CoreEx.Test.TestFunction
         public void InvalidJson()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+            test.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "{\"price\": \"xx.xx\"}")))
                 .AssertBadRequest()
@@ -61,7 +61,7 @@ namespace CoreEx.Test.TestFunction
         public void InvalidJson_Newtonsoft()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
+            test.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "{\"price\": \"xx.xx\"}")))
                 .AssertBadRequest()
@@ -72,7 +72,7 @@ namespace CoreEx.Test.TestFunction
         public void InvalidValue()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>())
+            test.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
@@ -83,7 +83,7 @@ namespace CoreEx.Test.TestFunction
         public void InvalidValue_Newtonsoft()
         {
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
+            test.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PostAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
@@ -98,7 +98,7 @@ namespace CoreEx.Test.TestFunction
             mc.Request(HttpMethod.Post, "").WithJsonBody(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }).Respond.WithJson(new BackendProduct { Code = "AX", Description = "BX", RetailPrice = 10.99m });
 
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc => mcf.Replace(sc))
+            test.ReplaceHttpClientFactory(mcf)
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertOK()
@@ -115,15 +115,12 @@ namespace CoreEx.Test.TestFunction
             mc.Request(HttpMethod.Post, "").WithJsonBody(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }).Respond.WithJson(new BackendProduct { Code = "AX", Description = "BX", RetailPrice = 10.99m });
 
             using var test = FunctionTester.Create<Startup>();
-            test.ConfigureServices(sc =>
-            {
-                sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>();
-                mcf.Replace(sc);
-            })
-            .HttpTrigger<HttpTriggerFunction>()
-            .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
-            .AssertOK()
-            .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
+            test.ReplaceHttpClientFactory(mcf)
+                .ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
+                .HttpTrigger<HttpTriggerFunction>()
+                .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
+                .AssertOK()
+                .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
 
             mcf.VerifyAll();
         }

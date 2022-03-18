@@ -20,7 +20,7 @@ namespace CoreEx.Test.TestFunction
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products/publish")))
                 .AssertBadRequest()
@@ -35,7 +35,7 @@ namespace CoreEx.Test.TestFunction
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products/publish", "<xml/>")))
                 .AssertBadRequest()
@@ -65,7 +65,7 @@ namespace CoreEx.Test.TestFunction
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products/publish", "{\"price\": \"xx.xx\"}")))
                 .AssertBadRequest()
@@ -80,7 +80,7 @@ namespace CoreEx.Test.TestFunction
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products/publish", "{\"price\": \"xx.xx\"}")))
@@ -96,7 +96,7 @@ namespace CoreEx.Test.TestFunction
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
@@ -111,7 +111,7 @@ namespace CoreEx.Test.TestFunction
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
@@ -127,7 +127,7 @@ namespace CoreEx.Test.TestFunction
             using var test = FunctionTester.Create<Startup>();
             var imp = new InMemoryPublisher(test.Logger);
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertAccepted();
@@ -145,7 +145,7 @@ namespace CoreEx.Test.TestFunction
             using var test = FunctionTester.Create<Startup>();
             var imp = new InMemoryPublisher(test.Logger, new CoreEx.Newtonsoft.Json.JsonSerializer());
 
-            test.ConfigureServices(sc => sc.ReplaceScoped<IEventPublisher>(_ => imp))
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerPublishFunction>()
                 .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
