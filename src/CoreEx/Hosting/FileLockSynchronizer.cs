@@ -66,11 +66,8 @@ namespace CoreEx.Hosting
         public void Dispose() => _dict.Values.ForEach(fs => fs.Dispose());
 
         /// <summary>
-        /// Gets the full name
+        /// Gets the full name.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
-        /// <returns></returns>
         private static string GetName<T>(string? name) => $"{typeof(T).FullName}{(name == null ? "" : $".{name}")}";
     }
 }
