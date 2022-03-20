@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Provides an in-memory publisher base which can be used for the likes of testing.
+    /// Provides an in-memory publisher which can be used for the likes of testing.
     /// </summary>
     /// <remarks>Where a <see cref="Logger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
     public class InMemoryPublisher : IEventPublisher
@@ -48,10 +48,10 @@ namespace CoreEx.Events
         protected EventDataFormatter EventDataFormatter { get; }
 
         /// <inheritdoc/>
-        public Task SendAsync(params EventData[] events) => SendInternalAsync(null, events);
+        public Task PublishAsync(params EventData[] events) => SendInternalAsync(null, events);
 
         /// <inheritdoc/>
-        public Task SendAsync(string name, params EventData[] events)
+        public Task PublishAsync(string name, params EventData[] events)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentNullException(nameof(name));
@@ -85,7 +85,7 @@ namespace CoreEx.Events
         /// Gets the list of names used for sending. 
         /// </summary>
         /// <returns>An array of names.</returns>
-        /// <remarks>Where <see cref="SendAsync(EventData[])"/> (no name) is used the underlying name will be <c>null</c>.</remarks>
+        /// <remarks>Where <see cref="PublishAsync(EventData[])"/> (no name) is used the underlying name will be <c>null</c>.</remarks>
         public string?[] GetNames() => _dict.Keys.ToArray();
 
         /// <summary>

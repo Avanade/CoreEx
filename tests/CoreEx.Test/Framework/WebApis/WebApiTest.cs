@@ -80,17 +80,6 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void RunAsync_EventPublisherException()
-        {
-            using var test = FunctionTester.Create<Startup>();
-            test.Type<WebApi>()
-                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), _ => throw new EventPublisherException(new EventPublisherDataError[] { new EventPublisherDataError { Index = 1, Message = "Not sent." } })))
-                .ToActionResultAssertor()
-                .Assert(HttpStatusCode.InternalServerError)
-                .Assert(new EventPublisherDataError[] { new EventPublisherDataError { Index = 1, Message = "Not sent." } });
-        }
-
-        [Test]
         public void RunAsync_UnhandledException()
         {
             using var test = FunctionTester.Create<Startup>();

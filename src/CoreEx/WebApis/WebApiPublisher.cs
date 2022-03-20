@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace CoreEx.WebApis
 {
     /// <summary>
-    /// Provides the core <see cref="IEventPublisher"/> Web API execution encapsulation.
+    /// Provides the core <see cref="IEventSender"/> Web API execution encapsulation.
     /// </summary>
     public class WebApiPublisher : WebApiBase
     {
@@ -68,9 +68,9 @@ namespace CoreEx.WebApis
                 eventModifier?.Invoke(@event, vr.Value);
 
                 if (eventName == null)
-                    await EventPublisher.SendAsync(@event).ConfigureAwait(false);
+                    await EventPublisher.PublishAsync(@event).ConfigureAwait(false);
                 else
-                    await EventPublisher.SendAsync(eventName, @event).ConfigureAwait(false);
+                    await EventPublisher.PublishAsync(eventName, @event).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
             }, operationType).ConfigureAwait(false);
@@ -127,9 +127,9 @@ namespace CoreEx.WebApis
                 }
 
                 if (eventName == null)
-                    await EventPublisher.SendAsync(events.ToArray()).ConfigureAwait(false);
+                    await EventPublisher.PublishAsync(events.ToArray()).ConfigureAwait(false);
                 else
-                    await EventPublisher.SendAsync(eventName, events.ToArray()).ConfigureAwait(false);
+                    await EventPublisher.PublishAsync(eventName, events.ToArray()).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
             }, operationType).ConfigureAwait(false);

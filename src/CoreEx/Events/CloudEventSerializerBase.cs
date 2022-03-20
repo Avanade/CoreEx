@@ -17,6 +17,8 @@ namespace CoreEx.Events
         /// <summary>
         /// Gets the list of reserved attribute names.
         /// </summary>
+        /// <remarks>The reserved names are as follows: '<c>id</c>', '<c>time</c>', '<c>type</c>', '<c>source</c>', '<c>subject</c>', '<c>action</c>', '<c>correlationid</c>', '<c>tenantid</c>', '<c>etag</c>', '<c>partitionkey</c>'. Also,
+        /// an attribute name must consist of lowercase letters and digits only; any that contain other characters will be ignored.</remarks>
         public static string[] ReservedNames { get; } = new string[] { "id", "time", "type", "source", "subject", "action", "correlationid", "tenantid", "etag", "partitionkey" };
 
         /// <summary>
@@ -156,9 +158,9 @@ namespace CoreEx.Events
 
             if (@event.Attributes != null)
             {
-                foreach (var att in @event.Attributes)
+                foreach (var att in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && x.Key.All(c => char.IsLetterOrDigit(c))))
                 {
-                    SetExtensionAttribute(ce, att.Key, att.Value);
+                    SetExtensionAttribute(ce, EventDataFormatter.TextInfo.ToLower(att.Key), att.Value);
                 }
             }
 

@@ -6,15 +6,15 @@ using System.Threading.Tasks;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Represents a <c>null</c> event publisher; whereby the events are simply swallowed/discarded on send.
+    /// Represents a <c>null</c> event publisher; whereby the events are simply swallowed/discarded on publish.
     /// </summary>
     public class NullEventPublisher : IEventPublisher
     {
         /// <inheritdoc/>
-        public Task SendAsync(params EventData[] events) => Task.CompletedTask;
+        public Task PublishAsync(params EventData[] events) => Task.CompletedTask;
 
         /// <inheritdoc/>
-        public Task SendAsync(string name, params EventData[] events)
+        public Task PublishAsync(string name, params EventData[] events)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentNullException(nameof(name));

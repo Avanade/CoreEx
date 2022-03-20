@@ -31,7 +31,7 @@ namespace CoreEx.Events
         }
 
         /// <inheritdoc/>
-        public async Task SendAsync(params EventData[] events)
+        public async Task PublishAsync(params EventData[] events)
         {
             foreach (var @event in events)
             {
@@ -52,12 +52,12 @@ namespace CoreEx.Events
         }
 
         /// <inheritdoc/>
-        public Task SendAsync(string name, params EventData[] events)
+        public Task PublishAsync(string name, params EventData[] events)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentNullException(nameof(name));
 
-            return SendAsync(events);
+            return PublishAsync(events);
         }
     }
 }
