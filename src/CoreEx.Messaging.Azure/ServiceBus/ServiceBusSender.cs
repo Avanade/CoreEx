@@ -21,7 +21,7 @@ namespace CoreEx.Messaging.Azure.ServiceBus
         private readonly ServiceBusClient _client;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LoggerEventPublisher"/> class.
+        /// Initializes a new instance of the <see cref="ServiceBusSender"/> class.
         /// </summary>
         /// <param name="client">The underlying <see cref="ServiceBusClient"/>.</param>
         /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
@@ -51,7 +51,7 @@ namespace CoreEx.Messaging.Azure.ServiceBus
         protected ExecutionContext ExecutionContext { get; }
 
         /// <summary>
-        /// Gets or sets the default queue or topic name used by <see cref="SendAsync(EventSendData[])"/> where <see cref="EventSendData.DestinationName"/> is <c>null</c>.
+        /// Gets or sets the default queue or topic name used by <see cref="SendAsync(EventSendData[])"/> where <see cref="EventSendData.Destination"/> is <c>null</c>.
         /// </summary>
         public string? DefaultQueueOrTopicName { get; set; }
 
@@ -119,7 +119,7 @@ namespace CoreEx.Messaging.Azure.ServiceBus
 
                 OnServiceBusMessage(@event, msg);
 
-                var name = @event.DestinationName ?? DefaultQueueOrTopicName ?? throw new InvalidOperationException($"{nameof(DefaultQueueOrTopicName)} must have a non null value.");
+                var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new InvalidOperationException($"{nameof(DefaultQueueOrTopicName)} must have a non null value.");
                 if (queueDict.TryGetValue(name, out var queue))
                     queue.Enqueue((msg, index++));
                 else

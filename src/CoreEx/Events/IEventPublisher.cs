@@ -17,7 +17,7 @@ namespace CoreEx.Events
         Task PublishAsync(params EventData[] events);
 
         /// <summary>
-        /// Publishes one or more <see cref="EventData"/> objects to a named destination.
+        /// Publishes one or more <see cref="EventData"/> objects to a named destination (e.g. queue or topic).
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <param name="events">One or more <see cref="EventData"/> objects to be sent.</param>

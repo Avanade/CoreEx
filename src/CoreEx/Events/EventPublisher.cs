@@ -18,7 +18,7 @@ namespace CoreEx.Events
         /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>.</param>
         /// <param name="eventSerializer">The <see cref="IEventSerializer"/>.</param>
         /// <param name="eventSender">The <see cref="IEventSender"/>.</param>
-        public EventPublisher(EventDataFormatter eventDataFormatter, IEventSerializer eventSerializer, IEventSender eventSender)
+        public EventPublisher(EventDataFormatter? eventDataFormatter, IEventSerializer eventSerializer, IEventSender eventSender)
         {
             EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
             EventSerializer = eventSerializer ?? throw new ArgumentNullException(nameof(eventSerializer));
@@ -48,12 +48,12 @@ namespace CoreEx.Events
         public Task PublishAsync(params EventData[] events) => PublishInternalAsync(null, events);
 
         /// <summary>
-        /// Sends one or more <see cref="EventData"/> objects to a named destination.
+        /// Sends one or more <see cref="EventData"/> objects to a named destination (e.g. queue or topic).
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <param name="events">One or more <see cref="EventData"/> objects to be published.</param>
         /// <returns>The <see cref="Task"/>.</returns>
-        /// <remarks>The name could represent a queue name or equivalent where appropriate.</remarks>
+        /// <remarks>The <paramref name="name"/> could represent a queue name or equivalent where appropriate.</remarks>
         public Task PublishAsync(string name, params EventData[] events)
         {
             if (string.IsNullOrEmpty(name))
@@ -73,10 +73,20 @@ namespace CoreEx.Events
                 var e = @event.Copy();
                 EventDataFormatter.Format(e);
                 var bd = await EventSerializer.SerializeAsync(e).ConfigureAwait(false);
-                list.Add(new EventSendData(e) { DestinationName = name, Data = bd });
+                var esd = new EventSendData(e) { Destination = name, Data = bd };
+                await OnEventSendAsync(name, e, esd).ConfigureAwait(false);
+                list.Add(esd);
             }
 
             await EventSender.SendAsync(list.ToArray()).ConfigureAwait(false);
         }
+
+        /// <summary>
+        /// Invoked on the send of the <see cref="EventSendData"/>.
+        /// </summary>
+        /// <param name="name">The destination name.</param>
+        /// <param name="eventData">The <see cref="EventData"/> post <see cref="EventDataFormatter"/>.</param>
+        /// <param name="eventSendData">The corresponding <see cref="EventSendData"/> post the <see cref="EventSerializer"/>.</param>
+        protected virtual Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData) => Task.CompletedTask;
     }
 }
