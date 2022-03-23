@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "My.Hr.Database": {
+      "commandName": "Project",
+      "commandLineArgs": "all"
+    }
+  }
+}

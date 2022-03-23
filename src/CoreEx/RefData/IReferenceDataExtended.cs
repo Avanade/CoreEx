@@ -5,7 +5,7 @@ using System;
 namespace CoreEx.RefData
 {
     /// <summary>
-    /// Provides the extented <b>Reference Data</b> properties.
+    /// Provides the extended <b>Reference Data</b> properties.
     /// </summary>
     public interface IReferenceDataExtended : IReferenceData
     {
