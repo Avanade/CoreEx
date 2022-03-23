@@ -25,8 +25,8 @@ namespace CoreEx.Events
         public EventSendData[] GetEvents() => _queue.ToArray();
 
         /// <summary>
-        /// Clears the in-memory state.
+        /// Resets (clears) the in-memory state.
         /// </summary>
-        public void Clear() => _queue.Clear();
+        public void Reset() => _queue.Clear();
     }
 }

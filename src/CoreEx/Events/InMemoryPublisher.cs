@@ -43,23 +43,25 @@ namespace CoreEx.Events
 
             if (_logger != null)
             {
-                var sb = new StringBuilder();
+                var sb = new StringBuilder("Event send");
                 if (!string.IsNullOrEmpty(name))
-                    sb.AppendLine($"Destination: {name}");
+                    sb.Append($" (destination: '{name}')");
+
+                sb.AppendLine(" ->");
 
                 var json = _jsonSerializer.Serialize(eventData, JsonWriteFormat.Indented);
                 sb.Append(json);
-                _logger.LogInformation("{EventData}", sb.ToString());
+                _logger.LogInformation("{Event}", sb.ToString());
             }
 
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// Gets the list of names used for sending. 
+        /// Gets the list of destination names (i.e. queue or topic) used for sending. 
         /// </summary>
         /// <returns>An array of names.</returns>
-        /// <remarks>Where <see cref="EventPublisher.PublishAsync(EventData[])"/> (with no name) is used the underlying name will be <c>null</c>.</remarks>
+        /// <remarks>Where <see cref="EventPublisher.Publish(EventData[])"/> (with no name) is used the underlying destination name will be <c>null</c>.</remarks>
         public string?[] GetNames() => _dict.Keys.ToArray();
 
         /// <summary>
@@ -70,18 +72,13 @@ namespace CoreEx.Events
         public EventData[] GetEvents(string? name = null) => _dict.TryGetValue(name ?? NullName, out var queue) ? queue.ToArray() : Array.Empty<EventData>();
 
         /// <summary>
-        /// Gets the events sent (in order) via the internally managed <see cref="InMemorySender"/>.
+        /// Resets (clears) the in-memory state.
         /// </summary>
-        /// <returns>The corresponding events.</returns>
-        public EventSendData[] GetSentEvents() => ((InMemorySender)EventSender).GetEvents();
-
-        /// <summary>
-        /// Clears the in-memory state.
-        /// </summary>
-        public void Clear()
+        public override void Reset()
         {
+            base.Reset();
             _dict.Clear();
-            ((InMemorySender)EventSender).Clear();
+            ((InMemorySender)EventSender).Reset();
         }
     }
 }

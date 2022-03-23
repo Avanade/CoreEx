@@ -33,13 +33,15 @@ namespace CoreEx.Events
         /// <inheritdoc/>
         protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData)
         {
-            var sb = new StringBuilder();
+            var sb = new StringBuilder("Event send");
             if (!string.IsNullOrEmpty(name))
-                sb.AppendLine($"Destination: {name}");
+                sb.Append($" (destination: '{name}')");
+
+            sb.AppendLine(" ->");
 
             var json = _jsonSerializer.Serialize(eventData, JsonWriteFormat.Indented);
             sb.Append(json);
-            _logger.LogInformation("{EventData}", sb.ToString());
+            _logger.LogInformation("{Event}", sb.ToString());
 
             return Task.CompletedTask;
         }

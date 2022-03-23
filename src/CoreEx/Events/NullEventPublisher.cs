@@ -1,25 +1,15 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using System;
-using System.Threading.Tasks;
-
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Represents a <c>null</c> event publisher; whereby the events are simply swallowed/discarded on publish.
+    /// Represents a <c>null</c> event publisher; whereby the events are simply swallowed/discarded on send.
     /// </summary>
-    public class NullEventPublisher : IEventPublisher
+    public class NullEventPublisher : EventPublisher
     {
-        /// <inheritdoc/>
-        public Task PublishAsync(params EventData[] events) => Task.CompletedTask;
-
-        /// <inheritdoc/>
-        public Task PublishAsync(string name, params EventData[] events)
-        {
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(nameof(name));
-
-            return Task.CompletedTask;
-        }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NullEventPublisher"/> class.
+        /// </summary>
+        public NullEventPublisher() : base(null, new Text.Json.EventDataSerializer(), new NullEventSender()) { }
     }
 }
