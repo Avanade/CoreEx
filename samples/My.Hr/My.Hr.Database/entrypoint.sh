@@ -14,7 +14,7 @@ if [ "$1" = 'sql' ]; then
     echo "Database scripts complete"
     touch /var/opt/mssql/.initialized
   fi &
-  /opt/mssql/bin/sqlservr
+  exec /opt/mssql/bin/sqlservr
 fi
 
 exec "$@"

@@ -2,13 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using My.Hr.Business.Models;
 
+namespace My.Hr.Business.Configuration;
+
 public class UsStateConfiguration : IEntityTypeConfiguration<USState>
 {
-    public UsStateConfiguration()
-    {
-
-    }
-
     public void Configure(EntityTypeBuilder<USState> entity)
     {
         entity.ToTable("USState", "Hr");

@@ -27,7 +27,7 @@ namespace CoreEx.Text.Json
         /// </remarks>
         public JsonSerializer(Stj.JsonSerializerOptions? options = null)
         {
-            Options = options ?? new Stj.JsonSerializerOptions
+            Options = options ?? new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
                 WriteIndented = false,

@@ -8,6 +8,9 @@ using System.Reflection;
 using My.Hr.Business;
 using My.Hr.Business.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using CoreEx.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,14 +20,20 @@ builder.Services
     .AddSingleton<HrSettings>()
     .AddExecutionContext()
     .AddScoped<SettingsBase, HrSettings>()
-    .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
+    .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>(_ => new CoreEx.Text.Json.JsonSerializer(new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+                WriteIndented = false,
+                Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
+            }))
     .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
     .AddScoped<IEventPublisher, NullEventPublisher>()
     .AddScoped<WebApi, WebApi>();
 
 // Register the business services.
 builder.Services
-    .AddScoped<ReferenceDataService>();
+    .AddScoped<ReferenceDataService>()
+    .AddScoped<EmployeeService>();
 
 // Database
 builder.Services.AddDbContext<HrDbContext>(

@@ -17,7 +17,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\My.Hr.Business\My.Hr.Business.csproj" />
-    <ProjectReference Include="..\..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />
   </ItemGroup>
 
 </Project>
