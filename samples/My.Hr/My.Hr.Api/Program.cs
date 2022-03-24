@@ -2,15 +2,17 @@ using CoreEx.Configuration;
 using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Json;
+using CoreEx.Text.Json;
 using CoreEx.WebApis;
-using System.Reflection;
 
 using My.Hr.Business;
 using My.Hr.Business.Services;
+
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
 using System.Text.Json;
-using CoreEx.Text.Json;
+using System.Text.Json.Serialization;
+using System.Reflection;
+using CoreEx.Healthchecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,14 +23,15 @@ builder.Services
     .AddExecutionContext()
     .AddScoped<SettingsBase, HrSettings>()
     .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>(_ => new CoreEx.Text.Json.JsonSerializer(new JsonSerializerOptions(JsonSerializerDefaults.Web)
-            {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-                WriteIndented = false,
-                Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
-            }))
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+            WriteIndented = false,
+            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
+        }))
     .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
-    .AddScoped<IEventPublisher, NullEventPublisher>()
-    .AddScoped<WebApi, WebApi>();
+    .AddScoped<EventDataFormatter>()
+    .AddScoped<IEventPublisher, LoggerEventPublisher>()
+    .AddScoped<WebApi>();
 
 // Register the business services.
 builder.Services
@@ -38,6 +41,11 @@ builder.Services
 // Database
 builder.Services.AddDbContext<HrDbContext>(
     options => options.UseSqlServer("name=ConnectionStrings:Database"));
+
+// Register the health checks.
+builder.Services
+    .AddScoped<HealthService>()
+    .AddHealthChecks();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

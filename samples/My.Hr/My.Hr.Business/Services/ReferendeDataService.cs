@@ -13,6 +13,7 @@ public class ReferenceDataService
     }
     public async Task<IEnumerable<USState>> GetAll(List<string>? codes = default, string? text = default)
     {
+        // todo: add filtering
         return await _dbContext.USStates.ToListAsync();
     }
 }

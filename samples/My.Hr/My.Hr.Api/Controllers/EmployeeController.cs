@@ -46,7 +46,6 @@ public class EmployeeController : ControllerBase
     /// <summary>
     /// Updates an existing <see cref="Employee"/>.
     /// </summary>
-    /// <param name="value">The <see cref="Employee"/>.</param>
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
     /// <returns>The updated <see cref="Employee"/>.</returns>
     [HttpPut("{id}")]
@@ -75,5 +74,13 @@ public class EmployeeController : ControllerBase
         => _webApi.GetAsync(Request, _ => _service.GetAllAsync());
 
 
+    /// <summary>
+    /// Performs <see cref="Employee"/> verification in an asynchronous process.
+    /// </summary>
+    [HttpPost("{id}/verify")]
+    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public Task<IActionResult> Verify(Guid id)
+           => _webApi.RunAsync(Request, apiParam => _service.VerifyEmployeeAsync(id));
 
 }

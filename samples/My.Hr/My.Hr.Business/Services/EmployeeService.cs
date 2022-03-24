@@ -1,15 +1,22 @@
+using CoreEx.Events;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using My.Hr.Business.Models;
+using My.Hr.Business.ServiceContracts;
 
 namespace My.Hr.Business.Services;
 
 public class EmployeeService
 {
     private readonly HrDbContext _dbContext;
+    private readonly IEventPublisher _publisher;
+    private readonly HrSettings _settings;
 
-    public EmployeeService(HrDbContext dbContext)
+    public EmployeeService(HrDbContext dbContext, IEventPublisher publisher, HrSettings settings)
     {
         _dbContext = dbContext;
+        _publisher = publisher;
+        _settings = settings;
     }
 
     public async Task<Employee?> GetEmployeeAsync(Guid id)
@@ -23,7 +30,7 @@ public class EmployeeService
     }
 
     public async Task<Employee> AddEmployeeAsync(Employee employee)
-    {   
+    {
         _dbContext.Employees.Add(employee);
         await _dbContext.SaveChangesAsync();
         return employee;
@@ -31,7 +38,7 @@ public class EmployeeService
 
     public async Task<Employee> UpdateEmployeeAsync(Employee employee, Guid id)
     {
-        if(employee.EmployeeId != id)
+        if (employee.EmployeeId != id)
         {
             throw new InvalidOperationException("EmployeeId does not match");
         }
@@ -49,5 +56,28 @@ public class EmployeeService
             _dbContext.Employees.Remove(employee);
             await _dbContext.SaveChangesAsync();
         }
+    }
+
+    public async Task<IActionResult> VerifyEmployeeAsync(Guid id)
+    {
+        // first get Employee
+        var employee = await GetEmployeeAsync(id);
+
+        if (employee == null)
+        {
+            return new NotFoundResult();
+        }
+
+        // publish message to service bus for employee verification
+        var verification = new EmployeeVerificationRequest
+        {
+            Name = employee.FirstName,
+            Age = DateTime.UtcNow.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
+            Gender = employee.GenderCode
+        };
+
+        await _publisher.SendAsync(_settings.VerificationQueueName, new EventData { Value = verification });
+
+        return new NoContentResult();
     }
 }
