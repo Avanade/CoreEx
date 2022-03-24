@@ -22,7 +22,7 @@ namespace CoreEx.Events
         public EventSendData(EventDataBase @event) : base(@event) { }
 
         /// <summary>
-        /// Get or sets the optional <see cref="IEventPublisher.PublishAsync(string, EventData[])"/> destination name (i.e. queue or topic).
+        /// Get or sets the optional <see cref="IEventPublisher.Publish(string, EventData[])"/> destination name (i.e. queue or topic).
         /// </summary>
         public string? Destination { get; set; }
 

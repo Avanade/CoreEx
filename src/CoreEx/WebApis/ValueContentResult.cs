@@ -71,7 +71,7 @@ namespace CoreEx.WebApis
 
             var headers = response.GetTypedHeaders();
             if (ETag != null)
-                headers.ETag = new EntityTagHeaderValue(ETag.StartsWith('\"') && ETag.StartsWith('\"') ? ETag : $"\"{ETag}\"");
+                headers.ETag = new EntityTagHeaderValue(ETag.StartsWith('\"') && ETag.EndsWith('\"') ? ETag : $"\"{ETag}\"");
 
             if (Location != null)
                 headers.Location = Location;

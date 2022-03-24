@@ -17,7 +17,7 @@ namespace CoreEx.Newtonsoft.Json
     /// <summary>
     /// Extends the <see cref="DefaultContractResolver"/> to enable runtime configurable of JSON serialization property rename and ignore.
     /// </summary>
-    public class ContractResolver : DefaultContractResolver
+    public class ContractResolver : CamelCasePropertyNamesContractResolver
     {
         private readonly static ContractResolver _default = new();
 

@@ -24,13 +24,9 @@ namespace CoreEx.Configuration
         public SettingsBase(IConfiguration configuration, params string[] prefixes)
         {
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-
-            if ((prefixes ?? throw new ArgumentNullException(nameof(prefixes))).Length == 0)
-                throw new ArgumentException("At least one prefix must be specified.", nameof(prefixes));
-
             Deployment = new DeploymentInfo(configuration);
 
-            foreach (var prefix in prefixes)
+            foreach (var prefix in prefixes ?? throw new ArgumentNullException(nameof(prefixes)))
             {
                 if (string.IsNullOrEmpty(prefix))
                     throw new ArgumentException("Prefixes cannot be null or empty.", nameof(prefixes));
@@ -126,7 +122,9 @@ namespace CoreEx.Configuration
         /// </summary>
         public int MaxPublishCollSize => GetValue(nameof(MaxPublishCollSize), 100);
 
-        /// <summary> Deployment information read from environment variables. </summary>
-        public virtual DeploymentInfo Deployment { get; private set; }
+        /// <summary> 
+        /// Gets the <see cref="DeploymentInfo"/> from the environment variables. 
+        /// </summary>
+        public DeploymentInfo Deployment { get; }
     }
 }

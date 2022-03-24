@@ -59,19 +59,25 @@ namespace CoreEx.Http
         /// <param name="httpRequest">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="etag">The <i>ETag</i> value.</param>
         /// <returns>The <see cref="HttpRequestMessage"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>Automatically adds quoting to be ETag format compliant.</remarks>
         public static HttpRequestMessage ApplyETag(this HttpRequestMessage httpRequest, string? etag)
         {
             // Apply the ETag header.
             if (!string.IsNullOrEmpty(etag))
             {
                 if (httpRequest.Method == HttpMethod.Get || httpRequest.Method == HttpMethod.Head)
-                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(etag));
+                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(FormatETag(etag)));
                 else
-                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(etag));
+                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(FormatETag(etag)));
             }
 
             return httpRequest;
         }
+
+        /// <summary>
+        /// Formats the ETag to be compliant.
+        /// </summary>
+        private static string FormatETag(string etag) => etag.StartsWith('\"') && etag.EndsWith('\"') ? etag : $"\"{etag}\"";
 
         /// <summary>
         /// Applies the <see cref="HttpRequestOptions"/> to the <see cref="HttpRequest"/>.
@@ -103,15 +109,16 @@ namespace CoreEx.Http
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
         /// <param name="etag">The <i>ETag</i> value.</param>
         /// <returns>The <see cref="HttpRequest"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>Automatically adds quoting to be ETag Header format compliant.</remarks>
         public static HttpRequest ApplyETag(this HttpRequest httpRequest, string? etag)
         {
             // Apply the ETag header.
             if (!string.IsNullOrEmpty(etag))
             {
                 if (httpRequest.Method.Equals(HttpMethod.Get.Method, StringComparison.InvariantCultureIgnoreCase) || httpRequest.Method.Equals(HttpMethod.Head.Method, StringComparison.InvariantCultureIgnoreCase))
-                    httpRequest.Headers.Add(HeaderNames.IfNoneMatch, etag);
+                    httpRequest.Headers.Add(HeaderNames.IfNoneMatch, FormatETag(etag));
                 else
-                    httpRequest.Headers.Add(HeaderNames.IfMatch, etag);
+                    httpRequest.Headers.Add(HeaderNames.IfMatch, FormatETag(etag));
             }
 
             return httpRequest;

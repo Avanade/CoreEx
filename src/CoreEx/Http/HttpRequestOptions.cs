@@ -16,8 +16,6 @@ namespace CoreEx.Http
     /// <remarks>Usage assumes that the HTTP endpoint supports and actions accordingly; i.e. by sending there is no guarantee that the desired outcome will occur as selected.</remarks>
     public class HttpRequestOptions
     {
-        private string? _etag;
-
         /// <summary>
         /// Gets or sets the <see cref="IncludeFields"/> query string name.
         /// </summary>
@@ -75,12 +73,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets or sets the entity tag that will be passed as either a <c>If-None-Match</c> header where <see cref="HttpMethod.Get"/>; otherwise, an <c>If-Match</c> header.
         /// </summary>
-        /// <remarks>Automatically adds quoting to be ETag format compliant.</remarks>
-        public string? ETag
-        {
-            get => _etag;
-            set => _etag = value == null ? null : (value.StartsWith('\"') && value.StartsWith('\"') ? value : $"\"{value}\"");
-        }
+        public string? ETag { get; set; }
 
         /// <summary>
         /// Gets or sets the list of <b>included</b> fields (JSON property names) to limit the serialized data payload (results in url query string: "$fields=x,y,z").
