@@ -65,11 +65,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="serviceCollection">The <see cref="IServiceCollection"/>.</param>
         /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
         /// <param name="configure">The delegate to configure the underlying <see cref="HttpClient"/>.</param>
-        public static IServiceCollection AddTypedHttpClient<T>(this IServiceCollection serviceCollection, string name, Action<IServiceProvider, HttpClient> configure) where T : TypedHttpClientBase
-        {
-            serviceCollection.AddHttpClient<T>(name, configure);
-            return serviceCollection;
-        }
+        public static IServiceCollection AddTypedHttpClient<T>(this IServiceCollection serviceCollection, string name, Action<IServiceProvider, HttpClient>? configure = null) where T : TypedHttpClientBase
+            => (configureClient = null) ? serviceCollection.AddHttpClient<T>(name) : serviceCollection.AddHttpClient<T>(name, configureClient);
 
         /// <summary>
         /// Adds the <see cref="DefaultSettings"/> as the <see cref="SettingsBase"/> singleton service.
