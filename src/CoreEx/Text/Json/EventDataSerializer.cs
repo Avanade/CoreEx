@@ -14,11 +14,11 @@ namespace CoreEx.Text.Json
         /// <summary>
         /// Initializes a new instance of the <see cref="EventDataSerializer"/> class.
         /// </summary>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>; defaults to <see cref="JsonSerializer"/>.</param>
         /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
-        public EventDataSerializer(IJsonSerializer jsonSerializer, EventDataFormatter? eventDataFormatter = null) : base(jsonSerializer, eventDataFormatter) 
+        public EventDataSerializer(IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null) : base(jsonSerializer ?? new JsonSerializer(), eventDataFormatter) 
         {
-            if (jsonSerializer is not CoreEx.Text.Json.JsonSerializer)
+            if (JsonSerializer is not CoreEx.Text.Json.JsonSerializer)
                 throw new ArgumentException($"The {nameof(IJsonSerializer)} instance must be of Type '{typeof(CoreEx.Text.Json.JsonSerializer).FullName}'.", nameof(jsonSerializer));
         }
     }

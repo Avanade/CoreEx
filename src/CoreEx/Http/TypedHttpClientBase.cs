@@ -106,12 +106,7 @@ namespace CoreEx.Http
             // Access the query string.
             var uri = new Uri(requestUri, UriKind.RelativeOrAbsolute);
 
-            UriBuilder ub;
-            if (uri.IsAbsoluteUri)
-                ub = new UriBuilder(uri.Scheme, uri.Host, uri.Port, uri.PathAndQuery);
-            else
-                ub = new UriBuilder("https", "coreex", 8080, requestUri);
-
+            var ub = new UriBuilder(uri.IsAbsoluteUri ? uri : new Uri(new Uri("https://coreex"), requestUri));
             var qs = QueryString.FromUriComponent(ub.Query);
 
             // Extend the query string from the IHttpArgs.

@@ -33,12 +33,12 @@ namespace CoreEx.Test.HealthChecks
             // Assert
             result.AssertSuccess();
             jsonObj.Should().NotBeNull();
-            jsonObj.GetProperty("healthReport").GetProperty("Status").GetString().Should().Be("Unhealthy", because: "Registered http backend is not healthy");
-            jsonObj.GetProperty("Deployment").GetProperty("By").GetString().Should().Be("me");
-            jsonObj.GetProperty("Deployment").GetProperty("Build").GetString().Should().Be("build no");
-            jsonObj.GetProperty("Deployment").GetProperty("Name").GetString().Should().Be("my deployment");
-            jsonObj.GetProperty("Deployment").GetProperty("Version").GetString().Should().Be("1.0.0");
-            jsonObj.GetProperty("Deployment").GetProperty("DateUtc").GetString().Should().Be("today");
+            jsonObj.GetProperty("healthReport").GetProperty("status").GetString().Should().Be("Unhealthy", because: "Registered http backend is not healthy");
+            jsonObj.GetProperty("deployment").GetProperty("by").GetString().Should().Be("me");
+            jsonObj.GetProperty("deployment").GetProperty("build").GetString().Should().Be("build no");
+            jsonObj.GetProperty("deployment").GetProperty("name").GetString().Should().Be("my deployment");
+            jsonObj.GetProperty("deployment").GetProperty("version").GetString().Should().Be("1.0.0");
+            jsonObj.GetProperty("deployment").GetProperty("dateUtc").GetString().Should().Be("today");
         }
 
         [Test]
@@ -63,12 +63,12 @@ namespace CoreEx.Test.HealthChecks
             // Assert
             jsonObj.Should().NotBeNull();
             json.Should().Contain("Failed during health checks");
-            jsonObj.GetProperty("healthReport").GetProperty("Status").GetString().Should().Be("Unhealthy");
-            jsonObj.GetProperty("Deployment").GetProperty("By").GetString().Should().Be("me");
-            jsonObj.GetProperty("Deployment").GetProperty("Build").GetString().Should().Be("build no");
-            jsonObj.GetProperty("Deployment").GetProperty("Name").GetString().Should().Be("my deployment");
-            jsonObj.GetProperty("Deployment").GetProperty("Version").GetString().Should().Be("1.0.0");
-            jsonObj.GetProperty("Deployment").GetProperty("DateUtc").GetString().Should().Be("today");
+            jsonObj.GetProperty("healthReport").GetProperty("status").GetString().Should().Be("Unhealthy");
+            jsonObj.GetProperty("deployment").GetProperty("by").GetString().Should().Be("me");
+            jsonObj.GetProperty("deployment").GetProperty("build").GetString().Should().Be("build no");
+            jsonObj.GetProperty("deployment").GetProperty("name").GetString().Should().Be("my deployment");
+            jsonObj.GetProperty("deployment").GetProperty("version").GetString().Should().Be("1.0.0");
+            jsonObj.GetProperty("deployment").GetProperty("dateUtc").GetString().Should().Be("today");
         }
 
         [Test]
@@ -93,12 +93,12 @@ namespace CoreEx.Test.HealthChecks
             // Assert
             jsonObj.Should().NotBeNull();
             json.Should().Contain("Failed during health checks");
-            jsonObj.GetProperty("healthReport").GetProperty("Status").GetString().Should().Be("Unhealthy");
-            jsonObj.GetProperty("Deployment").GetProperty("By").GetString().Should().Be("me");
-            jsonObj.GetProperty("Deployment").GetProperty("Build").GetString().Should().Be("build no");
-            jsonObj.GetProperty("Deployment").GetProperty("Name").GetString().Should().Be("my deployment");
-            jsonObj.GetProperty("Deployment").GetProperty("Version").GetString().Should().Be("1.0.0");
-            jsonObj.GetProperty("Deployment").GetProperty("DateUtc").GetString().Should().Be("today");
+            jsonObj.GetProperty("healthReport").GetProperty("status").GetString().Should().Be("Unhealthy");
+            jsonObj.GetProperty("deployment").GetProperty("by").GetString().Should().Be("me");
+            jsonObj.GetProperty("deployment").GetProperty("build").GetString().Should().Be("build no");
+            jsonObj.GetProperty("deployment").GetProperty("name").GetString().Should().Be("my deployment");
+            jsonObj.GetProperty("deployment").GetProperty("version").GetString().Should().Be("1.0.0");
+            jsonObj.GetProperty("deployment").GetProperty("dateUtc").GetString().Should().Be("today");
         }
     }
 }

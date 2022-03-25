@@ -9,13 +9,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
 namespace CoreEx.WebApis
 {
     /// <summary>
-    /// Provides the core <see cref="IEventPublisher"/> Web API execution encapsulation.
+    /// Provides the core <see cref="IEventSender"/> Web API execution encapsulation.
     /// </summary>
     public class WebApiPublisher : WebApiBase
     {
@@ -68,9 +69,11 @@ namespace CoreEx.WebApis
                 eventModifier?.Invoke(@event, vr.Value);
 
                 if (eventName == null)
-                    await EventPublisher.SendAsync(@event).ConfigureAwait(false);
+                    EventPublisher.Publish(@event);
                 else
-                    await EventPublisher.SendAsync(eventName, @event).ConfigureAwait(false);
+                    EventPublisher.Publish(eventName, @event);
+
+                await EventPublisher.SendAsync().ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
             }, operationType).ConfigureAwait(false);
@@ -108,28 +111,28 @@ namespace CoreEx.WebApis
                 if (beforeEvents != null)
                     await beforeEvents(new WebApiParam<TColl>(wap, vr.Value)).ConfigureAwait(false);
 
-                var events = new List<EventData>();
+                var max = maxCollSize ?? Settings.MaxPublishCollSize;
+                var count = vr.Value.Count();
+                if (count > max)
+                {
+                    Logger.LogWarning("The publish collection contains {EventsCount} items where only a maximum size of {MaxCollSize} is supported; request has been rejected.", count, max);
+                    return new BadRequestObjectResult($"The publish collection contains {count} items where only a maximum size of {max} is supported.");
+                }
+
+                if (count == 0)
+                    return new AcceptedResult();
+
                 foreach (var item in vr.Value)
                 {
                     var ed = new EventData { Value = item };
                     eventModifier?.Invoke(ed, item);
-                    events.Add(ed);
+                    if (eventName == null)
+                        EventPublisher.Publish(ed);
+                    else
+                        EventPublisher.Publish(eventName, ed);
                 }
 
-                if (events.Count == 0)
-                    return new AcceptedResult();
-
-                var max = maxCollSize ?? Settings.MaxPublishCollSize;
-                if (events.Count > max)
-                {
-                    Logger.LogWarning("The publish collection contains {EventsCount} items where only a maximum size of {MaxCollSize} is supported; request has been rejected.", events.Count, max);
-                    return new BadRequestObjectResult($"The publish collection contains {events.Count} items where only a maximum size of {max} is supported.");
-                }
-
-                if (eventName == null)
-                    await EventPublisher.SendAsync(events.ToArray()).ConfigureAwait(false);
-                else
-                    await EventPublisher.SendAsync(eventName, events.ToArray()).ConfigureAwait(false);
+                await EventPublisher.SendAsync().ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
             }, operationType).ConfigureAwait(false);

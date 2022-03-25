@@ -43,7 +43,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             Assert.NotNull(wro);
             Assert.AreSame(hr, wro.Request);
-            Assert.AreEqual("\"etag-value\"", wro.ETag);
+            Assert.AreEqual("etag-value", wro.ETag);
             Assert.IsTrue(wro.IncludeText);
             Assert.IsTrue(wro.IncludeInactive);
             Assert.AreEqual(new string[] { "fielda", "fieldb" }, wro.IncludeFields);
