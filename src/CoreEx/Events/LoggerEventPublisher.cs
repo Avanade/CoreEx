@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Json;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Text.Json.Nodes;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -10,54 +11,39 @@ namespace CoreEx.Events
     /// <summary>
     /// Represents an <see cref="ILogger"/> event publisher; whereby the events are output using <see cref="LoggerExtensions.LogInformation(ILogger, string, object[])"/>.
     /// </summary>
-    /// <remarks>This in intended for testing and/or prototyping purposes.</remarks>
-    public class LoggerEventPublisher : IEventPublisher
+    /// <remarks>This is intended for testing and/or prototyping purposes.</remarks>
+    public class LoggerEventPublisher : EventPublisher
     {
         private readonly ILogger _logger;
-        private readonly EventDataFormatter _eventDataFormatter;
-        private readonly IEventSerializer _eventSerializer;
+        private readonly IJsonSerializer _jsonSerializer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LoggerEventPublisher"/> class.
         /// </summary>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>.</param>
-        /// <param name="eventSerializer">The <see cref="IEventSerializer"/>.</param>
-        public LoggerEventPublisher(ILogger<LoggerEventPublisher> logger, EventDataFormatter? eventDataFormatter, IEventSerializer eventSerializer)
+        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>. Defaults where not specified.</param>
+        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="JsonSerializer.Default"/>.</param>
+        public LoggerEventPublisher(ILogger<LoggerEventPublisher> logger, EventDataFormatter? eventDataFormatter, IJsonSerializer? jsonSerializer) 
+            : base(eventDataFormatter, new CoreEx.Text.Json.EventDataSerializer(), new NullEventSender())
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _eventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
-            _eventSerializer = eventSerializer ?? throw new ArgumentNullException(nameof(eventSerializer));
+            _jsonSerializer = jsonSerializer ?? JsonSerializer.Default;
         }
 
         /// <inheritdoc/>
-        public async Task SendAsync(params EventData[] events)
+        protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData)
         {
-            foreach (var @event in events)
-            {
-                var e = @event.Copy();
-                _eventDataFormatter.Format(e);
-                var bd = await _eventSerializer.SerializeAsync(e).ConfigureAwait(false);
+            var sb = new StringBuilder("Event send");
+            if (!string.IsNullOrEmpty(name))
+                sb.Append($" (destination: '{name}')");
 
-                try
-                {
-                    var jo = JsonNode.Parse(bd);
-                    _logger.LogInformation("{Content}", jo == null ? "<null>" : jo.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-                }
-                catch
-                {
-                    _logger.LogInformation("{Content}", bd == null ? "<null>" : bd.ToString());
-                }
-            }
-        }
+            sb.AppendLine(" ->");
 
-        /// <inheritdoc/>
-        public Task SendAsync(string name, params EventData[] events)
-        {
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(nameof(name));
+            var json = _jsonSerializer.Serialize(eventData, JsonWriteFormat.Indented);
+            sb.Append(json);
+            _logger.LogInformation("{Event}", sb.ToString());
 
-            return SendAsync(events);
+            return Task.CompletedTask;
         }
     }
 }

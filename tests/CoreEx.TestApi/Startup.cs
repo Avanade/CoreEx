@@ -1,5 +1,4 @@
 using CoreEx.Configuration;
-using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Json;
 using CoreEx.TestFunction;
@@ -27,12 +26,11 @@ namespace CoreEx.TestApi
         {
             // Register the core services.
             services
-                .AddSingleton<TestSettings>()
+                .AddSettings<TestSettings>()
                 .AddExecutionContext()
-                .AddScoped<SettingsBase, TestSettings>()
-                .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
-                .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
-                .AddScoped<IEventPublisher, NullEventPublisher>()
+                .AddJsonSerializer()
+                .AddEventDataSerializer()
+                .AddNullEventPublisher()
                 .AddScoped<WebApi, WebApi>();
 
             // Register the typed backend http client.

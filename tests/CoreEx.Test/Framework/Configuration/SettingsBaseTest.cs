@@ -59,20 +59,6 @@ namespace CoreEx.Test.Framework.Entities
         }
 
         [Test]
-        public void CommonSettings_Should_ThrowException_When_NoPrefixes()
-        {
-            // Arrange
-            var configuration = CreateTestConfiguration();
-            var prefixes = new string[] { };
-
-            // Act
-            Action act = () => new SettingsForTesting(configuration, prefixes);
-
-            // Assert
-            act.Should().Throw<ArgumentException>();
-        }
-
-        [Test]
         public void CommonSettings_Should_ThrowException_When_PrefixIsNullOrEmpty()
         {
             // Arrange

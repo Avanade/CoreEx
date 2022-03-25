@@ -18,7 +18,7 @@ namespace CoreEx.Text.Json
         /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
         /// </summary>
         /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>; where <c>null</c> these will default.</param>
-        /// <remarks>Where the <paramref name="options"/> are <c>null</c> the following <see cref="Stj.JsonSerializerOptions"/> will default:
+        /// <remarks>Where the <paramref name="options"/> are <c>null</c> the following <see cref="Stj.JsonSerializerOptions"/>, including use of <see cref="Stj.JsonSerializerDefaults.Web"/>, will default:
         /// <list type="bullet">
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DefaultIgnoreCondition"/> = <see cref="JsonIgnoreCondition.WhenWritingDefault"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c></description></item>
@@ -27,7 +27,7 @@ namespace CoreEx.Text.Json
         /// </remarks>
         public JsonSerializer(Stj.JsonSerializerOptions? options = null)
         {
-            Options = options ?? new Stj.JsonSerializerOptions
+            Options = options ?? new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
                 WriteIndented = false,

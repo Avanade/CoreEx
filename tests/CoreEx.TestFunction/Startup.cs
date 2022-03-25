@@ -1,5 +1,4 @@
 ﻿using CoreEx.Configuration;
-using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Healthchecks;
 using CoreEx.Messaging.Azure.ServiceBus;
@@ -24,15 +23,17 @@ namespace CoreEx.TestFunction
         {
             // Register the core services.
             builder.Services
-                .AddSingleton<TestSettings>()
+                .AddSettings<TestSettings>()
                 .AddExecutionContext()
-                .AddScoped<SettingsBase, TestSettings>()
-                .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
-                .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
-                // .AddScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
-                // .AddScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>()
+                .AddJsonSerializer()
+                //.AddNewtonsoftJsonSerializer()
+                .AddEventDataSerializer()
+                //.AddCloudEventSerializer()
+                //.AddNewtonsoftEventDataSerializer()
+                //.AddNewtonsoftCloudEventSerializer()
+                //.AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
                 // replace by your own implementation of IEventPublisher to send events to e.g. service bus
-                .AddScoped<IEventPublisher, NullEventPublisher>()
+                .AddNullEventPublisher()
                 .AddScoped<WebApi, WebApi>()
                 .AddScoped<WebApiPublisher, WebApiPublisher>()
                 .AddScoped<ServiceBusSubscriber>();
@@ -46,7 +47,7 @@ namespace CoreEx.TestFunction
             // Register the typed backend http client.
             builder.Services.AddTypedHttpClient<BackendHttpClient>("Backend", (sp, hc) =>
             {
-                var settings = sp.GetService<TestSettings>();
+                var settings = sp.GetRequiredService<TestSettings>();
                 hc.BaseAddress = settings.BackendBaseAddress;
             });
 

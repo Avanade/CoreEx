@@ -87,11 +87,11 @@ namespace CoreEx.Test.Framework.Http
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUseProperties);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?Id=88&Name=%22gary%22&Date=%222020-01-01T11%3A59%3A58Z%22&Amount=-123.85&Happy=true&Codes=0&Codes=1&Codes=2", uri);
+            Assert.AreEqual("/people?id=88&name=%22gary%22&date=%222020-01-01T11%3A59%3A58Z%22&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUsePropertiesAndPrefix);
             uri = new TestHttpClient().VerifyUri("people", null, arg, null);
-            Assert.AreEqual("/people?person.Id=88&person.Name=%22gary%22&person.Date=%222020-01-01T11%3A59%3A58Z%22&person.Amount=-123.85&person.Happy=true&person.Codes=0&person.Codes=1&person.Codes=2", uri);
+            Assert.AreEqual("/people?person.id=88&person.name=%22gary%22&person.date=%222020-01-01T11%3A59%3A58Z%22&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
         }
 
         public class Person
