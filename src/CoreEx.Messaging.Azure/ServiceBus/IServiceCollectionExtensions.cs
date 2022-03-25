@@ -1,9 +1,14 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using Azure.Identity;
+using CoreEx;
 using CoreEx.Configuration;
+using CoreEx.Events;
+using CoreEx.Messaging.Azure.ServiceBus;
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Logging;
 using System;
+using Asb = Azure.Messaging.ServiceBus;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -13,7 +18,7 @@ namespace Microsoft.Extensions.DependencyInjection
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Adds the Azure Service Bus Client.
+        /// Adds the Azure <see cref="Asb.ServiceBusClient"/>.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="connectionName">The connection <see cref="SettingsBase">configuration setting</see> name.</param>
@@ -36,5 +41,18 @@ namespace Microsoft.Extensions.DependencyInjection
 
             return services;
         }
+
+        /// <summary>
+        /// Adds the <see cref="ServiceBusSender"/> as the <see cref="IEventSender"/> scoped service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="ServiceBusSender"/> to be further configured.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddAzureServiceBusSender(this IServiceCollection services, Action<IServiceProvider, ServiceBusSender>? configure = null) => services.AddScoped<IEventSender>(sp =>
+        {
+            var sbs = new ServiceBusSender(sp.GetRequiredService<Asb.ServiceBusClient>(), sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<ILogger<ServiceBusSender>>());
+            configure?.Invoke(sp, sbs);
+            return sbs;
+        });
     }
 }

@@ -91,27 +91,25 @@ namespace CoreEx.Messaging.Azure.ServiceBus
                     Subject = @event.Subject
                 };
 
-                if (PropertySelection.HasFlag(EventDataProperty.Action))
+                if (@event.Action != null && PropertySelection.HasFlag(EventDataProperty.Action))
                     msg.ApplicationProperties.Add(nameof(EventData.Action), @event.Action);
 
-                // This operation is not supported for a relative URI for Service Bus
-                // todo: consider throwing an exception early if the Uri is relative?
-                if (PropertySelection.HasFlag(EventDataProperty.Source) && @event.Source != null && !@event.Source.IsAbsoluteUri)
-                    msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Source);
+                if (@event.Source != null && PropertySelection.HasFlag(EventDataProperty.Source))
+                    msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Source.ToString());
 
-                if (PropertySelection.HasFlag(EventDataProperty.Type))
+                if (@event.Type != null && PropertySelection.HasFlag(EventDataProperty.Type))
                     msg.ApplicationProperties.Add(nameof(EventData.Type), @event.Type);
 
-                if (PropertySelection.HasFlag(EventDataProperty.TenantId))
+                if (@event.TenantId != null && PropertySelection.HasFlag(EventDataProperty.TenantId))
                     msg.ApplicationProperties.Add(nameof(EventData.TenantId), @event.TenantId);
 
-                if (PropertySelection.HasFlag(EventDataProperty.PartitionKey))
+                if (@event.PartitionKey != null && PropertySelection.HasFlag(EventDataProperty.PartitionKey))
                     msg.ApplicationProperties.Add(nameof(EventData.PartitionKey), @event.PartitionKey);
 
-                if (PropertySelection.HasFlag(EventDataProperty.ETag))
+                if (@event.ETag != null && PropertySelection.HasFlag(EventDataProperty.ETag))
                     msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
 
-                if (PropertySelection.HasFlag(EventDataProperty.Attributes) && @event.Attributes != null)
+                if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
                 {
                     foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && x.Key != SessionIdAttributeName))
                     {
