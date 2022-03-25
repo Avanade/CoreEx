@@ -33,7 +33,7 @@ namespace CoreEx.WebApis
                 {
                     var etag = vals.FirstOrDefault()?.Trim();
                     if (!string.IsNullOrEmpty(etag))
-                        ETag = etag;
+                        ETag = etag.Trim('\"');
                 }
             }
         }

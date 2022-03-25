@@ -4,7 +4,6 @@ using FluentAssertions;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Nsj = Newtonsoft.Json;
 
 namespace CoreEx.Test.Framework.Json
@@ -96,25 +95,25 @@ namespace CoreEx.Test.Framework.Json
 
             var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out string json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\",\"Addresses\":[{\"Street\":\"One\"},{\"Street\":\"Two\"}]}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\",\"addresses\":[{\"street\":\"One\"},{\"street\":\"Two\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out json));
-            Assert.AreEqual(json, "{\"LastName\":\"Smith\",\"Addresses\":[{\"City\":\"First\"},{\"City\":\"Second\"}]}");
+            Assert.AreEqual(json, "{\"lastName\":\"Smith\",\"addresses\":[{\"city\":\"First\"},{\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Include));
-            Assert.AreEqual(json, "{\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(json, "{\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "firstName" }, out json));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "middlename" }, out json));
             Assert.AreEqual(json, "{}");
 
             Assert.IsFalse(js.TryApplyFilter(p, new string[] { "middlename" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\",\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\",\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
         }
 
         [Test]
@@ -124,25 +123,25 @@ namespace CoreEx.Test.Framework.Json
 
             var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out object json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"FirstName\":\"John\",\"Addresses\":[{\"Street\":\"One\"},{\"Street\":\"Two\"}]}");
+            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"firstName\":\"John\",\"addresses\":[{\"street\":\"One\"},{\"street\":\"Two\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out json));
-            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"LastName\":\"Smith\",\"Addresses\":[{\"City\":\"First\"},{\"City\":\"Second\"}]}");
+            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"lastName\":\"Smith\",\"addresses\":[{\"city\":\"First\"},{\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Include));
-            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "firstName" }, out json));
-            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "middlename" }, out json));
             Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{}");
 
             Assert.IsFalse(js.TryApplyFilter(p, new string[] { "middlename" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"FirstName\":\"John\",\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"firstName\":\"John\",\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
         }
 
         [Test]
@@ -250,25 +249,25 @@ namespace CoreEx.Test.Framework.Json
 
             var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out string json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\",\"Addresses\":[{\"Street\":\"One\"},{\"Street\":\"Two\"}]}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\",\"addresses\":[{\"street\":\"One\"},{\"street\":\"Two\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out json));
-            Assert.AreEqual(json, "{\"LastName\":\"Smith\",\"Addresses\":[{\"City\":\"First\"},{\"City\":\"Second\"}]}");
+            Assert.AreEqual(json, "{\"lastName\":\"Smith\",\"addresses\":[{\"city\":\"First\"},{\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Include));
-            Assert.AreEqual(json, "{\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(json, "{\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "firstName" }, out json));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "middlename" }, out json));
             Assert.AreEqual(json, "{}");
 
             Assert.IsFalse(js.TryApplyFilter(p, new string[] { "middlename" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(json, "{\"FirstName\":\"John\",\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(json, "{\"firstName\":\"John\",\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
         }
 
         [Test]
@@ -278,25 +277,25 @@ namespace CoreEx.Test.Framework.Json
 
             var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out object json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"FirstName\":\"John\",\"Addresses\":[{\"Street\":\"One\"},{\"Street\":\"Two\"}]}");
+            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"firstName\":\"John\",\"addresses\":[{\"street\":\"One\"},{\"street\":\"Two\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out json));
-            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"LastName\":\"Smith\",\"Addresses\":[{\"City\":\"First\"},{\"City\":\"Second\"}]}");
+            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"lastName\":\"Smith\",\"addresses\":[{\"city\":\"First\"},{\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "lastname", "addresses" }, out json, JsonPropertyFilter.Include));
-            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "firstName" }, out json));
-            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"FirstName\":\"John\"}");
+            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"firstName\":\"John\"}");
 
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "middlename" }, out json));
             Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{}");
 
             Assert.IsFalse(js.TryApplyFilter(p, new string[] { "middlename" }, out json, JsonPropertyFilter.Exclude));
-            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"FirstName\":\"John\",\"LastName\":\"Smith\",\"Addresses\":[{\"Street\":\"One\",\"City\":\"First\"},{\"Street\":\"Two\",\"City\":\"Second\"}]}");
+            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"firstName\":\"John\",\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
         }
 
         [Test]

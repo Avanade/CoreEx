@@ -1,11 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace CoreEx
+namespace System.Linq
 {
     /// <summary>
     /// Provides additional <see cref="IEnumerable{T}"/> extension methods.

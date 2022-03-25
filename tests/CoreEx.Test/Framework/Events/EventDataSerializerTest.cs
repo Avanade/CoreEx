@@ -175,7 +175,7 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
-        public async Task NewtonsoftTextJson_Serialize_Deserialize_ValueOnly2()
+        public async Task NewtonsoftText_Serialize_Deserialize_ValueOnly2()
         {
             var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = true } as IEventSerializer;
             var ped = CloudEventSerializerTest.CreateProductEvent1();

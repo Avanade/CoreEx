@@ -31,6 +31,11 @@ namespace CoreEx.Hosting
         protected IServiceSynchronizer Synchronizer { get; }
 
         /// <summary>
+        /// Gets or sets the optional synchronization name (used by <see cref="IServiceSynchronizer.Enter{T}(string?)"/> and <see cref="IServiceSynchronizer.Exit{T}(string?)"/>).
+        /// </summary>
+        protected string? SynchronizationName { get; set; }
+
+        /// <summary>
         /// Triggered to perform the work as a result of the <see cref="TimerHostedServiceBase.Interval"/> is a synchronized manner.
         /// </summary>
         /// <param name="scopedServiceProvider">The scoped <see cref="IServiceProvider"/>.</param>
@@ -41,7 +46,7 @@ namespace CoreEx.Hosting
         protected async override Task ExecuteAsync(IServiceProvider scopedServiceProvider, CancellationToken cancellationToken)
         {
             // Ensure we have synchronized control; if not exit immediately.
-            if (!Synchronizer.Enter<TSync>())
+            if (!Synchronizer.Enter<TSync>(SynchronizationName))
                 return;
 
             try
@@ -50,7 +55,7 @@ namespace CoreEx.Hosting
             }
             finally
             {
-                Synchronizer.Exit<TSync>();
+                Synchronizer.Exit<TSync>(SynchronizationName);
             }
         }
 

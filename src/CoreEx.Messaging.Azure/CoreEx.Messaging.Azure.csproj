@@ -21,6 +21,6 @@
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.ServiceBus" Version="5.2.0" />
   </ItemGroup>
 
-  <Import Project="..\..\Common.targets"/>
+  <Import Project="..\..\Common.targets" />
   
 </Project>

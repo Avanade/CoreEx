@@ -49,7 +49,7 @@ namespace CoreEx.Utility
                 txt = sb.ToString();
             }
 
-            return $"\"{GenerateHash(txt)}\"";
+            return GenerateHash(txt);
         }
 
         /// <summary>

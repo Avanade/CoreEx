@@ -159,10 +159,10 @@ namespace CoreEx.Test.Framework.Events
         [Test]
         public void ETagDefaultFromValue()
         {
-            var ed = new EventData { Value = new Person { ETag = "\"xxx\"" } };
+            var ed = new EventData { Value = new Person { ETag = "xxx" } };
             var ef = new EventDataFormatter { ETagDefaultFromValue = true };
             ef.Format(ed);
-            Assert.AreEqual("\"xxx\"", ed.ETag);
+            Assert.AreEqual("xxx", ed.ETag);
         }
 
         [Test]
@@ -174,7 +174,7 @@ namespace CoreEx.Test.Framework.Events
 
             ef.JsonSerializer = new CoreEx.Text.Json.JsonSerializer();
             ef.Format(ed);
-            Assert.AreEqual("\"0rk/Eu4Si62XCw/qDYxqLh9fhNR/4rrAijmAigS0NDM=\"", ed.ETag);
+            Assert.AreEqual("0rk/Eu4Si62XCw/qDYxqLh9fhNR/4rrAijmAigS0NDM=", ed.ETag);
         }
 
         internal class Person : IETag
