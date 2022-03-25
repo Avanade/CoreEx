@@ -7,7 +7,22 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace CoreEx.Messaging.Azure.Health
 {
 
-    /// <summary> Health check for Azure Service Bus Queue. </summary>
+    /// <summary> Health check for Azure Service Bus Topic. </summary>
+    /// <remarks> Check doesn't verify permissions to Send/Receive. <br/>
+    /// To use this health check, add the following to the <see cref="HealthCheckBuilder"/>.
+    /// Make sure to use **NAME** of the settings, not values themselves.
+    /// <code>
+    /// builder.Services
+    ///     .AddHealthChecks()
+    ///     .AddTypeActivatedCheck{AzureServiceBusTopicHealthCheck}(
+    ///        "Check", 
+    ///        HealthStatus.Unhealthy, 
+    ///        nameof(Settings.ServiceBusConnection__fullyQualifiedNamespace), 
+    ///        nameof(Settings.TopicName),
+    ///        nameof(Settings.SubscriptionName)
+    ///     );
+    /// </code>
+    /// </remarks>
     public class AzureServiceBusTopicHealthCheck : AzureServiceHealthCheckBase
     {
         private readonly string _topicName;

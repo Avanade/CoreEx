@@ -58,9 +58,18 @@ namespace CoreEx.DependencyInjection
         /// <param name="serviceCollection">The <see cref="IServiceCollection"/>.</param>
         /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
         /// <param name="configureClient">The delegate to configure the underlying <see cref="HttpClient"/> for the .</param>
-        public static IServiceCollection AddTypedHttpClient<T>(this IServiceCollection serviceCollection, string name, Action<IServiceProvider, HttpClient> configureClient) where T : TypedHttpClientBase
+        public static IServiceCollection AddTypedHttpClient<T>(this IServiceCollection serviceCollection, string name, Action<IServiceProvider, HttpClient>? configureClient = null) where T : TypedHttpClientBase
         {
-            serviceCollection.AddHttpClient<T>(name, configureClient);
+            switch (configureClient)
+            {
+                case null:
+                    serviceCollection.AddHttpClient<T>(name);
+                    break;
+                default:
+                    serviceCollection.AddHttpClient<T>(name, configureClient);
+                    break;
+            }
+
             return serviceCollection;
         }
     }

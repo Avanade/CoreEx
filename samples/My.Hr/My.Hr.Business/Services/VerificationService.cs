@@ -13,7 +13,7 @@ public class VerificationService
     private readonly ILogger<VerificationService> _logger;
     private readonly IEventPublisher _publisher;
 
-    public VerificationService(AgifyApiClient agifyApiClient, GenderizeApiClient genderizeApiClient, NationalizeApiClient nationalizeApiClient, 
+    public VerificationService(AgifyApiClient agifyApiClient, GenderizeApiClient genderizeApiClient, NationalizeApiClient nationalizeApiClient,
         HrSettings settings, ILogger<VerificationService> logger, IEventPublisher publisher)
     {
         _agifyApiClient = agifyApiClient;
@@ -35,30 +35,38 @@ public class VerificationService
         return new Tuple<AgifyResponse, GenderizeResponse, NationalizeResponse>(agifyTask.Result, genderizeTask.Result, nationalizeTask.Result);
     }
 
-    public async Task VerifyAndPublish(EmployeeVerificationRequest verificationRequest)
+    public async Task VerifyAndPublish(EmployeeVerificationRequest request)
     {
-        var result = await VerifyAsync(verificationRequest.Name);
+        var result = await VerifyAsync(request.Name);
 
-        var response = new EmployeeVerificationResponse
-        (
-            name: verificationRequest.Name,
-            age: result.Item1.Age,
-            gender: result.Item2.Gender
-        );
+        var response = new EmployeeVerificationResponse(request);
+        response.Age = result.Item1.Age;
         response.Country.AddRange(result.Item3.Country);
+        response.Gender = result.Item2.Gender;
         response.GenderProbability = result.Item2.Probability;
 
+        var nationality = response.Country.OrderByDescending(c => c.Probability).First();
+
+        response.VerificationMessages.Add(
+            @$"Performed verification for {request.Name}, {request.Gender} age {request.Age}. 
+            Engine predicted age was {response.Age}. 
+            Engine predicted gender was {response.Gender} with {ToPercents(response.GenderProbability)} probability.
+            Most likely nationality of {request.Name} is {nationality.Country_Id} with {ToPercents(nationality.Probability)} probability"
+        );
+
         // first check age
-        if (Math.Abs(verificationRequest.Age - response.Age) >= 10)
+        if (Math.Abs(request.Age - response.Age) >= 10)
         {
-            response.VerificationMessages.Add($"Employee age ({verificationRequest.Age}) is not within range of 10 years of predicted age: {response.Age}");
+            response.VerificationMessages.Add($"Employee age ({request.Age}) is not within range of 10 years of predicted age: {response.Age}");
         }
 
-        if (response.GenderProbability > 50 && !response.Gender.Equals(verificationRequest.Gender, StringComparison.InvariantCultureIgnoreCase))
+        if (response.GenderProbability > 0.5 && !response.Gender.Equals(request.Gender, StringComparison.InvariantCultureIgnoreCase))
         {
-            response.VerificationMessages.Add($"Employee gender ({verificationRequest.Gender}) doesn't match predicted gender: {response.Gender}");
+            response.VerificationMessages.Add($"Employee gender ({request.Gender}) doesn't match predicted gender: {response.Gender}");
         }
 
         await _publisher.SendAsync(_settings.VerificationResultsQueueName, new EventData { Value = response });
     }
+
+    private static string ToPercents(float value) => (int)(value * 100) + "%";
 }

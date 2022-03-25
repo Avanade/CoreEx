@@ -8,7 +8,7 @@ public class NationalizeResponse
 
     public class CountryResponse
     {
-        public string CountryId { get; set; }
+        public string Country_Id { get; set; }
         public float Probability { get; set; }
     }
 }

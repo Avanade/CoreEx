@@ -22,7 +22,7 @@ public class NationalizeApiClient : TypedHttpClientCore<NationalizeApiClient>
 
     public override Task<HttpResult> HealthCheckAsync()
     {
-        return base.HeadAsync("/name=health");
+        return base.HeadAsync(string.Empty, null, new HttpArg<string>("name", "health"));
     }
 
     public async Task<NationalizeResponse> GetNationalityAsync(string name)
@@ -30,7 +30,7 @@ public class NationalizeApiClient : TypedHttpClientCore<NationalizeApiClient>
         var response = await
             WithRetry(1, 5)
             .ThrowTransientException()
-            .GetAsync<NationalizeResponse>($"/name={name}");
+            .GetAsync<NationalizeResponse>(string.Empty, null, new HttpArg<string>("name", name));
 
         return response.Value;
     }

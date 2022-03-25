@@ -22,7 +22,7 @@ public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
 
     public override Task<HttpResult> HealthCheckAsync()
     {
-        return base.HeadAsync("/name=health");
+        return base.HeadAsync(string.Empty, null, new HttpArg<string>("name", "health"));
     }
 
     public async Task<GenderizeResponse> GetGenderAsync(string name)
@@ -30,7 +30,7 @@ public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
         var response = await
             WithRetry(1, 5)
             .ThrowTransientException()
-            .GetAsync<GenderizeResponse>($"/name={name}");
+            .GetAsync<GenderizeResponse>(string.Empty, null, new HttpArg<string>("name", name));
 
         return response.Value;
     }

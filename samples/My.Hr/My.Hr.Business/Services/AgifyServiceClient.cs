@@ -22,7 +22,7 @@ public class AgifyApiClient : TypedHttpClientCore<AgifyApiClient>
 
     public override Task<HttpResult> HealthCheckAsync()
     {
-        return base.HeadAsync("/name=health");
+        return base.HeadAsync(string.Empty, null, new HttpArg<string>("name", "health"));
     }
 
     public async Task<AgifyResponse> GetAgeAsync(string name)
@@ -30,7 +30,7 @@ public class AgifyApiClient : TypedHttpClientCore<AgifyApiClient>
         var response = await
             WithRetry(1, 5)
             .ThrowTransientException()
-            .GetAsync<AgifyResponse>($"/name={name}");
+            .GetAsync<AgifyResponse>(string.Empty, null, new HttpArg<string>("name", name));
 
         return response.Value;
     }

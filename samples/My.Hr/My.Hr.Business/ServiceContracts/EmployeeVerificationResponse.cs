@@ -1,23 +1,22 @@
+using System.Text.Json.Serialization;
+
 namespace My.Hr.Business.ServiceContracts;
 
 public class EmployeeVerificationResponse
 {
-    public EmployeeVerificationResponse(string name, int age, string gender)
+    public EmployeeVerificationResponse(EmployeeVerificationRequest request)
     {
-        Name = name ?? throw new ArgumentNullException(nameof(name));
-        Gender = gender ?? throw new ArgumentNullException(nameof(name));
-        Age = age;
+        Request = request;
     }
 
-    public string Name { get; private set; }
-    
-    public int Age { get; private set; }
+    public int Age { get; set; }
 
-    public string Gender { get; private set; }
+    public string Gender { get; set; }
 
     public float GenderProbability { get; set; }
 
     public List<NationalizeResponse.CountryResponse> Country { get; private set; } = new List<NationalizeResponse.CountryResponse>();
 
     public List<string> VerificationMessages { get; private set; } = new List<string>();
+    public EmployeeVerificationRequest Request { get; }
 }
