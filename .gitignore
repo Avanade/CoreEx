@@ -747,3 +747,6 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/windows,visualstudiocode,macos,csharp,dotnetcore,jupyternotebooks,linux,node,python
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
+__azurite_db_blob__.json
+__azurite_db_blob_extent__.json
+__blobstorage__/

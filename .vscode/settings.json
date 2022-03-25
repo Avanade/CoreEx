@@ -1,0 +1,12 @@
+{
+    "azureFunctions.projectSubpath": "samples/My.Hr/My.Hr.Functions",
+    "azureFunctions.deploySubpath": "samples/My.Hr/My.Hr.Functions/bin/Release/net6.0/publish",
+    "azureFunctions.projectLanguage": "C#",
+    "azureFunctions.projectRuntime": "~3",
+    "debug.internalConsoleOptions": "neverOpen",
+    "azureFunctions.preDeployTask": "publish (functions)",
+    "cSpell.words": [
+        "Agify",
+        "Genderize"
+    ]
+}
