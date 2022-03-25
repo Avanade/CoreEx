@@ -94,7 +94,9 @@ namespace CoreEx.Messaging.Azure.ServiceBus
                 if (PropertySelection.HasFlag(EventDataProperty.Action))
                     msg.ApplicationProperties.Add(nameof(EventData.Action), @event.Action);
 
-                if (PropertySelection.HasFlag(EventDataProperty.Source))
+                // This operation is not supported for a relative URI for Service Bus
+                // todo: consider throwing an exception early if the Uri is relative?
+                if (PropertySelection.HasFlag(EventDataProperty.Source) && @event.Source != null && !@event.Source.IsAbsoluteUri)
                     msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Source);
 
                 if (PropertySelection.HasFlag(EventDataProperty.Type))
@@ -109,7 +111,7 @@ namespace CoreEx.Messaging.Azure.ServiceBus
                 if (PropertySelection.HasFlag(EventDataProperty.ETag))
                     msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
 
-                if (PropertySelection.HasFlag(EventDataProperty.Attributes))
+                if (PropertySelection.HasFlag(EventDataProperty.Attributes) && @event.Attributes != null)
                 {
                     foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && x.Key != SessionIdAttributeName))
                     {
