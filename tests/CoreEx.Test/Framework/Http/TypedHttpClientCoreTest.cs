@@ -333,6 +333,46 @@ namespace CoreEx.Test.Framework.Http
         }
 
         [Test]
+        public void Head_Success_QueryStringOnly()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Head, "?name=bob").Respond.With(HttpStatusCode.OK);
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ReplaceHttpClientFactory(mcf)
+                .Type<BackendHttpClient>()
+                .Run(f => f.HeadAsync("?name=bob"))
+                .AssertSuccess();
+
+            Assert.IsTrue(r.Result.IsSuccess);
+            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.IsNull(r.Result.Content);
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void Head_Success_QueryStringAndRequestOptions()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Head, "?name=bob&$text=true").Respond.With(HttpStatusCode.OK);
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ReplaceHttpClientFactory(mcf)
+                .Type<BackendHttpClient>()
+                .Run(f => f.HeadAsync("?name=bob", new HttpRequestOptions { IncludeText = true }))
+                .AssertSuccess();
+
+            Assert.IsTrue(r.Result.IsSuccess);
+            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.IsNull(r.Result.Content);
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
         public void Patch_SuccessMergePatch()
         {
             var mcf = MockHttpClientFactory.Create();
