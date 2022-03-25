@@ -1,5 +1,4 @@
 using CoreEx.Configuration;
-using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Json;
 using CoreEx.Text.Json;
@@ -13,6 +12,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Reflection;
 using CoreEx.Healthchecks;
+using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.Messaging.Azure.Health;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,14 +25,16 @@ builder.Services
     .AddExecutionContext()
     .AddScoped<SettingsBase, HrSettings>()
     .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>(_ => new CoreEx.Text.Json.JsonSerializer(new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-            WriteIndented = false,
-            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
-        }))
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+        WriteIndented = false,
+        Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
+    }))
     .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
     .AddScoped<EventDataFormatter>()
-    .AddScoped<IEventPublisher, LoggerEventPublisher>()
+    .AddScoped<IEventPublisher, EventPublisher>()
+    .AddScoped<IEventSender, ServiceBusSender>()
+    .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection))
     .AddScoped<WebApi>();
 
 // Register the business services.
@@ -45,12 +49,16 @@ builder.Services.AddDbContext<HrDbContext>(
 // Register the health checks.
 builder.Services
     .AddScoped<HealthService>()
-    .AddHealthChecks();
+    .AddHealthChecks()
+    .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection__fullyQualifiedNamespace), nameof(HrSettings.VerificationQueueName))
+    .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification results queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection__fullyQualifiedNamespace), nameof(HrSettings.VerificationResultsQueueName));
+
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options => {
+builder.Services.AddSwaggerGen(options =>
+{
     // using System.Reflection;
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));

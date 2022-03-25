@@ -9,7 +9,7 @@ namespace CoreEx.Messaging.Azure.Health
 
     /// <summary> Health check for Azure Service Bus Queue. </summary>
     /// <remarks> Check doesn't verify permissions to Send/Receive. <br/>
-    /// To use this health check, add the following to the <see cref="HealthCheckBuilder"/>.
+    /// To use this health check, add the following to the HealthCheckBuilder.
     /// Make sure to use **NAME** of the settings, not values themselves.
     /// <code>
     /// builder.Services

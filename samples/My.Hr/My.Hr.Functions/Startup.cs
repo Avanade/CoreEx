@@ -1,5 +1,4 @@
 using CoreEx.Configuration;
-using CoreEx.DependencyInjection;
 using CoreEx.Events;
 using CoreEx.Json;
 using CoreEx.Text.Json;
@@ -46,33 +45,15 @@ public class Startup : FunctionsStartup
                 Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
             }))
             .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
-            .AddScoped<IEventPublisher, ServiceBusPublisher>()
+            .AddScoped<IEventPublisher, EventPublisher>()
+            .AddScoped<EventDataFormatter>()
+            .AddScoped<IEventSender, ServiceBusSender>()
             .AddScoped<WebApi, WebApi>()
             .AddScoped<WebApiPublisher>()
-            .AddScoped<ServiceBusSubscriber>();
+            .AddScoped<ServiceBusSubscriber>()
+            .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection__fullyQualifiedNamespace));
 
-        builder.Services.AddAzureClients(cb =>
-            {
-                var config = builder.Services.BuildServiceProvider().GetService<HrSettings>();
-                var sbcs = config.ServiceBusConnection;
-
-                if (string.IsNullOrEmpty(sbcs))
-                    throw new InvalidOperationException(@$"No Service Bus connection string found in configuration for Service Bus Client.");
-
-                if (sbcs.Contains("SharedAccessKey=", StringComparison.OrdinalIgnoreCase))
-                {
-                    // connect to Azure Service Bus with secret
-                    cb.AddServiceBusClient(sbcs);
-                }
-                else
-                {
-                    // connect to Azure Service Bus with managed identity
-                    cb.AddServiceBusClientWithNamespace(sbcs).WithCredential(new DefaultAzureCredential());
-                }
-            });
-
-
-        // // Register the health checks.
+        // Register the health checks.
         builder.Services
             .AddScoped<HealthService>()
             .AddHealthChecks()

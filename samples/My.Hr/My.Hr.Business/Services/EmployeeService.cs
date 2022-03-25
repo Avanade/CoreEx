@@ -68,6 +68,16 @@ public class EmployeeService
             return new NotFoundResult();
         }
 
+        if (string.IsNullOrEmpty(employee.FirstName))
+        {
+            return new BadRequestObjectResult("Employee is missing FirstName");
+        }
+
+        if (string.IsNullOrEmpty(employee.GenderCode))
+        {
+            return new BadRequestObjectResult("Employee is missing GenderCode");
+        }
+
         // publish message to service bus for employee verification
         var verification = new EmployeeVerificationRequest
         {
@@ -76,7 +86,8 @@ public class EmployeeService
             Gender = employee.GenderCode
         };
 
-        await _publisher.SendAsync(_settings.VerificationQueueName, new EventData { Value = verification });
+        _publisher.Publish(_settings.VerificationQueueName, new EventData { Value = verification });
+        await _publisher.SendAsync();
 
         return new NoContentResult();
     }

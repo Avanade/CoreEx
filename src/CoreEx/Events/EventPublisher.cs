@@ -9,7 +9,7 @@ namespace CoreEx.Events
 {
     /// <summary>
     /// Provides the event publishing and sending; being the <see cref="EventData">event</see> <see cref="EventDataFormatter.Format(EventDataBase)">formatting</see>, 
-    /// <see cref="IEventSerializer.SerializeAsync{T}(EventData{T})">serlialization</see> and <see cref="IEventSender.SendAsync(EventSendData[])">send</see>.
+    /// <see cref="IEventSerializer.SerializeAsync{T}(EventData{T})">serialization</see> and <see cref="IEventSender.SendAsync(EventSendData[])">send</see>.
     /// </summary>
     public class EventPublisher : IEventPublisher, IDisposable
     {

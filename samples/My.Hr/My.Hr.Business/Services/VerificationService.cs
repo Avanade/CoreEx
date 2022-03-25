@@ -65,7 +65,8 @@ public class VerificationService
             response.VerificationMessages.Add($"Employee gender ({request.Gender}) doesn't match predicted gender: {response.Gender}");
         }
 
-        await _publisher.SendAsync(_settings.VerificationResultsQueueName, new EventData { Value = response });
+        _publisher.Publish(_settings.VerificationResultsQueueName, new EventData { Value = response });
+        await _publisher.SendAsync();
     }
 
     private static string ToPercents(float value) => (int)(value * 100) + "%";

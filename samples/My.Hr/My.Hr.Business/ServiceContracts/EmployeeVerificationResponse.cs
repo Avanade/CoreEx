@@ -11,7 +11,7 @@ public class EmployeeVerificationResponse
 
     public int Age { get; set; }
 
-    public string Gender { get; set; }
+    public string? Gender { get; set; }
 
     public float GenderProbability { get; set; }
 

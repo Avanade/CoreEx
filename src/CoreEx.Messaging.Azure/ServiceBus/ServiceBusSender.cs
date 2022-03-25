@@ -98,7 +98,7 @@ namespace CoreEx.Messaging.Azure.ServiceBus
                     msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Source);
 
                 if (PropertySelection.HasFlag(EventDataProperty.Type))
-                    msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Type);
+                    msg.ApplicationProperties.Add(nameof(EventData.Type), @event.Type);
 
                 if (PropertySelection.HasFlag(EventDataProperty.TenantId))
                     msg.ApplicationProperties.Add(nameof(EventData.TenantId), @event.TenantId);
