@@ -82,7 +82,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Get)
+            if (!HttpMethods.IsGet(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Get}' to use {nameof(GetAsync)}.", nameof(request));
 
             if (function == null)
@@ -91,7 +91,7 @@ namespace CoreEx.WebApis
             return await RunAsync(request, async wap =>
             {
                 var result = await function(wap).ConfigureAwait(false);
-                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, nullReplacement: null, location: null);
+                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, location: null);
             }, operationType).ConfigureAwait(false);
         }
 
@@ -112,7 +112,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Post)
+            if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
 
             if (function == null)
@@ -140,7 +140,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Post)
+            if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
 
             if (function == null)
@@ -172,7 +172,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Post)
+            if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
 
             if (function == null)
@@ -181,7 +181,7 @@ namespace CoreEx.WebApis
             return await RunAsync(request, async wap =>
             {
                 var result = await function(wap).ConfigureAwait(false);
-                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, nullReplacement: null, location: null);
+                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
             }, operationType).ConfigureAwait(false);
         }
 
@@ -202,7 +202,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Post)
+            if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
 
             if (function == null)
@@ -215,7 +215,7 @@ namespace CoreEx.WebApis
                     return vr.ToBadRequestResult();
 
                 var result = await function(new WebApiParam<TValue>(wap, vr.Value)).ConfigureAwait(false);
-                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, nullReplacement: null, location: null);
+                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
             }, operationType).ConfigureAwait(false);
         }
 
@@ -238,7 +238,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Put)
+            if (!HttpMethods.IsPut(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Put}' to use {nameof(PutAsync)}.", nameof(request));
 
             if (function == null)
@@ -272,7 +272,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Put)
+            if (!HttpMethods.IsPut(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Put}' to use {nameof(PutAsync)}.", nameof(request));
 
             if (function == null)
@@ -285,7 +285,7 @@ namespace CoreEx.WebApis
                     return vr.ToBadRequestResult();
 
                 var result = await function(new WebApiParam<TValue>(wap, vr.Value)).ConfigureAwait(false);
-                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, nullReplacement: null, location: null);
+                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
             }, operationType).ConfigureAwait(false);
         }
 
@@ -306,7 +306,7 @@ namespace CoreEx.WebApis
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (request.Method != HttpMethods.Delete)
+            if (!HttpMethods.IsDelete(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Delete}' to use {nameof(DeleteAsync)}.", nameof(request));
 
             if (function == null)

@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace CoreEx.RefData.Models
 {
     /// <summary>
-    /// Represents the extended <see cref="IReferenceDataExtended"/> model.
+    /// Represents the extended <see cref="IReferenceDataExtended"/> base implementation.
     /// </summary>
     public abstract class ReferenceDataExtendedBase<T> : IReferenceDataExtended, IIdentifier<T>
     {

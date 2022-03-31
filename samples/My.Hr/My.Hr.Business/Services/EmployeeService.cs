@@ -1,5 +1,5 @@
+using CoreEx;
 using CoreEx.Events;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using My.Hr.Business.Models;
 using My.Hr.Business.ServiceContracts;
@@ -58,25 +58,19 @@ public class EmployeeService
         }
     }
 
-    public async Task<IActionResult> VerifyEmployeeAsync(Guid id)
+    public async Task VerifyEmployeeAsync(Guid id)
     {
         // first get Employee
         var employee = await GetEmployeeAsync(id);
 
         if (employee == null)
-        {
-            return new NotFoundResult();
-        }
+            throw new NotFoundException();
 
         if (string.IsNullOrEmpty(employee.FirstName))
-        {
-            return new BadRequestObjectResult("Employee is missing FirstName");
-        }
+            throw new ValidationException("Employee is missing FirstName");
 
         if (string.IsNullOrEmpty(employee.GenderCode))
-        {
-            return new BadRequestObjectResult("Employee is missing GenderCode");
-        }
+            throw new ValidationException("Employee is missing GenderCode");
 
         // publish message to service bus for employee verification
         var verification = new EmployeeVerificationRequest
@@ -88,7 +82,5 @@ public class EmployeeService
 
         _publisher.Publish(_settings.VerificationQueueName, new EventData { Value = verification });
         await _publisher.SendAsync();
-
-        return new NoContentResult();
     }
 }

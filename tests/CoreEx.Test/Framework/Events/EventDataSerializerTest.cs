@@ -54,7 +54,7 @@ namespace CoreEx.Test.Framework.Events
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value.ToString());
+            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
         }
 
         [Test]
@@ -142,7 +142,7 @@ namespace CoreEx.Test.Framework.Events
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ((Nsj.Linq.JToken)ed3.Value).ToString(Nsj.Formatting.None));
+            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ((Nsj.Linq.JToken)ed3.Value!).ToString(Nsj.Formatting.None));
         }
 
         [Test]

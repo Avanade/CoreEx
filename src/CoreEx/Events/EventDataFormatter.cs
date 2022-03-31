@@ -35,7 +35,7 @@ namespace CoreEx.Events
         public TextInfoCasing TypeCasing = TextInfoCasing.Lower;
 
         /// <summary>
-        /// Indicates whether to append the <see cref="IIdentifier.GetIdentifier"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Type"/> value.
+        /// Indicates whether to append the <see cref="IIdentifier.Id"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Type"/> value.
         /// </summary>
         public bool TypeAppendIdOrPrimaryKey { get; set; } = false;
 
@@ -57,7 +57,7 @@ namespace CoreEx.Events
         public TextInfoCasing SubjectCasing = TextInfoCasing.Lower;
 
         /// <summary>
-        /// Indicates whether to append the <see cref="IIdentifier.GetIdentifier"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Subject"/> value.
+        /// Indicates whether to append the <see cref="IIdentifier.Id"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Subject"/> value.
         /// </summary>
         public bool SubjectAppendIdOrPrimaryKey { get; set; } = false;
 
@@ -129,7 +129,7 @@ namespace CoreEx.Events
                 if (SubjectAppendIdOrPrimaryKey && value != null)
                 {
                     if (value is IIdentifier ii)
-                        @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, new CompositeKey(ii.GetIdentifier()).ToString());
+                        @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, new CompositeKey(ii.Id).ToString());
                     else if (value is IPrimaryKey pk)
                         @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, pk.PrimaryKey.ToString());
                 }
@@ -155,7 +155,7 @@ namespace CoreEx.Events
                 if (TypeAppendIdOrPrimaryKey && @event.GetValue() != null)
                 {
                     if (value is IIdentifier ii)
-                        @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, new CompositeKey(ii.GetIdentifier()).ToString());
+                        @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, new CompositeKey(ii.Id).ToString());
                     else if (value is IPrimaryKey pk)
                         @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, pk.PrimaryKey.ToString());
                 }

@@ -11,11 +11,11 @@ namespace CoreEx.Entities
     public interface IIdentifier<T> : IIdentifier
     {
         /// <inheritdoc/>
-        object? IIdentifier.GetIdentifier() => Id;
+        object? IIdentifier.Id { get => Id; set => Id = (T)value!; }
 
         /// <summary>
         /// Gets or sets the identifier.
         /// </summary>
-        T Id { get; set; }
+        new T Id { get; set; }
     }
 }

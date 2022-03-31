@@ -70,7 +70,7 @@ namespace CoreEx.Test.Framework.Http
 
             Assert.AreEqual("/product?id=88&text=bananas&date=2020-01-01T11%3A59%3A58.0000000Z&type=FromUri&char=a&char=b&char=c&gender=F", uri);
 
-            uri = new TestHttpClient().VerifyUri("product/{id}", null, null,
+            uri = new TestHttpClient().VerifyUri("product/{id}", null,
                 new HttpArg<int>("id", 88), new HttpArg<string>("text", "bananas"), new HttpArg<DateTime>("date", new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc)),
                 new HttpArg<string>("body", "in_the_body_only", HttpArgType.FromBody),
                 new HttpArg<int?>("id2", null), new HttpArg<HttpArgType>("type", HttpArgType.FromUri), new HttpArg<char[]>("char", new char[] { 'a', 'b', 'c' }), new HttpArg<Gender>("gender", new Gender { Id = 1, Code = "F", Text = "Female" }));
@@ -90,18 +90,18 @@ namespace CoreEx.Test.Framework.Http
             Assert.AreEqual("/people?id=88&name=%22gary%22&date=%222020-01-01T11%3A59%3A58Z%22&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUsePropertiesAndPrefix);
-            uri = new TestHttpClient().VerifyUri("people", null, arg, null);
+            uri = new TestHttpClient().VerifyUri("people", null, arg);
             Assert.AreEqual("/people?person.id=88&person.name=%22gary%22&person.date=%222020-01-01T11%3A59%3A58Z%22&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
         }
 
         public class Person
         {
             public int Id { get; set; }
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public DateTime Date { get; set; }
             public decimal? Amount { get; set; }
             public bool Happy { get; set; }
-            public List<int> Codes { get; set; }
+            public List<int>? Codes { get; set; }
         }
 
         public class Gender : ReferenceDataBase<int> { }
@@ -111,7 +111,7 @@ namespace CoreEx.Test.Framework.Http
     {
         public TestHttpClient() : base(new HttpClient { BaseAddress = new Uri("https://unittest") }, new CoreEx.Text.Json.JsonSerializer()) { }
 
-        public string VerifyUri(string requestUri, HttpRequestOptions requestOptions = null, params IHttpArg[] args)
+        public string VerifyUri(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
         {
             var request = CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args).Result;
             return request.RequestUri.ToString();

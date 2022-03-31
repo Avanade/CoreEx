@@ -3,13 +3,13 @@
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Enables the <see cref="GetIdentifier"/> capability.
+    /// Enables the <see cref="Id"/> capability.
     /// </summary>
     public interface IIdentifier
     {
         /// <summary>
-        /// Gets the identifier.
+        /// Gets or sets the identifier.
         /// </summary>
-        object? GetIdentifier();
+        object? Id { get; set; }
     }
 }

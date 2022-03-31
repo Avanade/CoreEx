@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace CoreEx.RefData.Models
 {
     /// <summary>
-    /// Represents the base <see cref="IReferenceData"/> model.
+    /// Represents the base <see cref="IReferenceData"/> base implementation.
     /// </summary>
     public abstract class ReferenceDataBase<T> : IReferenceData, IIdentifier<T>
     {

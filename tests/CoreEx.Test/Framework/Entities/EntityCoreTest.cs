@@ -33,8 +33,8 @@ namespace CoreEx.Test.Framework.Entities
         private class TestA : EntityCore
         {
             private long _id;
-            private string _code;
-            private string _text;
+            private string? _code;
+            private string? _text;
             private DateTime _dateOnly;
             private DateTime? _dateTime;
 
@@ -44,13 +44,13 @@ namespace CoreEx.Test.Framework.Entities
                 set { SetValue(ref _id, value); }
             }
 
-            public string Code
+            public string? Code
             {
                 get { return _code; }
                 set { SetValue(ref _code, value, StringTrim.Both, StringTransform.NullToEmpty); }
             }
 
-            public string Text
+            public string? Text
             {
                 get { return _text; }
                 set { SetValue(ref _text, value); }

@@ -23,12 +23,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(json);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -49,12 +49,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(bs);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -72,7 +72,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(json);
             Assert.NotNull(o);
             Assert.IsInstanceOf<System.Text.Json.JsonElement>(o);
-            Assert.AreEqual(o.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -85,7 +85,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(bs);
             Assert.NotNull(o);
             Assert.IsInstanceOf<System.Text.Json.JsonElement>(o);
-            Assert.AreEqual(o.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -156,7 +156,7 @@ namespace CoreEx.Test.Framework.Json
 
             // Act
             var serialized = js.Serialize(realException);
-            var deserialized = js.Deserialize<Exception>(serialized);
+            var deserialized = js.Deserialize<Exception>(serialized)!;
 
             // Assert
             deserialized.Data.Should().BeEquivalentTo(realException.Data);
@@ -177,12 +177,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(json);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -203,12 +203,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(bs);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -226,7 +226,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(json);
             Assert.NotNull(o);
             Assert.IsInstanceOf<Nsj.Linq.JObject>(o);
-            Assert.AreEqual(((Nsj.Linq.JObject)o).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -239,7 +239,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(bs);
             Assert.NotNull(o);
             Assert.IsInstanceOf<Nsj.Linq.JObject>(o);
-            Assert.AreEqual(((Nsj.Linq.JObject)o).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -310,7 +310,7 @@ namespace CoreEx.Test.Framework.Json
 
             // Act
             var serialized = js.Serialize(realException);
-            var deserialized = js.Deserialize<Exception>(serialized);
+            var deserialized = js.Deserialize<Exception>(serialized)!;
 
             // Assert
             deserialized.Data.Should().BeEquivalentTo(realException.Data);
@@ -322,18 +322,18 @@ namespace CoreEx.Test.Framework.Json
 
         public class Person
         {
-            public string FirstName { get; set; }
-            public string LastName { get; set; }
-            public List<Address> Addresses { get; set; }
-            public string SSN { get; set; }
+            public string? FirstName { get; set; }
+            public string? LastName { get; set; }
+            public List<Address>? Addresses { get; set; }
+            public string? SSN { get; set; }
             public decimal NetWorth { get; set; }
             public bool? IsAwesome { get; set; }
         }
 
         public class Address
         {
-            public string Street { get; set; }
-            public string City { get; set; }
+            public string? Street { get; set; }
+            public string? City { get; set; }
         }
     }
 }

@@ -89,7 +89,7 @@ namespace CoreEx
         /// <summary>
         /// Gets the <see cref="ServiceProvider"/>.
         /// </summary>
-        /// <remarks>This is automatically set via the <see cref="DependencyInjection.ServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
+        /// <remarks>This is automatically set via the <see cref="Microsoft.Extensions.DependencyInjection.ServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
         public IServiceProvider? ServiceProvider { get; set; }
 
         /// <summary>

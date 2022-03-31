@@ -41,8 +41,8 @@ namespace CoreEx.Test.Framework.FluentValidation
             Assert.IsNotNull(vr);
             Assert.IsFalse(vr.IsValid);
             Assert.IsNotNull(vr.ValidationException);
-            Assert.IsNotNull(vr.ValidationException.Messages);
-            Assert.AreEqual(1, vr.ValidationException.Messages.Count);
+            Assert.IsNotNull(vr.ValidationException!.Messages);
+            Assert.AreEqual(1, vr.ValidationException.Messages!.Count);
             Assert.AreEqual("A DeLorean cannot be priced at 88 as that could cause a chain reaction that would unravel the very fabric of the space-time continuum and destroy the entire universe.", vr.ValidationException.Messages.GetMessagesForProperty(nameof(Product.Name))[0].Text);
         }
 

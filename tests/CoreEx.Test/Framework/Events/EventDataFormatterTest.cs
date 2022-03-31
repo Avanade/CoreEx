@@ -179,9 +179,9 @@ namespace CoreEx.Test.Framework.Events
 
         internal class Person : IETag
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
 
-            public string ETag { get; set; }
+            public string? ETag { get; set; }
         }
     }
 }

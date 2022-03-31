@@ -39,7 +39,7 @@ namespace CoreEx.Test.Framework.Http
             catch (ValidationException vex)
             {
                 Assert.NotNull(vex.Messages);
-                Assert.AreEqual(1, vex.Messages.Count);
+                Assert.AreEqual(1, vex.Messages!.Count);
                 Assert.AreEqual("Name", vex.Messages[0].Property);
                 Assert.AreEqual("'Name' must not be empty.", vex.Messages[0].Text);
                 Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);

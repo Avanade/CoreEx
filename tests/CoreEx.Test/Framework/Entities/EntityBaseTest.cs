@@ -37,7 +37,7 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void ChangeLog_Equals()
         {
-            ChangeLog cl2 = null;
+            ChangeLog? cl2 = null;
 
             var cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(cl1.Equals(cl2));
@@ -55,8 +55,8 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void ChangeLog_Equals2()
         {
-            ChangeLog cl1 = null;
-            ChangeLog cl2 = null;
+            ChangeLog? cl1 = null;
+            ChangeLog? cl2 = null;
 
             Assert.IsTrue(cl1 == cl2);
 
@@ -134,7 +134,7 @@ namespace CoreEx.Test.Framework.Entities
             Assert.IsNotNull(po);
             Assert.AreEqual("dave", po.Name);
             Assert.AreEqual(30, po.Age);
-            Assert.AreEqual("username", po.ChangeLog.CreatedBy);
+            Assert.AreEqual("username", po.ChangeLog!.CreatedBy);
             Assert.AreEqual(CreateDateTime(), po.ChangeLog.CreatedDate);
             Assert.IsNull(po.ChangeLog.UpdatedBy);
             Assert.IsNull(po.ChangeLog.UpdatedDate);
@@ -158,7 +158,7 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void Person_Equals()
         {
-            Person p2 = null;
+            Person? p2 = null;
 
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1.Equals(p2));
@@ -166,7 +166,7 @@ namespace CoreEx.Test.Framework.Entities
             p2 = (Person)p1.Clone();
             Assert.IsTrue(p1.Equals(p2));
 
-            p2.ChangeLog.CreatedBy = "username2";
+            p2.ChangeLog!.CreatedBy = "username2";
             Assert.IsFalse(p1.Equals(p2));
 
             p2.ChangeLog.CreatedBy = "username";
@@ -182,7 +182,7 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void Person_Equals2()
         {
-            Person p2 = null;
+            Person? p2 = null;
 
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1 == p2);
@@ -190,7 +190,7 @@ namespace CoreEx.Test.Framework.Entities
             p2 = (Person)p1.Clone();
             Assert.IsTrue(p1 == p2);
 
-            p2.ChangeLog.CreatedBy = "username2";
+            p2.ChangeLog!.CreatedBy = "username2";
             Assert.IsFalse(p1 == p2);
 
             p2.ChangeLog.CreatedBy = "username";
@@ -324,7 +324,7 @@ namespace CoreEx.Test.Framework.Entities
             Assert.AreEqual("dave", po.Name);
             Assert.AreEqual(30, po.Age);
             Assert.AreEqual(1m, po.Salary);
-            Assert.AreEqual("username", po.ChangeLog.CreatedBy);
+            Assert.AreEqual("username", po.ChangeLog!.CreatedBy);
             Assert.AreEqual(CreateDateTime(), po.ChangeLog.CreatedDate);
             Assert.IsNull(po.ChangeLog.UpdatedBy);
             Assert.IsNull(po.ChangeLog.UpdatedDate);
@@ -350,7 +350,7 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void PersonEx_Equals()
         {
-            PersonEx p2 = null;
+            PersonEx? p2 = null;
 
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1.Equals(p2));
@@ -358,7 +358,7 @@ namespace CoreEx.Test.Framework.Entities
             p2 = (PersonEx)p1.Clone();
             Assert.IsTrue(p1.Equals(p2));
 
-            p2.ChangeLog.CreatedBy = "username2";
+            p2.ChangeLog!.CreatedBy = "username2";
             Assert.IsFalse(p1.Equals(p2));
 
             p2.ChangeLog.CreatedBy = "username";
@@ -380,7 +380,7 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void PersonEx_Equals2()
         {
-            PersonEx p2 = null;
+            PersonEx? p2 = null;
 
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1 == p2);
@@ -388,7 +388,7 @@ namespace CoreEx.Test.Framework.Entities
             p2 = (PersonEx)p1.Clone();
             Assert.IsTrue(p1 == p2);
 
-            p2.ChangeLog.CreatedBy = "username2";
+            p2.ChangeLog!.CreatedBy = "username2";
             Assert.IsFalse(p1 == p2);
 
             p2.ChangeLog.CreatedBy = "username";
@@ -482,7 +482,7 @@ namespace CoreEx.Test.Framework.Entities
             var pc = new PersonCollection { p1, p2 };
 
             Assert.IsFalse(pc.Equals(null));
-            Assert.IsTrue(pc.Equals(pc));
+            Assert.IsTrue(pc!.Equals(pc));
 
             var pc2 = (PersonCollection)pc.Clone();
             Assert.IsTrue(pc.Equals(pc2));
@@ -506,7 +506,7 @@ namespace CoreEx.Test.Framework.Entities
             Assert.IsFalse(pc == null);
             Assert.IsTrue(pc == pc2);
 
-            pc2 = (PersonCollection)pc.Clone();
+            pc2 = (PersonCollection)pc!.Clone();
             Assert.IsTrue(pc == pc2);
             pc2.Add(new Person { Name = "john", Age = 35 });
             Assert.IsFalse(pc == pc2);
@@ -526,7 +526,7 @@ namespace CoreEx.Test.Framework.Entities
             var pc2 = (PersonCollection)pc.Clone();
             Assert.AreEqual(pc.GetHashCode(), pc2.GetHashCode());
 
-            pc2[0].ChangeLog.CreatedBy = "username2";
+            pc2[0].ChangeLog!.CreatedBy = "username2";
             Assert.AreNotEqual(pc.GetHashCode(), pc2.GetHashCode());
         }
 
@@ -538,29 +538,29 @@ namespace CoreEx.Test.Framework.Entities
             var pc = new PersonCollection { p1 };
             Assert.IsTrue(pc.IsChanged);
             Assert.IsTrue(pc[0].IsChanged);
-            Assert.IsTrue(pc[0].ChangeLog.IsChanged);
+            Assert.IsTrue(pc[0].ChangeLog!.IsChanged);
 
             pc.AcceptChanges();
             Assert.IsFalse(pc.IsChanged);
             Assert.IsFalse(pc[0].IsChanged);
-            Assert.IsFalse(pc[0].ChangeLog.IsChanged);
+            Assert.IsFalse(pc[0].ChangeLog!.IsChanged);
 
             pc.Add(p2);
             Assert.IsTrue(pc.IsChanged);
             Assert.IsFalse(pc[0].IsChanged);
-            Assert.IsFalse(pc[0].ChangeLog.IsChanged);
+            Assert.IsFalse(pc[0].ChangeLog!.IsChanged);
             Assert.IsTrue(pc[1].IsChanged);
 
             pc.AcceptChanges();
             Assert.IsFalse(pc.IsChanged);
             Assert.IsFalse(pc[0].IsChanged);
-            Assert.IsFalse(pc[0].ChangeLog.IsChanged);
+            Assert.IsFalse(pc[0].ChangeLog!.IsChanged);
             Assert.IsFalse(pc[1].IsChanged);
 
-            pc[0].ChangeLog.CreatedBy = "username2";
+            pc[0].ChangeLog!.CreatedBy = "username2";
             Assert.IsTrue(pc.IsChanged);
             Assert.IsTrue(pc[0].IsChanged);
-            Assert.IsTrue(pc[0].ChangeLog.IsChanged);
+            Assert.IsTrue(pc[0].ChangeLog!.IsChanged);
             Assert.IsFalse(pc[1].IsChanged);
         }
 
@@ -573,7 +573,7 @@ namespace CoreEx.Test.Framework.Entities
             pc.MakeReadOnly();
             Assert.IsTrue(pc.IsReadOnly);
             Assert.IsTrue(pc[0].IsReadOnly);
-            Assert.IsTrue(pc[0].ChangeLog.IsReadOnly);
+            Assert.IsTrue(pc[0].ChangeLog!.IsReadOnly);
             Assert.Throws<InvalidOperationException>(() => pc.Add(p2));
             Assert.AreEqual(1, pc.Count);
 
@@ -635,19 +635,19 @@ namespace CoreEx.Test.Framework.Entities
 
         public class Person : EntityBase<Person>, IPrimaryKey
         {
-            private string _name;
+            private string? _name;
             private int _age;
-            private ChangeLog _changeLog;
+            private ChangeLog? _changeLog;
 
-            public string Name { get => _name; set => SetValue(ref _name, value); }
+            public string? Name { get => _name; set => SetValue(ref _name, value); }
             public int Age { get => _age; set => SetValue(ref _age, value); }
-            public ChangeLog ChangeLog { get => _changeLog; set => SetValue(ref _changeLog, value); }
+            public ChangeLog? ChangeLog { get => _changeLog; set => SetValue(ref _changeLog, value); }
 
             public CompositeKey PrimaryKey => new CompositeKey(Name);
 
             public override object Clone() => CreateClone(this);
 
-            public override bool Equals(Person other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
+            public override bool Equals(Person? other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
                 && Equals(Name, other!.Name)
                 && Equals(Age, other.Age)
                 && Equals(ChangeLog, other.ChangeLog));
@@ -698,7 +698,7 @@ namespace CoreEx.Test.Framework.Entities
 
             public PersonCollectionResult(PagingArgs paging) : base(paging) { }
 
-            public PersonCollectionResult(PersonCollection collection, PagingArgs paging = null) : base(paging) => Collection = collection;
+            public PersonCollectionResult(PersonCollection collection, PagingArgs? paging = null) : base(paging) => Collection = collection;
         }
 
         public class PersonEx : Person, ICopyFrom<PersonEx>, IEquatable<PersonEx>
@@ -707,14 +707,14 @@ namespace CoreEx.Test.Framework.Entities
 
             public decimal? Salary { get => _salary; set => SetValue(ref _salary, value); }
 
-            public bool Equals(PersonEx other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
+            public bool Equals(PersonEx? other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
                 && Equals(Salary, other!.Salary));
 
-            public override bool Equals(object obj) => (obj is PersonEx other) && Equals(other);
+            public override bool Equals(object? obj) => (obj is PersonEx other) && Equals(other);
 
-            public static bool operator ==(PersonEx a, PersonEx b) => Equals(a, b);
+            public static bool operator ==(PersonEx? a, PersonEx? b) => Equals(a, b);
 
-            public static bool operator !=(PersonEx a, PersonEx b) => !Equals(a, b);
+            public static bool operator !=(PersonEx? a, PersonEx? b) => !Equals(a, b);
 
             public override int GetHashCode()
             {

@@ -60,7 +60,7 @@ namespace CoreEx.Entities
         public override string? ToString()
         {
             if (this is IIdentifier ii)
-                return $"{base.ToString()} Id={ii.GetIdentifier()}";
+                return $"{base.ToString()} Id={ii.Id}";
             else if (this is IPrimaryKey pk)
                 return $"{base.ToString()} PrimaryKey={pk.PrimaryKey}";
             else

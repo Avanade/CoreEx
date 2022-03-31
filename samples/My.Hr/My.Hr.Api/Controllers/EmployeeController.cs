@@ -52,7 +52,7 @@ public class EmployeeController : ControllerBase
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> Update(Guid id)
-        => _webApi.PutAsync<Employee, Employee>(Request, r => _service.UpdateEmployeeAsync(r.Value, id));
+        => _webApi.PutAsync<Employee, Employee>(Request, r => _service.UpdateEmployeeAsync(r.Value!, id));
 
     /// <summary>
     /// Deletes the specified <see cref="Employee"/>.
@@ -78,9 +78,9 @@ public class EmployeeController : ControllerBase
     /// Performs <see cref="Employee"/> verification in an asynchronous process.
     /// </summary>
     [HttpPost("{id}/verify")]
-    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    [ProducesResponseType((int)HttpStatusCode.Accepted)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public Task<IActionResult> Verify(Guid id)
-           => _webApi.RunAsync(Request, apiParam => _service.VerifyEmployeeAsync(id));
+           => _webApi.PostAsync(Request, apiParam => _service.VerifyEmployeeAsync(id), HttpStatusCode.Accepted);
 
 }
