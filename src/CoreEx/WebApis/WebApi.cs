@@ -68,7 +68,7 @@ namespace CoreEx.WebApis
         #region GetAsync
 
         /// <summary>
-        /// Performs a <see cref="HttpMethods.Get"/> operation.
+        /// Performs a <see cref="HttpMethods.Get"/> operation returning a response of <see cref="Type"/> <typeparamref name="TResult"/>.
         /// </summary>
         /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
