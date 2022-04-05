@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mime;
+using CoreEx.Entities;
 using CoreEx.FluentValidation;
 using CoreEx.WebApis;
 using Microsoft.AspNetCore.Mvc;
@@ -26,11 +27,11 @@ public class EmployeeController : ControllerBase
     /// </summary>
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
     /// <returns>The selected <see cref="Employee"/> where found.</returns>
-    [HttpGet("{id}", Name = nameof(GetAsync))]
+    [HttpGet("{id}", Name = nameof(Get))]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public Task<IActionResult> GetAsync(Guid id)
+    public Task<IActionResult> Get(Guid id)
         => _webApi.GetAsync(Request, _ => _service.GetEmployeeAsync(id));
 
     /// <summary>
@@ -52,7 +53,7 @@ public class EmployeeController : ControllerBase
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> Update(Guid id)
-        => _webApi.PutAsync<Employee, Employee>(Request, r => _service.UpdateEmployeeAsync(r.Value!, id));
+        => _webApi.PutAsync<Employee, Employee>(Request, r => _service.UpdateEmployeeAsync(r.Validate<Employee, EmployeeValidator>(), id));
 
     /// <summary>
     /// Deletes the specified <see cref="Employee"/>.
@@ -71,8 +72,7 @@ public class EmployeeController : ControllerBase
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(IEnumerable<Employee>), (int)HttpStatusCode.OK)]
     public Task<IActionResult> GetAll()
-        => _webApi.GetAsync(Request, _ => _service.GetAllAsync());
-
+        => _webApi.GetAsync(Request, x => _service.GetAllAsync(x.RequestOptions.Paging ?? new PagingArgs()));
 
     /// <summary>
     /// Performs <see cref="Employee"/> verification in an asynchronous process.
@@ -81,6 +81,5 @@ public class EmployeeController : ControllerBase
     [ProducesResponseType((int)HttpStatusCode.Accepted)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public Task<IActionResult> Verify(Guid id)
-           => _webApi.PostAsync(Request, apiParam => _service.VerifyEmployeeAsync(id), HttpStatusCode.Accepted);
-
+        => _webApi.PostAsync(Request, apiParam => _service.VerifyEmployeeAsync(id), HttpStatusCode.Accepted);
 }

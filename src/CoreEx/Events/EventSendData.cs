@@ -30,8 +30,5 @@ namespace CoreEx.Events
         /// Gets or sets the <see cref="BinaryData"/>.
         /// </summary>
         public BinaryData? Data { get; set; }
-
-        /// <inheritdoc/>
-        public override object? GetValue() => Data;
     }
 }

@@ -20,6 +20,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Azure;
 using System;
 using Azure.Identity;
+using My.Hr.Business.Data;
 
 [assembly: FunctionsStartup(typeof(My.Hr.Functions.Startup))]
 

@@ -14,13 +14,12 @@ namespace CoreEx.Entities
     [System.Diagnostics.DebuggerStepThrough]
     public abstract class EntityBase<TSelf> : EntityBase, ICopyFrom<TSelf>, IEquatable<TSelf> where TSelf : EntityBase<TSelf>
     {
-#pragma warning disable IDE0060 // Remove unused parameter; needed to support inheritance.
         /// <summary>
         /// Performs a deep copy from another object updating this instance.
         /// </summary>
         /// <param name="from">The object to copy from.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Needed to support inheritance.")]
         public void CopyFrom(EntityBase<TSelf> from) { }
-#pragma warning restore IDE0060 // Remove unused parameter
 
         /// <summary>
         /// Performs a deep copy from another object updating this instance.

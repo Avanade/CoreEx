@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Schema\**\*" />
     <EmbeddedResource Include="Migrations\**\*" />
     <EmbeddedResource Include="Data\**\*" />
   </ItemGroup>
@@ -19,11 +18,10 @@
 
   <ItemGroup>
     <Folder Include="Data\" />
-    <Folder Include="Schema\Hr\" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Beef.Database.Core" Version="4.2.3" />
+    <PackageReference Include="DbEx" Version="1.0.6" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.0" />
     <PackageReference Include="Microsoft.Tye.Extensions.Configuration" Version="0.10.0-alpha.21420.1" />
   </ItemGroup>

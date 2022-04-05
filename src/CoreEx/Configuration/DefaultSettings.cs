@@ -15,6 +15,6 @@ namespace CoreEx.Configuration
         /// Initializes a new instance of the <see cref="DefaultSettings"/> class.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
-        public DefaultSettings(IConfiguration configuration) : base(configuration, prefixes: Array.Empty<string>()) { }
+        public DefaultSettings(IConfiguration? configuration = null) : base(configuration, prefixes: Array.Empty<string>()) { }
     }
 }

@@ -1,6 +1,8 @@
 using CoreEx;
+using CoreEx.Entities;
 using CoreEx.Events;
 using Microsoft.EntityFrameworkCore;
+using My.Hr.Business.Data;
 using My.Hr.Business.Models;
 using My.Hr.Business.ServiceContracts;
 
@@ -19,14 +21,18 @@ public class EmployeeService
         _settings = settings;
     }
 
-    public async Task<Employee?> GetEmployeeAsync(Guid id)
-    {
-        return await _dbContext.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
-    }
+    public async Task<Employee?> GetEmployeeAsync(Guid id) 
+        => await _dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
 
-    public async Task<IEnumerable<Employee>> GetAllAsync()
+    public async Task<EmployeeCollectionResult> GetAllAsync(PagingArgs paging)
     {
-        return await _dbContext.Employees.ToListAsync();
+        var ecr = new EmployeeCollectionResult { Paging = new PagingResult(paging) };
+        ecr.Collection.AddRange(await _dbContext.Employees.OrderBy(x => x.LastName).ThenBy(x => x.FirstName).Skip((int)paging.Skip).Take((int)paging.Take).ToListAsync().ConfigureAwait(false));
+
+        if (paging.IsGetCount)
+            ecr.Paging.TotalCount = await _dbContext.Employees.CountAsync().ConfigureAwait(false);
+
+        return ecr;
     }
 
     public async Task<Employee> AddEmployeeAsync(Employee employee)
@@ -38,19 +44,18 @@ public class EmployeeService
 
     public async Task<Employee> UpdateEmployeeAsync(Employee employee, Guid id)
     {
-        if (employee.EmployeeId != id)
-        {
-            throw new InvalidOperationException("EmployeeId does not match");
-        }
+        if (!await _dbContext.Employees.AnyAsync(e => e.Id == id).ConfigureAwait(false))
+            throw new NotFoundException();
 
+        employee.Id = id;
         _dbContext.Employees.Update(employee);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync().ConfigureAwait(false);
         return employee;
     }
 
     public async Task DeleteEmployeeAsync(Guid id)
     {
-        var employee = await _dbContext.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
+        var employee = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
         if (employee != null)
         {
             _dbContext.Employees.Remove(employee);
@@ -60,19 +65,12 @@ public class EmployeeService
 
     public async Task VerifyEmployeeAsync(Guid id)
     {
-        // first get Employee
+        // Get the employee.
         var employee = await GetEmployeeAsync(id);
-
         if (employee == null)
             throw new NotFoundException();
 
-        if (string.IsNullOrEmpty(employee.FirstName))
-            throw new ValidationException("Employee is missing FirstName");
-
-        if (string.IsNullOrEmpty(employee.GenderCode))
-            throw new ValidationException("Employee is missing GenderCode");
-
-        // publish message to service bus for employee verification
+        // Publish message to service bus for employee verification.
         var verification = new EmployeeVerificationRequest
         {
             Name = employee.FirstName,

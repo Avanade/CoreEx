@@ -27,7 +27,8 @@ namespace CoreEx.Test.Framework.Events
         [Test]
         public async Task SystemTextJson_Serialize_Deserialize_EventData2()
         {
-            var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
+            var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.RelativeOrAbsolute) };
+            var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer(), ef) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent2();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
             Assert.IsNotNull(bd);
@@ -115,7 +116,8 @@ namespace CoreEx.Test.Framework.Events
         [Test]
         public async Task NewtonsoftJson_Serialize_Deserialize_EventData2()
         {
-            var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
+            var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.RelativeOrAbsolute) };
+            var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer(), ef) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent2();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
             Assert.IsNotNull(bd);

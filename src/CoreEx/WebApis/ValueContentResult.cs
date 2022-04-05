@@ -39,7 +39,6 @@ namespace CoreEx.WebApis
             ETag = etag;
             PagingResult = pagingResult;
             Location = location;
-            BeforeExtension = ModifyResponse;
         }
 
         /// <summary>
@@ -62,21 +61,19 @@ namespace CoreEx.WebApis
         /// </summary>
         public Uri? Location { get; set; }
 
-        /// <summary>
-        /// Modify the response to include the related headers.
-        /// </summary>
-        private Task ModifyResponse(HttpResponse response)
+        /// <inheritdoc/>
+        public override Task ExecuteResultAsync(ActionContext context)
         {
-            response.AddPagingResult(PagingResult);
+            context.HttpContext.Response.AddPagingResult(PagingResult);
 
-            var headers = response.GetTypedHeaders();
+            var headers = context.HttpContext.Response.GetTypedHeaders();
             if (ETag != null)
                 headers.ETag = new EntityTagHeaderValue(ETag.StartsWith('\"') && ETag.EndsWith('\"') ? ETag : $"\"{ETag}\"");
 
             if (Location != null)
                 headers.Location = Location;
 
-            return Task.CompletedTask;
+            return base.ExecuteResultAsync(context);
         }
 
         /// <summary>

@@ -29,9 +29,6 @@ namespace CoreEx.Events
         [JsonPropertyName("value")]
         public new T Value { get => (T)base.Value!; set => base.Value = value; }
 
-        /// <inheritdoc/>
-        public override object? GetValue() => Value;
-
         /// <summary>
         /// Copies the <see cref="EventData"/> (including the <see cref="Value"/>) creating a new instance.
         /// </summary>

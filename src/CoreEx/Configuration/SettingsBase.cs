@@ -21,7 +21,7 @@ namespace CoreEx.Configuration
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
         /// <param name="prefixes">The key prefixes to use in order of precedence, first through to last. At least one prefix must be specified.</param>
-        public SettingsBase(IConfiguration configuration, params string[] prefixes)
+        public SettingsBase(IConfiguration? configuration, params string[] prefixes)
         {
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             Deployment = new DeploymentInfo(configuration);
@@ -38,7 +38,7 @@ namespace CoreEx.Configuration
         /// <summary>
         /// Gets the underlying <see cref="IConfiguration"/>.
         /// </summary>
-        public IConfiguration Configuration { get; }
+        public IConfiguration? Configuration { get; }
 
         /// <summary>
         /// Gets the value using the specified <paramref name="key"/> excluding any prefix (key is inferred where not specified using <see cref="CallerMemberNameAttribute"/>).
@@ -53,6 +53,9 @@ namespace CoreEx.Configuration
         {
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentNullException(nameof(key));
+
+            if (Configuration == null)
+                return defaultValue;
 
             foreach (var prefix in _prefixes)
             {
@@ -83,6 +86,9 @@ namespace CoreEx.Configuration
         {
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentNullException(nameof(key));
+
+            if (Configuration == null)
+                throw new InvalidOperationException("An IConfiguration instance is required where GetRequiredValue is used.");
 
             foreach (var prefix in _prefixes)
             {

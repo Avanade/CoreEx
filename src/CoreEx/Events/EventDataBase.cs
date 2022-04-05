@@ -113,11 +113,5 @@ namespace CoreEx.Events
         /// </summary>
         [JsonPropertyName("attributes")]
         public IDictionary<string, string>? Attributes { get; set; }
-
-        /// <summary>
-        /// Gets the underlying value.
-        /// </summary>
-        /// <returns>The underlying value.</returns>
-        public abstract object? GetValue();
     }
 }

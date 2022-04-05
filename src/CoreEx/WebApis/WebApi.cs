@@ -106,8 +106,9 @@ namespace CoreEx.WebApis
         /// <param name="function">The function to execute.</param>
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public async Task<IActionResult> PostAsync(HttpRequest request, Func<WebApiParam, Task> function, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Create)
+        public async Task<IActionResult> PostAsync(HttpRequest request, Func<WebApiParam, Task> function, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Create, Func<Uri>? locationUri = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -121,7 +122,7 @@ namespace CoreEx.WebApis
             return await RunAsync(request, async wap =>
             {
                 await function(wap).ConfigureAwait(false);
-                return new ExtendedStatusCodeResult(statusCode);
+                return new ExtendedStatusCodeResult(statusCode) { Location = locationUri?.Invoke() };
             }, operationType).ConfigureAwait(false);                                                   
         }
 
@@ -134,8 +135,9 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public async Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created, OperationType operationType = OperationType.Create, bool valueIsRequired = true)
+        public async Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created, OperationType operationType = OperationType.Create, bool valueIsRequired = true, Func<Uri>? locationUri = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -153,7 +155,7 @@ namespace CoreEx.WebApis
                     return vr.ToBadRequestResult();
 
                 await function(new WebApiParam<TValue>(wap, vr.Value)).ConfigureAwait(false);
-                return new ExtendedStatusCodeResult(statusCode);
+                return new ExtendedStatusCodeResult(statusCode) { Location = locationUri?.Invoke() };
             }, operationType).ConfigureAwait(false);
         }
 
@@ -166,8 +168,9 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="alternateStatusCode">The alternate <see cref="HttpStatusCode"/> where result is <c>null</c>.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create)
+        public async Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, Func<TResult, Uri>? locationUri = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -181,23 +184,24 @@ namespace CoreEx.WebApis
             return await RunAsync(request, async wap =>
             {
                 var result = await function(wap).ConfigureAwait(false);
-                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
+                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: locationUri?.Invoke(result));
             }, operationType).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> and a response of <see cref="Type"/> <typeparamref name="TResult"/>.
         /// </summary>
-        /// <typeparam name="TResult">The response result <see cref="Type"/>.</typeparam>
         /// <typeparam name="TValue">The request JSON content value <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TResult">The response result <see cref="Type"/>.</typeparam>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
         /// <param name="function">The function to execute.</param>
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="alternateStatusCode">The alternate <see cref="HttpStatusCode"/> where result is <c>null</c>.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> PostAsync<TResult, TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, bool valueIsRequired = true)
+        public async Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, bool valueIsRequired = true, Func<TResult, Uri>? locationUri = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -215,7 +219,7 @@ namespace CoreEx.WebApis
                     return vr.ToBadRequestResult();
 
                 var result = await function(new WebApiParam<TValue>(wap, vr.Value)).ConfigureAwait(false);
-                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
+                return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: locationUri?.Invoke(result));
             }, operationType).ConfigureAwait(false);
         }
 
@@ -258,8 +262,8 @@ namespace CoreEx.WebApis
         /// <summary>
         /// Performs a <see cref="HttpMethods.Put"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> and a response of <see cref="Type"/> <typeparamref name="TResult"/>.
         /// </summary>
-        /// <typeparam name="TResult">The response result <see cref="Type"/>.</typeparam>
         /// <typeparam name="TValue">The request JSON content value <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TResult">The response result <see cref="Type"/>.</typeparam>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
         /// <param name="function">The function to execute.</param>
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
@@ -267,7 +271,7 @@ namespace CoreEx.WebApis
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> PutAsync<TResult, TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Update, bool valueIsRequired = true)
+        public async Task<IActionResult> PutAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Update, bool valueIsRequired = true)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));

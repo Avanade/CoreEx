@@ -1,0 +1,334 @@
+using CoreEx.Entities;
+using CoreEx.Events;
+using CoreEx.Http;
+using DbEx.Migration;
+using DbEx.Migration.Data;
+using Microsoft.Extensions.Configuration;
+using My.Hr.Api;
+using My.Hr.Api.Controllers;
+using My.Hr.Business.Models;
+using My.Hr.Business.ServiceContracts;
+using NUnit.Framework;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using UnitTestEx;
+using UnitTestEx.NUnit;
+
+namespace My.Hr.UnitTest
+{
+    [TestFixture]
+    public class EmployeeControllerTest
+    {
+        [OneTimeSetUp]
+        public async Task Init()
+        {
+            HttpConsts.IncludeFieldsQueryStringName = "include-fields";
+
+            using var test = ApiTester.Create<Startup>();
+            var cs = test.Configuration.GetConnectionString("Database");
+            if (await Database.Program.RunMigrator(cs, typeof(EmployeeControllerTest).Assembly, MigrationCommand.ResetAndAll.ToString()).ConfigureAwait(false) != 0)
+                Assert.Fail("Database migration failed.");
+        }
+
+        [Test]
+        public void A100_Get_NotFound()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(404.ToGuid()))
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void A110_Get_Found()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(1.ToGuid()))
+                .AssertOK()
+                .Assert(new Employee
+                {
+                    Id = 1.ToGuid(),
+                    Email = "w.jones@org.com",
+                    FirstName = "Wendy",
+                    LastName = "Jones",
+                    GenderCode = "F",
+                    Birthday = new DateTime(1985, 03, 18, 0, 0, 0, DateTimeKind.Unspecified),
+                    StartDate = new DateTime(2000, 12, 11, 0, 0, 0, DateTimeKind.Unspecified),
+                    PhoneNo = "(425) 612 8113"
+                }, nameof(Employee.ETag));
+        }
+
+        [Test]
+        public void A120_Get_NotModifed()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var e = test.Controller<EmployeeController>()
+                .Run(c => c.Get(1.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(e.Id), requestOptions: new HttpRequestOptions { ETag = e.ETag })
+                .AssertNotModified();
+        }
+
+        [Test]
+        public void A130_Get_IncludeFields()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var e = test.Controller<EmployeeController>()
+                .Run(c => c.Get(1.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(e.Id), requestOptions: new HttpRequestOptions().Include("FirstName", "LastName"))
+                .AssertOK()
+                .AssertJson("{\"firstName\":\"Wendy\",\"lastName\":\"Jones\"}");
+        }
+
+        [Test]
+        public void B100_GetAll_All()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.GetAll())
+                .AssertOK()
+                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+
+            Assert.IsNotNull(v?.Collection);
+            Assert.AreEqual(4, v!.Collection.Count);
+            Assert.AreEqual(new string[] { "Browne", "Jones", "Smith", "Smithers" }, v.Collection.Select(x => x.LastName).ToArray());
+        }
+
+        [Test]
+        public void B100_GetAll_Paging()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.GetAll(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, true) })
+                .AssertOK()
+                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+
+            Assert.IsNotNull(v?.Collection);
+            Assert.AreEqual(2, v!.Collection.Count);
+            Assert.AreEqual(new string[] { "Jones", "Smith" }, v.Collection.Select(x => x.LastName).ToArray());
+            Assert.IsNotNull(v.Paging);
+            Assert.AreEqual(4, v.Paging!.TotalCount);
+        }
+
+        [Test]
+        public void B100_GetAll_PagingAndIncludeFields()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.GetAll(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2) }.Include("lastname"))
+                .AssertOK()
+                .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")
+                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+
+            Assert.IsNull(v!.Paging!.TotalCount); // No count requested.
+        }
+
+        [Test]
+        public void C100_Create_Error()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var e = new Employee
+            {
+                FirstName = "Rebecca",
+                LastName = "Smythe",
+                Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
+                GenderCode = "M",
+                PhoneNo = "555 123 4567",
+                StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
+            };
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Create(), e)
+                .AssertErrors(
+                    new ApiError("Email", "'Email' must not be empty."));
+        }
+
+        [Test]
+        public void C110_Create_Success()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var e = new Employee
+            {
+                FirstName = "Rebecca",
+                LastName = "Smythe",
+                Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
+                GenderCode = "M",
+                PhoneNo = "555 123 4567",
+                Email = "rs@email.com",
+                StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
+            };
+
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.Create(), e)
+                .AssertCreated()
+                .Assert(e, "Id", "ETag")
+                .GetValue<Employee>()!;
+
+            // Do a GET to make sure it is in the database and all fields equal.
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(v.Id))
+                .AssertOK()
+                .Assert(v);
+        }
+
+        [Test]
+        public void D100_Update_Error()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var e = new Employee
+            {
+                FirstName = "Rebecca",
+                LastName = "Smythe",
+                Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
+                GenderCode = "M",
+                PhoneNo = "555 123 4567",
+                StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
+            };
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Update(404.ToGuid()), e)
+                .AssertErrors(
+                    new ApiError("Email", "'Email' must not be empty."));
+        }
+
+        [Test]
+        public void D110_Update_NotFound()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var e = new Employee
+            {
+                FirstName = "Rebecca",
+                LastName = "Smythe",
+                Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
+                GenderCode = "M",
+                PhoneNo = "555 123 4567",
+                Email = "rs@email.com",
+                StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
+            };
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Update(404.ToGuid()), e)
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void D120_Update_Success()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            // Get current.
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.Get(2.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            // Update it.
+            v.FirstName += "X";
+
+            v = test.Controller<EmployeeController>()
+                .Run(c => c.Update(v.Id), v)
+                .AssertOK()
+                .Assert(v, "ETag")
+                .GetValue<Employee>()!;
+
+            // Get again and check all.
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(v.Id))
+                .AssertOK()
+                .Assert(v);
+        }
+
+        [Test]
+        public void D130_Update_ConcurrencyError()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            // Get current.
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.Get(2.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            // Update it with errant etag.
+            v.FirstName += "X";
+            v.ETag = "ZZZZZZZZZZZZ";
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Update(v.Id), v)
+                .AssertPreconditionFailed();
+        }
+
+        [Test]
+        public void E100_Delete()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            // Get current.
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(2.ToGuid()))
+                .AssertOK();
+
+            // Delete it.
+            test.Controller<EmployeeController>()
+                .Run(c => c.Delete(2.ToGuid()))
+                .AssertNoContent();
+
+            // Must not exist.
+            test.Controller<EmployeeController>()
+                .Run(c => c.Get(2.ToGuid()))
+                .AssertNotFound();
+
+            // Delete it again; should appear as if deleted as operation is considered idempotent.
+            test.Controller<EmployeeController>()
+                .Run(c => c.Delete(2.ToGuid()))
+                .AssertNoContent();
+        }
+
+        [Test]
+        public void F100_Verify_NotFound()
+        {
+            var test = ApiTester.Create<Startup>();
+
+            test.Controller<EmployeeController>()
+                .Run(c => c.Verify(404.ToGuid()))
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void F100_Verify_Publish()
+        {
+            var test = ApiTester.Create<Startup>();
+            var imp = new InMemoryPublisher(test.GetLogger<InMemoryPublisher>());
+
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
+                .Controller<EmployeeController>()
+                .Run(c => c.Verify(1.ToGuid()))
+                .AssertAccepted();
+
+            Assert.AreEqual(1, imp.GetNames().Length);
+            var e = imp.GetEvents("pendingVerifications");
+            Assert.AreEqual(1, e.Length);
+            ObjectComparer.Assert(new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" }, e[0].Value);
+        }
+    }
+}

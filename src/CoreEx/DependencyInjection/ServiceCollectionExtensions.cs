@@ -7,6 +7,8 @@ using CoreEx.Events;
 using CoreEx.Hosting;
 using CoreEx.Http;
 using CoreEx.Json;
+using CoreEx.WebApis;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -212,5 +214,31 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddFileLockSynchronizer(this IServiceCollection services) => CheckServices(services).AddSingleton<IServiceSynchronizer, FileLockSynchronizer>();
+
+        /// <summary>
+        /// Adds the <see cref="WebApi"/> as a scoped service.
+        /// </summary>
+        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddWebApi(this IServiceCollection services, Action<WebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
+        {
+            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>());
+            configure?.Invoke(wa);
+            return wa;
+        });
+
+        /// <summary>
+        /// Adds the <see cref="WebApiPublisher"/> as a scoped service.
+        /// </summary>
+        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddWebApiPublisher(this IServiceCollection services, Action<WebApiPublisher>? configure = null) => CheckServices(services).AddScoped(sp =>
+        {
+            var wap = new WebApiPublisher(sp.GetRequiredService<IEventPublisher>(), sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApiPublisher>>());
+            configure?.Invoke(wap);
+            return wap;
+        });
     }
 }

@@ -53,7 +53,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Deserializes from the <paramref name="cloudEvent"/> into the <paramref name="event"/>.
         /// </summary>
-        private void DeserializeFromCloudEvent(CloudEvent cloudEvent, EventDataBase @event)
+        private void DeserializeFromCloudEvent(CloudEvent cloudEvent, EventData @event)
         {
             @event.Id = cloudEvent.Id;
             @event.Timestamp = cloudEvent.Time;
@@ -100,7 +100,7 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="event">The source <see cref="EventData"/>.</param>
         /// <param name="cloudEvent">The corresponding <see cref="CloudEvent"/>.</param>
-        protected virtual void OnDeserialize(CloudEvent cloudEvent, EventDataBase @event) { }
+        protected virtual void OnDeserialize(CloudEvent cloudEvent, EventData @event) { }
 
         /// <summary>
         /// Decodes (deserializes) the JSON <paramref name="eventData"/> into a <see cref="CloudEvent"/>.
@@ -137,7 +137,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Serializes the <paramref name="event"/>.
         /// </summary>
-        private async Task<BinaryData> SerializeToCloudEventAsync(EventDataBase @event)
+        private async Task<BinaryData> SerializeToCloudEventAsync(EventData @event)
         {
             EventDataFormatter.Format(@event);
 
@@ -146,7 +146,7 @@ namespace CoreEx.Events
                 Id = @event.Id,
                 Time = @event.Timestamp,
                 Type = @event.Type,
-                Source = @event.Source
+                Source = @event.Source ?? throw new InvalidOperationException("CloudEvents must have a Source; the EventDataFormatter should be updated to set.")
             };
 
             SetExtensionAttribute(ce, "subject", @event.Subject);
@@ -167,7 +167,7 @@ namespace CoreEx.Events
             OnSerialize(@event, ce);
 
             ce.DataContentType = MediaTypeNames.Application.Json;
-            ce.Data = @event.GetValue();
+            ce.Data = @event.Value;
 
             return await EncodeAsync(ce).ConfigureAwait(false);
         }
