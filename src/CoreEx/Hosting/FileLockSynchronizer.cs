@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using CoreEx.Configuration;
 
 namespace CoreEx.Hosting
 {
@@ -29,7 +29,8 @@ namespace CoreEx.Hosting
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         public FileLockSynchronizer(SettingsBase settings)
         {
-            _path = (settings ?? throw new ArgumentNullException(nameof(settings))).GetValue<string>(ConfigKey);
+            _path = (settings ?? throw new ArgumentNullException(nameof(settings))).GetSettingValue<string>(ConfigKey);
+
             if (string.IsNullOrEmpty(_path))
                 throw new ArgumentException($"Configuration setting '{ConfigKey}' either does not exist or has no value.", nameof(settings));
 

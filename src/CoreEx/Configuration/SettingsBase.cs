@@ -1,11 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Http;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using CoreEx.Http;
+using Microsoft.Extensions.Configuration;
 
 namespace CoreEx.Configuration
 {
@@ -15,6 +17,7 @@ namespace CoreEx.Configuration
     public abstract class SettingsBase
     {
         private readonly List<string> _prefixes = new();
+        private readonly Dictionary<string, PropertyInfo> _allProperties;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsBase"/> class.
@@ -33,6 +36,9 @@ namespace CoreEx.Configuration
 
                 _prefixes.Add(prefix.EndsWith('/') ? prefix : string.Concat(prefix, '/'));
             }
+
+            _allProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
+                .ToDictionary(p => p.Name, p => p);
         }
 
         /// <summary>
@@ -49,10 +55,18 @@ namespace CoreEx.Configuration
         /// <returns>The corresponding setting value.</returns>
         /// <remarks>Where <paramref name="key"/> is '<c>Foo</c>' and the provided prefixes are '<c>Product</c>' and '<c>Common</c>', then the following full keys will be attempted until a non-default value is found:
         /// '<c>Product/Foo</c>', '<c>Common/Foo</c>', '<c>Foo</c>' (no prefix), then finally the <paramref name="defaultValue"/> will be returned.</remarks>
-        public T GetValue<T>([CallerMemberName] string key = "", T defaultValue = default!)
+        protected T GetValue<T>([CallerMemberName] string key = "", T defaultValue = default!)
+        {
+            return GetSettingValue<T>(key, defaultValue, useDeepSearch: false);
+        }
+
+        public T GetSettingValue<T>([CallerMemberName] string key = "", T defaultValue = default!, bool useDeepSearch = true)
         {
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentNullException(nameof(key));
+
+            if (useDeepSearch && _allProperties.ContainsKey(key))
+                return _allProperties[key].GetValue(this) is T value ? value : defaultValue;
 
             foreach (var prefix in _prefixes)
             {

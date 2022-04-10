@@ -50,8 +50,7 @@ builder.Services.AddDbContext<HrDbContext>(
 builder.Services
     .AddScoped<HealthService>()
     .AddHealthChecks()
-    .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection__fullyQualifiedNamespace), nameof(HrSettings.VerificationQueueName))
-    .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification results queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection__fullyQualifiedNamespace), nameof(HrSettings.VerificationResultsQueueName));
+    .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName));
 
 
 builder.Services.AddControllers();

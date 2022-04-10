@@ -1,15 +1,15 @@
-using FluentAssertions;
-using System.Threading.Tasks;
 using System;
-using NUnit.Framework;
-using UnitTestEx.NUnit;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using CoreEx.Healthchecks.Checks;
 using CoreEx.TestFunction;
+using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
-using CoreEx.Healthchecks.Checks;
-using System.Threading;
-using System.Net.Http;
-using System.Net;
+using NUnit.Framework;
+using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
 {

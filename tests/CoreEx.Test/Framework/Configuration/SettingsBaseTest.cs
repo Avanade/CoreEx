@@ -1,9 +1,9 @@
-﻿using CoreEx.Configuration;
+﻿using System;
+using System.Collections.Generic;
+using CoreEx.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
 
 namespace CoreEx.Test.Framework.Entities
 {
@@ -15,6 +15,14 @@ namespace CoreEx.Test.Framework.Entities
             public SettingsForTesting(IConfiguration configuration, params string[] prefixes) : base(configuration, prefixes)
             {
             }
+
+            public string PropTest => GetValue<string>();
+
+            public string PropTest2 => "some hardcoded value";
+
+            public string SomethingGlobal => GetValue<string>();
+            public string PropTestNested => GetValue<string>(defaultValue: SomethingGlobal);
+
         }
 
         private IConfiguration CreateTestConfiguration()
@@ -78,7 +86,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "prefix2/", "Common/" });
 
-            var result = settings.GetValue<string>("key2", "foo");
+            var result = settings.GetSettingValue<string>("key2", "foo");
 
             // Assert
             result.Should().Be("value2", because: "First matched prefix is returned, Sample prefix takes precedence");
@@ -90,7 +98,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<string>("very/custom/prefix/key3");
+            var result = settings.GetSettingValue<string>("very/custom/prefix/key3");
 
             // Assert
             result.Should().Be("value3");
@@ -102,7 +110,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<string>("SomethingGlobal");
+            var result = settings.GetSettingValue<string>("SomethingGlobal");
 
             // Assert
             result.Should().Be("foo");
@@ -114,7 +122,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<bool>("very/custom/notfound", true);
+            var result = settings.GetSettingValue<bool>("very/custom/notfound", true);
 
             // Assert
             result.Should().Be(true);
@@ -126,7 +134,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<bool>("very/custom/notfound", true);
+            var result = settings.GetSettingValue<bool>("very/custom/notfound", true);
 
             // Assert
             result.Should().Be(true);
@@ -138,7 +146,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<string>("underscore__key");
+            var result = settings.GetSettingValue<string>("underscore__key");
 
             // Assert
             result.Should().Be("underscoreValue");
@@ -150,10 +158,36 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<string>("underscore:key");
+            var result = settings.GetSettingValue<string>("underscore:key");
 
             // Assert
             result.Should().Be("underscoreValue");
+        }
+
+
+        [Test]
+        public void GetValue_Should_Return_Value_From_Property_When_Class_Has_it()
+        {
+            var configuration = CreateTestConfiguration();
+            var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
+
+            var result = settings.GetSettingValue<string>("PropTest2");
+
+            // Assert
+            result.Should().Be("some hardcoded value");
+        }
+
+        [Test]
+        public void GetValue_Should_Return_Value_From_NestedProperty_When_Class_Has_it()
+        {
+            var configuration = CreateTestConfiguration();
+            var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
+
+            var result = settings.GetSettingValue<string>("PropTestNested");
+
+            // Assert
+            settings.SomethingGlobal.Should().Be("foo");
+            result.Should().Be("foo");
         }
     }
 }

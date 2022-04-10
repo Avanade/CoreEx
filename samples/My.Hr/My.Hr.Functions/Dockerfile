@@ -1,14 +1,9 @@
-FROM mcr.microsoft.com/mssql/server:2019-latest AS base
-USER root
-# Install dotnet sdk
-RUN apt-get update; \
-  apt-get install -y apt-transport-https && \
-  apt-get update && \
-  apt-get install -y dotnet-runtime-6.0
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS installer-env
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+# Build requires 3.1 SDK
+COPY --from=mcr.microsoft.com/dotnet/core/sdk:3.1 /usr/share/dotnet /usr/share/dotnet
+
 WORKDIR /src
-
 # It's important to keep lines from here down to "COPY . ." identical in all Dockerfiles
 # to take advantage of Docker's build cache, to speed up local container builds
 COPY "samples/My.Hr/My.Hr.sln" "samples/My.Hr/My.Hr.sln"
@@ -24,29 +19,23 @@ COPY "src/CoreEx.HealthChecks/CoreEx.HealthChecks.csproj" "src/CoreEx.HealthChec
 COPY "src/CoreEx.Messaging.Azure/CoreEx.Messaging.Azure.csproj" "src/CoreEx.Messaging.Azure/CoreEx.Messaging.Azure.csproj"
 COPY "src/CoreEx.Newtonsoft/CoreEx.Newtonsoft.csproj" "src/CoreEx.Newtonsoft/CoreEx.Newtonsoft.csproj"
 
-
 RUN dotnet restore "samples/My.Hr/My.Hr.sln"
 
 COPY . .
-WORKDIR /src/samples/My.Hr/My.Hr.Database
-RUN dotnet build -c Release -o /dbex/build
 
-FROM base as final
-USER root
+WORKDIR /src/samples/My.Hr/My.Hr.Functions
 
-ENV ACCEPT_EULA Y
-ENV MSSQL_SA_PASSWORD sAPWD23.^0
-ENV MSSQL_TCP_PORT 1433
-ENV MSSQL_AGENT_ENABLED true
-ENV ConnectionStrings__sqlserver:MyHr Data Source=localhost, $MSSQL_TCP_PORT;Initial Catalog=My.Hr;User id=sa;Password=$MSSQL_SA_PASSWORD;TrustServerCertificate=true
+RUN mkdir -p /home/site/wwwroot && \
+    dotnet publish *.csproj --no-restore -c Debug --output /home/site/wwwroot
 
+# To enable ssh & remote debugging on app service change the base image to the one below
+# FROM mcr.microsoft.com/azure-functions/dotnet:4-appservice
+# FROM mcr.microsoft.com/azure-functions/dotnet:4
+FROM mcr.microsoft.com/azure-functions/dotnet:4-appservice
+ENV AzureWebJobsScriptRoot=/home/site/wwwroot
+ENV AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+ENV AzureFunctionsJobHost__Logging__LogLevel__CoreEx=Debug
+ENV AzureFunctionsJobHost__Logging__LogToConsole=true
+ENV AzureFunctionsJobHost__Logging__LogToConsoleColor=true
 
-# Copy setup scripts
-WORKDIR /usr/local/
-COPY --from=build /dbex/build /dbex
-COPY  samples/My.Hr/My.Hr.Database/wait-for-it.sh samples/My.Hr/My.Hr.Database/entrypoint.sh samples/My.Hr/My.Hr.Database/database.beef.yaml ./
-
-RUN chmod +x ./*.sh
-
-ENTRYPOINT ["/usr/local/entrypoint.sh"]
-CMD ["sql"]
+COPY --from=installer-env ["/home/site/wwwroot", "/home/site/wwwroot"]

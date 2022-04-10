@@ -32,7 +32,7 @@ namespace CoreEx.Messaging.Azure.Health
         public AzureServiceBusQueueHealthCheck(SettingsBase settings, string connectionName, string queueSettingName)
         : base(settings, connectionName)
         {
-            _queueName = settings.GetValue<string>(queueSettingName);
+            _queueName = settings.GetSettingValue<string>(queueSettingName);
             _queueSettingName = queueSettingName;
         }
 

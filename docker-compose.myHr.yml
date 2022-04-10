@@ -14,3 +14,8 @@ services:
       dockerfile: samples/My.Hr/My.Hr.Api/Dockerfile
     depends_on:
       - sqldata
+
+  myhr-functions:
+    build:
+      context: .
+      dockerfile: samples/My.Hr/My.Hr.Functions/Dockerfile

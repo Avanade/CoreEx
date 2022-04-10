@@ -28,7 +28,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddAzureClients(cb =>
             {
                 var config = services.BuildServiceProvider().GetRequiredService<SettingsBase>();
-                var sbcs = config.GetValue<string>(connectionName);
+                var sbcs = config.GetSettingValue<string>(connectionName);
 
                 if (string.IsNullOrEmpty(sbcs))
                     throw new InvalidOperationException(@$"The Azure Service Bus connection string is not configured; the configuration setting '{connectionName}' is either not specified or does not have a value.");

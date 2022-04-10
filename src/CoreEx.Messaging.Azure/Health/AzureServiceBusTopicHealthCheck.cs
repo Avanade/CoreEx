@@ -35,8 +35,8 @@ namespace CoreEx.Messaging.Azure.Health
         public AzureServiceBusTopicHealthCheck(SettingsBase settings, string connectionName, string topicSettingName, string subscriptionSettingName)
         : base(settings, connectionName)
         {
-            _topicName = settings.GetValue<string>(topicSettingName);
-            _subscriptionName = settings.GetValue<string>(subscriptionSettingName);
+            _topicName = settings.GetSettingValue<string>(topicSettingName);
+            _subscriptionName = settings.GetSettingValue<string>(subscriptionSettingName);
             _topicSettingName = topicSettingName;
             _subscriptionSettingName = subscriptionSettingName;
         }
