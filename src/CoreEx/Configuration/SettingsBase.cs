@@ -17,7 +17,7 @@ namespace CoreEx.Configuration
     /// </summary>
     public abstract class SettingsBase
     {
-        private AsyncLocal<int> _recursionDepth = new AsyncLocal<int>();
+        private AsyncLocal<bool> _isReflectionCall = new AsyncLocal<bool>();
         private readonly List<string> _prefixes = new();
         private readonly Dictionary<string, PropertyInfo> _allProperties;
 
@@ -63,16 +63,16 @@ namespace CoreEx.Configuration
                 throw new ArgumentNullException(nameof(key));
 
             // do not allow recursive calls to go too deep
-            if (_allProperties.ContainsKey(key) && _recursionDepth.Value == 0)
+            if (_allProperties.ContainsKey(key) && !_isReflectionCall.Value)
             {
                 try
                 {
-                    _recursionDepth.Value = 1;
+                    _isReflectionCall.Value = true;
                     return _allProperties[key].GetValue(this) is T value ? value : defaultValue;
                 }
                 finally
                 {
-                    _recursionDepth.Value = 0;
+                    _isReflectionCall.Value = false;
                 }
             }
 
