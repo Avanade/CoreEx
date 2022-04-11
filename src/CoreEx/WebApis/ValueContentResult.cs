@@ -18,10 +18,10 @@ using System.Threading.Tasks;
 namespace CoreEx.WebApis
 {
     /// <summary>
-    /// Represents a <see cref="ContentResult"/> with a <see cref="Value"/> that will be JSON serialized.
+    /// Represents a <see cref="ContentResult"/> with a JSON serialized value.
     /// </summary>
     /// <remarks>This contains extended functionality to manage the setting of response headers related to <see cref="ETag"/>, <see cref="PagingResult"/> and <see cref="Location"/>.</remarks>
-    public class ValueContentResult : ExtendedContentResult
+    public sealed class ValueContentResult : ExtendedContentResult
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ValueContentResult"/> class.
@@ -42,17 +42,12 @@ namespace CoreEx.WebApis
         }
 
         /// <summary>
-        /// Gets or sets the value.
-        /// </summary>
-        public object? Value { get; set; }
-
-        /// <summary>
         /// Gets or sets the <see cref="IETag.ETag"/> value.
         /// </summary>
         public string? ETag { get; set; }
 
         /// <summary>
-        /// Gets or sets the corresponding <see cref="Entities.PagingResult"/> (where <see cref="Value"/> is <see cref="ICollectionResult"/>.
+        /// Gets or sets the corresponding <see cref="Entities.PagingResult"/> (where the originating value was an <see cref="ICollectionResult"/>).
         /// </summary>
         public PagingResult? PagingResult { get; set; }
 
@@ -103,7 +98,6 @@ namespace CoreEx.WebApis
         /// <param name="valueContentResult">The <see cref="ValueContentResult"/> where created.</param>
         /// <param name="alternateResult">The alternate result where <paramref name="valueContentResult"/> not created.</param>
         /// <returns><c>true</c> indicates that the <paramref name="valueContentResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
-        /// <exception cref="InvalidOperationException"></exception>
         public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
         {
             object? val;

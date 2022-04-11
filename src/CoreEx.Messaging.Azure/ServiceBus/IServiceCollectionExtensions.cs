@@ -43,6 +43,13 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
+        /// Adds the Azure <see cref="ServiceBusSubscriber"/>.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddAzureServiceBusSubscriber(this IServiceCollection services) => services.AddScoped<ServiceBusSubscriber>();
+
+        /// <summary>
         /// Adds the <see cref="ServiceBusSender"/> as the <see cref="IEventSender"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>

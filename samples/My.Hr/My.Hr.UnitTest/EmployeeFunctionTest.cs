@@ -1,16 +1,16 @@
-using CoreEx.Entities;
-using CoreEx.Events;
+﻿using CoreEx.Entities;
 using CoreEx.Http;
+using CoreEx.WebApis;
 using DbEx.Migration;
 using DbEx.Migration.Data;
 using Microsoft.Extensions.Configuration;
-using My.Hr.Api;
-using My.Hr.Api.Controllers;
 using My.Hr.Business.Models;
-using My.Hr.Business.ServiceContracts;
+using My.Hr.Functions;
+using My.Hr.Functions.Functions;
 using NUnit.Framework;
 using System;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.NUnit;
@@ -18,14 +18,14 @@ using UnitTestEx.NUnit;
 namespace My.Hr.UnitTest
 {
     [TestFixture]
-    public class EmployeeControllerTest
+    public class EmployeeFunctionTest
     {
         [OneTimeSetUp]
         public async Task Init()
         {
             HttpConsts.IncludeFieldsQueryStringName = "include-fields";
 
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
             var cs = test.Configuration.GetConnectionString("Database");
             if (await Database.Program.RunMigrator(cs, typeof(EmployeeControllerTest).Assembly, MigrationCommand.ResetAndAll.ToString()).ConfigureAwait(false) != 0)
                 Assert.Fail("Database migration failed.");
@@ -34,20 +34,20 @@ namespace My.Hr.UnitTest
         [Test]
         public void A100_Get_NotFound()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(404.ToGuid()))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{404.ToGuid()}"), 404.ToGuid()))
                 .AssertNotFound();
         }
 
         [Test]
         public void A110_Get_Found()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(1.ToGuid()))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{1.ToGuid()}"), 1.ToGuid()))
                 .AssertOK()
                 .Assert(new Employee
                 {
@@ -63,27 +63,27 @@ namespace My.Hr.UnitTest
         }
 
         [Test]
-        public void A120_Get_NotModifed()
+        public void A120_Get_NotModified()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
-            var e = test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(1.ToGuid()))
+            var e = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{1.ToGuid()}"), 1.ToGuid()))
                 .AssertOK()
                 .GetValue<Employee>()!;
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(e.Id), requestOptions: new HttpRequestOptions { ETag = e.ETag })
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{1.ToGuid()}", new CoreEx.Http.HttpRequestOptions { ETag = e.ETag }), 1.ToGuid()))
                 .AssertNotModified();
         }
 
         [Test]
         public void A130_Get_IncludeFields()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(1.ToGuid()), requestOptions: new HttpRequestOptions().Include("FirstName", "LastName"))
+            var e = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{1.ToGuid()}", new CoreEx.Http.HttpRequestOptions().Include("FirstName", "LastName")), 1.ToGuid()))
                 .AssertOK()
                 .AssertJson("{\"firstName\":\"Wendy\",\"lastName\":\"Jones\"}");
         }
@@ -91,11 +91,10 @@ namespace My.Hr.UnitTest
         [Test]
         public void B100_GetAll_All()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
-            var v = test.Controller<EmployeeController>()
-                .Run(c => c.GetAllAsync())
-                .AssertOK()
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees")))
                 .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
 
             Assert.IsNotNull(v?.Collection);
@@ -106,10 +105,10 @@ namespace My.Hr.UnitTest
         [Test]
         public void B110_GetAll_Paging()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
-            var v = test.Controller<EmployeeController>()
-                .Run(c => c.GetAllAsync(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, true) })
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", new CoreEx.Http.HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, true) })))
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
 
@@ -123,10 +122,10 @@ namespace My.Hr.UnitTest
         [Test]
         public void B120_GetAll_PagingAndIncludeFields()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
-            var v = test.Controller<EmployeeController>()
-                .Run(c => c.GetAllAsync(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2) }.Include("lastname"))
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", new CoreEx.Http.HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, false) }.Include("lastname"))))
                 .AssertOK()
                 .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")
                 .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
@@ -137,7 +136,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void C100_Create_Error()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
             var e = new Employee
             {
@@ -149,8 +148,8 @@ namespace My.Hr.UnitTest
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
             };
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.CreateAsync(), e)
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(c => c.CreateAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "api/employees", e)))
                 .AssertErrors(
                     new ApiError("Email", "'Email' must not be empty."));
         }
@@ -158,7 +157,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void C110_Create_Success()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
             var e = new Employee
             {
@@ -171,16 +170,16 @@ namespace My.Hr.UnitTest
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
             };
 
-            var v = test.Controller<EmployeeController>()
-                .Run(c => c.CreateAsync(), e)
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(c => c.CreateAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "api/employees", e)))
                 .AssertCreated()
                 .Assert(e, "Id", "ETag")
                 .AssertLocationHeader<Employee>(v => new Uri($"api/employees/{v!.Id}", UriKind.Relative))
                 .GetValue<Employee>();
 
             // Do a GET to make sure it is in the database and all fields equal.
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(v!.Id))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{v!.Id}"), v.Id))
                 .AssertOK()
                 .Assert(v);
         }
@@ -188,7 +187,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void D100_Update_Error()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
             var e = new Employee
             {
@@ -200,8 +199,8 @@ namespace My.Hr.UnitTest
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
             };
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(404.ToGuid()), e)
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.UpdateAsync(test.CreateJsonHttpRequest(HttpMethod.Put, $"api/employees/{404.ToGuid()}", e), 404.ToGuid()))
                 .AssertErrors(
                     new ApiError("Email", "'Email' must not be empty."));
         }
@@ -209,7 +208,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void D110_Update_NotFound()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
             var e = new Employee
             {
@@ -222,34 +221,34 @@ namespace My.Hr.UnitTest
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
             };
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(404.ToGuid()), e)
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.UpdateAsync(test.CreateJsonHttpRequest(HttpMethod.Put, $"api/employees/{404.ToGuid()}", e), 404.ToGuid()))
                 .AssertNotFound();
         }
 
         [Test]
         public void D120_Update_Success()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
             // Get current.
-            var v = test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(2.ToGuid()))
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertOK()
                 .GetValue<Employee>()!;
 
             // Update it.
             v.FirstName += "X";
 
-            v = test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(v.Id), v)
+            v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.UpdateAsync(test.CreateJsonHttpRequest(HttpMethod.Put, $"api/employees/{v.Id}", v), v.Id))
                 .AssertOK()
                 .Assert(v, "ETag")
                 .GetValue<Employee>()!;
 
             // Get again and check all.
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(v.Id))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{v.Id}"), v.Id))
                 .AssertOK()
                 .Assert(v);
         }
@@ -257,11 +256,11 @@ namespace My.Hr.UnitTest
         [Test]
         public void D130_Update_ConcurrencyError()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
             // Get current.
-            var v = test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(2.ToGuid()))
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertOK()
                 .GetValue<Employee>()!;
 
@@ -269,62 +268,35 @@ namespace My.Hr.UnitTest
             v.FirstName += "X";
             v.ETag = "ZZZZZZZZZZZZ";
 
-            test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(v.Id), v)
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.UpdateAsync(test.CreateJsonHttpRequest(HttpMethod.Put, $"api/employees/{v.Id}", v), v.Id))
                 .AssertPreconditionFailed();
         }
 
         [Test]
         public void E100_Delete()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = FunctionTester.Create<Startup>();
 
             // Get current.
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(2.ToGuid()))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(c => c.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertOK();
 
             // Delete it.
-            test.Controller<EmployeeController>()
-                .Run(c => c.DeleteAsync(2.ToGuid()))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(c => c.DeleteAsync(test.CreateHttpRequest(HttpMethod.Delete, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertNoContent();
 
             // Must not exist.
-            test.Controller<EmployeeController>()
-                .Run(c => c.GetAsync(2.ToGuid()))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(c => c.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertNotFound();
 
             // Delete it again; should appear as if deleted as operation is considered idempotent.
-            test.Controller<EmployeeController>()
-                .Run(c => c.DeleteAsync(2.ToGuid()))
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(c => c.DeleteAsync(test.CreateHttpRequest(HttpMethod.Delete, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertNoContent();
-        }
-
-        [Test]
-        public void F100_Verify_NotFound()
-        {
-            var test = ApiTester.Create<Startup>();
-
-            test.Controller<EmployeeController>()
-                .Run(c => c.VerifyAsync(404.ToGuid()))
-                .AssertNotFound();
-        }
-
-        [Test]
-        public void F100_Verify_Publish()
-        {
-            var test = ApiTester.Create<Startup>();
-            var imp = new InMemoryPublisher(test.Logger);
-
-            test.ReplaceScoped<IEventPublisher>(_ => imp)
-                .Controller<EmployeeController>()
-                .Run(c => c.VerifyAsync(1.ToGuid()))
-                .AssertAccepted();
-
-            Assert.AreEqual(1, imp.GetNames().Length);
-            var e = imp.GetEvents("pendingVerifications");
-            Assert.AreEqual(1, e.Length);
-            ObjectComparer.Assert(new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" }, e[0].Value);
         }
     }
 }

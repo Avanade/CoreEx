@@ -24,13 +24,13 @@ public class EmployeeService
     public async Task<Employee?> GetEmployeeAsync(Guid id) 
         => await _dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
 
-    public async Task<EmployeeCollectionResult> GetAllAsync(PagingArgs paging)
+    public async Task<EmployeeCollectionResult> GetAllAsync(PagingArgs? paging)
     {
         var ecr = new EmployeeCollectionResult { Paging = new PagingResult(paging) };
-        ecr.Collection.AddRange(await _dbContext.Employees.OrderBy(x => x.LastName).ThenBy(x => x.FirstName).Skip((int)paging.Skip).Take((int)paging.Take).ToListAsync().ConfigureAwait(false));
+        ecr.Collection.AddRange(await _dbContext.Employees.OrderBy(x => x.LastName).ThenBy(x => x.FirstName).Skip((int)ecr.Paging.Skip).Take((int)ecr.Paging.Take).ToListAsync().ConfigureAwait(false));
 
-        if (paging.IsGetCount)
-            ecr.Paging.TotalCount = await _dbContext.Employees.CountAsync().ConfigureAwait(false);
+        if (ecr.Paging.IsGetCount)
+            ecr.Paging.TotalCount = await _dbContext.Employees.LongCountAsync().ConfigureAwait(false);
 
         return ecr;
     }

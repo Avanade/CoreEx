@@ -1,5 +1,4 @@
 using CoreEx.Events;
-using Microsoft.Extensions.Logging;
 using My.Hr.Business.ServiceContracts;
 
 namespace My.Hr.Business.Services;

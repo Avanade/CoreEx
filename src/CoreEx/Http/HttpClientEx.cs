@@ -20,7 +20,7 @@ namespace CoreEx.Http
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="CoreEx.Json.JsonSerializer.Default"/>.</param>
         /// <param name="executionContext">The <see cref="ExecutionContext"/>. Defaults to a new instance where not specified.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/> where not specified.</param>
-        /// <param name="logger">The <see cref="ILogger"/> Defaults to <see cref="NullLogger{T}"/> where not specified..</param>
+        /// <param name="logger">The <see cref="ILogger"/> Defaults to <see cref="NullLogger{T}"/> where not specified.</param>
         public HttpClientEx(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<HttpClientEx>? logger = null)
             : base(client, jsonSerializer ?? CoreEx.Json.JsonSerializer.Default, executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext()),
                   settings ?? new DefaultSettings(), NullLoggerFactory.Instance.CreateLogger<HttpClientEx>())

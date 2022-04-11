@@ -1,5 +1,4 @@
 using CoreEx.Configuration;
-using CoreEx.Events;
 using Microsoft.Extensions.Configuration;
 
 namespace My.Hr.Business;
@@ -39,5 +38,4 @@ public class HrSettings : SettingsBase
     /// <remarks> <b>Caution</b> this key is used implicitly by function triggers when 'ServiceBusConnection' is not set. </remarks>
     /// <remarks> Underscores in environment variables are replaced by semicolon ':' in configuration object, hence lookup also replaces '__' with ':'</remarks>
     public string ServiceBusConnection__fullyQualifiedNamespace => GetValue<string>();
-
 }

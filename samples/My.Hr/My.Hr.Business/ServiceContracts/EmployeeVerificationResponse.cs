@@ -15,8 +15,9 @@ public class EmployeeVerificationResponse
 
     public float GenderProbability { get; set; }
 
-    public List<NationalizeResponse.CountryResponse> Country { get; private set; } = new List<NationalizeResponse.CountryResponse>();
+    public List<NationalizeResponse.CountryResponse> Country { get; set; } = new List<NationalizeResponse.CountryResponse>();
 
-    public List<string> VerificationMessages { get; private set; } = new List<string>();
+    public List<string> VerificationMessages { get; set; } = new List<string>();
+
     public EmployeeVerificationRequest Request { get; }
 }

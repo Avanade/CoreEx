@@ -16,18 +16,18 @@ using My.Hr.Business.Validators;
 
 namespace My.Hr.Functions;
 
-public class HttpTriggerQueueVerificationFuncion
+public class HttpTriggerQueueVerificationFunction
 {
     private readonly WebApiPublisher _webApiPublisher;
     private readonly HrSettings _settings;
 
-    public HttpTriggerQueueVerificationFuncion(WebApiPublisher webApiPublisher, HrSettings settings)
+    public HttpTriggerQueueVerificationFunction(WebApiPublisher webApiPublisher, HrSettings settings)
     {
         _webApiPublisher = webApiPublisher;
         _settings = settings;
     }
 
-    [FunctionName(nameof(HttpTriggerQueueVerificationFuncion))]
+    [FunctionName(nameof(HttpTriggerQueueVerificationFunction))]
     [OpenApiOperation(operationId: "Run", tags: new[] { "employee" })]
     [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
     [OpenApiRequestBody(MediaTypeNames.Application.Json, typeof(EmployeeVerificationRequest), Description = "The **EmployeeVerification** payload")]
