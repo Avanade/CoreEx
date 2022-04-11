@@ -86,7 +86,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "prefix2/", "Common/" });
 
-            var result = settings.GetSettingValue<string>("key2", "foo");
+            var result = settings.GetValue<string>("key2", "foo");
 
             // Assert
             result.Should().Be("value2", because: "First matched prefix is returned, Sample prefix takes precedence");
@@ -98,7 +98,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<string>("very/custom/prefix/key3");
+            var result = settings.GetValue<string>("very/custom/prefix/key3");
 
             // Assert
             result.Should().Be("value3");
@@ -110,7 +110,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<string>("SomethingGlobal");
+            var result = settings.GetValue<string>("SomethingGlobal");
 
             // Assert
             result.Should().Be("foo");
@@ -122,7 +122,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<bool>("very/custom/notfound", true);
+            var result = settings.GetValue<bool>("very/custom/notfound", true);
 
             // Assert
             result.Should().Be(true);
@@ -134,7 +134,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<bool>("very/custom/notfound", true);
+            var result = settings.GetValue<bool>("very/custom/notfound", true);
 
             // Assert
             result.Should().Be(true);
@@ -146,7 +146,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<string>("underscore__key");
+            var result = settings.GetValue<string>("underscore__key");
 
             // Assert
             result.Should().Be("underscoreValue");
@@ -158,7 +158,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<string>("underscore:key");
+            var result = settings.GetValue<string>("underscore:key");
 
             // Assert
             result.Should().Be("underscoreValue");
@@ -171,7 +171,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<string>("PropTest2");
+            var result = settings.GetValue<string>("PropTest2");
 
             // Assert
             result.Should().Be("some hardcoded value");
@@ -183,7 +183,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetSettingValue<string>("PropTestNested");
+            var result = settings.GetValue<string>("PropTestNested");
 
             // Assert
             settings.SomethingGlobal.Should().Be("foo");

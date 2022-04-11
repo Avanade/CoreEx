@@ -29,7 +29,7 @@ namespace CoreEx.Hosting
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         public FileLockSynchronizer(SettingsBase settings)
         {
-            _path = (settings ?? throw new ArgumentNullException(nameof(settings))).GetSettingValue<string>(ConfigKey);
+            _path = (settings ?? throw new ArgumentNullException(nameof(settings))).GetValue<string>(ConfigKey);
 
             if (string.IsNullOrEmpty(_path))
                 throw new ArgumentException($"Configuration setting '{ConfigKey}' either does not exist or has no value.", nameof(settings));

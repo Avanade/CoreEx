@@ -23,7 +23,7 @@ namespace CoreEx.Messaging.Azure.Health
         /// <remarks> Note that constructor takes setting NAMES not values, values are looked up from <paramref name="settings"/>. </remarks>
         public AzureServiceHealthCheckBase(SettingsBase settings, string connectionName)
         {
-            _endPoint = settings.GetSettingValue<string>(connectionName);
+            _endPoint = settings.GetValue<string>(connectionName);
             _connectionName = connectionName;
         }
 

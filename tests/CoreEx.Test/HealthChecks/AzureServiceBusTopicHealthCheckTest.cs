@@ -26,7 +26,7 @@ namespace CoreEx.Test.HealthChecks
             var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
             var mock = new Mock<ServiceBusAdministrationClient>();
             //   replace connection to service bus with mock
-            AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetSettingValue<string>(connectionName)
+            AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetValue<string>(connectionName)
             , _ => mock.Object
             , (_, __) => mock.Object);
             var context = new HealthCheckContext();
@@ -90,11 +90,11 @@ namespace CoreEx.Test.HealthChecks
             var mock = new Mock<ServiceBusAdministrationClient>();
             var exception = new ArgumentException("Test exception");
             mock.Setup(x => x.GetSubscriptionRuntimePropertiesAsync(
-                    settings.GetSettingValue<string>(topicSettingName, null, false),
-                    settings.GetSettingValue<string>(testSubscriptionName, null, false),
+                    settings.GetValue<string>(topicSettingName, null, false),
+                    settings.GetValue<string>(testSubscriptionName, null, false),
                     It.IsAny<CancellationToken>()))
                 .ThrowsAsync(exception);
-            AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetSettingValue<string>(connectionName)
+            AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetValue<string>(connectionName)
             , _ => mock.Object
             , (_, __) => mock.Object);
 

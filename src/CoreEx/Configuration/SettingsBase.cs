@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using CoreEx.Http;
 using Microsoft.Extensions.Configuration;
 
@@ -16,6 +17,7 @@ namespace CoreEx.Configuration
     /// </summary>
     public abstract class SettingsBase
     {
+        private AsyncLocal<int> _recursionDepth = new AsyncLocal<int>();
         private readonly List<string> _prefixes = new();
         private readonly Dictionary<string, PropertyInfo> _allProperties;
 
@@ -55,18 +57,24 @@ namespace CoreEx.Configuration
         /// <returns>The corresponding setting value.</returns>
         /// <remarks>Where <paramref name="key"/> is '<c>Foo</c>' and the provided prefixes are '<c>Product</c>' and '<c>Common</c>', then the following full keys will be attempted until a non-default value is found:
         /// '<c>Product/Foo</c>', '<c>Common/Foo</c>', '<c>Foo</c>' (no prefix), then finally the <paramref name="defaultValue"/> will be returned.</remarks>
-        protected T GetValue<T>([CallerMemberName] string key = "", T defaultValue = default!)
-        {
-            return GetSettingValue<T>(key, defaultValue, useDeepSearch: false);
-        }
-
-        public T GetSettingValue<T>([CallerMemberName] string key = "", T defaultValue = default!, bool useDeepSearch = true)
+        public T GetValue<T>([CallerMemberName] string key = "", T defaultValue = default!)
         {
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentNullException(nameof(key));
 
-            if (useDeepSearch && _allProperties.ContainsKey(key))
-                return _allProperties[key].GetValue(this) is T value ? value : defaultValue;
+            // do not allow recursive calls to go too deep
+            if (_allProperties.ContainsKey(key) && _recursionDepth.Value == 0)
+            {
+                try
+                {
+                    _recursionDepth.Value = 1;
+                    return _allProperties[key].GetValue(this) is T value ? value : defaultValue;
+                }
+                finally
+                {
+                    _recursionDepth.Value = 0;
+                }
+            }
 
             foreach (var prefix in _prefixes)
             {

@@ -133,7 +133,7 @@ namespace CoreEx.Messaging.Azure.ServiceBus
             // Get queue name by checking configuration override.
             foreach (var qitem in queueDict)
             {
-                var qn = Settings.GetSettingValue($"Publisher_ServiceBusName_{qitem.Key}", defaultValue: qitem.Key);
+                var qn = Settings.GetValue($"Publisher_ServiceBusName_{qitem.Key}", defaultValue: qitem.Key);
                 var queue = qitem.Value;
 
                 // Send in batches.
