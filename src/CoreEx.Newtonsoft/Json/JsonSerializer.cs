@@ -3,9 +3,11 @@
 using CoreEx.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using Nsj = Newtonsoft.Json;
 
 namespace CoreEx.Newtonsoft.Json
@@ -99,6 +101,45 @@ namespace CoreEx.Newtonsoft.Json
             var r = JsonFilterer.TryApply(value, names, out JToken node, filter, Settings, comparer);
             json = node;
             return r;
+        }
+
+        /// <inheritdoc/>
+        bool IJsonSerializer.TryGetJsonName(PropertyInfo propertyInfo, out string? jsonName)
+        {
+            if (propertyInfo == null)
+                throw new ArgumentNullException(nameof(propertyInfo));
+
+            var ji = propertyInfo.GetCustomAttribute<JsonIgnoreAttribute>(true);
+            if (ji != null)
+            {
+                jsonName = null;
+                return false;
+            }
+
+            var jpn = propertyInfo.GetCustomAttribute<JsonPropertyAttribute>(true);
+            if (jpn?.PropertyName != null)
+            {
+                jsonName = jpn.PropertyName;
+                return true;
+            }
+
+            if (Settings.ContractResolver is ContractResolver cr)
+            {
+                var jo = propertyInfo.DeclaringType.GetCustomAttribute<JsonObjectAttribute>(true);
+                var jp = cr.GetProperty(propertyInfo, jo == null ? MemberSerialization.OptOut : jo.MemberSerialization);
+                if (jp != null)
+                {
+                    jsonName = jp.Ignored ? null : jp.PropertyName;
+                    return !jp.Ignored;
+                }
+            }
+
+            if (Settings.ContractResolver is CamelCasePropertyNamesContractResolver ccr && ccr.NamingStrategy != null)
+                jsonName = ccr.NamingStrategy.GetPropertyName(propertyInfo.Name, false);
+            else
+                jsonName = propertyInfo.Name;
+
+            return true;
         }
 
         /// <summary>

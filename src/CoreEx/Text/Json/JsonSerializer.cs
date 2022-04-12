@@ -3,6 +3,7 @@
 using CoreEx.Json;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Stj = System.Text.Json;
@@ -80,6 +81,24 @@ namespace CoreEx.Text.Json
             var r = JsonFilterer.TryApply(value, names, out JsonNode node, filter, Options, comparer);
             json = node;
             return r;
+        }
+
+        /// <inheritdoc/>
+        bool IJsonSerializer.TryGetJsonName(PropertyInfo propertyInfo, out string? jsonName)
+        {
+            if (propertyInfo == null)
+                throw new ArgumentNullException(nameof(propertyInfo));
+
+            var ji = propertyInfo.GetCustomAttribute<JsonIgnoreAttribute>();
+            if (ji != null)
+            {
+                jsonName = null;
+                return false;
+            }
+
+            var jpn = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>(true);
+            jsonName = jpn?.Name ?? Options.PropertyNamingPolicy?.ConvertName(propertyInfo.Name) ?? propertyInfo.Name;
+            return true;
         }
     }
 }

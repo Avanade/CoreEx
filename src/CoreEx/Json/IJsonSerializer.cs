@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace CoreEx.Json
 {
@@ -102,5 +103,13 @@ namespace CoreEx.Json
         /// <param name="comparer">The names <see cref="IEqualityComparer{T}"/>; defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>.</param>
         /// <returns><c>true</c> indicates that at least one JSON node was filtered (removed); otherwise, <c>false</c> for no changes.</returns>
         bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null);
+
+        /// <summary>
+        /// Trys and gets the corresponding JSON name for the <paramref name="propertyInfo"/>.
+        /// </summary>
+        /// <param name="propertyInfo">The <see cref="PropertyInfo"/></param>
+        /// <param name="jsonName">The JSON name where underlying JSON attribute is defined or not; <c>null</c> where not serializable.</param>
+        /// <returns><c>true</c> indicates that the property is considered serializable; otherwise, <c>false</c>.</returns>
+        bool TryGetJsonName(PropertyInfo propertyInfo, out string? jsonName);
     }
 }

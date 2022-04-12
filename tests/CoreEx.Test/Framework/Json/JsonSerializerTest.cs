@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using Nsj = Newtonsoft.Json;
+using Stj = System.Text.Json;
 
 namespace CoreEx.Test.Framework.Json
 {
@@ -163,6 +164,22 @@ namespace CoreEx.Test.Framework.Json
             deserialized.Message.Should().BeEquivalentTo(realException.Message, because: "Custom converter only handles Message on deserialization");
         }
 
+        [Test]
+        public void SystemTextJson_TryGetJsonName()
+        {
+            var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
+            var t = typeof(Other);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.FirstName))!, out string? jn));
+            Assert.AreEqual("first-name", jn);
+
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other.MiddleName))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.LastName))!, out jn));
+            Assert.AreEqual("lastName", jn);
+        }
+
         #endregion
 
         #region NewtonsoftJson
@@ -318,6 +335,39 @@ namespace CoreEx.Test.Framework.Json
             deserialized.StackTrace.Should().BeEquivalentTo(realException.StackTrace);
         }
 
+        [Test]
+        public void NewtonsoftJson_TryGetJsonName()
+        {
+            var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
+            var t = typeof(Other);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.FirstName))!, out string? jn));
+            Assert.AreEqual("first_name", jn);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.MiddleName))!, out jn));
+            Assert.AreEqual("middleName", jn);
+
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other.LastName))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            // Verify JsonObject usage.
+            t = typeof(Other2);
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other2.FirstName))!, out jn));
+            Assert.AreEqual("firstName", jn);
+
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other2.LastName))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            // Verify ContractResolver STJ marked-up objects.
+            t = typeof(CoreEx.WebApis.ExtendedContentResult);
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(CoreEx.WebApis.ExtendedContentResult.AfterExtension))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            t = typeof(CoreEx.Entities.ChangeLog);
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(CoreEx.Entities.ChangeLog.CreatedBy))!, out jn));
+            Assert.AreEqual("createdBy", jn);
+        }
+
         #endregion
 
         public class Person
@@ -334,6 +384,25 @@ namespace CoreEx.Test.Framework.Json
         {
             public string? Street { get; set; }
             public string? City { get; set; }
+        }
+
+        public class Other
+        {
+            [Stj.Serialization.JsonPropertyName("first-name")]
+            [Nsj.JsonProperty("first_name")]
+            public string? FirstName { get; set; }
+            [Stj.Serialization.JsonIgnore]
+            public string? MiddleName { get; set; }
+            [Nsj.JsonIgnore]
+            public string? LastName { get; set; }
+        }
+
+        [Nsj.JsonObject(MemberSerialization = Nsj.MemberSerialization.OptIn)]
+        public class Other2
+        {
+            [Nsj.JsonProperty("firstName")]
+            public string? FirstName { get; set; }
+            public string? LastName { get; set; }
         }
     }
 }
