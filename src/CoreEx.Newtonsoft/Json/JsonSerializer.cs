@@ -104,19 +104,19 @@ namespace CoreEx.Newtonsoft.Json
         }
 
         /// <inheritdoc/>
-        bool IJsonSerializer.TryGetJsonName(PropertyInfo propertyInfo, out string? jsonName)
+        bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, out string? jsonName)
         {
-            if (propertyInfo == null)
-                throw new ArgumentNullException(nameof(propertyInfo));
+            if (memberInfo == null)
+                throw new ArgumentNullException(nameof(memberInfo));
 
-            var ji = propertyInfo.GetCustomAttribute<JsonIgnoreAttribute>(true);
+            var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>(true);
             if (ji != null)
             {
                 jsonName = null;
                 return false;
             }
 
-            var jpn = propertyInfo.GetCustomAttribute<JsonPropertyAttribute>(true);
+            var jpn = memberInfo.GetCustomAttribute<JsonPropertyAttribute>(true);
             if (jpn?.PropertyName != null)
             {
                 jsonName = jpn.PropertyName;
@@ -125,8 +125,8 @@ namespace CoreEx.Newtonsoft.Json
 
             if (Settings.ContractResolver is ContractResolver cr)
             {
-                var jo = propertyInfo.DeclaringType.GetCustomAttribute<JsonObjectAttribute>(true);
-                var jp = cr.GetProperty(propertyInfo, jo == null ? MemberSerialization.OptOut : jo.MemberSerialization);
+                var jo = memberInfo.DeclaringType.GetCustomAttribute<JsonObjectAttribute>(true);
+                var jp = cr.GetProperty(memberInfo, jo == null ? MemberSerialization.OptOut : jo.MemberSerialization);
                 if (jp != null)
                 {
                     jsonName = jp.Ignored ? null : jp.PropertyName;
@@ -135,9 +135,9 @@ namespace CoreEx.Newtonsoft.Json
             }
 
             if (Settings.ContractResolver is CamelCasePropertyNamesContractResolver ccr && ccr.NamingStrategy != null)
-                jsonName = ccr.NamingStrategy.GetPropertyName(propertyInfo.Name, false);
+                jsonName = ccr.NamingStrategy.GetPropertyName(memberInfo.Name, false);
             else
-                jsonName = propertyInfo.Name;
+                jsonName = memberInfo.Name;
 
             return true;
         }

@@ -9,50 +9,19 @@ using System.Reflection;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Represents the <see cref="CollectionReflector"/> <see cref="Type"/> type.
-    /// </summary>
-    public enum CollectionReflectorType
-    {
-        /// <summary>
-        /// Is an <see cref="object"/> (not identified as one of the possible collection types).
-        /// </summary>
-        Object,
-
-        /// <summary>
-        /// Is an <see cref="System.Array"/>.
-        /// </summary>
-        Array,
-
-        /// <summary>
-        /// Is an <see cref="System.Collections.ICollection"/>.
-        /// </summary>
-        ICollection,
-
-        /// <summary>
-        /// Is an <see cref="System.Collections.IEnumerable"/>.
-        /// </summary>
-        IEnumerable,
-
-        /// <summary>
-        /// Is an <see cref="System.Collections.IDictionary"/>.
-        /// </summary>
-        IDictionary
-    }
-
-    /// <summary>
     /// Utility reflection class for identifying, creating and updating collections.
     /// </summary>
-    public class CollectionReflector
+    public class TypeReflector
     {
         private IInternalEqualityComparer? _equalityComparer;
 
         /// <summary>
         /// Private constructor.
         /// </summary>
-        private CollectionReflector(PropertyInfo propertyInfo, Type itemType)
+        private TypeReflector(PropertyInfo propertyInfo, Type itemType)
         {
             PropertyInfo = propertyInfo ?? throw new ArgumentNullException(nameof(propertyInfo));
-            ItemType = itemType ?? throw new ArgumentNullException(nameof(itemType));
+            CollectionItemType = itemType ?? throw new ArgumentNullException(nameof(itemType));
         }
 
         /// <summary>
@@ -61,61 +30,64 @@ namespace CoreEx.Abstractions.Reflection
         public PropertyInfo PropertyInfo { get; }
 
         /// <summary>
-        /// Gets or sets the <see cref="ComplexTypeCode"/>.
+        /// Gets or sets the <see cref="TypeReflectorTypeCode"/>.
         /// </summary>
-        public CollectionReflectorType ComplexTypeCode { get; set; }
+        public TypeReflectorTypeCode TypeCode { get; private set; } = TypeReflectorTypeCode.Complex;
 
         /// <summary>
-        /// Gets or sets the collection item <see cref="Type"/> where <see cref="IsCollection"/>; otherwise, the <see cref="PropertyInfo.PropertyType"/>.
+        /// Gets or sets the collection item <see cref="Type"/> where <see cref="IsCollectionType"/>; otherwise, the <see cref="PropertyInfo.PropertyType"/>.
         /// </summary>
-        public Type ItemType { get; private set; }
+        public Type CollectionItemType { get; private set; }
 
         /// <summary>
-        /// Indicates whether the <see cref="ItemType"/> is considered a complex type.
+        /// Indicates whether the <see cref="CollectionItemType"/> is considered a complex type.
         /// </summary>
-        public bool IsItemComplexType { get; private set; }
+        public bool IsCollectionItemAComplexType { get; private set; }
 
         /// <summary>
-        /// Gets the KeyValuePair <see cref="Type"/> where the <see cref="ComplexTypeCode"/> is <see cref="CollectionReflectorType.IDictionary"/>.
+        /// Gets the KeyValuePair <see cref="Type"/> where the <see cref="TypeCode"/> is <see cref="TypeReflectorTypeCode.IDictionary"/>.
         /// </summary>
         public Type? DictKeyValuePairType { get; private set; }
 
         /// <summary>
-        /// Gets the key <see cref="Type"/> where the <see cref="ComplexTypeCode"/> is <see cref="CollectionReflectorType.IDictionary"/>.
+        /// Gets the key <see cref="Type"/> where the <see cref="TypeCode"/> is <see cref="TypeReflectorTypeCode.IDictionary"/>.
         /// </summary>
         public Type? DictKeyType { get; private set; }
 
         /// <summary>
-        /// Indicates whether the <see cref="ComplexTypeCode"/> is a collection of some description.
+        /// Indicates whether the <see cref="TypeCode"/> is a collection of some description.
         /// </summary>
-        public bool IsCollection => ComplexTypeCode != CollectionReflectorType.Object;
+        public bool IsCollectionType => TypeCode != TypeReflectorTypeCode.Complex && TypeCode != TypeReflectorTypeCode.Simple;
 
         /// <summary>
-        /// Gets the <b>Add</b> (where available) method for an <see cref="IsCollection"/>.
+        /// Gets the <b>Add</b> (where available) method for an <see cref="IsCollectionType"/>.
         /// </summary>
-        public MethodInfo? AddMethod { get; private set; }
+        public MethodInfo? CollectionAddMethod { get; private set; }
 
         /// <summary>
-        /// Gets the instantiation type for an <see cref="IsCollection"/>.
+        /// Gets the instantiation type for an <see cref="IsCollectionType"/>.
         /// </summary>
         private Type? CollectionInstantiateType { get; set; }
 
         /// <summary>
-        /// Creates a <see cref="CollectionReflector"/> from a <see cref="PropertyInfo"/>.
+        /// Creates a <see cref="TypeReflector"/> from a <see cref="PropertyInfo"/>.
         /// </summary>
         /// <param name="pi">The <see cref="PropertyInfo"/>.</param>
-        /// <returns>The <see cref="CollectionReflector"/>.</returns>
-        public static CollectionReflector Create(PropertyInfo pi)
+        /// <returns>The <see cref="TypeReflector"/>.</returns>
+        public static TypeReflector Create(PropertyInfo pi)
         {
-            var tr = new CollectionReflector(pi ?? throw new ArgumentNullException(nameof(pi)), pi.PropertyType);
+            var tr = new TypeReflector(pi ?? throw new ArgumentNullException(nameof(pi)), pi.PropertyType);
 
             if (pi.PropertyType == typeof(string) || pi.PropertyType.IsPrimitive || pi.PropertyType.IsValueType)
+            {
+                tr.TypeCode = TypeReflectorTypeCode.Simple;
                 return tr;
+            }
 
             if (pi.PropertyType.IsArray)
             {
-                tr.ComplexTypeCode = CollectionReflectorType.Array;
-                tr.ItemType = pi.PropertyType.GetElementType();
+                tr.TypeCode = TypeReflectorTypeCode.Array;
+                tr.CollectionItemType = pi.PropertyType.GetElementType();
             }
             else
             {
@@ -124,11 +96,11 @@ namespace CoreEx.Abstractions.Reflection
                     var (keyType, valueType) = GetDictionaryType(pi.PropertyType);
                     if (keyType != null)
                     {
-                        tr.ComplexTypeCode = CollectionReflectorType.IDictionary;
+                        tr.TypeCode = TypeReflectorTypeCode.IDictionary;
                         tr.DictKeyValuePairType = typeof(KeyValuePair<,>).MakeGenericType(keyType, valueType);
                         tr.DictKeyType = keyType!;
-                        tr.ItemType = valueType!;
-                        tr.AddMethod = pi.PropertyType.GetMethod("Add", new Type[] { tr.DictKeyType, tr.ItemType });
+                        tr.CollectionItemType = valueType!;
+                        tr.CollectionAddMethod = pi.PropertyType.GetMethod("Add", new Type[] { tr.DictKeyType, tr.CollectionItemType });
                         tr.CollectionInstantiateType = pi.PropertyType.IsInterface ? typeof(Dictionary<,>).MakeGenericType(keyType, valueType) : pi.PropertyType;
                     }
                     else
@@ -136,10 +108,10 @@ namespace CoreEx.Abstractions.Reflection
                         var t = GetCollectionType(pi.PropertyType);
                         if (t != null)
                         {
-                            tr.ComplexTypeCode = CollectionReflectorType.ICollection;
-                            tr.ItemType = t;
-                            tr.AddMethod = pi.PropertyType.GetMethod("Add", new Type[] { t });
-                            if (tr.AddMethod == null)
+                            tr.TypeCode = TypeReflectorTypeCode.ICollection;
+                            tr.CollectionItemType = t;
+                            tr.CollectionAddMethod = pi.PropertyType.GetMethod("Add", new Type[] { t });
+                            if (tr.CollectionAddMethod == null)
                                 throw new ArgumentException($"Type '{pi.DeclaringType.Name}' Property '{pi.Name}' is an ICollection<>; however, no Add method could be found.", nameof(pi));
 
                             tr.CollectionInstantiateType = pi.PropertyType.IsInterface ? typeof(List<>).MakeGenericType(t) : pi.PropertyType;
@@ -149,17 +121,17 @@ namespace CoreEx.Abstractions.Reflection
                             t = GetEnumerableType(pi.PropertyType);
                             if (t != null)
                             {
-                                tr.ComplexTypeCode = CollectionReflectorType.IEnumerable;
-                                tr.ItemType = t;
+                                tr.TypeCode = TypeReflectorTypeCode.IEnumerable;
+                                tr.CollectionItemType = t;
                             }
                             else
                             {
-                                var result = GetEnumerableTypeFromAdd(pi.PropertyType);
-                                if (result.ItemType != null)
+                                var (ItemType, AddMethod) = GetEnumerableTypeFromAdd(pi.PropertyType);
+                                if (ItemType != null)
                                 {
-                                    tr.ComplexTypeCode = CollectionReflectorType.ICollection;
-                                    tr.ItemType = result.ItemType;
-                                    tr.AddMethod = result.AddMethod;
+                                    tr.TypeCode = TypeReflectorTypeCode.ICollection;
+                                    tr.CollectionItemType = ItemType;
+                                    tr.CollectionAddMethod = AddMethod;
                                 }
                             }
                         }
@@ -167,22 +139,22 @@ namespace CoreEx.Abstractions.Reflection
                 }
             }
 
-            if (tr.ItemType != null)
-                tr.IsItemComplexType = !(tr.ItemType == typeof(string) || tr.ItemType.IsPrimitive || tr.ItemType.IsValueType);
+            if (tr.CollectionItemType != null)
+                tr.IsCollectionItemAComplexType = !(tr.CollectionItemType == typeof(string) || tr.CollectionItemType.IsPrimitive || tr.CollectionItemType.IsValueType);
 
-            tr._equalityComparer = (IInternalEqualityComparer)Activator.CreateInstance(typeof(InternalEqualityComparer<>).MakeGenericType(tr.ComplexTypeCode == CollectionReflectorType.IDictionary ? tr.DictKeyValuePairType : tr.ItemType));
+            tr._equalityComparer = (IInternalEqualityComparer)Activator.CreateInstance(typeof(InternalEqualityComparer<>).MakeGenericType(tr.TypeCode == TypeReflectorTypeCode.IDictionary ? tr.DictKeyValuePairType : tr.CollectionItemType));
             return tr;
         }
 
         /// <summary>
-        /// Gets the underlying item <see cref="Type"/> where an <see cref="Array"/>, <see cref="IDictionary"/>, <see cref="ICollection"/> or <see cref="IEnumerable"/>; otherwise itself (<paramref name="type"/>). 
+        /// Gets the underlying item <see cref="Type"/> where an <see cref="Array"/>, <see cref="IDictionary"/>, <see cref="ICollection"/> or <see cref="IEnumerable"/>. 
         /// </summary>
         /// <param name="type">The <see cref="Type"/>.</param>
-        /// <returns>The item <see cref="Type"/> or itself.</returns>
-        public static Type GetItemType(Type type)
+        /// <returns>The collection item <see cref="Type"/> where <see cref="IsCollectionType"/>; otherwise, <c>null</c>.</returns>
+        public static Type? GetCollectionItemType(Type type)
         {
             if ((type ?? throw new ArgumentNullException(nameof(type))) == typeof(string) || type.IsPrimitive || type.IsValueType)
-                return type;
+                return null;
 
             if (type.IsArray)
                 return type.GetElementType();
@@ -199,15 +171,15 @@ namespace CoreEx.Abstractions.Reflection
             if (t != null)
                 return t;
 
-            var result = GetEnumerableTypeFromAdd(type);
-            if (result.ItemType != null)
-                return result.ItemType;
+            var (ItemType, _) = GetEnumerableTypeFromAdd(type);
+            if (ItemType != null)
+                return ItemType;
 
-            return type;
+            return null;
         }
 
         /// <summary>
-        /// Gets the underlying ICollection Type.
+        /// Gets the underlying <see cref="ICollection{T}"/> Type.
         /// </summary>
         private static Type? GetCollectionType(Type type)
         {
@@ -222,7 +194,7 @@ namespace CoreEx.Abstractions.Reflection
         }
 
         /// <summary>
-        /// Gets the underlying IEnumerable Type.
+        /// Gets the underlying <see cref="IEnumerable"/> Type.
         /// </summary>
         private static Type? GetEnumerableType(Type type)
         {
@@ -248,7 +220,7 @@ namespace CoreEx.Abstractions.Reflection
         }
 
         /// <summary>
-        /// Gets the underlying IDictionary Type.
+        /// Gets the underlying <see cref="IDictionary{TKey, TValue}"/> Type.
         /// </summary>
         private static (Type? keyType, Type? valueType) GetDictionaryType(Type type)
         {
@@ -269,7 +241,7 @@ namespace CoreEx.Abstractions.Reflection
         }
 
         /// <summary>
-        /// Gets the underlying IEnumerable Type by inferring from the Add method.
+        /// Gets the underlying <see cref="IEnumerable"/> Type by inferring from the Add method.
         /// </summary>
         private static (Type? ItemType, MethodInfo? AddMethod) GetEnumerableTypeFromAdd(Type type)
         {
@@ -286,77 +258,76 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         /// <param name="objValue">The object whose property value will be set.</param>
         /// <param name="value">The property value(s) to set.</param>
-        public void SetValue(object? objValue, IEnumerable? value)
+        public void SetCollectionValue(object? objValue, IEnumerable? value)
         {
-            if (objValue == null || value == null)
+            if (!IsCollectionType || objValue == null || value == null)
                 return;
 
-            PropertyInfo.SetValue(objValue, CreateValue(value));
+            PropertyInfo.SetValue(objValue, CreateCollectionValue(value));
         }
 
         /// <summary>
-        /// Creates the <see cref="IsCollection"/> as empty (i.e. instantiates only); otherise, default.
+        /// Creates the <see cref="IsCollectionType"/> as empty (i.e. instantiates only).
         /// </summary>
-        /// <returns>The value.</returns>
-        public object? CreateValue()
+        /// <returns>The collection as empty.</returns>
+        public object? CreateCollectionValue()
         {
-            if (PropertyInfo.PropertyType == typeof(string))
-                return null;
+            if (!IsCollectionType)
+                throw new InvalidOperationException($"Must be an {nameof(IsCollectionType)} to use this method.");
 
-            return ComplexTypeCode switch
+            return TypeCode switch
             {
-                CollectionReflectorType.Object => IsItemComplexType ? null : Activator.CreateInstance(PropertyInfo.PropertyType),
-                CollectionReflectorType.ICollection or CollectionReflectorType.IDictionary => Activator.CreateInstance(CollectionInstantiateType),
-                _ => Array.CreateInstance(ItemType, 0),
+                TypeReflectorTypeCode.ICollection or TypeReflectorTypeCode.IDictionary => Activator.CreateInstance(CollectionInstantiateType),
+                _ => Array.CreateInstance(CollectionItemType, 0),
             };
         }
 
         /// <summary>
-        /// Creates the property value from a list/array/collection.
+        /// Creates the <see cref="IsCollectionType"/> value from an existing <see cref="IEnumerable"/> value.
         /// </summary>
-        /// <param name="value">The property value(s) to set.</param>
-        /// <returns>The property value.</returns>
-        public object CreateValue(IEnumerable value)
+        /// <param name="values">The values.</param>
+        /// <returns>The collection with included <paramref name="values"/>.</returns>
+        public object CreateCollectionValue(IEnumerable values)
         {
+            if (!IsCollectionType)
+                throw new InvalidOperationException($"Must be an {nameof(IsCollectionType)} to use this method.");
+
             IList? a = null;
             Type? aType = null;
             object? c = null;
 
-            if (IsCollection)
+            switch (TypeCode)
             {
-                switch (ComplexTypeCode)
-                {
-                    case CollectionReflectorType.Array:
-                    case CollectionReflectorType.IEnumerable:
-                        aType = typeof(List<>).MakeGenericType(ItemType);
-                        a = (IList)Activator.CreateInstance(aType);
-                        break;
+                case TypeReflectorTypeCode.Array:
+                case TypeReflectorTypeCode.IEnumerable:
+                    aType = typeof(List<>).MakeGenericType(CollectionItemType);
+                    a = (IList)Activator.CreateInstance(aType);
+                    break;
 
-                    case CollectionReflectorType.ICollection:
-                        c = Activator.CreateInstance(CollectionInstantiateType);
-                        break;
+                case TypeReflectorTypeCode.ICollection:
+                    c = Activator.CreateInstance(CollectionInstantiateType);
+                    break;
 
-                    case CollectionReflectorType.IDictionary:
-                        return value;
-                }
+                case TypeReflectorTypeCode.IDictionary:
+                    return values;
             }
 
-            if (value != null)
+            if (values != null)
             {
-                foreach (var val in value)
+                foreach (var val in values)
                 {
-                    if (!IsCollection)
+                    if (!IsCollectionType)
                         return val;
 
-                    switch (ComplexTypeCode)
+                    switch (TypeCode)
                     {
-                        case CollectionReflectorType.Array:
-                        case CollectionReflectorType.IEnumerable:
+                        case TypeReflectorTypeCode.Array:
+                        case TypeReflectorTypeCode.IEnumerable:
                             a!.Add(val);
                             break;
 
-                        case CollectionReflectorType.ICollection:
-                            AddMethod!.Invoke(c, new object[] { val });
+                        case TypeReflectorTypeCode.ICollection:
+                            CollectionAddMethod!.Invoke(c, new object[] { val });
                             break;
                     }
                 }
@@ -364,17 +335,15 @@ namespace CoreEx.Abstractions.Reflection
 
             if (a != null)
                 return aType!.GetMethod("ToArray").Invoke(a, null);
-            else if (c != null)
-                return c;
             else
-                return null!;
+                return c ?? throw new InvalidOperationException("An invalid non-null value has unexpectantly been created.");
         }
 
         /// <summary>
         /// Creates an instance of the item value.
         /// </summary>
         /// <returns>An instance of the item value.</returns>
-        public object? CreateItemValue() => ItemType == typeof(string) ? null : Activator.CreateInstance(ItemType);
+        public object? CreateCollectionItemValue() => CollectionItemType == typeof(string) ? null : Activator.CreateInstance(CollectionItemType);
 
         /// <summary>
         /// Determines whether two sequences are equal by comparing the elements by using the default equality comparer for their type.
@@ -384,7 +353,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns><c>true</c> if the two source sequences are of equal length and their corresponding elements are equal according to the default equality comparer for their type; otherwise, <c>false</c>.</returns>
         public bool CompareSequence(object? left, object? right)
         {
-            if (ComplexTypeCode == CollectionReflectorType.Object)
+            if (TypeCode == TypeReflectorTypeCode.Complex)
                 throw new InvalidOperationException("CompareSequence cannot be performed for a ComplexTypeCode.Object.");
 
             if (left == null && right == null)
@@ -396,9 +365,9 @@ namespace CoreEx.Abstractions.Reflection
             if (left == right)
                 return true;
 
-            switch (ComplexTypeCode)
+            switch (TypeCode)
             {
-                case CollectionReflectorType.Array:
+                case TypeReflectorTypeCode.Array:
                     var al = (Array)left!;
                     var ar = (Array)right!;
                     if (al.Length != ar.Length)
@@ -406,7 +375,7 @@ namespace CoreEx.Abstractions.Reflection
 
                     break;
 
-                case CollectionReflectorType.ICollection:
+                case TypeReflectorTypeCode.ICollection:
                     var cl = (ICollection)left!;
                     var cr = (ICollection)right!;
                     if (cl.Count != cr.Count)
@@ -414,7 +383,7 @@ namespace CoreEx.Abstractions.Reflection
 
                     break;
 
-                case CollectionReflectorType.IDictionary:
+                case TypeReflectorTypeCode.IDictionary:
                     var dl = (IDictionary)left!;
                     var dr = (IDictionary)right!;
                     if (dl.Count != dr.Count)

@@ -175,11 +175,11 @@ namespace CoreEx.Newtonsoft.Json
         }
 
         /// <summary>
-        /// Gets (creates) the <see cref="JsonProperty"/> from the <paramref name="propertyInfo"/>.
+        /// Gets (creates) the <see cref="JsonProperty"/> from the <paramref name="memberInfo"/>.
         /// </summary>
-        /// <param name="propertyInfo">The <see cref="PropertyInfo"/>.</param>
+        /// <param name="memberInfo">The <see cref="MemberInfo"/>.</param>
         /// <param name="memberSerialization">The <see cref="MemberSerialization"/> option.</param>
         /// <returns>The <see cref="JsonProperty"/>.</returns>
-        public JsonProperty GetProperty(PropertyInfo propertyInfo, MemberSerialization memberSerialization) => CreateProperty(propertyInfo, memberSerialization);
+        public JsonProperty GetProperty(MemberInfo memberInfo, MemberSerialization memberSerialization) => CreateProperty(memberInfo, memberSerialization);
     }
 }

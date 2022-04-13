@@ -105,11 +105,11 @@ namespace CoreEx.Json
         bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null);
 
         /// <summary>
-        /// Trys and gets the corresponding JSON name for the <paramref name="propertyInfo"/>.
+        /// Trys and gets the corresponding JSON name for the <paramref name="memberInfo"/>.
         /// </summary>
-        /// <param name="propertyInfo">The <see cref="PropertyInfo"/></param>
+        /// <param name="memberInfo">The <see cref="MemberInfo"/></param>
         /// <param name="jsonName">The JSON name where underlying JSON attribute is defined or not; <c>null</c> where not serializable.</param>
         /// <returns><c>true</c> indicates that the property is considered serializable; otherwise, <c>false</c>.</returns>
-        bool TryGetJsonName(PropertyInfo propertyInfo, out string? jsonName);
+        bool TryGetJsonName(MemberInfo memberInfo, out string? jsonName);
     }
 }

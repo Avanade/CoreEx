@@ -84,20 +84,20 @@ namespace CoreEx.Text.Json
         }
 
         /// <inheritdoc/>
-        bool IJsonSerializer.TryGetJsonName(PropertyInfo propertyInfo, out string? jsonName)
+        bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, out string? jsonName)
         {
-            if (propertyInfo == null)
-                throw new ArgumentNullException(nameof(propertyInfo));
+            if (memberInfo == null)
+                throw new ArgumentNullException(nameof(memberInfo));
 
-            var ji = propertyInfo.GetCustomAttribute<JsonIgnoreAttribute>();
+            var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>();
             if (ji != null)
             {
                 jsonName = null;
                 return false;
             }
 
-            var jpn = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>(true);
-            jsonName = jpn?.Name ?? Options.PropertyNamingPolicy?.ConvertName(propertyInfo.Name) ?? propertyInfo.Name;
+            var jpn = memberInfo.GetCustomAttribute<JsonPropertyNameAttribute>(true);
+            jsonName = jpn?.Name ?? Options.PropertyNamingPolicy?.ConvertName(memberInfo.Name) ?? memberInfo.Name;
             return true;
         }
     }
