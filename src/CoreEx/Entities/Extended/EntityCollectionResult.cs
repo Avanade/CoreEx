@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Represents an <see cref="EntityBaseCollection{TEntity, TSelf}"/> class with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.

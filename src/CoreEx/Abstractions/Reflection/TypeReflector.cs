@@ -9,7 +9,7 @@ using System.Reflection;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Utility reflection class for identifying, creating and updating collections.
+    /// Utility reflection class for largely identifying and managing collections.
     /// </summary>
     public class TypeReflector
     {
@@ -142,7 +142,7 @@ namespace CoreEx.Abstractions.Reflection
             if (tr.CollectionItemType != null)
                 tr.IsCollectionItemAComplexType = !(tr.CollectionItemType == typeof(string) || tr.CollectionItemType.IsPrimitive || tr.CollectionItemType.IsValueType);
 
-            tr._equalityComparer = (IInternalEqualityComparer)Activator.CreateInstance(typeof(InternalEqualityComparer<>).MakeGenericType(tr.TypeCode == TypeReflectorTypeCode.IDictionary ? tr.DictKeyValuePairType : tr.CollectionItemType));
+            tr._equalityComparer = (IInternalEqualityComparer)Activator.CreateInstance(typeof(InternalEqualityComparer<>).MakeGenericType(tr.CollectionItemType));
             return tr;
         }
 
@@ -150,32 +150,32 @@ namespace CoreEx.Abstractions.Reflection
         /// Gets the underlying item <see cref="Type"/> where an <see cref="Array"/>, <see cref="IDictionary"/>, <see cref="ICollection"/> or <see cref="IEnumerable"/>. 
         /// </summary>
         /// <param name="type">The <see cref="Type"/>.</param>
-        /// <returns>The collection item <see cref="Type"/> where <see cref="IsCollectionType"/>; otherwise, <c>null</c>.</returns>
-        public static Type? GetCollectionItemType(Type type)
+        /// <returns>The <see cref="TypeReflectorTypeCode"/> and corresponding item <see cref="Type"/> where a collection.</returns>
+        public static (TypeReflectorTypeCode TypeCode, Type? ItemType) GetCollectionItemType(Type type)
         {
             if ((type ?? throw new ArgumentNullException(nameof(type))) == typeof(string) || type.IsPrimitive || type.IsValueType)
-                return null;
+                return (TypeReflectorTypeCode.Simple, null);
 
             if (type.IsArray)
-                return type.GetElementType();
+                return (TypeReflectorTypeCode.Array, type.GetElementType());
 
             var (_, valueType) = GetDictionaryType(type);
             if (valueType != null)
-                return valueType;
+                return (TypeReflectorTypeCode.IDictionary, valueType);
 
             var t = GetCollectionType(type);
             if (t != null)
-                return t;
+                return (TypeReflectorTypeCode.ICollection, t);
 
             t = GetEnumerableType(type);
             if (t != null)
-                return t;
+                return (TypeReflectorTypeCode.IEnumerable, t);
 
             var (ItemType, _) = GetEnumerableTypeFromAdd(type);
             if (ItemType != null)
-                return ItemType;
+                return (TypeReflectorTypeCode.IEnumerable, ItemType);
 
-            return null;
+            return (TypeReflectorTypeCode.Complex, null);
         }
 
         /// <summary>
@@ -353,8 +353,8 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns><c>true</c> if the two source sequences are of equal length and their corresponding elements are equal according to the default equality comparer for their type; otherwise, <c>false</c>.</returns>
         public bool CompareSequence(object? left, object? right)
         {
-            if (TypeCode == TypeReflectorTypeCode.Complex)
-                throw new InvalidOperationException("CompareSequence cannot be performed for a ComplexTypeCode.Object.");
+            if (TypeCode == TypeReflectorTypeCode.Simple || TypeCode == TypeReflectorTypeCode.Complex)
+                throw new InvalidOperationException("CompareSequence cannot be performed for a ComplexTypeCode.Simple or ComplexTypeCode.Object.");
 
             if (left == null && right == null)
                 return true;
@@ -389,19 +389,30 @@ namespace CoreEx.Abstractions.Reflection
                     if (dl.Count != dr.Count)
                         return false;
 
-                    break;
+                    var edl = dl.GetEnumerator();
+                    while (edl.MoveNext())
+                    {
+                        if (!dr.Contains(edl.Key))
+                            return false;
+
+                        if (!_equalityComparer!.IsEqual(edl.Value, dr[edl.Key]))
+                            return false;
+                    }
+
+                    return true;
             }
 
             // Inspired by: https://referencesource.microsoft.com/#System.Core/System/Linq/Enumerable.cs,9bdd6ef7ba6a5615
             var el = ((IEnumerable)left!).GetEnumerator();
             var er = ((IEnumerable)right!).GetEnumerator();
+            while (el.MoveNext())
             {
-                while (el.MoveNext())
-                {
-                    if (!(er.MoveNext() && _equalityComparer!.IsEqual(el.Current, er.Current))) return false;
-                }
-                if (er.MoveNext()) return false;
+                if (!(er.MoveNext() && _equalityComparer!.IsEqual(el.Current, er.Current)))
+                    return false;
             }
+
+            if (er.MoveNext())
+                return false;
 
             return true;
         }

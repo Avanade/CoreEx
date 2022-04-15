@@ -42,15 +42,59 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         }
 
         [Test]
-        public void GetValue()
+        public void Compare_Int()
         {
-            var pe1 = PropertyExpression.Create<Person, int>(p => p.Id);
-            var pe3 = PropertyExpression.Create<Person, Gender?>(p => p.Gender);
+            var pe = PropertyExpression.Create<Person, int>(p => p.Id);
+            var pei = (IPropertyExpression)pe;
 
-            var p = new Person { Id = 88, Gender = new Gender { Code = "M" } };
+            Assert.IsTrue(pei.Compare(null, null));
+            Assert.IsFalse(pei.Compare(1, null));
+            Assert.IsFalse(pei.Compare(null, 2));
+            Assert.IsFalse(pei.Compare(1, 2));
+            Assert.IsTrue(pei.Compare(1, 1));
+        }
 
-            Assert.AreEqual(88, pe1.GetValue(p));
-            Assert.AreEqual("M", pe3.GetValue(p)!.Code);
+        [Test]
+        public void Compare_Nullable()
+        {
+            var pe = PropertyExpression.Create<Person, decimal?>(p => p.Salary);
+            var pei = (IPropertyExpression)pe;
+
+            Assert.IsTrue(pei.Compare(null, null));
+            Assert.IsFalse(pei.Compare(1m, null));
+            Assert.IsFalse(pei.Compare(null, 2m));
+            Assert.IsFalse(pei.Compare(1m, 2m));
+            Assert.IsTrue(pei.Compare(1m, 1m));
+        }
+
+        [Test]
+        public void Compare_Array()
+        {
+            var pe = PropertyExpression.Create<Person, string[]?>(p => p.NickNames);
+            var pei = (IPropertyExpression)pe;
+
+            Assert.IsTrue(pei.Compare(null, null));
+            Assert.IsFalse(pei.Compare(new string[] { "a", "b" }, null));
+            Assert.IsFalse(pei.Compare(null, new string[] { "y", "z" }));
+            Assert.IsFalse(pei.Compare(new string[] { "a", "b" }, new string[] { "y", "z" }));
+            Assert.IsFalse(pei.Compare(new string[] { "a", "b" }, new string[] { "a", "b", "c" }));
+            Assert.IsTrue(pei.Compare(new string[] { "a", "b" }, new string[] { "a", "b" }));
+        }
+
+        [Test]
+        public void Compare_Collection()
+        {
+            var pe = PropertyExpression.Create<Person, System.Collections.Generic.List<Address>?>(p => p.Addresses);
+            var pei = (IPropertyExpression)pe;
+
+            Assert.IsTrue(pei.Compare(null, null));
+            Assert.IsTrue(pei.Compare(new System.Collections.Generic.List<Address>(), new System.Collections.Generic.List<Address>()));
+
+            // No equality check for Address, so will all fail.
+            Assert.IsFalse(pei.Compare(new System.Collections.Generic.List<Address> { new Address() }, new System.Collections.Generic.List<Address> { new Address() }));
+            Assert.IsFalse(pei.Compare(null, new System.Collections.Generic.List<Address> { new Address() }));
+            Assert.IsFalse(pei.Compare(new System.Collections.Generic.List<Address> { new Address() }, null));
+            Assert.IsFalse(pei.Compare(new System.Collections.Generic.List<Address> { new Address() }, new System.Collections.Generic.List<Address> { new Address(), new Address() }));
         }
     }
 }

@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Represents the base capabilities for a full featured <b>Entity</b>.

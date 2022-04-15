@@ -10,7 +10,13 @@ namespace CoreEx.Entities
     [System.Diagnostics.DebuggerStepThrough]
     public class CompositeKeyComparer : IEqualityComparer<CompositeKey>
     {
+        private static readonly CompositeKeyComparer _default = new();
         private static readonly object _nullObject = new();
+
+        /// <summary>
+        /// Gets the default <see cref="CompositeKeyComparer"/> instance.
+        /// </summary>
+        public static CompositeKeyComparer Default => _default;
 
         /// <summary>
         /// Determines whether the specified <see cref="CompositeKey"/> values are equal.

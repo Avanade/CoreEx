@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Provides data for the <see cref="INotifyPropertyChanged.PropertyChanged"/> when an <i>item</i> within an <see cref="IEntityBaseCollection"/> is changed.

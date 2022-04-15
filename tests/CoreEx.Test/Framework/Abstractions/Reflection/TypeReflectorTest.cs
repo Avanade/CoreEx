@@ -58,12 +58,19 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         [Test]
         public void GetCollectionItemType()
         {
-            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(typeof(string)));
-            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(typeof(int)));
-            Assert.AreEqual(typeof(string), TypeReflector.GetCollectionItemType(new string?[] { "blah" }.GetType()));
-            Assert.AreEqual(typeof(decimal?), TypeReflector.GetCollectionItemType(new List<decimal?>().GetType()));
-            Assert.AreEqual(typeof(Test), TypeReflector.GetCollectionItemType(new Dictionary<string, Test>().GetType()));
-            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(new Test().GetType()));
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetCollectionItemType(typeof(string)).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetCollectionItemType(typeof(int)).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Array, TypeReflector.GetCollectionItemType(new string?[] { "blah" }.GetType()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.ICollection, TypeReflector.GetCollectionItemType(new List<decimal?>().GetType()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.IDictionary, TypeReflector.GetCollectionItemType(new Dictionary<string, Test>().GetType()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Complex, TypeReflector.GetCollectionItemType(new Test().GetType()).TypeCode);
+            
+            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(typeof(string)).ItemType);
+            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(typeof(int)).ItemType);
+            Assert.AreEqual(typeof(string), TypeReflector.GetCollectionItemType(new string?[] { "blah" }.GetType()).ItemType);
+            Assert.AreEqual(typeof(decimal?), TypeReflector.GetCollectionItemType(new List<decimal?>().GetType()).ItemType);
+            Assert.AreEqual(typeof(Test), TypeReflector.GetCollectionItemType(new Dictionary<string, Test>().GetType()).ItemType);
+            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(new Test().GetType()).ItemType);
         }
 
         [Test]

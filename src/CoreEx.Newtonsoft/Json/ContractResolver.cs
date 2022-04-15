@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Entities.Extended;
 using CoreEx.Events;
 using CoreEx.RefData.Models;
 using CoreEx.WebApis;

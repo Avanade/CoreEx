@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Provides the action to perform on an <see cref="EntityCore"/> (and <see cref="EntityBase{TSelf}"/>) via the <see cref="EntityCore.ApplyAction"/>

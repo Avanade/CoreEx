@@ -5,7 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 
-namespace CoreEx.Test.Framework.Entities
+namespace CoreEx.Test.Framework.Configuration
 {
     [TestFixture, NonParallelizable]
     public class SettingsBaseTest

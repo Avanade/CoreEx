@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Represents the core <b>Entity</b> capabilities including <see cref="INotifyPropertyChanged"/> <see cref="IChangeTracking"/> support.

@@ -6,22 +6,19 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Linq;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Represents an <see cref="EntityBase"/> collection class.
     /// </summary>
     /// <typeparam name="TEntity">The <see cref="EntityBase"/> <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="EntityBase"/> collection <see cref="Type"/> itself.</typeparam>
-    [System.Diagnostics.DebuggerStepThrough]
+    //[System.Diagnostics.DebuggerStepThrough]
     public abstract class EntityBaseCollection<TEntity, TSelf> : ObservableCollection<TEntity>, IEntityBaseCollection, IEquatable<TSelf>, ICloneable
         where TEntity : EntityBase 
         where TSelf : EntityBaseCollection<TEntity, TSelf>, new()
     {
-        private readonly Lazy<bool> _hasPrimaryKey = new(() => typeof(IPrimaryKey).IsAssignableFrom(typeof(TEntity)));
-
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityBaseCollection{TEntity, TSelf}" /> class.
         /// </summary>
@@ -62,26 +59,6 @@ namespace CoreEx.Entities
                 Add(item);
             }
         }
-
-        /// <inheritdoc/>
-        object? IEntityBaseCollection.GetByPrimaryKey(CompositeKey key) => GetByPrimaryKey(key);
-
-        /// <summary>
-        /// Gets the first item by the specified primary <paramref name="key"/>.
-        /// </summary>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <returns>The first item where found; otherwise, <c>default</c>. Where the underlying entity item does not implement <see cref="IPrimaryKey"/> this will always return <c>null</c>.</returns>
-        public TEntity? GetByPrimaryKey(CompositeKey key) => !_hasPrimaryKey.Value ? default! : Items.Where(x => x is IPrimaryKey pk && key.Equals(pk.PrimaryKey)).FirstOrDefault();
-
-        /// <inheritdoc/>
-        object? IEntityBaseCollection.GetByPrimaryKey(params object?[] args) => GetByPrimaryKey(args);
-
-        /// <summary>
-        /// Gets the first item by the <paramref name="args"/> that represent the primary <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="args">The argument values for the key.</param>
-        /// <returns>The first item where found; otherwise, <c>default</c>. Where the underlying entity item does not implement <see cref="IPrimaryKey"/> this will always return <c>null</c>.</returns>
-        public TEntity? GetByPrimaryKey(params object?[] args) => GetByPrimaryKey(new CompositeKey(args));
 
         /// <summary>
         /// Gets a <see cref="IEnumerable{TEntity}"/> wrapper around the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.
@@ -185,7 +162,8 @@ namespace CoreEx.Entities
                 foreach (var item in e.OldItems)
                 {
                     var ei = (EntityBase)item;
-                    ei.PropertyChanged -= Item_PropertyChanged;
+                    if (ei != null)
+                        ei.PropertyChanged -= Item_PropertyChanged;
                 }
             }
 
@@ -194,7 +172,8 @@ namespace CoreEx.Entities
                 foreach (var item in e.NewItems)
                 {
                     var ei = (EntityBase)item;
-                    ei.PropertyChanged += Item_PropertyChanged;
+                    if (ei != null)
+                        ei.PropertyChanged += Item_PropertyChanged;
                 }
             }
 

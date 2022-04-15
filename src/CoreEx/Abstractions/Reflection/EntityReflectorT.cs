@@ -12,11 +12,11 @@ namespace CoreEx.Abstractions.Reflection
     /// Provides a reflector for a given entity (class) (<see cref="Type"/>).
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    public class EntityReflector<TEntity> : IEntityReflector where TEntity : class, new()
+    public class EntityReflector<TEntity> : IEntityReflector where TEntity : class
     {
-        private readonly Dictionary<string, IPropertyReflector<TEntity>> _properties;
-        private readonly Dictionary<string, IPropertyReflector<TEntity>> _jsonProperties;
-        private readonly Lazy<Dictionary<string, object>> _data = new(true);
+        private readonly Dictionary<string, IPropertyReflector> _properties;
+        private readonly Dictionary<string, IPropertyReflector> _jsonProperties;
+        private readonly Lazy<Dictionary<string, object?>> _data = new(true);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityReflector{TEntity}"/> class.
@@ -25,8 +25,8 @@ namespace CoreEx.Abstractions.Reflection
         internal EntityReflector(EntityReflectorArgs? args = null)
         {
             Args = args ?? new EntityReflectorArgs();
-            _properties = new Dictionary<string, IPropertyReflector<TEntity>>(Args.NameComparer ?? StringComparer.Ordinal);
-            _jsonProperties = new Dictionary<string, IPropertyReflector<TEntity>>(Args.NameComparer ?? StringComparer.Ordinal);
+            _properties = new Dictionary<string, IPropertyReflector>(StringComparer.Ordinal);
+            _jsonProperties = new Dictionary<string, IPropertyReflector>(Args.NameComparer ?? StringComparer.OrdinalIgnoreCase);
 
             if (!Args.AutoPopulateProperties)
                 return;
@@ -36,7 +36,7 @@ namespace CoreEx.Abstractions.Reflection
             foreach (var p in EntityReflector.GetProperties(typeof(TEntity)))
             {
                 var lex = Expression.Lambda(Expression.Property(pe, p.Name), pe);
-                var pr = (IPropertyReflector<TEntity>)Activator.CreateInstance(typeof(PropertyReflector<,>).MakeGenericType(typeof(TEntity), p.PropertyType), Args, lex);
+                var pr = (IPropertyReflector)Activator.CreateInstance(typeof(PropertyReflector<,>).MakeGenericType(typeof(TEntity), p.PropertyType), Args, lex);
 
                 if (Args.PropertyBuilder != null && !Args.PropertyBuilder(pr))
                     continue;
@@ -58,7 +58,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <summary>
         /// Gets the <see cref="Dictionary{TKey, TValue}"/> for storing additional data.
         /// </summary>
-        public Dictionary<string, object> Data { get => _data.Value; }
+        public Dictionary<string, object?> Data { get => _data.Value; }
 
         /// <summary>
         /// Adds a <see cref="PropertyReflector{TEntity, TProperty}"/> to the mapper.
@@ -77,15 +77,15 @@ namespace CoreEx.Abstractions.Reflection
         }
 
         /// <summary>
-        /// Adds the <see cref="IPropertyReflector{TEntity}"/> to the underlying property collections.
+        /// Adds the <see cref="IPropertyReflector"/> to the underlying property collections.
         /// </summary>
-        private void AddProperty(IPropertyReflector<TEntity> propertyReflector)
+        private void AddProperty(IPropertyReflector propertyReflector)
         {
             if (propertyReflector == null)
                 throw new ArgumentNullException(nameof(propertyReflector));
 
-            if (_properties.ContainsKey(propertyReflector.PropertyName))
-                throw new ArgumentException($"Property with name '{propertyReflector.PropertyName}' can not be specified more than once.", nameof(propertyReflector));
+            if (_properties.ContainsKey(propertyReflector.Name))
+                throw new ArgumentException($"Property with name '{propertyReflector.Name}' can not be specified more than once.", nameof(propertyReflector));
 
             if (propertyReflector.PropertyExpression.IsJsonSerializable && propertyReflector.JsonName != null)
             {
@@ -95,40 +95,18 @@ namespace CoreEx.Abstractions.Reflection
                 _jsonProperties.Add(propertyReflector.JsonName, propertyReflector);
             }
 
-            _properties.Add(propertyReflector.PropertyName, propertyReflector);
+            _properties.Add(propertyReflector.Name, propertyReflector);
         }
 
-        /// <summary>
-        /// Gets the <see cref="IPropertyReflector"/> for the specified name.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <returns>The <see cref="IPropertyReflector"/>.</returns>
-        IPropertyReflector IEntityReflector.GetProperty(string name) => GetProperty(name);
-
-        /// <summary>
-        /// Gets the <see cref="IPropertyReflector"/> for the specified name.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <returns>The <see cref="IPropertyReflector"/>.</returns>
-        public IPropertyReflector<TEntity> GetProperty(string name)
+        /// <inheritdoc/>
+        public IPropertyReflector GetProperty(string name)
         {
             _properties.TryGetValue(name, out var value);
             return value;
         }
 
-        /// <summary>
-        /// Gets the <see cref="IPropertyReflector"/> for the specified JSON name.
-        /// </summary>
-        /// <param name="jsonName">The JSON name.</param>
-        /// <returns>The <see cref="IPropertyReflector"/>.</returns>
-        IPropertyReflector? IEntityReflector.GetJsonProperty(string jsonName) => GetJsonProperty(jsonName);
-
-        /// <summary>
-        /// Gets the <see cref="IPropertyReflector"/> for the specified JSON name.
-        /// </summary>
-        /// <param name="jsonName">The JSON name.</param>
-        /// <returns>The <see cref="IPropertyReflector"/>.</returns>
-        public IPropertyReflector<TEntity>? GetJsonProperty(string jsonName)
+        /// <inheritdoc/>
+        public IPropertyReflector? GetJsonProperty(string jsonName)
         {
             _jsonProperties.TryGetValue(jsonName, out var value);
             return value;

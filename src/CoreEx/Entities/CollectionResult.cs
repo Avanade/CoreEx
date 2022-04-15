@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class (not <see cref="EntityBaseCollection{TEntity, TSelf}"/>) with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.
+    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.
     /// </summary>
     /// <typeparam name="TColl">The result collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The underlying entity <see cref="Type"/>.</typeparam>

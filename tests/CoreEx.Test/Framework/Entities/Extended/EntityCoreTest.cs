@@ -1,8 +1,9 @@
 ﻿using CoreEx.Entities;
+using CoreEx.Entities.Extended;
 using NUnit.Framework;
 using System;
 
-namespace CoreEx.Test.Framework.Entities
+namespace CoreEx.Test.Framework.Entities.Extended
 {
     [TestFixture]
     public class EntityCoreTest

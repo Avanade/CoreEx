@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Provides the base capabilities for the <see cref="EntityBase{TSelf}"/>.

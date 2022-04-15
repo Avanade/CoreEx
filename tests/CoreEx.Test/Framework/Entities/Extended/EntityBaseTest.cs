@@ -1,9 +1,10 @@
 ﻿using CoreEx.Entities;
+using CoreEx.Entities.Extended;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 
-namespace CoreEx.Test.Framework.Entities
+namespace CoreEx.Test.Framework.Entities.Extended
 {
     [TestFixture]
     public class EntityBaseTest
@@ -597,20 +598,60 @@ namespace CoreEx.Test.Framework.Entities
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
 
-            var pi = pc.GetByPrimaryKey();
+            var pi = pc.GetByKey();
             Assert.IsNull(pi);
 
-            pi = pc.GetByPrimaryKey("dave");
+            pi = pc.GetByKey("dave");
             Assert.AreEqual(pi, p1);
 
-            pi = pc.GetByPrimaryKey("bazza");
+            pi = pc.GetByKey("bazza");
             Assert.IsNull(pi);
 
-            pi = pc.GetByPrimaryKey(p1.PrimaryKey);
+            pi = pc.GetByKey(p1.PrimaryKey);
             Assert.AreEqual(pi, p1);
 
-            pi = pc.GetByPrimaryKey(new CompositeKey("bazza"));
+            pi = pc.GetByKey(new CompositeKey("bazza"));
             Assert.IsNull(pi);
+        }
+
+        [Test]
+        public void Collection_Person_DeleteByPrimaryKey()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var p3 = new Person { Name = "dave", Age = 40 };
+            var pc = new PersonCollection { p1, p2, p3 };
+
+            pc.RemoveByKey("rebecca");
+            Assert.AreEqual(3, pc.Count);
+            Assert.AreEqual("dave", pc[0].Name);
+
+            pc.RemoveByKey("dave");
+            Assert.AreEqual(1, pc.Count);
+            Assert.AreEqual("mary", pc[0].Name);
+
+            pc.RemoveByKey("mary");
+            Assert.AreEqual(0, pc.Count);
+        }
+
+        [Test]
+        public void Collection_Person_ItemsAreAllUnique()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var p3 = new Person { Name = "dave", Age = 40 };
+            var pc = new PersonCollection { p1, p2, p3 };
+
+            Assert.IsTrue(pc.IsAnyDuplicates());
+
+            pc.Remove(p3);
+            Assert.IsFalse(pc.IsAnyDuplicates());
+
+            pc = new PersonCollection { null!, null! };
+            Assert.IsTrue(pc.IsAnyDuplicates());
+
+            pc.RemoveAt(0);
+            Assert.IsFalse(pc.IsAnyDuplicates());
         }
 
         [Test]
@@ -683,7 +724,7 @@ namespace CoreEx.Test.Framework.Entities
                 && Cleaner.IsDefault(ChangeLog);
         }
 
-        public class PersonCollection : EntityBaseCollection<Person, PersonCollection>
+        public class PersonCollection : PrimaryKeyBaseCollection<Person, PersonCollection>
         {
             public PersonCollection() { }
 

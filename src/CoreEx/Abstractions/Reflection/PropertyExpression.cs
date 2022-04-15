@@ -27,7 +27,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="JsonSerializer.Default"/> where not specified.</param>
         /// <returns>A <see cref="PropertyExpression{TEntity, TProperty}"/> which contains (in order) the compiled <see cref="System.Func{TEntity, TProperty}"/>, member name and resulting property text.</returns>
         public static PropertyExpression<TEntity, TProperty> Create<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, IJsonSerializer? jsonSerializer = null)
-            => PropertyExpression<TEntity, TProperty>.CreateInternal(propertyExpression, jsonSerializer);
+            => PropertyExpression<TEntity, TProperty>.CreateInternal(propertyExpression, jsonSerializer ?? JsonSerializer.Default);
 
         /// <summary>
         /// Converts a <see cref="string"/> into sentence case.

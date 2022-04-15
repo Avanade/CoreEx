@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Json;
 using System;
 using System.Collections.Concurrent;
 
@@ -13,8 +14,18 @@ namespace CoreEx.Abstractions.Reflection
         /// <summary>
         /// Initializes an instance of the <see cref="EntityReflectorArgs"/> class with an optional <paramref name="cache"/>.
         /// </summary>
+        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
         /// <param name="cache">The <b>cache</b> <see cref="ConcurrentDictionary{Type, IEntityReflector}"/> to use versus instantiating each <see cref="EntityReflector"/> per use.</param>
-        public EntityReflectorArgs(ConcurrentDictionary<Type, IEntityReflector>? cache = null) => Cache = cache ?? new();
+        public EntityReflectorArgs(IJsonSerializer? jsonSerializer = null, ConcurrentDictionary<Type, IEntityReflector>? cache = null)
+        {
+            JsonSerializer = jsonSerializer ?? Json.JsonSerializer.Default;
+            Cache = cache ?? new();
+        }
+
+        /// <summary>
+        /// Gets the <see cref="IJsonSerializer"/>.
+        /// </summary>
+        public IJsonSerializer JsonSerializer { get; }
 
         /// <summary>
         /// Gets the <b>cache</b> <see cref="ConcurrentDictionary{Type, IEntityReflector}"/> to use versus instantiating each <see cref="EntityReflector"/> per use.

@@ -2,6 +2,7 @@
 
 using CoreEx.Localization;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace CoreEx.Abstractions.Reflection
 {
@@ -10,6 +11,11 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     public interface IPropertyExpression
     {
+        /// <summary>
+        /// Gets the corresponding <see cref="System.Reflection.PropertyInfo"/>.
+        /// </summary>
+        PropertyInfo PropertyInfo { get; }
+
         /// <summary>
         /// Gets the property name.
         /// </summary>
@@ -31,10 +37,31 @@ namespace CoreEx.Abstractions.Reflection
         LText Text { get; }
 
         /// <summary>
-        /// Gets the property value for the given entity value.
+        /// Gets the default value.
+        /// </summary>
+        /// <returns>The default value.</returns>
+        object? GetDefault();
+
+        /// <summary>
+        /// Compares two values for equality.
+        /// </summary>
+        /// <param name="x">The first value.</param>
+        /// <param name="y">The second value.</param>
+        /// <returns><c>true</c> indicates that they are equal; otherwise, <c>false</c>.</returns>
+        bool Compare(object? x, object? y);
+
+        /// <summary>
+        /// Gets the property value for the given entity.
         /// </summary>
         /// <param name="entity">The entity value.</param>
         /// <returns>The corresponding property value.</returns>
-        object? GetValue(object entity);
+        object? GetValue(object? entity);
+
+        /// <summary>
+        /// Sets the property value for the given entity.
+        /// </summary>
+        /// <param name="entity">The entity value.</param>
+        /// <param name="value">The corresponding property value.</param>
+        void SetValue(object entity, object? value);
     }
 }

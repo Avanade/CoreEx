@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Collections.Generic;
 
 namespace CoreEx.Abstractions.Reflection
 {
@@ -20,6 +21,11 @@ namespace CoreEx.Abstractions.Reflection
         EntityReflectorArgs Args { get; }
 
         /// <summary>
+        /// Gets the <see cref="Dictionary{TKey, TValue}"/> for storing additional data.
+        /// </summary>
+        Dictionary<string, object?> Data { get; }
+
+        /// <summary>
         /// Gets the <see cref="IPropertyReflector"/> for the specified property name.
         /// </summary>
         /// <param name="name">The property name.</param>
@@ -31,6 +37,13 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         /// <param name="jsonName">The JSON name.</param>
         /// <returns>The <see cref="IPropertyReflector"/>.</returns>
+        /// <remarks>Uses the <see cref="EntityReflectorArgs.NameComparer"/> to match the JSON name.</remarks>
         IPropertyReflector? GetJsonProperty(string jsonName);
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="Type"/> using the default empty constructor.
+        /// </summary>
+        /// <returns>A new instance of the <see cref="Type"/>.</returns>
+        object CreateInstance() => Activator.CreateInstance(Type);
     }
 }

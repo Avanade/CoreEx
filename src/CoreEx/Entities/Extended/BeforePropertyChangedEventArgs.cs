@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
     /// Provides data for the <see cref="EntityCore.BeforePropertyChanged"/> event.
