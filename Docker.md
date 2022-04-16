@@ -17,5 +17,19 @@ services:
       - ServiceBusConnection=Endpoint=sb://coreex.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxxx
 ```
 
-Todo:
-add script: https://github.com/karpikpl/tests-with-docker-compose/blob/2158e44403d3659a2efe03d4af09b48756f46b76/Dockerfile
+## Services
+
+Available services:
+* Database at port 5433
+* API at port 5103
+* Functions at 5104
+
+Sample curl commands:
+```
+curl localhost:5104/api/health
+curl localhost:5104/api/health  # to [get] to 'HealthInfo'
+curl localhost:5104/api/employee/verify  # to [post] to 'HttpTriggerQueueVerificationFuncion'
+curl localhost:5104/api/oauth2-redirect.html  # to [GET] to 'RenderOAuth2Redirect'
+curl localhost:5104/api/openapi/{version}.{extension}  # to [GET] to 'RenderOpenApiDocument'
+curl localhost:5104/api/swagger.{extension}  # to [GET] to 'RenderSwaggerDocument'
+curl localhost:5104/api/swagger/ui  # to [GET] to 'RenderSwaggerUI'
