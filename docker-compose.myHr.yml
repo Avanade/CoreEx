@@ -18,4 +18,6 @@ services:
   myhr-functions:
     build:
       context: .
+      args:
+        LOCAL: 'true'
       dockerfile: samples/My.Hr/My.Hr.Functions/Dockerfile
