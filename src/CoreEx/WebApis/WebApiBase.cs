@@ -102,6 +102,7 @@ namespace CoreEx.WebApis
             request.HttpContext.Response.Headers.Add(HttpConsts.CorrelationIdHeaderName, ExecutionContext.CorrelationId);
 
             var scope = Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, ExecutionContext.CorrelationId } });
+            Logger.LogTrace("RunAsync base started.");
 
             try
             {
@@ -109,10 +110,13 @@ namespace CoreEx.WebApis
                 if (ar == null)
                     throw new InvalidOperationException("The underlying function must return an IActionResult instance.");
 
+                Logger.LogTrace("RunAsync base stopped; completed successfully.");
                 return ar;
             }
             catch (Exception ex)
             {
+                Logger.LogTrace("RunAsync base stopped; {Type}: {Message}", ex.GetType().Name, ex.Message);
+
                 if (ex is IExtendedException eex)
                 {
                     if (eex.ShouldBeLogged)

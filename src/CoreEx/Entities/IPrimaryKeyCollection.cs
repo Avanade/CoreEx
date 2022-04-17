@@ -10,18 +10,10 @@ namespace CoreEx.Entities
     /// <typeparam name="T">The collection item <see cref="System.Type"/>.</typeparam>
     public interface IPrimaryKeyCollection<T> : IKeyedCollection, ICollection<T> where T : IPrimaryKey
     {
-        /// <summary>
-        /// Gets the first item using the specified primary <paramref name="key"/>.
-        /// </summary>
-        /// <param name="key">The primary <see cref="CompositeKey"/>.</param>
-        /// <returns>The item where found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc/>
         object? IKeyedCollection.GetByKey(CompositeKey key) => GetByKey(key);
 
-        /// <summary>
-        /// Gets the first item using the <paramref name="args"/> which represent the primary <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="args">The argument values for the key.</param>
-        /// <returns>The item where found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc/>
         object? IKeyedCollection.GetByKey(params object?[] args) => GetByKey(args);
 
         /// <summary>

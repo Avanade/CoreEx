@@ -29,6 +29,7 @@ public class Startup
             .AddEventPublisher()
             .AddAzureServiceBusSender()
             .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection))
+            .AddJsonMergePatch()
             .AddWebApi(c => c.OnUnhandledException = ex => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null));
 
         // Register the business services.

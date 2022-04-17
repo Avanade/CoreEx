@@ -35,6 +35,7 @@ namespace CoreEx.TestFunction
                 // replace by your own implementation of IEventPublisher to send events to e.g. service bus
                 .AddNullEventPublisher()
                 .AddScoped<WebApi, WebApi>()
+                .AddJsonMergePatch()
                 .AddScoped<WebApiPublisher, WebApiPublisher>()
                 .AddScoped<ServiceBusSubscriber>();
 

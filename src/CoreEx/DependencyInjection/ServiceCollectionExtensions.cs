@@ -7,6 +7,7 @@ using CoreEx.Events;
 using CoreEx.Hosting;
 using CoreEx.Http;
 using CoreEx.Json;
+using CoreEx.Json.Merge;
 using CoreEx.WebApis;
 using Microsoft.Extensions.Logging;
 using System;
@@ -186,7 +187,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="configure">The action to enable the <see cref="CoreEx.Json.Merge.JsonMergePatchOptions"/> to be further configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Action<CoreEx.Json.Merge.JsonMergePatchOptions>? configure = null) => CheckServices(services).AddSingleton(sp =>
+        public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Action<CoreEx.Json.Merge.JsonMergePatchOptions>? configure = null) => CheckServices(services).AddSingleton<IJsonMergePatch>(sp =>
         {
             var jmpo = new CoreEx.Json.Merge.JsonMergePatchOptions(sp.GetService<IJsonSerializer>());
             configure?.Invoke(jmpo);
@@ -236,7 +237,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddWebApi(this IServiceCollection services, Action<WebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
         {
-            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>());
+            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<IJsonMergePatch>());
             configure?.Invoke(wa);
             return wa;
         });

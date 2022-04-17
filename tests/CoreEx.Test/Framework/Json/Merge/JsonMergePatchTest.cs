@@ -10,16 +10,6 @@ namespace CoreEx.Test.Framework.Json.Merge
     [TestFixture]
     public class JsonMergePatchTest
     {
-        //public class ReferData : ReferenceDataBaseInt32
-        //{
-        //    public override object Clone()
-        //    {
-        //        throw new NotImplementedException();
-        //    }
-
-        //    public static implicit operator ReferData(string code) => ConvertFromCode<ReferData>(code);
-        //}
-
         public class SubData
         {
             public string? Code { get; set; }
@@ -49,28 +39,6 @@ namespace CoreEx.Test.Framework.Json.Merge
 
         public class NonKeyDataCollection : List<NonKeyData> { }
 
-        //public class ReferKeyData : EntityBase
-        //{
-        //    [JsonProperty("code")]
-        //    public string CodeSid { get; set; }
-
-        //    public ReferData Code { get => CodeSid; set => CodeSid = value.Code; }
-
-        //    [JsonProperty("text")]
-        //    public string Text { get; set; }
-
-        //    public override bool IsInitial => throw new NotImplementedException();
-
-        //    public override object Clone()
-        //    {
-        //        throw new NotImplementedException();
-        //    }
-
-        //    public string[] UniqueKeyProperties => new string[] { "Code" };
-
-        //    public UniqueKey UniqueKey => new UniqueKey(Code);
-        //}
-
         public class TestData
         {
             public Guid Id { get; set; }
@@ -86,7 +54,6 @@ namespace CoreEx.Test.Framework.Json.Merge
             public List<SubData>? NoKeys { get; set; }
             public List<KeyData>? Keys { get; set; }
             public KeyDataCollection? KeysColl { get; set; }
-            //public List<ReferKeyData> Refers { get; set; }
             public NonKeyDataCollection? NonKeys { get; set; }
             public Dictionary<string, string>? Dict { get; set; }
             public Dictionary<string, KeyData>? Dict2 { get; set; }
@@ -379,7 +346,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_ListNull()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": null }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": null }", td));
             Assert.IsNull(td.Values);
         }
 
@@ -387,7 +354,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_ListEmpty()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ ] }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ ] }", td));
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(0, td.KeysColl.Count);
         }
@@ -396,7 +363,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_Null()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "abc", Text = "def" } } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ null ] }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ null ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(1, td.KeysColl.Count);
@@ -407,39 +374,39 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_DuplicateNulls()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ null, null ] }", td));
-            Assert.AreEqual(ex!.Message, "The JSON array must not contain items with duplicate keys. Path: $.keyscoll");
+            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ null, null ] }", td));
+            Assert.AreEqual(ex!.Message, "The JSON array must not contain items with duplicate 'IPrimaryKey' keys. Path: $.keyscoll");
         }
 
         [Test]
         public void Merge_Property_KeysColl_DuplicateVals1()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { }, { } ] }", td));
-            Assert.AreEqual(ex!.Message, "The JSON array must not contain items with duplicate keys. Path: $.keyscoll");
+            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { }, { } ] }", td));
+            Assert.AreEqual(ex!.Message, "The JSON array must not contain items with duplicate 'IPrimaryKey' keys. Path: $.keyscoll");
         }
 
         [Test]
         public void Merge_Property_KeysColl_DuplicateVals2()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { \"code\": \"a\" }, { \"code\": \"a\" } ] }", td));
-            Assert.AreEqual(ex!.Message, "The JSON array must not contain items with duplicate keys. Path: $.keyscoll");
+            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { \"code\": \"a\" }, { \"code\": \"a\" } ] }", td));
+            Assert.AreEqual(ex!.Message, "The JSON array must not contain items with duplicate 'IPrimaryKey' keys. Path: $.keyscoll");
         }
 
         [Test]
         public void Merge_Property_KeysColl_DuplicateVals_Dest()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData(), new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { } ] }", td));
-            Assert.AreEqual(ex!.Message, "The JSON array destination collection must not contain items with duplicate keys prior to merge. Path: $.keyscoll");
+            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { } ] }", td));
+            Assert.AreEqual(ex!.Message, "The JSON array destination collection must not contain items with duplicate 'IPrimaryKey' keys prior to merge. Path: $.keyscoll");
         }
 
         [Test]
         public void Merge_Property_KeysColl_Null_NoChanges()
         {
             var td = new TestData { };
-            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": null }", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": null }", td));
 
             Assert.IsNull(td.KeysColl);
         }
@@ -448,7 +415,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_Empty_NoChanges()
         {
             var td = new TestData { KeysColl = new KeyDataCollection() };
-            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ ] }", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(0, td.KeysColl.Count);
@@ -458,7 +425,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_NullItem_NoChanges()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { null! }  };
-            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ null ] }", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ null ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(1, td.KeysColl.Count);
@@ -469,7 +436,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_Item_NoChanges()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a" } } };
-            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { \"code\": \"a\"  } ] }", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { \"code\": \"a\"  } ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(1, td.KeysColl.Count);
@@ -480,7 +447,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_KeyedItem_Changes()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" } } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { \"code\": \"a\", \"text\": \"zz\" }, { \"code\": \"b\" } ] }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { \"code\": \"a\", \"text\": \"zz\" }, { \"code\": \"b\" } ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(2, td.KeysColl.Count);
@@ -494,7 +461,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_KeyedItem_SequenceChanges()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" } } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { \"code\": \"b\", \"text\": \"yy\" }, { \"code\": \"a\" } ] }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { \"code\": \"b\", \"text\": \"yy\" }, { \"code\": \"a\" } ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(2, td.KeysColl.Count);
@@ -508,7 +475,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_KeyedItem_AllNew()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" } } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { \"code\": \"y\", \"text\": \"yy\" }, { \"code\": \"z\", \"text\": \"zz\" } ] }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { \"code\": \"y\", \"text\": \"yy\" }, { \"code\": \"z\", \"text\": \"zz\" } ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(2, td.KeysColl.Count);
@@ -522,7 +489,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_KeysColl_KeyedItem_Delete()
         {
             var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" }, new KeyData { Code = "c", Text = "cc" } } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true }).Merge("{ \"keyscoll\": [ { \"code\": \"a\" }, { \"code\": \"c\" } ] }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge }).Merge("{ \"keyscoll\": [ { \"code\": \"a\" }, { \"code\": \"c\" } ] }", td));
 
             Assert.IsNotNull(td.KeysColl);
             Assert.AreEqual(2, td.KeysColl.Count);
@@ -532,54 +499,65 @@ namespace CoreEx.Test.Framework.Json.Merge
             Assert.AreEqual("cc", td.KeysColl[1].Text);
         }
 
-        // ***
+        // *** Dictionary<string, string> - DictionaryMergeApproach.Replace
 
         [Test]
-        public void Merge_Property_Dict_Null()
+        public void Merge_Property_DictReplace_Null()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
 
-            Assert.IsTrue(new JsonMergePatch().Merge("{ \"dict\": null }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{ \"dict\": null }", td));
             Assert.IsNull(td.Dict);
         }
 
         [Test]
-        public void Merge_Property_Dict_Empty()
+        public void Merge_Property_DictReplace_Empty()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
 
-            Assert.IsTrue(new JsonMergePatch().Merge("{ \"dict\": {} }", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{ \"dict\": {} }", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(0, td.Dict.Count);
         }
 
         [Test]
-        public void Merge_Property_Dict_DuplicateKeys_IntoNull()
+        public void Merge_Property_DictReplace_NullValue()
+        {
+            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
+
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{ \"dict\": {\"k\":null} }", td));
+            Assert.IsNotNull(td.Dict);
+            Assert.AreEqual(1, td.Dict.Count);
+            Assert.AreEqual(null, td.Dict["k"]);
+        }
+
+        [Test]
+        public void Merge_Property_DictReplace_DuplicateKeys_IntoNull()
         {
             var td = new TestData();
 
-            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(1, td.Dict!.Count);
             Assert.AreEqual("v2", td.Dict["k"]);
         }
 
         [Test]
-        public void Merge_Property_Dict_DuplicateKeys_IntoEmpty()
+        public void Merge_Property_DictReplace_DuplicateKeys_IntoEmpty()
         {
             var td = new TestData { Dict = new Dictionary<string, string>() };
 
-            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(1, td.Dict!.Count);
             Assert.AreEqual("v2", td.Dict["k"]);
         }
 
         [Test]
-        public void Merge_Property_Dict_NoChange()
+        public void Merge_Property_DictReplace_NoChange()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.IsFalse(new JsonMergePatch().Merge("{\"dict\":{\"k\":\"v\",\"k1\":\"v1\"}}", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict\":{\"k\":\"v\",\"k1\":\"v1\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(2, td.Dict.Count);
             Assert.AreEqual("v", td.Dict["k"]);
@@ -587,10 +565,10 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_Dict_ReOrder_NoChange()
+        public void Merge_Property_DictReplace_ReOrder_NoChange()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.IsFalse(new JsonMergePatch().Merge("{\"dict\":{\"k1\":\"v1\",\"k\":\"v\"}}", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict\":{\"k1\":\"v1\",\"k\":\"v\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(2, td.Dict.Count);
             Assert.AreEqual("v", td.Dict["k"]);
@@ -598,34 +576,77 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_Dict_AddUpdateDelete_Replace()
+        public void Merge_Property_DictReplace_AddUpdateDelete_Replace()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict\":{\"k\":\"v\",\"k2\":\"v2\"}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict\":{\"k\":\"v\",\"k2\":\"v2\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(2, td.Dict.Count);
             Assert.AreEqual("v", td.Dict["k"]);
             Assert.AreEqual("v2", td.Dict["k2"]);
         }
 
-        // ***
+        // *** Dictionary<string, string> - DictionaryMergeApproach.Merge
 
         [Test]
-        public void Merge_Property_KeyDict_DuplicateKeys_IntoEmpty()
+        public void Merge_Property_DictMerge_Null()
         {
-            var td = new TestData { Dict = new Dictionary<string, string>() };
+            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
 
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForDictionaries = true }).Merge("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{ \"dict\": null }", td));
+            Assert.IsNull(td.Dict);
+        }
+
+        [Test]
+        public void Merge_Property_DictMerge_Empty()
+        {
+            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
+
+            // Should result in no changes as no property (key) was provided.
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{ \"dict\": {} }", td));
+            Assert.IsNotNull(td.Dict);
+            Assert.AreEqual(1, td.Dict.Count);
+            Assert.AreEqual("v", td.Dict["k"]);
+        }
+
+        [Test]
+        public void Merge_Property_DictMerge_NullValue()
+        {
+            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
+
+            // A key with a value of null indicates it should be removed.
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{ \"dict\": {\"k\":null} }", td));
+            Assert.IsNotNull(td.Dict);
+            Assert.AreEqual(0, td.Dict.Count);
+        }
+
+        [Test]
+        public void Merge_Property_DictMerge_DuplicateKeys_IntoNull()
+        {
+            var td = new TestData { };
+
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(1, td.Dict!.Count);
             Assert.AreEqual("v2", td.Dict["k"]);
         }
 
         [Test]
-        public void Merge_Property_KeyDict_NoChange()
+        public void Merge_Property_DictMerge_DuplicateKeys_IntoEmpty()
+        {
+            var td = new TestData { Dict = new Dictionary<string, string>() };
+
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}", td));
+            Assert.IsNotNull(td.Dict);
+            Assert.AreEqual(1, td.Dict!.Count);
+            Assert.AreEqual("v2", td.Dict["k"]);
+        }
+
+        [Test]
+        public void Merge_Property_DictMerge_NoChange()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForDictionaries = true }).Merge("{\"dict\":{\"k\":\"v\",\"k1\":\"v1\"}}", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict\":{\"k\":\"v\",\"k1\":\"v1\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(2, td.Dict.Count);
             Assert.AreEqual("v", td.Dict["k"]);
@@ -633,10 +654,10 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_KeyDict_ReOrder_NoChange()
+        public void Merge_Property_DictMerge_ReOrder_NoChange()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForDictionaries = true }).Merge("{\"dict\":{\"k1\":\"v1\",\"k\":\"v\"}}", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict\":{\"k1\":\"v1\",\"k\":\"v\"}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(2, td.Dict.Count);
             Assert.AreEqual("v", td.Dict["k"]);
@@ -644,24 +665,36 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_KeyDict_AddUpdateDelete_Replace()
+        public void Merge_Property_DictMerge_AddUpdateDelete()
         {
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict\":{\"k\":\"v\",\"k2\":\"v2\"}}", td));
+            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict\":{\"k\":\"vx\",\"k2\":\"v2\",\"k1\":null}}", td));
             Assert.IsNotNull(td.Dict);
             Assert.AreEqual(2, td.Dict.Count);
-            Assert.AreEqual("v", td.Dict["k"]);
+            Assert.AreEqual("vx", td.Dict["k"]);
+            Assert.AreEqual("v2", td.Dict["k2"]);
+        }
+
+        [Test]
+        public void Merge_Property_DictMerge_AddUpdate()
+        {
+            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
+            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict\":{\"k\":\"vx\",\"k2\":\"v2\"}}", td));
+            Assert.IsNotNull(td.Dict);
+            Assert.AreEqual(3, td.Dict.Count);
+            Assert.AreEqual("vx", td.Dict["k"]);
+            Assert.AreEqual("v1", td.Dict["k1"]);
             Assert.AreEqual("v2", td.Dict["k2"]);
         }
 
         // ***
 
         [Test]
-        public void Merge_Property_Dict2_DuplicateKeys_IntoEmpty()
+        public void Merge_Property_Dict2Replace_DuplicateKeys_IntoEmpty()
         {
             var td = new TestData { Dict2 = new Dictionary<string, KeyData>() };
 
-            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"a\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"a\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
             Assert.IsNotNull(td.Dict2);
             Assert.AreEqual(1, td.Dict2!.Count);
             Assert.AreEqual("bb", td.Dict2["a"].Code);
@@ -669,11 +702,11 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_Dict2_NoChange()
+        public void Merge_Property_Dict2Replace_NoChange()
         {
             // Note, although technically no changes, there is no means to verify without specific equality checking, so is seen as a change.
             var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
-            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"b\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"b\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
             Assert.IsNotNull(td.Dict2);
             Assert.AreEqual(2, td.Dict2.Count);
             Assert.AreEqual("aa", td.Dict2["a"].Code);
@@ -683,10 +716,10 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_Dict2_AddUpdateDelete_Replace()
+        public void Merge_Property_Dict2Replace_AddUpdateDelete_Replace()
         {
             var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
-            Assert.IsTrue(new JsonMergePatch().Merge("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}", td));
             Assert.IsNotNull(td.Dict2);
             Assert.AreEqual(2, td.Dict2.Count);
             Assert.AreEqual("aaaa", td.Dict2["a"].Code);
@@ -698,11 +731,11 @@ namespace CoreEx.Test.Framework.Json.Merge
         // ***
 
         [Test]
-        public void Merge_Property_KeyDict2_DuplicateKeys_IntoEmpty()
+        public void Merge_Property_KeyDict2Merge_DuplicateKeys_IntoEmpty()
         {
             var td = new TestData { Dict2 = new Dictionary<string, KeyData>() };
 
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForDictionaries = true }).Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"a\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"a\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
             Assert.IsNotNull(td.Dict2);
             Assert.AreEqual(1, td.Dict2!.Count);
             Assert.AreEqual("bb", td.Dict2["a"].Code);
@@ -710,10 +743,10 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_KeyDict2_NoChange()
+        public void Merge_Property_KeyDict2Merge_NoChange()
         {
             var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
-            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForDictionaries = true }).Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"b\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
+            Assert.IsFalse(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"b\":{\"code\": \"bb\",\"text\": \"bbb\"}}}", td));
             Assert.IsNotNull(td.Dict2);
             Assert.AreEqual(2, td.Dict2.Count);
             Assert.AreEqual("aa", td.Dict2["a"].Code);
@@ -723,14 +756,29 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
-        public void Merge_Property_KeyDict2_AddUpdateDelete_Replace()
+        public void Merge_Property_KeyDict2Merge_AddUpdateDelete()
         {
             var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
-            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForDictionaries = true }).Merge("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}", td));
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"},\"b\":null}}", td));
             Assert.IsNotNull(td.Dict2);
             Assert.AreEqual(2, td.Dict2.Count);
             Assert.AreEqual("aaaa", td.Dict2["a"].Code);
             Assert.AreEqual("aaa", td.Dict2["a"].Text);
+            Assert.AreEqual("cc", td.Dict2["c"].Code);
+            Assert.AreEqual("ccc", td.Dict2["c"].Text);
+        }
+
+        [Test]
+        public void Merge_Property_KeyDict2Merge_AddUpdate()
+        {
+            var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
+            Assert.IsTrue(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}", td));
+            Assert.IsNotNull(td.Dict2);
+            Assert.AreEqual(3, td.Dict2.Count);
+            Assert.AreEqual("aaaa", td.Dict2["a"].Code);
+            Assert.AreEqual("aaa", td.Dict2["a"].Text);
+            Assert.AreEqual("bb", td.Dict2["b"].Code);
+            Assert.AreEqual("bbb", td.Dict2["b"].Text);
             Assert.AreEqual("cc", td.Dict2["c"].Code);
             Assert.AreEqual("ccc", td.Dict2["c"].Text);
         }
@@ -747,14 +795,14 @@ namespace CoreEx.Test.Framework.Json.Merge
             for (int i = 0; i < 1000; i++)
             {
                 var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
-                new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true, UseKeyMergeForDictionaries = true }).Merge(text, td);
+                new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge, DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(text, td);
             }
         }
 
         [Test]
         public void Merge_XLoadTest_WithCache_1000()
         {
-            var jom = new JsonMergePatch(new JsonMergePatchOptions { UseKeyMergeForPrimaryKeyCollections = true, UseKeyMergeForDictionaries = true });
+            var jom = new JsonMergePatch(new JsonMergePatchOptions { PrimaryKeyCollectionMergeApproach = PrimaryKeyCollectionMergeApproach.Merge, DictionaryMergeApproach = DictionaryMergeApproach.Merge });
             var text = "{ \"id\": \"13512759-4f50-e911-b35c-bc83850db74d\", \"name\": \"Barry\", \"isValid\": true, \"date\": \"2018-12-31\", \"count\": \"12\", \"amount\": 132.58, \"dict\": {\"k\":\"v\",\"k1\":\"v1\"}, "
                     + "\"values\": [ 1, 2, 4], \"sub\": { \"code\": \"abc\", \"text\": \"xyz\" }, \"nokeys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, null, { } ], "
                     + "\"keys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, { }, null ],\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}";

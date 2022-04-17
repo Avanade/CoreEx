@@ -301,9 +301,65 @@ namespace My.Hr.UnitTest
         }
 
         [Test]
-        public void F100_Verify_NotFound()
+        public void F100_Patch_NotFound()
         {
-            var test = ApiTester.Create<Startup>();
+            using var test = ApiTester.Create<Startup>();
+
+            test.Controller<EmployeeController>()
+                .RunContent(c => c.PatchAsync(404.ToGuid()), "{}", HttpConsts.MergePatchMediaTypeName)
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void F110_Patch_Concurrency()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            // Get current.
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.GetAsync(4.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            // Patch it with errant etag.
+            v.FirstName += "X";
+
+            test.Controller<EmployeeController>()
+                .RunContent(c => c.PatchAsync(v.Id), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" }, HttpConsts.MergePatchMediaTypeName)
+                .AssertPreconditionFailed();
+        }
+
+        [Test]
+        public void F120_Patch()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            // Get current.
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.GetAsync(4.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            // Patch it with errant etag.
+            v.FirstName += "X";
+
+            v = test.Controller<EmployeeController>()
+                .RunContent(c => c.PatchAsync(v.Id), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = v.ETag }, HttpConsts.MergePatchMediaTypeName)
+                .AssertOK()
+                .Assert(v, "ETag")
+                .GetValue<Employee>()!;
+
+            // Get again and check all.
+            test.Controller<EmployeeController>()
+                .Run(c => c.GetAsync(v.Id))
+                .AssertOK()
+                .Assert(v);
+        }
+
+        [Test]
+        public void G100_Verify_NotFound()
+        {
+            using var test = ApiTester.Create<Startup>();
 
             test.Controller<EmployeeController>()
                 .Run(c => c.VerifyAsync(404.ToGuid()))
@@ -311,9 +367,9 @@ namespace My.Hr.UnitTest
         }
 
         [Test]
-        public void F100_Verify_Publish()
+        public void G100_Verify_Publish()
         {
-            var test = ApiTester.Create<Startup>();
+            using var test = ApiTester.Create<Startup>();
             var imp = new InMemoryPublisher(test.Logger);
 
             test.ReplaceScoped<IEventPublisher>(_ => imp)

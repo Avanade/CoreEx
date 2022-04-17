@@ -43,7 +43,7 @@ namespace CoreEx.Http
             if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
                 return new HttpResult<T>(response, content, default!);
 
-            if (typeof(T) == typeof(string) && response.Content.Headers?.ContentType?.MediaType == MediaTypeNames.Text.Plain)
+            if (typeof(T) == typeof(string) && StringComparer.OrdinalIgnoreCase.Compare(response.Content.Headers?.ContentType?.MediaType, MediaTypeNames.Text.Plain) == 0)
             {
                 try
                 {
