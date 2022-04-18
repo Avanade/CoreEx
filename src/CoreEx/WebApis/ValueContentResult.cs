@@ -18,10 +18,10 @@ using System.Threading.Tasks;
 namespace CoreEx.WebApis
 {
     /// <summary>
-    /// Represents a <see cref="ContentResult"/> with a <see cref="Value"/> that will be JSON serialized.
+    /// Represents a <see cref="ContentResult"/> with a JSON serialized value.
     /// </summary>
     /// <remarks>This contains extended functionality to manage the setting of response headers related to <see cref="ETag"/>, <see cref="PagingResult"/> and <see cref="Location"/>.</remarks>
-    public class ValueContentResult : ExtendedContentResult
+    public sealed class ValueContentResult : ExtendedContentResult
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ValueContentResult"/> class.
@@ -39,44 +39,36 @@ namespace CoreEx.WebApis
             ETag = etag;
             PagingResult = pagingResult;
             Location = location;
-            BeforeExtension = ModifyResponse;
         }
 
         /// <summary>
-        /// Gets the value.
+        /// Gets or sets the <see cref="IETag.ETag"/> value.
         /// </summary>
-        public object? Value { get; }
+        public string? ETag { get; set; }
 
         /// <summary>
-        /// Gets the <see cref="IETag.ETag"/> value.
+        /// Gets or sets the corresponding <see cref="Entities.PagingResult"/> (where the originating value was an <see cref="ICollectionResult"/>).
         /// </summary>
-        public string? ETag { get; }
+        public PagingResult? PagingResult { get; set; }
 
         /// <summary>
-        /// Gets the corresponding <see cref="Entities.PagingResult"/> (where <see cref="Value"/> is <see cref="ICollectionResult"/>.
+        /// Gets or sets the <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.
         /// </summary>
-        public PagingResult? PagingResult { get;}
+        public Uri? Location { get; set; }
 
-        /// <summary>
-        /// Gets the <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.
-        /// </summary>
-        public Uri? Location { get; }
-
-        /// <summary>
-        /// Modify the response to include the related headers.
-        /// </summary>
-        private Task ModifyResponse(HttpResponse response)
+        /// <inheritdoc/>
+        public override Task ExecuteResultAsync(ActionContext context)
         {
-            response.AddPagingResult(PagingResult);
+            context.HttpContext.Response.AddPagingResult(PagingResult);
 
-            var headers = response.GetTypedHeaders();
+            var headers = context.HttpContext.Response.GetTypedHeaders();
             if (ETag != null)
                 headers.ETag = new EntityTagHeaderValue(ETag.StartsWith('\"') && ETag.EndsWith('\"') ? ETag : $"\"{ETag}\"");
 
             if (Location != null)
                 headers.Location = Location;
 
-            return Task.CompletedTask;
+            return base.ExecuteResultAsync(context);
         }
 
         /// <summary>
@@ -88,11 +80,10 @@ namespace CoreEx.WebApis
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
         /// <param name="checkForNotModified">Indicates whether to check for <see cref="HttpStatusCode.NotModified"/> by comparing request and response <see cref="IETag.ETag"/> values.</param>
-        /// <param name="nullReplacement">The replacement value where <paramref name="value"/> is <c>null</c>.</param>
-        /// <param name="location">The  <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
+        /// <param name="location">The <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/>.</returns>
-        public static IActionResult CreateResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, object? nullReplacement, Uri? location)
-            => TryCreateValueContentResult(value, statusCode, alternateStatusCode, jsonSerializer, requestOptions, checkForNotModified, nullReplacement, location, out var vcr, out var ar) ? vcr! : ar!;
+        public static IActionResult CreateResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location)
+            => TryCreateValueContentResult(value, statusCode, alternateStatusCode, jsonSerializer, requestOptions, checkForNotModified, location, out var vcr, out var ar) ? vcr! : ar!;
 
         /// <summary>
         /// Try and create a <see cref="ValueContentResult"/>; otherwise, a <see cref="StatusCodeResult"/>.
@@ -103,13 +94,11 @@ namespace CoreEx.WebApis
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
         /// <param name="checkForNotModified">Indicates whether to check for <see cref="HttpStatusCode.NotModified"/> by comparing request and response <see cref="IETag.ETag"/> values.</param>
-        /// <param name="nullReplacement">The replacement value where <paramref name="value"/> is <c>null</c>.</param>
-        /// <param name="location">The  <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
+        /// <param name="location">The <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
         /// <param name="valueContentResult">The <see cref="ValueContentResult"/> where created.</param>
         /// <param name="alternateResult">The alternate result where <paramref name="valueContentResult"/> not created.</param>
         /// <returns><c>true</c> indicates that the <paramref name="valueContentResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, object? nullReplacement, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
+        public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
         {
             object? val;
             PagingResult? paging;
@@ -117,7 +106,7 @@ namespace CoreEx.WebApis
             // Special case when ICollectionResult, as it is the Result only that is serialized and returned.
             if (value is ICollectionResult cr)
             {
-                val = cr.Collection;
+                val = cr.Collection ?? Array.Empty<object?>(); // Where there is an ICollectionResult, then there should always be a value, at least an empty array versus null.
                 paging = cr.Paging;
             }
             else
@@ -129,19 +118,14 @@ namespace CoreEx.WebApis
             // Handle null result; generally either not-found, or no-content, depending on context.
             if (val == null)
             {
-                if (nullReplacement != null)
-                    val = nullReplacement;
-                else
+                if (alternateStatusCode.HasValue)
                 {
-                    if (alternateStatusCode.HasValue)
-                    {
-                        valueContentResult = null;
-                        alternateResult = new StatusCodeResult((int)alternateStatusCode);
-                        return false;
-                    }
-                    else
-                        throw new InvalidOperationException("Function has not returned a result; no AlternateStatusCode has been configured to return.");
+                    valueContentResult = null;
+                    alternateResult = new StatusCodeResult((int)alternateStatusCode);
+                    return false;
                 }
+                else
+                    throw new InvalidOperationException("Function has not returned a result; no AlternateStatusCode has been configured to return.");
             }
 
             // Where IncludeText is selected then enable before serialization occurs.
@@ -158,7 +142,7 @@ namespace CoreEx.WebApis
                 json = jsonSerializer.Serialize(val);
 
             // Establish an ETag; generate if you have to.
-            var etag = EstablishETag(val, json);
+            var etag = EstablishETag(requestOptions, val, json);
 
             // Check for not-modified and return status accordingly.
             if (checkForNotModified && etag == requestOptions.ETag)
@@ -177,7 +161,7 @@ namespace CoreEx.WebApis
         /// <summary>
         /// Establish the ETag for the value/json.
         /// </summary>
-        private static string EstablishETag(object value, string json)
+        private static string EstablishETag(WebApiRequestOptions requestOptions, object value, string json)
         {
             if (value is IETag etag && etag.ETag != null)
                 return etag.ETag;
@@ -186,7 +170,7 @@ namespace CoreEx.WebApis
                 return ExecutionContext.Current.ETag;
 
             StringBuilder? sb = null;
-            if (value is IEnumerable coll)
+            if (value is not string && value is IEnumerable coll)
             {
                 sb = new StringBuilder();
                 var hasEtags = true;
@@ -207,7 +191,22 @@ namespace CoreEx.WebApis
                 }
 
                 if (!hasEtags)
-                    sb = null;
+                {
+                    sb.Clear();
+                    sb.Append(json);
+                }
+
+                // A GET with a collection result should include path and query with the etag.
+                if (HttpMethods.IsGet(requestOptions.Request.Method))
+                {
+                    sb.Append(ETagGenerator.DividerCharacter);
+
+                    if (requestOptions.Request.Path.HasValue)
+                        sb.Append(requestOptions.Request.Path.Value);
+
+                    if (requestOptions.Request.QueryString != null)
+                        sb.Append(requestOptions.Request.QueryString.ToString());
+                }
             }
 
             // Generate a hash to represent the ETag.

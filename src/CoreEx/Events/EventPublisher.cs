@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Provides the event publishing and sending; being the <see cref="EventData">event</see> <see cref="EventDataFormatter.Format(EventDataBase)">formatting</see>, 
+    /// Provides the event publishing and sending; being the <see cref="EventData">event</see> <see cref="EventDataFormatter.Format(EventData)">formatting</see>, 
     /// <see cref="IEventSerializer.SerializeAsync{T}(EventData{T})">serialization</see> and <see cref="IEventSender.SendAsync(EventSendData[])">send</see>.
     /// </summary>
     public class EventPublisher : IEventPublisher, IDisposable
@@ -106,7 +106,7 @@ namespace CoreEx.Events
         /// Invoked on the send of the <see cref="EventSendData"/>.
         /// </summary>
         /// <param name="name">The destination name.</param>
-        /// <param name="eventData">The <see cref="EventData"/> (after the <see cref="EventDataFormatter.Format(EventDataBase)"/> is applied).</param>
+        /// <param name="eventData">The <see cref="EventData"/> (after the <see cref="EventDataFormatter.Format(EventData)"/> is applied).</param>
         /// <param name="eventSendData">The corresponding <see cref="EventSendData"/> after <see cref="EventSerializer"/> invocation.</param>
         protected virtual Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData) => Task.CompletedTask;
 

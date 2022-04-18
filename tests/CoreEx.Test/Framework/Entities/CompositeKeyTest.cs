@@ -49,7 +49,7 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void KeyComparisons()
         {
-            Assert.IsFalse(new CompositeKey() == new CompositeKey(null));
+            Assert.IsFalse(new CompositeKey() == new CompositeKey(null!));
             Assert.IsFalse(new CompositeKey("A") == new CompositeKey("A", null));
             Assert.IsFalse(new CompositeKey(1, "A") == new CompositeKey("A", 1));
         }
@@ -70,7 +70,7 @@ namespace CoreEx.Test.Framework.Entities
             var ck = new CompositeKey();
             Assert.AreEqual(string.Empty, ck.ToString());
 
-            ck = new CompositeKey(null);
+            ck = new CompositeKey(null!);
             Assert.AreEqual(string.Empty, ck.ToString());
 
             ck = new CompositeKey(88);

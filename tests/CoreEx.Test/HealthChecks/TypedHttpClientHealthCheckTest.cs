@@ -115,7 +115,7 @@ namespace CoreEx.Test.HealthChecks
         public async Task CheckHealthAsync_Should_Fail_When_NoHttpClientInjected()
         {
             // Arrange
-            var target = new TypedHttpClientHealthCheck<TestHttpClient>(null);
+            var target = new TypedHttpClientHealthCheck<TestHttpClient>(null!);
             var context = new HealthCheckContext()
             {
                 Registration = new HealthCheckRegistration("test", new Mock<IHealthCheck>().Object, null, null)

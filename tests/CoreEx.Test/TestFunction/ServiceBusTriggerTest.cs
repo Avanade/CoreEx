@@ -22,7 +22,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage<Product>(null);
+            var message = test.CreateServiceBusMessage<Product>(null!);
 
             test.ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))

@@ -11,7 +11,7 @@ using System.Net.Http;
 namespace CoreEx.Http
 {
     /// <summary>
-    /// Represents additional (optional) request options for an <see cref="HttpRequestOptions"/>.
+    /// Represents additional (optional) request options for an <see cref="HttpRequest"/>.
     /// </summary>
     /// <remarks>Usage assumes that the HTTP endpoint supports and actions accordingly; i.e. by sending there is no guarantee that the desired outcome will occur as selected.</remarks>
     public class HttpRequestOptions

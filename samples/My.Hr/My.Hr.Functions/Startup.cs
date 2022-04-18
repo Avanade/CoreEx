@@ -1,22 +1,15 @@
-using CoreEx.Configuration;
-using CoreEx.Events;
-using CoreEx.Json;
-using CoreEx.Text.Json;
-using CoreEx.WebApis;
+using System.Threading.Tasks;
+using CoreEx;
 using CoreEx.Healthchecks;
 using CoreEx.Healthchecks.Checks;
-
-using My.Hr.Business;
-using My.Hr.Business.Services;
-
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
-using CoreEx.Messaging.Azure.ServiceBus;
 using CoreEx.Messaging.Azure.Health;
+using Microsoft.Azure.Functions.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using My.Hr.Business;
+using My.Hr.Business.Data;
+using My.Hr.Business.Services;
 
 [assembly: FunctionsStartup(typeof(My.Hr.Functions.Startup))]
 
@@ -30,27 +23,20 @@ public class Startup : FunctionsStartup
 
     public override void Configure(IFunctionsHostBuilder builder)
     {
-        // try-catch to capture exceptions during startup when running in docker container
         try
         {
             // Register the core services.
             builder.Services
-                .AddSingleton<HrSettings>()
+                .AddSettings<HrSettings>()
                 .AddExecutionContext()
-                .AddScoped<SettingsBase, HrSettings>()
-                .AddScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>(_ => new CoreEx.Text.Json.JsonSerializer(new JsonSerializerOptions(JsonSerializerDefaults.Web)
-                {
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-                    WriteIndented = false,
-                    Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
-                }))
-                .AddScoped<IEventSerializer, CoreEx.Text.Json.EventDataSerializer>()
-                .AddScoped<IEventPublisher, EventPublisher>()
-                .AddScoped<EventDataFormatter>()
-                .AddScoped<IEventSender, ServiceBusSender>()
-                .AddScoped<WebApi, WebApi>()
-                .AddScoped<WebApiPublisher>()
-                .AddScoped<ServiceBusSubscriber>()
+                .AddJsonSerializer()
+                .AddEventDataSerializer()
+                .AddEventDataFormatter()
+                .AddEventPublisher()
+                .AddAzureServiceBusSender()
+                .AddWebApi(c => c.OnUnhandledException = ex => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
+                .AddWebApiPublisher()
+                .AddAzureServiceBusSubscriber()
                 .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection));
 
             // Register the health checks.
@@ -80,6 +66,7 @@ public class Startup : FunctionsStartup
         }
         catch (System.Exception ex)
         {
+            // try catch block for running the function in docker container, without it, it may fail silently.
             System.Console.Error.WriteLine(ex);
             throw;
         }

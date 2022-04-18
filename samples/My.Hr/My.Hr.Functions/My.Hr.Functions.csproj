@@ -2,9 +2,6 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
-    <!-- <PublishReadyToRun>true</PublishReadyToRun> -->
-    <!-- <RuntimeIdentifier>linux-x64</RuntimeIdentifier> -->
-    <!-- <PublishTrimmed>true</PublishTrimmed> -->
     <_FunctionsSkipCleanOutput>true</_FunctionsSkipCleanOutput> <!-- because of https://github.com/Azure/azure-functions-core-tools/issues/2872 -->
   </PropertyGroup>
   <ItemGroup>

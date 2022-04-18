@@ -127,7 +127,7 @@ namespace CoreEx.WebApis
                     return rex.ToResult();
                 }
 
-                var ar = OnUnhandledExceptionAsync(ex); ;
+                var ar = await OnUnhandledExceptionAsync(ex).ConfigureAwait(false);
                 if (ar != null)
                     return ar;
 
@@ -146,6 +146,12 @@ namespace CoreEx.WebApis
         /// <param name="ex">The unhandled <see cref="Exception"/>.</param>
         /// <returns>The <see cref="IActionResult"/> to return where handled; otherwise, <c>null</c> which in turn will result in <see cref="ExceptionResultExtensions.ToUnexpectedResult(Exception, bool)"/>.</returns>
         /// <remarks>Any <see cref="IExtendedException"/> exceptions will be handled per their implementation; see <see cref="IExceptionResult.ToResult"/>.</remarks>
-        protected virtual IActionResult? OnUnhandledExceptionAsync(Exception ex) => null;
+        protected virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex) => OnUnhandledException(ex);
+
+        /// <summary>
+        /// Gets or sets the delegate that is invoked as an opportunity to handle an unhandled exception.
+        /// </summary>
+        /// <remarks>This is invoked by <see cref="OnUnhandledExceptionAsync(Exception)"/>.</remarks>
+        public Func<Exception, Task<IActionResult?>> OnUnhandledException { get; set; } = _ => Task.FromResult<IActionResult?>(null!);
     }
 }

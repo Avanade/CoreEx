@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Entities.Extended;
 using CoreEx.Events;
 using CoreEx.RefData.Models;
 using CoreEx.WebApis;
@@ -15,7 +16,7 @@ using Stj = System.Text.Json.Serialization;
 namespace CoreEx.Newtonsoft.Json
 {
     /// <summary>
-    /// Extends the <see cref="DefaultContractResolver"/> to enable runtime configurable of JSON serialization property rename and ignore.
+    /// Extends the <see cref="CamelCasePropertyNamesContractResolver"/> to enable runtime configurable of JSON serialization property rename and ignore.
     /// </summary>
     public class ContractResolver : CamelCasePropertyNamesContractResolver
     {
@@ -173,5 +174,13 @@ namespace CoreEx.Newtonsoft.Json
 
             return property;
         }
+
+        /// <summary>
+        /// Gets (creates) the <see cref="JsonProperty"/> from the <paramref name="memberInfo"/>.
+        /// </summary>
+        /// <param name="memberInfo">The <see cref="MemberInfo"/>.</param>
+        /// <param name="memberSerialization">The <see cref="MemberSerialization"/> option.</param>
+        /// <returns>The <see cref="JsonProperty"/>.</returns>
+        public JsonProperty GetProperty(MemberInfo memberInfo, MemberSerialization memberSerialization) => CreateProperty(memberInfo, memberSerialization);
     }
 }

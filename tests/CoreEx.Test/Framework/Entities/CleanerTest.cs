@@ -28,11 +28,11 @@ namespace CoreEx.Test.Framework.Entities
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeLocal;
             DateTime? dt = DateTime.UtcNow;
             DateTime? dtc = Cleaner.Clean(dt);
-            Assert.AreEqual(DateTimeKind.Local, dtc.Value.Kind);
+            Assert.AreEqual(DateTimeKind.Local, dtc!.Value.Kind);
 
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeUtc;
             dtc = Cleaner.Clean(dt);
-            Assert.AreEqual(DateTimeKind.Utc, dtc.Value.Kind);
+            Assert.AreEqual(DateTimeKind.Utc, dtc!.Value.Kind);
 
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeLocal;
 
@@ -45,7 +45,7 @@ namespace CoreEx.Test.Framework.Entities
         public void StringTransformCleaning()
         {
             var s1 = "";
-            var s2 = (string)null;
+            var s2 = (string?)null;
             var s3 = "ABC";
 
             Assert.IsNull(Cleaner.Clean(s1));

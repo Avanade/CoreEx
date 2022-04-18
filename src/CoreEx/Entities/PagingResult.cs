@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using System;
 using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
@@ -17,10 +16,9 @@ namespace CoreEx.Entities
         /// <param name="pagingArgs">The <see cref="PagingArgs"/>.</param>
         /// <param name="totalCount">The total record count where applicable.</param>
         /// <remarks>Where the <paramref name="pagingArgs"/> and <paramref name="totalCount"/> are both provided the <see cref="TotalPages"/> will be automatically created.</remarks>
-        public PagingResult(PagingArgs pagingArgs, long? totalCount = null)
+        public PagingResult(PagingArgs? pagingArgs = null, long? totalCount = null)
         {
-            if (pagingArgs == null)
-                throw new ArgumentNullException(nameof(pagingArgs));
+            pagingArgs ??= new PagingArgs();
 
             Skip = pagingArgs.Skip;
             Take = pagingArgs.Take;

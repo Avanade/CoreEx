@@ -89,7 +89,7 @@ namespace CoreEx.Test.HealthChecks
             var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
             var mock = new Mock<ServiceBusAdministrationClient>();
             var exception = new ArgumentException("Test exception");
-            mock.Setup(x => x.GetQueueRuntimePropertiesAsync(settings.GetValue<string>(queueSettingName, null), It.IsAny<CancellationToken>()))
+            mock.Setup(x => x.GetQueueRuntimePropertiesAsync(settings.GetValue<string>(queueSettingName, null!), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(exception);
             AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetValue<string>(connectionName)
             , _ => mock.Object

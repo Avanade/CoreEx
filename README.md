@@ -8,17 +8,45 @@
 
 _CoreEx_ provides the base capabilities for building business services by _extending_ the core capabilities of .NET.
 
+The _CoreEx_ solution is dividied into a number of projects, with `CoreEx` providing the core/shared capabilities, with additional projects enabling other related capabilities that can optionally be included within the final consuming solution.
+
+Please review the **[Wiki](https://github.com/Avanade/CoreEx/wiki)** for further details; these will continue to be maintained over time.
+
 <br/>
 
 ## Status
 
-The build and packaging status is as follows.
+The build status is [![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.svg)](https://github.com/Avanade/CoreEx/actions?query=workflow%3ACI) with the NuGet package status as follows:
 
-CI | `CoreEx` | `CoreEx.FluentValidation` | `CoreEx.HealthChecks` | `CoreEx.Messaging.Azure` | `CoreEx.Newtonsoft`
--|-|-|-|-|-
-[![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.svg)](https://github.com/Avanade/CoreEx/actions?query=workflow%3ACI) | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [![NuGet version](https://badge.fury.io/nu/CoreEx.HealthChecks.svg)](https://badge.fury.io/nu/CoreEx.HealthChecks) | [![NuGet version](https://badge.fury.io/nu/CoreEx.Messaging.Azure.svg)](https://badge.fury.io/nu/CoreEx.Messaging.Azure) | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft)
+Package | Status
+-|-
+`CoreEx` | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx)
+`CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation)
+`CoreEx.HealthChecks` | [![NuGet version](https://badge.fury.io/nu/CoreEx.HealthChecks.svg)](https://badge.fury.io/nu/CoreEx.HealthChecks)
+`CoreEx.Messaging.Azure` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Messaging.Azure.svg)](https://badge.fury.io/nu/CoreEx.Messaging.Azure)
+`CoreEx.Newtonsoft` |[![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft)
 
 The included [change log](CHANGELOG.md) details all key changes per published version.
+
+<br/>
+
+## Samples
+
+The following samples are provided to guide usage:
+
+Sample | Description
+-|-
+My.Hr | A sample to demonstrate the usage of _CoreEx_ within the context of a fictitious Human Resources solution. The main intent is to show how _CoreEx_ can be leveraged to build Web APIs and Azure Functions.  
+
+<br/>
+
+## Other repos
+
+These other _Avanade_ repositories leverage _CoreEx_:
+
+- [NTangle](https://github.com/Avanade/ntangle) - Change Data Capture (CDC) code generation tool and runtime.
+- [DbEx](https://github.com/Avanade/dbex) - Provides database extensions for both, DbUp-based database migrations, and ADO.NET database access.
+- [UnitTestEx](https://github.com/Avanade/unittestex) - Provides .NET testing extensions to the most popular testing frameworks (MSTest, NUnit and Xunit).
 
 <br/>
 

@@ -5,7 +5,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
 
-namespace CoreEx.Test.Framework.Entities
+namespace CoreEx.Test.Framework.Configuration
 {
     [TestFixture, NonParallelizable]
     public class SettingsBaseTest
@@ -47,7 +47,7 @@ namespace CoreEx.Test.Framework.Entities
         {
             // Arrange
             // Act
-            Action act = () => new SettingsForTesting(null);
+            Action act = () => new SettingsForTesting(null!);
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -60,7 +60,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
 
             // Act
-            Action act = () => new SettingsForTesting(configuration, prefixes: null);
+            Action act = () => new SettingsForTesting(configuration, prefixes: null!);
 
             // Assert
             act.Should().Throw<ArgumentNullException>();

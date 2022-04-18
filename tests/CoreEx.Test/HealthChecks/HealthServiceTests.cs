@@ -28,7 +28,7 @@ namespace CoreEx.Test.HealthChecks
             var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
             var jsonSerializer = (IJsonSerializer)test.Services.GetService(typeof(IJsonSerializer));
 
-            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json);
+            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert
             result.AssertSuccess();
@@ -58,7 +58,7 @@ namespace CoreEx.Test.HealthChecks
             // Act
             var result = await test.Type<HealthService>().RunAsync(x => x.RunAsync());
             var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
-            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json);
+            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert
             jsonObj.Should().NotBeNull();
@@ -88,7 +88,7 @@ namespace CoreEx.Test.HealthChecks
             // Act
             var result = await test.Type<HealthService>().RunAsync(x => x.RunAsync());
             var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
-            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json);
+            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert
             jsonObj.Should().NotBeNull();

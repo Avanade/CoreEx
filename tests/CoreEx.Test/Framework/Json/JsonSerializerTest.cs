@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using Nsj = Newtonsoft.Json;
+using Stj = System.Text.Json;
 
 namespace CoreEx.Test.Framework.Json
 {
@@ -23,12 +24,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(json);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -49,12 +50,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(bs);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -72,7 +73,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(json);
             Assert.NotNull(o);
             Assert.IsInstanceOf<System.Text.Json.JsonElement>(o);
-            Assert.AreEqual(o.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -85,7 +86,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(bs);
             Assert.NotNull(o);
             Assert.IsInstanceOf<System.Text.Json.JsonElement>(o);
-            Assert.AreEqual(o.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -156,11 +157,27 @@ namespace CoreEx.Test.Framework.Json
 
             // Act
             var serialized = js.Serialize(realException);
-            var deserialized = js.Deserialize<Exception>(serialized);
+            var deserialized = js.Deserialize<Exception>(serialized)!;
 
             // Assert
             deserialized.Data.Should().BeEquivalentTo(realException.Data);
             deserialized.Message.Should().BeEquivalentTo(realException.Message, because: "Custom converter only handles Message on deserialization");
+        }
+
+        [Test]
+        public void SystemTextJson_TryGetJsonName()
+        {
+            var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
+            var t = typeof(Other);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.FirstName))!, out string? jn));
+            Assert.AreEqual("first-name", jn);
+
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other.MiddleName))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.LastName))!, out jn));
+            Assert.AreEqual("lastName", jn);
         }
 
         #endregion
@@ -177,12 +194,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(json);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -203,12 +220,12 @@ namespace CoreEx.Test.Framework.Json
 
             p = js.Deserialize<BackendProduct>(bs);
             Assert.NotNull(p);
-            Assert.AreEqual("A", p.Code);
+            Assert.AreEqual("A", p!.Code);
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
 
-            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct));
+            p = (BackendProduct)js.Deserialize(bs, typeof(BackendProduct))!;
             Assert.NotNull(p);
             Assert.AreEqual("A", p.Code);
             Assert.AreEqual("B", p.Description);
@@ -226,7 +243,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(json);
             Assert.NotNull(o);
             Assert.IsInstanceOf<Nsj.Linq.JObject>(o);
-            Assert.AreEqual(((Nsj.Linq.JObject)o).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -239,7 +256,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(bs);
             Assert.NotNull(o);
             Assert.IsInstanceOf<Nsj.Linq.JObject>(o);
-            Assert.AreEqual(((Nsj.Linq.JObject)o).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -310,7 +327,7 @@ namespace CoreEx.Test.Framework.Json
 
             // Act
             var serialized = js.Serialize(realException);
-            var deserialized = js.Deserialize<Exception>(serialized);
+            var deserialized = js.Deserialize<Exception>(serialized)!;
 
             // Assert
             deserialized.Data.Should().BeEquivalentTo(realException.Data);
@@ -318,22 +335,74 @@ namespace CoreEx.Test.Framework.Json
             deserialized.StackTrace.Should().BeEquivalentTo(realException.StackTrace);
         }
 
+        [Test]
+        public void NewtonsoftJson_TryGetJsonName()
+        {
+            var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
+            var t = typeof(Other);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.FirstName))!, out string? jn));
+            Assert.AreEqual("first_name", jn);
+
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.MiddleName))!, out jn));
+            Assert.AreEqual("middleName", jn);
+
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other.LastName))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            // Verify JsonObject usage.
+            t = typeof(Other2);
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other2.FirstName))!, out jn));
+            Assert.AreEqual("firstName", jn);
+
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other2.LastName))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            // Verify ContractResolver STJ marked-up objects.
+            t = typeof(CoreEx.WebApis.ExtendedContentResult);
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(CoreEx.WebApis.ExtendedContentResult.AfterExtension))!, out jn));
+            Assert.AreEqual(null, jn);
+
+            t = typeof(CoreEx.Entities.ChangeLog);
+            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(CoreEx.Entities.ChangeLog.CreatedBy))!, out jn));
+            Assert.AreEqual("createdBy", jn);
+        }
+
         #endregion
 
         public class Person
         {
-            public string FirstName { get; set; }
-            public string LastName { get; set; }
-            public List<Address> Addresses { get; set; }
-            public string SSN { get; set; }
+            public string? FirstName { get; set; }
+            public string? LastName { get; set; }
+            public List<Address>? Addresses { get; set; }
+            public string? SSN { get; set; }
             public decimal NetWorth { get; set; }
             public bool? IsAwesome { get; set; }
         }
 
         public class Address
         {
-            public string Street { get; set; }
-            public string City { get; set; }
+            public string? Street { get; set; }
+            public string? City { get; set; }
+        }
+
+        public class Other
+        {
+            [Stj.Serialization.JsonPropertyName("first-name")]
+            [Nsj.JsonProperty("first_name")]
+            public string? FirstName { get; set; }
+            [Stj.Serialization.JsonIgnore]
+            public string? MiddleName { get; set; }
+            [Nsj.JsonIgnore]
+            public string? LastName { get; set; }
+        }
+
+        [Nsj.JsonObject(MemberSerialization = Nsj.MemberSerialization.OptIn)]
+        public class Other2
+        {
+            [Nsj.JsonProperty("firstName")]
+            public string? FirstName { get; set; }
+            public string? LastName { get; set; }
         }
     }
 }
