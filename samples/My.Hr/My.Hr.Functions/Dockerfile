@@ -29,12 +29,14 @@ WORKDIR /src/samples/My.Hr/My.Hr.Functions
 
 RUN mkdir -p /home/site/wwwroot && \
     dotnet publish *.csproj --no-restore -c Debug --output /home/site/wwwroot && \
-    if [ "$LOCAL" = "true" ] ; then find / \( -type f -name .git -prune \) -o -type f -name "function.json" -print0 | xargs -0 sed -i 's/authLevel\": \"function/authLevel\": \"anonymous/g' ; fi
+    echo LOCAL is "$LOCAL" && \
+    echo $(if [ "$LOCAL" = "true" ] ; then find / \( -type f -name .git -prune \) -o -type f -name "function.json" -print0 | xargs -0 sed -i 's/authLevel\": \"function/authLevel\": \"anonymous/g' ; fi)
 
 # To enable ssh & remote debugging on app service change the base image to the one below
 # FROM mcr.microsoft.com/azure-functions/dotnet:4-appservice
 # FROM mcr.microsoft.com/azure-functions/dotnet:4
 FROM mcr.microsoft.com/azure-functions/dotnet:4-appservice
+ARG LOCAL
 
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot
 ENV AzureFunctionsJobHost__Logging__Console__IsEnabled=true

@@ -40,6 +40,7 @@ services:
       - GenderizeApiClientApiEndpointUri=https://api.genderize.io
       - VerificationQueueName=pendingVerifications
       - VerificationResultsQueueName=verificationResults
+      - ConnectionStrings__Database=Data Source=sqldata,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
       - PORT=80
     ports:
       - "5104:80"

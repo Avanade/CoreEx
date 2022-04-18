@@ -44,7 +44,7 @@ ENV ConnectionStrings__sqlserver:MyHr Data Source=localhost, $MSSQL_TCP_PORT;Ini
 # Copy setup scripts
 WORKDIR /usr/local/
 COPY --from=build /dbex/build /dbex
-COPY  samples/My.Hr/My.Hr.Database/wait-for-it.sh samples/My.Hr/My.Hr.Database/entrypoint.sh samples/My.Hr/My.Hr.Database/database.beef.yaml ./
+COPY  samples/My.Hr/My.Hr.Database/wait-for-it.sh samples/My.Hr/My.Hr.Database/entrypoint.sh ./
 
 RUN chmod +x ./*.sh
 

@@ -28,6 +28,7 @@ RUN dotnet publish --no-restore -c Release -o /app
 
 FROM build as unittest
 WORKDIR /src/samples/My.Hr/My.Hr.Test
+# can run tests here on buils
 
 FROM build AS publish
 

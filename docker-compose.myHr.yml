@@ -19,5 +19,7 @@ services:
     build:
       context: .
       args:
-        LOCAL: 'true'
+        LOCAL: "true"
       dockerfile: samples/My.Hr/My.Hr.Functions/Dockerfile
+    depends_on:
+      - sqldata

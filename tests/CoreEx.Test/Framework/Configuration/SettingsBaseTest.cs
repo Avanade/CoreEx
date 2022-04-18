@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using CoreEx.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
@@ -189,5 +191,41 @@ namespace CoreEx.Test.Framework.Configuration
             settings.SomethingGlobal.Should().Be("foo");
             result.Should().Be("foo");
         }
+
+        [Test, Repeat(50)]
+        public void RunInParallel()
+        {
+            var configuration = CreateTestConfiguration();
+            var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
+
+            var reps = Enumerable.Range(1, 5);
+
+            var testResult = Parallel.ForEach(reps, (i) =>
+            {
+                var result = settings.GetValue<string>("PropTestNested");
+
+                // Assert
+                settings.SomethingGlobal.Should().Be("foo");
+                result.Should().Be("foo");
+
+                ExamineValuesOfLocalObjectsEitherSideOfAwait(settings).Wait();
+            });
+
+            testResult.IsCompleted.Should().BeTrue();
+        }
+
+        static async Task ExamineValuesOfLocalObjectsEitherSideOfAwait(SettingsForTesting settings)
+        {
+            var result = settings.GetValue<string>("PropTestNested");
+            settings.SomethingGlobal.Should().Be("foo");
+            result.Should().Be("foo");
+
+            await Task.Delay(100);
+            
+            result = settings.GetValue<string>("PropTestNested");
+            settings.SomethingGlobal.Should().Be("foo");
+            result.Should().Be("foo");
+        }
+
     }
 }
