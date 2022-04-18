@@ -27,7 +27,13 @@ namespace CoreEx.Entities.Extended
         /// <param name="collection">The entities to add.</param>
         protected PrimaryKeyBaseCollection(IEnumerable<TEntity> collection) : base(collection) { }
 
-         /// <summary>
+        /// <inheritdoc/>
+        public bool ContainsKey(CompositeKey key) => Items.Any(x => x is IPrimaryKey pk && key.Equals(pk.PrimaryKey));
+
+        /// <inheritdoc/>
+        public bool ContainsKey(params object?[] args) => ContainsKey(new CompositeKey(args));
+
+        /// <summary>
         /// Gets the first item by the specified primary <paramref name="key"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>

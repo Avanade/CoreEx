@@ -14,6 +14,12 @@ namespace CoreEx.Entities
     public class PrimaryKeyCollection<T> : List<T>, IPrimaryKeyCollection<T> where T : IPrimaryKey
     {
         /// <inheritdoc/>
+        public bool ContainsKey(CompositeKey key) => this.Any(x => x is IPrimaryKey pk && key.Equals(pk.PrimaryKey));
+
+        /// <inheritdoc/>
+        public bool ContainsKey(params object?[] args) => ContainsKey(new CompositeKey(args));
+
+        /// <inheritdoc/>
         public T? GetByKey(CompositeKey key) => this.Where(pk => key.Equals(pk.PrimaryKey)).FirstOrDefault();
 
         /// <inheritdoc/>

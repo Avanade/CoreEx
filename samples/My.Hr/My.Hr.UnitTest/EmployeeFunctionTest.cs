@@ -280,23 +280,81 @@ namespace My.Hr.UnitTest
 
             // Get current.
             test.HttpTrigger<EmployeeFunction>()
-                .Run(c => c.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertOK();
 
             // Delete it.
             test.HttpTrigger<EmployeeFunction>()
-                .Run(c => c.DeleteAsync(test.CreateHttpRequest(HttpMethod.Delete, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
+                .Run(f => f.DeleteAsync(test.CreateHttpRequest(HttpMethod.Delete, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertNoContent();
 
             // Must not exist.
             test.HttpTrigger<EmployeeFunction>()
-                .Run(c => c.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertNotFound();
 
             // Delete it again; should appear as if deleted as operation is considered idempotent.
             test.HttpTrigger<EmployeeFunction>()
-                .Run(c => c.DeleteAsync(test.CreateHttpRequest(HttpMethod.Delete, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
+                .Run(f => f.DeleteAsync(test.CreateHttpRequest(HttpMethod.Delete, $"api/employees/{2.ToGuid()}"), 2.ToGuid()))
                 .AssertNoContent();
+        }
+
+        [Test]
+        public void F100_Patch_NotFound()
+        {
+            using var test = FunctionTester.Create<Startup>();
+
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.PatchAsync(test.CreateHttpRequest(HttpMethod.Patch, $"api/employees/{404.ToGuid()}", "{}", HttpConsts.MergePatchMediaTypeName), 404.ToGuid()))
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void F110_Patch_Concurrency()
+        {
+            using var test = FunctionTester.Create<Startup>();
+
+            // Get current.
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{4.ToGuid()}"), 4.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            // Patch it with errant etag.
+            v.FirstName += "X";
+
+            var req = test.CreateHttpRequest(HttpMethod.Patch, $"api/employees/{v.Id}", $"{{ \"firstName\": \"{v.FirstName}\" }}", new CoreEx.Http.HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" }, HttpConsts.MergePatchMediaTypeName);
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.PatchAsync(req, v.Id))
+                .AssertPreconditionFailed();
+        }
+
+        [Test]
+        public void F120_Patch()
+        {
+            using var test = FunctionTester.Create<Startup>();
+
+            // Get current.
+            var v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{4.ToGuid()}"), 4.ToGuid()))
+                .AssertOK()
+                .GetValue<Employee>()!;
+
+            // Patch it with errant etag.
+            v.FirstName += "X";
+
+            var req = test.CreateHttpRequest(HttpMethod.Patch, $"api/employees/{v.Id}", $"{{ \"firstName\": \"{v.FirstName}\" }}", new CoreEx.Http.HttpRequestOptions { ETag = v.ETag }, HttpConsts.MergePatchMediaTypeName);
+            v = test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.PatchAsync(req, v.Id))
+                .AssertOK()
+                .Assert(v, "ETag")
+                .GetValue<Employee>()!;
+
+            // Get again and check all.
+            test.HttpTrigger<EmployeeFunction>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{v.Id}"), v.Id))
+                .AssertOK()
+                .Assert(v);
         }
     }
 }

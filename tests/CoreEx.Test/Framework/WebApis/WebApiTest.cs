@@ -1,8 +1,9 @@
 ﻿using CoreEx.Entities;
-using CoreEx.Events;
+using CoreEx.Http;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using CoreEx.WebApis;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
@@ -362,6 +363,152 @@ namespace CoreEx.Test.Framework.WebApis
                 .ToActionResultAssertor()
                 .AssertNoContent();
         }
+
+        [Test]
+        public void PatchAsync_WithInvalidContentType()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = test.CreateHttpRequest(HttpMethod.Patch, "https://unittest");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(null), put: _ => Task.FromResult<Person>(null!)))
+                .ToActionResultAssertor()
+                .Assert(HttpStatusCode.UnsupportedMediaType)
+                .Assert("Unsupported 'Content-Type' for a PATCH; only JSON Merge Patch is supported using either: 'application/merge-patch+json' or 'application/json'.");
+        }
+
+        [Test]
+        public void PatchAsync_WithNullJson()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, null);
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<PersonCollection?>(null), put: _ => Task.FromResult<PersonCollection>(null!)))
+                .ToActionResultAssertor()
+                .AssertBadRequest()
+                .Assert("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
+        }
+
+        [Test]
+        public void PatchAsync_WithBadJson()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "<xml/>");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<PersonCollection?>(null), put: _ => Task.FromResult<PersonCollection>(null!)))
+                .ToActionResultAssertor()
+                .AssertBadRequest()
+                .Assert("'<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
+        }
+
+        [Test]
+        public void PatchAsync_WithNoETag()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ }");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person()), put: _ => Task.FromResult<Person>(null!)))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
+        }
+
+        [Test]
+        public void PatchAsync_WithETagHeader_ThenNotFound()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ }", "aaaa");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(null), put: _ => Task.FromResult<Person>(null!)))
+                .ToActionResultAssertor()
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void PatchAsync_WithETagProperty_ThenNotFound()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"etag\": \"aaa\"}");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(null), put: _ => Task.FromResult<Person>(null!)))
+                .ToActionResultAssertor()
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void PatchAsync_WithETagHeader_NotMatched()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ }", "aaa");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { ETag = "bbb" }), put: _ => Task.FromResult<Person>(null!)))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("A concurrency error occurred; please refresh the data and try again.");
+        }
+
+        [Test]
+        public void PatchAsync_WithETagProperty_NotMatched()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"etag\": \"aaa\"}");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { ETag = "bbb" }), put: _ => Task.FromResult<Person>(null!)))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("A concurrency error occurred; please refresh the data and try again.");
+        }
+
+        [Test]
+        public void PatchAsync_WithETagHeader_PutConcurrency()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"name\": \"bob\" }", "aaa");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { ETag = "aaa" }), put: _ => throw new ConcurrencyException()))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("A concurrency error occurred; please refresh the data and try again.");
+        }
+
+        [Test]
+        public void PatchAsync_WithETagHeader_SimulateDuplicate_WasMergedWithChanges()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"name\": \"bob\" }", "aaa");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Name = "bobby", ETag = "aaa" }), put: _ => throw new DuplicateException()))
+                .ToActionResultAssertor()
+                .AssertConflict();
+        }
+
+        [Test]
+        public void PatchAsync_WithETagHeader_OK_WithNoMergeChanges()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"name\": \"bob\" }", "aaa");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Name = "bob", ETag = "aaa" }), put: _ => throw new ConcurrencyException()))
+                .ToActionResultAssertor()
+                .AssertOK();
+        }
+
+        [Test]
+        public void PatchAsync_WithETagHeader_OK_SimulateChanged()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"name\": \"bobby\" }", "aaa");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr,
+                    get: _ => Task.FromResult<Person?>(new Person { Name = "bob", ETag = "aaa" }),
+                    put: p => { ObjectComparer.Assert(new Person { Name = "bobby", ETag = "aaa" }, p.Value); p.Value!.ETag = "bbb"; return Task.FromResult(p.Value!); }))
+                .ToActionResultAssertor()
+                .AssertOK()
+                .Assert(new Person { Name = "bobby", ETag = "bbb" })
+                .AssertETagHeader("bbb");
+        }
+
+        private HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
+            => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, new HttpRequestOptions { ETag = etag }, HttpConsts.MergePatchMediaTypeName);
 
         private class Person : IIdentifier<int>, IETag
         {

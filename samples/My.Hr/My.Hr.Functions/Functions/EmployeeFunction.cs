@@ -64,6 +64,10 @@ public class EmployeeFunction
     public Task<IActionResult> UpdateAsync([HttpTrigger(AuthorizationLevel.Function, "put", Route = "api/employees/{id}")] HttpRequest request, Guid id)
         => _webApi.PutAsync<Employee, Employee>(request, p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
 
+    [FunctionName("Patch")]
+    public Task<IActionResult> PatchAsync([HttpTrigger(AuthorizationLevel.Function, "patch", Route = "api/employees/{id}")] HttpRequest request, Guid id)
+        => _webApi.PatchAsync(request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
+
     [FunctionName("Delete")]
     public Task<IActionResult> DeleteAsync([HttpTrigger(AuthorizationLevel.Function, "delete", Route = "api/employees/{id}")] HttpRequest request, Guid id)
         => _webApi.DeleteAsync(request, _ => _service.DeleteEmployeeAsync(id));

@@ -66,6 +66,17 @@ public class EmployeeController : ControllerBase
         => _webApi.PutAsync<Employee, Employee>(Request, p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
 
     /// <summary>
+    /// Patches an existing <see cref="Employee"/>.
+    /// </summary>
+    /// <param name="id">The <see cref="Employee"/> identifier.</param>
+    /// <returns>The updated <see cref="Employee"/>.</returns>
+    [HttpPatch("{id}", Name = "Patch")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
+    public Task<IActionResult> PatchAsync(Guid id)
+        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
+
+    /// <summary>
     /// Deletes the specified <see cref="Employee"/>.
     /// </summary>
     /// <param name="id">The Id.</param>

@@ -7,6 +7,7 @@ using CoreEx.Events;
 using CoreEx.Hosting;
 using CoreEx.Http;
 using CoreEx.Json;
+using CoreEx.Json.Merge;
 using CoreEx.WebApis;
 using Microsoft.Extensions.Logging;
 using System;
@@ -115,55 +116,55 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddGuidIdentifierGenerator(this IServiceCollection services) => CheckServices(services).AddSingleton<IIdentifierGenerator<Guid>, IdentifierGenerator>();
 
         /// <summary>
-        /// Adds the <see cref="LoggerEventPublisher"/> as the <see cref="IEventPublisher"/> singleton service.
+        /// Adds the <see cref="LoggerEventPublisher"/> as the <see cref="IEventPublisher"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddLoggerEventPublisher(this IServiceCollection services) => CheckServices(services).AddEventPublisher<LoggerEventPublisher>();
 
         /// <summary>
-        /// Adds the <see cref="NullEventPublisher"/> as the <see cref="IEventPublisher"/> singleton service.
+        /// Adds the <see cref="NullEventPublisher"/> as the <see cref="IEventPublisher"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddNullEventPublisher(this IServiceCollection services) => CheckServices(services).AddEventPublisher<NullEventPublisher>();
 
         /// <summary>
-        /// Adds the <see cref="EventPublisher"/> as the <see cref="IEventPublisher"/> singleton service.
+        /// Adds the <see cref="EventPublisher"/> as the <see cref="IEventPublisher"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddEventPublisher(this IServiceCollection services) => CheckServices(services).AddEventPublisher<EventPublisher>();
 
         /// <summary>
-        /// Adds the <typeparamref name="TEventPublisher"/> as the <see cref="IEventPublisher"/> singleton service.
+        /// Adds the <typeparamref name="TEventPublisher"/> as the <see cref="IEventPublisher"/> scoped service.
         /// </summary>
         /// <typeparam name="TEventPublisher">The <see cref="IEventPublisher"/> <see cref="Type"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddEventPublisher<TEventPublisher>(this IServiceCollection services) where TEventPublisher : class, IEventPublisher => CheckServices(services).AddSingleton<IEventPublisher, TEventPublisher>();
+        public static IServiceCollection AddEventPublisher<TEventPublisher>(this IServiceCollection services) where TEventPublisher : class, IEventPublisher => CheckServices(services).AddScoped<IEventPublisher, TEventPublisher>();
 
         /// <summary>
-        /// Adds the <see cref="LoggerEventSender"/> as the <see cref="IEventSender"/> singleton service.
+        /// Adds the <see cref="LoggerEventSender"/> as the <see cref="IEventSender"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddLoggerEventSender(this IServiceCollection services) => CheckServices(services).AddEventSender<LoggerEventSender>();
 
         /// <summary>
-        /// Adds the <see cref="NullEventSender"/> as the <see cref="IEventSender"/> singleton service.
+        /// Adds the <see cref="NullEventSender"/> as the <see cref="IEventSender"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddNullEventSender(this IServiceCollection services) => CheckServices(services).AddEventSender<NullEventSender>();
 
         /// <summary>
-        /// Adds the <typeparamref name="TEventSender"/> as the <see cref="IEventSender"/> singleton service.
+        /// Adds the <typeparamref name="TEventSender"/> as the <see cref="IEventSender"/> scoped service.
         /// </summary>
         /// <typeparam name="TEventSender">The <see cref="IEventSender"/> <see cref="Type"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddEventSender<TEventSender>(this IServiceCollection services) where TEventSender : class, IEventSender => CheckServices(services).AddSingleton<IEventSender, TEventSender>();
+        public static IServiceCollection AddEventSender<TEventSender>(this IServiceCollection services) where TEventSender : class, IEventSender => CheckServices(services).AddScoped<IEventSender, TEventSender>();
 
         /// <summary>
         /// Adds the <see cref="CoreEx.Text.Json.JsonSerializer"/> as the <see cref="IJsonSerializer"/> singleton service.
@@ -186,7 +187,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="configure">The action to enable the <see cref="CoreEx.Json.Merge.JsonMergePatchOptions"/> to be further configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Action<CoreEx.Json.Merge.JsonMergePatchOptions>? configure = null) => CheckServices(services).AddSingleton(sp =>
+        public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Action<CoreEx.Json.Merge.JsonMergePatchOptions>? configure = null) => CheckServices(services).AddSingleton<IJsonMergePatch>(sp =>
         {
             var jmpo = new CoreEx.Json.Merge.JsonMergePatchOptions(sp.GetService<IJsonSerializer>());
             configure?.Invoke(jmpo);
@@ -194,19 +195,19 @@ namespace Microsoft.Extensions.DependencyInjection
         });
 
         /// <summary>
-        /// Adds the <see cref="CoreEx.Text.Json.CloudEventSerializer"/> as the <see cref="IEventSerializer"/> singleton service.
+        /// Adds the <see cref="CoreEx.Text.Json.CloudEventSerializer"/> as the <see cref="IEventSerializer"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddCloudEventSerializer(this IServiceCollection services) => CheckServices(services).AddSingleton<IEventSerializer, CoreEx.Text.Json.CloudEventSerializer>();
+        public static IServiceCollection AddCloudEventSerializer(this IServiceCollection services) => CheckServices(services).AddScoped<IEventSerializer, CoreEx.Text.Json.CloudEventSerializer>();
 
         /// <summary>
-        /// Adds the <see cref="CoreEx.Text.Json.EventDataSerializer"/> as the <see cref="IEventSerializer"/> singleton service.
+        /// Adds the <see cref="CoreEx.Text.Json.EventDataSerializer"/> as the <see cref="IEventSerializer"/> scoped service.
         /// </summary>
         /// <param name="configure">The action to enable the <see cref="CoreEx.Text.Json.EventDataSerializer"/> to be further configured.</param>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddEventDataSerializer(this IServiceCollection services, Action<CoreEx.Text.Json.EventDataSerializer>? configure = null) => CheckServices(services).AddSingleton<IEventSerializer>(sp =>
+        public static IServiceCollection AddEventDataSerializer(this IServiceCollection services, Action<CoreEx.Text.Json.EventDataSerializer>? configure = null) => CheckServices(services).AddScoped<IEventSerializer>(sp =>
         {
             var eds = new CoreEx.Text.Json.EventDataSerializer(sp.GetService<IJsonSerializer>(), sp.GetService<EventDataFormatter>());
             configure?.Invoke(eds);
@@ -214,12 +215,12 @@ namespace Microsoft.Extensions.DependencyInjection
         });
 
         /// <summary>
-        /// Adds the <see cref="EventDataFormatter"/> as the singleton service.
+        /// Adds the <see cref="EventDataFormatter"/> as the scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="formatter">The optional <see cref="EventDataFormatter"/>; will default where not specified.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddEventDataFormatter(this IServiceCollection services, EventDataFormatter? formatter = null) => CheckServices(services).AddSingleton(_ => formatter ?? new EventDataFormatter());
+        public static IServiceCollection AddEventDataFormatter(this IServiceCollection services, EventDataFormatter? formatter = null) => CheckServices(services).AddScoped(_ => formatter ?? new EventDataFormatter());
 
         /// <summary>
         /// Adds the <see cref="FileLockSynchronizer"/> as the <see cref="IServiceSynchronizer"/> singleton service.
@@ -236,7 +237,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddWebApi(this IServiceCollection services, Action<WebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
         {
-            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>());
+            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<IJsonMergePatch>());
             configure?.Invoke(wa);
             return wa;
         });
