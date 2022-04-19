@@ -350,7 +350,7 @@ namespace CoreEx.WebApis
         public async Task<IActionResult> PatchAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<TValue?>> get, Func<WebApiParam<TValue>, Task<TValue>> put, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Update) where TValue : class
         {
             if (JsonMergePatch == null)
-                throw new InvalidOperationException($"To use the '{nameof(PatchAsync)}' methods the '{nameof(JsonMergePatch)}' object must be passed in the constructor. Where using dependency injection consider using '{nameof(Microsoft.Extensions.DependencyInjection.ServiceCollectionExtensions.AddJsonMergePatch)}' to add and configure the supported options.");
+                throw new InvalidOperationException($"To use the '{nameof(PatchAsync)}' methods the '{nameof(JsonMergePatch)}' object must be passed in the constructor. Where using dependency injection consider using '{nameof(Microsoft.Extensions.DependencyInjection.IServiceCollectionExtensions.AddJsonMergePatch)}' to add and configure the supported options.");
 
             if (request == null)
                 throw new ArgumentNullException(nameof(request));

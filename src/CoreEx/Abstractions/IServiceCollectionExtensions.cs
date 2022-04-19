@@ -19,7 +19,7 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <summary>
     /// Provides <see cref="IServiceCollection"/> extensions.
     /// </summary>
-    public static class ServiceCollectionExtensions
+    public static class IServiceCollectionExtensions
     {
         /// <summary>
         /// Checks that the <see cref="IServiceCollection"/> is not null.

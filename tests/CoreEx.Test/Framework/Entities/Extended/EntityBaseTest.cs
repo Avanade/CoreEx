@@ -566,6 +566,21 @@ namespace CoreEx.Test.Framework.Entities.Extended
         }
 
         [Test]
+        public void Collect_Person_Clear()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+            Assert.IsTrue(pc.IsChanged);
+
+            pc.AcceptChanges();
+            Assert.IsFalse(pc.IsChanged);
+
+            pc.Clear();
+            Assert.IsTrue(pc.IsChanged);
+        }
+
+        [Test]
         public void Collection_Person_MakeReadOnly()
         {
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
@@ -670,6 +685,73 @@ namespace CoreEx.Test.Framework.Entities.Extended
             Assert.IsFalse(ReferenceEquals(pcr2, pcr));
             Assert.IsTrue(pcr2.Equals(pcr));
             Assert.IsTrue(pcr2 == pcr);
+        }
+
+        [Test]
+        public void Dictionary_Person_IsChanged()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
+            Assert.IsTrue(pd.IsChanged);
+
+            pd.AcceptChanges();
+            Assert.IsFalse(pd.IsChanged);
+            Assert.IsFalse(p1.IsChanged);
+            Assert.IsFalse(p2.IsChanged);
+
+            p1.ChangeLog.CreatedDate = p1.ChangeLog.CreatedDate.Value.AddMinutes(1);
+            Assert.IsTrue(pd.IsChanged);
+            Assert.IsTrue(p1.IsChanged);
+            Assert.IsFalse(p2.IsChanged);
+
+            pd.AcceptChanges();
+            Assert.IsFalse(pd.IsChanged);
+            Assert.IsFalse(p1.IsChanged);
+            Assert.IsFalse(p2.IsChanged);
+
+            pd.Remove("mary");
+            Assert.IsTrue(pd.IsChanged);
+
+            pd.AcceptChanges();
+            Assert.IsFalse(pd.IsChanged);
+
+            pd.Remove("mary");
+            Assert.IsFalse(pd.IsChanged);
+        }
+
+        [Test]
+        public void Dictionary_Person_ReadOnly()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
+            pd.MakeReadOnly();
+            Assert.IsTrue(pd.IsReadOnly);
+
+            Assert.Throws<InvalidOperationException>(() => pd.Clear());
+            Assert.Throws<InvalidOperationException>(() => pd.Remove("mary"));
+            Assert.Throws<InvalidOperationException>(() => pd.Add("donna", new Person { Name = "Donna" }));
+            Assert.Throws<InvalidOperationException>(() => pd["donna"] = new Person { Name = "Donna" });
+        }
+
+        [Test]
+        public void Dictionary_Person_Equals()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
+
+            var px1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var px2 = new Person { Name = "mary", Age = 25 };
+            var pxd = new PersonDictionary { { "dave", px1 }, { "mary", px2 } };
+
+            Assert.IsTrue(pd == pxd);
+            Assert.AreEqual(pd.GetHashCode(), pxd.GetHashCode());
+
+            px2.Name += "X";
+            Assert.IsFalse(pd == pxd);
+            Assert.AreNotEqual(pd.GetHashCode(), pxd.GetHashCode());
         }
 
         private DateTime CreateDateTime() => new DateTime(2000, 01, 01, 12, 45, 59);
@@ -788,13 +870,11 @@ namespace CoreEx.Test.Framework.Entities.Extended
             public PersonExCollection() { }
 
             public PersonExCollection(IEnumerable<PersonEx> entities) : base(entities) { }
+        }
 
-            ///// <summary>
-            ///// An implicit cast from the <see cref="PersonCollectionResult"/> to a corresponding <see cref="PersonCollection"/>.
-            ///// </summary>
-            ///// <param name="result">The <see cref="PersonCollectionResult"/>.</param>
-            ///// <returns>The corresponding <see cref="PersonCollection"/>.</returns>
-            //public static implicit operator PersonCollection(PersonCollectionResult result) => result?.Result!;
+        public class PersonDictionary : EntityBaseDictionary<Person, PersonDictionary>
+        {
+            //public PersonDictionary() { }
         }
     }
 }

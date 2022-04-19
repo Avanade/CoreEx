@@ -45,5 +45,7 @@ namespace CoreEx.TestFunction.Models
         [Nsj.JsonIgnore]
         [Stj.JsonIgnore]
         public CompositeKey PrimaryKey => new CompositeKey(Code);
+
+        public string ETag { get; set; }
     }
 }
