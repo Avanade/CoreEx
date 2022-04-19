@@ -12,6 +12,8 @@ namespace My.Hr.Api;
 
 public class Startup
 {
+    // todo: add azure app configuration (conditional?)
+
     /// <summary>
     /// The configure services method called by the runtime; use this method to add services to the container.
     /// </summary>
@@ -44,8 +46,7 @@ public class Startup
         services
             .AddScoped<HealthService>()
             .AddHealthChecks()
-            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection__fullyQualifiedNamespace), nameof(HrSettings.VerificationQueueName))
-            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification results queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection__fullyQualifiedNamespace), nameof(HrSettings.VerificationResultsQueueName));
+            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName));
 
 
         services.AddControllers();
