@@ -210,7 +210,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <remarks>This will trigger an <see cref="EntityCore.MakeReadOnly"/> for each item.</remarks>
+        /// <remarks>This will trigger a <see cref="EntityCore.MakeReadOnly"/> for each item.</remarks>
         public void MakeReadOnly()
         {
             ApplyAction(EntityAction.MakeReadOnly);
@@ -219,7 +219,16 @@ namespace CoreEx.Entities.Extended
         }
 
         /// <inheritdoc/>
-        protected override void ClearItems() => CheckReadOnly(() => base.ClearItems());
+        protected override void ClearItems()
+        {
+            CheckReadOnly(() =>
+            {
+                CheckReentrancy();
+                var items = new List<EntityBase>(this);
+                base.ClearItems();
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, items));
+            });
+        }
 
         /// <inheritdoc/>
         protected override void InsertItem(int index, TEntity item) => CheckReadOnly(() => base.InsertItem(index, item));

@@ -566,6 +566,21 @@ namespace CoreEx.Test.Framework.Entities.Extended
         }
 
         [Test]
+        public void Collect_Person_Clear()
+        {
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "mary", Age = 25 };
+            var pc = new PersonCollection { p1, p2 };
+            Assert.IsTrue(pc.IsChanged);
+
+            pc.AcceptChanges();
+            Assert.IsFalse(pc.IsChanged);
+
+            pc.Clear();
+            Assert.IsTrue(pc.IsChanged);
+        }
+
+        [Test]
         public void Collection_Person_MakeReadOnly()
         {
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
