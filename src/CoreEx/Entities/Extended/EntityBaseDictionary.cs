@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
@@ -10,55 +9,34 @@ using System.Linq;
 namespace CoreEx.Entities.Extended
 {
     /// <summary>
-    /// Represents an <see cref="EntityBase"/> collection class.
+    /// Represents an <see cref="EntityBase"/> dictionary class with a key of Type <see cref="string"/>.
     /// </summary>
     /// <typeparam name="TEntity">The <see cref="EntityBase"/> <see cref="System.Type"/>.</typeparam>
-    /// <typeparam name="TSelf">The <see cref="EntityBase"/> collection <see cref="Type"/> itself.</typeparam>
-    [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBaseCollection<TEntity, TSelf> : ObservableCollection<TEntity>, INotifyCollectionItemChanged, IEquatable<TSelf>, ICloneable, ICleanUp, IInitial
-        where TEntity : EntityBase 
-        where TSelf : EntityBaseCollection<TEntity, TSelf>, new()
+    /// <typeparam name="TSelf">The <see cref="EntityBase"/> dictionary <see cref="Type"/> itself.</typeparam>
+    /// <remarks>The key is constrained to be of Type <see cref="string"/> as this is a constraint related to JSON serialization.</remarks>
+    public class EntityBaseDictionary<TEntity, TSelf> : ObservableDictionary<string, TEntity>, INotifyPropertyChanged, INotifyCollectionItemChanged, IEquatable<TSelf>, ICloneable, ICleanUp, IInitial
+        where TEntity : EntityBase
+        where TSelf : EntityBaseDictionary<TEntity, TSelf>, new()
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntityBaseCollection{TEntity, TSelf}" /> class.
+        /// Initializes a new instance of the <see cref="EntityBaseDictionary{TEntity, TSelf}" /> class using the <see cref="StringComparer.OrdinalIgnoreCase"/> for the comparer.
         /// </summary>
-        protected EntityBaseCollection() : base() { }
+        protected EntityBaseDictionary() : base(StringComparer.OrdinalIgnoreCase) { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntityBaseCollection{TEntity, TSelf}" /> class.
+        /// Initializes a new instance of the <see cref="EntityBaseDictionary{TEntity, TSelf}" /> class using the <see cref="StringComparer.OrdinalIgnoreCase"/> for the comparer adding the passed <paramref name="collection"/>.
         /// </summary>
-        /// <param name="collection">The entities to add.</param>
-        protected EntityBaseCollection(IEnumerable<TEntity> collection) : base(collection) { }
+        /// <param name="collection">The items to add.</param>
+        protected EntityBaseDictionary(IEnumerable<KeyValuePair<string, TEntity>> collection) : base(collection, StringComparer.OrdinalIgnoreCase) { }
 
         /// <summary>
-        /// Adds the items of the specified collection to the end of the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.
+        /// Creates a deep copy of the entity dictionary (all items will also be cloned).
         /// </summary>
-        /// <param name="collection">The collection containing the items to add.</param>
-        public void AddRange(IEnumerable<TEntity> collection)
-        {
-            if (collection == null)
-                return;
-
-            foreach (TEntity item in collection)
-            {
-                Add(item);
-            }
-        }
-
-        /// <summary>
-        /// Gets a <see cref="IEnumerable{TEntity}"/> wrapper around the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.
-        /// </summary>
-        /// <remarks>This is provided to enable the likes of <b>LINQ</b> based queries over the collection.</remarks>
-        public new IEnumerable<TEntity> Items => base.Items;
-
-        /// <summary>
-        /// Creates a deep copy of the entity collection (all items will also be cloned).
-        /// </summary>
-        /// <returns>A deep copy of the entity collection.</returns>
+        /// <returns>A deep copy of the entity dictionary.</returns>
         public object Clone()
         {
             var clone = new TSelf();
-            this.ForEach(item => clone.Add((TEntity)(item as ICloneable).Clone()));
+            this.ForEach(item => clone.Add(item.Key, (TEntity)(item.Value as ICloneable).Clone()));
             return clone;
         }
 
@@ -75,9 +53,12 @@ namespace CoreEx.Entities.Extended
             else if (Count != other.Count)
                 return false;
 
-            for (int i = 0; i < Count; i++)
+            foreach (var item in this)
             {
-                if (!this[i].Equals(other[i]))
+                if (!other.TryGetValue(item.Key, out var value))
+                    return false;
+
+                if (!item.Value.Equals(value))
                     return false;
             }
 
@@ -87,29 +68,30 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Compares two values for equality.
         /// </summary>
-        /// <param name="a"><see cref="EntityBaseCollection{TEntity, TSelf}"/> A.</param>
-        /// <param name="b"><see cref="EntityBaseCollection{TEntity, TSelf}"/> B.</param>
+        /// <param name="a"><see cref="EntityBaseDictionary{TEntity, TSelf}"/> A.</param>
+        /// <param name="b"><see cref="EntityBaseDictionary{TEntity, TSelf}"/> B.</param>
         /// <returns><c>true</c> indicates equal; otherwise, <c>false</c> for not equal.</returns>
-        public static bool operator ==(EntityBaseCollection<TEntity, TSelf>? a, EntityBaseCollection<TEntity, TSelf>? b) => Equals(a, b);
+        public static bool operator ==(EntityBaseDictionary<TEntity, TSelf>? a, EntityBaseDictionary<TEntity, TSelf>? b) => Equals(a, b);
 
         /// <summary>
         /// Compares two values for non-equality.
         /// </summary>
-        /// <param name="a"><see cref="EntityBaseCollection{TEntity, TSelf}"/> A.</param>
-        /// <param name="b"><see cref="EntityBaseCollection{TEntity, TSelf}"/> B.</param>
+        /// <param name="a"><see cref="ChangeLog"/> A.</param>
+        /// <param name="b"><see cref="ChangeLog"/> B.</param>
         /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
-        public static bool operator !=(EntityBaseCollection<TEntity, TSelf>? a, EntityBaseCollection<TEntity, TSelf>? b) => !Equals(a, b);
+        public static bool operator !=(EntityBaseDictionary<TEntity, TSelf>? a, EntityBaseDictionary<TEntity, TSelf>? b) => !Equals(a, b);
 
         /// <summary>
-        /// Returns a hash code for the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.
+        /// Returns a hash code for the <see cref="EntityBaseDictionary{TEntity, TSelf}"/>.
         /// </summary>
-        /// <returns>A hash code for the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.</returns>
+        /// <returns>A hash code for the <see cref="EntityBaseDictionary{TEntity, TSelf}"/>.</returns>
         public override int GetHashCode()
         {
             var hash = new HashCode();
             foreach (var item in this)
             {
-                hash.Add(item.GetHashCode());
+                hash.Add(item.Key.GetHashCode());
+                hash.Add(item.Value.GetHashCode());
             }
 
             return hash.ToHashCode();
@@ -127,7 +109,7 @@ namespace CoreEx.Entities.Extended
         bool IInitial.IsInitial => false;
 
         /// <summary>
-        /// Overrides the <see cref="ObservableCollection{T}.OnCollectionChanged"/> method.
+        /// Overrides the <see cref="ObservableDictionary{TKey, TValue}.OnCollectionChanged"/> method.
         /// </summary>
         /// <param name="e">The <see cref="System.Collections.Specialized.NotifyCollectionChangedEventArgs"/>.</param>
         /// <remarks>Sets <see cref="IsChanged"/> to <c>true</c>.</remarks>
@@ -142,7 +124,8 @@ namespace CoreEx.Entities.Extended
             {
                 foreach (var item in e.OldItems)
                 {
-                    var ei = (EntityBase)item;
+                    var ci = (KeyValuePair<string, TEntity>)item;
+                    var ei = (EntityBase)ci.Value;
                     if (ei != null)
                         ei.PropertyChanged -= Item_PropertyChanged;
                 }
@@ -152,7 +135,8 @@ namespace CoreEx.Entities.Extended
             {
                 foreach (var item in e.NewItems)
                 {
-                    var ei = (EntityBase)item;
+                    var ci = (KeyValuePair<string, TEntity>)item;
+                    var ei = (EntityBase)ci.Value;
                     if (ei != null)
                         ei.PropertyChanged += Item_PropertyChanged;
                 }
@@ -213,23 +197,19 @@ namespace CoreEx.Entities.Extended
         {
             CheckReadOnly(() =>
             {
-                CheckReentrancy();
                 OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, this));
                 base.ClearItems();
             });
         }
 
         /// <inheritdoc/>
-        protected override void InsertItem(int index, TEntity item) => CheckReadOnly(() => base.InsertItem(index, item));
+        protected override void AddItem(KeyValuePair<string, TEntity> item) => CheckReadOnly(() => base.AddItem(item));
 
         /// <inheritdoc/>
-        protected override void MoveItem(int oldIndex, int newIndex) => CheckReadOnly(() => base.MoveItem(oldIndex, newIndex));
+        protected override void ReplaceItem(KeyValuePair<string, TEntity> oldItem, KeyValuePair<string, TEntity> newItem) => CheckReadOnly(() => base.ReplaceItem(oldItem, newItem));
 
         /// <inheritdoc/>
-        protected override void RemoveItem(int index) => CheckReadOnly(() => base.RemoveItem(index));
-
-        /// <inheritdoc/>
-        protected override void SetItem(int index, TEntity item) => CheckReadOnly(() => base.SetItem(index, item));
+        protected override bool RemoveItem(KeyValuePair<string, TEntity> item) => CheckReadOnly(() => base.RemoveItem(item));
 
         /// <summary>
         /// Checks if readonly and throws; otherwise, executes action.
@@ -243,6 +223,17 @@ namespace CoreEx.Entities.Extended
         }
 
         /// <summary>
+        /// Checks if readonly and throws; otherwise, executes action.
+        /// </summary>
+        private bool CheckReadOnly(Func<bool> func)
+        {
+            if (IsReadOnly)
+                throw new InvalidOperationException("Collection is read only; item(s) cannot be added, updated or deleted.");
+            else
+                return func();
+        }
+
+        /// <summary>
         /// Performs the specified action.
         /// </summary>
         private void ApplyAction(EntityAction action)
@@ -252,15 +243,15 @@ namespace CoreEx.Entities.Extended
                 switch (action)
                 {
                     case EntityAction.CleanUp:
-                        item.CleanUp();
+                        item.Value.CleanUp();
                         break;
 
                     case EntityAction.AcceptChanges:
-                        item.AcceptChanges();
+                        item.Value.AcceptChanges();
                         break;
 
                     case EntityAction.MakeReadOnly:
-                        item.MakeReadOnly();
+                        item.Value.MakeReadOnly();
                         break;
                 }
             }

@@ -180,6 +180,15 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual("lastName", jn);
         }
 
+        [Test]
+        public void SystemTextJson_Serialize_DictionaryKeys()
+        {
+            var d = new Dictionary<string, string> { { "ABC", "XXX" }, { "Efg", "Xxx" }, { "hij", "xxx" }, { "AbEfg", "xxXxx" } };
+            var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
+            var json = js.Serialize(d);
+            Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\"}", json);
+        }
+
         #endregion
 
         #region NewtonsoftJson
@@ -366,6 +375,15 @@ namespace CoreEx.Test.Framework.Json
             t = typeof(CoreEx.Entities.ChangeLog);
             Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(CoreEx.Entities.ChangeLog.CreatedBy))!, out jn));
             Assert.AreEqual("createdBy", jn);
+        }
+
+        [Test]
+        public void NewtonsoftJson_Serialize_DictionaryKeys()
+        {
+            var d = new Dictionary<string, string> { { "ABC", "XXX" }, { "Efg", "Xxx" }, { "hij", "xxx" }, { "AbEfg", "xxXxx" } };
+            var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
+            var json = js.Serialize(d);
+            Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\"}", json);
         }
 
         #endregion

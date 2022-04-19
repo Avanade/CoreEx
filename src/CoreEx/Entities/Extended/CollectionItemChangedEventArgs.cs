@@ -5,16 +5,16 @@ using System.ComponentModel;
 namespace CoreEx.Entities.Extended
 {
     /// <summary>
-    /// Provides data for the <see cref="INotifyPropertyChanged.PropertyChanged"/> when an <i>item</i> within an <see cref="IEntityBaseCollection"/> is changed.
+    /// Provides data for the <see cref="INotifyCollectionItemChanged.CollectionItemChanged"/> when an <i>item</i> within an collection is changed.
     /// </summary>
-    public class ItemPropertyChangedEventArgs : PropertyChangedEventArgs
+    public class CollectionItemChangedEventArgs : PropertyChangedEventArgs
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ItemPropertyChangedEventArgs"/> class.
+        /// Initializes a new instance of the <see cref="CollectionItemChangedEventArgs"/> class.
         /// </summary>
         /// <param name="item">The item that had the property change.</param>
         /// <param name="propertyName">The name of the property that changed.</param>
-        public ItemPropertyChangedEventArgs(object? item, string? propertyName) : base(propertyName) => Item = item;
+        public CollectionItemChangedEventArgs(object? item, string? propertyName) : base(propertyName) => Item = item;
 
         /// <summary>
         /// Gets the item that had the property change.

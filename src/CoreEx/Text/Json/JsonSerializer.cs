@@ -23,6 +23,7 @@ namespace CoreEx.Text.Json
         /// <list type="bullet">
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DefaultIgnoreCondition"/> = <see cref="JsonIgnoreCondition.WhenWritingDefault"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c></description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.DictionaryKeyPolicy"/> = <c>Stj.JsonNamingPolicy.CamelCase</c></description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/></description></item>
         /// </list>
         /// </remarks>
@@ -32,6 +33,7 @@ namespace CoreEx.Text.Json
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
                 WriteIndented = false,
+                DictionaryKeyPolicy = Stj.JsonNamingPolicy.CamelCase,
                 Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
             };
         }

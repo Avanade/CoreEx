@@ -4,6 +4,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Linq;
 
 namespace CoreEx.Entities.Extended
 {
@@ -12,7 +14,7 @@ namespace CoreEx.Entities.Extended
     /// </summary>
     /// <typeparam name="TKey">The key <see cref="Type"/>.</typeparam>
     /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
-    public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>, INotifyCollectionChanged where TKey : notnull
+    public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>, INotifyCollectionChanged, INotifyPropertyChanged where TKey : notnull
     {
         private readonly Dictionary<TKey, TValue> _dict;
 
@@ -26,6 +28,19 @@ namespace CoreEx.Entities.Extended
         /// </summary>
         /// <param name="comparer">The <see cref="IEqualityComparer{T}"/> implementation to use when comparing keys, or null to use the default <see cref="IEqualityComparer{T}"/> for the type of the key.</param>
         public ObservableDictionary(IEqualityComparer<TKey> comparer) => _dict = new(comparer);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ObservableDictionary{TKey, TValue}"/> with the default <see cref="IEqualityComparer{T}"/> for the type of the key adding the passed <paramref name="collection"/>.
+        /// </summary>
+        /// <param name="collection">The items to add.</param>
+        public ObservableDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection) => _dict = new(collection);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ObservableDictionary{TKey, TValue}"/> with the specified <paramref name="comparer"/> adding the passed <paramref name="collection"/>.
+        /// </summary>
+        /// <param name="comparer">The <see cref="IEqualityComparer{T}"/> implementation to use when comparing keys, or null to use the default <see cref="IEqualityComparer{T}"/> for the type of the key.</param>
+        /// <param name="collection">The items to add.</param>
+        public ObservableDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection, IEqualityComparer<TKey> comparer) => _dict = new(collection, comparer);
 
         /// <inheritdoc/>
         public int Count => _dict.Count;
@@ -134,17 +149,21 @@ namespace CoreEx.Entities.Extended
         bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item) => RemoveItem(item);
 
         /// <inheritdoc/>
-        public void Clear() => ClearItems();
+        public void Clear()
+        {
+            if (Count > 0)
+                ClearItems();
+        }
 
         /// <summary>
         /// Clears all items from the dictionary.
         /// </summary>
         protected virtual void ClearItems()
         {
-            var items = new List<KeyValuePair<TKey, TValue>>(this);
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, this.ToList()));
             _dict.Clear();
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, items));
+            RaisePropertyChanged();
         }
 
         /// <summary>
@@ -156,6 +175,7 @@ namespace CoreEx.Entities.Extended
         {
             _dict[newItem.Key] = newItem.Value;
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, newItem, oldItem));
+            RaisePropertyChanged();
         }
 
         /// <summary>
@@ -166,6 +186,7 @@ namespace CoreEx.Entities.Extended
         {
             _dict.Add(item.Key, item.Value);
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item));
+            RaisePropertyChanged();
         }
 
         /// <summary>
@@ -179,6 +200,7 @@ namespace CoreEx.Entities.Extended
                 return false;
 
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item));
+            RaisePropertyChanged();
             return true;
         }
 
@@ -192,5 +214,21 @@ namespace CoreEx.Entities.Extended
         /// Occurs when the collection changes, either by adding or removing an item.
         /// </summary>
         public event NotifyCollectionChangedEventHandler? CollectionChanged;
+
+        /// <summary>
+        /// Invokes the <see cref="OnPropertyChanged"/> method.
+        /// </summary>
+        private void RaisePropertyChanged() => OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+
+        /// <summary>
+        /// Raises the <see cref="PropertyChanged"/> event.
+        /// </summary>
+        /// <param name="e">The <see cref="PropertyChangedEventArgs"/>.</param>
+        protected virtual void OnPropertyChanged(PropertyChangedEventArgs e) => PropertyChanged?.Invoke(this, e);
+
+        /// <summary>
+        /// Occurs when a property changes, either within the dictionary or to an item within.
+        /// </summary>
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }
