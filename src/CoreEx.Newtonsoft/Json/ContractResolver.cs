@@ -47,6 +47,11 @@ namespace CoreEx.Newtonsoft.Json
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="ContractResolver"/>.
+        /// </summary>
+        public ContractResolver() => NamingStrategy = SubstituteNamingStrategy.Substitute;
+
+        /// <summary>
         /// Gets the default <see cref="ContractResolver"/>.
         /// </summary>
         /// <remarks>Automatically adds the serialization property renames and ignores for <see cref="EventDataBase"/>, <see cref="EventData"/>, <see cref="EventData{T}"/>, <see cref="ChangeLog"/> and <see cref="ReferenceDataBase{T}"/> types.</remarks>
@@ -153,8 +158,12 @@ namespace CoreEx.Newtonsoft.Json
             }
 
             if (_renameDict != null && _renameDict.TryGetValue(type, out var d) && d.TryGetValue(property.PropertyName!, out var jn))
+            {
                 property.PropertyName = jn;
-            else if (_typeDict != null && _typeDict.TryGetValue(type, out _))
+                return property;
+            }
+            
+            if (_typeDict != null && _typeDict.TryGetValue(type, out _))
             {
                 var jpna = member.GetCustomAttribute<Stj.JsonPropertyNameAttribute>(true);
                 if (jpna != null)

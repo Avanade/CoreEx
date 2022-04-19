@@ -1,5 +1,5 @@
-﻿using CoreEx.Json;
-using CoreEx.TestFunction.Models;
+﻿using CoreEx.Entities;
+using CoreEx.Json;
 using FluentAssertions;
 using NUnit.Framework;
 using System;
@@ -18,9 +18,9 @@ namespace CoreEx.Test.Framework.Json
         public void SystemTextJson_Serialize_Deserialize()
         {
             var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
-            var p = new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m, Secret = "X" };
+            var p = new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m, Secret = "X", ETag = "xxx" };
             var json = js.Serialize(p);
-            Assert.AreEqual(json, "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(json, "{\"code\":\"A\",\"DESCRIPTION\":\"B\",\"retailPrice\":1.99,\"etag\":\"xxx\"}");
 
             p = js.Deserialize<BackendProduct>(json);
             Assert.NotNull(p);
@@ -28,6 +28,7 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
+            Assert.AreEqual("xxx", p.ETag);
 
             p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct))!;
             Assert.NotNull(p);
@@ -35,9 +36,10 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
+            Assert.AreEqual("xxx", p.ETag);
 
             json = js.Serialize(p, JsonWriteFormat.Indented);
-            json.Should().Be("{\n  \"code\": \"A\",\n  \"description\": \"B\",\n  \"retailPrice\": 1.99\n}"
+            json.Should().Be("{\n  \"code\": \"A\",\n  \"DESCRIPTION\": \"B\",\n  \"retailPrice\": 1.99,\n  \"etag\": \"xxx\"\n}"
                 .Replace("\n", Environment.NewLine), because: "Line breaks should be preserved in indented JSON with different line endings on Linux and Windows");
         }
 
@@ -73,7 +75,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(json);
             Assert.NotNull(o);
             Assert.IsInstanceOf<System.Text.Json.JsonElement>(o);
-            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"DESCRIPTION\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -86,7 +88,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(bs);
             Assert.NotNull(o);
             Assert.IsInstanceOf<System.Text.Json.JsonElement>(o);
-            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(o!.ToString(), "{\"code\":\"A\",\"DESCRIPTION\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -183,10 +185,10 @@ namespace CoreEx.Test.Framework.Json
         [Test]
         public void SystemTextJson_Serialize_DictionaryKeys()
         {
-            var d = new Dictionary<string, string> { { "ABC", "XXX" }, { "Efg", "Xxx" }, { "hij", "xxx" }, { "AbEfg", "xxXxx" } };
+            var d = new Dictionary<string, string> { { "ABC", "XXX" }, { "Efg", "Xxx" }, { "hij", "xxx" }, { "AbEfg", "xxXxx" }, { "ETag", "ETAG" } };
             var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
             var json = js.Serialize(d);
-            Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\"}", json);
+            Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\",\"etag\":\"ETAG\"}", json);
         }
 
         #endregion
@@ -197,9 +199,9 @@ namespace CoreEx.Test.Framework.Json
         public void NewtonsoftJson_Serialize_Deserialize()
         {
             var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
-            var p = new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m, Secret = "X" };
+            var p = new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m, Secret = "X", ETag = "xxx" };
             var json = js.Serialize(p);
-            Assert.AreEqual(json, "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(json, "{\"code\":\"A\",\"DESCRIPTION\":\"B\",\"retailPrice\":1.99,\"etag\":\"xxx\"}");
 
             p = js.Deserialize<BackendProduct>(json);
             Assert.NotNull(p);
@@ -207,6 +209,7 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
+            Assert.AreEqual("xxx", p.ETag);
 
             p = (BackendProduct)js.Deserialize(json, typeof(BackendProduct))!;
             Assert.NotNull(p);
@@ -214,9 +217,10 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual("B", p.Description);
             Assert.AreEqual(1.99m, p.RetailPrice);
             Assert.IsNull(p.Secret);
+            Assert.AreEqual("xxx", p.ETag);
 
             json = js.Serialize(p, JsonWriteFormat.Indented);
-            json.Should().Be("{\n  \"code\": \"A\",\n  \"description\": \"B\",\n  \"retailPrice\": 1.99\n}"
+            json.Should().Be("{\n  \"code\": \"A\",\n  \"DESCRIPTION\": \"B\",\n  \"retailPrice\": 1.99,\n  \"etag\": \"xxx\"\n}"
                 .Replace("\n", Environment.NewLine), because: "Line breaks should be preserved in indented JSON with different line endings on Linux and Windows");
         }
 
@@ -252,7 +256,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(json);
             Assert.NotNull(o);
             Assert.IsInstanceOf<Nsj.Linq.JObject>(o);
-            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"DESCRIPTION\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -265,7 +269,7 @@ namespace CoreEx.Test.Framework.Json
             var o = js.Deserialize(bs);
             Assert.NotNull(o);
             Assert.IsInstanceOf<Nsj.Linq.JObject>(o);
-            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"description\":\"B\",\"retailPrice\":1.99}");
+            Assert.AreEqual(((Nsj.Linq.JObject)o!).ToString(Nsj.Formatting.None), "{\"code\":\"A\",\"DESCRIPTION\":\"B\",\"retailPrice\":1.99}");
         }
 
         [Test]
@@ -380,10 +384,10 @@ namespace CoreEx.Test.Framework.Json
         [Test]
         public void NewtonsoftJson_Serialize_DictionaryKeys()
         {
-            var d = new Dictionary<string, string> { { "ABC", "XXX" }, { "Efg", "Xxx" }, { "hij", "xxx" }, { "AbEfg", "xxXxx" } };
+            var d = new Dictionary<string, string> { { "ABC", "XXX" }, { "Efg", "Xxx" }, { "hij", "xxx" }, { "AbEfg", "xxXxx" }, { "ETag", "ETAG" } };
             var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
             var json = js.Serialize(d);
-            Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\"}", json);
+            Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\",\"etag\":\"ETAG\"}", json);
         }
 
         #endregion
@@ -421,6 +425,31 @@ namespace CoreEx.Test.Framework.Json
             [Nsj.JsonProperty("firstName")]
             public string? FirstName { get; set; }
             public string? LastName { get; set; }
+        }
+
+        public class BackendProduct
+        {
+            [Nsj.JsonProperty("code")]
+            [Stj.Serialization.JsonPropertyName("code")]
+            public string? Code { get; set; }
+
+            [Nsj.JsonProperty("DESCRIPTION")]
+            [Stj.Serialization.JsonPropertyName("DESCRIPTION")]
+            public string? Description { get; set; }
+
+            [Nsj.JsonProperty("retailPrice")]
+            [Stj.Serialization.JsonPropertyName("retailPrice")]
+            public decimal RetailPrice { get; set; }
+
+            [Nsj.JsonIgnore]
+            [Stj.Serialization.JsonIgnore]
+            public string? Secret { get; set; }
+
+            [Nsj.JsonIgnore]
+            [Stj.Serialization.JsonIgnore]
+            public CompositeKey PrimaryKey => new CompositeKey(Code);
+
+            public string? ETag { get; set; }
         }
     }
 }
