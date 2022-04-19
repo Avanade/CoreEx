@@ -17,8 +17,7 @@ namespace CoreEx.Configuration
     /// </summary>
     public abstract class SettingsBase
     {
-        // private ThreadLocal<bool> _isReflectionCall = new();
-        private readonly AsyncLocal<bool> _isReflectionCall = new();
+        private readonly ThreadLocal<bool> _isReflectionCall = new();
         private readonly List<string> _prefixes = new();
         private readonly Dictionary<string, PropertyInfo> _allProperties;
 

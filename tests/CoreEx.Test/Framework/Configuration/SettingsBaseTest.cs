@@ -192,13 +192,14 @@ namespace CoreEx.Test.Framework.Configuration
             result.Should().Be("foo");
         }
 
+        // 50 * 5 * 100 ms = 25 seconds
         [Test, Repeat(50)]
         public void RunInParallel()
         {
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var reps = Enumerable.Range(1, 5);
+            var reps = Enumerable.Range(1, 50);
 
             var testResult = Parallel.ForEach(reps, (i) =>
             {
@@ -221,7 +222,7 @@ namespace CoreEx.Test.Framework.Configuration
             result.Should().Be("foo");
 
             await Task.Delay(100);
-            
+
             result = settings.GetValue<string>("PropTestNested");
             settings.SomethingGlobal.Should().Be("foo");
             result.Should().Be("foo");
