@@ -10,21 +10,21 @@ using System.Reflection;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Provides a reflector for a given entity property.
+    /// Provides a reflector for a given <see cref="Type"/> property.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="System.Type"/>.</typeparam>
     public class PropertyReflector<TEntity, TProperty> : IPropertyReflector
     {
         private readonly Lazy<Dictionary<string, object?>> _data = new(true);
-        private IEntityReflector? _entityReflector;
+        private ITypeReflector? _typeReflector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyReflector{TEntity, TProperty}"/> class.
         /// </summary>
-        /// <param name="args">The <see cref="EntityReflectorArgs"/>.</param>
+        /// <param name="args">The <see cref="TypeReflectorArgs"/>.</param>
         /// <param name="propertyExpression">The <see cref="LambdaExpression"/> to reference the source entity property.</param>
-        public PropertyReflector(EntityReflectorArgs args, Expression<Func<TEntity, TProperty>> propertyExpression)
+        public PropertyReflector(TypeReflectorArgs args, Expression<Func<TEntity, TProperty>> propertyExpression)
         {
             Args = args ?? throw new ArgumentNullException(nameof(args));
             PropertyExpression = Reflection.PropertyExpression.Create(propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression)), args.JsonSerializer);
@@ -33,8 +33,8 @@ namespace CoreEx.Abstractions.Reflection
             IsEnumerable = IsClass && (PropertyInfo.PropertyType.IsArray || PropertyInfo.PropertyType.GetInterfaces().Any(x => x == typeof(IEnumerable)));
             if (IsEnumerable)
             {
-                _entityReflector = EntityReflector.GetReflector(Args, Type);
-                TypeCode = _entityReflector!.TypeCode;
+                _typeReflector = TypeReflector.GetReflector(Args, Type);
+                TypeCode = _typeReflector!.TypeCode;
             }
         }
 
@@ -45,7 +45,7 @@ namespace CoreEx.Abstractions.Reflection
         public string? JsonName => PropertyExpression.JsonName;
 
         /// <inheritdoc/>
-        public EntityReflectorArgs Args { get; }
+        public TypeReflectorArgs Args { get; }
 
         /// <inheritdoc/>
         public Dictionary<string, object?> Data { get => _data.Value; }
@@ -77,7 +77,7 @@ namespace CoreEx.Abstractions.Reflection
         public TypeReflectorTypeCode TypeCode { get; }
 
         /// <inheritdoc/>
-        public IEntityReflector? GetEntityReflector() => TypeCode == TypeReflectorTypeCode.Simple ? null : _entityReflector ??= EntityReflector.GetReflector(Args, Type);
+        public ITypeReflector? GetTypeReflector() => _typeReflector ??= TypeReflector.GetReflector(Args, Type);
 
         /// <inheritdoc/>
         bool IPropertyReflector.Compare(object? x, object? y) => Compare((TProperty)(x ?? default(TProperty)!), (TProperty)(y ?? default(TProperty)!));
@@ -101,7 +101,7 @@ namespace CoreEx.Abstractions.Reflection
             if (left is IEquatable<TProperty> eq)
                 return eq.Equals(right!);
             else if (IsEnumerable)
-                return GetEntityReflector()!.Compare(x, y);
+                return GetTypeReflector()!.Compare(x, y);
             else
                 return EqualityComparer<TProperty>.Default.Equals(left, right);
         }

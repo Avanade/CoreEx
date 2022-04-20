@@ -8,7 +8,7 @@ using System.Reflection;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Enables a reflector for a given entity (class) property.
+    /// Enables a reflector for a given class property.
     /// </summary>
     public interface IPropertyReflector
     {
@@ -23,9 +23,9 @@ namespace CoreEx.Abstractions.Reflection
         string? JsonName { get; }
 
         /// <summary>
-        /// Gets the <see cref="EntityReflectorArgs"/>.
+        /// Gets the <see cref="TypeReflectorArgs"/>.
         /// </summary>
-        EntityReflectorArgs Args { get; }
+        TypeReflectorArgs Args { get; }
 
         /// <summary>
         /// Gets the <see cref="Dictionary{TKey, TValue}"/> for storing additional data.
@@ -68,10 +68,10 @@ namespace CoreEx.Abstractions.Reflection
         TypeReflectorTypeCode TypeCode { get; }
 
         /// <summary>
-        /// Gets the <see cref="IEntityReflector"/> for the property where <see cref="IsClass"/>; otherwise, <c>null</c>.
+        /// Gets the <see cref="ITypeReflector"/> for the property.
         /// </summary>
-        /// <returns>The corresponding <see cref="IEntityReflector"/>.</returns>
-        IEntityReflector? GetEntityReflector();
+        /// <returns>The corresponding <see cref="ITypeReflector"/>.</returns>
+        ITypeReflector? GetTypeReflector();
 
         /// <summary>
         /// Compares two values for equality.

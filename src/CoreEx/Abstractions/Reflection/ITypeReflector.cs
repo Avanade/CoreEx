@@ -7,14 +7,14 @@ using System.Collections.Generic;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Enables a reflector for a given entity (class) <see cref="Type"/>.
+    /// Enables a reflector for a given <see cref="Type"/>.
     /// </summary>
-    public interface IEntityReflector
+    public interface ITypeReflector
     {
         /// <summary>
-        /// Gets the <see cref="EntityReflectorArgs"/>.
+        /// Gets the <see cref="TypeReflectorArgs"/>.
         /// </summary>
-        EntityReflectorArgs Args { get; }
+        TypeReflectorArgs Args { get; }
 
         /// <summary>
         /// Gets the entity <see cref="Type"/>.
@@ -53,7 +53,7 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         /// <param name="jsonName">The JSON name.</param>
         /// <returns>The <see cref="IPropertyReflector"/>.</returns>
-        /// <remarks>Uses the <see cref="EntityReflectorArgs.NameComparer"/> to match the JSON name.</remarks>
+        /// <remarks>Uses the <see cref="TypeReflectorArgs.NameComparer"/> to match the JSON name.</remarks>
         IPropertyReflector? GetJsonProperty(string jsonName);
 
         /// <summary>
@@ -63,10 +63,10 @@ namespace CoreEx.Abstractions.Reflection
         object CreateInstance() => Activator.CreateInstance(Type);
 
         /// <summary>
-        /// Gets the <see cref="IEntityReflector"/> for <see cref="ItemType"/> where it is a class.
+        /// Gets the <see cref="ITypeReflector"/> for <see cref="ItemType"/>.
         /// </summary>
-        /// <returns>The corresponding <see cref="IEntityReflector"/>.</returns>
-        IEntityReflector? GetItemEntityReflector();
+        /// <returns>The corresponding <see cref="ITypeReflector"/>.</returns>
+        ITypeReflector? GetItemTypeReflector();
 
         /// <summary>
         /// Compares two values for equality;

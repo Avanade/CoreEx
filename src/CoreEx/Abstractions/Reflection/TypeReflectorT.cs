@@ -11,24 +11,24 @@ using System.Reflection;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Provides a reflector for a given entity (class) (<see cref="Type"/>).
+    /// Provides a reflector for a given <see cref="Type"/>.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    public class EntityReflector<TEntity> : IEntityReflector
+    public class TypeReflector<TEntity> : ITypeReflector
     {
         private readonly Dictionary<string, IPropertyReflector> _properties;
         private readonly Dictionary<string, IPropertyReflector> _jsonProperties;
         private readonly Lazy<Dictionary<string, object?>> _data = new(true);
         private IItemEqualityComparer? _itemEqualityComparer;
-        private IEntityReflector? _itemReflector;
+        private ITypeReflector? _itemReflector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntityReflector{TEntity}"/> class.
+        /// Initializes a new instance of the <see cref="TypeReflector{TEntity}"/> class.
         /// </summary>
-        /// <param name="args">The <see cref="EntityReflectorArgs"/>.</param>
-        internal EntityReflector(EntityReflectorArgs? args = null)
+        /// <param name="args">The <see cref="TypeReflectorArgs"/>.</param>
+        internal TypeReflector(TypeReflectorArgs? args = null)
         {
-            Args = args ?? new EntityReflectorArgs();
+            Args = args ?? new TypeReflectorArgs();
             _properties = new Dictionary<string, IPropertyReflector>(StringComparer.Ordinal);
             _jsonProperties = new Dictionary<string, IPropertyReflector>(Args.NameComparer ?? StringComparer.OrdinalIgnoreCase);
 
@@ -43,7 +43,7 @@ namespace CoreEx.Abstractions.Reflection
 
             var pe = Expression.Parameter(typeof(TEntity), "x");
 
-            foreach (var p in EntityReflector.GetProperties(typeof(TEntity)))
+            foreach (var p in TypeReflector.GetProperties(typeof(TEntity)))
             {
                 var lex = Expression.Lambda(Expression.Property(pe, p.Name), pe);
                 var pr = (IPropertyReflector)Activator.CreateInstance(typeof(PropertyReflector<,>).MakeGenericType(typeof(TEntity), p.PropertyType), Args, lex);
@@ -56,7 +56,7 @@ namespace CoreEx.Abstractions.Reflection
         }
 
         /// <inheritdoc/>
-        public EntityReflectorArgs Args { get; private set; }
+        public TypeReflectorArgs Args { get; private set; }
 
         /// <inheritdoc/>
         public Type Type => typeof(TEntity);
@@ -131,7 +131,7 @@ namespace CoreEx.Abstractions.Reflection
         public IReadOnlyCollection<IPropertyReflector> GetProperties() => new ReadOnlyCollection<IPropertyReflector>(_properties.Values.OfType<IPropertyReflector>().ToList());
 
         /// <inheritdoc/>
-        public IEntityReflector? GetItemEntityReflector() => ItemTypeCode == TypeReflectorTypeCode.Simple ? null : _itemReflector ??= EntityReflector.GetReflector(Args, ItemType!);
+        public ITypeReflector? GetItemTypeReflector() => _itemReflector ??= TypeReflector.GetReflector(Args, ItemType!);
 
         #region Collections
 
@@ -247,7 +247,7 @@ namespace CoreEx.Abstractions.Reflection
         #region Compare
 
         /// <inheritdoc/>
-        bool IEntityReflector.Compare(object? x, object? y) => Compare((TEntity?)x, (TEntity?)y);
+        bool ITypeReflector.Compare(object? x, object? y) => Compare((TEntity?)x, (TEntity?)y);
 
         /// <summary>
         /// Compares two values for equality.
