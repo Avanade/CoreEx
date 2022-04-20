@@ -813,5 +813,14 @@ namespace CoreEx.Test.Framework.Json.Merge
                 jom.Merge(text, td);
             }
         }
+
+        // **
+
+        [Test]
+        public void Merge_RootArray()
+        {
+            var arr = Array.Empty<int>();
+            var jom = new JsonMergePatch().Merge<int[]>("[1,2,3]", arr);
+        }
     }
 }

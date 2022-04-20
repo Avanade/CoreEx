@@ -14,11 +14,10 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="System.Type"/>.</typeparam>
-    public class PropertyReflector<TEntity, TProperty> : IPropertyReflector where TEntity : class
+    public class PropertyReflector<TEntity, TProperty> : IPropertyReflector
     {
         private readonly Lazy<Dictionary<string, object?>> _data = new(true);
         private IEntityReflector? _entityReflector;
-        private IEntityReflector? _itemReflector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyReflector{TEntity, TProperty}"/> class.
@@ -31,14 +30,11 @@ namespace CoreEx.Abstractions.Reflection
             PropertyExpression = Reflection.PropertyExpression.Create(propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression)), args.JsonSerializer);
             IsClass = PropertyInfo.PropertyType.IsClass && PropertyInfo.PropertyType != typeof(string);
             TypeCode = IsClass ? TypeReflectorTypeCode.Complex : TypeReflectorTypeCode.Simple;
-            IsEnumerable = PropertyInfo.PropertyType != typeof(string) && (PropertyInfo.PropertyType.IsArray || PropertyInfo.PropertyType.GetInterfaces().Any(x => x == typeof(IEnumerable)));
+            IsEnumerable = IsClass && (PropertyInfo.PropertyType.IsArray || PropertyInfo.PropertyType.GetInterfaces().Any(x => x == typeof(IEnumerable)));
             if (IsEnumerable)
             {
-                var tr = TypeReflector.GetCollectionItemType(Type);
-                ItemType = tr.ItemType;
-                TypeCode = tr.TypeCode;
-                if (ItemType != null)
-                    ItemTypeCode = TypeReflector.GetCollectionItemType(ItemType).TypeCode;
+                _entityReflector = EntityReflector.GetReflector(Args, Type);
+                TypeCode = _entityReflector!.TypeCode;
             }
         }
 
@@ -81,15 +77,33 @@ namespace CoreEx.Abstractions.Reflection
         public TypeReflectorTypeCode TypeCode { get; }
 
         /// <inheritdoc/>
-        public Type? ItemType { get; }
-
-        /// <inheritdoc/>
-        public TypeReflectorTypeCode? ItemTypeCode { get; }
-
-        /// <inheritdoc/>
         public IEntityReflector? GetEntityReflector() => TypeCode == TypeReflectorTypeCode.Simple ? null : _entityReflector ??= EntityReflector.GetReflector(Args, Type);
 
         /// <inheritdoc/>
-        public IEntityReflector? GetItemEntityReflector() => ItemTypeCode == TypeReflectorTypeCode.Simple ? null : _itemReflector ??= EntityReflector.GetReflector(Args, ItemType!);
+        bool IPropertyReflector.Compare(object? x, object? y) => Compare((TProperty)(x ?? default(TProperty)!), (TProperty)(y ?? default(TProperty)!));
+
+        /// <summary>
+        /// Compares two values for equality.
+        /// </summary>
+        /// <param name="x">The first value.</param>
+        /// <param name="y">The second value.</param>
+        /// <returns><c>true</c> indicates that they are equal; otherwise, <c>false</c>.</returns>
+        public bool Compare(TProperty? x, TProperty? y)
+        {
+            if (ReferenceEquals(x, y))
+                return true;
+
+            var left = x == null ? y : x;
+            var right = x == null ? x : y;
+            if (left == null || right == null)
+                return false;
+
+            if (left is IEquatable<TProperty> eq)
+                return eq.Equals(right!);
+            else if (IsEnumerable)
+                return GetEntityReflector()!.Compare(x, y);
+            else
+                return EqualityComparer<TProperty>.Default.Equals(left, right);
+        }
     }
 }

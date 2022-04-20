@@ -67,9 +67,7 @@ namespace CoreEx.Json.Merge
             var j = ParseJson<T>(json);
 
             // Perform the object merge patch.
-            bool hasChanged = false;
-            MergeObject(Options, EntityReflector.GetReflector<T>(_erArgs), "$", j.JsonElement, j.Value, value, ref hasChanged);
-            return hasChanged;
+            return Merge<T>(j.JsonElement, j.Value, value);
         }
 
         /// <inheritdoc/>
@@ -90,8 +88,34 @@ namespace CoreEx.Json.Merge
                 return false;
 
             // Perform the object merge patch.
+            return Merge<T>(j.JsonElement, j.Value, value);
+        }
+
+        /// <summary>
+        /// Performs the merge patch.
+        /// </summary>
+        private bool Merge<T>(JsonElement json, object? srce, object dest) where T : class
+        {
             bool hasChanged = false;
-            MergeObject(Options, EntityReflector.GetReflector<T>(_erArgs), "$", j.JsonElement, j.Value, value, ref hasChanged);
+
+            IEntityReflector er = EntityReflector.GetReflector<T>(_erArgs);
+
+            switch (json.ValueKind)
+            {
+                case JsonValueKind.Null:
+                    break;
+
+                case JsonValueKind.Object:
+                    MergeObject(er, "$", json, srce, dest, ref hasChanged);
+                    break;
+
+                case JsonValueKind.Array:
+                    break;
+
+                default: 
+                    throw new InvalidOperationException($"A JSON element of '{json.ValueKind}' is invalid where merging to a class.");
+            }
+
             return hasChanged;
         }
 
@@ -125,7 +149,7 @@ namespace CoreEx.Json.Merge
         /// <summary>
         /// Merge the object.
         /// </summary>
-        private static void MergeObject(JsonMergePatchOptions args, IEntityReflector er, string root, JsonElement json, object? srce, object dest, ref bool hasChanged)
+        private void MergeObject(IEntityReflector er, string root, JsonElement json, object? srce, object dest, ref bool hasChanged)
         {
             foreach (var jp in json.EnumerateObject())
             {
@@ -134,14 +158,14 @@ namespace CoreEx.Json.Merge
                 if (pr == null)
                     continue;
 
-                MergeProperty(args, pr, $"{root}.{jp.Name}", jp, srce, dest, ref hasChanged);
+                MergeProperty(pr, $"{root}.{jp.Name}", jp, srce, dest, ref hasChanged);
             }
         }
 
         /// <summary>
         /// Merge the property.
         /// </summary>
-        private static void MergeProperty(JsonMergePatchOptions args, IPropertyReflector pr, string path, JsonProperty json, object? srce, object dest, ref bool hasChanged)
+        private void MergeProperty(IPropertyReflector pr, string path, JsonProperty json, object? srce, object dest, ref bool hasChanged)
         {
             // Update according to the value kind.
             switch (json.Value.ValueKind)
@@ -164,25 +188,25 @@ namespace CoreEx.Json.Merge
                     {
                         if (pr.TypeCode == TypeReflectorTypeCode.IDictionary)
                         {
-                            if (args.DictionaryMergeApproach == DictionaryMergeApproach.Replace)
+                            if (Options.DictionaryMergeApproach == DictionaryMergeApproach.Replace)
                                 SetPropertyValue(pr, pr.PropertyExpression.GetValue(srce)!, dest, ref hasChanged);
                             else
                             {
-                                var dict = MergeDictionary(args, pr, path, json.Value, (IDictionary)pr.PropertyExpression.GetValue(srce)!, (IDictionary)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
+                                var dict = MergeDictionary(pr.GetEntityReflector()!, path, json.Value, (IDictionary)pr.PropertyExpression.GetValue(srce)!, (IDictionary)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
                                 SetPropertyValue(pr, dict, dest, ref hasChanged);
                             }
                         }
                         else
-                            MergeObject(args, pr.GetEntityReflector()!, path, json.Value, pr.PropertyExpression.GetValue(srce), current, ref hasChanged);
+                            MergeObject(pr.GetEntityReflector()!, path, json.Value, pr.PropertyExpression.GetValue(srce), current, ref hasChanged);
                     }
 
                     break;
 
                 case JsonValueKind.Array:
                     // Unless explicitly requested an array is a full replacement only (source copy); otherwise, perform key collection item merge.
-                    if (args.PrimaryKeyCollectionMergeApproach != PrimaryKeyCollectionMergeApproach.Replace && pr.Data.ContainsKey(PKCollectionName))
+                    if (Options.PrimaryKeyCollectionMergeApproach != PrimaryKeyCollectionMergeApproach.Replace && pr.Data.ContainsKey(PKCollectionName))
                     {
-                        var coll = MergeKeyedCollection(args, pr, path, json.Value, (IKeyedCollection)pr.PropertyExpression.GetValue(srce)!, (IKeyedCollection)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
+                        var coll = MergeKeyedCollection(pr.GetEntityReflector()!, path, json.Value, (IKeyedCollection)pr.PropertyExpression.GetValue(srce)!, (IKeyedCollection)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
                         SetPropertyValue(pr, coll, dest, ref hasChanged);
                     }
                     else
@@ -198,7 +222,9 @@ namespace CoreEx.Json.Merge
         private static void SetPropertyValue(IPropertyReflector pr, object? srce, object dest, ref bool hasChanged)
         {
             var curr = pr.PropertyExpression.GetValue(dest);
-            if (pr.PropertyExpression.Compare(curr, srce))
+            //if (pr.PropertyExpression.Compare(curr, srce))
+            //    return;
+            if (pr.Compare(curr, srce))
                 return;
 
             pr.PropertyExpression.SetValue(dest, srce);
@@ -208,7 +234,7 @@ namespace CoreEx.Json.Merge
         /// <summary>
         /// Merge an <see cref="IDictionary"/>.
         /// </summary>
-        private static IDictionary? MergeDictionary(JsonMergePatchOptions args, IPropertyReflector pr, string root, JsonElement json, IDictionary srce, IDictionary? dest, ref bool hasChanged)
+        private IDictionary? MergeDictionary(IEntityReflector er, string root, JsonElement json, IDictionary srce, IDictionary? dest, ref bool hasChanged)
         {
             var dict = dest;
 
@@ -231,13 +257,13 @@ namespace CoreEx.Json.Merge
                 }
 
                 // Create new destination dictionary where it does not exist already.
-                dict ??= (IDictionary)pr.GetEntityReflector()!.CreateInstance();
+                dict ??= (IDictionary)er.CreateInstance();
 
                 // Find the existing and merge; otherwise, add as-is.
                 if (dict.Contains(jp.Name))
                 {
                     var destitem = dict[jp.Name];
-                    switch (pr.ItemTypeCode)
+                    switch (er.ItemTypeCode)
                     {
                         case TypeReflectorTypeCode.Simple:
                             if (!hasChanged && dict[jp.Name] != destitem)
@@ -247,7 +273,7 @@ namespace CoreEx.Json.Merge
                             continue;
 
                         case TypeReflectorTypeCode.Complex:
-                            MergeObject(args, pr.GetItemEntityReflector()!, path, jp.Value, srceitem, destitem, ref hasChanged);
+                            MergeObject(er.GetItemEntityReflector()!, path, jp.Value, srceitem, destitem, ref hasChanged);
                             dict[jp.Name] = destitem;
                             continue;
 
@@ -269,7 +295,7 @@ namespace CoreEx.Json.Merge
         /// <summary>
         /// Merge a <see cref="IKeyedCollection"/>.
         /// </summary>
-        private static IKeyedCollection MergeKeyedCollection(JsonMergePatchOptions args, IPropertyReflector pr, string root, JsonElement json, IKeyedCollection srce, IKeyedCollection? dest, ref bool hasChanged)
+        private IKeyedCollection MergeKeyedCollection(IEntityReflector er, string root, JsonElement json, IKeyedCollection srce, IKeyedCollection? dest, ref bool hasChanged)
         {
             if (srce!.IsAnyDuplicates())
                 throw new JsonMergePatchException($"The JSON array must not contain items with duplicate '{nameof(IPrimaryKey)}' keys. Path: {root}");
@@ -278,11 +304,11 @@ namespace CoreEx.Json.Merge
                 throw new JsonMergePatchException($"The JSON array destination collection must not contain items with duplicate '{nameof(IPrimaryKey)}' keys prior to merge. Path: {root}");
 
             // Create new destination collection; add each to maintain sent order as this may be important to the consuming application.
-            var coll = (IKeyedCollection)pr.GetEntityReflector()!.CreateInstance();
+            var coll = (IKeyedCollection)er.CreateInstance();
 
             // Iterate through the items and add to the new collection.
             var i = 0;
-            IEntityReflector er = pr.GetItemEntityReflector()!;
+            IEntityReflector ier = er.GetItemEntityReflector()!;
 
             foreach (var ji in json.EnumerateArray())
             {
@@ -296,7 +322,7 @@ namespace CoreEx.Json.Merge
                 var destitem = srceitem == null ? null : dest?.GetByKey(srceitem.PrimaryKey);
                 if (destitem != null)
                 {
-                    MergeObject(args, er, path, ji, srceitem, destitem, ref hasChanged);
+                    MergeObject(ier, path, ji, srceitem, destitem, ref hasChanged);
                     coll.Add(destitem);
                 }
                 else

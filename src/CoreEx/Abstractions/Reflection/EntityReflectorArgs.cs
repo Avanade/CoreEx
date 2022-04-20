@@ -38,8 +38,9 @@ namespace CoreEx.Abstractions.Reflection
         public Action<IEntityReflector>? EntityBuilder { get; set; } = null;
 
         /// <summary>
-        /// Indicates whether to automatically populate the entity properties using the optional <see cref="PropertyBuilder"/> (defaults to <c>true</c>).
+        /// Indicates whether to automatically populate the entity properties. Defaults to <c>true</c>.
         /// </summary>
+        /// <remarks>Will invoked the optional <see cref="PropertyBuilder"/> as each property is being added.</remarks>
         public bool AutoPopulateProperties { get; set; } = true;
 
         /// <summary>

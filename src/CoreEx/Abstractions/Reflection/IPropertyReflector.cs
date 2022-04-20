@@ -68,25 +68,17 @@ namespace CoreEx.Abstractions.Reflection
         TypeReflectorTypeCode TypeCode { get; }
 
         /// <summary>
-        /// Gets the underlying item <see cref="System.Type"/> where <see cref="IsEnumerable"/>. 
-        /// </summary>
-        Type? ItemType { get; }
-
-        /// <summary>
-        /// Gets the underlying item <see cref="TypeReflectorTypeCode"/>.
-        /// </summary>
-        TypeReflectorTypeCode? ItemTypeCode { get; }
-
-        /// <summary>
         /// Gets the <see cref="IEntityReflector"/> for the property where <see cref="IsClass"/>; otherwise, <c>null</c>.
         /// </summary>
         /// <returns>The corresponding <see cref="IEntityReflector"/>.</returns>
         IEntityReflector? GetEntityReflector();
 
         /// <summary>
-        /// Gets the <see cref="IEntityReflector"/> for <see cref="ItemType"/> where it is a class.
+        /// Compares two values for equality.
         /// </summary>
-        /// <returns>The corresponding <see cref="IEntityReflector"/>.</returns>
-        IEntityReflector? GetItemEntityReflector();
+        /// <param name="x">The first value.</param>
+        /// <param name="y">The second value.</param>
+        /// <returns><c>true</c> indicates that they are equal; otherwise, <c>false</c>.</returns>
+        bool Compare(object? x, object? y);
     }
 }

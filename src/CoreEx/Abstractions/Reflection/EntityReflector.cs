@@ -52,7 +52,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <param name="args">The <see cref="EntityReflectorArgs"/>.</param>
         /// <returns>The <see cref="EntityReflector{TEntity}"/>.</returns>
-        public static EntityReflector<TEntity> GetReflector<TEntity>(EntityReflectorArgs args) where TEntity : class 
+        public static EntityReflector<TEntity> GetReflector<TEntity>(EntityReflectorArgs args)
             => (EntityReflector<TEntity>)(args ?? throw new ArgumentNullException(nameof(args))).Cache.GetOrAdd(typeof(TEntity), (type) =>
             {
                 var er = new EntityReflector<TEntity>(args);

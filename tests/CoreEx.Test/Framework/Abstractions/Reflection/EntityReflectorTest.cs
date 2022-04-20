@@ -133,6 +133,92 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             pr.PropertyExpression.SetValue(p, null!);
             Assert.AreEqual(null, p.Salary);
         }
+
+        [Test]
+        public void GetReflector_Compare()
+        {
+            var er = EntityReflector.GetReflector<int[]>(new EntityReflectorArgs());
+            Assert.IsTrue(er.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 3 }));
+            Assert.IsFalse(er.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 4 }));
+        }
+
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Int()
+        {
+            var er = EntityReflector.GetReflector<Person>(new EntityReflectorArgs());
+            var pr = er.GetProperty("Id");
+
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsFalse(pr.Compare(1, null));
+            Assert.IsFalse(pr.Compare(null, 2));
+            Assert.IsFalse(pr.Compare(1, 2));
+            Assert.IsTrue(pr.Compare(1, 1));
+        }
+
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Nullable()
+        {
+            var er = EntityReflector.GetReflector<Person>(new EntityReflectorArgs());
+            var pr = er.GetProperty("Salary");
+
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsFalse(pr.Compare(1m, null));
+            Assert.IsFalse(pr.Compare(null, 2m));
+            Assert.IsFalse(pr.Compare(1m, 2m));
+            Assert.IsTrue(pr.Compare(1m, 1m));
+        }
+
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Array()
+        {
+            var er = EntityReflector.GetReflector<Person>(new EntityReflectorArgs());
+            var pr = er.GetProperty("NickNames");
+
+            Assert.AreEqual(TypeReflectorTypeCode.Array, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, null));
+            Assert.IsFalse(pr.Compare(null, new string[] { "y", "z" }));
+            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, new string[] { "y", "z" }));
+            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b", "c" }));
+            Assert.IsTrue(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b" }));
+        }
+
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Collection()
+        {
+            var er = EntityReflector.GetReflector<Person>(new EntityReflectorArgs());
+            var pr = er.GetProperty("Addresses");
+
+            Assert.AreEqual(TypeReflectorTypeCode.ICollection, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsTrue(pr.Compare(new List<Address>(), new List<Address>()));
+
+            // No equality check for Address, so will all fail.
+            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, new List<Address> { new Address() }));
+            Assert.IsFalse(pr.Compare(null, new List<Address> { new Address() }));
+            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, null));
+            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, new List<Address> { new Address(), new Address() }));
+        }
+
+        [Test]
+        public void GetReflector_TypeCode_And_ItemType()
+        {
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, EntityReflector.GetReflector<string>(new EntityReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, EntityReflector.GetReflector<int>(new EntityReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Array, EntityReflector.GetReflector<string?[]>(new EntityReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.ICollection, EntityReflector.GetReflector<List<decimal?>>(new EntityReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.IDictionary, EntityReflector.GetReflector<Dictionary<string, Person>>(new EntityReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Complex, EntityReflector.GetReflector<Person>(new EntityReflectorArgs()).TypeCode);
+
+            Assert.AreEqual(null, EntityReflector.GetReflector<string>(new EntityReflectorArgs()).ItemType);
+            Assert.AreEqual(null, EntityReflector.GetReflector<int>(new EntityReflectorArgs()).ItemType);
+            Assert.AreEqual(typeof(string), EntityReflector.GetReflector<string?[]>(new EntityReflectorArgs()).ItemType);
+            Assert.AreEqual(typeof(decimal?), EntityReflector.GetReflector<List<decimal?>>(new EntityReflectorArgs()).ItemType);
+            Assert.AreEqual(typeof(Person), EntityReflector.GetReflector<Dictionary<string, Person>>(new EntityReflectorArgs()).ItemType);
+            Assert.AreEqual(null, EntityReflector.GetReflector<Person>(new EntityReflectorArgs()).ItemType);
+        }
     }
 
     public class Person
