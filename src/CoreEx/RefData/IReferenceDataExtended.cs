@@ -34,5 +34,10 @@ namespace CoreEx.RefData
         /// Gets of sets the validity end date.
         /// </summary>
         DateTime? EndDate { get; set; }
+
+        /// <summary>
+        /// Indicates whether the <see cref="IReferenceDataExtended"/> is known and in a valid state.
+        /// </summary>
+        bool IsValid { get; }
     }
 }

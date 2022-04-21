@@ -1,25 +1,19 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities;
-using System.Text.Json.Serialization;
-
-namespace CoreEx.RefData.Models
+namespace CoreEx.RefData
 {
     /// <summary>
     /// Represents the base <see cref="IReferenceData"/> base implementation.
     /// </summary>
-    public abstract class ReferenceDataBase<T> : IReferenceData, IIdentifier<T>
+    public abstract class ReferenceDataBase<T> : IReferenceData<T>
     {
         /// <inheritdoc/>
-        [JsonPropertyName("id")]
         public T Id { get; set; } = default!;
 
         /// <inheritdoc/>
-        [JsonPropertyName("code")]
         public string? Code { get; set; }
 
         /// <inheritdoc/>
-        [JsonPropertyName("text")]
         public string? Text { get; set; }
     }
 }

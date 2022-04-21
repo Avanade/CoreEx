@@ -1,4 +1,4 @@
-using CoreEx.RefData.Models;
+using CoreEx.RefData;
 
 namespace My.Hr.Business.Models;
 

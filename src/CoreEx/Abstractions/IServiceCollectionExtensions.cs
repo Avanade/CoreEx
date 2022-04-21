@@ -39,6 +39,13 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
+        /// Adds the <see cref="SystemTime.Default"/> as the <see cref="ISystemTime"/> singleton service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddSystemTime(this IServiceCollection services) => CheckServices(services).AddSingleton<ISystemTime>(sp => SystemTime.Default);
+
+        /// <summary>
         /// Adds a scoped service to instantiate a new <see cref="ExecutionContext"/> instance.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>

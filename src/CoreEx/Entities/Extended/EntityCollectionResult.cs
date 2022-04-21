@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities.Extended
 {
@@ -37,14 +36,12 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Gets or sets the underlying collection.
         /// </summary>
-        [JsonPropertyName("collection")]
         public TColl Collection { get => _collection ??= new TColl(); set => SetValue(ref _collection, value); }
 
         /// <summary>
         /// Gets or sets the <see cref="PagingResult"/>.
         /// </summary>
         /// <remarks>Where this value is <c>null</c> it indicates that the paging was unable to be determined.</remarks>
-        [JsonPropertyName("paging")]
         public PagingResult? Paging { get => _paging; set => SetValue(ref _paging, value); }
 
         /// <summary>
