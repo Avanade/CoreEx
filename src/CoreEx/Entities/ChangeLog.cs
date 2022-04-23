@@ -60,9 +60,6 @@ namespace CoreEx.Entities
             return base.GetHashCode() ^ hash.ToHashCode();
         }
 
-        /// <inheritdoc/>
-        public override object Clone() => CreateClone(this);
-
         /// <summary>
         /// Performs a copy from another <see cref="ChangeLog"/> updating this instance.
         /// </summary>

@@ -4,6 +4,7 @@ using CoreEx.Entities;
 using CoreEx.Entities.Extended;
 using CoreEx.Events;
 using CoreEx.RefData;
+using CoreEx.RefData.Models;
 using CoreEx.WebApis;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -32,7 +33,6 @@ namespace CoreEx.Newtonsoft.Json
         static ContractResolver()
         {
             _default.AddType(typeof(ReferenceDataBase<>))
-                    .AddType(typeof(ReferenceDataExtendedBase<>))
                     .AddType<MessageItem>()
                     .AddType<PagingArgs>()
                     .AddType<PagingResult>()

@@ -12,7 +12,7 @@ namespace CoreEx.Entities.Extended
     /// <see cref="EntityCore.OnApplyAction(EntityAction)"/>. <para>Also, note that when inheriting from a class that already inherits from <see cref="EntityBase{TSelf}"/> then the following interfaces must be added for the new type:
     /// <see cref="ICopyFrom{T}"/> and <see cref="IEquatable{T}"/> to ensure correctness and consistency.</para></remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBase<TSelf> : EntityBase, ICopyFrom<TSelf>, IEquatable<TSelf> where TSelf : EntityBase<TSelf>
+    public abstract class EntityBase<TSelf> : EntityBase, ICopyFrom<TSelf>, IEquatable<TSelf> where TSelf : EntityBase<TSelf>, new()
     {
         /// <summary>
         /// Performs a deep copy from another object updating this instance.
@@ -28,10 +28,10 @@ namespace CoreEx.Entities.Extended
         public virtual void CopyFrom(TSelf from) { }
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => (obj is TSelf other) && Equals(other);
+        public override bool Equals(object? obj) => ReferenceEquals(this, obj) || ((obj is TSelf other) && Equals(other));
 
         /// <inheritdoc/>
-        public virtual bool Equals(TSelf? other) => true;
+        public virtual bool Equals(TSelf? other) => other != null;
 
         /// <summary>
         /// Compares two values for equality.
@@ -56,7 +56,7 @@ namespace CoreEx.Entities.Extended
         public override int GetHashCode() => 0;
 
         /// <inheritdoc/>
-        public override string? ToString()
+        public override string ToString()
         {
             if (this is IIdentifier ii)
                 return $"{base.ToString()} Id={ii.Id}";
@@ -71,5 +71,11 @@ namespace CoreEx.Entities.Extended
         /// </summary>
         /// This will trigger the <see cref="EntityCore.OnApplyAction(EntityAction)"/> with <see cref="EntityAction.CleanUp"/>.
         public override void CleanUp() => OnApplyAction(EntityAction.CleanUp);
+
+        /// <summary>
+        /// Creates a deep copy of the entity.
+        /// </summary>
+        /// <returns>A deep copy of the entity.</returns>
+        public override object Clone() => CreateClone((TSelf)this);
     }
 }

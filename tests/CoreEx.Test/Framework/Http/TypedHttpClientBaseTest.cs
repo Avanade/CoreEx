@@ -1,5 +1,5 @@
 ﻿using CoreEx.Http;
-using CoreEx.RefData;
+using CoreEx.RefData.Models;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;

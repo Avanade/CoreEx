@@ -1,6 +1,6 @@
 ﻿using CoreEx.Abstractions.Reflection;
 using CoreEx.Entities;
-using CoreEx.RefData;
+using CoreEx.RefData.Models;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

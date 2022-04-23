@@ -126,7 +126,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Indicates whether to include any inactive item(s); 
         /// </summary>
-        /// <remarks>For example, include item(s) where <see cref="IReferenceDataExtended.IsActive"/> is <c>false</c>.</remarks>
+        /// <remarks>For example, include item(s) where <see cref="IReferenceData.IsActive"/> is <c>false</c>.</remarks>
         public bool IncludeInactive { get; set; }
 
         /// <summary>

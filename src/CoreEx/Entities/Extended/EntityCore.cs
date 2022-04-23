@@ -14,8 +14,15 @@ namespace CoreEx.Entities.Extended
     [System.Diagnostics.DebuggerStepThrough]
     public abstract class EntityCore : INotifyPropertyChanged, IChangeTracking, IReadOnly
     {
-        internal const string ValueIsImmutableMessage = "Value is immutable; cannot be changed once already set to a value.";
-        internal const string EntityIsReadOnlyMessage = "Entity is read only; property cannot be changed.";
+        /// <summary>
+        /// Gets the value is immutable message.
+        /// </summary>
+        public const string ValueIsImmutableMessage = "Value is immutable; cannot be changed once already set to a value.";
+
+        /// <summary>
+        /// Gets the entity is read only message.
+        /// </summary>
+        public const string EntityIsReadOnlyMessage = "Entity is read only; property cannot be changed.";
 
         private readonly object _lock = new();
         private Dictionary<string, PropertyChangedEventHandler>? _propertyEventHandlers;
@@ -113,7 +120,19 @@ namespace CoreEx.Entities.Extended
         /// <param name="propertyName">The name of the primary property that changed.</param>
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
         protected bool SetValue<T>(ref T propertyValue, T setValue, [CallerMemberName] string? propertyName = null)
-            => SetValue(ref propertyValue, setValue, immutable: false, propertyName: propertyName);
+            => SetValue(ref propertyValue, setValue, immutable: false, @default: default!, propertyName: propertyName);
+
+        /// <summary>
+        /// Sets a property value and raises the <see cref="PropertyChanged"/> event where applicable.
+        /// </summary>
+        /// <param name="propertyValue">The property value to set.</param>
+        /// <param name="setValue">The value to set.</param>
+        /// <param name="default">The default value to perform immutable check against.</param>
+        /// <param name="immutable">Indicates whether the value is immutable; can not be changed once set.</param>
+        /// <param name="propertyName">The name of the primary property that changed.</param>
+        /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
+        protected bool SetValue<T>(ref T propertyValue, T setValue, bool immutable, T @default = default!, [CallerMemberName] string? propertyName = null)
+            => SetValue(ref propertyValue, setValue, immutable: immutable, @default: @default, bubblePropertyChanged: true, propertyName: propertyName);
 
         /// <summary>
         /// Sets a property value and raises the <see cref="PropertyChanged"/> event where applicable.
@@ -122,12 +141,13 @@ namespace CoreEx.Entities.Extended
         /// <param name="propertyValue">The property value to set.</param>
         /// <param name="setValue">The value to set.</param>
         /// <param name="immutable">Indicates whether the value is immutable; can not be changed once set.</param>
+        /// <param name="default">The default value to perform immutable check against.</param>
         /// <param name="bubblePropertyChanged">Indicates whether the value should bubble up property changes versus only recording within the sub-entity itself.</param>
         /// <param name="beforeChange">Function to invoke before changing the value; a result of <c>true</c> indicates that the property change is to be cancelled; otherwise, <c>false</c>.</param>
         /// <param name="propertyName">The name of the primary property that changed.</param>
         /// <param name="secondaryPropertyNames">The names of the secondary properties that need to be advised of the change.</param>
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
-        private bool SetValue<T>(ref T propertyValue, T setValue, bool immutable = false, bool bubblePropertyChanged = true, Func<T, bool>? beforeChange = null, [CallerMemberName] string? propertyName = null, params string[] secondaryPropertyNames)
+        private bool SetValue<T>(ref T propertyValue, T setValue, bool immutable = false, T @default = default!, bool bubblePropertyChanged = true, Func<T, bool>? beforeChange = null, [CallerMemberName] string? propertyName = null, params string[] secondaryPropertyNames)
         {
             if (string.IsNullOrEmpty(propertyName))
                 throw new ArgumentNullException(nameof(propertyName));
@@ -153,7 +173,7 @@ namespace CoreEx.Entities.Extended
                     return !isChanged ? false : throw new InvalidOperationException(EntityIsReadOnlyMessage);
 
                 // Test immutability.
-                if (immutable && isChanged && Comparer<T>.Default.Compare(propertyValue, default!) != 0)
+                if (immutable && isChanged && Comparer<T>.Default.Compare(propertyValue, @default) != 0)
                     throw new InvalidOperationException(ValueIsImmutableMessage);
 
                 // Handle on before property changed.

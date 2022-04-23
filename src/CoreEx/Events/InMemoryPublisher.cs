@@ -65,7 +65,7 @@ namespace CoreEx.Events
         public string?[] GetNames() => _dict.Keys.ToArray();
 
         /// <summary>
-        /// Gets the events published (in order) to the named destination.
+        /// Gets the events sent (in order) to the named destination.
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <returns>The corresponding events.</returns>

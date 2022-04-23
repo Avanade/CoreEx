@@ -7,15 +7,15 @@ namespace CoreEx.Entities
     /// <summary>
     /// Enables the identifier (<see cref="Id"/>) capability.
     /// </summary>
-    /// <typeparam name="T">The identifier <see cref="Type"/>.</typeparam>
-    public interface IIdentifier<T> : IIdentifier
+    /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
+    public interface IIdentifier<TId> : IIdentifier
     {
         /// <inheritdoc/>
-        object? IIdentifier.Id { get => Id; set => Id = (T)value!; }
+        object? IIdentifier.Id { get => Id; set => Id = (TId)value!; }
 
         /// <summary>
         /// Gets or sets the identifier.
         /// </summary>
-        new T Id { get; set; }
+        new TId? Id { get; set; }
     }
 }

@@ -7,7 +7,7 @@ using System.Collections.Concurrent;
 namespace CoreEx.RefData
 {
     /// <summary>
-    /// Provides the contextual validation <see cref="Date"/> for a <see cref="IReferenceDataExtended.StartDate"/> and <see cref="IReferenceDataExtended.EndDate"/> <see cref="IReferenceDataExtended.IsValid"/> verification.
+    /// Provides the contextual validation <see cref="Date"/> for a <see cref="IReferenceData.StartDate"/> and <see cref="IReferenceData.EndDate"/> <see cref="IReferenceData.IsValid"/> verification.
     /// </summary>
     /// <remarks>All dates when set go through <see cref="Cleaner.Clean(DateTime, DateTimeTransform)"/> with <see cref="DateTimeTransform.DateOnly"/>.</remarks>
     public class ReferenceDataContext : IReferenceDataContext
@@ -16,12 +16,7 @@ namespace CoreEx.RefData
         private readonly ConcurrentDictionary<Type, DateTime?> _coll = new();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataContext"/> class.
-        /// </summary>
-        internal ReferenceDataContext() { }
-
-        /// <summary>
-        /// Gets or sets the <see cref="IReferenceDataExtended"/> <see cref="IReferenceDataExtended.StartDate"/> and <see cref="IReferenceDataExtended.EndDate"/> contextual validation date.
+        /// Gets or sets the <see cref="IReferenceData"/> <see cref="IReferenceData.StartDate"/> and <see cref="IReferenceData.EndDate"/> contextual validation date.
         /// </summary>
         /// <remarks>Defaults to <see cref="ExecutionContext.SystemTime"/>.</remarks>
         public DateTime? Date
