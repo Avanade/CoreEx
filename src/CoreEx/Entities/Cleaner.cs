@@ -239,6 +239,6 @@ namespace CoreEx.Entities
         /// <param name="default">The default value override.</param>
         /// <returns><c>true</c> indicates that the value is initial; otherwise, <c>false</c>.</returns>
         /// <remarks>This determines whether is initial by comparing against its default value; this does not leverage <see cref="IInitial.IsInitial"/>.</remarks>
-        public static bool IsDefault<T>(T value, T @default) => value == null || Comparer<T>.Default.Compare(value, @default) == 0;
+        public static bool IsDefault<T>(T value, T @default) => Comparer<T>.Default.Compare(value, @default) == 0;
     }
 }

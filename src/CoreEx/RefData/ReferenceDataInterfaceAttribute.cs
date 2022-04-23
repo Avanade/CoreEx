@@ -5,7 +5,7 @@ using System;
 namespace CoreEx.RefData
 {
     /// <summary>
-    /// To support the dependency injection capabilities, specifically <see cref="ReferenceDataManager.GetByType(Type)"/>, the relationship between a reference data class and the interface that it will be exposed through is required.
+    /// To support the dependency injection capabilities, specifically <see cref="ReferenceDataManagerX.GetByType(Type)"/>, the relationship between a reference data class and the interface that it will be exposed through is required.
     /// This provides this relationship.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

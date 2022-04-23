@@ -6,14 +6,15 @@ using System.Threading.Tasks;
 namespace CoreEx.RefData
 {
     /// <summary>
-    /// Provides a means to manage and group one or more <b>ReferenceData</b> entities for use by the centralised <see cref="ReferenceDataManager"/>.
+    /// Provides a means to manage and group one or more <see cref="IReferenceData"/> entities for use by the centralised <see cref="ReferenceDataManager"/>.
     /// </summary>
     public interface IReferenceDataProvider
     {
         /// <summary>
-        /// Gets the provider <see cref="Type"/>.
+        /// Gets all the underlying <see cref="IReferenceData"/> <see cref="Type">types</see> provided.
         /// </summary>
-        Type ProviderType { get; }
+        /// <returns>The <see cref="IReferenceData"/> <see cref="Type">types</see> provided.</returns>
+        Type[] Types { get; }
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
@@ -28,6 +29,6 @@ namespace CoreEx.RefData
         /// <param name="names">The list of <see cref="IReferenceData"/> names.</param>
         /// <remarks>Note for implementers: this should only fetch where not already cached or expired. This is provided to improve performance for consuming applications to reduce the overhead of making multiple individual invocations,
         /// i.e. reduces chattiness across a potentially high-latency connection.</remarks>
-        Task PrefetchAsync(params string[] names);
+        public Task PrefetchAsync(params string[] names) => throw new NotSupportedException();
     }
 }

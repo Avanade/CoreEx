@@ -9,5 +9,5 @@ namespace CoreEx.RefData
     /// Provides the core <b>Reference Data</b> properties with a typed <see cref="IIdentifier{T}.Id"/>.
     /// </summary>
     /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
-    public interface IReferenceData<TId> : IIdentifier<TId>, IReferenceData { }
+    public interface IReferenceData<TId> : IIdentifier<TId>, IReferenceData where TId : IComparable<TId>, IEquatable<TId> { }
 }

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using System;
 using System.Collections.Generic;
 
 namespace CoreEx.RefData
@@ -8,7 +9,7 @@ namespace CoreEx.RefData
     /// <summary>
     /// Provides <see cref="GetById(TId?)"/> functionality for an <see cref="IReferenceData{TId}"/> collection with a typed <see cref="IIdentifier{T}.Id"/>.
     /// </summary>
-    public interface IReferenceDataCollection<TId, TRef> : IReferenceDataCollection where TRef : class, IReferenceData<TId>
+    public interface IReferenceDataCollection<TId, TRef> : IReferenceDataCollection where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId>
     {
         /// <inheritdoc/>
         void IReferenceDataCollection.Add(IReferenceData item) => Add((TRef)item);
@@ -20,16 +21,42 @@ namespace CoreEx.RefData
         bool IReferenceDataCollection.ContainsId(object id) => ContainsId((TId)id);
 
         /// <inheritdoc/>
-        bool IReferenceDataCollection.TryGetById(object id, out IReferenceData? item) => TryGetById((TId)id, out item);
+        bool IReferenceDataCollection.TryGetById(object id, out IReferenceData? item)
+        {
+            if (TryGetById((TId)id, out TRef? item2))
+            {
+                item = item2;
+                return true;
+            }
+
+            item = null;
+            return false;
+        }
 
         /// <inheritdoc/>
-        bool IReferenceDataCollection.TryGetByCode(string code, out IReferenceData? item) => TryGetByCode(code, out item);
+        bool IReferenceDataCollection.TryGetByCode(string code, out IReferenceData? item)
+        {
+            if (TryGetByCode(code, out TRef? item2))
+            {
+                item = item2;
+                return true;
+            }
+
+            item = null;
+            return false;
+        }
 
         /// <inheritdoc/>
         IReferenceData? IReferenceDataCollection.GetById(object id) => GetById((TId)id);
 
         /// <inheritdoc/>
         IReferenceData? IReferenceDataCollection.GetByCode(string code) => GetByCode(code);
+
+        /// <inheritdoc/>
+        bool IReferenceDataCollection.TryGetByMappingValue<T>(string name, T value, out IReferenceData? item) => TryGetByMappingValue(name, value, out item);
+
+        /// <inheritdoc/>
+        IReferenceData? IReferenceDataCollection.GetByMappingValue<T>(string name, T value) => GetByMappingValue(name, value);
 
         /// <summary>
         /// Adds the <typeparamref name="TRef"/> <paramref name="item"/> to the <see cref="IReferenceDataCollection"/>.
@@ -79,5 +106,24 @@ namespace CoreEx.RefData
         /// <param name="code">The specified <see cref="IReferenceData.Code"/>.</param>
         /// <returns>The <typeparamref name="TRef"/> where found; otherwise, <c>null</c>.</returns>
         new TRef? GetByCode(string code);
+
+        /// <summary>
+        /// Attempts to get the <paramref name="item"/> with the specifed <see cref="IReferenceData.GetMapping{T}(string)"/> value.
+        /// </summary>
+        /// <typeparam name="T">The mapping value <see cref="Type"/>.</typeparam>
+        /// <param name="name">The mapping name.</param>
+        /// <param name="value">The mapping value.</param>
+        /// <param name="item">The corresponding <see cref="IReferenceData"/> item where found; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
+        bool TryGetByMappingValue<T>(string name, T value, out TRef? item) where T : IComparable<T>, IEquatable<T>;
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceData"/> for the specified <see cref="IReferenceData.GetMapping{T}(string)"/> value.
+        /// </summary>
+        /// <typeparam name="T">The mapping value <see cref="Type"/>.</typeparam>
+        /// <param name="name">The mapping name.</param>
+        /// <param name="value">The mapping value.</param>
+        /// <returns>The <see cref="IReferenceData"/> where found; otherwise, <c>null</c>.</returns>
+        new TRef? GetByMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
     }
 }

@@ -13,12 +13,12 @@ namespace CoreEx.RefData
     /// </summary>
     /// <typeparam name="TId">The <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TRef">The <see cref="IReferenceData{TId}"/> <see cref="Type"/>.</typeparam>
-    public class ReferenceDataCollection<TId, TRef> : IReferenceDataCollection<TId, TRef>, ICollection<TRef> where TRef : class, IReferenceData<TId>
+    public class ReferenceDataCollection<TId, TRef> : IReferenceDataCollection<TId, TRef>, ICollection<TRef> where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId>
     {
         private readonly object _lock = new();
         private readonly ConcurrentDictionary<TId, TRef> _rdcId = new();
         private readonly ConcurrentDictionary<string, TRef> _rdcCode;
-        private readonly Dictionary<(string, object?), string> _mappingsDict = new();
+        private Dictionary<(string, object?), TRef>? _mappingsDict;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataCollection{TItem, TId}"/> class.
@@ -32,9 +32,9 @@ namespace CoreEx.RefData
         }
 
         /// <summary>
-        /// Gets the <see cref="ReferenceDataSortOrder"/> used by <see cref="GetList"/>.
+        /// Gets or sets the <see cref="ReferenceDataSortOrder"/> used by <see cref="GetList"/>.
         /// </summary>
-        public ReferenceDataSortOrder SortOrder { get; }
+        public ReferenceDataSortOrder SortOrder { get; set; }
 
         /// <summary>
         /// Gets the item for the specified <see cref="IReferenceData.Code"/>.
@@ -50,7 +50,7 @@ namespace CoreEx.RefData
             {
                 _rdcId.Clear();
                 _rdcCode.Clear();
-                _mappingsDict.Clear();
+                _mappingsDict?.Clear();
             }
         }
 
@@ -70,6 +70,9 @@ namespace CoreEx.RefData
 
             lock (_lock)
             {
+                if (_rdcId.Values.Contains(item))
+                    throw new ArgumentException($"Item already exists within the collection.", nameof(item));
+
                 if (_rdcId.ContainsKey(item.Id))
                     throw new ArgumentException($"Item with Id '{item.Id}' already exists within the collection.", nameof(item));
 
@@ -78,6 +81,8 @@ namespace CoreEx.RefData
 
                 if (item.HasMappings)
                 {
+                    _mappingsDict ??= new();
+
                     // Make sure there are no duplicates.
                     foreach (var map in item.Mappings)
                     {
@@ -88,7 +93,7 @@ namespace CoreEx.RefData
                     // Now add 'em in.
                     foreach (var map in item.Mappings)
                     {
-                        _mappingsDict.Add((map.Key, map.Value), item.Code);
+                        _mappingsDict.Add((map.Key, map.Value), item);
                     }
                 }
 
@@ -148,15 +153,31 @@ namespace CoreEx.RefData
         /// <inheritdoc/>
         public TRef? GetByCode(string code) => code == null ? default : _rdcCode[code];
 
+        /// <inheritdoc/>
+        public bool ContainsMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => _mappingsDict != null && _mappingsDict.ContainsKey((name, value));
+
+        /// <inheritdoc/>
+        public bool TryGetByMappingValue<T>(string name, T value, out TRef? item) where T : IComparable<T>, IEquatable<T>
+        {
+            if (_mappingsDict != null)
+                return _mappingsDict.TryGetValue((name, value), out item);
+
+            item = default;
+            return false;
+        }
+
+        /// <inheritdoc/>
+        public TRef? GetByMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => TryGetByMappingValue(name, value, out var item) ? item : default;
+
         /// <summary>
-        /// Gets a list of all items sorted by the <see cref="SortOrder"/> value.
+        /// Gets a list of all items (excluding where <i>not</i> <see cref="IsItemValid(TRef)"/> ) sorted by the <see cref="SortOrder"/> value.
         /// </summary>
         /// <value>An <see cref="IList{T}"/> containing the selected items.</value>
         /// <remarks>This is provided as a property to more easily support binding; it encapsulates the following method invocation: <c><see cref="GetList"/>(SortOrder, null, null);</c></remarks>
-        public IList<TRef> AllList => GetList(SortOrder, null, null);
+        public IList<TRef> AllList => GetList(SortOrder, null, true);
 
         /// <summary>
-        /// Gets a list of the <see cref="IsItemValid"/> (i.e. <see cref="IReferenceData.IsActive"/>) items sorted by the <see cref="SortOrder"/> value.
+        /// Gets a list of all active (<see cref="IsItemActive(TRef)"/> and <see cref="IsItemValid(TRef)"/>) items sorted by the <see cref="SortOrder"/> value.
         /// </summary>
         /// <value>An <see cref="IList{TItem}"/> containing the selected items.</value>
         /// <remarks>This is provided as a property to more easily support binding; it encapsulates the following method invocation: <c><see cref="GetList"/>(SortOrder, true, true);</c></remarks>
@@ -166,31 +187,39 @@ namespace CoreEx.RefData
         /// Gets a list of <typeparamref name="TRef"/> items from the collection using the specified criteria.
         /// </summary>
         /// <param name="sortOrder">Defines the <see cref="ReferenceDataSortOrder"/>; <c>null</c> indicates to use the defined <see cref="SortOrder"/>.</param>
-        /// <param name="isValid">Indicates whether the list should include values with the same <see cref="IsItemValid"/> value; otherwise, <c>null</c> indicates all.</param>
         /// <param name="isActive">Indicates whether the list should include values with the same <see cref="IReferenceData.IsActive"/> value; otherwise, <c>null</c> indicates all.</param>
+        /// <param name="isValid">Indicates whether the list should include values with the same <see cref="IsItemValid"/> value; otherwise, <c>null</c> indicates all.</param>
         /// <remakes>This is leveraged by <see cref="AllList"/> and <see cref="ActiveList"/>.</remakes>
-        public List<TRef> GetList(ReferenceDataSortOrder? sortOrder = null, bool? isValid = null, bool? isActive = null)
+        public List<TRef> GetList(ReferenceDataSortOrder? sortOrder = null, bool? isActive = null, bool? isValid = null)
         {
             if (_rdcId.IsEmpty)
                 return new List<TRef>();
 
             var list = from rd in _rdcId.Values select rd;
-            if (isValid != null)
-                list = list.Where(x => IsItemValid(x) == isValid.Value);
-
             if (isActive != null)
-                list = list.Where(x => x.IsActive == isActive.Value);
+                list = list.Where(x => IsItemActive(x));
+
+            if (isValid != null)
+                list = list.Where(x => IsItemValid(x));
 
             list = (sortOrder ?? SortOrder) switch
             {
                 ReferenceDataSortOrder.Id => list.OrderBy(x => x.Id),
                 ReferenceDataSortOrder.Code => list.OrderBy(x => x.Code),
                 ReferenceDataSortOrder.Text => list.OrderBy(x => x.Text).ThenBy(x => x.Code),
-                _ => list.OrderBy(x => x.SortOrder).ThenBy(x => x.Code)
+                _ => list.OrderBy(x => x.SortOrder).ThenBy(x => x.Text).ThenBy(x => x.Code)
             };
 
             return list.ToList();
         }
+
+        /// <summary>
+        /// Determines whether the <paramref name="item"/> is considered active and therefore accessible from within the collection.
+        /// </summary>
+        /// <param name="item">The item to validate.</param>
+        /// <returns><c>true</c> indicates active; otherwise, <c>false</c>.</returns>
+        /// <remarks>By default checks <see cref="IReferenceData.IsActive"/>.</remarks>
+        protected virtual bool IsItemActive(TRef item) => item.IsActive;
 
         /// <summary>
         /// Determines whether the <paramref name="item"/> is considered valid and therefore accessible from within the collection.

@@ -32,6 +32,6 @@ namespace CoreEx.TestFunction.Functions
 
         [FunctionName("HttpTriggerProductPut")]
         public Task<IActionResult> PutAsync([HttpTrigger(AuthorizationLevel.Function, "put", Route = "products")] HttpRequest request)
-            => _webApi.PutAsync<Product, Product>(request, r => _service.UpdateProductAsync(r.Validate<Product, ProductValidator>(), r.Value.Id));
+            => _webApi.PutAsync<Product, Product>(request, r => _service.UpdateProductAsync(r.Validate<Product, ProductValidator>(), r.Value!.Id!));
     }
 }

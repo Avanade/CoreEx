@@ -9,7 +9,7 @@ namespace CoreEx.Events
     /// <summary>
     /// Provides the base event data.
     /// </summary>
-    public abstract class EventDataBase : IIdentifier<string?>, ITenantId, IPartitionKey, IETag
+    public abstract class EventDataBase : IIdentifier<string>, ITenantId, IPartitionKey, IETag
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EventData"/> class.

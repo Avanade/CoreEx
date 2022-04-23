@@ -13,8 +13,9 @@ namespace CoreEx.RefData
     /// <summary>
     /// Represents the base <see cref="IReferenceData"/> base implementation.
     /// </summary>
+    /// <remarks>The <see cref="Id"/> can only be of type <see cref="int"/>, <see cref="long"/>, <see cref="string"/> and <see cref="Guid"/>.</remarks>
     [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActivem = {IsActive}")]
-    public class ReferenceDataBase<TId, TSelf> : EntityBase<TSelf>, IReferenceData<TId> where TSelf : ReferenceDataBase<TId, TSelf>, new()
+    public class ReferenceDataBase<TId, TSelf> : EntityBase<TSelf>, IReferenceData<TId> where TId : IComparable<TId>, IEquatable<TId> where TSelf : ReferenceDataBase<TId, TSelf>, new()
     {
         private TId? _id;
         private string? _code;
@@ -27,6 +28,15 @@ namespace CoreEx.RefData
         private DateTime? _endDate;
         private string? _etag;
         private Dictionary<string, object?>? _mappings;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceDataBase{TId, TSelf}"/> class.
+        /// </summary>
+        public ReferenceDataBase()
+        {
+            if (_id != null && _id is not int && _id is not long && _id is not string && _id is not Guid)
+                throw new InvalidOperationException($"A Reference Data {nameof(Id)} can only be of type {nameof(Int32)}, {nameof(Int64)}, {nameof(String)} or {nameof(Guid)}.");
+        }
 
         /// <inheritdoc/>
         public TId? Id { get => _id; set => SetValue(ref _id, value, immutable: true); }
@@ -44,27 +54,14 @@ namespace CoreEx.RefData
         public int SortOrder { get => _sortOrder; set => SetValue(ref _sortOrder, value); }
 
         /// <inheritdoc/>
-        public bool IsActive { get => _isActive; set => SetValue(ref _isActive, !_isInvalid && value); }
-
-        /// <inheritdoc/>
-        public DateTime? StartDate { get => _startDate; set => SetValue(ref _startDate, value, DateTimeTransform.DateOnly); }
-
-        /// <inheritdoc/>
-        public DateTime? EndDate { get => _endDate; set => SetValue(ref _endDate, value, DateTimeTransform.DateOnly); }
-
-        /// <inheritdoc/>
-        public string? ETag { get => _etag; set => SetValue(ref _etag, value); }
-
-        /// <inheritdoc/>
-        /// <remarks>Note to classes that override: the base <see cref="IsValid"/> should be called as it verifies <see cref="IsActive"/>, and that the <see cref="StartDate"/> and <see cref="EndDate"/> are not outside of the 
+        /// <remarks>Note to classes that override: the base <see cref="IsActive"/> should be called as it verifies <see cref="IsActive"/>, and that the <see cref="StartDate"/> and <see cref="EndDate"/> are not outside of the 
         /// <see cref="IReferenceDataContext"/> <see cref="IReferenceDataContext.Date"/> where configured (otherwise <see cref="DateTime.UtcNow"/>). This is accessed via <see cref="ExecutionContext.Current"/> 
-        /// <see cref="ExecutionContext.ReferenceDataContext"/> where <see cref="ExecutionContext.HasCurrent"/>.</remarks>
-        [JsonIgnore]
-        public virtual bool IsValid
+        /// <see cref="ExecutionContext.ReferenceDataContext"/> where <see cref="ExecutionContext.HasCurrent"/>. The <see cref="IsActive"/> will always return <c>false</c> when not <see cref="IsValid"/>.</remarks>
+        public virtual bool IsActive
         {
             get
             {
-                if (_isInvalid || !IsActive)
+                if (!IsValid || !_isActive)
                     return false;
 
                 if (StartDate != null || EndDate != null)
@@ -77,16 +74,27 @@ namespace CoreEx.RefData
                         return false;
                 }
 
-                return true;
+                return _isActive;
             }
+
+            set => SetValue(ref _isActive, value);
         }
 
         /// <inheritdoc/>
-        void IReferenceData.SetInvalid()
-        {
-            _isInvalid = true;
-            _isActive = false;
-        }
+        public DateTime? StartDate { get => _startDate; set => SetValue(ref _startDate, value, DateTimeTransform.DateOnly); }
+
+        /// <inheritdoc/>
+        public DateTime? EndDate { get => _endDate; set => SetValue(ref _endDate, value, DateTimeTransform.DateOnly); }
+
+        /// <inheritdoc/>
+        public string? ETag { get => _etag; set => SetValue(ref _etag, value); }
+
+        /// <inheritdoc/>
+        [JsonIgnore]
+        public bool IsValid => !_isInvalid;
+
+        /// <inheritdoc/>
+        void IReferenceData.SetInvalid() => _isInvalid = true;
 
         /// <inheritdoc/>
         public bool HasMappings { get => _mappings != null && _mappings.Count > 0; }
@@ -103,7 +111,7 @@ namespace CoreEx.RefData
         public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString();
 
         /// <inheritdoc/>
-        public void SetMapping<T>(string name, T value)
+        public void SetMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T>
         {
             if (Comparer<T>.Default.Compare(value, default!) == 0)
                 return;
@@ -118,7 +126,7 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        public T GetMapping<T>(string name)
+        public T GetMapping<T>(string name) where T : IComparable<T>, IEquatable<T>
         {
             if (!HasMappings || !Mappings.TryGetValue(name, out var value))
                 return default!;
@@ -127,7 +135,7 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        public bool TryGetMapping<T>(string name, out T value)
+        public bool TryGetMapping<T>(string name, out T value) where T : IComparable<T>, IEquatable<T>
         {
             value = default!;
             if (!HasMappings || !Mappings.TryGetValue(name, out var val))
@@ -231,5 +239,87 @@ namespace CoreEx.RefData
             && Cleaner.IsDefault(StartDate)
             && Cleaner.IsDefault(EndDate)
             && !HasMappings;
+
+        /// <summary>
+        /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to an <see cref="int"/> where the <see cref="IIdentifier.Id"/> is of <see cref="Type"/> <see cref="int"/>.
+        /// </summary>
+        /// <param name="item">The <see cref="ReferenceDataBase{TId, TSelf}"/> value.</param>
+        public static implicit operator int(ReferenceDataBase<TId, TSelf>? item) => item != null && item.Id is int id ? id : 0;
+
+        /// <summary>
+        /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to a <see cref="Nullable{T}"/> <see cref="int"/> where the <see cref="IIdentifier.Id"/> is of <see cref="Type"/> <see cref="int"/>.
+        /// </summary>
+        /// <param name="item">The <see cref="ReferenceDataBase{TId, TSelf}"/> value.</param>
+        public static implicit operator int?(ReferenceDataBase<TId, TSelf>? item) => item != null && item.Id is int id ? id : null;
+
+        /// <summary>
+        /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to a <see cref="long"/> where the <see cref="IIdentifier.Id"/> is of <see cref="Type"/> <see cref="long"/>.
+        /// </summary>
+        /// <param name="item">The <see cref="ReferenceDataBase{TId, TSelf}"/> value.</param>
+        public static implicit operator long(ReferenceDataBase<TId, TSelf>? item) => item != null && item.Id is long id ? id : 0;
+
+        /// <summary>
+        /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to a <see cref="Nullable{T}"/> <see cref="long"/> where the <see cref="IIdentifier.Id"/> is of <see cref="Type"/> <see cref="long"/>.
+        /// </summary>
+        /// <param name="item">The <see cref="ReferenceDataBase{TId, TSelf}"/> value.</param>
+        public static implicit operator long?(ReferenceDataBase<TId, TSelf>? item) => item != null && item.Id is long id ? id : null;
+
+        /// <summary>
+        /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to a <see cref="Guid"/> where the <see cref="IIdentifier.Id"/> is of <see cref="Type"/> <see cref="Guid"/>.
+        /// </summary>
+        /// <param name="item">The <see cref="ReferenceDataBase{TId, TSelf}"/> value.</param>
+        public static implicit operator Guid(ReferenceDataBase<TId, TSelf>? item) => item != null && item.Id is Guid id ? id : Guid.Empty;
+
+        /// <summary>
+        /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to a <see cref="Nullable{T}"/> <see cref="Guid"/> where the <see cref="IIdentifier.Id"/> is of <see cref="Type"/> <see cref="Guid"/>.
+        /// </summary>
+        /// <param name="item">The <see cref="ReferenceDataBase{TId, TSelf}"/> value.</param>
+        public static implicit operator Guid?(ReferenceDataBase<TId, TSelf>? item) => item != null && item.Id is Guid id ? id : null;
+
+        /// <summary>
+        /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to the <see cref="IReferenceData.Code"/> <see cref="string"/>.
+        /// </summary>
+        /// <param name="item">The <see cref="ReferenceDataBase{TId, TSelf}"/> value.</param>
+        public static implicit operator string?(ReferenceDataBase<TId, TSelf>? item) => item?.Code;
+
+        /// <summary>
+        /// Performs a conversion from an <see cref="Id"/> to an instance of <typeparamref name="TSelf"/>.
+        /// </summary>
+        /// <param name="id">The <see cref="Id"/>.</param>
+        /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
+        /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        public static TSelf ConvertFromId(TId id)
+        {
+            if (ExecutionContext.HasCurrent)
+            {
+                var rdc = ReferenceDataManager.Current[typeof(TSelf)];
+                if (rdc != null && rdc.TryGetById(id, out var rd))
+                    return (TSelf)rd!;
+            }
+
+            var rdx = new TSelf { Id = id };
+            ((IReferenceData)rdx).SetInvalid();
+            return rdx;
+        }
+
+        /// <summary>
+        /// Performs a conversion from a <see cref="Code"/> to an instance of <typeparamref name="TSelf"/>.
+        /// </summary>
+        /// <param name="code">The <see cref="Code"/>.</param>
+        /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
+        /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        public static TSelf ConvertFromCode(string? code)
+        {
+            if (code != null && ExecutionContext.HasCurrent)
+            {
+                var rdc = ReferenceDataManager.Current[typeof(TSelf)];
+                if (rdc != null && rdc.TryGetByCode(code, out var rd))
+                    return (TSelf)rd!;
+            }
+
+            var rdx = new TSelf { Code = code };
+            ((IReferenceData)rdx).SetInvalid();
+            return rdx;
+        }
     }
 }

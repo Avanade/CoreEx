@@ -10,7 +10,7 @@ namespace CoreEx.RefData
     public enum ReferenceDataSortOrder
     {
         /// <summary>
-        /// Ordered by <see cref="IReferenceData.SortOrder"/> (where <see cref="IReferenceData"/>) and then <see cref="IReferenceData.Code"/> (default).
+        /// Ordered by <see cref="IReferenceData.SortOrder"/>, then <see cref="IReferenceData.Text"/>, and finally <see cref="IReferenceData.Code"/> (default).
         /// </summary>
         SortOrder,
 
