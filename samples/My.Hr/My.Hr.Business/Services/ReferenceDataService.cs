@@ -10,13 +10,16 @@ public class ReferenceDataService : IReferenceDataProvider
 
     public ReferenceDataService(HrDbContext dbContext) => _dbContext = dbContext;
 
-    public Type[] Types => new Type[] { typeof(USState) };
+    public Type[] Types => new Type[] { typeof(USState), typeof(Gender) };
 
     public async Task<IReferenceDataCollection> GetAsync(Type type) => type switch
     {
         Type _ when type == typeof(USState) => await GetUSStatesAsync().ConfigureAwait(false),
+        Type _ when type == typeof(Gender) => await GetGendersAsync().ConfigureAwait(false),
         _ => throw new InvalidOperationException()
     };
 
     public Task<USStateCollection> GetUSStatesAsync() => USStateCollection.CreateAsync(_dbContext.USStates);
+
+    public Task<GenderCollection> GetGendersAsync() => GenderCollection.CreateAsync(_dbContext.Genders);
 }

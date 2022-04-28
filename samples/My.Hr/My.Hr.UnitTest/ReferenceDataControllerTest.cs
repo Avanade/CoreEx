@@ -23,9 +23,9 @@ namespace My.Hr.UnitTest
             var v = test.Controller<ReferenceDataController>()
                 .Run(c => c.USStateGetAll(null, null))
                 .AssertOK()
-                .GetValue<USStateCollection>()!;
+                .GetValue<USState[]>()!;
 
-            Assert.AreEqual(50, v.Count);
+            Assert.AreEqual(50, v.Length);
         }
 
         [Test]
@@ -70,6 +70,19 @@ namespace My.Hr.UnitTest
             test.Controller<ReferenceDataController>()
                 .Run(c => c.USStateGetAll(new string[] { "WA", "CO" }, null), new HttpRequestOptions { ETag = r.Response?.Headers?.ETag?.Tag }.Include("code", "text"))
                 .AssertNotModified();
+        }
+
+        [Test]
+        public void B100_Gender_All()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var v = test.Controller<ReferenceDataController>()
+                .Run(c => c.GenderGetAll(null, null))
+                .AssertOK()
+                .GetValue<Gender[]>()!;
+
+            Assert.AreEqual(3, v.Length);
         }
     }
 }

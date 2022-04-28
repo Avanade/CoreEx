@@ -121,6 +121,34 @@ namespace CoreEx.RefData
         /// </summary>
         /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
+        public IReferenceDataCollection? GetByType<TRef>() => GetByType(typeof(TRef));
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
+        /// </summary>
+        /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
+        public IReferenceDataCollection? GetByType(Type type) => GetByTypeAsync(type).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
+        public IReferenceDataCollection GetByTypeRequired<TRef>() => GetByTypeRequired(typeof(TRef));
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
+        /// </summary>
+        /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
+        public IReferenceDataCollection GetByTypeRequired(Type type) => GetByTypeRequiredAsync(type).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
         public Task<IReferenceDataCollection?> GetByTypeAsync<TRef>() => GetByTypeAsync(typeof(TRef));
 
         /// <summary>
@@ -142,6 +170,21 @@ namespace CoreEx.RefData
 
             return coll ?? throw new InvalidOperationException($"The {nameof(IReferenceDataCollection)} returned for Type '{type.FullName}' from Provider '{providerType.FullName}' must not be null.");
         }
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
+        public Task<IReferenceDataCollection> GetByTypeRequiredAsync<TRef>() => GetByTypeRequiredAsync(typeof(TRef));
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
+        /// </summary>
+        /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
+        public async Task<IReferenceDataCollection> GetByTypeRequiredAsync(Type type)
+            => (await GetByTypeAsync(type).ConfigureAwait(false)) ?? throw new InvalidOperationException($"Reference data collection for type '{type.FullName}' does not exist.");
 
         /// <summary>
         /// Gets where pre-existing and not expired, or (re-)creates, the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
@@ -182,7 +225,29 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
+        public IReferenceDataCollection? GetByName(string name) => GetByNameAsync(name).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
+        /// </summary>
+        /// <param name="name">The reference data name.</param>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
+        public IReferenceDataCollection GetByNameRequired(string name) => GetByNameRequiredAsync(name).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
+        /// </summary>
+        /// <param name="name">The reference data name.</param>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
         public Task<IReferenceDataCollection?> GetByNameAsync(string name) => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeAsync(type) : Task.FromResult<IReferenceDataCollection?>(null);
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
+        /// </summary>
+        /// <param name="name">The reference data name.</param>
+        /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
+        public Task<IReferenceDataCollection> GetByNameRequiredAsync(string name) 
+            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeRequiredAsync(type) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> <see cref="Type"/> applying the <paramref name="codes"/> and <paramref name="text"/> filter.

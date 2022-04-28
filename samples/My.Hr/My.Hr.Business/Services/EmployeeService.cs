@@ -75,7 +75,7 @@ public class EmployeeService
         {
             Name = employee.FirstName,
             Age = DateTime.UtcNow.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
-            Gender = employee.GenderCode
+            Gender = employee.Gender
         };
 
         _publisher.Publish(_settings.VerificationQueueName, new EventData { Value = verification });

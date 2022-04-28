@@ -7,6 +7,7 @@ namespace My.Hr.Business.Data;
 public class HrDbContext : DbContext
 {
     public DbSet<USState> USStates { get; set; }
+    public DbSet<Gender> Genders { get; set; }
     public DbSet<Employee> Employees { get; set; }
 
 #pragma warning disable CS8618 // Non-nullable property - properties set by Entity Framework Core
@@ -17,6 +18,7 @@ public class HrDbContext : DbContext
     {
         modelBuilder
             .ApplyConfiguration<USState>(new UsStateConfiguration())
+            .ApplyConfiguration<Gender>(new GenderConfiguration())
             .ApplyConfiguration<Employee>(new EmployeeConfiguration());
         base.OnModelCreating(modelBuilder);
     }

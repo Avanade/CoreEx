@@ -2,8 +2,10 @@ using CoreEx;
 using CoreEx.Healthchecks;
 using CoreEx.Healthchecks.Checks;
 using CoreEx.Messaging.Azure.Health;
+using CoreEx.RefData;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using My.Hr.Business;
@@ -26,6 +28,7 @@ public class Startup : FunctionsStartup
         // Register the core services.
         builder.Services
             .AddSettings<HrSettings>()
+            .AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<ReferenceDataService>())
             .AddExecutionContext()
             .AddJsonSerializer()
             .AddEventDataSerializer()
