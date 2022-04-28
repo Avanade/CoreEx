@@ -12,6 +12,9 @@ namespace CoreEx.RefData
     public interface IReferenceDataCollection<TId, TRef> : IReferenceDataCollection where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId>
     {
         /// <inheritdoc/>
+        Type IReferenceDataCollection.ItemType => typeof(TRef);
+
+        /// <inheritdoc/>
         void IReferenceDataCollection.Add(IReferenceData item) => Add((TRef)item);
 
         /// <inheritdoc/>

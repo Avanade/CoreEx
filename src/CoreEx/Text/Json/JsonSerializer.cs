@@ -33,6 +33,7 @@ namespace CoreEx.Text.Json
             Options = options ?? new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+                
                 WriteIndented = false,
                 DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
                 PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,

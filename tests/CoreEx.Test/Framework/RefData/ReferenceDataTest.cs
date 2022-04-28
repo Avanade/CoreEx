@@ -1,10 +1,17 @@
-﻿using CoreEx.RefData;
+﻿using CoreEx.Http;
+using CoreEx.RefData;
+using CoreEx.TestFunction;
 using FluentAssertions;
+using FluentAssertions.Extensions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
+using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.Framework.RefData
 {
@@ -345,20 +352,28 @@ namespace CoreEx.Test.Framework.RefData
         }
 
         [Test]
-        public void Manager_Providers()
+        public void OrchestratorProviders()
         {
-            var m = new ReferenceDataManager();
-            m.Register(new RefDataProvider());
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            var sp = sc.BuildServiceProvider();
+            var o = new ReferenceDataOrchestrator(sp);
+            o.Register<RefDataProvider>();
 
-            Assert.Throws<InvalidOperationException>(() => m.Register(new RefDataProvider()))!.Message.Should().StartWith("Type 'CoreEx.Test.Framework.RefData.RefData' cannot be added as already associated with previously added Provider 'CoreEx.Test.Framework.RefData.RefDataProvider'.");
+            Assert.Throws<InvalidOperationException>(() => o.Register<RefDataProvider>())!.Message.Should().StartWith("Type 'CoreEx.Test.Framework.RefData.RefData' cannot be added as name 'RefData' already associated with previously added Type 'CoreEx.Test.Framework.RefData.RefData'.");
 
-            Assert.NotNull(m[typeof(RefData)]);
-            Assert.NotNull(m[typeof(RefDataEx)]);
-            Assert.IsNull(m[typeof(string)]);
+            Assert.IsInstanceOf(typeof(RefDataCollection), o[typeof(RefData)]);
+            Assert.IsInstanceOf(typeof(RefDataExCollection), o[typeof(RefDataEx)]);
+            Assert.IsNull(o[typeof(string)]);
+
+            Assert.IsInstanceOf(typeof(RefDataCollection), o["refdata"]);
+            Assert.IsInstanceOf(typeof(RefDataExCollection), o[nameof(RefDataEx)]);
+            Assert.IsNull(o["bananas"]);
 
             // Simulate access.
-            Assert.AreEqual(1, m[typeof(RefData)]!.GetByCode("A")!.Id);
-            Assert.AreEqual("BB", m[typeof(RefDataEx)]!.GetByCode("BBB")!.Id);
+            Assert.AreEqual(1, o[typeof(RefData)]!.GetByCode("A")!.Id);
+            Assert.AreEqual("BB", o[typeof(RefDataEx)]!.GetByCode("BBB")!.Id);
 
             // Provider not wired up to execution context should not throw an exception; all will be invalid.
             var r = (RefData)1;
@@ -377,14 +392,13 @@ namespace CoreEx.Test.Framework.RefData
         [Test]
         public void RefData_ImplicitCast_Load()
         {
-            var m = new ReferenceDataManager();
-            m.Register(new RefDataProvider());
-
             IServiceCollection sc = new ServiceCollection();
             sc.AddExecutionContext();
-            sc.AddSingleton(_ => m);
-            var sb = sc.BuildServiceProvider();
-            using var scope = sb.CreateScope();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
             RefData? r = null;
@@ -412,6 +426,251 @@ namespace CoreEx.Test.Framework.RefData
             Assert.AreEqual("C", r2.Code);
             Assert.IsFalse(r2.IsValid);
         }
+
+        [Test]
+        public void SidList()
+        {
+            var sl = new ReferenceDataSidList<int, RefData>("A", "B");
+            Assert.AreEqual("A", sl[0].Code);
+            Assert.AreEqual(0, sl[0].Id);
+            Assert.AreEqual("B", sl[1].Code);
+            Assert.AreEqual(0, sl[1].Id);
+
+            var sids = new System.Collections.Generic.List<string?>() { "A" };
+            sl = new ReferenceDataSidList<int, RefData>(ref sids);
+            Assert.AreEqual(1, sl.Count);
+            Assert.AreEqual("A", sl[0].Code);
+            Assert.AreEqual(0, sl[0].Id);
+
+            sids!.Add("B");
+            Assert.AreEqual(2, sl.Count);
+            Assert.AreEqual("A", sl[0].Code);
+            Assert.AreEqual(0, sl[0].Id);
+            Assert.AreEqual("B", sl[1].Code);
+            Assert.AreEqual(0, sl[1].Id);
+            Assert.IsTrue(sl.HasInvalidItems);
+
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            Assert.AreEqual(2, sl.Count);
+            Assert.AreEqual("A", sl[0].Code);
+            Assert.AreEqual(1, sl[0].Id);
+            Assert.AreEqual("B", sl[1].Code);
+            Assert.AreEqual(2, sl[1].Id);
+            Assert.IsFalse(sl.HasInvalidItems);
+
+            sids = new System.Collections.Generic.List<string?>() { "A" };
+            sl = new ReferenceDataSidList<int, RefData>(ref sids);
+            Assert.AreEqual(1, sl.Count);
+
+            sl.Add((RefData)"B");
+            Assert.AreEqual(2, sl.Count);
+            Assert.AreEqual(2, sids!.Count);
+            Assert.AreEqual(new string?[] { "A", "B" }, sids);
+
+            Assert.AreEqual(new int[] { 1, 2 }, sl.ToIdList());
+            Assert.AreEqual(new string?[] { "A", "B" }, sl.ToCodeList());
+        }
+
+        [Test]
+        public void GetWithFilter()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+            var o = scope.ServiceProvider.GetRequiredService<ReferenceDataOrchestrator>();
+
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, o.GetWithFilterAsync<State>().GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(null, null, false).GetAwaiter().GetResult().Select(x => x.Code));
+
+            Assert.AreEqual(new string[] { "AZ", "IL" }, o.GetWithFilterAsync<State>(new string[] { "AZ", "IL" }).GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(new string[] { "AZ", "IL" }, o.GetWithFilterAsync<State>(new string[] { "AZ", "IL", "XX" }).GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(new string[] { "AZ", "IL", "XX" }, o.GetWithFilterAsync<State>(new string[] { "AZ", "IL", "XX" }, includeInactive: true).GetAwaiter().GetResult().Select(x => x.Code));
+
+            Assert.AreEqual(new string[] { "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(text: "*IN*").GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(new string[] { "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(text: "*in*").GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(new string[] { "WA" }, o.GetWithFilterAsync<State>(text: "*on").GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(new string[0], o.GetWithFilterAsync<State>(text: "pl*").GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(new string[] { "XX" }, o.GetWithFilterAsync<State>(text: "pl*", includeInactive: true).GetAwaiter().GetResult().Select(x => x.Code));
+
+            Assert.AreEqual(new string[] { "IL", "WA" }, o.GetWithFilterAsync<State>(new string[] { "az", "il", "wa" }, text: "*in*").GetAwaiter().GetResult().Select(x => x.Code));
+        }
+
+        [Test]
+        public void GetNamed()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+            var o = scope.ServiceProvider.GetRequiredService<ReferenceDataOrchestrator>();
+
+            var mc = o.GetNamedAsync(new string[] { "state", "bananas", "suburb" }).GetAwaiter().GetResult();
+            Assert.NotNull(mc);
+            Assert.AreEqual(2, mc.Count);
+            Assert.AreEqual("State", mc[0].Name);
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc[0].Items.Select(x => x.Code));
+            Assert.AreEqual("Suburb", mc[1].Name);
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+
+            mc = o.GetNamedAsync(new string[] { "state", "bananas", "suburb" }, includeInactive: true).GetAwaiter().GetResult();
+            Assert.NotNull(mc);
+            Assert.AreEqual(2, mc.Count);
+            Assert.AreEqual("State", mc[0].Name);
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "XX", "SC", "WA"}, mc[0].Items.Select(x => x.Code));
+            Assert.AreEqual("Suburb", mc[1].Name);
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+        }
+
+        [Test]
+        public void GetNamed_HttpRequest()
+        {
+            using var test = FunctionTester.Create<Startup>().ReplaceScoped<RefDataProvider>().ReplaceSingleton(sp => new ReferenceDataOrchestrator(sp).Register<RefDataProvider>());
+            var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/ref?names=state,bananas,suburb");
+            var o = test.Services.GetRequiredService<ReferenceDataOrchestrator>();
+
+            var mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
+            Assert.NotNull(mc);
+            Assert.AreEqual(2, mc.Count);
+            Assert.AreEqual("State", mc[0].Name);
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc[0].Items.Select(x => x.Code));
+            Assert.AreEqual("Suburb", mc[1].Name);
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+
+            hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/ref?state=co,il&suburb&state=xx");
+            mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
+            Assert.NotNull(mc);
+            Assert.AreEqual(2, mc.Count);
+            Assert.AreEqual("State", mc[0].Name);
+            Assert.AreEqual(new string[] { "CO", "IL" }, mc[0].Items.Select(x => x.Code));
+            Assert.AreEqual("Suburb", mc[1].Name);
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+
+            hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/ref?state=co,il&suburb=h&state=xx&include-inactive&bananas");
+            mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
+            Assert.NotNull(mc);
+            Assert.AreEqual(2, mc.Count);
+            Assert.AreEqual("State", mc[0].Name);
+            Assert.AreEqual(new string[] { "CO", "IL", "XX" }, mc[0].Items.Select(x => x.Code));
+            Assert.AreEqual("Suburb", mc[1].Name);
+            Assert.AreEqual(new string[] { "H" }, mc[1].Items.Select(x => x.Code));
+        }
+
+        [Test]
+        public async Task Caching()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProviderSlow>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            // 1st time should take time and get cached.
+            var sw = Stopwatch.StartNew();
+            IReferenceDataCollection?  c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
+            sw.Stop();
+            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
+            Assert.NotNull(c);
+            Assert.IsTrue(c!.ContainsCode("A"));
+
+            sw = Stopwatch.StartNew();
+            c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
+            sw.Stop();
+            Assert.Less(sw.ElapsedMilliseconds, 500);
+
+            sw = Stopwatch.StartNew();
+            c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
+            sw.Stop();
+            Assert.Less(sw.ElapsedMilliseconds, 500);
+        }
+
+        [Test]
+        public async Task Caching_LoadA()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProviderSlow>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            for (int i = 0; i < 5; i++)
+            {
+                _ = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
+            }
+        }
+
+        [Test]
+        public void Caching_LoadB()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProviderSlow>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            for (int i = 0; i < 1000; i++)
+            {
+                _ = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
+            }
+        }
+
+        [Test]
+        public async Task Caching_Prefetch()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProviderSlow>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            // Should load both in parallel.
+            var sw = Stopwatch.StartNew();
+            await ReferenceDataOrchestrator.Current.PrefetchAsync("RefData", "RefDataEx").ConfigureAwait(false);
+            sw.Stop();
+            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
+
+            sw = Stopwatch.StartNew();
+            var c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>();
+            sw.Stop();
+            Assert.Less(sw.ElapsedMilliseconds, 500);
+            Assert.NotNull(c);
+            Assert.IsTrue(c!.ContainsCode("A"));
+
+            sw = Stopwatch.StartNew();
+            c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefDataEx>();
+            sw.Stop();
+            Assert.Less(sw.ElapsedMilliseconds, 500);
+            Assert.NotNull(c);
+            Assert.IsTrue(c!.ContainsId("BB"));
+        }
     }
 
     public class RefData : ReferenceDataBase<int, RefData> 
@@ -430,20 +689,70 @@ namespace CoreEx.Test.Framework.RefData
 
     public class RefDataExCollection : ReferenceDataCollection<string, RefDataEx> { }
 
+    public class State : ReferenceDataBase<int, State> { }
+
+    public class StateCollection : ReferenceDataCollection<int, State> { }
+
+    public class Suburb : ReferenceDataBase<string, Suburb> { }
+
+    public class SuburbCollection : ReferenceDataCollection<string, Suburb> { }
+
     public class RefDataProvider : IReferenceDataProvider
     {
         private readonly RefDataCollection _refData = new RefDataCollection() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
         private readonly RefDataExCollection _refDataEx = new RefDataExCollection() { new RefDataEx { Id = "AA", Code = "AAA" }, new RefDataEx { Id = "BB", Code = "BBB" } };
-
-        public IReferenceDataCollection this[Type type] => type switch
+        private readonly StateCollection _state = new StateCollection() 
         {
-            Type _ when type == typeof(RefData) => _refData,
-            Type _ when type == typeof(RefDataEx) => _refDataEx,
-            _ => throw new InvalidOperationException(),
+            new State { Id = 1, Code = "IL", Text = "Illinois" },
+            new State { Id = 2, Code = "SC", Text = "South Carolina" },
+            new State { Id = 3, Code = "AZ", Text = "Arizona" },
+            new State { Id = 4, Code = "CO", Text = "Colorado" },
+            new State { Id = 5, Code = "XX", Text = "Placeholder", IsActive = false },
+            new State { Id = 6, Code = "WA", Text = "Washington" }
         };
-            
+        private readonly SuburbCollection _suburb = new SuburbCollection()
+        {
+            new Suburb { Id = "BB", Code = "B", Text = "Bardon" },
+            new Suburb { Id = "RR", Code = "R", Text = "Redmond" },
+            new Suburb { Id = "HH", Code = "H", Text = "Hataitai" }
+        };
+
+        public Type[] Types => new Type[] { typeof(RefData), typeof(RefDataEx), typeof(State), typeof(Suburb) };
+
+        public Task<IReferenceDataCollection> GetAsync(Type type)
+        {
+            IReferenceDataCollection coll = type switch
+            {
+                Type _ when type == typeof(RefData) => _refData,
+                Type _ when type == typeof(RefDataEx) => _refDataEx,
+                Type _ when type == typeof(State) => _state,
+                Type _ when type == typeof(Suburb) => _suburb,
+                _ => throw new InvalidOperationException()
+            };
+
+            return Task.FromResult(coll);
+        }
+    }
+
+    public class RefDataProviderSlow : IReferenceDataProvider
+    {
+        private readonly RefDataCollection _refData = new RefDataCollection() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
+        private readonly RefDataExCollection _refDataEx = new RefDataExCollection() { new RefDataEx { Id = "AA", Code = "AAA" }, new RefDataEx { Id = "BB", Code = "BBB" } };
+
         public Type[] Types => new Type[] { typeof(RefData), typeof(RefDataEx) };
 
-        public Task PrefetchAsync(params string[] names) => throw new NotImplementedException();
+        public async Task<IReferenceDataCollection> GetAsync(Type type)
+        {
+            IReferenceDataCollection coll = type switch
+            {
+                Type _ when type == typeof(RefData) => _refData,
+                Type _ when type == typeof(RefDataEx) => _refDataEx,
+                _ => throw new InvalidOperationException()
+            };
+
+            await Task.Delay(500).ConfigureAwait(false);
+
+            return coll;
+        }
     }
 }

@@ -9,8 +9,13 @@ namespace CoreEx.RefData
     /// <summary>
     /// Provides <see cref="GetById(object)"/> and <see cref="GetByCode(string)"/> functionality for an <see cref="IReferenceData"/> collection.
     /// </summary>
-    public interface IReferenceDataCollection
+    public interface IReferenceDataCollection : IETag
     {
+        /// <summary>
+        /// Gets the underlying item <see cref="Type"/>.
+        /// </summary>
+        Type ItemType { get; }
+
         /// <summary>
         /// Adds the <see cref="IReferenceData"/> to the <see cref="IReferenceDataCollection"/>.
         /// </summary>
@@ -94,5 +99,17 @@ namespace CoreEx.RefData
         /// <param name="value">The mapping value.</param>
         /// <returns>The <see cref="IReferenceData"/> where found; otherwise, <c>null</c>.</returns>
         IReferenceData? GetByMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
+
+        /// <summary>
+        /// Gets a list of all items (excluding invalid only) sorted by the <see cref="IReferenceData.SortOrder"/> value.
+        /// </summary>
+        /// <value>An <see cref="IEnumerable{T}"/> containing the selected <see cref="IReferenceData"/> items.</value>
+        IEnumerable<IReferenceData> AllList { get; }
+
+        /// <summary>
+        /// Gets a list of all active (excluding invalid and not <see cref="IReferenceData.IsActive"/>) items sorted by the <see cref="IReferenceData.SortOrder"/> value.
+        /// </summary>
+        /// <value>An <see cref="IEnumerable{T}"/> containing the selected <see cref="IReferenceData"/> items.</value>
+        IEnumerable<IReferenceData> ActiveList { get; }
     }
 }

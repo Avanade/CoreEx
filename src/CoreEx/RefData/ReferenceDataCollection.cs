@@ -36,6 +36,9 @@ namespace CoreEx.RefData
         /// </summary>
         public ReferenceDataSortOrder SortOrder { get; set; }
 
+        /// <inheritdoc/>
+        public string? ETag { get; set; }
+
         /// <summary>
         /// Gets the item for the specified <see cref="IReferenceData.Code"/>.
         /// </summary>
@@ -169,8 +172,14 @@ namespace CoreEx.RefData
         /// <inheritdoc/>
         public TRef? GetByMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => TryGetByMappingValue(name, value, out var item) ? item : default;
 
+        /// <inheritdoc/>
+        IEnumerable<IReferenceData> IReferenceDataCollection.AllList => AllList;
+
+        /// <inheritdoc/>
+        IEnumerable<IReferenceData> IReferenceDataCollection.ActiveList => ActiveList;
+
         /// <summary>
-        /// Gets a list of all items (excluding where <i>not</i> <see cref="IsItemValid(TRef)"/> ) sorted by the <see cref="SortOrder"/> value.
+        /// Gets a list of all items (excluding where <i>not</i> <see cref="IsItemValid(TRef)"/>) sorted by the <see cref="SortOrder"/> value.
         /// </summary>
         /// <value>An <see cref="IList{T}"/> containing the selected items.</value>
         /// <remarks>This is provided as a property to more easily support binding; it encapsulates the following method invocation: <c><see cref="GetList"/>(SortOrder, null, null);</c></remarks>

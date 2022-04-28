@@ -39,6 +39,12 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
+        Type IIdentifier.IdType { get => typeof(TId); }
+
+        /// <inheritdoc/>
+        object? IIdentifier.Id { get => Id; set => Id = (TId)value!; }
+
+        /// <inheritdoc/>
         public TId? Id { get => _id; set => SetValue(ref _id, value, immutable: true); }
 
         /// <inheritdoc/>
@@ -292,7 +298,7 @@ namespace CoreEx.RefData
         {
             if (ExecutionContext.HasCurrent)
             {
-                var rdc = ReferenceDataManager.Current[typeof(TSelf)];
+                var rdc = ReferenceDataOrchestrator.Current[typeof(TSelf)];
                 if (rdc != null && rdc.TryGetById(id, out var rd))
                     return (TSelf)rd!;
             }
@@ -312,7 +318,7 @@ namespace CoreEx.RefData
         {
             if (code != null && ExecutionContext.HasCurrent)
             {
-                var rdc = ReferenceDataManager.Current[typeof(TSelf)];
+                var rdc = ReferenceDataOrchestrator.Current[typeof(TSelf)];
                 if (rdc != null && rdc.TryGetByCode(code, out var rd))
                     return (TSelf)rd!;
             }

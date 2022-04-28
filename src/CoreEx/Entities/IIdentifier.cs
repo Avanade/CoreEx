@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
+
 namespace CoreEx.Entities
 {
     /// <summary>
@@ -11,5 +13,10 @@ namespace CoreEx.Entities
         /// Gets or sets the identifier.
         /// </summary>
         object? Id { get; set; }
+
+        /// <summary>
+        /// Gets the <see cref="Id"/> <see cref="Type"/>.
+        /// </summary>
+        Type IdType { get; }
     }
 }

@@ -19,5 +19,8 @@ namespace CoreEx.Entities
         /// Gets or sets the identifier.
         /// </summary>
         new TId? Id { get; set; }
+
+        /// <inheritdoc/>
+        Type IIdentifier.IdType => typeof(TId);
     }
 }
