@@ -1,6 +1,6 @@
 ﻿using CoreEx;
-using CoreEx.Healthchecks;
-using CoreEx.Messaging.Azure.Health;
+using CoreEx.HealthChecks;
+using CoreEx.Azure.HealthChecks;
 using CoreEx.RefData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;

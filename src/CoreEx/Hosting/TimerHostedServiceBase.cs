@@ -132,7 +132,7 @@ namespace CoreEx.Hosting
             lock (_lock)
             {
                 _timer!.Change(Timeout.Infinite, Timeout.Infinite);
-                Logger.LogTrace("{ServiceName} execution triggered by timer.", ServiceName);
+                Logger.LogDebug("{ServiceName} execution triggered by timer.", ServiceName);
 
                 _executeTask = Task.Run(async () => await ScopedExecuteAsync(_cts!.Token).ConfigureAwait(false));
             }
@@ -151,7 +151,7 @@ namespace CoreEx.Hosting
                 var interval = _oneOffInterval ?? Interval;
                 _oneOffInterval = null;
 
-                Logger.LogTrace("{ServiceName} execution completed. Retry in {interval}.", ServiceName, Interval);
+                Logger.LogDebug("{ServiceName} execution completed. Retry in {interval}.", ServiceName, Interval);
                 _timer?.Change(interval, interval);
             }
         }

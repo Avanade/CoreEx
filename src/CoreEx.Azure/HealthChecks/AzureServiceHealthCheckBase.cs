@@ -7,13 +7,13 @@ using Azure.Messaging.ServiceBus.Administration;
 using CoreEx.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CoreEx.Messaging.Azure.Health
+namespace CoreEx.Azure.HealthChecks
 {
     /// <summary> Base Health check class for Azure Service Bus health checks. </summary>
     public abstract class AzureServiceHealthCheckBase : IHealthCheck
     {
         /// <summary> Management connections used by health checks. </summary>
-        public static readonly ConcurrentDictionary<string, ServiceBusAdministrationClient> ManagementClientConnections = new ConcurrentDictionary<string, ServiceBusAdministrationClient>();
+        public static readonly ConcurrentDictionary<string, ServiceBusAdministrationClient> ManagementClientConnections = new();
         private readonly string _endPoint;
         private readonly string _connectionName;
 

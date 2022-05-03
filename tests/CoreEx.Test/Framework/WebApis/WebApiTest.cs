@@ -73,6 +73,15 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
+        public void RunAsync_ValidationException_NoCatchAndHandleExceptions()
+        {
+            using var test = FunctionTester.Create<Startup>().ReplaceScoped(_ => new WebApiInvoker { CatchAndHandleExceptions = false });
+            test.Type<WebApi>()
+                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), _ => throw new ValidationException()))
+                .AssertException<ValidationException>();
+        }
+
+        [Test]
         public void RunAsync_TransientException()
         {
             using var test = FunctionTester.Create<Startup>();
@@ -90,6 +99,15 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), _ => throw new DivideByZeroException()))
                 .ToActionResultAssertor()
                 .Assert(HttpStatusCode.InternalServerError);
+        }
+
+        [Test]
+        public void RunAsync_UnhandledException_NoCatchAndHandleExceptions()
+        {
+            using var test = FunctionTester.Create<Startup>().ReplaceScoped(_ => new WebApiInvoker { CatchAndHandleExceptions = false });
+            test.Type<WebApi>()
+                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), _ => throw new DivideByZeroException()))
+                .AssertException<DivideByZeroException>();
         }
 
         [Test]
@@ -507,6 +525,38 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertETagHeader("bbb");
         }
 
+        [Test]
+        public void OverrideWebApiInvokerBeforeAndAfterSuccess()
+        {
+            var wai = new WebApiInvokerEx();
+            using var test = FunctionTester.Create<Startup>().ReplaceScoped<WebApiInvoker>(_ => wai);
+            test.Type<WebApi>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult("it-worked")))
+                .ToActionResultAssertor()
+                .AssertOK()
+                .Assert("it-worked");
+
+            Assert.AreEqual(1, wai.BeforeCount);
+            Assert.AreEqual(1, wai.AfterCount);
+            Assert.AreEqual(0, wai.ErrorCount);
+        }
+
+        [Test]
+        public void OverrideWebApiInvokerBeforeAndAfterException()
+        {
+            var wai = new WebApiInvokerEx();
+            using var test = FunctionTester.Create<Startup>().ReplaceScoped<WebApiInvoker>(_ => wai);
+            test.Type<WebApi>()
+                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), _ => throw new ValidationException()))
+                .ToActionResultAssertor()
+                .AssertBadRequest()
+                .Assert("A data validation error occurred.");
+
+            Assert.AreEqual(1, wai.BeforeCount);
+            Assert.AreEqual(0, wai.AfterCount);
+            Assert.AreEqual(1, wai.ErrorCount);
+        }
+
         private HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
             => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, new HttpRequestOptions { ETag = etag }, HttpConsts.MergePatchMediaTypeName);
 
@@ -520,5 +570,32 @@ namespace CoreEx.Test.Framework.WebApis
         private class PersonCollection : List<Person> { }
 
         private class PersonCollectionResult : CollectionResult<PersonCollection, Person> { }
+
+        private class WebApiInvokerEx : WebApiInvoker
+        {
+            public int BeforeCount { get; set; }
+
+            public int AfterCount { get; set; }
+
+            public int ErrorCount { get; set; }
+
+            protected override Task OnBeforeAsync(WebApiBase owner, WebApiParam param)
+            {
+                BeforeCount++;
+                return base.OnBeforeAsync(owner, param);
+            }
+
+            protected override Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result)
+            {
+                AfterCount++;
+                return base.OnAfterSuccessAsync(owner, param, result);
+            }
+
+            protected override Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result)
+            {
+                ErrorCount++;
+                return base.OnAfterExceptionAsync(owner, param, exception, result);
+            }
+        }
     }
 }

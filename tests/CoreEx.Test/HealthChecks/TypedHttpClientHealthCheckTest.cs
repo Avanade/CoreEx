@@ -6,7 +6,7 @@ using UnitTestEx.NUnit;
 using CoreEx.TestFunction;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
-using CoreEx.Healthchecks.Checks;
+using CoreEx.HealthChecks.Checks;
 using System.Threading;
 using System.Net.Http;
 using System.Net;

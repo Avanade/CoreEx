@@ -355,6 +355,8 @@ namespace CoreEx.Test.Framework.RefData
         public void OrchestratorProviders()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
@@ -393,6 +395,8 @@ namespace CoreEx.Test.Framework.RefData
         public void RefData_ImplicitCast_Load()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<RefDataProvider>());
@@ -451,6 +455,8 @@ namespace CoreEx.Test.Framework.RefData
             Assert.IsTrue(sl.HasInvalidItems);
 
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<RefDataProvider>());
@@ -483,6 +489,8 @@ namespace CoreEx.Test.Framework.RefData
         public void GetWithFilter()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
@@ -512,6 +520,8 @@ namespace CoreEx.Test.Framework.RefData
         public void GetNamed()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
@@ -576,6 +586,8 @@ namespace CoreEx.Test.Framework.RefData
         public async Task Caching()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
@@ -607,6 +619,8 @@ namespace CoreEx.Test.Framework.RefData
         public async Task Caching_LoadA()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
@@ -625,6 +639,8 @@ namespace CoreEx.Test.Framework.RefData
         public void Caching_LoadB()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
@@ -643,6 +659,8 @@ namespace CoreEx.Test.Framework.RefData
         public async Task Caching_Prefetch()
         {
             IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
             sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());

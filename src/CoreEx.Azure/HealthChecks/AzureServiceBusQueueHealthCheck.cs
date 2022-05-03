@@ -4,7 +4,7 @@ using Azure.Messaging.ServiceBus.Administration;
 using CoreEx.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CoreEx.Messaging.Azure.Health
+namespace CoreEx.Azure.HealthChecks
 {
 
     /// <summary> Health check for Azure Service Bus Queue. </summary>

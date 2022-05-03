@@ -1,5 +1,5 @@
 ﻿using CoreEx.Abstractions;
-using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.Azure.ServiceBus;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using Microsoft.Azure.WebJobs.ServiceBus;

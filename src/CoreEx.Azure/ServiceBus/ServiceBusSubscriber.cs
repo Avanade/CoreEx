@@ -11,7 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CoreEx.Messaging.Azure.ServiceBus
+namespace CoreEx.Azure.ServiceBus
 {
     /// <summary>
     /// Provides the standard <see cref="ServiceBusReceivedMessage"/> subscribe (receive) execution encapsulation to run the underlying function logic in a consistent manner.

@@ -1,4 +1,4 @@
-using CoreEx.Healthchecks;
+using CoreEx.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -12,6 +12,7 @@ using System.Net.Mime;
 using System.Threading.Tasks;
 
 namespace My.Hr.Functions;
+
 public class HttpHealthFunction
 {
     private readonly HealthService _health;

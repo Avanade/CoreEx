@@ -10,8 +10,8 @@
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.13" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />
-    <ProjectReference Include="..\..\src\CoreEx.Messaging.Azure\CoreEx.Messaging.Azure.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.HealthChecks\CoreEx.HealthChecks.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />

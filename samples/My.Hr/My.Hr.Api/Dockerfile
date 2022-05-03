@@ -19,7 +19,7 @@ COPY "samples/My.Hr/My.Hr.Database/My.Hr.Database.csproj" "samples/My.Hr/My.Hr.D
 COPY "src/CoreEx/CoreEx.csproj" "src/CoreEx/CoreEx.csproj"
 COPY "src/CoreEx.FluentValidation/CoreEx.FluentValidation.csproj" "src/CoreEx.FluentValidation/CoreEx.FluentValidation.csproj"
 COPY "src/CoreEx.HealthChecks/CoreEx.HealthChecks.csproj" "src/CoreEx.HealthChecks/CoreEx.HealthChecks.csproj"
-COPY "src/CoreEx.Messaging.Azure/CoreEx.Messaging.Azure.csproj" "src/CoreEx.Messaging.Azure/CoreEx.Messaging.Azure.csproj"
+COPY "src/CoreEx.Azure/CoreEx.Azure.csproj" "src/CoreEx.Azure/CoreEx.Azure.csproj"
 COPY "src/CoreEx.Newtonsoft/CoreEx.Newtonsoft.csproj" "src/CoreEx.Newtonsoft/CoreEx.Newtonsoft.csproj"
 
 RUN dotnet restore "samples/My.Hr/My.Hr.sln"

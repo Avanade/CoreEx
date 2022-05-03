@@ -1,13 +1,13 @@
 ﻿using CoreEx.Configuration;
 using CoreEx.Events;
-using CoreEx.Healthchecks;
-using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.HealthChecks;
+using CoreEx.Azure.ServiceBus;
 using CoreEx.Json;
 using CoreEx.TestFunction.Services;
 using CoreEx.WebApis;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
-using CoreEx.Healthchecks.Checks;
+using CoreEx.HealthChecks.Checks;
 
 [assembly: FunctionsStartup(typeof(CoreEx.TestFunction.Startup))]
 

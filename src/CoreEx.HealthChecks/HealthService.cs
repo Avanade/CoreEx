@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CoreEx.Healthchecks
+namespace CoreEx.HealthChecks
 {
     /// <summary>
     /// Provides the Health Check service.

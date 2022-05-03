@@ -5,7 +5,7 @@ using NUnit.Framework;
 using UnitTestEx.NUnit;
 using CoreEx.TestFunction;
 using CoreEx.Configuration;
-using CoreEx.Messaging.Azure.Health;
+using CoreEx.Azure.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using Azure.Messaging.ServiceBus.Administration;

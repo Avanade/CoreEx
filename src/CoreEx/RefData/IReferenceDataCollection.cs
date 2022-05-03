@@ -17,6 +17,11 @@ namespace CoreEx.RefData
         Type ItemType { get; }
 
         /// <summary>
+        /// Gets the collection item count.
+        /// </summary>
+        int Count { get; }
+
+        /// <summary>
         /// Adds the <see cref="IReferenceData"/> to the <see cref="IReferenceDataCollection"/>.
         /// </summary>
         /// <param name="item">The <see cref="IReferenceData"/>.</param>

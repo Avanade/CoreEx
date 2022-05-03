@@ -4,7 +4,7 @@ using System;
 using NUnit.Framework;
 using UnitTestEx.NUnit;
 using CoreEx.TestFunction;
-using CoreEx.Healthchecks;
+using CoreEx.HealthChecks;
 using CoreEx.Json;
 using CoreEx.Configuration;
 using System.Text.Json;

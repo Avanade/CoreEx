@@ -26,12 +26,14 @@ namespace CoreEx.WebApis
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        protected WebApiBase(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApiBase> logger)
+        /// <param name="invoker">The <see cref="WebApiInvoker"/>; defaults where not specified.</param>
+        protected WebApiBase(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApiBase> logger, WebApiInvoker? invoker)
         {
             ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            Invoker = invoker ?? new WebApiInvoker();
         }
 
         /// <summary>
@@ -55,6 +57,11 @@ namespace CoreEx.WebApis
         public ILogger Logger { get; }
 
         /// <summary>
+        /// Gets the <see cref="WebApiInvoker"/>.
+        /// </summary>
+        public WebApiInvoker Invoker { get; }
+
+        /// <summary>
         /// Gets or sets the list of secondary correlation identifier names.
         /// </summary>
         /// <remarks>Searches the <see cref="HttpRequest.Headers"/> for <see cref="HttpConsts.CorrelationIdHeaderName"/> or one of the other <see cref="SecondaryCorrelationIdNames"/> to determine the <see cref="ExecutionContext.CorrelationId"/> (uses first value found in sequence).</remarks>
@@ -64,7 +71,7 @@ namespace CoreEx.WebApis
         /// Gets the list of correlation identifier names, being <see cref="HttpConsts.CorrelationIdHeaderName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
         /// </summary>
         /// <returns>The list of correlation identifier names.</returns>
-        protected virtual IEnumerable<string> GetCorrelationIdNames()
+        public virtual IEnumerable<string> GetCorrelationIdNames()
         {
             var list = new List<string>(new string[] { HttpConsts.CorrelationIdHeaderName });
             list.AddRange(SecondaryCorrelationIdNames);
@@ -87,61 +94,10 @@ namespace CoreEx.WebApis
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
+            // Invoke the "actual" function via the pluggable invoker.
             ExecutionContext.OperationType = operationType;
             var wap = new WebApiParam(this, new WebApiRequestOptions(request));
-
-            foreach (var name in GetCorrelationIdNames())
-            {
-                if (request.Headers.TryGetValue(name, out var values))
-                {
-                    ExecutionContext.Current.CorrelationId = values.First();
-                    break;
-                }
-            }
-
-            request.HttpContext.Response.Headers.Add(HttpConsts.CorrelationIdHeaderName, ExecutionContext.CorrelationId);
-
-            var scope = Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, ExecutionContext.CorrelationId } });
-            Logger.LogTrace("RunAsync base started.");
-
-            try
-            {
-                var ar = await function(wap).ConfigureAwait(false);
-                if (ar == null)
-                    throw new InvalidOperationException("The underlying function must return an IActionResult instance.");
-
-                Logger.LogTrace("RunAsync base stopped; completed successfully.");
-                return ar;
-            }
-            catch (Exception ex)
-            {
-                Logger.LogTrace("RunAsync base stopped; {Type}: {Message}", ex.GetType().Name, ex.Message);
-
-                if (ex is IExtendedException eex)
-                {
-                    if (eex.ShouldBeLogged)
-                        Logger.LogError(ex, "{Error}", ex.Message);
-
-                    return eex.ToResult();
-                }
-
-                if (ex is IExceptionResult rex)
-                {
-                    Logger.LogCritical(ex, "Executor encountered an Unhandled Exception: {Error}", ex.Message);
-                    return rex.ToResult();
-                }
-
-                var ar = await OnUnhandledExceptionAsync(ex).ConfigureAwait(false);
-                if (ar != null)
-                    return ar;
-
-                Logger.LogCritical(ex, "Executor encountered an Unhandled Exception: {Error}", ex.Message);
-                return ex.ToUnexpectedResult(Settings.IncludeExceptionInResult);
-            }
-            finally
-            {
-                scope.Dispose();
-            }
+            return await Invoker.InvokeAsync(this, () => function(wap), wap).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -150,7 +106,7 @@ namespace CoreEx.WebApis
         /// <param name="ex">The unhandled <see cref="Exception"/>.</param>
         /// <returns>The <see cref="IActionResult"/> to return where handled; otherwise, <c>null</c> which in turn will result in <see cref="ExceptionResultExtensions.ToUnexpectedResult(Exception, bool)"/>.</returns>
         /// <remarks>Any <see cref="IExtendedException"/> exceptions will be handled per their implementation; see <see cref="IExceptionResult.ToResult"/>.</remarks>
-        protected virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex) => OnUnhandledException(ex);
+        protected internal virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex) => OnUnhandledException(ex);
 
         /// <summary>
         /// Gets or sets the delegate that is invoked as an opportunity to handle an unhandled exception.

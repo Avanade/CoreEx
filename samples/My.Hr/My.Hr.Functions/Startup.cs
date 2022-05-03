@@ -1,7 +1,7 @@
 using CoreEx;
-using CoreEx.Healthchecks;
-using CoreEx.Healthchecks.Checks;
-using CoreEx.Messaging.Azure.Health;
+using CoreEx.HealthChecks;
+using CoreEx.HealthChecks.Checks;
+using CoreEx.Azure.HealthChecks;
 using CoreEx.RefData;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
