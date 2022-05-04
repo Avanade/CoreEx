@@ -117,9 +117,9 @@ namespace CoreEx.RefData
         public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString();
 
         /// <inheritdoc/>
-        public void SetMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T>
+        public void SetMapping<T>(string name, T? value) where T : IComparable<T?>, IEquatable<T?>
         {
-            if (Comparer<T>.Default.Compare(value, default!) == 0)
+            if (Comparer<T?>.Default.Compare(value, default!) == 0)
                 return;
 
             if (Mappings.ContainsKey(name))
@@ -132,22 +132,22 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        public T GetMapping<T>(string name) where T : IComparable<T>, IEquatable<T>
+        public T? GetMapping<T>(string name) where T : IComparable<T?>, IEquatable<T?>
         {
             if (!HasMappings || !Mappings.TryGetValue(name, out var value))
                 return default!;
 
-            return (T)value!;
+            return (T?)value!;
         }
 
         /// <inheritdoc/>
-        public bool TryGetMapping<T>(string name, out T value) where T : IComparable<T>, IEquatable<T>
+        public bool TryGetMapping<T>(string name, out T? value) where T : IComparable<T?>, IEquatable<T?>
         {
             value = default!;
             if (!HasMappings || !Mappings.TryGetValue(name, out var val))
                 return false;
 
-            value = (T)val!;
+            value = (T?)val!;
             return true;
         }
 
