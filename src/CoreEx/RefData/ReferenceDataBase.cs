@@ -327,5 +327,26 @@ namespace CoreEx.RefData
             ((IReferenceData)rdx).SetInvalid();
             return rdx;
         }
+
+        /// <summary>
+        /// Performs a conversion from a mapping value to an instance of <typeparamref name="TSelf"/>.
+        /// </summary>
+        /// <typeparam name="T">The mapping value <see cref="Type"/>.</typeparam>
+        /// <param name="name">The mapping name.</param>
+        /// <param name="value">The mapping value.</param>
+        /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        public static TSelf ConvertFromMapping<T>(string name, T? value) where T : IComparable<T?>, IEquatable<T?>
+        {
+            if (value != null && ExecutionContext.HasCurrent)
+            {
+                var rdc = ReferenceDataOrchestrator.Current[typeof(TSelf)];
+                if (rdc != null && rdc.TryGetByMapping(name, value, out var rd))
+                    return (TSelf)rd!;
+            }
+
+            var rdx = new TSelf();
+            ((IReferenceData)rdx).SetInvalid();
+            return rdx;
+        }
     }
 }

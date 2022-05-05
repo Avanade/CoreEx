@@ -84,7 +84,7 @@ namespace CoreEx.RefData
         /// <param name="name">The mapping name.</param>
         /// <param name="value">The mapping value.</param>
         /// <returns><c>true</c> if it exists; otherwise, <c>false</c>.</returns>
-        bool ContainsMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
+        bool ContainsMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
 
         /// <summary>
         /// Attempts to get the <paramref name="item"/> with the specifed <see cref="IReferenceData.GetMapping{T}(string)"/> value.
@@ -94,7 +94,7 @@ namespace CoreEx.RefData
         /// <param name="value">The mapping value.</param>
         /// <param name="item">The corresponding <see cref="IReferenceData"/> item where found; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        bool TryGetByMappingValue<T>(string name, T value, out IReferenceData? item) where T : IComparable<T>, IEquatable<T>;
+        bool TryGetByMapping<T>(string name, T value, out IReferenceData? item) where T : IComparable<T>, IEquatable<T>;
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> for the specified <see cref="IReferenceData.GetMapping{T}(string)"/> value.
@@ -103,7 +103,7 @@ namespace CoreEx.RefData
         /// <param name="name">The mapping name.</param>
         /// <param name="value">The mapping value.</param>
         /// <returns>The <see cref="IReferenceData"/> where found; otherwise, <c>null</c>.</returns>
-        IReferenceData? GetByMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
+        IReferenceData? GetByMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
 
         /// <summary>
         /// Gets a list of all items (excluding invalid only) sorted by the <see cref="IReferenceData.SortOrder"/> value.

@@ -323,17 +323,17 @@ namespace CoreEx.Test.Framework.RefData
             r.SetMapping("SAP", 4300);
 
             rc.Add(r);
-            Assert.IsTrue(rc.ContainsMappingValue("D365", "A-1"));
-            Assert.IsTrue(rc.ContainsMappingValue("SAP", 4300));
-            Assert.IsFalse(rc.ContainsMappingValue("OTHER", Guid.NewGuid()));
-            Assert.AreSame(r, rc.GetByMappingValue("D365", "A-1"));
-            Assert.AreSame(r, rc.GetByMappingValue("SAP", 4300));
-            Assert.IsNull(rc.GetByMappingValue("OTHER", Guid.NewGuid()));
+            Assert.IsTrue(rc.ContainsMapping("D365", "A-1"));
+            Assert.IsTrue(rc.ContainsMapping("SAP", 4300));
+            Assert.IsFalse(rc.ContainsMapping("OTHER", Guid.NewGuid()));
+            Assert.AreSame(r, rc.GetByMapping("D365", "A-1"));
+            Assert.AreSame(r, rc.GetByMapping("SAP", 4300));
+            Assert.IsNull(rc.GetByMapping("OTHER", Guid.NewGuid()));
 
-            Assert.IsTrue(rc.TryGetByMappingValue("SAP", 4300, out RefData? r2));
+            Assert.IsTrue(rc.TryGetByMapping("SAP", 4300, out RefData? r2));
             Assert.AreSame(r, r2);
 
-            Assert.IsFalse(rc.TryGetByMappingValue("OTHER", Guid.NewGuid(), out r2));
+            Assert.IsFalse(rc.TryGetByMapping("OTHER", Guid.NewGuid(), out r2));
             Assert.IsNull(r2);
 
             r2 = new RefData { Id = 2, Code = "B" };
@@ -341,10 +341,10 @@ namespace CoreEx.Test.Framework.RefData
             r2.SetMapping("SAP", 4301);
             rc.Add(r2);
 
-            Assert.IsTrue(rc.ContainsMappingValue("D365", "A-1"));
-            Assert.IsTrue(rc.ContainsMappingValue("D365", "A-2"));
-            Assert.AreSame(r, rc.GetByMappingValue("D365", "A-1"));
-            Assert.AreSame(r2, rc.GetByMappingValue("D365", "A-2"));
+            Assert.IsTrue(rc.ContainsMapping("D365", "A-1"));
+            Assert.IsTrue(rc.ContainsMapping("D365", "A-2"));
+            Assert.AreSame(r, rc.GetByMapping("D365", "A-1"));
+            Assert.AreSame(r2, rc.GetByMapping("D365", "A-2"));
 
             var r3 = new RefData { Id = 3, Code = "C" };
             r3.SetMapping("D365", "A-2");

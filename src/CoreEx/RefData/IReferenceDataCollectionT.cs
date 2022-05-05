@@ -56,10 +56,7 @@ namespace CoreEx.RefData
         IReferenceData? IReferenceDataCollection.GetByCode(string code) => GetByCode(code);
 
         /// <inheritdoc/>
-        bool IReferenceDataCollection.TryGetByMappingValue<T>(string name, T value, out IReferenceData? item) => TryGetByMappingValue(name, value, out item);
-
-        /// <inheritdoc/>
-        IReferenceData? IReferenceDataCollection.GetByMappingValue<T>(string name, T value) => GetByMappingValue(name, value);
+        IReferenceData? IReferenceDataCollection.GetByMapping<T>(string name, T value) => GetByMapping(name, value);
 
         /// <summary>
         /// Adds the <typeparamref name="TRef"/> <paramref name="item"/> to the <see cref="IReferenceDataCollection"/>.
@@ -118,7 +115,7 @@ namespace CoreEx.RefData
         /// <param name="value">The mapping value.</param>
         /// <param name="item">The corresponding <see cref="IReferenceData"/> item where found; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        bool TryGetByMappingValue<T>(string name, T value, out TRef? item) where T : IComparable<T>, IEquatable<T>;
+        bool TryGetByMapping<T>(string name, T value, out TRef? item) where T : IComparable<T>, IEquatable<T>;
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> for the specified <see cref="IReferenceData.GetMapping{T}(string)"/> value.
@@ -127,6 +124,6 @@ namespace CoreEx.RefData
         /// <param name="name">The mapping name.</param>
         /// <param name="value">The mapping value.</param>
         /// <returns>The <see cref="IReferenceData"/> where found; otherwise, <c>null</c>.</returns>
-        new TRef? GetByMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
+        new TRef? GetByMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
     }
 }

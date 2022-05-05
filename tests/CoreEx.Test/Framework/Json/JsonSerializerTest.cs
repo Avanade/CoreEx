@@ -145,6 +145,10 @@ namespace CoreEx.Test.Framework.Json
 
             Assert.IsFalse(js.TryApplyFilter(p, new string[] { "middlename" }, out json, JsonPropertyFilter.Exclude));
             Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"firstName\":\"John\",\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
+
+            p.Address = new Address { Street = "One", City = "First" };
+            Assert.IsTrue(js.TryApplyFilter(p, new string[] { "address" }, out json, JsonPropertyFilter.Include));
+            Assert.AreEqual(((System.Text.Json.Nodes.JsonObject)json).ToJsonString(), "{\"address\":{\"street\":\"One\",\"city\":\"First\"}}");
         }
 
         [Test]
@@ -326,6 +330,10 @@ namespace CoreEx.Test.Framework.Json
 
             Assert.IsFalse(js.TryApplyFilter(p, new string[] { "middlename" }, out json, JsonPropertyFilter.Exclude));
             Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"firstName\":\"John\",\"lastName\":\"Smith\",\"addresses\":[{\"street\":\"One\",\"city\":\"First\"},{\"street\":\"Two\",\"city\":\"Second\"}]}");
+
+            p.Address = new Address { Street = "One", City = "First" };
+            Assert.IsTrue(js.TryApplyFilter(p, new string[] { "address" }, out json, JsonPropertyFilter.Include));
+            Assert.AreEqual(((Nsj.Linq.JToken)json).ToString(Nsj.Formatting.None), "{\"address\":{\"street\":\"One\",\"city\":\"First\"}}");
         }
 
         [Test]
@@ -400,6 +408,7 @@ namespace CoreEx.Test.Framework.Json
             public string? SSN { get; set; }
             public decimal NetWorth { get; set; }
             public bool? IsAwesome { get; set; }
+            public Address? Address { get; set; }
         }
 
         public class Address
