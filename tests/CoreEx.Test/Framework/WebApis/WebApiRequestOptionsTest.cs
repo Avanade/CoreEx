@@ -2,7 +2,6 @@
 using CoreEx.Http;
 using CoreEx.TestFunction;
 using NUnit.Framework;
-using System;
 using System.Net.Http;
 using UnitTestEx.NUnit;
 

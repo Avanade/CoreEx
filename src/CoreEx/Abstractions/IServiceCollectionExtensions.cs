@@ -8,6 +8,7 @@ using CoreEx.Hosting;
 using CoreEx.Http;
 using CoreEx.Json;
 using CoreEx.Json.Merge;
+using CoreEx.RefData;
 using CoreEx.WebApis;
 using Microsoft.Extensions.Logging;
 using System;
@@ -37,6 +38,13 @@ namespace Microsoft.Extensions.DependencyInjection
             var descriptor = CheckServices(services).FirstOrDefault(d => d.ServiceType == typeof(TService));
             return descriptor != null && services.Remove(descriptor);
         }
+
+        /// <summary>
+        /// Adds the <see cref="SystemTime.Default"/> as the <see cref="ISystemTime"/> singleton service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddSystemTime(this IServiceCollection services) => CheckServices(services).AddSingleton<ISystemTime>(sp => SystemTime.Default);
 
         /// <summary>
         /// Adds a scoped service to instantiate a new <see cref="ExecutionContext"/> instance.
@@ -232,8 +240,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// Adds the <see cref="WebApi"/> as a scoped service.
         /// </summary>
-        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddWebApi(this IServiceCollection services, Action<WebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
         {
@@ -245,8 +253,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// Adds the <see cref="WebApiPublisher"/> as a scoped service.
         /// </summary>
-        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddWebApiPublisher(this IServiceCollection services, Action<WebApiPublisher>? configure = null) => CheckServices(services).AddScoped(sp =>
         {
@@ -254,5 +262,14 @@ namespace Microsoft.Extensions.DependencyInjection
             configure?.Invoke(wap);
             return wap;
         });
+
+        /// <summary>
+        /// Adds the <see cref="ReferenceDataOrchestrator"/> created by <paramref name="createOrchestrator"/> as a singleton service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="createOrchestrator">The function to create the <see cref="ReferenceDataOrchestrator"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator)
+            => CheckServices(services).AddSingleton(sp => createOrchestrator(sp));
     }
 }

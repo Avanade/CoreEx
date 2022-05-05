@@ -36,7 +36,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets or sets the total count of the elements in the sequence (a <c>null</c> value indicates that the total count is unknown).
         /// </summary>
-        [JsonPropertyName("totalCount")]
         public long? TotalCount { get; set; }
 
         /// <summary>

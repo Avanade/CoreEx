@@ -19,13 +19,13 @@ namespace CoreEx.Localization
         public static void SetTextProvider(ITextProvider textProvider) => _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
 
         /// <summary>
-        /// Gets the current <see cref="ITextProvider"/> instance using in the following order: <see cref="ExecutionContext.GetService{T}(bool)"/>, the explicit <see cref="SetTextProvider(ITextProvider)"/>, otherwise, <see cref="NullTextProvider"/>. 
+        /// Gets the current <see cref="ITextProvider"/> instance using in the following order: <see cref="ExecutionContext.GetService{T}"/>, the explicit <see cref="SetTextProvider(ITextProvider)"/>, otherwise, <see cref="NullTextProvider"/>. 
         /// </summary>
         public static ITextProvider Current
         {
             get
             {
-                var tp = ExecutionContext.GetService<ITextProvider>(false);
+                var tp = ExecutionContext.GetService<ITextProvider>();
                 if (tp != null)
                     return tp;
 

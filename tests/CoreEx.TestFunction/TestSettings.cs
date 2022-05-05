@@ -48,6 +48,6 @@ namespace CoreEx.TestFunction
         /// <summary>
         /// Name of the queue used for function trigger
         /// </summary>
-        public string QueueName { get; set; }
+        public string? QueueName { get; set; }
     }
 }

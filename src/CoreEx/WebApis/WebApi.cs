@@ -382,11 +382,10 @@ namespace CoreEx.WebApis
                     return json.Exception.ToResult();
 
                 // Note: the JsonMergePatch will throw JsonMergePatchException on error which will be automatically converted to an appropriate IActionResult by the invoking RunAsync method.
-                TValue? value = null;
-                var changed = await JsonMergePatch.MergeAsync<TValue>(json.Content!, async jpv =>
+                var (HasChanges, Value) = await JsonMergePatch.MergeAsync<TValue>(json.Content!, async jpv =>
                 {
                     // Get the current value before we perform the merge.
-                    value = await get(wap).ConfigureAwait(false);
+                    var value = await get(wap).ConfigureAwait(false);
                     if (value == null)
                         throw new NotFoundException();
 
@@ -407,10 +406,10 @@ namespace CoreEx.WebApis
                 }).ConfigureAwait(false);
 
                 // Only invoke the put function where something was *actually* changed.
-                if (changed)
-                    await put(new WebApiParam<TValue>(wap, value!)).ConfigureAwait(false);
+                if (HasChanges)
+                    await put(new WebApiParam<TValue>(wap, Value!)).ConfigureAwait(false);
 
-                return ValueContentResult.CreateResult(value, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
+                return ValueContentResult.CreateResult(Value, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
             }, operationType).ConfigureAwait(false);
         }
 

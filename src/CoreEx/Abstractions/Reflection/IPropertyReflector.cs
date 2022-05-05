@@ -8,7 +8,7 @@ using System.Reflection;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Enables a reflector for a given entity (class) property.
+    /// Enables a reflector for a given class property.
     /// </summary>
     public interface IPropertyReflector
     {
@@ -23,9 +23,9 @@ namespace CoreEx.Abstractions.Reflection
         string? JsonName { get; }
 
         /// <summary>
-        /// Gets the <see cref="EntityReflectorArgs"/>.
+        /// Gets the <see cref="TypeReflectorArgs"/>.
         /// </summary>
-        EntityReflectorArgs Args { get; }
+        TypeReflectorArgs Args { get; }
 
         /// <summary>
         /// Gets the <see cref="Dictionary{TKey, TValue}"/> for storing additional data.
@@ -68,25 +68,17 @@ namespace CoreEx.Abstractions.Reflection
         TypeReflectorTypeCode TypeCode { get; }
 
         /// <summary>
-        /// Gets the underlying item <see cref="System.Type"/> where <see cref="IsEnumerable"/>. 
+        /// Gets the <see cref="ITypeReflector"/> for the property.
         /// </summary>
-        Type? ItemType { get; }
+        /// <returns>The corresponding <see cref="ITypeReflector"/>.</returns>
+        ITypeReflector? GetTypeReflector();
 
         /// <summary>
-        /// Gets the underlying item <see cref="TypeReflectorTypeCode"/>.
+        /// Compares two values for equality.
         /// </summary>
-        TypeReflectorTypeCode? ItemTypeCode { get; }
-
-        /// <summary>
-        /// Gets the <see cref="IEntityReflector"/> for the property where <see cref="IsClass"/>; otherwise, <c>null</c>.
-        /// </summary>
-        /// <returns>The corresponding <see cref="IEntityReflector"/>.</returns>
-        IEntityReflector? GetEntityReflector();
-
-        /// <summary>
-        /// Gets the <see cref="IEntityReflector"/> for <see cref="ItemType"/> where it is a class.
-        /// </summary>
-        /// <returns>The corresponding <see cref="IEntityReflector"/>.</returns>
-        IEntityReflector? GetItemEntityReflector();
+        /// <param name="x">The first value.</param>
+        /// <param name="y">The second value.</param>
+        /// <returns><c>true</c> indicates that they are equal; otherwise, <c>false</c>.</returns>
+        bool Compare(object? x, object? y);
     }
 }

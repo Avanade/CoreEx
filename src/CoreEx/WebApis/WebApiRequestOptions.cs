@@ -73,7 +73,7 @@ namespace CoreEx.WebApis
         /// <summary>
         /// Indicates whether to include any inactive item(s); 
         /// </summary>
-        /// <remarks>For example, include item(s) where <see cref="IReferenceDataExtended.IsActive"/> is <c>false</c>.</remarks>
+        /// <remarks>For example, include item(s) where <see cref="IReferenceData.IsActive"/> is <c>false</c>.</remarks>
         public bool IncludeInactive { get; private set; }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace CoreEx.WebApis
                 ExcludeFields = fields.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
             IncludeText = HttpUtility.ParseBoolValue(GetNamedQueryString(query, HttpConsts.IncludeTextQueryStringNames));
-            IncludeInactive = HttpUtility.ParseBoolValue(GetNamedQueryString(query, HttpConsts.IncludeInactiveQueryStringNames));
+            IncludeInactive = HttpUtility.ParseBoolValue(GetNamedQueryString(query, HttpConsts.IncludeInactiveQueryStringNames, "true"));
 
             Paging = GetPagingArgs(query);
         }
@@ -127,10 +127,14 @@ namespace CoreEx.WebApis
         /// <summary>
         /// Gets the first value for the named query string.
         /// </summary>
-        private static string? GetNamedQueryString(IQueryCollection query, IEnumerable<string> names)
+        private static string? GetNamedQueryString(IQueryCollection query, IEnumerable<string> names, string? defaultValue = null)
         {
             var q = query.Where(x => names.Contains(x.Key, StringComparer.InvariantCultureIgnoreCase)).FirstOrDefault();
-            return q.Value.FirstOrDefault();
+            if (q.Key == null)
+                return null;
+
+            var val = q.Value.FirstOrDefault();
+            return string.IsNullOrEmpty(val) ? defaultValue : val;
         }
     }
 }

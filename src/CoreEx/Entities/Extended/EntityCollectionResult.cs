@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities.Extended
 {
@@ -16,9 +15,9 @@ namespace CoreEx.Entities.Extended
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
     /// <remarks>Generally an <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Collection"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<EntityCollectionResult<TColl, TEntity, TSelf>>, ICollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom<EntityCollectionResult<TColl, TEntity, TSelf>>
+    public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<EntityCollectionResult<TColl, TEntity, TSelf>>, ICollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom<EntityCollectionResult<TColl, TEntity, TSelf>>
         where TColl : EntityBaseCollection<TEntity, TColl>, new()
-        where TEntity : EntityBase<TEntity>
+        where TEntity : EntityBase<TEntity>, new()
         where TSelf : EntityCollectionResult<TColl, TEntity, TSelf>, new()
     {
         private PagingResult? _paging;
@@ -27,8 +26,13 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> class.
         /// </summary>
+        public EntityCollectionResult() { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> class.
+        /// </summary>
         /// <param name="paging">Defaults the <see cref="Paging"/> to the requesting <see cref="PagingArgs"/>.</param>
-        protected EntityCollectionResult(PagingArgs? paging = null)
+        public EntityCollectionResult(PagingArgs? paging)
         {
             if (paging != null)
                 _paging = new PagingResult(paging);
@@ -37,14 +41,12 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Gets or sets the underlying collection.
         /// </summary>
-        [JsonPropertyName("collection")]
         public TColl Collection { get => _collection ??= new TColl(); set => SetValue(ref _collection, value); }
 
         /// <summary>
         /// Gets or sets the <see cref="PagingResult"/>.
         /// </summary>
         /// <remarks>Where this value is <c>null</c> it indicates that the paging was unable to be determined.</remarks>
-        [JsonPropertyName("paging")]
         public PagingResult? Paging { get => _paging; set => SetValue(ref _paging, value); }
 
         /// <summary>

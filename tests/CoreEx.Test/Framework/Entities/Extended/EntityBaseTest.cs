@@ -768,9 +768,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             public CompositeKey PrimaryKey => new CompositeKey(Name);
 
-            public override object Clone() => CreateClone(this);
-
-            public override bool Equals(Person? other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
+            public override bool Equals(Person? other) => ReferenceEquals(this, other) || (base.Equals(other)
                 && Equals(Name, other!.Name)
                 && Equals(Age, other.Age)
                 && Equals(ChangeLog, other.ChangeLog));

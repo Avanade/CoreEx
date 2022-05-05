@@ -1,22 +1,22 @@
-using System.Net;
-using System.Net.Mime;
-using CoreEx.FluentValidation;
+using CoreEx.RefData;
 using CoreEx.WebApis;
 using Microsoft.AspNetCore.Mvc;
 using My.Hr.Business.Models;
-using My.Hr.Business.Services;
+using System.Net;
+using System.Net.Mime;
 
 namespace My.Hr.Api.Controllers;
 
+[Route("api/ref")]
 public class ReferenceDataController : ControllerBase
 {
     private readonly WebApi _webApi;
-    private readonly ReferenceDataService _service;
+    private readonly ReferenceDataOrchestrator _orchestrator;
 
-    public ReferenceDataController(WebApi webApi, ReferenceDataService service)
+    public ReferenceDataController(WebApi webApi, ReferenceDataOrchestrator orchestrator)
     {
         _webApi = webApi;
-        _service = service;
+        _orchestrator = orchestrator;
     }
 
     /// <summary> 
@@ -24,13 +24,24 @@ public class ReferenceDataController : ControllerBase
     /// </summary>
     /// <param name="codes">The reference data code list.</param>
     /// <param name="text">The reference data text (including wildcards).</param>
-    /// <returns>A RefDataNamespace.USState collection.</returns>
-    [HttpGet()]
-    [Route("ref/usStates")]
+    /// <returns>A <see cref="USStateCollection"/>.</returns>
+    [HttpGet("usstates")]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(IEnumerable<USState>), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
-    public Task<IActionResult> USStateGetAll(List<string>? codes = default, string? text = default) =>
-        _webApi.GetAsync<IEnumerable<USState>>(Request, _ => _service.GetAll(codes, text));
+    public Task<IActionResult> USStateGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
+        _webApi.GetAsync(Request, async x => await _orchestrator.GetWithFilterAsync<USState>(codes, text, x.RequestOptions.IncludeInactive));
 
+    /// <summary> 
+    /// Gets all of the <see cref="Gender"/> reference data items that match the specified criteria.
+    /// </summary>
+    /// <param name="codes">The reference data code list.</param>
+    /// <param name="text">The reference data text (including wildcards).</param>
+    /// <returns>A <see cref="GenderCollection"/>.</returns>
+    [HttpGet("genders")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(IEnumerable<Gender>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    public Task<IActionResult> GenderGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
+        _webApi.GetAsync(Request, async x => await _orchestrator.GetWithFilterAsync<Gender>(codes, text, x.RequestOptions.IncludeInactive));
 }

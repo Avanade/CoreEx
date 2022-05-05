@@ -55,7 +55,7 @@ namespace My.Hr.UnitTest
                     Email = "w.jones@org.com",
                     FirstName = "Wendy",
                     LastName = "Jones",
-                    GenderCode = "F",
+                    Gender = "F",
                     Birthday = new DateTime(1985, 03, 18, 0, 0, 0, DateTimeKind.Unspecified),
                     StartDate = new DateTime(2000, 12, 11, 0, 0, 0, DateTimeKind.Unspecified),
                     PhoneNo = "(425) 612 8113"
@@ -144,7 +144,7 @@ namespace My.Hr.UnitTest
                 FirstName = "Rebecca",
                 LastName = "Smythe",
                 Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
-                GenderCode = "M",
+                Gender = "Z",
                 PhoneNo = "555 123 4567",
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
             };
@@ -152,7 +152,8 @@ namespace My.Hr.UnitTest
             test.Controller<EmployeeController>()
                 .Run(c => c.CreateAsync(), e)
                 .AssertErrors(
-                    new ApiError("Email", "'Email' must not be empty."));
+                    new ApiError("Email", "'Email' must not be empty."),
+                    new ApiError("Gender", "'Gender' is invalid."));
         }
 
         [Test]
@@ -165,7 +166,7 @@ namespace My.Hr.UnitTest
                 FirstName = "Rebecca",
                 LastName = "Smythe",
                 Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
-                GenderCode = "M",
+                Gender = "M",
                 PhoneNo = "555 123 4567",
                 Email = "rs@email.com",
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
@@ -195,7 +196,7 @@ namespace My.Hr.UnitTest
                 FirstName = "Rebecca",
                 LastName = "Smythe",
                 Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
-                GenderCode = "M",
+                Gender = "M",
                 PhoneNo = "555 123 4567",
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)
             };
@@ -216,7 +217,7 @@ namespace My.Hr.UnitTest
                 FirstName = "Rebecca",
                 LastName = "Smythe",
                 Birthday = new DateTime(2000, 01, 01, 0, 0, 0, DateTimeKind.Unspecified),
-                GenderCode = "M",
+                Gender = "M",
                 PhoneNo = "555 123 4567",
                 Email = "rs@email.com",
                 StartDate = new DateTime(2020, 01, 08, 0, 0, 0, DateTimeKind.Unspecified)

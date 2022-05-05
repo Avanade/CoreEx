@@ -50,6 +50,24 @@ namespace CoreEx.Events
         public ILogger Logger { get; }
 
         /// <summary>
+        /// Deserializes the JSON <paramref name="eventData"/> into the specified <see cref="EventData"/>.
+        /// </summary>
+        /// <param name="eventData">The event <see cref="BinaryData"/> to deserialize.</param>
+        /// <returns>The <see cref="EventData{T}"/> where deserialized successfully; otherwise, the corresponding <see cref="ValidationException"/>.</returns>
+        protected async Task<(EventData?, ValidationException?)> DeserializeEventAsync(BinaryData eventData)
+        {
+            try
+            {
+                var @event = await EventSerializer.DeserializeAsync(eventData).ConfigureAwait(false)!;
+                return (@event, null);
+            }
+            catch (Exception ex)
+            {
+                return (null, new ValidationException($"{_errorText} {ex.Message}", ex));
+            }
+        }
+
+        /// <summary>
         /// Deserializes the JSON <paramref name="eventData"/> into the specified <see cref="EventData{T}"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</typeparam>

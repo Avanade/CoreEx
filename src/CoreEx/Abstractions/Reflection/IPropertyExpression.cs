@@ -43,14 +43,6 @@ namespace CoreEx.Abstractions.Reflection
         object? GetDefault();
 
         /// <summary>
-        /// Compares two values for equality.
-        /// </summary>
-        /// <param name="x">The first value.</param>
-        /// <param name="y">The second value.</param>
-        /// <returns><c>true</c> indicates that they are equal; otherwise, <c>false</c>.</returns>
-        bool Compare(object? x, object? y);
-
-        /// <summary>
         /// Gets the property value for the given entity.
         /// </summary>
         /// <param name="entity">The entity value.</param>

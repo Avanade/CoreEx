@@ -1,7 +1,10 @@
 ﻿using CoreEx.Abstractions.Reflection;
+using CoreEx.Entities;
+using CoreEx.RefData.Models;
 using NUnit.Framework;
-using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Test.Framework.Abstractions.Reflection
 {
@@ -9,205 +12,237 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
     public class TypeReflectorTest
     {
         [Test]
-        public void Create()
+        public void GetReflector()
         {
-            var type = typeof(Test);
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            Assert.NotNull(tr.GetProperty("Id"));
+            Assert.NotNull(tr.GetProperty("Name"));
+            Assert.NotNull(tr.GetProperty("GenderSid"));
+            Assert.NotNull(tr.GetProperty("Gender"));
+            Assert.NotNull(tr.GetProperty("Addresses"));
+            Assert.NotNull(tr.GetProperty("ChangeLog"));
+            Assert.NotNull(tr.GetProperty("Secret"));
+            Assert.NotNull(tr.GetProperty("NickNames"));
+            Assert.IsNull(tr.GetProperty("Bananas"));
 
-            var cr = TypeReflector.Create(type.GetProperty(nameof(Test.Name))!);
-            Assert.IsNotNull(cr);
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, cr.TypeCode);
-            Assert.AreEqual(typeof(string), cr.CollectionItemType);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Age))!);
-            Assert.IsNotNull(cr);
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, cr.TypeCode);
-            Assert.AreEqual(typeof(int), cr.CollectionItemType);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.NickNames))!);
-            Assert.IsNotNull(cr);
-            Assert.AreEqual(TypeReflectorTypeCode.Array, cr.TypeCode);
-            Assert.AreEqual(typeof(string), cr.CollectionItemType);
-            Assert.IsNull(cr.CollectionAddMethod);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Amounts))!);
-            Assert.IsNotNull(cr);
-            Assert.AreEqual(TypeReflectorTypeCode.ICollection, cr.TypeCode);
-            Assert.AreEqual(typeof(decimal?), cr.CollectionItemType);
-            Assert.IsNotNull(cr.CollectionAddMethod);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Dates))!);
-            Assert.IsNotNull(cr);
-            Assert.AreEqual(TypeReflectorTypeCode.IEnumerable, cr.TypeCode);
-            Assert.AreEqual(typeof(DateTime), cr.CollectionItemType);
-            Assert.IsNull(cr.CollectionAddMethod);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Dict))!);
-            Assert.IsNotNull(cr);
-            Assert.AreEqual(TypeReflectorTypeCode.IDictionary, cr.TypeCode);
-            Assert.AreEqual(typeof(Test), cr.CollectionItemType);
-            Assert.AreEqual(typeof(string), cr.DictKeyType);
-            Assert.AreEqual(typeof(KeyValuePair<string, Test>), cr.DictKeyValuePairType);
-            Assert.IsNotNull(cr.CollectionAddMethod);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Parent))!);
-            Assert.IsNotNull(cr);
-            Assert.AreEqual(TypeReflectorTypeCode.Complex, cr.TypeCode);
-            Assert.AreEqual(typeof(Test), cr.CollectionItemType);
+            Assert.NotNull(tr.GetJsonProperty("id"));
+            Assert.IsNull(tr.GetJsonProperty("Id"));
+            Assert.NotNull(tr.GetJsonProperty("name"));
+            Assert.IsNull(tr.GetJsonProperty("genderSid"));
+            Assert.NotNull(tr.GetJsonProperty("gender"));
+            Assert.NotNull(tr.GetJsonProperty("addresses"));
+            Assert.NotNull(tr.GetJsonProperty("changeLog"));
+            Assert.IsNull(tr.GetJsonProperty("secret"));
+            Assert.NotNull(tr.GetJsonProperty("nickNames"));
+            Assert.IsNull(tr.GetJsonProperty("bananas"));
         }
 
         [Test]
-        public void GetCollectionItemType()
+        public void GetReflector_PropertyReflector_Id()
         {
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetCollectionItemType(typeof(string)).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetCollectionItemType(typeof(int)).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.Array, TypeReflector.GetCollectionItemType(new string?[] { "blah" }.GetType()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.ICollection, TypeReflector.GetCollectionItemType(new List<decimal?>().GetType()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.IDictionary, TypeReflector.GetCollectionItemType(new Dictionary<string, Test>().GetType()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.Complex, TypeReflector.GetCollectionItemType(new Test().GetType()).TypeCode);
-            
-            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(typeof(string)).ItemType);
-            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(typeof(int)).ItemType);
-            Assert.AreEqual(typeof(string), TypeReflector.GetCollectionItemType(new string?[] { "blah" }.GetType()).ItemType);
-            Assert.AreEqual(typeof(decimal?), TypeReflector.GetCollectionItemType(new List<decimal?>().GetType()).ItemType);
-            Assert.AreEqual(typeof(Test), TypeReflector.GetCollectionItemType(new Dictionary<string, Test>().GetType()).ItemType);
-            Assert.AreEqual(null, TypeReflector.GetCollectionItemType(new Test().GetType()).ItemType);
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("Id");
+            Assert.IsNotNull(pr.GetTypeReflector());
+
+            var p = new Person { Id = 88 };
+            Assert.AreEqual(88, pr.PropertyExpression.GetValue(p));
+
+            pr.PropertyExpression.SetValue(p, 99);
+            Assert.AreEqual(99, p.Id);
+
+            pr.PropertyExpression.SetValue(p, null!);
+            Assert.AreEqual(0, p.Id);
         }
 
         [Test]
-        public void CreateCollectionValue()
+        public void GetReflector_PropertyReflector_Gender()
         {
-            var type = typeof(Test);
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetJsonProperty("gender");
+            Assert.NotNull(pr);
+            Assert.AreEqual("GenderSid", pr!.Name);
 
-            var tr = TypeReflector.Create(type.GetProperty(nameof(Test.NickNames))!);
-            var v = tr.CreateCollectionValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<string[]>(v);
-            Assert.AreEqual(0, ((string[])v!).Length);
+            pr = tr.GetProperty("Gender");
+            Assert.AreEqual("Gender", pr.GetTypeReflector()!.Type.Name);
 
-            tr = TypeReflector.Create(type.GetProperty(nameof(Test.Amounts))!);
-            v = tr.CreateCollectionValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<List<decimal?>>(v);
-            Assert.AreEqual(0, ((List<decimal?>)v!).Count);
+            var g = new Gender { Code = "F" };
+            var p = new Person { Gender = g };
 
-            tr = TypeReflector.Create(type.GetProperty(nameof(Test.Dates))!);
-            v = tr.CreateCollectionValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<DateTime[]>(v);
-            Assert.AreEqual(0, ((DateTime[])v!).Length);
+            var g2 = (Gender)pr.PropertyExpression.GetValue(p)!;
+            Assert.AreEqual("F", g2.Code);
 
-            tr = TypeReflector.Create(type.GetProperty(nameof(Test.Dict))!);
-            v = tr.CreateCollectionValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<Dictionary<string, Test>>(v);
-            Assert.AreEqual(0, ((Dictionary<string, Test>)v!).Count);
+            pr.PropertyExpression.SetValue(p, new Gender { Code = "M" });
+            Assert.AreEqual("M", p.Gender.Code);
+
+            pr.PropertyExpression.SetValue(p, null!);
+            Assert.AreEqual(null, p.Gender);
         }
 
         [Test]
-        public void CreateValue2()
+        public void GetReflector_PropertyReflector_Addresses()
         {
-            var type = typeof(Test2);
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("Addresses");
+            Assert.IsNotNull(pr.GetTypeReflector());
 
-            var cr = TypeReflector.Create(type.GetProperty(nameof(Test2.Amounts))!);
-            var v = cr.CreateCollectionValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<List<decimal?>>(v);
-            Assert.AreEqual(0, ((List<decimal?>)v!).Count);
+            var a = new List<Address> { new Address { Street = "s", City = "c" } };
+            var p = new Person { Addresses = a };
 
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test2.Dates))!);
-            v = cr.CreateCollectionValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<DateTime[]>(v);
-            Assert.AreEqual(0, ((DateTime[])v!).Length);
+            var a2 = (List<Address>)pr.PropertyExpression.GetValue(p)!;
+            Assert.AreEqual("s", a2[0].Street);
 
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test2.Dict))!);
-            v = cr.CreateCollectionValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<Dictionary<string, Test>>(v);
-            Assert.AreEqual(0, ((Dictionary<string, Test>)v!).Count);
+            pr.PropertyExpression.SetValue(p, new List<Address> { new Address { Street = "s2", City = "c2" } });
+            Assert.AreEqual("s2", p.Addresses[0].Street);
+
+            pr.PropertyExpression.SetValue(p, null!);
+            Assert.AreEqual(null, p.Addresses);
         }
 
         [Test]
-        public void CreateValue_IEnumerableParam()
+        public void GetReflector_PropertyReflector_NickNames()
         {
-            var type = typeof(Test2);
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("NickNames");
+            Assert.IsNotNull(pr.GetTypeReflector());
 
-            var cr = TypeReflector.Create(type.GetProperty(nameof(Test2.Amounts))!);
-            var v = cr.CreateCollectionValue(new decimal?[] { 0m, null, 4.99m });
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<List<decimal?>>(v);
-            Assert.AreEqual(3, ((List<decimal?>)v!).Count);
-            Assert.AreEqual(0, ((List<decimal?>)v!)[0]);
-            Assert.AreEqual(null, ((List<decimal?>)v!)[1]);
-            Assert.AreEqual(4.99m, ((List<decimal?>)v!)[2]);
+            var n = new string[] { "baz" };
+            var p = new Person { NickNames = n };
 
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test2.Dates))!);
-            v = cr.CreateCollectionValue(new DateTime[] { new DateTime(1999, 1, 1), new DateTime(2000, 2, 2) });
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<DateTime[]>(v);
-            Assert.AreEqual(2, ((DateTime[])v!).Length);
-            Assert.AreEqual(new DateTime(1999, 1, 1), ((DateTime[])v!)[0]);
-            Assert.AreEqual(new DateTime(2000, 2, 2), ((DateTime[])v!)[1]);
+            var a2 = (string[])pr.PropertyExpression.GetValue(p)!;
+            Assert.AreEqual("baz", a2[0]);
 
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test2.Dict))!);
-            var dv = new Dictionary<string, Test> { { "a", new Test() }, { "b", new Test() } };
-            v = cr.CreateCollectionValue(dv);
-            Assert.IsNotNull(v);
-            Assert.AreSame(dv, v);
+            pr.PropertyExpression.SetValue(p, new string[] { "gaz" });
+            Assert.AreEqual("gaz", p.NickNames[0]);
+
+            pr.PropertyExpression.SetValue(p, null!);
+            Assert.AreEqual(null, p.NickNames);
         }
 
         [Test]
-        public void CreateItemValue()
+        public void GetReflector_PropertyReflector_Salary()
         {
-            var type = typeof(Test);
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("Salary");
+            Assert.IsNotNull(pr.GetTypeReflector());
 
-            var cr = TypeReflector.Create(type.GetProperty(nameof(Test.Name))!);
-            var v = cr.CreateCollectionItemValue();
-            Assert.AreEqual(null, v);
+            var p = new Person { Salary = 1m };
 
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Age))!);
-            v = cr.CreateCollectionItemValue();
-            Assert.AreEqual(0, v);
+            pr.PropertyExpression.SetValue(p, 2m);
+            Assert.AreEqual(2m, p.Salary);
 
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.NickNames))!);
-            v = cr.CreateCollectionItemValue();
-            Assert.AreEqual(null, v);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Amounts))!);
-            v = cr.CreateCollectionItemValue();
-            Assert.AreEqual(null, v);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Dates))!);
-            v = cr.CreateCollectionItemValue();
-            Assert.AreEqual(DateTime.MinValue, v);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Dict))!);
-            v = cr.CreateCollectionItemValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<Test>(v);
-
-            cr = TypeReflector.Create(type.GetProperty(nameof(Test.Parent))!);
-            v = cr.CreateCollectionItemValue();
-            Assert.IsNotNull(v);
-            Assert.IsInstanceOf<Test>(v);
+            pr.PropertyExpression.SetValue(p, null!);
+            Assert.AreEqual(null, p.Salary);
         }
 
-        private class Test
+        [Test]
+        public void GetReflector_Compare()
         {
-            public string? Name { get; set; }
-            public int Age { get; set; }
-            public string[]? NickNames { get; set; }
-            public List<decimal?>? Amounts { get; set; }
-            public IEnumerable<DateTime>? Dates { get; set; }
-            public Dictionary<string, Test>? Dict { get; set; }
-            public Test? Parent { get; set; }
+            var tr = TypeReflector.GetReflector<int[]>(new TypeReflectorArgs());
+            Assert.IsTrue(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 3 }));
+            Assert.IsFalse(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 4 }));
         }
 
-        private class Test2
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Int()
         {
-            public ICollection<decimal?>? Amounts { get; set; }
-            public IEnumerable<DateTime>? Dates { get; set; }
-            public IDictionary<string, Test>? Dict { get; set; }
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("Id");
+
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsFalse(pr.Compare(1, null));
+            Assert.IsFalse(pr.Compare(null, 2));
+            Assert.IsFalse(pr.Compare(1, 2));
+            Assert.IsTrue(pr.Compare(1, 1));
+        }
+
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Nullable()
+        {
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("Salary");
+
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsFalse(pr.Compare(1m, null));
+            Assert.IsFalse(pr.Compare(null, 2m));
+            Assert.IsFalse(pr.Compare(1m, 2m));
+            Assert.IsTrue(pr.Compare(1m, 1m));
+        }
+
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Array()
+        {
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("NickNames");
+
+            Assert.AreEqual(TypeReflectorTypeCode.Array, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, null));
+            Assert.IsFalse(pr.Compare(null, new string[] { "y", "z" }));
+            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, new string[] { "y", "z" }));
+            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b", "c" }));
+            Assert.IsTrue(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b" }));
+        }
+
+        [Test]
+        public void GetReflector_PropertyReflector_Compare_Collection()
+        {
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var pr = tr.GetProperty("Addresses");
+
+            Assert.AreEqual(TypeReflectorTypeCode.ICollection, pr.TypeCode);
+            Assert.IsTrue(pr.Compare(null, null));
+            Assert.IsTrue(pr.Compare(new List<Address>(), new List<Address>()));
+
+            // No equality check for Address, so will all fail.
+            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, new List<Address> { new Address() }));
+            Assert.IsFalse(pr.Compare(null, new List<Address> { new Address() }));
+            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, null));
+            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, new List<Address> { new Address(), new Address() }));
+        }
+
+        [Test]
+        public void GetReflector_TypeCode_And_ItemType()
+        {
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetReflector<string>(new TypeReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetReflector<int>(new TypeReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Array, TypeReflector.GetReflector<string?[]>(new TypeReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.ICollection, TypeReflector.GetReflector<List<decimal?>>(new TypeReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.IDictionary, TypeReflector.GetReflector<Dictionary<string, Person>>(new TypeReflectorArgs()).TypeCode);
+            Assert.AreEqual(TypeReflectorTypeCode.Complex, TypeReflector.GetReflector<Person>(new TypeReflectorArgs()).TypeCode);
+
+            Assert.AreEqual(null, TypeReflector.GetReflector<string>(new TypeReflectorArgs()).ItemType);
+            Assert.AreEqual(null, TypeReflector.GetReflector<int>(new TypeReflectorArgs()).ItemType);
+            Assert.AreEqual(typeof(string), TypeReflector.GetReflector<string?[]>(new TypeReflectorArgs()).ItemType);
+            Assert.AreEqual(typeof(decimal?), TypeReflector.GetReflector<List<decimal?>>(new TypeReflectorArgs()).ItemType);
+            Assert.AreEqual(typeof(Person), TypeReflector.GetReflector<Dictionary<string, Person>>(new TypeReflectorArgs()).ItemType);
+            Assert.AreEqual(null, TypeReflector.GetReflector<Person>(new TypeReflectorArgs()).ItemType);
         }
     }
+
+    public class Person
+    {
+        public int Id { get; set; }
+        [Display(Name = "Fullname")]
+        public string? Name { get; set; }
+        [JsonPropertyName("gender")]
+        public string? GenderSid { get; set; }
+        [JsonIgnore]
+        public Gender? Gender { get; set; }
+        public List<Address>? Addresses { get; set; }
+        public ChangeLog? ChangeLog { get; set; }
+        [JsonIgnore]
+        public string? Secret { get; set; }
+        public string[]? NickNames { get; set; }
+        public decimal? Salary { get; set; }
+    }
+
+    public class Address
+    {
+        public string? Street { get; set; }
+        public string? City { get; set; }
+    }
+
+    public class Gender : ReferenceDataBase<int> { }
 }

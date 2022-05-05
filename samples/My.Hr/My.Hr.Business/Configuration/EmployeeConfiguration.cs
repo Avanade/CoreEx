@@ -13,7 +13,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(p => p.Email).HasColumnType("NVARCHAR(250)");
         builder.Property(p => p.FirstName).HasColumnType("NVARCHAR(100)");
         builder.Property(p => p.LastName).HasColumnType("NVARCHAR(100)");
-        builder.Property(p => p.GenderCode).HasColumnType("NVARCHAR(50)");
+        builder.Property(p => p.Gender).HasColumnName("GenderCode").HasColumnType("NVARCHAR(50)");
         builder.Property(p => p.Birthday).HasColumnType("DATE");
         builder.Property(p => p.StartDate).HasColumnType("DATE");
         builder.Property(p => p.TerminationDate).HasColumnType("DATE");

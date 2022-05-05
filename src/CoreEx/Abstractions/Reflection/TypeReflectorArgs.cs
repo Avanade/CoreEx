@@ -7,16 +7,16 @@ using System.Collections.Concurrent;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Provides the arguments passed to and through a <see cref="EntityReflector"/>.
+    /// Provides the arguments passed to and through a <see cref="TypeReflector"/>.
     /// </summary>
-    public class EntityReflectorArgs
+    public class TypeReflectorArgs
     {
         /// <summary>
-        /// Initializes an instance of the <see cref="EntityReflectorArgs"/> class with an optional <paramref name="cache"/>.
+        /// Initializes an instance of the <see cref="TypeReflectorArgs"/> class with an optional <paramref name="cache"/>.
         /// </summary>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
-        /// <param name="cache">The <b>cache</b> <see cref="ConcurrentDictionary{Type, IEntityReflector}"/> to use versus instantiating each <see cref="EntityReflector"/> per use.</param>
-        public EntityReflectorArgs(IJsonSerializer? jsonSerializer = null, ConcurrentDictionary<Type, IEntityReflector>? cache = null)
+        /// <param name="cache">The <b>cache</b> <see cref="ConcurrentDictionary{TKey, TValue}"/> to use versus instantiating each <see cref="TypeReflector"/> per use.</param>
+        public TypeReflectorArgs(IJsonSerializer? jsonSerializer = null, ConcurrentDictionary<Type, ITypeReflector>? cache = null)
         {
             JsonSerializer = jsonSerializer ?? Json.JsonSerializer.Default;
             Cache = cache ?? new();
@@ -28,18 +28,19 @@ namespace CoreEx.Abstractions.Reflection
         public IJsonSerializer JsonSerializer { get; }
 
         /// <summary>
-        /// Gets the <b>cache</b> <see cref="ConcurrentDictionary{Type, IEntityReflector}"/> to use versus instantiating each <see cref="EntityReflector"/> per use.
+        /// Gets the <b>cache</b> <see cref="ConcurrentDictionary{TKey, TValue}"/> to use versus instantiating each <see cref="TypeReflector"/> per use.
         /// </summary>
-        public ConcurrentDictionary<Type, IEntityReflector> Cache { get; }
+        public ConcurrentDictionary<Type, ITypeReflector> Cache { get; }
 
         /// <summary>
         /// Gets or sets the action to invoke to perform additional logic when reflecting/building the <b>entity</b> <see cref="Type"/>.
         /// </summary>
-        public Action<IEntityReflector>? EntityBuilder { get; set; } = null;
+        public Action<ITypeReflector>? TypeBuilder { get; set; } = null;
 
         /// <summary>
-        /// Indicates whether to automatically populate the entity properties using the optional <see cref="PropertyBuilder"/> (defaults to <c>true</c>).
+        /// Indicates whether to automatically populate the entity properties. Defaults to <c>true</c>.
         /// </summary>
+        /// <remarks>Will invoked the optional <see cref="PropertyBuilder"/> as each property is being added.</remarks>
         public bool AutoPopulateProperties { get; set; } = true;
 
         /// <summary>

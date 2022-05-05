@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using CoreEx.Entities.Extended;
 using CoreEx.Events;
+using CoreEx.RefData;
 using CoreEx.RefData.Models;
 using CoreEx.WebApis;
 using Newtonsoft.Json;
@@ -31,15 +32,8 @@ namespace CoreEx.Newtonsoft.Json
         /// </summary>
         static ContractResolver()
         {
-            _default.AddType<EventDataBase>()
-                    .AddType<EventData>()
-                    .AddType(typeof(EventData<>))
-                    .AddType<ChangeLog>()
-                    .AddType(typeof(ReferenceDataBase<>))
-                    .AddType(typeof(ReferenceDataExtendedBase<>))
+            _default.AddType(typeof(ReferenceDataBase<>))
                     .AddType<MessageItem>()
-                    .AddType(typeof(CollectionResult<,>))
-                    .AddType(typeof(EntityCollectionResult<,,>))
                     .AddType<PagingArgs>()
                     .AddType<PagingResult>()
                     .AddType<ExtendedContentResult>()

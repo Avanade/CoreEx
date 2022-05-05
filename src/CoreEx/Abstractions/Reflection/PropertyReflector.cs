@@ -10,35 +10,31 @@ using System.Reflection;
 namespace CoreEx.Abstractions.Reflection
 {
     /// <summary>
-    /// Provides a reflector for a given entity property.
+    /// Provides a reflector for a given <see cref="Type"/> property.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="System.Type"/>.</typeparam>
-    public class PropertyReflector<TEntity, TProperty> : IPropertyReflector where TEntity : class
+    public class PropertyReflector<TEntity, TProperty> : IPropertyReflector
     {
         private readonly Lazy<Dictionary<string, object?>> _data = new(true);
-        private IEntityReflector? _entityReflector;
-        private IEntityReflector? _itemReflector;
+        private ITypeReflector? _typeReflector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyReflector{TEntity, TProperty}"/> class.
         /// </summary>
-        /// <param name="args">The <see cref="EntityReflectorArgs"/>.</param>
+        /// <param name="args">The <see cref="TypeReflectorArgs"/>.</param>
         /// <param name="propertyExpression">The <see cref="LambdaExpression"/> to reference the source entity property.</param>
-        public PropertyReflector(EntityReflectorArgs args, Expression<Func<TEntity, TProperty>> propertyExpression)
+        public PropertyReflector(TypeReflectorArgs args, Expression<Func<TEntity, TProperty>> propertyExpression)
         {
             Args = args ?? throw new ArgumentNullException(nameof(args));
             PropertyExpression = Reflection.PropertyExpression.Create(propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression)), args.JsonSerializer);
             IsClass = PropertyInfo.PropertyType.IsClass && PropertyInfo.PropertyType != typeof(string);
             TypeCode = IsClass ? TypeReflectorTypeCode.Complex : TypeReflectorTypeCode.Simple;
-            IsEnumerable = PropertyInfo.PropertyType != typeof(string) && (PropertyInfo.PropertyType.IsArray || PropertyInfo.PropertyType.GetInterfaces().Any(x => x == typeof(IEnumerable)));
+            IsEnumerable = IsClass && (PropertyInfo.PropertyType.IsArray || PropertyInfo.PropertyType.GetInterfaces().Any(x => x == typeof(IEnumerable)));
             if (IsEnumerable)
             {
-                var tr = TypeReflector.GetCollectionItemType(Type);
-                ItemType = tr.ItemType;
-                TypeCode = tr.TypeCode;
-                if (ItemType != null)
-                    ItemTypeCode = TypeReflector.GetCollectionItemType(ItemType).TypeCode;
+                _typeReflector = TypeReflector.GetReflector(Args, Type);
+                TypeCode = _typeReflector!.TypeCode;
             }
         }
 
@@ -49,7 +45,7 @@ namespace CoreEx.Abstractions.Reflection
         public string? JsonName => PropertyExpression.JsonName;
 
         /// <inheritdoc/>
-        public EntityReflectorArgs Args { get; }
+        public TypeReflectorArgs Args { get; }
 
         /// <inheritdoc/>
         public Dictionary<string, object?> Data { get => _data.Value; }
@@ -81,15 +77,33 @@ namespace CoreEx.Abstractions.Reflection
         public TypeReflectorTypeCode TypeCode { get; }
 
         /// <inheritdoc/>
-        public Type? ItemType { get; }
+        public ITypeReflector? GetTypeReflector() => _typeReflector ??= TypeReflector.GetReflector(Args, Type);
 
         /// <inheritdoc/>
-        public TypeReflectorTypeCode? ItemTypeCode { get; }
+        bool IPropertyReflector.Compare(object? x, object? y) => Compare((TProperty)(x ?? default(TProperty)!), (TProperty)(y ?? default(TProperty)!));
 
-        /// <inheritdoc/>
-        public IEntityReflector? GetEntityReflector() => TypeCode == TypeReflectorTypeCode.Simple ? null : _entityReflector ??= EntityReflector.GetReflector(Args, Type);
+        /// <summary>
+        /// Compares two values for equality.
+        /// </summary>
+        /// <param name="x">The first value.</param>
+        /// <param name="y">The second value.</param>
+        /// <returns><c>true</c> indicates that they are equal; otherwise, <c>false</c>.</returns>
+        public bool Compare(TProperty? x, TProperty? y)
+        {
+            if (ReferenceEquals(x, y))
+                return true;
 
-        /// <inheritdoc/>
-        public IEntityReflector? GetItemEntityReflector() => ItemTypeCode == TypeReflectorTypeCode.Simple ? null : _itemReflector ??= EntityReflector.GetReflector(Args, ItemType!);
+            var left = x == null ? y : x;
+            var right = x == null ? x : y;
+            if (left == null || right == null)
+                return false;
+
+            if (left is IEquatable<TProperty> eq)
+                return eq.Equals(right!);
+            else if (IsEnumerable)
+                return GetTypeReflector()!.Compare(x, y);
+            else
+                return EqualityComparer<TProperty>.Default.Equals(left, right);
+        }
     }
 }

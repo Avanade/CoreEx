@@ -31,7 +31,7 @@ public class Employee : IIdentifier<Guid>, IETag
     /// <summary>
     /// Gets or sets the 'GenderCode' column value.
     /// </summary>
-    public string? GenderCode { get; set; }
+    public string? Gender { get; set; }
 
     /// <summary>
     /// Gets or sets the 'Birthday' column value.

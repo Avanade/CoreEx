@@ -27,7 +27,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityBaseCollection{TEntity, TSelf}" /> class.
         /// </summary>
-        /// <param name="collection">The entities to add.</param>
+        /// <param name="collection">The collection to add.</param>
         protected EntityBaseCollection(IEnumerable<TEntity> collection) : base(collection) { }
 
         /// <summary>

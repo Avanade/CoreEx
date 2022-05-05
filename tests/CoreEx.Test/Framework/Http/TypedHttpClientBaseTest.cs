@@ -1,6 +1,4 @@
-﻿using CoreEx.Entities;
-using CoreEx.Http;
-using CoreEx.RefData;
+﻿using CoreEx.Http;
 using CoreEx.RefData.Models;
 using NUnit.Framework;
 using System;

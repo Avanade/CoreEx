@@ -14,40 +14,30 @@ namespace CoreEx.Text.Json
     public class ExceptionConverterFactory : JsonConverterFactory
     {
         /// <summary>
-        /// Converter for <see cref="Exception"/>. see <see href="https://github.com/dotnet/runtime/issues/43026"/>.
+        /// Converter for <see cref="Exception"/>. See <see href="https://github.com/dotnet/runtime/issues/43026"/> for more information.
         /// It can serialize <see cref="Exception"/> to <see cref="JsonElement"/> and vice versa, but deserialization is very basic - only handles <see cref="Exception.Message"/>
         /// </summary>
-        private class ExceptionConverter<TExceptionType> : JsonConverter<TExceptionType>
-         where TExceptionType : Exception
+        private class ExceptionConverter<TExceptionType> : JsonConverter<TExceptionType> where TExceptionType : Exception
         {
             /// <inheritdoc/>
-            public override bool CanConvert(Type typeToConvert)
-            {
-                return typeof(Exception).IsAssignableFrom(typeToConvert);
-            }
+            public override bool CanConvert(Type typeToConvert) => typeof(Exception).IsAssignableFrom(typeToConvert);
 
             /// <inheritdoc/>
             public override TExceptionType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartObject)
-                {
                     throw new JsonException();
-                }
 
                 TExceptionType exception = default!;
 
                 while (reader.Read())
                 {
                     if (reader.TokenType == JsonTokenType.EndObject)
-                    {
                         return exception;
-                    }
 
                     // Get the key.
                     if (reader.TokenType != JsonTokenType.PropertyName)
-                    {
                         throw new JsonException();
-                    }
 
                     string? propertyName = reader.GetString();
 
@@ -67,6 +57,7 @@ namespace CoreEx.Text.Json
                     {
                         reader.Skip();
                     }
+
                     return exception;
                 }
 
@@ -82,17 +73,12 @@ namespace CoreEx.Text.Json
                     .Where(uu => uu.Name != nameof(Exception.TargetSite));
 
                 if (options?.DefaultIgnoreCondition == JsonIgnoreCondition.WhenWritingNull)
-                {
                     serializableProperties = serializableProperties.Where(uu => uu.Value != null);
-                }
 
                 var propList = serializableProperties.ToList();
 
                 if (propList.Count == 0)
-                {
-                    // Nothing to write
-                    return;
-                }
+                    return;  // Nothing to write
 
                 writer.WriteStartObject();
 
@@ -107,16 +93,9 @@ namespace CoreEx.Text.Json
         }
 
         /// <inheritdoc/>
-        public override bool CanConvert(Type typeToConvert)
-        {
-            return typeof(Exception).IsAssignableFrom(typeToConvert);
-        }
+        public override bool CanConvert(Type typeToConvert) => typeof(Exception).IsAssignableFrom(typeToConvert);
 
         /// <inheritdoc/>
-        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        {
-            return (JsonConverter)Activator.CreateInstance(
-               typeof(ExceptionConverter<>).MakeGenericType(typeToConvert));
-        }
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) => (JsonConverter)Activator.CreateInstance(typeof(ExceptionConverter<>).MakeGenericType(typeToConvert));
     }
 }

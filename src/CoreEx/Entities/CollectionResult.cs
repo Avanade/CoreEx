@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -37,7 +36,6 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
-        [JsonPropertyName("collection")]
         public TColl Collection
         {
             get => _collection ??= new TColl();
@@ -45,7 +43,6 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
-        [JsonPropertyName("paging")]
         public PagingResult? Paging { get; set; }
 
         /// <summary>

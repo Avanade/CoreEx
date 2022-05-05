@@ -4,8 +4,6 @@ using CoreEx.Json;
 using CoreEx.Localization;
 using CoreEx.RefData;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
@@ -91,16 +89,10 @@ namespace CoreEx.Abstractions.Reflection
             IsJsonSerializable = isSerializable;
             _getValue = getValue;
             _setValue = setValue;
-            TypeReflector = pi.PropertyType.GetInterfaces().Contains(typeof(IEnumerable)) ? TypeReflector.Create(pi) : null;
         }
 
         /// <inheritdoc/>
         public PropertyInfo PropertyInfo { get; }
-
-        /// <summary>
-        /// Gets the corresponding <see cref="TypeReflector"/> for <see cref="IEnumerable"/> types.
-        /// </summary>
-        public TypeReflector? TypeReflector { get; }
 
         /// <inheritdoc/>
         public string Name { get; }
@@ -116,33 +108,6 @@ namespace CoreEx.Abstractions.Reflection
 
         /// <inheritdoc/>
         object? IPropertyExpression.GetDefault() => default;
-
-        /// <inheritdoc/>
-        bool IPropertyExpression.Compare(object? x, object? y) => Compare((TProperty)(x ?? default(TProperty)!), (TProperty)(y ?? default(TProperty)!));
-
-        /// <summary>
-        /// Compares two values for equality.
-        /// </summary>
-        /// <param name="x">The first value.</param>
-        /// <param name="y">The second value.</param>
-        /// <returns><c>true</c> indicates that they are equal; otherwise, <c>false</c>.</returns>
-        public bool Compare(TProperty? x, TProperty? y)
-        {
-            if (ReferenceEquals(x, y))
-                return true;
-
-            var left = x == null ? y : x;
-            var right = x == null ? x : y;
-            if (left == null || right == null)
-                return false;
-
-            if (left is IEquatable<TProperty> eq)
-                return eq.Equals(right!);
-            else if (TypeReflector != null)
-                return TypeReflector.CompareSequence(x, y);
-            else
-                return EqualityComparer<TProperty>.Default.Equals(left, right);
-        }
 
         /// <inheritdoc/>
         object? IPropertyExpression.GetValue(object? entity) => GetValue((TEntity)entity!);
