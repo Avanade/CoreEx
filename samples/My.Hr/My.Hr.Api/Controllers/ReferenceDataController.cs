@@ -30,7 +30,7 @@ public class ReferenceDataController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<USState>), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
     public Task<IActionResult> USStateGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
-        _webApi.GetAsync(Request, async x => await _orchestrator.GetWithFilterAsync<USState>(codes, text, x.RequestOptions.IncludeInactive));
+        _webApi.GetAsync(Request, x => _orchestrator.GetWithFilterAsync<USState>(codes, text, x.RequestOptions.IncludeInactive));
 
     /// <summary> 
     /// Gets all of the <see cref="Gender"/> reference data items that match the specified criteria.
@@ -43,5 +43,5 @@ public class ReferenceDataController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<Gender>), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
     public Task<IActionResult> GenderGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
-        _webApi.GetAsync(Request, async x => await _orchestrator.GetWithFilterAsync<Gender>(codes, text, x.RequestOptions.IncludeInactive));
+        _webApi.GetAsync(Request, x => _orchestrator.GetWithFilterAsync<Gender>(codes, text, x.RequestOptions.IncludeInactive));
 }

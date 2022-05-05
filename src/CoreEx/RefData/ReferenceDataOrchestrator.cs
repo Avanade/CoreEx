@@ -1,12 +1,16 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Json;
+using CoreEx.Utility;
 using CoreEx.WebApis;
 using CoreEx.Wildcards;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -30,6 +34,7 @@ namespace CoreEx.RefData
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
         private readonly IMemoryCache? _cache;
+        private readonly Lazy<ILogger> _logger;
 
         /// <summary>
         /// Gets the current <see cref="ReferenceDataOrchestrator"/> from the <see cref="IServiceProvider"/> within the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> scope (see <see cref="ExecutionContext.GetService(Type)"/>).
@@ -46,12 +51,19 @@ namespace CoreEx.RefData
         {
             ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
             _cache = cache;
+            _logger = new Lazy<ILogger>(() => ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>());
         }
 
         /// <summary>
         /// Gets the <see cref="IServiceProvider"/>.
         /// </summary>
         public IServiceProvider ServiceProvider { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ILogger"/>.
+        /// </summary>
+        [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
+        public ILogger Logger => _logger.Value;
 
         /// <summary>
         /// Registers an <see cref="IReferenceDataProvider"/> <see cref="Type"/>.
@@ -163,9 +175,15 @@ namespace CoreEx.RefData
 
             var coll = await OnGetOrCreateAsync(type, async t =>
             {
+                Logger.LogDebug("Reference data type {RefDataType} cache load start: Creating new ServiceProvider Scope to support underlying cache data get.", type.FullName);
+                var sw = Stopwatch.StartNew();
                 using var scope = ServiceProvider.CreateScope();
                 var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
-                return await provider.GetAsync(t).ConfigureAwait(false);
+                var coll = await provider.GetAsync(t).ConfigureAwait(false);
+                coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
+                sw.Stop();
+                Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
+                return coll;
             }).ConfigureAwait(false);
 
             return coll ?? throw new InvalidOperationException($"The {nameof(IReferenceDataCollection)} returned for Type '{type.FullName}' from Provider '{providerType.FullName}' must not be null.");

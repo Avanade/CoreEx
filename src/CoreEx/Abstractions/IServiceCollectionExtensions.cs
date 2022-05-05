@@ -245,7 +245,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddWebApi(this IServiceCollection services, Action<WebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
         {
-            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<IJsonMergePatch>());
+            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<WebApiInvoker>(), sp.GetService<IJsonMergePatch>());
             configure?.Invoke(wa);
             return wa;
         });
@@ -258,7 +258,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddWebApiPublisher(this IServiceCollection services, Action<WebApiPublisher>? configure = null) => CheckServices(services).AddScoped(sp =>
         {
-            var wap = new WebApiPublisher(sp.GetRequiredService<IEventPublisher>(), sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApiPublisher>>());
+            var wap = new WebApiPublisher(sp.GetRequiredService<IEventPublisher>(), sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApiPublisher>>(), sp.GetService<WebApiInvoker>());
             configure?.Invoke(wap);
             return wap;
         });

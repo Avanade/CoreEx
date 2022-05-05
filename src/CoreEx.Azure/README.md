@@ -6,10 +6,10 @@ tbd
 
 Popular health check library [AspNetCore.Diagnostics.HealthChecks](https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks) provides checks for azure service bus.
 
-CoreEx.Messaging.Azure has two checks, which use `SettingsBase` class for reading configuration:
+CoreEx.Azure has two checks, which use `SettingsBase` class for reading configuration:
 
-* `CoreEx.Messaging.Azure.Health.AzureServiceBusQueueHealthCheck`
-* `CoreEx.Messaging.Azure.Health.AzureServiceBusTopicHealthCheck`
+* `CoreEx.Azure.Health.AzureServiceBusQueueHealthCheck`
+* `CoreEx.Azure.Health.AzureServiceBusTopicHealthCheck`
 
 which can be registered using following code:
 

@@ -10,7 +10,7 @@ using System.Linq;
 using System.Net.Mime;
 using System.Threading.Tasks;
 
-namespace CoreEx.Messaging.Azure.ServiceBus
+namespace CoreEx.Azure.ServiceBus
 {
     /// <summary>
     /// Represents an Azure <see cref="ServiceBusClient"/> <see cref="IEventSender"/>.

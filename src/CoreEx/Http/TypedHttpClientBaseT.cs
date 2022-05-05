@@ -180,6 +180,7 @@ namespace CoreEx.Http
                     request.Headers.Add(name, ExecutionContext.CorrelationId);
                 }
 
+                await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
                 await RequestLogger.LogRequestAsync(request).ConfigureAwait(false);
 
                 var req = request;
@@ -227,6 +228,13 @@ namespace CoreEx.Http
 
             return response;
         }
+
+        /// <summary>
+        /// Provides an opportunity to update the <paramref name="request"/> before sending.
+        /// </summary>
+        /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
+        protected virtual Task OnBeforeRequest(HttpRequestMessage request, CancellationToken cancellationToken) => Task.CompletedTask;
 
         /// <summary>
         /// Clones the <see cref="HttpRequestMessage"/>; inspired by <see href="https://stackoverflow.com/questions/18000583/re-send-httprequestmessage-exception"/>.

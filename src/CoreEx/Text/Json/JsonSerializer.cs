@@ -76,13 +76,13 @@ namespace CoreEx.Text.Json
         public T? Deserialize<T>(BinaryData json) => Stj.JsonSerializer.Deserialize<T>(json, Options)!;
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
-            => JsonFilterer.TryApply(value, names, out json, filter, Options, comparer);
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+            => JsonFilterer.TryApply(value, names, out json, filter, Options, comparison);
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
         {
-            var r = JsonFilterer.TryApply(value, names, out JsonNode node, filter, Options, comparer);
+            var r = JsonFilterer.TryApply(value, names, out JsonNode node, filter, Options, comparison);
             json = node;
             return r;
         }

@@ -88,9 +88,9 @@ namespace CoreEx.Json
         /// <param name="names">The list of JSON property names to <paramref name="filter"/>.</param>
         /// <param name="json">The corresponding JSON <paramref name="value"/> <see cref="string"/> with the filtering applied.</param>
         /// <param name="filter">The <see cref="JsonPropertyFilter"/>; defaults to <see cref="JsonPropertyFilter.Include"/>.</param>
-        /// <param name="comparer">The names <see cref="IEqualityComparer{T}"/>; defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>.</param>
+        /// <param name="comparison">The names <see cref="StringComparison"/>; defaults to <see cref="StringComparison.OrdinalIgnoreCase"/>.</param>
         /// <returns><c>true</c> indicates that at least one JSON node was filtered (removed); otherwise, <c>false</c> for no changes.</returns>
-        bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null);
+        bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Trys to apply the JSON property <paramref name="filter"/> (using JSON <paramref name="names"/>) to a <paramref name="value"/> resulting in the corresponding <paramref name="json"/>.
@@ -100,9 +100,9 @@ namespace CoreEx.Json
         /// <param name="names">The list of JSON property names to <paramref name="filter"/>.</param>
         /// <param name="json">The corresponding <paramref name="value"/> JSON object (as per the underlying implementation) with the filtering applied.</param>
         /// <param name="filter">The <see cref="JsonPropertyFilter"/>; defaults to <see cref="JsonPropertyFilter.Include"/>.</param>
-        /// <param name="comparer">The names <see cref="IEqualityComparer{T}"/>; defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>.</param>
+        /// <param name="comparison">The names <see cref="StringComparison"/>; defaults to <see cref="StringComparison.OrdinalIgnoreCase"/>.</param>
         /// <returns><c>true</c> indicates that at least one JSON node was filtered (removed); otherwise, <c>false</c> for no changes.</returns>
-        bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null);
+        bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Trys and gets the corresponding JSON name for the <paramref name="memberInfo"/>.

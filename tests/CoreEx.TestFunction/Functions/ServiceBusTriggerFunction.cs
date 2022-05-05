@@ -1,6 +1,6 @@
 ﻿using Azure.Messaging.ServiceBus;
 using CoreEx.FluentValidation;
-using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.Azure.ServiceBus;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Services;
 using CoreEx.TestFunction.Validators;

@@ -4,7 +4,7 @@ using Azure.Identity;
 using CoreEx;
 using CoreEx.Configuration;
 using CoreEx.Events;
-using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.Azure.ServiceBus;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using System;

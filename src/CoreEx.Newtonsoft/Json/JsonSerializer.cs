@@ -92,13 +92,13 @@ namespace CoreEx.Newtonsoft.Json
         }
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
-            => JsonFilterer.TryApply(value, names, out json, filter, Settings, comparer);
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+            => JsonFilterer.TryApply(value, names, out json, filter, Settings, comparison);
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
         {
-            var r = JsonFilterer.TryApply(value, names, out JToken node, filter, Settings, comparer);
+            var r = JsonFilterer.TryApply(value, names, out JToken node, filter, Settings, comparison);
             json = node;
             return r;
         }

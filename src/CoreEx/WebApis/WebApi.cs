@@ -27,9 +27,10 @@ namespace CoreEx.WebApis
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
+        /// <param name="invoker">The <see cref="WebApiInvoker"/>; defaults where not specified.</param>
         /// <param name="jsonMergePatch">The <see cref="IJsonMergePatch"/> to support the <see cref="HttpMethods.Patch"/> operations.</param>
-        public WebApi(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApi> logger, IJsonMergePatch? jsonMergePatch = null)
-            : base(executionContext, settings, jsonSerializer, logger) => JsonMergePatch = jsonMergePatch;
+        public WebApi(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApi> logger, WebApiInvoker? invoker = null, IJsonMergePatch? jsonMergePatch = null)
+            : base(executionContext, settings, jsonSerializer, logger, invoker) => JsonMergePatch = jsonMergePatch;
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="HttpRequest"/> <paramref name="function"/> returning a corresponding <see cref="IActionResult"/>.

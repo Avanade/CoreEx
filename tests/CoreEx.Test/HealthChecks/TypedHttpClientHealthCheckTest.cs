@@ -1,20 +1,20 @@
 using System;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using CoreEx.Configuration;
-using CoreEx.Healthchecks.Checks;
-using CoreEx.Http;
-using CoreEx.Json;
-using CoreEx.TestFunction;
-using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
-using Moq;
 using NUnit.Framework;
 using UnitTestEx.NUnit;
+using CoreEx.TestFunction;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Moq;
+using CoreEx.HealthChecks.Checks;
+using System.Threading;
+using System.Net.Http;
+using System.Net;
+using System.Threading.Tasks;
+using CoreEx.Configuration;
+using CoreEx.Http;
+using CoreEx.Json;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace CoreEx.Test.HealthChecks
 {

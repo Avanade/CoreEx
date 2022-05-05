@@ -27,9 +27,10 @@ namespace CoreEx.WebApis
         /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+        /// <param name="invoker">The <see cref="WebApiInvoker"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public WebApiPublisher(IEventPublisher eventPublisher, ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApiPublisher> logger)
-            : base(executionContext, settings, jsonSerializer, logger) => EventPublisher = eventPublisher ?? throw new ArgumentNullException(nameof(eventPublisher));
+        public WebApiPublisher(IEventPublisher eventPublisher, ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApiPublisher> logger, WebApiInvoker? invoker = null)
+            : base(executionContext, settings, jsonSerializer, logger, invoker) => EventPublisher = eventPublisher ?? throw new ArgumentNullException(nameof(eventPublisher));
 
         /// <summary>
         /// Gets the <see cref="IEventPublisher"/>.
@@ -56,6 +57,7 @@ namespace CoreEx.WebApis
             if (request.Method != HttpMethods.Post)
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PublishAsync)}.", nameof(request));
 
+            Logger.LogInformation("PUBLISHING...");
             return await RunAsync(request, async wap =>
             {
                 var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer).ConfigureAwait(false);

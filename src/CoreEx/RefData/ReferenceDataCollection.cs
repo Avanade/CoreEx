@@ -157,10 +157,18 @@ namespace CoreEx.RefData
         public TRef? GetByCode(string code) => code == null ? default : _rdcCode[code];
 
         /// <inheritdoc/>
-        public bool ContainsMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => _mappingsDict != null && _mappingsDict.ContainsKey((name, value));
+        public bool ContainsMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => _mappingsDict != null && _mappingsDict.ContainsKey((name, value));
 
         /// <inheritdoc/>
-        public bool TryGetByMappingValue<T>(string name, T value, out TRef? item) where T : IComparable<T>, IEquatable<T>
+        bool IReferenceDataCollection.TryGetByMapping<T>(string name, T value, out IReferenceData? item)
+        {
+            var r = TryGetByMapping<T>(name, value, out TRef? itemx);
+            item = itemx;
+            return r;
+        }
+
+        /// <inheritdoc/>
+        public bool TryGetByMapping<T>(string name, T value, out TRef? item) where T : IComparable<T>, IEquatable<T>
         {
             if (_mappingsDict != null)
                 return _mappingsDict.TryGetValue((name, value), out item);
@@ -170,7 +178,7 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        public TRef? GetByMappingValue<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => TryGetByMappingValue(name, value, out var item) ? item : default;
+        public TRef? GetByMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => TryGetByMapping(name, value, out var item) ? item : default;
 
         /// <inheritdoc/>
         IEnumerable<IReferenceData> IReferenceDataCollection.AllList => AllList;

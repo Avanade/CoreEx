@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using CoreEx.FluentValidation;
-using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.Azure.ServiceBus;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using My.Hr.Business;

@@ -2,10 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <RootNamespace>CoreEx.Messaging.Azure</RootNamespace>
+    <RootNamespace>CoreEx.Azure</RootNamespace>
     <Product>UnitTestEx</Product>
-    <Title>CoreEx .NET Standard Azure Messaging Extensions.</Title>
-    <Description>CoreEx .NET Standard (v2.1) Azure Messaging Extensions.</Description>
+    <Title>CoreEx .NET Standard Azure Extensions.</Title>
+    <Description>CoreEx .NET Standard (v2.1) Azure Extensions.</Description>
     <PackageTags>coreex api function aspnet azure servicebus</PackageTags>
   </PropertyGroup>
 
@@ -16,11 +16,10 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.7.0" />
-    <PackageReference Include="FluentValidation" Version="10.3.4" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Http" Version="3.0.12" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.ServiceBus" Version="5.2.0" />
   </ItemGroup>
 
   <Import Project="..\..\Common.targets" />
-  
+
 </Project>
