@@ -38,7 +38,7 @@ jobs:
 
     - name: Set EnvVar for Test
       run: |
-        echo "ConnectionStrings__sqlserver:MyHr=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
+        echo "ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
 
     - name: Test
       run: dotnet test --filter TestCategory!=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
