@@ -5,6 +5,7 @@ using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Http;
+using CoreEx.Validation;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
 using System;
@@ -40,8 +41,10 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
         /// <param name="function">The function logic to invoke.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
-        public async Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, Task> function, bool valueIsRequired = true, Func<EventData<TValue>, Task>? afterReceive = null)
+        public async Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, Task> function, bool valueIsRequired = true, IValidator<TValue>? validator = null,
+            Func<EventData<TValue>, Task>? afterReceive = null)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
@@ -66,7 +69,7 @@ namespace CoreEx.Azure.ServiceBus
                 Logger.LogDebug("Received Service Bus message '{Message}'.", message.MessageId);
 
                 // Deserialize the JSON into the selected type.
-                (var @event, var vex) = await DeserializeEventAsync<TValue>(message.Body, valueIsRequired).ConfigureAwait(false);
+                (var @event, var vex) = await DeserializeEventAsync<TValue>(message.Body, valueIsRequired, validator).ConfigureAwait(false);
                 if (vex != null)
                 {
                     await DeadLetterExceptionAsync(message, messageActions, vex.ErrorType, vex).ConfigureAwait(false);

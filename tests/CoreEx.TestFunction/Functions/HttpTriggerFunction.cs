@@ -1,5 +1,4 @@
 using CoreEx.FluentValidation;
-using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Services;
 using CoreEx.TestFunction.Validators;
 using CoreEx.WebApis;
@@ -28,10 +27,10 @@ namespace CoreEx.TestFunction.Functions
 
         [FunctionName("HttpTriggerProductPost")]
         public Task<IActionResult> PostAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "products")] HttpRequest request)
-            => _webApi.PostAsync<Product, Product>(request, r => _service.AddProductAsync(r.Validate<Product, ProductValidator>()));
+            => _webApi.PostAsync(request, r => _service.AddProductAsync(r.Value!), validator: new ProductValidator().Convert());
 
         [FunctionName("HttpTriggerProductPut")]
         public Task<IActionResult> PutAsync([HttpTrigger(AuthorizationLevel.Function, "put", Route = "products")] HttpRequest request)
-            => _webApi.PutAsync<Product, Product>(request, r => _service.UpdateProductAsync(r.Validate<Product, ProductValidator>(), r.Value!.Id!));
+            => _webApi.PutAsync(request, r => _service.UpdateProductAsync(r.Value!, r.Value!.Id!), validator: new ProductValidator().Convert());
     }
 }

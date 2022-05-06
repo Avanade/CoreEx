@@ -348,5 +348,13 @@ namespace CoreEx.RefData
             ((IReferenceData)rdx).SetInvalid();
             return rdx;
         }
+
+        /// <summary>
+        /// Gets the corresponding <see cref="IReferenceData.Text"/> for the specified <paramref name="code"/> where <see cref="ExecutionContext.IsTextSerializationEnabled"/> is <c>true</c>.
+        /// </summary>
+        /// <param name="code"></param>
+        /// <returns></returns>
+        /// <remarks>This is intended to be consumed by classes that wish to provide an opt-in serialization of corresponding <see cref="IReferenceData.Text"/>.</remarks>
+        public static string? GetRefDataText(string? code) => code != null && ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled ? ConvertFromCode(code).Text : null;
     }
 }

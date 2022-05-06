@@ -3,6 +3,7 @@
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Json;
+using CoreEx.Validation;
 using CoreEx.WebApis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
@@ -134,9 +135,10 @@ namespace CoreEx.Http
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="validator">The optional <see cref="IValidator{T}"/> to validate the value (only invoked where the value is not <c>null</c>).</param>
         /// <returns>The <see cref="HttpRequestJsonValue{T}"/>.</returns>
-        public static async Task<HttpRequestJsonValue<T>> ReadAsJsonValueAsync<T>(this HttpRequest httpRequest, IJsonSerializer jsonSerializer, bool valueIsRequired = true)
+        public static async Task<HttpRequestJsonValue<T>> ReadAsJsonValueAsync<T>(this HttpRequest httpRequest, IJsonSerializer jsonSerializer, bool valueIsRequired = true, IValidator<T>? validator = null)
         {
             using var sr = new StreamReader((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Body, Encoding.UTF8, true, 1024, leaveOpen: true);
             var json = await sr.ReadToEndAsync().ConfigureAwait(false);
@@ -150,6 +152,12 @@ namespace CoreEx.Http
 
                 if (valueIsRequired && jv.Value == null)
                     jv.ValidationException = new ValidationException($"{InvalidJsonMessagePrefix} Value is mandatory.");
+
+                if (jv.Value != null && validator != null)
+                {
+                    var vr = await validator.ValidateAsync(jv.Value).ConfigureAwait(false);
+                    jv.ValidationException = vr.ToValidationException();
+                }
             }
             catch (Exception ex)
             {

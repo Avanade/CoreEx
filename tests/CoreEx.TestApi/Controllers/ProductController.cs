@@ -26,7 +26,7 @@ namespace CoreEx.TestApi.Controllers
         public Task<IActionResult> GetAsync(string id) => _webApi.GetAsync(Request, _ => _service.GetProductAsync(id));
 
         [HttpPost]
-        public Task<IActionResult> PostAsync() => _webApi.PostAsync<Product, Product>(Request, r => _service.AddProductAsync(r.Validate<Product, ProductValidator>()));
+        public Task<IActionResult> PostAsync() => _webApi.PostAsync<Product, Product>(Request, r => _service.AddProductAsync(r.Value), validator: new ProductValidator().Convert());
 
         [HttpPut]
         [Route("{id}")]

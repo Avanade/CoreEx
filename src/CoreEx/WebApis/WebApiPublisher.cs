@@ -4,6 +4,7 @@ using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Http;
 using CoreEx.Json;
+using CoreEx.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -47,9 +48,11 @@ namespace CoreEx.WebApis
         /// <param name="eventModifier">An action to enable the <see cref="EventData"/> instance to be modified prior to publish.</param>
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> or <see cref="HttpMethods.Post"/>.</remarks>
-        public async Task<IActionResult> PublishAsync<TValue>(HttpRequest request, string? eventName, Func<WebApiParam<TValue>, Task>? beforeEvent = null, Action<EventData, TValue>? eventModifier = null, HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified)
+        public async Task<IActionResult> PublishAsync<TValue>(HttpRequest request, string? eventName, Func<WebApiParam<TValue>, Task>? beforeEvent = null, Action<EventData, TValue>? eventModifier = null,
+            HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -60,7 +63,7 @@ namespace CoreEx.WebApis
             Logger.LogInformation("PUBLISHING...");
             return await RunAsync(request, async wap =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, true, validator).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 
@@ -93,10 +96,11 @@ namespace CoreEx.WebApis
         /// <param name="maxCollSize">Overrides the default (see <see cref="SettingsBase.MaxPublishCollSize"/>) maximum publish collection size.</param>
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> or <see cref="HttpMethods.Post"/>.</remarks>
-        public async Task<IActionResult> PublishAsync<TColl, TItem>(HttpRequest request, string? eventName, Func<WebApiParam<TColl>, Task>? beforeEvents = null, Action<EventData, TItem>? eventModifier = null, int? maxCollSize = null, HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified)
-            where TColl : IEnumerable<TItem>
+        public async Task<IActionResult> PublishAsync<TColl, TItem>(HttpRequest request, string? eventName, Func<WebApiParam<TColl>, Task>? beforeEvents = null, Action<EventData, TItem>? eventModifier = null, int? maxCollSize = null,
+            HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null) where TColl : IEnumerable<TItem>
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -106,7 +110,7 @@ namespace CoreEx.WebApis
 
             return await RunAsync(request, async wap =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TColl>(JsonSerializer).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync<TColl>(JsonSerializer, true, validator).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 

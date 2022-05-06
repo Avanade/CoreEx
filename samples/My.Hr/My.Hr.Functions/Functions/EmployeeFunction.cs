@@ -34,16 +34,16 @@ public class EmployeeFunction
 
     [FunctionName("Create")]
     public Task<IActionResult> CreateAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "api/employees")] HttpRequest request)
-        => _webApi.PostAsync<Employee, Employee>(request, p => _service.AddEmployeeAsync(p.Validate<Employee, EmployeeValidator>()),
-           statusCode: HttpStatusCode.Created, locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
+        => _webApi.PostAsync<Employee, Employee>(request, p => _service.AddEmployeeAsync(p.Value!),
+           statusCode: HttpStatusCode.Created, validator: new EmployeeValidator().Convert(), locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
 
     [FunctionName("Update")]
     public Task<IActionResult> UpdateAsync([HttpTrigger(AuthorizationLevel.Function, "put", Route = "api/employees/{id}")] HttpRequest request, Guid id)
-        => _webApi.PutAsync<Employee, Employee>(request, p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
+        => _webApi.PutAsync<Employee, Employee>(request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
 
     [FunctionName("Patch")]
     public Task<IActionResult> PatchAsync([HttpTrigger(AuthorizationLevel.Function, "patch", Route = "api/employees/{id}")] HttpRequest request, Guid id)
-        => _webApi.PatchAsync(request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
+        => _webApi.PatchAsync(request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
 
     [FunctionName("Delete")]
     public Task<IActionResult> DeleteAsync([HttpTrigger(AuthorizationLevel.Function, "delete", Route = "api/employees/{id}")] HttpRequest request, Guid id)

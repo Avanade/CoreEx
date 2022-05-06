@@ -5,6 +5,7 @@ using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.Json;
 using CoreEx.Json.Merge;
+using CoreEx.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -145,9 +146,11 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public async Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created, OperationType operationType = OperationType.Create, bool valueIsRequired = true, Func<Uri>? locationUri = null)
+        public async Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created, OperationType operationType = OperationType.Create,
+            bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<Uri>? locationUri = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -160,7 +163,7 @@ namespace CoreEx.WebApis
 
             return await RunAsync(request, async wap =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired, validator).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 
@@ -180,7 +183,8 @@ namespace CoreEx.WebApis
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, Func<TResult, Uri>? locationUri = null)
+        public async Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created,
+            HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, Func<TResult, Uri>? locationUri = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -209,9 +213,11 @@ namespace CoreEx.WebApis
         /// <param name="alternateStatusCode">The alternate <see cref="HttpStatusCode"/> where result is <c>null</c>.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, bool valueIsRequired = true, Func<TResult, Uri>? locationUri = null)
+        public async Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
+            OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<TResult, Uri>? locationUri = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -224,7 +230,7 @@ namespace CoreEx.WebApis
 
             return await RunAsync(request, async wap =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired, validator).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 
@@ -246,8 +252,10 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public async Task<IActionResult> PutAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Update, bool valueIsRequired = true)
+        public async Task<IActionResult> PutAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Update,
+            bool valueIsRequired = true, IValidator<TValue>? validator = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -260,7 +268,7 @@ namespace CoreEx.WebApis
 
             return await RunAsync(request, async wap =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired, validator).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 
@@ -280,8 +288,10 @@ namespace CoreEx.WebApis
         /// <param name="alternateStatusCode">The alternate <see cref="HttpStatusCode"/> where result is <c>null</c>.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the request value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> PutAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Update, bool valueIsRequired = true)
+        public async Task<IActionResult> PutAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
+            OperationType operationType = OperationType.Update, bool valueIsRequired = true, IValidator<TValue> ? validator = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -294,13 +304,77 @@ namespace CoreEx.WebApis
 
             return await RunAsync(request, async wap =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, valueIsRequired, validator).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 
                 var result = await function(new WebApiParam<TValue>(wap, vr.Value)).ConfigureAwait(false);
                 return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
             }, operationType).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Performs a <see cref="HttpMethods.Put"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> returning a corresponding response value.
+        /// </summary>
+        /// <typeparam name="TValue">The request JSON content value <see cref="Type"/>.</typeparam>
+        /// <param name="request">The <see cref="HttpRequest"/>.</param>
+        /// <param name="get">The function to execute the <i>get</i> to retrieve the value. Where this returns a <c>null</c> then this will result in a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/>.</param>
+        /// <param name="put">The function to execute the <i>put</i> to replace (update) the value.</param>
+        /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
+        /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
+        /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
+        public async Task<IActionResult> PutAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<TValue?>> get, Func<WebApiParam<TValue>, Task<TValue>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+            OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false) where TValue : class
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            if (!HttpMethods.IsPut(request.Method))
+                throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Put}' to use {nameof(PutAsync)}.", nameof(request));
+
+            if (get == null)
+                throw new ArgumentNullException(nameof(get));
+
+            if (put == null)
+                throw new ArgumentNullException(nameof(put));
+
+            return await RunAsync(request, async wap =>
+            {
+                var vr = await request.ReadAsJsonValueAsync(JsonSerializer, true, validator).ConfigureAwait(false);
+                if (vr.IsInvalid)
+                    return vr.ToBadRequestResult();
+
+                // Get the current value before we perform the update.
+                var value = await get(wap).ConfigureAwait(false);
+                if (value == null)
+                    throw new NotFoundException();
+
+                // Perform concurrency match.
+                ConcurrencyETagMatching(wap, value, vr.Value!, simulatedConcurrency);
+
+                // Update the value.
+                var result = await put(new WebApiParam<TValue>(wap, vr.Value!)).ConfigureAwait(false);
+                return ValueContentResult.CreateResult(result, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
+            }, operationType).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Where etags are supported or automatic concurreny then we need to make sure one was provided up-front and match.
+        /// </summary>
+        private void ConcurrencyETagMatching<TValue>(WebApiParam wap, TValue getValue, TValue putValue, bool autoConcurrency)
+        {
+            var et = putValue as IETag;
+            if (et != null || autoConcurrency)
+            {
+                string? etag = et?.ETag ?? wap.RequestOptions.ETag;
+                if (string.IsNullOrEmpty(etag))
+                    throw new ConcurrencyException($"An 'If-Match' header is required for an HTTP {wap.Request.Method} where the underlying entity supports concurrency (ETag).");
+
+                if (etag != null && etag != ValueContentResult.EstablishETag(wap.RequestOptions, getValue!, null, JsonSerializer))
+                    throw new ConcurrencyException();
+            }
         }
 
         #endregion
@@ -343,12 +417,15 @@ namespace CoreEx.WebApis
         /// <typeparam name="TValue">The request JSON content value <see cref="Type"/>.</typeparam>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
         /// <param name="get">The function to execute the <i>get</i> to retrieve the value to patch into. Where this returns a <c>null</c> then this will result in a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/>.</param>
-        /// <param name="put">The function to execute the <i>put</i> to replace the patched value.</param>
+        /// <param name="put">The function to execute the <i>put</i> to replace (update) the patched value.</param>
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         /// <remarks>Currently on the <see cref="JsonMergePatch"/> is supported.</remarks>
-        public async Task<IActionResult> PatchAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<TValue?>> get, Func<WebApiParam<TValue>, Task<TValue>> put, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Update) where TValue : class
+        public async Task<IActionResult> PatchAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<TValue?>> get, Func<WebApiParam<TValue>, Task<TValue>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+            OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false) where TValue : class
         {
             if (JsonMergePatch == null)
                 throw new InvalidOperationException($"To use the '{nameof(PatchAsync)}' methods the '{nameof(JsonMergePatch)}' object must be passed in the constructor. Where using dependency injection consider using '{nameof(Microsoft.Extensions.DependencyInjection.IServiceCollectionExtensions.AddJsonMergePatch)}' to add and configure the supported options.");
@@ -390,25 +467,24 @@ namespace CoreEx.WebApis
                     if (value == null)
                         throw new NotFoundException();
 
-                    // Where etags are supported then we need to make sure one was provided up-front.
-                    string? etag = null;
-                    if (jpv is IETag et)
-                    {
-                        etag = et.ETag ?? wap.RequestOptions.ETag;
-                        if (string.IsNullOrEmpty(etag))
-                            throw new ConcurrencyException($"An 'If-Match' header is required for an HTTP {HttpMethods.Patch} where the underlying entity supports concurrency (ETag).");
-                    }
-
-                    // Where etags are supported then ensure etag match before continuing.
-                    if (etag != null && value is IETag vet && vet.ETag != etag)
-                        throw new ConcurrencyException();
+                    // Perform concurrency match.
+                    ConcurrencyETagMatching(wap, value, jpv, simulatedConcurrency);
 
                     return value;
                 }).ConfigureAwait(false);
 
                 // Only invoke the put function where something was *actually* changed.
                 if (HasChanges)
+                {
+                    if (validator != null)
+                    {
+                        var vr = await validator.ValidateAsync(Value).ConfigureAwait(false);
+                        if (vr.HasErrors)
+                            return vr.ToValidationException()!.ToResult();
+                    }
+
                     await put(new WebApiParam<TValue>(wap, Value!)).ConfigureAwait(false);
+                }
 
                 return ValueContentResult.CreateResult(Value, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
             }, operationType).ConfigureAwait(false);

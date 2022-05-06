@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -29,6 +30,7 @@ namespace CoreEx.Http
         private int? _retryCount;
         private double? _retrySeconds;
         private bool _ensureSuccess = false;
+        private List<HttpStatusCode>? _ensureStatusCodes;
         private bool _throwTransientException;
         private bool _throwKnownException;
         private bool _throwKnownUseContentAsMessage;
@@ -145,6 +147,58 @@ namespace CoreEx.Http
         }
 
         /// <summary>
+        /// Adds the <see cref="HttpStatusCode.OK"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TSelf EnsureOK() => Ensure(HttpStatusCode.OK);
+
+        /// <summary>
+        /// Adds the <see cref="HttpStatusCode.NoContent"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TSelf EnsureNoContent() => Ensure(HttpStatusCode.NoContent);
+
+        /// <summary>
+        /// Adds the <see cref="HttpStatusCode.Accepted"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TSelf EnsureAccepted() => Ensure(HttpStatusCode.Accepted);
+
+        /// <summary>
+        /// Adds the <see cref="HttpStatusCode.Created"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TSelf EnsureCreated() => Ensure(HttpStatusCode.Created);
+
+        /// <summary>
+        /// Adds the <paramref name="statusCodes"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <param name="statusCodes">One or more <see cref="HttpStatusCode">status codes</see> to be verified.</param>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TSelf Ensure(params HttpStatusCode[] statusCodes)
+        {
+            if (statusCodes != null && statusCodes.Length > 0)
+            {
+                if (_ensureStatusCodes == null)
+                    _ensureStatusCodes = new List<HttpStatusCode>(statusCodes);
+                else
+                    _ensureStatusCodes.AddRange(statusCodes);
+            }
+
+            return (TSelf)this;
+        }
+
+        /// <summary>
         /// Resets the <see cref="TypedHttpClientBase{TSelf}"/> to its initial state.
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
@@ -157,6 +211,7 @@ namespace CoreEx.Http
             _throwKnownUseContentAsMessage = false;
             _isTransient = IsTransient;
             _ensureSuccess = false;
+            _ensureStatusCodes = null;
 
             return (TSelf)this;
         }
@@ -225,6 +280,9 @@ namespace CoreEx.Http
 
             if (_ensureSuccess)
                 response.EnsureSuccessStatusCode();
+
+            if (_ensureStatusCodes != null && !_ensureStatusCodes.Contains(response.StatusCode))
+                throw new HttpRequestException($"Response status code {response.StatusCode}; expected one of the following: {string.Join(", ", _ensureStatusCodes)}.");
 
             return response;
         }
