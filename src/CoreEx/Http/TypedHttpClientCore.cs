@@ -49,7 +49,7 @@ namespace CoreEx.Http
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> HeadAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> HeadAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.HeadAsync(requestUri, requestOptions, args, cancellationToken);
 
         #endregion

@@ -28,7 +28,7 @@ namespace CoreEx.HealthChecks.Checks
 
             try
             {
-                var result = await _client.HealthCheckAsync();
+                var result = await _client.HealthCheckAsync(cancellationToken);
                 result.Response.EnsureSuccessStatusCode();
                 return HealthCheckResult.Healthy();
             }

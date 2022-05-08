@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -37,7 +38,8 @@ namespace CoreEx.Events
         /// <summary>
         /// Sends all previously published (queued) events.
         /// </summary>
-        Task SendAsync();
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        Task SendAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Resets by clearing the internal cache/store.

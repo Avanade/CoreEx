@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Json.Merge
@@ -63,7 +64,7 @@ namespace CoreEx.Json.Merge
         }
 
         /// <inheritdoc/>
-        public async Task<(bool HasChanges, T? Value)> MergeAsync<T>(string json, Func<T?, Task<T?>> getValue)
+        public async Task<(bool HasChanges, T? Value)> MergeAsync<T>(string json, Func<T?, CancellationToken, Task<T?>> getValue, CancellationToken cancellationToken = default)
         {
             if (json == null)
                 throw new ArgumentNullException(nameof(json));
@@ -75,7 +76,7 @@ namespace CoreEx.Json.Merge
             var j = ParseJson<T>(json); 
 
             // Get the value.
-            T? value = await getValue(j.Value).ConfigureAwait(false);
+            T? value = await getValue(j.Value, cancellationToken).ConfigureAwait(false);
             if (value == null)
                 return (false, default!);
 

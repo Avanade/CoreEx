@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.WebApis
@@ -49,10 +50,11 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> or <see cref="HttpMethods.Post"/>.</remarks>
         public async Task<IActionResult> PublishAsync<TValue>(HttpRequest request, string? eventName, Func<WebApiParam<TValue>, Task>? beforeEvent = null, Action<EventData, TValue>? eventModifier = null,
-            HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null)
+            HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -61,9 +63,9 @@ namespace CoreEx.WebApis
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PublishAsync)}.", nameof(request));
 
             Logger.LogInformation("PUBLISHING...");
-            return await RunAsync(request, async wap =>
+            return await RunAsync(request, async (wap, ct) =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TValue>(JsonSerializer, true, validator).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync(JsonSerializer, true, validator, cancellationToken).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 
@@ -78,10 +80,10 @@ namespace CoreEx.WebApis
                 else
                     EventPublisher.Publish(eventName, @event);
 
-                await EventPublisher.SendAsync().ConfigureAwait(false);
+                await EventPublisher.SendAsync(cancellationToken).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType).ConfigureAwait(false);
+            }, operationType, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -97,10 +99,11 @@ namespace CoreEx.WebApis
         /// <param name="statusCode">The <see cref="HttpStatusCode"/> where successful.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> or <see cref="HttpMethods.Post"/>.</remarks>
         public async Task<IActionResult> PublishAsync<TColl, TItem>(HttpRequest request, string? eventName, Func<WebApiParam<TColl>, Task>? beforeEvents = null, Action<EventData, TItem>? eventModifier = null, int? maxCollSize = null,
-            HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null) where TColl : IEnumerable<TItem>
+            HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null, CancellationToken cancellationToken = default) where TColl : IEnumerable<TItem>
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -108,9 +111,9 @@ namespace CoreEx.WebApis
             if (request.Method != HttpMethods.Post)
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PublishAsync)}.", nameof(request));
 
-            return await RunAsync(request, async wap =>
+            return await RunAsync(request, async (wap, ct) =>
             {
-                var vr = await request.ReadAsJsonValueAsync<TColl>(JsonSerializer, true, validator).ConfigureAwait(false);
+                var vr = await request.ReadAsJsonValueAsync(JsonSerializer, true, validator, ct).ConfigureAwait(false);
                 if (vr.IsInvalid)
                     return vr.ToBadRequestResult();
 
@@ -138,10 +141,10 @@ namespace CoreEx.WebApis
                         EventPublisher.Publish(eventName, ed);
                 }
 
-                await EventPublisher.SendAsync().ConfigureAwait(false);
+                await EventPublisher.SendAsync(ct).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType).ConfigureAwait(false);
+            }, operationType, cancellationToken).ConfigureAwait(false);
         }
     }
 }

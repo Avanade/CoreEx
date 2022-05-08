@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.NUnit;
@@ -657,22 +658,22 @@ namespace CoreEx.Test.Framework.WebApis
 
             public int ErrorCount { get; set; }
 
-            protected override Task OnBeforeAsync(WebApiBase owner, WebApiParam param)
+            protected override Task OnBeforeAsync(WebApiBase owner, WebApiParam param, CancellationToken cancellationToken)
             {
                 BeforeCount++;
-                return base.OnBeforeAsync(owner, param);
+                return base.OnBeforeAsync(owner, param, cancellationToken);
             }
 
-            protected override Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result)
+            protected override Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result, CancellationToken cancellationToken)
             {
                 AfterCount++;
-                return base.OnAfterSuccessAsync(owner, param, result);
+                return base.OnAfterSuccessAsync(owner, param, result, cancellationToken);
             }
 
-            protected override Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result)
+            protected override Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result, CancellationToken cancellationToken)
             {
                 ErrorCount++;
-                return base.OnAfterExceptionAsync(owner, param, exception, result);
+                return base.OnAfterExceptionAsync(owner, param, exception, result, cancellationToken);
             }
         }
     }

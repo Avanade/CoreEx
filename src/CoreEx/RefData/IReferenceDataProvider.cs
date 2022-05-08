@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.RefData
@@ -20,7 +21,8 @@ namespace CoreEx.RefData
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/>.</returns>
-        Task<IReferenceDataCollection> GetAsync(Type type);
+        Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default);
     }
 }

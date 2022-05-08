@@ -4,6 +4,7 @@ using CoreEx.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Http
@@ -33,11 +34,14 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpRequestLogger"/>.</returns>
         public static HttpRequestLogger Create(SettingsBase settings, ILogger logger) => new(settings, logger);
 
+
         /// <summary>
         /// Logs the <paramref name="request"/>.
         /// </summary>
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
-        public async Task LogRequestAsync(HttpRequestMessage request)
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        public async Task LogRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -61,7 +65,9 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        public async Task LogResponseAsync(HttpRequestMessage request, HttpResponseMessage response)
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        public async Task LogResponseAsync(HttpRequestMessage request, HttpResponseMessage response, CancellationToken cancellationToken = default)
         {
             // Logging should never throw an exception.
             try

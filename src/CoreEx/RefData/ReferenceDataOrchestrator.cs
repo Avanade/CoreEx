@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.RefData
@@ -19,9 +20,9 @@ namespace CoreEx.RefData
     /// <summary>
     /// Provides the centralized reference data orchestration. Primarily responsible for the management of one or more <see cref="IReferenceDataProvider"/> instances.  
     /// </summary>
-    /// <remarks>Provides <i>cached</i> access to the underlying reference data collections via the likes of <see cref="GetByTypeAsync{TRef}"/>, <see cref="GetByTypeAsync(Type)"/> or <see cref="GetByNameAsync(string)"/>.
+    /// <remarks>Provides <i>cached</i> access to the underlying reference data collections via the likes of <see cref="GetByTypeAsync{TRef}"/>, <see cref="GetByTypeAsync(Type, CancellationToken)"/> or <see cref="GetByNameAsync(string, CancellationToken)"/>.
     /// <para>To improve performance the reference data should be cached where possible. The <see cref="ReferenceDataOrchestrator"/> supports a default <see cref="IMemoryCache"/> implementation; however, this can be overridden and/or extended by
-    /// overriding the <see cref="OnGetOrCreateAsync(Type, Func{Type, Task{IReferenceDataCollection}})"/> method. The <i>create</i> is executed in the context of a <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/>
+    /// overriding the <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/> method. The <i>create</i> is executed in the context of a <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/>
     /// to limit/minimize any impact on the processing of the current request by isolating all scoped services.</para></remarks>
     public class ReferenceDataOrchestrator
     {
@@ -46,7 +47,7 @@ namespace CoreEx.RefData
         /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
         /// </summary>
         /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
-        /// <param name="cache">The optional <see cref="IMemoryCache"/> to be used where not specifically overridden by <see cref="OnGetOrCreateAsync(Type, Func{Type, Task{IReferenceDataCollection}})"/>.</param>
+        /// <param name="cache">The optional <see cref="IMemoryCache"/> to be used where not specifically overridden by <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>.</param>
         public ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache = null)
         {
             ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
@@ -70,7 +71,8 @@ namespace CoreEx.RefData
         /// </summary>
         /// <typeparam name="TProvider">The <see cref="IReferenceDataProvider"/> to register.</typeparam>
         /// <returns>The <see cref="ReferenceDataOrchestrator"/> to support fluent-style method-chaining.</returns>
-        /// <remarks>Internally this builds the relationship between the <see cref="IReferenceDataProvider.Types"/> and the owning <see cref="IReferenceDataProvider"/> to enable cached access to the underlying <see cref="IReferenceDataCollection"/> using <see cref="GetByTypeAsync(Type)"/> or <see cref="this[Type]"/>.</remarks>
+        /// <remarks>Internally this builds the relationship between the <see cref="IReferenceDataProvider.Types"/> and the owning <see cref="IReferenceDataProvider"/> to enable cached access to the underlying 
+        /// <see cref="IReferenceDataCollection"/> using <see cref="GetByTypeAsync(Type, CancellationToken)"/> or <see cref="this[Type]"/>.</remarks>
         public ReferenceDataOrchestrator Register<TProvider>() where TProvider : IReferenceDataProvider
         {
             using var scope = ServiceProvider.CreateScope();
@@ -160,31 +162,33 @@ namespace CoreEx.RefData
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
         /// </summary>
         /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public Task<IReferenceDataCollection?> GetByTypeAsync<TRef>() => GetByTypeAsync(typeof(TRef));
+        public Task<IReferenceDataCollection?> GetByTypeAsync<TRef>(CancellationToken cancellationToken = default) => GetByTypeAsync(typeof(TRef), cancellationToken);
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public async Task<IReferenceDataCollection?> GetByTypeAsync(Type type)
+        public async Task<IReferenceDataCollection?> GetByTypeAsync(Type type, CancellationToken cancellationToken = default)
         {
             if (!_typeToProvider.TryGetValue(type ?? throw new ArgumentNullException(nameof(type)), out var providerType))
                 return null;
 
-            var coll = await OnGetOrCreateAsync(type, async t =>
+            var coll = await OnGetOrCreateAsync(type, async (t, ct) =>
             {
                 Logger.LogDebug("Reference data type {RefDataType} cache load start: Creating new ServiceProvider Scope to support underlying cache data get.", type.FullName);
                 var sw = Stopwatch.StartNew();
                 using var scope = ServiceProvider.CreateScope();
                 var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
-                var coll = await provider.GetAsync(t).ConfigureAwait(false);
+                var coll = await provider.GetAsync(t, ct).ConfigureAwait(false);
                 coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
                 sw.Stop();
                 Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
                 return coll;
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             return coll ?? throw new InvalidOperationException($"The {nameof(IReferenceDataCollection)} returned for Type '{type.FullName}' from Provider '{providerType.FullName}' must not be null.");
         }
@@ -194,39 +198,41 @@ namespace CoreEx.RefData
         /// </summary>
         /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
-        public Task<IReferenceDataCollection> GetByTypeRequiredAsync<TRef>() => GetByTypeRequiredAsync(typeof(TRef));
+        public Task<IReferenceDataCollection> GetByTypeRequiredAsync<TRef>(CancellationToken cancellationToken = default) => GetByTypeRequiredAsync(typeof(TRef), cancellationToken);
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
-        public async Task<IReferenceDataCollection> GetByTypeRequiredAsync(Type type)
-            => (await GetByTypeAsync(type).ConfigureAwait(false)) ?? throw new InvalidOperationException($"Reference data collection for type '{type.FullName}' does not exist.");
+        public async Task<IReferenceDataCollection> GetByTypeRequiredAsync(Type type, CancellationToken cancellationToken = default)
+            => (await GetByTypeAsync(type, cancellationToken).ConfigureAwait(false)) ?? throw new InvalidOperationException($"Reference data collection for type '{type.FullName}' does not exist.");
 
         /// <summary>
         /// Gets where pre-existing and not expired, or (re-)creates, the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <param name="getCollAsync">The underlying function to invoke to get the <see cref="IReferenceDataCollection"/> when (re-)creating cache collection.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IReferenceDataCollection"/>.</returns>
         /// <remarks>Invokes the <see cref="OnCreateCacheEntry(ICacheEntry)"/> prior to invoking <paramref name="getCollAsync"/> on <i>create</i>. This should be overridden where the default <see cref="IMemoryCache"/> capabilities are not
-        /// sufficient. The <paramref name="getCollAsync"/> contains the logic to invoke the underlying <see cref="IReferenceDataProvider.GetAsync(Type)"/>; this is executed in the context of a 
+        /// sufficient. The <paramref name="getCollAsync"/> contains the logic to invoke the underlying <see cref="IReferenceDataProvider.GetAsync(Type, System.Threading.CancellationToken)"/>; this is executed in the context of a 
         /// <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services.</remarks>
-        protected async virtual Task<IReferenceDataCollection> OnGetOrCreateAsync(Type type, Func<Type, Task<IReferenceDataCollection>> getCollAsync)
+        protected async virtual Task<IReferenceDataCollection> OnGetOrCreateAsync(Type type, Func<Type, CancellationToken, Task<IReferenceDataCollection>> getCollAsync, CancellationToken cancellationToken = default)
         {
             if (_cache == null)
-                return await getCollAsync(type).ConfigureAwait(false);
+                return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
             else
                 return await _cache.GetOrCreateAsync(type, async entry => 
                 { 
                     OnCreateCacheEntry(entry); 
-                    return await getCollAsync(type).ConfigureAwait(false); 
+                    return await getCollAsync(type, cancellationToken).ConfigureAwait(false); 
                 }).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Provides an opportunity to the maintain the <see cref="ICacheEntry"/> data prior to the cache <i>create</i> function being invoked (as a result of <see cref="OnGetOrCreateAsync(Type, Func{Type, Task{IReferenceDataCollection}})"/>).
+        /// Provides an opportunity to the maintain the <see cref="ICacheEntry"/> data prior to the cache <i>create</i> function being invoked (as a result of <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>).
         /// </summary>
         /// <param name="entry">The <see cref="ICacheEntry"/>.</param>
         /// <remarks>Note: the <see cref="ICacheEntry.Key"/> is the <see cref="IReferenceData"/> <see cref="Type"/>.
@@ -256,16 +262,19 @@ namespace CoreEx.RefData
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
         /// </summary>
         /// <param name="name">The reference data name.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public Task<IReferenceDataCollection?> GetByNameAsync(string name) => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeAsync(type) : Task.FromResult<IReferenceDataCollection?>(null);
+        public Task<IReferenceDataCollection?> GetByNameAsync(string name, CancellationToken cancellationToken = default) 
+            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeAsync(type, cancellationToken) : Task.FromResult<IReferenceDataCollection?>(null);
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
         /// </summary>
         /// <param name="name">The reference data name.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public Task<IReferenceDataCollection> GetByNameRequiredAsync(string name) 
-            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeRequiredAsync(type) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
+        public Task<IReferenceDataCollection> GetByNameRequiredAsync(string name, CancellationToken cancellationToken = default) 
+            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeRequiredAsync(type, cancellationToken) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> <see cref="Type"/> applying the <paramref name="codes"/> and <paramref name="text"/> filter.
@@ -274,9 +283,10 @@ namespace CoreEx.RefData
         /// <param name="codes">The reference data code list.</param>
         /// <param name="text">The reference data text (including wildcards).</param>
         /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsActive"/> equal <c>false</c>) entries.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The filtered collection.</returns>
-        public async Task<IEnumerable<TRef>> GetWithFilterAsync<TRef>(IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false) where TRef : IReferenceData
-            => (await GetWithFilterAsync(typeof(TRef), codes, text, includeInactive).ConfigureAwait(false)).OfType<TRef>();
+        public async Task<IEnumerable<TRef>> GetWithFilterAsync<TRef>(IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false, CancellationToken cancellationToken = default) where TRef : IReferenceData
+            => (await GetWithFilterAsync(typeof(TRef), codes, text, includeInactive, cancellationToken).ConfigureAwait(false)).OfType<TRef>();
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> <see cref="Type"/> applying the <paramref name="codes"/> and <paramref name="text"/> filter.
@@ -285,9 +295,10 @@ namespace CoreEx.RefData
         /// <param name="codes">The reference data code list.</param>
         /// <param name="text">The reference data text (including wildcards).</param>
         /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsActive"/> equal <c>false</c>) entries.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The filtered collection.</returns>
-        public async Task<IEnumerable<IReferenceData>> GetWithFilterAsync(Type type, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false)
-            => await GetWithFilterAsync(await GetByTypeAsync(type).ConfigureAwait(false) ?? throw new InvalidOperationException($"Reference data collection for type '{type.FullName}' does not exist."), codes, text, includeInactive).ConfigureAwait(false);
+        public async Task<IEnumerable<IReferenceData>> GetWithFilterAsync(Type type, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false, CancellationToken cancellationToken = default)
+            => await GetWithFilterAsync(await GetByTypeAsync(type, cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException($"Reference data collection for type '{type.FullName}' does not exist."), codes, text, includeInactive, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>) applying the <paramref name="codes"/> and <paramref name="text"/> filter.
@@ -296,14 +307,17 @@ namespace CoreEx.RefData
         /// <param name="codes">The reference data code list.</param>
         /// <param name="text">The reference data text (including wildcards).</param>
         /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsActive"/> equal <c>false</c>) entries.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The filtered collection.</returns>
-        public async Task<IEnumerable<IReferenceData>> GetWithFilterAsync(string name, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false)
-            => await GetWithFilterAsync(await GetByNameAsync(name).ConfigureAwait(false) ?? throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist."), codes, text, includeInactive).ConfigureAwait(false);
+        public async Task<IEnumerable<IReferenceData>> GetWithFilterAsync(string name, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false, CancellationToken cancellationToken = default)
+            => await GetWithFilterAsync(await GetByNameAsync(name, cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist."), codes, text, includeInactive, cancellationToken).ConfigureAwait(false);
+
 
         /// <summary>
         /// Applys the selected filter to the collection.
         /// </summary>
-        private static Task<IEnumerable<IReferenceData>> GetWithFilterAsync(IReferenceDataCollection coll, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        private static Task<IEnumerable<IReferenceData>> GetWithFilterAsync(IReferenceDataCollection coll, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false, CancellationToken cancellationToken = default)
         {
             if ((codes == null || !codes.Any()) && string.IsNullOrEmpty(text) && !includeInactive)
                 return Task.FromResult(coll.ActiveList);
@@ -325,15 +339,16 @@ namespace CoreEx.RefData
         /// Prefetches all of the named <see cref="IReferenceData"/> items. 
         /// </summary>
         /// <param name="names">The list of <see cref="IReferenceData"/> names.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>As the reference data is a great candidate for caching this will force a prefetch of the cache items.</remarks>
-        public Task PrefetchAsync(params string[] names)
+        public Task PrefetchAsync(IEnumerable<string> names, CancellationToken cancellationToken = default)
         {
             var tasks = new List<Task>();
             if (names != null)
             {
                 foreach (var name in names.Distinct())
                 {
-                    tasks.Add(GetByNameAsync(name));
+                    tasks.Add(GetByNameAsync(name, cancellationToken));
                 }
             }
 
@@ -345,8 +360,9 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="names">The reference data names.</param>
         /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsActive"/> equal <c>false</c>) entries.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="ReferenceDataMultiCollection"/>.</returns>
-        public async Task<ReferenceDataMultiCollection> GetNamedAsync(IEnumerable<string> names, bool includeInactive = false)
+        public async Task<ReferenceDataMultiCollection> GetNamedAsync(IEnumerable<string> names, bool includeInactive = false, CancellationToken cancellationToken = default)
         {
             var mc = new ReferenceDataMultiCollection();
 
@@ -354,7 +370,7 @@ namespace CoreEx.RefData
             {
                 foreach (var name in names.Where(x => ContainsName(x)).Distinct())
                 {
-                    mc.Add(new ReferenceDataMultiItem(_nameToType[name].Name, await GetWithFilterAsync(name, includeInactive: includeInactive).ConfigureAwait(false)));
+                    mc.Add(new ReferenceDataMultiItem(_nameToType[name].Name, await GetWithFilterAsync(name, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false)));
                 }
             }
 
@@ -366,8 +382,9 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="namesAndCodes">The reference data names and related codes.</param>
         /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsActive"/> equal <c>false</c>) entries.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="ReferenceDataMultiCollection"/>.</returns>
-        public async Task<ReferenceDataMultiCollection> GetNamedAsync(IEnumerable<KeyValuePair<string, List<string>>> namesAndCodes, bool includeInactive = false)
+        public async Task<ReferenceDataMultiCollection> GetNamedAsync(IEnumerable<KeyValuePair<string, List<string>>> namesAndCodes, bool includeInactive = false, CancellationToken cancellationToken = default)
         {
             var mc = new ReferenceDataMultiCollection();
 
@@ -375,7 +392,7 @@ namespace CoreEx.RefData
             {
                 foreach (var kvp in namesAndCodes.Where(x => ContainsName(x.Key)))
                 {
-                    mc.Add(new ReferenceDataMultiItem(_nameToType[kvp.Key].Name, await GetWithFilterAsync(kvp.Key, codes: kvp.Value, includeInactive: includeInactive).ConfigureAwait(false)));
+                    mc.Add(new ReferenceDataMultiItem(_nameToType[kvp.Key].Name, await GetWithFilterAsync(kvp.Key, codes: kvp.Value, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false)));
                 }
             }
 
@@ -386,9 +403,10 @@ namespace CoreEx.RefData
         /// Gets the reference data items for the specified names and related codes (see <see cref="IReferenceData.Code"/>) from the <paramref name="requestOptions"/>.
         /// </summary>
         /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="ReferenceDataMultiCollection"/>.</returns>
         /// <remarks>The reference data names and codes are specified as part of the query string. Either '<c>?names=RefA,RefB,RefX</c>' or <c>?RefA,RefB=CodeA,CodeB,RefX=CodeX</c> or any combination thereof.</remarks>
-        public Task<ReferenceDataMultiCollection> GetNamedAsync(WebApiRequestOptions requestOptions)
+        public Task<ReferenceDataMultiCollection> GetNamedAsync(WebApiRequestOptions requestOptions, CancellationToken cancellationToken = default)
         {
             var dict = new Dictionary<string, List<string>>();
 
@@ -416,7 +434,7 @@ namespace CoreEx.RefData
                 }
             }
 
-            return GetNamedAsync(dict.ToList(), requestOptions.IncludeInactive);
+            return GetNamedAsync(dict.ToList(), requestOptions.IncludeInactive, cancellationToken);
         }
 
         /// <summary>

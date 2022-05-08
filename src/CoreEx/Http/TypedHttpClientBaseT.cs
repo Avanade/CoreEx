@@ -236,7 +236,7 @@ namespace CoreEx.Http
                 }
 
                 await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
-                await RequestLogger.LogRequestAsync(request).ConfigureAwait(false);
+                await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
 
                 var req = request;
                 response = await
@@ -257,7 +257,7 @@ namespace CoreEx.Http
                     })
                     .ExecuteAsync(() => Client.SendAsync(req, cancellationToken));
 
-                await RequestLogger.LogResponseAsync(request, response).ConfigureAwait(false);
+                await RequestLogger.LogResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
             }
             catch (HttpRequestException hrex)
             {
@@ -273,7 +273,7 @@ namespace CoreEx.Http
 
             if (_throwKnownException)
             {
-                var eex = await response.ToExtendedExceptionAsync(_throwKnownUseContentAsMessage).ConfigureAwait(false);
+                var eex = await response.ToExtendedExceptionAsync(_throwKnownUseContentAsMessage, cancellationToken).ConfigureAwait(false);
                 if (eex != null)
                     throw (Exception)eex;
             }
@@ -352,7 +352,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         public async Task<HttpResult> HeadAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Head, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Head, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
         #endregion
 
@@ -367,7 +367,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> GetAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
@@ -380,8 +380,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> GetAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer).ConfigureAwait(false);
+            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -399,8 +399,8 @@ namespace CoreEx.Http
             where TCollResult : ICollectionResult<TColl, TItem>, new()
             where TColl : ICollection<TItem>
         {
-            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TCollResult, TColl, TItem>(response, JsonSerializer).ConfigureAwait(false);
+            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TCollResult, TColl, TItem>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion
@@ -416,7 +416,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> PostAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/>.
@@ -428,7 +428,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> PostAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/>.
@@ -443,10 +443,10 @@ namespace CoreEx.Http
         protected async Task<HttpResult> PostAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
             var response = (value is HttpContent content)
-                ? await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
-                : await SendAsync(await CreateJsonRequestAsync(HttpMethod.Post, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+                ? await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
+                : await SendAsync(await CreateJsonRequestAsync(HttpMethod.Post, requestUri, value, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
-            return await HttpResult.CreateAsync(response).ConfigureAwait(false);
+            return await HttpResult.CreateAsync(response, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -460,8 +460,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken);
         }
 
         /// <summary>
@@ -476,8 +476,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Post, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken);
         }
 
         /// <summary>
@@ -493,8 +493,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> PostAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            var response = await SendAsync(await CreateJsonRequestAsync(HttpMethod.Post, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+            var response = await SendAsync(await CreateJsonRequestAsync(HttpMethod.Post, requestUri, value, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken);
         }
 
         #endregion
@@ -511,7 +511,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> PutAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/>.
@@ -526,10 +526,10 @@ namespace CoreEx.Http
         protected async Task<HttpResult> PutAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
             var response = (value is HttpContent content)
-                ? await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
-                : await SendAsync(await CreateJsonRequestAsync(HttpMethod.Put, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+                ? await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
+                : await SendAsync(await CreateJsonRequestAsync(HttpMethod.Put, requestUri, value, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
-            return await HttpResult.CreateAsync(response).ConfigureAwait(false);
+            return await HttpResult.CreateAsync(response, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -544,8 +544,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> PutAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Put, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken);
         }
 
         /// <summary>
@@ -561,8 +561,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> PutAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            var response = await SendAsync(await CreateJsonRequestAsync(HttpMethod.Put, requestUri, value, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer);
+            var response = await SendAsync(await CreateJsonRequestAsync(HttpMethod.Put, requestUri, value, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken);
         }
 
         #endregion
@@ -579,7 +579,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> PatchAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            => await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="json"/>.
@@ -597,7 +597,7 @@ namespace CoreEx.Http
                 throw new ArgumentException("A valid patch option must be specified.", nameof(patchOption));
 
             var content = new StringContent(json, Encoding.UTF8, patchOption == HttpPatchOption.JsonPatch ? HttpConsts.JsonPatchMediaTypeName : HttpConsts.MergePatchMediaTypeName);
-            return await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            return await HttpResult.CreateAsync(await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -612,8 +612,8 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
         {
-            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer).ConfigureAwait(false);
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -633,8 +633,8 @@ namespace CoreEx.Http
                 throw new ArgumentException("A valid patch option must be specified.", nameof(patchOption));
 
             var content = new StringContent(json, Encoding.UTF8, patchOption == HttpPatchOption.JsonPatch ? HttpConsts.JsonPatchMediaTypeName : HttpConsts.MergePatchMediaTypeName);
-            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer).ConfigureAwait(false);
+            var response = await SendAsync(await CreateContentRequestAsync(HttpMethod.Patch, requestUri, content, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion
@@ -650,7 +650,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> DeleteAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Delete, requestUri, requestOptions, args?.ToArray()!).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Delete, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
         #endregion
 
@@ -659,9 +659,10 @@ namespace CoreEx.Http
         /// <summary>
         /// Performs a health check by sending a HEAD request to base Uri as an asynchronous operation.
         /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public virtual async Task<HttpResult> HealthCheckAsync()
-         => await HeadAsync(string.Empty, null, null, new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token).ConfigureAwait(false);
+        public virtual async Task<HttpResult> HealthCheckAsync(CancellationToken cancellationToken = default)
+         => await HeadAsync(string.Empty, null, null, cancellationToken).ConfigureAwait(false);
 
         #endregion
     }

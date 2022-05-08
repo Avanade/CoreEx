@@ -4,6 +4,7 @@ using CoreEx.Json;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -31,7 +32,7 @@ namespace CoreEx.Events
         }
 
         /// <inheritdoc/>
-        protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData)
+        protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData, CancellationToken cancellation)
         {
             var sb = new StringBuilder("Event send");
             if (!string.IsNullOrEmpty(name))

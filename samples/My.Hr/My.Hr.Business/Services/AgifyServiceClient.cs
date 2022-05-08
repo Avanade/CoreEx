@@ -20,9 +20,9 @@ public class AgifyApiClient : TypedHttpClientCore<AgifyApiClient>
         client.BaseAddress = new Uri(settings.AgifyApiEndpointUri);
     }
 
-    public override Task<HttpResult> HealthCheckAsync()
+    public override Task<HttpResult> HealthCheckAsync(CancellationToken cancellationToken)
     {
-        return base.HeadAsync(string.Empty, null, new HttpArg<string>("name", "health"));
+        return base.HeadAsync(string.Empty, null, new HttpArg<string>[] { new HttpArg<string>("name", "health") }, cancellationToken);
     }
 
     public async Task<AgifyResponse> GetAgeAsync(string name)
