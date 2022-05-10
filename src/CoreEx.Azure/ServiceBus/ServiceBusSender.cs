@@ -157,6 +157,7 @@ namespace CoreEx.Azure.ServiceBus
 
                     try
                     {
+                        Logger.LogInformation($"Sending {batch.Count} messages to {qn}.");
                         await sender.SendMessagesAsync(batch).ConfigureAwait(false);
                     }
                     catch (Exception ex)
