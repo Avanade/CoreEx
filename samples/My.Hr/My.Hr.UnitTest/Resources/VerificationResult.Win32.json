@@ -1,0 +1,29 @@
+{
+  "age": 64,
+  "gender": "female",
+  "genderProbability": 0.97,
+  "country": [
+    {
+      "country_Id": "SV",
+      "probability": 0.07477553
+    },
+    {
+      "country_Id": "GT",
+      "probability": 0.07223318
+    },
+    {
+      "country_Id": "NL",
+      "probability": 0.067494206
+    }
+  ],
+  "verificationMessages": [
+    "Performed verification for Wendy, F age 37. \r\n            Engine predicted age was 64. \r\n            Engine predicted gender was female with 97% probability.\r\n            Most likely nationality of Wendy is SV with 7% probability",
+    "Employee age (37) is not within range of 10 years of predicted age: 64",
+    "Employee gender (F) doesn\u0027t match predicted gender: female"
+  ],
+  "request": {
+    "name": "Wendy",
+    "age": 37,
+    "gender": "F"
+  }
+}

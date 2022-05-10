@@ -4,6 +4,7 @@ using Moq;
 using My.Hr.Business.ServiceContracts;
 using My.Hr.Functions;
 using NUnit.Framework;
+using System;
 using UnitTestEx.NUnit;
 
 namespace My.Hr.UnitTest
@@ -27,7 +28,10 @@ namespace My.Hr.UnitTest
             Assert.AreEqual(1, imp.GetNames().Length);
             var e = imp.GetEvents("verificationResults");
             Assert.AreEqual(1, e.Length);
-            ObjectComparer.Assert(UnitTestEx.Resource.GetJsonValue<EmployeeVerificationResponse>("VerificationResult.json"), e[0].Value);
+            if (Environment.OSVersion.Platform == PlatformID.Unix)
+                ObjectComparer.Assert(UnitTestEx.Resource.GetJsonValue<EmployeeVerificationResponse>("VerificationResult.Unix.json"), e[0].Value);
+            else
+                ObjectComparer.Assert(UnitTestEx.Resource.GetJsonValue<EmployeeVerificationResponse>("VerificationResult.Win32.json"), e[0].Value);
         }
     }
 }

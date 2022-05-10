@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v1.0.next
+- *Enhancement:* Overloads added to `WebApi` to allow the body value to be passed versus reading from the `HttpRequest`. This is useful where allowing the likes of the ASP.NET infrastructure to deserialize value directly.
+
 ## v1.0.4
 - *Enhancement:* Status code checking added to `TypedHttpClientBase<TSelf>`.
 - *Enhancement:* Added `IValidator<T>` to enable any implementation (agnostic); created wrappers to enable `FluentValidation` (including dependency injection helper).

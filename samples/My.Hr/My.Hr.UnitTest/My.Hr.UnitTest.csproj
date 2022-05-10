@@ -9,12 +9,14 @@
 
   <ItemGroup>
     <None Remove="Data\Data.yaml" />
-    <None Remove="Resources\VerificationResult.json" />
+    <None Remove="Resources\VerificationResult.Unix.json" />
+    <None Remove="Resources\VerificationResult.Win32.json" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Data\Data.yaml" />
-    <EmbeddedResource Include="Resources\VerificationResult.json" />
+    <EmbeddedResource Include="Resources\VerificationResult.Unix.json" />
+    <EmbeddedResource Include="Resources\VerificationResult.Win32.json" />
   </ItemGroup>
 
   <ItemGroup>
