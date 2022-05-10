@@ -1,11 +1,11 @@
-﻿using CoreEx.Events;
+﻿using System.Linq;
+using System.Net.Http;
+using CoreEx.Events;
 using CoreEx.Json;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Functions;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
-using System.Linq;
-using System.Net.Http;
 using UnitTestEx;
 using UnitTestEx.NUnit;
 

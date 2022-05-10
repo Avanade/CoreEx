@@ -1,15 +1,15 @@
-using FluentAssertions;
-using System.Threading.Tasks;
 using System;
-using NUnit.Framework;
-using UnitTestEx.NUnit;
-using CoreEx.TestFunction;
-using CoreEx.Configuration;
+using System.Threading;
+using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus.Administration;
 using CoreEx.Azure.HealthChecks;
+using CoreEx.Configuration;
+using CoreEx.TestFunction;
+using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
-using Azure.Messaging.ServiceBus.Administration;
-using System.Threading;
+using NUnit.Framework;
+using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
 {
@@ -96,7 +96,8 @@ namespace CoreEx.Test.HealthChecks
             , (_, __) => mock.Object);
 
             var check = new AzureServiceBusQueueHealthCheck(settings, connectionName, queueSettingName);
-            var context = new HealthCheckContext(){
+            var context = new HealthCheckContext()
+            {
                 Registration = new HealthCheckRegistration("Unit Test", check, null, null)
             };
 

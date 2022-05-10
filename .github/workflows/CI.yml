@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, version-1-0-3 ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, version-1-0-3 ]
 
 jobs:
   build:
@@ -27,5 +27,21 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
 
+    - name: Pull SqlServer
+      run: docker pull mcr.microsoft.com/mssql/server
+      
+    - name: Start SqlServer
+      run: docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sAPWD23.^0" --name sqlserver -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
+      
+    - name: Sleep (allow SqlServer to complete startup)
+      run: sleep 10
+
+    - name: Set EnvVar for Test
+      run: |
+        echo "ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
+
     - name: Test
-      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
+      run: dotnet test --filter TestCategory!=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
+
+    - name: TestWithDB
+      run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info

@@ -1,5 +1,3 @@
-using FluentAssertions;
-using System.Threading.Tasks;
 using System;
 using NUnit.Framework;
 using UnitTestEx.NUnit;
@@ -10,11 +8,13 @@ using CoreEx.HealthChecks.Checks;
 using System.Threading;
 using System.Net.Http;
 using System.Net;
+using System.Threading.Tasks;
+using CoreEx.Configuration;
 using CoreEx.Http;
 using CoreEx.Json;
-using CoreEx.Configuration;
-using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace CoreEx.Test.HealthChecks
 {
@@ -39,7 +39,7 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             var mcf = MockHttpClientFactory.Create();
             mcf.CreateClient("Test", "https://testing/").Request(HttpMethod.Head, "health").Respond.With(HttpStatusCode.OK);
-            
+
             using var test = FunctionTester.Create<Startup>()
                 .ReplaceHttpClientFactory(mcf)
                 .ConfigureServices(sc => sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/")));

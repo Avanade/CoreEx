@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus.Administration;
 using CoreEx.Azure.HealthChecks;
 using CoreEx.Configuration;
@@ -6,9 +9,6 @@ using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using NUnit.Framework;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
@@ -92,7 +92,7 @@ namespace CoreEx.Test.HealthChecks
             var exception = new ArgumentException("Test exception");
             mock.Setup(x => x.GetSubscriptionRuntimePropertiesAsync(
                     settings.GetValue<string>(topicSettingName, null!),
-                    settings.GetValue<string>(testSubscriptionName, null!), 
+                    settings.GetValue<string>(testSubscriptionName, null!),
                     It.IsAny<CancellationToken>()))
                 .ThrowsAsync(exception);
             AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetValue<string>(connectionName)
