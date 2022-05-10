@@ -4,12 +4,12 @@ using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Http;
 using CoreEx.Json;
+using CoreEx.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -98,8 +98,50 @@ namespace CoreEx.WebApis
 
             // Invoke the "actual" function via the pluggable invoker.
             ExecutionContext.OperationType = operationType;
-            var wap = new WebApiParam(this, new WebApiRequestOptions(request));
+            var wap = new WebApiParam(this, new WebApiRequestOptions(request), operationType);
             return await Invoker.InvokeAsync(this, ct => function(wap, ct), wap, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Validate the <paramref name="value"/>.
+        /// </summary>
+        /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
+        /// <param name="wap">The <see cref="WebApiParam"/>.</param>
+        /// <param name="useValue">Indicates whether to use the <paramref name="value"/>; otherwise, deserialize the JSON from the <see cref="WebApiParam.Request"/>.</param>
+        /// <param name="value">The value (already deserialized).</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="validator">The optional <see cref="IValidator{T}"/> to validate the value (only invoked where the value is not <c>null</c>).</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="ValidationException"/> where there is an error; otherwise, <see cref="WebApiParam{T}"/> for success.</returns>
+        protected internal async Task<(WebApiParam<TValue>?, ValidationException?)> ValidateValueAsync<TValue>(WebApiParam wap, bool useValue, TValue value, bool valueIsRequired = true, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
+        {
+            if (wap == null)
+                throw new ArgumentNullException(nameof(wap));
+
+            WebApiParam<TValue> wapv;
+            if (useValue)
+            {
+                if (valueIsRequired && value == null)
+                    return (null, new ValidationException($"{HttpExtensions.InvalidJsonMessagePrefix} Value is mandatory."));
+
+                if (value != null && validator != null)
+                {
+                    var vr = await validator.ValidateAsync(value, cancellationToken).ConfigureAwait(false);
+                    return (null, vr.ToValidationException());
+                }
+
+                wapv = new WebApiParam<TValue>(wap, value);
+            }
+            else
+            {
+                var vr = await wap.Request.ReadAsJsonValueAsync(JsonSerializer, valueIsRequired, validator, cancellationToken).ConfigureAwait(false);
+                if (vr.IsInvalid)
+                    return (null, vr.ValidationException);
+
+                wapv = new WebApiParam<TValue>(wap, vr.Value);
+            }
+
+            return (wapv, null);
         }
 
         /// <summary>

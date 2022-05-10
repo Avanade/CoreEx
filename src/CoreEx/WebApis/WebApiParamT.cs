@@ -14,7 +14,7 @@ namespace CoreEx.WebApis
         /// </summary>
         /// <param name="wap">The <see cref="WebApiParam"/> to copy from.</param>
         /// <param name="value">The deserialized request value.</param>
-        public WebApiParam(WebApiParam wap, T value) : base((wap ?? throw new ArgumentNullException(nameof(wap))).WebApi, wap.RequestOptions) => Value = InspectValue(value);
+        public WebApiParam(WebApiParam wap, T value) : base((wap ?? throw new ArgumentNullException(nameof(wap))).WebApi, wap.RequestOptions, wap.OperationType) => Value = InspectValue(value);
 
         /// <summary>
         /// Gets the deserialized request value.

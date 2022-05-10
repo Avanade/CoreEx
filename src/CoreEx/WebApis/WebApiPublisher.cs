@@ -62,7 +62,6 @@ namespace CoreEx.WebApis
             if (request.Method != HttpMethods.Post)
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PublishAsync)}.", nameof(request));
 
-            Logger.LogInformation("PUBLISHING...");
             return await RunAsync(request, async (wap, ct) =>
             {
                 var vr = await request.ReadAsJsonValueAsync(JsonSerializer, true, validator, cancellationToken).ConfigureAwait(false);
