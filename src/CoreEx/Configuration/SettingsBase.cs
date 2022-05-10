@@ -1,11 +1,14 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Http;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using CoreEx.Http;
+using Microsoft.Extensions.Configuration;
 
 namespace CoreEx.Configuration
 {
@@ -14,7 +17,9 @@ namespace CoreEx.Configuration
     /// </summary>
     public abstract class SettingsBase
     {
+        private readonly ThreadLocal<bool> _isReflectionCall = new();
         private readonly List<string> _prefixes = new();
+        private readonly Dictionary<string, PropertyInfo> _allProperties;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsBase"/> class.
@@ -33,6 +38,9 @@ namespace CoreEx.Configuration
 
                 _prefixes.Add(prefix.EndsWith('/') ? prefix : string.Concat(prefix, '/'));
             }
+
+            _allProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
+                .ToDictionary(p => p.Name, p => p);
         }
 
         /// <summary>
@@ -56,6 +64,20 @@ namespace CoreEx.Configuration
 
             if (Configuration == null)
                 return defaultValue;
+
+            // do not allow recursive calls to go too deep
+            if (_allProperties.ContainsKey(key) && !_isReflectionCall.Value)
+            {
+                try
+                {
+                    _isReflectionCall.Value = true;
+                    return _allProperties[key].GetValue(this) is T value ? value : defaultValue;
+                }
+                finally
+                {
+                    _isReflectionCall.Value = false;
+                }
+            }
 
             foreach (var prefix in _prefixes)
             {

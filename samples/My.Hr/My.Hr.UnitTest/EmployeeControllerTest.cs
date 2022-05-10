@@ -18,6 +18,7 @@ using UnitTestEx.NUnit;
 namespace My.Hr.UnitTest
 {
     [TestFixture]
+    [Category("WithDB")]
     public class EmployeeControllerTest
     {
         [OneTimeSetUp]

@@ -16,7 +16,6 @@ services:
       - MSSQL_AGENT_ENABLED=true
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__sqlserver:MyHr=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
-
     ports:
       - "5433:1433"
     volumes:
@@ -30,6 +29,21 @@ services:
       - PORT=80
     ports:
       - "5103:80"
+
+  myhr-functions:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - AZURE_FUNCTIONS_ENVIRONMENT=Development
+      - OpenApi__HideSwaggerUI=false
+      - AgifyApiEndpointUri=https://api.agify.io
+      - NationalizeApiClientApiEndpointUri=https://api.nationalize.io
+      - GenderizeApiClientApiEndpointUri=https://api.genderize.io
+      - VerificationQueueName=pendingVerifications
+      - VerificationResultsQueueName=verificationResults
+      - ConnectionStrings__Database=Data Source=sqldata,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
+      - PORT=80
+    ports:
+      - "5104:80"
 
 volumes:
   myhr-sqldata:

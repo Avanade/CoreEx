@@ -11,10 +11,8 @@ COPY "samples/My.Hr/My.Hr.sln" "samples/My.Hr/My.Hr.sln"
 
 COPY "samples/My.Hr/My.Hr.Api/My.Hr.Api.csproj" "samples/My.Hr/My.Hr.Api/My.Hr.Api.csproj"
 COPY "samples/My.Hr/My.Hr.Business/My.Hr.Business.csproj" "samples/My.Hr/My.Hr.Business/My.Hr.Business.csproj"
-# COPY "samples/My.Hr/My.Hr.CodeGen/My.Hr.CodeGen.csproj" "samples/My.Hr/My.Hr.CodeGen/My.Hr.CodeGen.csproj"
-# COPY "samples/My.Hr/My.Hr.Common/My.Hr.Common.csproj" "samples/My.Hr/My.Hr.Common/My.Hr.Common.csproj"
 COPY "samples/My.Hr/My.Hr.Database/My.Hr.Database.csproj" "samples/My.Hr/My.Hr.Database/My.Hr.Database.csproj"
-# COPY "samples/My.Hr/My.Hr.Test/My.Hr.Test.csproj" "samples/My.Hr/My.Hr.Test/My.Hr.Test.csproj"
+COPY "samples/My.Hr/My.Hr.Functions/My.Hr.Functions.csproj" "samples/My.Hr/My.Hr.Functions/My.Hr.Functions.csproj"
 
 COPY "src/CoreEx/CoreEx.csproj" "src/CoreEx/CoreEx.csproj"
 COPY "src/CoreEx.FluentValidation/CoreEx.FluentValidation.csproj" "src/CoreEx.FluentValidation/CoreEx.FluentValidation.csproj"
@@ -30,6 +28,7 @@ RUN dotnet publish --no-restore -c Release -o /app
 
 FROM build as unittest
 WORKDIR /src/samples/My.Hr/My.Hr.Test
+# can run tests here on buils
 
 FROM build AS publish
 
