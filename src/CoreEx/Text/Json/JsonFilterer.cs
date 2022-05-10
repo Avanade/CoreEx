@@ -25,10 +25,11 @@ namespace CoreEx.Text.Json
         /// <param name="filter">The <see cref="JsonPropertyFilter"/>; defaults to <see cref="JsonPropertyFilter.Include"/>.</param>
         /// <param name="options">The optional <see cref="JsonSerializerOptions"/>.</param>
         /// <param name="comparison">The names <see cref="StringComparison"/>; defaults to <see cref="StringComparison.OrdinalIgnoreCase"/>.</param>
+        /// <param name="preFilterInspector">The <see cref="IJsonPreFilterInspector"/> action.</param>
         /// <returns><c>true</c> indicates that at least one JSON node was filtered (removed); otherwise, <c>false</c> for no changes.</returns>
-        public static bool TryApply<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, JsonSerializerOptions? options = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+        public static bool TryApply<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, JsonSerializerOptions? options = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
-            var r = TryApply(value, names, out JsonNode node, filter, options, comparison);
+            var r = TryApply(value, names, out JsonNode node, filter, options, comparison, preFilterInspector);
             json = node.ToJsonString();
             return r;
         }
@@ -43,13 +44,16 @@ namespace CoreEx.Text.Json
         /// <param name="filter">The <see cref="JsonPropertyFilter"/>; defaults to <see cref="JsonPropertyFilter.Include"/>.</param>
         /// <param name="options">The optional <see cref="JsonSerializerOptions"/>.</param>
         /// <param name="comparison">The names <see cref="StringComparison"/>; defaults to <see cref="StringComparison.OrdinalIgnoreCase"/>.</param>
+        /// <param name="preFilterInspector">The <see cref="IJsonPreFilterInspector"/> action.</param>
         /// <returns><c>true</c> indicates that at least one JSON node was filtered (removed); otherwise, <c>false</c> for no changes.</returns>
-        public static bool TryApply<T>(T value, IEnumerable<string>? names, out JsonNode json, JsonPropertyFilter filter = JsonPropertyFilter.Include, JsonSerializerOptions? options = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+        public static bool TryApply<T>(T value, IEnumerable<string>? names, out JsonNode json, JsonPropertyFilter filter = JsonPropertyFilter.Include, JsonSerializerOptions? options = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
             json =  System.Text.Json.JsonSerializer.SerializeToNode(value, options)!;
+            preFilterInspector?.Invoke(new JsonPreFilterInspector(json));
+
             return Apply(json, names, filter, comparison);
         }
 

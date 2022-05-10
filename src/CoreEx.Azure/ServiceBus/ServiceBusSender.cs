@@ -79,6 +79,15 @@ namespace CoreEx.Azure.ServiceBus
             if (events == null || !events.Any())
                 return;
 
+            var totalCount = events.Count();
+            Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);
+
+            if (events.Count() != events.Select(x => x.Id).Distinct().Count())
+                throw new EventSendException(PrependStats($"All events must have a unique identifier ({nameof(EventSendData)}.{nameof(EventSendData.Id)}).", totalCount, totalCount), events);
+
+            // Sets up the list of unsent events.
+            var unsentEvents = new List<EventSendData>(events);
+
             // Why this logic: https://github.com/Azure/azure-sdk-for-net/tree/Azure.Messaging.ServiceBus_7.1.0/sdk/servicebus/Azure.Messaging.ServiceBus/#send-and-receive-a-batch-of-messages
             var queueDict = new Dictionary<string, Queue<(ServiceBusMessage Message, int Index)>>();
             var index = 0;
@@ -120,7 +129,7 @@ namespace CoreEx.Azure.ServiceBus
 
                 OnServiceBusMessage(@event, msg);
 
-                var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new InvalidOperationException($"{nameof(DefaultQueueOrTopicName)} must have a non null value.");
+                var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new EventSendException(PrependStats($"{nameof(DefaultQueueOrTopicName)} must have a non null value.", totalCount, unsentEvents.Count), unsentEvents);
                 if (queueDict.TryGetValue(name, out var queue))
                     queue.Enqueue((msg, index++));
                 else
@@ -131,28 +140,36 @@ namespace CoreEx.Azure.ServiceBus
                 }
             }
 
+            Logger.LogDebug("There are {QueueTopicCount} queues/topics specified; as such there will be that many batches sent as a minimum.", queueDict.Keys.Count);
+
             // Get queue name by checking configuration override.
             foreach (var qitem in queueDict)
             {
                 var qn = Settings.GetValue($"Publisher_ServiceBusName_{qitem.Key}", defaultValue: qitem.Key);
                 var queue = qitem.Value;
+                var sentIds = new List<string>();
 
                 // Send in batches.
                 await using var sender = _client.CreateSender(qn);
                 while (queue.Count > 0)
                 {
+                    sentIds.Clear();
                     using var batch = await sender.CreateMessageBatchAsync(cancellationToken).ConfigureAwait(false);
 
                     // Add the first message to the batch.
                     var firstMsg = queue.Peek();
                     if (batch.TryAddMessage(firstMsg.Message))
+                    {
+                        sentIds.Add(firstMsg.Message.MessageId);
                         queue.Dequeue();
+                    }
                     else
-                        throw new InvalidOperationException("ServiceBusMessage is too large and cannot be sent.");
+                        throw new EventSendException(PrependStats("ServiceBusMessage is too large and cannot be sent.", totalCount, unsentEvents.Count), unsentEvents);
 
                     // Keep adding until done or max size reached for batch.
                     while (queue.Count > 0 && batch.TryAddMessage(queue.Peek().Message))
                     {
+                        sentIds.Add(queue.Peek().Message.MessageId);
                         queue.Dequeue();
                     }
 
@@ -163,13 +180,20 @@ namespace CoreEx.Azure.ServiceBus
                     }
                     catch (Exception ex)
                     {
-                        throw new InvalidOperationException($"ServiceBusMessage cannot be sent: {ex.Message}", ex);
+                        Logger.LogDebug("{UnsentCount} of the total {TotalCount} events were not successfully sent.", unsentEvents.Count, totalCount);
+                        throw new EventSendException(PrependStats($"ServiceBusMessage cannot be sent: {ex.Message}", totalCount, unsentEvents.Count), ex, unsentEvents);
                     }
 
-                    // Begin next batch; continue ^ where any left.
+                    // Begin next batch after confirming sent events; continue ^ where any left.
+                    unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id));
                 }
             }
         }
+
+        /// <summary>
+        /// Prepend the sent stats to the message.
+        /// </summary>
+        private static string PrependStats(string message, int totalCount, int unsentCount) => $"{unsentCount} of the total {totalCount} events were not successfully sent. {message}";
 
         /// <summary>
         /// Invoked to modify the <see cref="ServiceBusMessage"/> configuration prior to send.

@@ -3,7 +3,9 @@
 Represents the **NuGet** versions.
 
 ## v1.0.next
-- *Enhancement:* Overloads added to `WebApi` to allow the body value to be passed versus reading from the `HttpRequest`. This is useful where allowing the likes of the ASP.NET infrastructure to deserialize value directly.
+- *Enhancement:* Overloads added to `WebApi` and `WebApiPublisher` to allow the body value to be passed versus reading from the `HttpRequest`. This is useful where allowing the likes of the ASP.NET infrastructure to deserialize value directly.
+- *Enhancement:* Automatic `ETag` generation is performed prior to field filtering as this is considered a post response action and should not affect `ETag` value.
+- *Enhancement:* Added `EventSendException` to provide a standard means to capture the events not sent to enable additional processing of those where required.
 
 ## v1.0.4
 - *Enhancement:* Status code checking added to `TypedHttpClientBase<TSelf>`.

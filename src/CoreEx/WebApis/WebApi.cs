@@ -737,7 +737,7 @@ namespace CoreEx.WebApis
         }
 
         /// <summary>
-        /// Where etags are supported or automatic concurreny then we need to make sure one was provided up-front and match.
+        /// Where etags are supported or automatic concurrency then we need to make sure one was provided up-front and match.
         /// </summary>
         private void ConcurrencyETagMatching<TValue>(WebApiParam wap, TValue getValue, TValue putValue, bool autoConcurrency)
         {
@@ -748,8 +748,14 @@ namespace CoreEx.WebApis
                 if (string.IsNullOrEmpty(etag))
                     throw new ConcurrencyException($"An 'If-Match' header is required for an HTTP {wap.Request.Method} where the underlying entity supports concurrency (ETag).");
 
-                if (etag != null && etag != ValueContentResult.EstablishETag(wap.RequestOptions, getValue!, null, JsonSerializer))
-                    throw new ConcurrencyException();
+                if (etag != null)
+                {
+                    if (!ValueContentResult.TryGetETag(getValue!, out var getEt))
+                        getEt = ValueContentResult.GenerateETag(wap.RequestOptions, getValue!, null, JsonSerializer);
+
+                    if (etag != getEt)
+                        throw new ConcurrencyException();
+                }
             }
         }
 

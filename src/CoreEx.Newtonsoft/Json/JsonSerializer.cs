@@ -92,13 +92,13 @@ namespace CoreEx.Newtonsoft.Json
         }
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
-            => JsonFilterer.TryApply(value, names, out json, filter, Settings, comparison);
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
+            => JsonFilterer.TryApply(value, names, out json, filter, Settings, comparison, preFilterInspector);
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
-            var r = JsonFilterer.TryApply(value, names, out JToken node, filter, Settings, comparison);
+            var r = JsonFilterer.TryApply(value, names, out JToken node, filter, Settings, comparison, preFilterInspector);
             json = node;
             return r;
         }

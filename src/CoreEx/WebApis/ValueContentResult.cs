@@ -132,17 +132,27 @@ namespace CoreEx.WebApis
             if (requestOptions.IncludeText && ExecutionContext.HasCurrent)
                 ExecutionContext.Current.IsTextSerializationEnabled = true;
 
-            // Serialize whilst also applying any filtering of the data where selected.
-            string json;
-            if (requestOptions.IncludeFields != null && requestOptions.IncludeFields.Any())
-                jsonSerializer.TryApplyFilter(val, requestOptions.IncludeFields, out json, JsonPropertyFilter.Include);
-            else if (requestOptions.ExcludeFields != null && requestOptions.ExcludeFields.Any())
-                jsonSerializer.TryApplyFilter(val, requestOptions.ExcludeFields, out json, JsonPropertyFilter.Exclude);
-            else
-                json = jsonSerializer.Serialize(val);
+            // Serialize and generate the etag whilst also applying any filtering of the data where selected.
+            string? json = null;
+            bool hasETag = TryGetETag(val, out var etag);
 
-            // Establish an ETag; generate if you have to.
-            var etag = EstablishETag(requestOptions, val, json, jsonSerializer);
+            Action<IJsonPreFilterInspector>? inspector;
+            if (requestOptions.IncludeFields != null && requestOptions.IncludeFields.Any())
+            {
+                inspector = hasETag ? null : fi => etag = GenerateETag(requestOptions, val, fi.ToJsonString(), jsonSerializer);
+                jsonSerializer.TryApplyFilter(val, requestOptions.IncludeFields, out json, JsonPropertyFilter.Include, preFilterInspector: inspector);
+            }
+            else if (requestOptions.ExcludeFields != null && requestOptions.ExcludeFields.Any())
+            {
+                inspector = hasETag ? null : fi => etag = GenerateETag(requestOptions, val, fi.ToJsonString(), jsonSerializer);
+                jsonSerializer.TryApplyFilter(val, requestOptions.ExcludeFields, out json, JsonPropertyFilter.Exclude, preFilterInspector: inspector);
+            }
+            else
+            {
+                json = jsonSerializer.Serialize(val);
+                if (!hasETag)
+                    etag = GenerateETag(requestOptions, val, json, jsonSerializer);
+            }
 
             // Check for not-modified and return status accordingly.
             if (checkForNotModified && etag == requestOptions.ETag)
@@ -159,13 +169,38 @@ namespace CoreEx.WebApis
         }
 
         /// <summary>
+        /// Determines whether an <see cref="IETag.ETag"/> or <see cref="ExecutionContext.ETag"/> value exists and returns where found.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="etag">The ETag for the value where it exists.</param>
+        /// <returns><c>true</c> indicates that the ETag value exists; otherwise, <c>false</c> to generate.</returns>
+        internal static bool TryGetETag(object value, out string? etag)
+        {
+            if (value is IETag ietag && ietag.ETag != null)
+            {
+                etag = ietag.ETag;
+                return true;
+            }
+
+            if (ExecutionContext.HasCurrent && ExecutionContext.Current.ETag != null)
+            {
+                etag = ExecutionContext.Current.ETag;
+                return true;
+            }
+
+            etag = null;
+            return false;
+        }
+
+        /// <summary>
         /// Establish the ETag for the value/json.
         /// </summary>
         /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
         /// <param name="value">The value.</param>
         /// <param name="json">The value serialized to JSON.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        internal static string EstablishETag(WebApiRequestOptions requestOptions, object value, string? json, IJsonSerializer jsonSerializer)
+        /// <remarks>It is expected that <see cref="TryGetETag(object, out string?)"/> is invoked prior to this to determine whether generation is required.</remarks>
+        internal static string GenerateETag(WebApiRequestOptions requestOptions, object value, string? json, IJsonSerializer jsonSerializer)
         {
             if (value is IETag etag && etag.ETag != null)
                 return etag.ETag;

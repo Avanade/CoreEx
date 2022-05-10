@@ -5,8 +5,8 @@ using System.Collections.Generic;
 namespace CoreEx.Json
 {
     /// <summary>
-    /// Defines the JSON property filter (<see cref="Include"/> or <see cref="Exclude"/>) for the <see cref="IJsonSerializer.TryApplyFilter{T}(T, IEnumerable{string}?, out object, JsonPropertyFilter, System.StringComparison)"/>
-    /// and <see cref="IJsonSerializer.TryApplyFilter{T}(T, IEnumerable{string}?, out string, JsonPropertyFilter, System.StringComparison)"/>.
+    /// Defines the JSON property filter (<see cref="Include"/> or <see cref="Exclude"/>) for the <see cref="IJsonSerializer.TryApplyFilter{T}(T, IEnumerable{string}?, out object, JsonPropertyFilter, System.StringComparison, System.Action{IJsonPreFilterInspector}?)"/>
+    /// and <see cref="IJsonSerializer.TryApplyFilter{T}(T, IEnumerable{string}?, out string, JsonPropertyFilter, System.StringComparison, System.Action{IJsonPreFilterInspector}?)"/>.
     /// </summary>
     public enum JsonPropertyFilter
     {

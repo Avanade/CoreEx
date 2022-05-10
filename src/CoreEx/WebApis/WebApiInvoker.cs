@@ -100,8 +100,8 @@ namespace CoreEx.WebApis
         /// <param name="owner">The <see cref="WebApiBase"/> owner/caller</param>
         /// <param name="param">The corresponding <see cref="WebApiParam"/>.</param>
         /// <param name="result">The result from the function.</param>
-        /// <returns>The result.</returns>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The result.</returns>
         protected virtual Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result, CancellationToken cancellationToken = default) => Task.FromResult(result);
 
         /// <summary>
@@ -112,9 +112,9 @@ namespace CoreEx.WebApis
         /// <param name="param">The corresponding <see cref="WebApiParam"/>.</param>
         /// <param name="exception">The <see cref="Exception"/>.</param>
         /// <param name="result">The result from the function.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The result.</returns>
         /// <remarks>Only invoked when <see cref="CatchAndHandleExceptions"/> is set to <c>true</c>. The exception will have already been converted to the corresponding result where applicable.</remarks>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         protected virtual Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result, CancellationToken cancellationToken = default) => Task.FromResult(result);
     }
 }

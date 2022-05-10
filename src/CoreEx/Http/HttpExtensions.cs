@@ -177,7 +177,7 @@ namespace CoreEx.Http
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The content where successful, otherwise the <see cref="ValidationException"/> invalid.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there is case it ever does.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there in case it ever does.")]
         public static async Task<(string? Content, ValidationException? Exception)> ReadAsStringAsync(this HttpRequest httpRequest, bool valueIsRequired = true, CancellationToken cancellationToken = default)
         {
             using var sr = new StreamReader((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Body, Encoding.UTF8, true, 1024, leaveOpen: true);

@@ -119,7 +119,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Dispose of resources.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when there are </exception>
+        /// <exception cref="InvalidOperationException">Thrown when there are unsent events.</exception>
         public void Dispose()
         {
             if (!_disposed)
