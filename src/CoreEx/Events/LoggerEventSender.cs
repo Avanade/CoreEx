@@ -2,7 +2,9 @@
 
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Text.Json.Nodes;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -22,7 +24,7 @@ namespace CoreEx.Events
         public LoggerEventSender(ILogger<LoggerEventSender> logger) => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         /// <inheritdoc/>
-        public Task SendAsync(params EventSendData[] events)
+        public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellation)
         {
             var i = 0;
             foreach (var @event in events)

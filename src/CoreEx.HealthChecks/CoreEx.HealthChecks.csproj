@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>CoreEx.HealthChecks</RootNamespace>
-    <Product>UnitTestEx</Product>
+    <Product>CoreEx</Product>
     <Title>CoreEx .NET Standard HealthChecks Extensions.</Title>
     <Description>CoreEx .NET Standard (v2.1) HealthChecks Extensions.</Description>
     <PackageTags>coreex api function aspnet health healthchecks</PackageTags>

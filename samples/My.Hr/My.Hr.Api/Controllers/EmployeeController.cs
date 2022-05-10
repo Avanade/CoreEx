@@ -1,11 +1,12 @@
-using System.Net;
-using System.Net.Mime;
-using CoreEx.FluentValidation;
+using CoreEx.Http;
 using CoreEx.WebApis;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using My.Hr.Business.Models;
 using My.Hr.Business.Services;
 using My.Hr.Business.Validators;
+using System.Net;
+using System.Net.Mime;
 
 namespace My.Hr.Api.Controllers;
 
@@ -48,11 +49,12 @@ public class EmployeeController : ControllerBase
     /// </summary>
     /// <returns>The created <see cref="Employee"/>.</returns>
     [HttpPost("", Name = "Create")]
+    [AcceptsBody(typeof(Employee))]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.Created)]
     public Task<IActionResult> CreateAsync()
-        => _webApi.PostAsync<Employee, Employee>(Request, p => _service.AddEmployeeAsync(p.Validate<Employee, EmployeeValidator>()),
-           statusCode: HttpStatusCode.Created, locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
+        => _webApi.PostAsync(Request, p => _service.AddEmployeeAsync(p.Value!),
+           statusCode: HttpStatusCode.Created, validator: new EmployeeValidator().Convert(), locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
 
     /// <summary>
     /// Updates an existing <see cref="Employee"/>.
@@ -60,10 +62,11 @@ public class EmployeeController : ControllerBase
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
     /// <returns>The updated <see cref="Employee"/>.</returns>
     [HttpPut("{id}", Name = "Update")]
+    [AcceptsBody(typeof(Employee))]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> UpdateAsync(Guid id)
-        => _webApi.PutAsync<Employee, Employee>(Request, p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
+        => _webApi.PutAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
 
     /// <summary>
     /// Patches an existing <see cref="Employee"/>.
@@ -71,10 +74,11 @@ public class EmployeeController : ControllerBase
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
     /// <returns>The updated <see cref="Employee"/>.</returns>
     [HttpPatch("{id}", Name = "Patch")]
+    [AcceptsBody(typeof(Employee), HttpConsts.MergePatchMediaTypeName)]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> PatchAsync(Guid id)
-        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Validate<Employee, EmployeeValidator>(), id));
+        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
 
     /// <summary>
     /// Deletes the specified <see cref="Employee"/>.

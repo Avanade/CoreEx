@@ -40,5 +40,26 @@ namespace FluentValidation
             /// <returns>The <see cref="IRuleBuilderOptions{T, TProperty}"/> to support fluent-style method-chaining.</returns>
             public IRuleBuilderOptions<T, string?> TypeOf<TRef>() where TRef : IReferenceData => _ruleBuilder.SetValidator(new ReferenceDataValidator<T, TRef>()); 
         }
+
+        /// <summary>
+        /// Associates a validator provider with the current property rule where the property is nullable (and therefore optional).
+        /// </summary>
+        /// <typeparam name="T">The owning object <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">the property <see cref="Type"/>.</typeparam>
+        /// <param name="ruleBuilder">The <paramref name="ruleBuilder"/> to enable the extension method.</param>
+        /// <param name="validator">The property <see cref="IValidator{T}"/>.</param>
+        /// <param name="ruleSets">The list of rule sets.</param>
+        /// <returns>The <see cref="IRuleBuilderOptions{T, TProperty}"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>Added as advised: <see href="https://github.com/FluentValidation/FluentValidation/issues/1320"/>.</remarks>
+        public static IRuleBuilderOptions<T, TProperty> SetOptionalValidator<T, TProperty>(this IRuleBuilder<T, TProperty?> ruleBuilder, IValidator<TProperty> validator, params string[] ruleSets) where TProperty : class
+            => ruleBuilder.SetValidator(validator!, ruleSets)!;
+
+        /// <summary>
+        /// Converts the <i>FluentValidation</i> <see cref="IValidator{T}"/> to a <see cref="CoreEx.Validation.IValidator{T}"/> using a <see cref="ValidatorWrapper{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="validator">The <i>FluentValidation</i> <see cref="IValidator{T}"/>.</param>
+        /// <returns>The <see cref="CoreEx.Validation.IValidator{T}"/>.</returns>
+        public static CoreEx.Validation.IValidator<T> Convert<T>(this IValidator<T> validator) => new ValidatorWrapper<T>(validator);
     }
 }

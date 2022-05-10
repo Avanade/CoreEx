@@ -12,7 +12,7 @@ public class ReferenceDataService : IReferenceDataProvider
 
     public Type[] Types => new Type[] { typeof(USState), typeof(Gender) };
 
-    public async Task<IReferenceDataCollection> GetAsync(Type type) => type switch
+    public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         Type _ when type == typeof(USState) => await GetUSStatesAsync().ConfigureAwait(false),
         Type _ when type == typeof(Gender) => await GetGendersAsync().ConfigureAwait(false),

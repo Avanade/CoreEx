@@ -10,6 +10,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 
@@ -671,7 +672,7 @@ namespace CoreEx.Test.Framework.RefData
 
             // Should load both in parallel.
             var sw = Stopwatch.StartNew();
-            await ReferenceDataOrchestrator.Current.PrefetchAsync("RefData", "RefDataEx").ConfigureAwait(false);
+            await ReferenceDataOrchestrator.Current.PrefetchAsync(new string[] { "RefData", "RefDataEx" }).ConfigureAwait(false);
             sw.Stop();
             Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
 
@@ -737,7 +738,7 @@ namespace CoreEx.Test.Framework.RefData
 
         public Type[] Types => new Type[] { typeof(RefData), typeof(RefDataEx), typeof(State), typeof(Suburb) };
 
-        public Task<IReferenceDataCollection> GetAsync(Type type)
+        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
         {
             IReferenceDataCollection coll = type switch
             {
@@ -759,7 +760,7 @@ namespace CoreEx.Test.Framework.RefData
 
         public Type[] Types => new Type[] { typeof(RefData), typeof(RefDataEx) };
 
-        public async Task<IReferenceDataCollection> GetAsync(Type type)
+        public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
         {
             IReferenceDataCollection coll = type switch
             {

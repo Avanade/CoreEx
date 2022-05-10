@@ -3,6 +3,7 @@
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Json;
+using CoreEx.Validation;
 using CoreEx.WebApis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
@@ -14,6 +15,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Http
@@ -134,9 +136,11 @@ namespace CoreEx.Http
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where <c>null</c>.</param>
+        /// <param name="validator">The optional <see cref="IValidator{T}"/> to validate the value (only invoked where the value is not <c>null</c>).</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpRequestJsonValue{T}"/>.</returns>
-        public static async Task<HttpRequestJsonValue<T>> ReadAsJsonValueAsync<T>(this HttpRequest httpRequest, IJsonSerializer jsonSerializer, bool valueIsRequired = true)
+        public static async Task<HttpRequestJsonValue<T>> ReadAsJsonValueAsync<T>(this HttpRequest httpRequest, IJsonSerializer jsonSerializer, bool valueIsRequired = true, IValidator<T>? validator = null, CancellationToken cancellationToken = default)
         {
             using var sr = new StreamReader((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Body, Encoding.UTF8, true, 1024, leaveOpen: true);
             var json = await sr.ReadToEndAsync().ConfigureAwait(false);
@@ -150,6 +154,12 @@ namespace CoreEx.Http
 
                 if (valueIsRequired && jv.Value == null)
                     jv.ValidationException = new ValidationException($"{InvalidJsonMessagePrefix} Value is mandatory.");
+
+                if (jv.Value != null && validator != null)
+                {
+                    var vr = await validator.ValidateAsync(jv.Value, cancellationToken).ConfigureAwait(false);
+                    jv.ValidationException = vr.ToValidationException();
+                }
             }
             catch (Exception ex)
             {
@@ -159,13 +169,16 @@ namespace CoreEx.Http
             return jv;
         }
 
+
         /// <summary>
         /// Reads the HTTP <see cref="HttpRequest.Body"/> as a <see cref="string"/>.
         /// </summary>
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The content where successful, otherwise the <see cref="ValidationException"/> invalid.</returns>
-        public static async Task<(string? Content, ValidationException? Exception)> ReadAsStringAsync(this HttpRequest httpRequest, bool valueIsRequired = true)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there is case it ever does.")]
+        public static async Task<(string? Content, ValidationException? Exception)> ReadAsStringAsync(this HttpRequest httpRequest, bool valueIsRequired = true, CancellationToken cancellationToken = default)
         {
             using var sr = new StreamReader((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Body, Encoding.UTF8, true, 1024, leaveOpen: true);
             var content = await sr.ReadToEndAsync().ConfigureAwait(false);
@@ -224,8 +237,10 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IExtendedException"/> where applicable; otherwise, <c>null</c>.</returns>
-        public async static Task<IExtendedException?> ToExtendedExceptionAsync(this HttpResponseMessage response, bool useContentAsErrorMessage = false)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there is case it ever does.")]
+        public async static Task<IExtendedException?> ToExtendedExceptionAsync(this HttpResponseMessage response, bool useContentAsErrorMessage = false, CancellationToken cancellationToken = default)
         {
             if (response == null || response.IsSuccessStatusCode)
                 return null;

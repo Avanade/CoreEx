@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -14,7 +16,8 @@ namespace CoreEx.Events
         /// Sends one or more <see cref="EventSendData"/> objects.
         /// </summary>
         /// <param name="events">One or more <see cref="EventData"/> objects to be sent.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="Task"/>.</returns>
-        Task SendAsync(params EventSendData[] events);
+        Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default);
     }
 }

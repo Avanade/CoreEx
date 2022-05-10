@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Mime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Stj = System.Text.Json;
 
@@ -196,7 +197,7 @@ namespace CoreEx.Http
         }
 
         /// <inheritdoc/>
-        public Task ModifyHttpRequestAsync(HttpRequestMessage request, IJsonSerializer jsonSerializer)
+        public Task ModifyHttpRequestAsync(HttpRequestMessage request, IJsonSerializer jsonSerializer, CancellationToken cancellationToken = default)
         {
             if (request.Content == null || ArgType != HttpArgType.FromBody || Value == null)
                 return Task.CompletedTask;

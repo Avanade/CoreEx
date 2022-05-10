@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>CoreEx</RootNamespace>
-    <Product>UnitTestEx</Product>
+    <Product>CoreEx</Product>
     <Title>CoreEx .NET Standard Extensions.</Title>
     <Description>CoreEx .NET Standard (v2.1) Extensions.</Description>
     <PackageTags>coreex api function aspnet entity microservices referencedata jsonserializer eventdata events httpclient settings</PackageTags>
@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageReference Include="Polly" Version="7.2.3" />
     <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Memory.Data" Version="6.0.0" />

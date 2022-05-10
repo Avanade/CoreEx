@@ -2,6 +2,7 @@
 
 using CoreEx.Json;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -40,7 +41,7 @@ namespace CoreEx.Events
         public bool SerializeValueOnly { get; set; } = true;
 
         /// <inheritdoc/>
-        public Task<EventData> DeserializeAsync(BinaryData eventData)
+        public Task<EventData> DeserializeAsync(BinaryData eventData, CancellationToken cancellationToken = default)
         {
             if (SerializeValueOnly)
                 return Task.FromResult(new EventData { Value = JsonSerializer.Deserialize(eventData) });
@@ -49,7 +50,7 @@ namespace CoreEx.Events
         }
 
         /// <inheritdoc/>
-        public Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData)
+        public Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData, CancellationToken cancellationToken = default)
         {
             if (SerializeValueOnly)
                 return Task.FromResult(new EventData<T> { Id = null, Timestamp = null, CorrelationId = null, Value = JsonSerializer.Deserialize<T>(eventData)! });
@@ -58,7 +59,7 @@ namespace CoreEx.Events
         }
 
         /// <inheritdoc/>
-        public Task<BinaryData> SerializeAsync(EventData @event)
+        public Task<BinaryData> SerializeAsync(EventData @event, CancellationToken cancellationToken = default)
         {
             if (SerializeValueOnly)
                 return Task.FromResult(JsonSerializer.SerializeToBinaryData(@event.Value));
@@ -69,7 +70,7 @@ namespace CoreEx.Events
         }
 
         /// <inheritdoc/>
-        public Task<BinaryData> SerializeAsync<T>(EventData<T> @event)
+        public Task<BinaryData> SerializeAsync<T>(EventData<T> @event, CancellationToken cancellationToken = default)
         {
             if (SerializeValueOnly)
                 return Task.FromResult(JsonSerializer.SerializeToBinaryData(@event.Value));

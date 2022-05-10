@@ -10,12 +10,13 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.WebApis
 {
     /// <summary>
-    /// Provides the base Web API execution encapsulation to <see cref="RunAsync(HttpRequest, Func{WebApiParam, Task{IActionResult}}, OperationType)"/> the underlying logic in a consistent manner.
+    /// Provides the base Web API execution encapsulation to <see cref="RunAsync(HttpRequest, Func{WebApiParam, CancellationToken, Task{IActionResult}}, OperationType, CancellationToken)"/> the underlying logic in a consistent manner.
     /// </summary>
     public abstract class WebApiBase
     {
@@ -85,8 +86,9 @@ namespace CoreEx.WebApis
         /// <param name="function">The function logic to invoke.</param>
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>This is, and must be, used by all methods that process an <see cref="HttpRequest"/> to ensure that the standardized before and after, success and error, handling occurs as required.</remarks>
-        protected async Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified)
+        protected async Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified, CancellationToken cancellationToken = default)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -97,21 +99,22 @@ namespace CoreEx.WebApis
             // Invoke the "actual" function via the pluggable invoker.
             ExecutionContext.OperationType = operationType;
             var wap = new WebApiParam(this, new WebApiRequestOptions(request));
-            return await Invoker.InvokeAsync(this, () => function(wap), wap).ConfigureAwait(false);
+            return await Invoker.InvokeAsync(this, ct => function(wap, ct), wap, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Provides an opportunity to handle an unhandled exception.
         /// </summary>
         /// <param name="ex">The unhandled <see cref="Exception"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IActionResult"/> to return where handled; otherwise, <c>null</c> which in turn will result in <see cref="ExceptionResultExtensions.ToUnexpectedResult(Exception, bool)"/>.</returns>
         /// <remarks>Any <see cref="IExtendedException"/> exceptions will be handled per their implementation; see <see cref="IExceptionResult.ToResult"/>.</remarks>
-        protected internal virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex) => OnUnhandledException(ex);
+        protected internal virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex, CancellationToken cancellationToken) => OnUnhandledException(ex, cancellationToken);
 
         /// <summary>
         /// Gets or sets the delegate that is invoked as an opportunity to handle an unhandled exception.
         /// </summary>
-        /// <remarks>This is invoked by <see cref="OnUnhandledExceptionAsync(Exception)"/>.</remarks>
-        public Func<Exception, Task<IActionResult?>> OnUnhandledException { get; set; } = _ => Task.FromResult<IActionResult?>(null!);
+        /// <remarks>This is invoked by <see cref="OnUnhandledExceptionAsync(Exception, CancellationToken)"/>.</remarks>
+        public Func<Exception, CancellationToken, Task<IActionResult?>> OnUnhandledException { get; set; } = (_, __) => Task.FromResult<IActionResult?>(null!);
     }
 }

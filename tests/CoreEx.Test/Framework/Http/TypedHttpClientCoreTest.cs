@@ -1,11 +1,11 @@
-﻿using CoreEx.Abstractions;
+﻿using System.Net;
+using System.Net.Http;
+using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
-using System.Net;
-using System.Net.Http;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.Framework.Http
@@ -237,7 +237,7 @@ namespace CoreEx.Test.Framework.Http
         {
             var mcf = MockHttpClientFactory.Create();
             var mc = mcf.CreateClient("Backend", "https://backend/");
-            mc.Request(HttpMethod.Post, "test").WithJsonBody(new BackendProduct {  Code = "def", Description = "apple", RetailPrice = 0.49m }).Respond.WithJson(new Product { Id = "abc", Name = "banana", Price = 0.99m });
+            mc.Request(HttpMethod.Post, "test").WithJsonBody(new BackendProduct { Code = "def", Description = "apple", RetailPrice = 0.49m }).Respond.WithJson(new Product { Id = "abc", Name = "banana", Price = 0.99m });
 
             using var test = FunctionTester.Create<Startup>();
             var r = test.ReplaceHttpClientFactory(mcf)
@@ -408,6 +408,28 @@ namespace CoreEx.Test.Framework.Http
             Assert.IsTrue(r.Result.IsSuccess);
             Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
             Assert.IsNull(r.Result.Content);
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void RetryServiceUnavailable()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Post, "test").WithJsonBody(new { ClassName = "Retry" }).Respond.WithSequence(s =>
+            {
+                s.Respond().With(HttpStatusCode.InternalServerError);
+                s.Respond().With(HttpStatusCode.VariantAlsoNegotiates);
+                s.Respond().With(HttpStatusCode.BadGateway);
+                s.Respond().With(HttpStatusCode.LoopDetected);
+            });
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+                .Type<BackendHttpClient>()
+                .Run(f => f.WithRetry().ThrowTransientException().PostAsync("test", new { ClassName = "Retry" } ))
+                .AssertException<TransientException>();
 
             mcf.VerifyAll();
         }

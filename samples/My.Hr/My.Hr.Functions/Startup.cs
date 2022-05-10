@@ -37,7 +37,7 @@ public class Startup : FunctionsStartup
                 .AddEventDataFormatter()
                 .AddEventPublisher()
                 .AddAzureServiceBusSender()
-                .AddWebApi(c => c.OnUnhandledException = ex => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
+                .AddWebApi(c => c.OnUnhandledException = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
                 .AddJsonMergePatch()
                 .AddWebApiPublisher()
                 .AddAzureServiceBusSubscriber()

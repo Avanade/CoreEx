@@ -18,7 +18,6 @@ using Microsoft.Extensions.Logging;
 
 namespace CoreEx.Test.HealthChecks
 {
-
     [TestFixture, NonParallelizable]
     public class TypedHttpClientHealthCheckTest
     {
@@ -28,7 +27,7 @@ namespace CoreEx.Test.HealthChecks
             {
             }
 
-            public override Task<HttpResult> HealthCheckAsync()
+            public override Task<HttpResult> HealthCheckAsync(CancellationToken cancellationToken = default)
             {
                 return base.HeadAsync("/health", null, null, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
             }

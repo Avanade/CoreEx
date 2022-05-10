@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.NUnit;
@@ -373,6 +374,48 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
+        public void PutAsync_AutoConcurrency_NoIfMatch()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            test.Type<WebApi>()
+                .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest", new { id = "A", name = "B", price = 2.99m }),
+                        r => Task.FromResult<Product?>(new Product { Id = "A", Name = "B", Price = 1.99m }),
+                        r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 2.99m }, r.Value); return Task.FromResult(new Product { Id = "Y", Name = "Z", Price = 3.99m }); },
+                        simulatedConcurrency: true))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("An 'If-Match' header is required for an HTTP PUT where the underlying entity supports concurrency (ETag).");
+        }
+
+        [Test]
+        public void PutAsync_AutoConcurrency_NoMatch()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            test.Type<WebApi>()
+                .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest", new { id = "A", name = "B", price = 2.99m }, new HttpRequestOptions { ETag = "bbb" }),
+                        r => Task.FromResult<Product?>(new Product { Id = "A", Name = "B", Price = 1.99m }),
+                        r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 2.99m }, r.Value); return Task.FromResult(new Product { Id = "Y", Name = "Z", Price = 3.99m }); },
+                        simulatedConcurrency: true))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("A concurrency error occurred; please refresh the data and try again.");
+        }
+
+        [Test]
+        public void PutAsync_AutoConcurrency_Match()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            test.Type<WebApi>()
+                .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest", new { id = "A", name = "B", price = 2.99m }, new HttpRequestOptions { ETag = "98Oe+fRzgTuVae59mLwf0Mj+iKySTlgUxEQt18huJZg=" }),
+                        r => Task.FromResult<Product?>(new Product { Id = "A", Name = "B", Price = 1.99m }),
+                        r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 2.99m }, r.Value); return Task.FromResult(new Product { Id = "Y", Name = "Z", Price = 3.99m }); },
+                        simulatedConcurrency: true))
+                .ToActionResultAssertor()
+                .AssertOK()
+                .Assert(new Product { Id = "Y", Name = "Z", Price = 3.99m });
+        }
+
+        [Test]
         public void DeleteAsync()
         {
             using var test = FunctionTester.Create<Startup>();
@@ -526,6 +569,42 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
+        public void PatchAsync_AutoConcurrency_NoIfMatchHeader()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"name\": \"Gazza\" }");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Id = 13, Name = "Deano" }), put: _ => Task.FromResult<Person>(null!), simulatedConcurrency: true))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
+        }
+
+        [Test]
+        public void PatchAsync_AutoConcurrency_NotMatched()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"name\": \"Gazza\" }", etag: "bbb");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Id = 13, Name = "Deano" }), put: _ => Task.FromResult<Person>(null!), simulatedConcurrency: true))
+                .ToActionResultAssertor()
+                .AssertPreconditionFailed()
+                .Assert("A concurrency error occurred; please refresh the data and try again.");
+        }
+
+        [Test]
+        public void PatchAsync_AutoConcurrency_Matched()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = CreatePatchRequest(test, "{ \"name\": \"Gazza\" }", etag: "Q8nNyU0hP+j7+1tDN0JzLGMcfPOX8OsLAh7lma4U0xo=");
+            test.Type<WebApi>()
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Id = 13, Name = "Deano" }), put: _ => Task.FromResult<Person>(null!), simulatedConcurrency: true))
+                .ToActionResultAssertor()
+                .AssertOK()
+                .Assert(new Person { Id = 13, Name = "Gazza" });
+        }
+
+        [Test]
         public void OverrideWebApiInvokerBeforeAndAfterSuccess()
         {
             var wai = new WebApiInvokerEx();
@@ -579,22 +658,22 @@ namespace CoreEx.Test.Framework.WebApis
 
             public int ErrorCount { get; set; }
 
-            protected override Task OnBeforeAsync(WebApiBase owner, WebApiParam param)
+            protected override Task OnBeforeAsync(WebApiBase owner, WebApiParam param, CancellationToken cancellationToken)
             {
                 BeforeCount++;
-                return base.OnBeforeAsync(owner, param);
+                return base.OnBeforeAsync(owner, param, cancellationToken);
             }
 
-            protected override Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result)
+            protected override Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result, CancellationToken cancellationToken)
             {
                 AfterCount++;
-                return base.OnAfterSuccessAsync(owner, param, result);
+                return base.OnAfterSuccessAsync(owner, param, result, cancellationToken);
             }
 
-            protected override Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result)
+            protected override Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result, CancellationToken cancellationToken)
             {
                 ErrorCount++;
-                return base.OnAfterExceptionAsync(owner, param, exception, result);
+                return base.OnAfterExceptionAsync(owner, param, exception, result, cancellationToken);
             }
         }
     }

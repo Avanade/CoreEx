@@ -4,6 +4,7 @@ using CoreEx.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.RefData
@@ -34,15 +35,20 @@ namespace CoreEx.RefData
         /// Creates an instance of <typeparamref name="TSelf"/> and adds from the <paramref name="source"/> asynchronously.
         /// </summary>
         /// <param name="source">The source items.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>An instance of <typeparamref name="TSelf"/>.</returns>
-        public static Task<TSelf> CreateAsync(IQueryable<TRef> source) => CreateAsync(source is IAsyncEnumerable<TRef> ae ? ae : throw new ArgumentException("The source must implement IAsyncEnumerable<TRef>.", nameof(source)));
+        public static Task<TSelf> CreateAsync(IQueryable<TRef> source, CancellationToken cancellationToken = default) 
+            => CreateAsync(source is IAsyncEnumerable<TRef> ae ? ae : throw new ArgumentException("The source must implement IAsyncEnumerable<TRef>.", nameof(source)), cancellationToken);
+
 
         /// <summary>
         /// Creates an instance of <typeparamref name="TSelf"/> and adds from the <paramref name="source"/> asynchronously.
         /// </summary>
         /// <param name="source">The source items.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>An instance of <typeparamref name="TSelf"/>.</returns>
-        public static async Task<TSelf> CreateAsync(IAsyncEnumerable<TRef>? source = null)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        public static async Task<TSelf> CreateAsync(IAsyncEnumerable<TRef>? source = null, CancellationToken cancellationToken = default)
         {
             var coll = new TSelf();
 

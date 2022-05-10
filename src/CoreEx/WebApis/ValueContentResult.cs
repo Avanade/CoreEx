@@ -142,7 +142,7 @@ namespace CoreEx.WebApis
                 json = jsonSerializer.Serialize(val);
 
             // Establish an ETag; generate if you have to.
-            var etag = EstablishETag(requestOptions, val, json);
+            var etag = EstablishETag(requestOptions, val, json, jsonSerializer);
 
             // Check for not-modified and return status accordingly.
             if (checkForNotModified && etag == requestOptions.ETag)
@@ -161,7 +161,11 @@ namespace CoreEx.WebApis
         /// <summary>
         /// Establish the ETag for the value/json.
         /// </summary>
-        private static string EstablishETag(WebApiRequestOptions requestOptions, object value, string json)
+        /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="json">The value serialized to JSON.</param>
+        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+        internal static string EstablishETag(WebApiRequestOptions requestOptions, object value, string? json, IJsonSerializer jsonSerializer)
         {
             if (value is IETag etag && etag.ETag != null)
                 return etag.ETag;
@@ -193,7 +197,7 @@ namespace CoreEx.WebApis
                 if (!hasEtags)
                 {
                     sb.Clear();
-                    sb.Append(json);
+                    sb.Append(json ??= jsonSerializer.Serialize(value));
                 }
 
                 // A GET with a collection result should include path and query with the etag.
@@ -210,7 +214,7 @@ namespace CoreEx.WebApis
             }
 
             // Generate a hash to represent the ETag.
-            return ETagGenerator.GenerateHash(sb != null && sb.Length > 0 ? sb.ToString() : json);
+            return ETagGenerator.GenerateHash(sb != null && sb.Length > 0 ? sb.ToString() : json ?? jsonSerializer.Serialize(value));
         }
     }
 }

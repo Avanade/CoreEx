@@ -6,6 +6,7 @@ using CoreEx.Events;
 using Newtonsoft.Json;
 using System;
 using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 using Nsj = Newtonsoft.Json;
 
@@ -40,15 +41,15 @@ namespace CoreEx.Newtonsoft.Json
         protected Nsj.JsonSerializer JsonSerializer => _jsonSerializer ??= Nsj.JsonSerializer.Create(Settings);
 
         /// <inheritdoc/>
-        protected override Task<CloudEvent> DecodeAsync(BinaryData eventData)
+        protected override Task<CloudEvent> DecodeAsync(BinaryData eventData, CancellationToken cancellationToken = default)
             => Task.FromResult(new JsonEventFormatter(JsonSerializer).DecodeStructuredModeMessage(eventData, new ContentType(MediaTypeNames.Application.Json), null));
 
         /// <inheritdoc/>
-        protected override Task<CloudEvent> DecodeAsync<T>(BinaryData eventData)
+        protected override Task<CloudEvent> DecodeAsync<T>(BinaryData eventData, CancellationToken cancellationToken = default)
             => Task.FromResult(new JsonEventFormatter<T>(JsonSerializer).DecodeStructuredModeMessage(eventData, new ContentType(MediaTypeNames.Application.Json), null));
 
         /// <inheritdoc/>
-        protected override Task<BinaryData> EncodeAsync(CloudEvent cloudEvent)
+        protected override Task<BinaryData> EncodeAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
             => Task.FromResult(new BinaryData(new JsonEventFormatter(JsonSerializer).EncodeStructuredModeMessage(cloudEvent, out var _)));
     }
 }

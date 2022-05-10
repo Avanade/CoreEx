@@ -13,8 +13,8 @@ namespace CoreEx
     /// <summary>
     /// Represents a thread-bound (request) execution context using <see cref="AsyncLocal{ExecutionContext}"/>.
     /// </summary>
-    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments.</remarks>
-    public class ExecutionContext : IETag, IPartitionKey
+    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments. This class should be extended by consumers where additional properties are required.</remarks>
+    public class ExecutionContext : IETag
     {
         private static readonly AsyncLocal<ExecutionContext?> _asyncLocal = new();
 
@@ -148,9 +148,9 @@ namespace CoreEx
         public string? ETag { get; set; }
 
         /// <summary>
-        /// Gets or sets the partition key.
+        /// Gets or sets the corresponding user name.
         /// </summary>
-        public string? PartitionKey { get; set; }
+        public string? Username { get; set; }
 
         /// <summary>
         /// Gets the timestamp for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).

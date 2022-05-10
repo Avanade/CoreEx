@@ -5,6 +5,7 @@ using CloudNative.CloudEvents.SystemTextJson;
 using CoreEx.Events;
 using System;
 using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 using Stj = System.Text.Json;
 
@@ -32,15 +33,15 @@ namespace CoreEx.Text.Json
         public Stj.JsonSerializerOptions Options { get; }
 
         /// <inheritdoc/>
-        protected override Task<CloudEvent> DecodeAsync(BinaryData eventData)
+        protected override Task<CloudEvent> DecodeAsync(BinaryData eventData, CancellationToken cancellation = default)
             => Task.FromResult(new JsonEventFormatter(Options, new Stj.JsonDocumentOptions()).DecodeStructuredModeMessage(eventData, new ContentType(MediaTypeNames.Application.Json), null));
 
         /// <inheritdoc/>
-        protected override Task<CloudEvent> DecodeAsync<T>(BinaryData eventData)
+        protected override Task<CloudEvent> DecodeAsync<T>(BinaryData eventData, CancellationToken cancellation = default)
             => Task.FromResult(new JsonEventFormatter<T>(Options, new Stj.JsonDocumentOptions()).DecodeStructuredModeMessage(eventData, new ContentType(MediaTypeNames.Application.Json), null));
 
         /// <inheritdoc/>
-        protected override Task<BinaryData> EncodeAsync(CloudEvent cloudEvent)
+        protected override Task<BinaryData> EncodeAsync(CloudEvent cloudEvent, CancellationToken cancellation = default)
             => Task.FromResult(new BinaryData(new JsonEventFormatter(Options, new Stj.JsonDocumentOptions()).EncodeStructuredModeMessage(cloudEvent, out var _)));
     }
 }

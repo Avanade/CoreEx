@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Azure.ServiceBus
@@ -51,7 +52,7 @@ namespace CoreEx.Azure.ServiceBus
         protected ExecutionContext ExecutionContext { get; }
 
         /// <summary>
-        /// Gets or sets the default queue or topic name used by <see cref="SendAsync(EventSendData[])"/> where <see cref="EventSendData.Destination"/> is <c>null</c>.
+        /// Gets or sets the default queue or topic name used by <see cref="SendAsync(IEnumerable{EventSendData}, CancellationToken)"/> where <see cref="EventSendData.Destination"/> is <c>null</c>.
         /// </summary>
         public string? DefaultQueueOrTopicName { get; set; }
 
@@ -73,9 +74,9 @@ namespace CoreEx.Azure.ServiceBus
         public bool UsePartitionKeyAsSessionId { get; set; } = true;
 
         /// <inheritdoc/>
-        public async Task SendAsync(params EventSendData[] events)
+        public async Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
         {
-            if (events == null || events.Length == 0)
+            if (events == null || !events.Any())
                 return;
 
             // Why this logic: https://github.com/Azure/azure-sdk-for-net/tree/Azure.Messaging.ServiceBus_7.1.0/sdk/servicebus/Azure.Messaging.ServiceBus/#send-and-receive-a-batch-of-messages
@@ -140,7 +141,7 @@ namespace CoreEx.Azure.ServiceBus
                 await using var sender = _client.CreateSender(qn);
                 while (queue.Count > 0)
                 {
-                    using var batch = await sender.CreateMessageBatchAsync().ConfigureAwait(false);
+                    using var batch = await sender.CreateMessageBatchAsync(cancellationToken).ConfigureAwait(false);
 
                     // Add the first message to the batch.
                     var firstMsg = queue.Peek();
@@ -158,7 +159,7 @@ namespace CoreEx.Azure.ServiceBus
                     try
                     {
                         Logger.LogInformation($"Sending {batch.Count} messages to {qn}.");
-                        await sender.SendMessagesAsync(batch).ConfigureAwait(false);
+                        await sender.SendMessagesAsync(batch, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
