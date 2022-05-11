@@ -11,6 +11,7 @@ using System.Net.Mime;
 namespace My.Hr.Api.Controllers;
 
 [Route("api/employees")]
+[Produces(MediaTypeNames.Application.Json)]
 public class EmployeeController : ControllerBase
 {
     private readonly WebApi _webApi;
@@ -28,7 +29,6 @@ public class EmployeeController : ControllerBase
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
     /// <returns>The selected <see cref="Employee"/> where found.</returns>
     [HttpGet("{id}", Name = "Get")]
-    [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public Task<IActionResult> GetAsync(Guid id)
@@ -39,7 +39,6 @@ public class EmployeeController : ControllerBase
     /// </summary>
     /// <returns>All <see cref="Employee"/>.</returns>
     [HttpGet("", Name = "GetAll")]
-    [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(IEnumerable<Employee>), (int)HttpStatusCode.OK)]
     public Task<IActionResult> GetAllAsync()
         => _webApi.GetAsync(Request, p => _service.GetAllAsync(p.RequestOptions.Paging));
@@ -50,11 +49,10 @@ public class EmployeeController : ControllerBase
     /// <returns>The created <see cref="Employee"/>.</returns>
     [HttpPost("", Name = "Create")]
     [AcceptsBody(typeof(Employee))]
-    [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.Created)]
     public Task<IActionResult> CreateAsync()
         => _webApi.PostAsync(Request, p => _service.AddEmployeeAsync(p.Value!),
-           statusCode: HttpStatusCode.Created, validator: new EmployeeValidator().Convert(), locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
+           statusCode: HttpStatusCode.Created, validator: new EmployeeValidator().Wrap(), locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
 
     /// <summary>
     /// Updates an existing <see cref="Employee"/>.
@@ -63,10 +61,9 @@ public class EmployeeController : ControllerBase
     /// <returns>The updated <see cref="Employee"/>.</returns>
     [HttpPut("{id}", Name = "Update")]
     [AcceptsBody(typeof(Employee))]
-    [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> UpdateAsync(Guid id)
-        => _webApi.PutAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
+        => _webApi.PutAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Wrap());
 
     /// <summary>
     /// Patches an existing <see cref="Employee"/>.
@@ -75,10 +72,9 @@ public class EmployeeController : ControllerBase
     /// <returns>The updated <see cref="Employee"/>.</returns>
     [HttpPatch("{id}", Name = "Patch")]
     [AcceptsBody(typeof(Employee), HttpConsts.MergePatchMediaTypeName)]
-    [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> PatchAsync(Guid id)
-        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
+        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Wrap());
 
     /// <summary>
     /// Deletes the specified <see cref="Employee"/>.

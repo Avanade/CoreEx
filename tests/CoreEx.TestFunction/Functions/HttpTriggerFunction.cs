@@ -27,10 +27,10 @@ namespace CoreEx.TestFunction.Functions
 
         [FunctionName("HttpTriggerProductPost")]
         public Task<IActionResult> PostAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "products")] HttpRequest request)
-            => _webApi.PostAsync(request, (r, _) => _service.AddProductAsync(r.Value!), validator: new ProductValidator().Convert());
+            => _webApi.PostAsync(request, (r, _) => _service.AddProductAsync(r.Value!), validator: new ProductValidator().Wrap());
 
         [FunctionName("HttpTriggerProductPut")]
         public Task<IActionResult> PutAsync([HttpTrigger(AuthorizationLevel.Function, "put", Route = "products")] HttpRequest request)
-            => _webApi.PutAsync(request, (r, _) => _service.UpdateProductAsync(r.Value!, r.Value!.Id!), validator: new ProductValidator().Convert());
+            => _webApi.PutAsync(request, (r, _) => _service.UpdateProductAsync(r.Value!, r.Value!.Id!), validator: new ProductValidator().Wrap());
     }
 }

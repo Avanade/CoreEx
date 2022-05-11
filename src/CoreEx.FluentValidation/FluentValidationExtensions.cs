@@ -55,11 +55,11 @@ namespace FluentValidation
             => ruleBuilder.SetValidator(validator!, ruleSets)!;
 
         /// <summary>
-        /// Converts the <i>FluentValidation</i> <see cref="IValidator{T}"/> to a <see cref="CoreEx.Validation.IValidator{T}"/> using a <see cref="ValidatorWrapper{T}"/>.
+        /// Wraps the <i>FluentValidation</i> <see cref="IValidator{T}"/> to a <see cref="CoreEx.Validation.IValidator{T}"/> using a <see cref="ValidatorWrapper{T}"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="validator">The <i>FluentValidation</i> <see cref="IValidator{T}"/>.</param>
         /// <returns>The <see cref="CoreEx.Validation.IValidator{T}"/>.</returns>
-        public static CoreEx.Validation.IValidator<T> Convert<T>(this IValidator<T> validator) => new ValidatorWrapper<T>(validator);
+        public static CoreEx.Validation.IValidator<T> Wrap<T>(this IValidator<T> validator) => new ValidatorWrapper<T>(validator);
     }
 }

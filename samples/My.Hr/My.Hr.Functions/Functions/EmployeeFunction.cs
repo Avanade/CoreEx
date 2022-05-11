@@ -53,7 +53,7 @@ public class EmployeeFunction
     // [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Created, Description = "Created employee record")]
     public Task<IActionResult> CreateAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "api/employees")] HttpRequest request)
         => _webApi.PostAsync<Employee, Employee>(request, p => _service.AddEmployeeAsync(p.Value!),
-           statusCode: HttpStatusCode.Created, validator: new EmployeeValidator().Convert(), locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
+           statusCode: HttpStatusCode.Created, validator: new EmployeeValidator().Wrap(), locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
 
     [FunctionName("Update")]
     // [OpenApiOperation(operationId: "Update", tags: new[] { "employee" })]
@@ -62,11 +62,11 @@ public class EmployeeFunction
     // [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: MediaTypeNames.Application.Json, bodyType: typeof(Employee), Description = "Employee record")]
     // [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not found")]
     public Task<IActionResult> UpdateAsync([HttpTrigger(AuthorizationLevel.Function, "put", Route = "api/employees/{id}")] HttpRequest request, Guid id)
-        => _webApi.PutAsync<Employee, Employee>(request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
+        => _webApi.PutAsync<Employee, Employee>(request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Wrap());
 
     [FunctionName("Patch")]
     public Task<IActionResult> PatchAsync([HttpTrigger(AuthorizationLevel.Function, "patch", Route = "api/employees/{id}")] HttpRequest request, Guid id)
-        => _webApi.PatchAsync(request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Convert());
+        => _webApi.PatchAsync(request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Wrap());
 
     [FunctionName("Delete")]
     public Task<IActionResult> DeleteAsync([HttpTrigger(AuthorizationLevel.Function, "delete", Route = "api/employees/{id}")] HttpRequest request, Guid id)

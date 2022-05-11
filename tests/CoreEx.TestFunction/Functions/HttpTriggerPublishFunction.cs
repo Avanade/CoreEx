@@ -21,6 +21,6 @@ namespace CoreEx.TestFunction.Functions
 
         [FunctionName("HttpTriggerPublishFunction")]
         public Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "products/publish")] HttpRequest request)
-            => _webApiPublisher.PublishAsync<Product>(request, "test-queue", validator: new ProductValidator().Convert());
+            => _webApiPublisher.PublishAsync<Product>(request, "test-queue", validator: new ProductValidator().Wrap());
     }
 }

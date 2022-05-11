@@ -25,5 +25,5 @@ public class ServiceBusExecuteVerificationFunction
     [FunctionName(nameof(ServiceBusExecuteVerificationFunction))]
     [ExponentialBackoffRetry(3, "00:02:00", "00:30:00")]
     public Task RunAsync([ServiceBusTrigger("%" + nameof(HrSettings.VerificationQueueName) + "%", Connection = nameof(HrSettings.ServiceBusConnection))] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
-        => _subscriber.ReceiveAsync<EmployeeVerificationRequest>(message, messageActions, ed => _service.VerifyAndPublish(ed.Value), validator: new EmployeeVerificationValidator().Convert());
+        => _subscriber.ReceiveAsync<EmployeeVerificationRequest>(message, messageActions, ed => _service.VerifyAndPublish(ed.Value), validator: new EmployeeVerificationValidator().Wrap());
 }
