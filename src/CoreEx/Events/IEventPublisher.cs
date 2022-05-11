@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -19,14 +20,14 @@ namespace CoreEx.Events
         bool IsEmpty { get; }
 
         /// <summary>
-        /// Publishes (queues) one or more <see cref="EventData"/> objects.
+        /// Publishes (queues in-process) one or more <see cref="EventData"/> objects ready for <see cref="SendAsync"/>.
         /// </summary>
         /// <param name="events">One or more <see cref="EventData"/> objects to be published.</param>
         /// <returns>The <see cref="IEventPublisher"/> to support fluent-style method-chaining.</returns>
         IEventPublisher Publish(params EventData[] events);
 
         /// <summary>
-        /// Publishes (queues) one or more <see cref="EventData"/> objects to a named destination (e.g. queue or topic).
+        /// Publishes (queues in-process) one or more <see cref="EventData"/> objects for a named destination (e.g. queue or topic) ready for <see cref="SendAsync"/>.
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <param name="events">One or more <see cref="EventData"/> objects to be published.</param>
@@ -35,9 +36,10 @@ namespace CoreEx.Events
         IEventPublisher Publish(string name, params EventData[] events);
 
         /// <summary>
-        /// Sends all previously published events.
+        /// Sends all previously published (queued) events.
         /// </summary>
-        Task SendAsync();
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        Task SendAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Resets by clearing the internal cache/store.

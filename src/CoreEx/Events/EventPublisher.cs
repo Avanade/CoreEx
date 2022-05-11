@@ -3,13 +3,14 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Provides the event publishing and sending; being the <see cref="EventData">event</see> <see cref="EventDataFormatter.Format(EventDataBase)">formatting</see>, 
-    /// <see cref="IEventSerializer.SerializeAsync{T}(EventData{T})">serialization</see> and <see cref="IEventSender.SendAsync(EventSendData[])">send</see>.
+    /// Provides the event publishing and sending; being the <see cref="EventData">event</see> <see cref="EventDataFormatter.Format(EventData)">formatting</see>, 
+    /// <see cref="IEventSerializer.SerializeAsync{T}(EventData{T}, CancellationToken)">serialization</see> and <see cref="IEventSender.SendAsync(IEnumerable{EventSendData}, CancellationToken)">send</see>.
     /// </summary>
     public class EventPublisher : IEventPublisher, IDisposable
     {
@@ -87,28 +88,30 @@ namespace CoreEx.Events
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
+        /// <param name="cancellationToken"><inheritdoc/></param>
         /// <remarks>Initially performs the <see cref="EventSerializer">serialization</see> for each queued event, then performs a single <see cref="EventSender">send</see> for all.</remarks>
-        public async Task SendAsync()
+        public async Task SendAsync(CancellationToken cancellationToken = default)
         {
             var list = new List<EventSendData>();
             while (_queue.TryDequeue(out var item))
             { 
-                var bd = await EventSerializer.SerializeAsync(item.Event).ConfigureAwait(false);
+                var bd = await EventSerializer.SerializeAsync(item.Event, cancellationToken).ConfigureAwait(false);
                 var esd = new EventSendData(item.Event) { Destination = item.Destination, Data = bd };
-                await OnEventSendAsync(item.Destination, item.Event, esd).ConfigureAwait(false);
+                await OnEventSendAsync(item.Destination, item.Event, esd, cancellationToken).ConfigureAwait(false);
                 list.Add(esd);
             }
 
-            await EventSender.SendAsync(list.ToArray()).ConfigureAwait(false);
+            await EventSender.SendAsync(list.ToArray(), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Invoked on the send of the <see cref="EventSendData"/>.
         /// </summary>
         /// <param name="name">The destination name.</param>
-        /// <param name="eventData">The <see cref="EventData"/> (after the <see cref="EventDataFormatter.Format(EventDataBase)"/> is applied).</param>
+        /// <param name="eventData">The <see cref="EventData"/> (after the <see cref="EventDataFormatter.Format(EventData)"/> is applied).</param>
         /// <param name="eventSendData">The corresponding <see cref="EventSendData"/> after <see cref="EventSerializer"/> invocation.</param>
-        protected virtual Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData) => Task.CompletedTask;
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        protected virtual Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData, CancellationToken cancellationToken) => Task.CompletedTask;
 
         /// <inheritdoc/>
         public virtual void Reset() => _queue.Clear();
@@ -116,7 +119,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Dispose of resources.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when there are </exception>
+        /// <exception cref="InvalidOperationException">Thrown when there are unsent events.</exception>
         public void Dispose()
         {
             if (!_disposed)

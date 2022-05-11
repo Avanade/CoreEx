@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -14,7 +16,7 @@ namespace CoreEx.Events
         private readonly ConcurrentQueue<EventSendData> _queue = new();
 
         /// <inheritdoc/>
-        public Task SendAsync(params EventSendData[] events)
+        public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
         {
             events.ForEach(e => _queue.Enqueue(e));
             return Task.CompletedTask;

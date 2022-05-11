@@ -110,7 +110,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the page number for the elements in a sequence to select (see <see cref="CreatePageAndSize(long, long?, bool?)"/>).
         /// </summary>
-        [JsonPropertyName("page")]
         public long? Page { get; internal protected set; }
 
         /// <summary>
@@ -122,19 +121,17 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the page size (see <see cref="Take"/>).
         /// </summary>
-        [JsonPropertyName("size")]
+        [JsonIgnore]
         public long Size => Take;
 
         /// <summary>
         /// Gets the specified number of elements in a sequence to bypass.
         /// </summary>
-        [JsonPropertyName("skip")]
         public long Skip { get; internal protected set; }
 
         /// <summary>
         /// Gets the specified number of contiguous elements from the start of a sequence.
         /// </summary>
-        [JsonPropertyName("take")]
         public long Take { get; internal protected set; }
 
         /// <summary>

@@ -1,14 +1,17 @@
+using CoreEx.Entities;
+using System.Text.Json.Serialization;
+
 namespace My.Hr.Business.Models;
 
 /// <summary>
 /// Represents the Entity Framework (EF) model for database object 'Hr.Employee'.
 /// </summary>
-public class Employee
+public class Employee : IIdentifier<Guid>, IETag
 {
     /// <summary>
     /// Gets or sets the 'EmployeeId' column value.
     /// </summary>
-    public Guid EmployeeId { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>
     /// Gets or sets the 'Email' column value.
@@ -28,7 +31,7 @@ public class Employee
     /// <summary>
     /// Gets or sets the 'GenderCode' column value.
     /// </summary>
-    public string? GenderCode { get; set; }
+    public string? Gender { get; set; }
 
     /// <summary>
     /// Gets or sets the 'Birthday' column value.
@@ -54,4 +57,14 @@ public class Employee
     /// Gets or sets the 'PhoneNo' column value.
     /// </summary>
     public string? PhoneNo { get; set; }
+
+    /// <summary>
+    /// Gets or sets the 'RowVersion' column value.
+    /// </summary>
+    [JsonPropertyName("etag")]
+    public string? ETag { get; set; }
 }
+
+public class EmployeeCollection : List<Employee> { }
+
+public class EmployeeCollectionResult : CollectionResult<EmployeeCollection, Employee> { }

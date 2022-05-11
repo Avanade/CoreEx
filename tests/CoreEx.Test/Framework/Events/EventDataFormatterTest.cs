@@ -151,7 +151,7 @@ namespace CoreEx.Test.Framework.Events
         public void SourceDefault()
         {
             var ed = new EventData();
-            var ef = new EventDataFormatter();
+            var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.Relative) };
             ef.Format(ed);
             Assert.AreEqual(new Uri("null", UriKind.Relative), ed.Source);
         }
@@ -179,9 +179,9 @@ namespace CoreEx.Test.Framework.Events
 
         internal class Person : IETag
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
 
-            public string ETag { get; set; }
+            public string? ETag { get; set; }
         }
     }
 }

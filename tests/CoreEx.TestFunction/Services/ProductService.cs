@@ -19,12 +19,12 @@ namespace CoreEx.TestFunction.Services
             _logger = logger;
         }
 
-        public Task<Product> GetProductAsync(string id)
+        public Task<Product?> GetProductAsync(string id)
         {
             if (id == "Zed")
-                return null;
+                return Task.FromResult<Product?>(null!);
 
-            return Task.FromResult(new Product { Id = id, Name = "Apple", Price = 0.79m });
+            return Task.FromResult<Product?>(new Product { Id = id, Name = "Apple", Price = 0.79m });
         }
 
         public Task<Product> AddProductAsync(Product product)

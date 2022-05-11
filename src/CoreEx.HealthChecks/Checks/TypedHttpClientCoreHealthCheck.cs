@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using CoreEx.Http;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CoreEx.Healthchecks.Checks
+namespace CoreEx.HealthChecks.Checks
 {
     /// <summary>
     /// Health check for Typed Http clients inheriting from <see cref="TypedHttpClientCore{T}"/>.
@@ -28,7 +28,7 @@ namespace CoreEx.Healthchecks.Checks
 
             try
             {
-                var result = await _client.HealthCheckAsync();
+                var result = await _client.HealthCheckAsync(cancellationToken);
                 result.Response.EnsureSuccessStatusCode();
                 return HealthCheckResult.Healthy();
             }

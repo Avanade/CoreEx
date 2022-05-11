@@ -1,4 +1,5 @@
-﻿using CoreEx.FluentValidation;
+﻿using CoreEx.Http;
+using CoreEx.FluentValidation;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Validators;
@@ -17,7 +18,7 @@ namespace CoreEx.Test.Framework.FluentValidation
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Get, "");
-            var vr = await hr.ReadAsJsonValidatedValueAsync<Product, ProductValidator>(new Text.Json.JsonSerializer(), valueIsRequired: false).ConfigureAwait(false);
+            var vr = await hr.ReadAsJsonValueAsync(new Text.Json.JsonSerializer(), valueIsRequired: false, validator: new ProductValidator().Wrap()).ConfigureAwait(false);
             Assert.IsNotNull(vr);
             Assert.IsTrue(vr.IsValid);
         }
@@ -27,7 +28,7 @@ namespace CoreEx.Test.Framework.FluentValidation
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Get, "");
-            var vr = await hr.ReadAsJsonValidatedValueAsync<Product, ProductValidator>(new Text.Json.JsonSerializer(), valueIsRequired: true).ConfigureAwait(false);
+            var vr = await hr.ReadAsJsonValueAsync(new Text.Json.JsonSerializer(), valueIsRequired: true, validator: new ProductValidator().Wrap()).ConfigureAwait(false);
             Assert.IsNotNull(vr);
             Assert.IsFalse(vr.IsValid);
         }
@@ -37,12 +38,12 @@ namespace CoreEx.Test.Framework.FluentValidation
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateJsonHttpRequest(HttpMethod.Get, "", new Product { Id = "B2TF", Name = "DeLorean", Price = 88m });
-            var vr = await hr.ReadAsJsonValidatedValueAsync<Product, ProductValidator>(new Text.Json.JsonSerializer()).ConfigureAwait(false);
+            var vr = await hr.ReadAsJsonValueAsync(new Text.Json.JsonSerializer(), validator: new ProductValidator().Wrap()).ConfigureAwait(false);
             Assert.IsNotNull(vr);
             Assert.IsFalse(vr.IsValid);
             Assert.IsNotNull(vr.ValidationException);
-            Assert.IsNotNull(vr.ValidationException.Messages);
-            Assert.AreEqual(1, vr.ValidationException.Messages.Count);
+            Assert.IsNotNull(vr.ValidationException!.Messages);
+            Assert.AreEqual(1, vr.ValidationException.Messages!.Count);
             Assert.AreEqual("A DeLorean cannot be priced at 88 as that could cause a chain reaction that would unravel the very fabric of the space-time continuum and destroy the entire universe.", vr.ValidationException.Messages.GetMessagesForProperty(nameof(Product.Name))[0].Text);
         }
 
@@ -51,7 +52,7 @@ namespace CoreEx.Test.Framework.FluentValidation
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateJsonHttpRequest(HttpMethod.Get, "", new Product { Id = "B2TF", Name = "DeLorean", Price = 66m });
-            var vr = await hr.ReadAsJsonValidatedValueAsync<Product, ProductValidator>(new Text.Json.JsonSerializer()).ConfigureAwait(false);
+            var vr = await hr.ReadAsJsonValueAsync(new Text.Json.JsonSerializer(), validator: new ProductValidator().Wrap()).ConfigureAwait(false);
             Assert.IsNotNull(vr);
             Assert.IsTrue(vr.IsValid);
         }

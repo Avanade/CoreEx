@@ -1,5 +1,5 @@
 ﻿using CoreEx.Abstractions;
-using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.Azure.ServiceBus;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using Microsoft.Azure.WebJobs.ServiceBus;
@@ -19,7 +19,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage<Product>(null);
+            var message = test.CreateServiceBusMessage<Product?>(null);
 
             test.Type<ServiceBusSubscriber>()
                 .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, ed => throw new InvalidOperationException("Should not get here.")))

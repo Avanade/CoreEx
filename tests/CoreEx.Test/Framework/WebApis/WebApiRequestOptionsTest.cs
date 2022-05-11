@@ -2,7 +2,6 @@
 using CoreEx.Http;
 using CoreEx.TestFunction;
 using NUnit.Framework;
-using System;
 using System.Net.Http;
 using UnitTestEx.NUnit;
 
@@ -49,7 +48,7 @@ namespace CoreEx.Test.Framework.WebApis
             Assert.AreEqual(new string[] { "fielda", "fieldb" }, wro.IncludeFields);
             Assert.AreEqual(new string[] { "fieldc" }, wro.ExcludeFields);
             Assert.NotNull(wro.Paging);
-            Assert.AreEqual(20, wro.Paging.Skip);
+            Assert.AreEqual(20, wro.Paging!.Skip);
             Assert.AreEqual(25, wro.Paging.Take);
             Assert.IsTrue(wro.Paging.IsGetCount);
         }

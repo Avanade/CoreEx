@@ -6,19 +6,47 @@
 
 ## Introduction
 
-_CoreEx_ provides the base capabilities for building business services by _extending_ the core capabilities of .NET.
+_CoreEx_ provides enriched capabilities for building business services by _extending_ the core capabilities of .NET.
+
+The _CoreEx_ solution is divided into a number of projects, with `CoreEx` providing the core/shared capabilities, with additional projects enabling other related capabilities that can optionally be included within the final consuming solution.
+
+_CoreEx_ at its core is a non-opinionated framework, meaning that it is not intended to be all-or-nothing, or drive a particular architectural style, but provide building block capabilities that can be leveraged as required to simplify development, and add extended/richer/consistent functionality with minimal effort.
 
 <br/>
 
 ## Status
 
-The build and packaging status is as follows.
+The build status is [![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.svg)](https://github.com/Avanade/CoreEx/actions?query=workflow%3ACI) with the NuGet package status as follows, including links to the underlying source code and documentation:
 
-CI | `CoreEx` | `CoreEx.FluentValidation` | `CoreEx.HealthChecks` | `CoreEx.Messaging.Azure` | `CoreEx.Newtonsoft`
--|-|-|-|-|-
-[![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.svg)](https://github.com/Avanade/CoreEx/actions?query=workflow%3ACI) | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [![NuGet version](https://badge.fury.io/nu/CoreEx.HealthChecks.svg)](https://badge.fury.io/nu/CoreEx.HealthChecks) | [![NuGet version](https://badge.fury.io/nu/CoreEx.Messaging.Azure.svg)](https://badge.fury.io/nu/CoreEx.Messaging.Azure) | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft)
+Package | Status | Source & documentation
+-|-|-
+`CoreEx` | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [Link](./src/CoreEx)
+`CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [Link](./src/CoreEx.FluentValidation)
+`CoreEx.HealthChecks` | [![NuGet version](https://badge.fury.io/nu/CoreEx.HealthChecks.svg)](https://badge.fury.io/nu/CoreEx.HealthChecks) | [Link](./src/CoreEx.HealthChecks)
+`CoreEx.Azure` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.svg)](https://badge.fury.io/nu/CoreEx.Azure) | [Link](./src/CoreEx.Azure)
+`CoreEx.Newtonsoft` |[![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
 
 The included [change log](CHANGELOG.md) details all key changes per published version.
+
+<br/>
+
+## Samples
+
+The following samples are provided to guide usage:
+
+Sample | Description
+-|-
+[My.Hr](./samples/My.Hr) | A sample to demonstrate the usage of _CoreEx_ within the context of a fictitious Human Resources solution. The main intent is to show how _CoreEx_ can be leveraged to build Web APIs and Azure Functions. Additionally, the unit testing provided within demonstrates the thoroughness of testing that can be achieved with some of the other repos mentioned below.  
+
+<br/>
+
+## Other repos
+
+These other _Avanade_ repositories leverage _CoreEx_:
+
+- [DbEx](https://github.com/Avanade/dbex) - Provides database extensions for both, DbUp-based database migrations, and ADO.NET database access.
+- [NTangle](https://github.com/Avanade/ntangle) - Change Data Capture (CDC) code generation tool and runtime.
+- [UnitTestEx](https://github.com/Avanade/unittestex) - Provides .NET testing extensions to the most popular testing frameworks (MSTest, NUnit and Xunit).
 
 <br/>
 

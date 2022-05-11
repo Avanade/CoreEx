@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities.Extended;
 using System;
-using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -18,25 +18,21 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets or sets the created <see cref="DateTime"/>.
         /// </summary>
-        [JsonPropertyName("createdDate")]
         public DateTime? CreatedDate { get => _createdDate; set => SetValue(ref _createdDate, value); }
 
         /// <summary>
         /// Gets or sets the created by (username).
         /// </summary>
-        [JsonPropertyName("createdBy")]
         public string? CreatedBy { get => _createdBy; set => SetValue(ref _createdBy, value); }
 
         /// <summary>
         /// Gets or sets the updated <see cref="DateTime"/>.
         /// </summary>
-        [JsonPropertyName("updatedDate")]
         public DateTime? UpdatedDate { get => _updatedDate; set => SetValue(ref _updatedDate, value); }
 
         /// <summary>
         /// Gets or sets the updated by (username).
         /// </summary>
-        [JsonPropertyName("updatedBy")]
         public string? UpdatedBy { get => _updatedBy; set => SetValue(ref _updatedBy, value); }
 
         /// <summary>
@@ -63,9 +59,6 @@ namespace CoreEx.Entities
             hash.Add(UpdatedBy);
             return base.GetHashCode() ^ hash.ToHashCode();
         }
-
-        /// <inheritdoc/>
-        public override object Clone() => CreateClone(this);
 
         /// <summary>
         /// Performs a copy from another <see cref="ChangeLog"/> updating this instance.

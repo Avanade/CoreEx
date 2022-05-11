@@ -1,16 +1,16 @@
-using FluentAssertions;
-using System.Threading.Tasks;
 using System;
-using NUnit.Framework;
-using UnitTestEx.NUnit;
-using CoreEx.TestFunction;
-using CoreEx.Healthchecks;
-using CoreEx.Json;
-using CoreEx.Configuration;
+using System.Configuration;
 using System.Text.Json;
+using System.Threading.Tasks;
+using CoreEx.HealthChecks;
+using CoreEx.Json;
+using CoreEx.TestFunction;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
+using NUnit.Framework;
+using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
 {
@@ -28,7 +28,7 @@ namespace CoreEx.Test.HealthChecks
             var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
             var jsonSerializer = (IJsonSerializer)test.Services.GetService(typeof(IJsonSerializer));
 
-            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json);
+            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert
             result.AssertSuccess();
@@ -58,7 +58,7 @@ namespace CoreEx.Test.HealthChecks
             // Act
             var result = await test.Type<HealthService>().RunAsync(x => x.RunAsync());
             var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
-            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json);
+            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert
             jsonObj.Should().NotBeNull();
@@ -88,7 +88,7 @@ namespace CoreEx.Test.HealthChecks
             // Act
             var result = await test.Type<HealthService>().RunAsync(x => x.RunAsync());
             var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
-            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json);
+            JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert
             jsonObj.Should().NotBeNull();

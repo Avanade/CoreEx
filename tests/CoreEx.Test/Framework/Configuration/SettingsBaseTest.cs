@@ -1,11 +1,13 @@
-﻿using CoreEx.Configuration;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using CoreEx.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
 
-namespace CoreEx.Test.Framework.Entities
+namespace CoreEx.Test.Framework.Configuration
 {
     [TestFixture, NonParallelizable]
     public class SettingsBaseTest
@@ -15,6 +17,14 @@ namespace CoreEx.Test.Framework.Entities
             public SettingsForTesting(IConfiguration configuration, params string[] prefixes) : base(configuration, prefixes)
             {
             }
+
+            public string PropTest => GetValue<string>();
+
+            public string PropTest2 => "some hardcoded value";
+
+            public string SomethingGlobal => GetValue<string>();
+            public string PropTestNested => GetValue<string>(defaultValue: SomethingGlobal);
+
         }
 
         private IConfiguration CreateTestConfiguration()
@@ -39,7 +49,7 @@ namespace CoreEx.Test.Framework.Entities
         {
             // Arrange
             // Act
-            Action act = () => new SettingsForTesting(null);
+            Action act = () => new SettingsForTesting(null!);
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -52,7 +62,7 @@ namespace CoreEx.Test.Framework.Entities
             var configuration = CreateTestConfiguration();
 
             // Act
-            Action act = () => new SettingsForTesting(configuration, prefixes: null);
+            Action act = () => new SettingsForTesting(configuration, prefixes: null!);
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -155,5 +165,68 @@ namespace CoreEx.Test.Framework.Entities
             // Assert
             result.Should().Be("underscoreValue");
         }
+
+
+        [Test]
+        public void GetValue_Should_Return_Value_From_Property_When_Class_Has_it()
+        {
+            var configuration = CreateTestConfiguration();
+            var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
+
+            var result = settings.GetValue<string>("PropTest2");
+
+            // Assert
+            result.Should().Be("some hardcoded value");
+        }
+
+        [Test]
+        public void GetValue_Should_Return_Value_From_NestedProperty_When_Class_Has_it()
+        {
+            var configuration = CreateTestConfiguration();
+            var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
+
+            var result = settings.GetValue<string>("PropTestNested");
+
+            // Assert
+            settings.SomethingGlobal.Should().Be("foo");
+            result.Should().Be("foo");
+        }
+
+        // 50 * 5 * 100 ms = 25 seconds
+        [Test, Repeat(50)]
+        public void RunInParallel()
+        {
+            var configuration = CreateTestConfiguration();
+            var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
+
+            var reps = Enumerable.Range(1, 50);
+
+            var testResult = Parallel.ForEach(reps, (i) =>
+            {
+                var result = settings.GetValue<string>("PropTestNested");
+
+                // Assert
+                settings.SomethingGlobal.Should().Be("foo");
+                result.Should().Be("foo");
+
+                ExamineValuesOfLocalObjectsEitherSideOfAwait(settings).Wait();
+            });
+
+            testResult.IsCompleted.Should().BeTrue();
+        }
+
+        static async Task ExamineValuesOfLocalObjectsEitherSideOfAwait(SettingsForTesting settings)
+        {
+            var result = settings.GetValue<string>("PropTestNested");
+            settings.SomethingGlobal.Should().Be("foo");
+            result.Should().Be("foo");
+
+            await Task.Delay(100);
+
+            result = settings.GetValue<string>("PropTestNested");
+            settings.SomethingGlobal.Should().Be("foo");
+            result.Should().Be("foo");
+        }
+
     }
 }

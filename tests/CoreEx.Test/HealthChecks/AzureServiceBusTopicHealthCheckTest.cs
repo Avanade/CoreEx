@@ -1,15 +1,15 @@
-using FluentAssertions;
-using System.Threading.Tasks;
 using System;
-using NUnit.Framework;
-using UnitTestEx.NUnit;
-using CoreEx.TestFunction;
+using System.Threading;
+using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus.Administration;
+using CoreEx.Azure.HealthChecks;
 using CoreEx.Configuration;
-using CoreEx.Messaging.Azure.Health;
+using CoreEx.TestFunction;
+using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
-using Azure.Messaging.ServiceBus.Administration;
-using System.Threading;
+using NUnit.Framework;
+using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
 {
@@ -27,8 +27,9 @@ namespace CoreEx.Test.HealthChecks
             var mock = new Mock<ServiceBusAdministrationClient>();
             //   replace connection to service bus with mock
             AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetValue<string>(connectionName)
-            , _ => mock.Object
-            , (_, __) => mock.Object);
+                , _ => mock.Object
+                , (_, __) => mock.Object);
+
             var context = new HealthCheckContext();
 
             var check = new AzureServiceBusTopicHealthCheck(settings, connectionName, topicSettingName, testSubscriptionName);
@@ -90,8 +91,8 @@ namespace CoreEx.Test.HealthChecks
             var mock = new Mock<ServiceBusAdministrationClient>();
             var exception = new ArgumentException("Test exception");
             mock.Setup(x => x.GetSubscriptionRuntimePropertiesAsync(
-                    settings.GetValue<string>(topicSettingName, null),
-                    settings.GetValue<string>(testSubscriptionName, null), 
+                    settings.GetValue<string>(topicSettingName, null!),
+                    settings.GetValue<string>(testSubscriptionName, null!),
                     It.IsAny<CancellationToken>()))
                 .ThrowsAsync(exception);
             AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetValue<string>(connectionName)

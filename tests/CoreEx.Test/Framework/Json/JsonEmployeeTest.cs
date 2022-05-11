@@ -77,7 +77,7 @@ namespace CoreEx.Test.Framework.Json
 
             // Assert
             employee.Should().NotBeNull();
-            employee.FirstName.Should().Be("Piotr");
+            employee!.FirstName.Should().Be("Piotr");
         }
     }
 }

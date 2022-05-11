@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Configuration;
+using CoreEx.Validation;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
@@ -50,19 +51,45 @@ namespace CoreEx.Events
         public ILogger Logger { get; }
 
         /// <summary>
+        /// Deserializes the JSON <paramref name="eventData"/> into the specified <see cref="EventData"/>.
+        /// </summary>
+        /// <param name="eventData">The event <see cref="BinaryData"/> to deserialize.</param>
+        /// <returns>The <see cref="EventData{T}"/> where deserialized successfully; otherwise, the corresponding <see cref="ValidationException"/>.</returns>
+        protected async Task<(EventData?, ValidationException?)> DeserializeEventAsync(BinaryData eventData)
+        {
+            try
+            {
+                var @event = await EventSerializer.DeserializeAsync(eventData).ConfigureAwait(false)!;
+                return (@event, null);
+            }
+            catch (Exception ex)
+            {
+                return (null, new ValidationException($"{_errorText} {ex.Message}", ex));
+            }
+        }
+
+        /// <summary>
         /// Deserializes the JSON <paramref name="eventData"/> into the specified <see cref="EventData{T}"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="eventData">The event <see cref="BinaryData"/> to deserialize.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <returns>The <see cref="EventData{T}"/> where deserialized successfully; otherwise, the corresponding <see cref="ValidationException"/>.</returns>
-        protected async Task<(EventData<T>?, ValidationException?)> DeserializeEventAsync<T>(BinaryData eventData, bool valueIsRequired = true)
+        protected async Task<(EventData<T>?, ValidationException?)> DeserializeEventAsync<T>(BinaryData eventData, bool valueIsRequired = true, IValidator<T>? validator = null)
         {
             try
             {
                 var @event = await EventSerializer.DeserializeAsync<T>(eventData).ConfigureAwait(false)!;
                 if (valueIsRequired && @event.Value == null)
                     return (null, new ValidationException($"{_errorText} Value is mandatory."));
+
+                if (@event.Value != null && validator != null)
+                {
+                    var vr = await validator.ValidateAsync(@event.Value).ConfigureAwait(false);
+                    if (vr.HasErrors)
+                        return (null, vr.ToValidationException());
+                }
 
                 return (@event, null);
             }

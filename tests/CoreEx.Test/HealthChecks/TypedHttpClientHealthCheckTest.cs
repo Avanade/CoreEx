@@ -1,24 +1,23 @@
-using FluentAssertions;
-using System.Threading.Tasks;
 using System;
 using NUnit.Framework;
 using UnitTestEx.NUnit;
 using CoreEx.TestFunction;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
-using CoreEx.Healthchecks.Checks;
+using CoreEx.HealthChecks.Checks;
 using System.Threading;
 using System.Net.Http;
 using System.Net;
+using System.Threading.Tasks;
+using CoreEx.Configuration;
 using CoreEx.Http;
 using CoreEx.Json;
-using CoreEx.Configuration;
-using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace CoreEx.Test.HealthChecks
 {
-
     [TestFixture, NonParallelizable]
     public class TypedHttpClientHealthCheckTest
     {
@@ -28,7 +27,7 @@ namespace CoreEx.Test.HealthChecks
             {
             }
 
-            public override Task<HttpResult> HealthCheckAsync()
+            public override Task<HttpResult> HealthCheckAsync(CancellationToken cancellationToken = default)
             {
                 return base.HeadAsync("/health", null, null, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
             }
@@ -40,7 +39,7 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             var mcf = MockHttpClientFactory.Create();
             mcf.CreateClient("Test", "https://testing/").Request(HttpMethod.Head, "health").Respond.With(HttpStatusCode.OK);
-            
+
             using var test = FunctionTester.Create<Startup>()
                 .ReplaceHttpClientFactory(mcf)
                 .ConfigureServices(sc => sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/")));
@@ -115,7 +114,7 @@ namespace CoreEx.Test.HealthChecks
         public async Task CheckHealthAsync_Should_Fail_When_NoHttpClientInjected()
         {
             // Arrange
-            var target = new TypedHttpClientHealthCheck<TestHttpClient>(null);
+            var target = new TypedHttpClientHealthCheck<TestHttpClient>(null!);
             var context = new HealthCheckContext()
             {
                 Registration = new HealthCheckRegistration("test", new Mock<IHealthCheck>().Object, null, null)

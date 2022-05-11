@@ -3,6 +3,7 @@
 using CoreEx.Json;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Stj = System.Text.Json;
@@ -22,6 +23,8 @@ namespace CoreEx.Text.Json
         /// <list type="bullet">
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DefaultIgnoreCondition"/> = <see cref="JsonIgnoreCondition.WhenWritingDefault"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c></description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.DictionaryKeyPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.PropertyNamingPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/></description></item>
         /// </list>
         /// </remarks>
@@ -31,6 +34,8 @@ namespace CoreEx.Text.Json
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
                 WriteIndented = false,
+                DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
+                PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
                 Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
             };
         }
@@ -71,15 +76,33 @@ namespace CoreEx.Text.Json
         public T? Deserialize<T>(BinaryData json) => Stj.JsonSerializer.Deserialize<T>(json, Options)!;
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
-            => JsonFilterer.TryApply(value, names, out json, filter, Options, comparer);
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
+            => JsonFilterer.TryApply(value, names, out json, filter, Options, comparison, preFilterInspector);
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
-            var r = JsonFilterer.TryApply(value, names, out JsonNode node, filter, Options, comparer);
+            var r = JsonFilterer.TryApply(value, names, out JsonNode node, filter, Options, comparison, preFilterInspector);
             json = node;
             return r;
+        }
+
+        /// <inheritdoc/>
+        bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, out string? jsonName)
+        {
+            if (memberInfo == null)
+                throw new ArgumentNullException(nameof(memberInfo));
+
+            var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>();
+            if (ji != null)
+            {
+                jsonName = null;
+                return false;
+            }
+
+            var jpn = memberInfo.GetCustomAttribute<JsonPropertyNameAttribute>(true);
+            jsonName = jpn?.Name ?? Options.PropertyNamingPolicy?.ConvertName(memberInfo.Name) ?? memberInfo.Name;
+            return true;
         }
     }
 }

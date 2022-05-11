@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -36,7 +37,7 @@ namespace CoreEx.Events
         }
 
         /// <inheritdoc/>
-        protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData)
+        protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData, CancellationToken cancellationToken)
         {
             var queue = _dict.GetOrAdd(name ?? NullName, _ => new ConcurrentQueue<EventData>());
             queue.Enqueue(eventData);
@@ -65,7 +66,7 @@ namespace CoreEx.Events
         public string?[] GetNames() => _dict.Keys.ToArray();
 
         /// <summary>
-        /// Gets the events published (in order) to the named destination.
+        /// Gets the events sent (in order) to the named destination.
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <returns>The corresponding events.</returns>

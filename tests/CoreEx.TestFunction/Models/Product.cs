@@ -9,11 +9,11 @@ namespace CoreEx.TestFunction.Models
     {
         [Nsj.JsonProperty("id")]
         [Stj.JsonPropertyName("id")]
-        public string Id { get; set; }
+        public string? Id { get; set; }
 
         [Nsj.JsonProperty("name")]
         [Stj.JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [Nsj.JsonProperty("price")]
         [Stj.JsonPropertyName("price")]
@@ -28,11 +28,11 @@ namespace CoreEx.TestFunction.Models
     {
         [Nsj.JsonProperty("code")]
         [Stj.JsonPropertyName("code")]
-        public string Code { get; set; }
+        public string Code { get; set; } = string.Empty;
 
         [Nsj.JsonProperty("description")]
         [Stj.JsonPropertyName("description")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Nsj.JsonProperty("retailPrice")]
         [Stj.JsonPropertyName("retailPrice")]
@@ -40,10 +40,12 @@ namespace CoreEx.TestFunction.Models
 
         [Nsj.JsonIgnore]
         [Stj.JsonIgnore]
-        public string Secret { get; set; }
+        public string? Secret { get; set; }
 
         [Nsj.JsonIgnore]
         [Stj.JsonIgnore]
         public CompositeKey PrimaryKey => new CompositeKey(Code);
+
+        public string? ETag { get; set; }
     }
 }

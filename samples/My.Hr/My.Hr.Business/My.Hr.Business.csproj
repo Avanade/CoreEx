@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />
   </ItemGroup>

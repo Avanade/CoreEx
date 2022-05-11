@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Globalization;
 using CoreEx.Json;
-using CoreEx.Utility;
 using System;
 using System.Globalization;
 
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Provides the <see cref="EventData"/> formatting options and corresponding <see cref="Format(EventDataBase)"/>.
+    /// Provides the <see cref="EventData"/> formatting options and corresponding <see cref="Format(EventData)"/>.
     /// </summary>
     /// <remarks>This enables further standardized formatting of the <see cref="EventData"/> prior to serialization.
     /// <para>The <see cref="EventDataBase.Id"/>, <see cref="EventDataBase.Timestamp"/> and <see cref="EventDataBase.CorrelationId"/> will default, where <c>null</c>, to <see cref="Guid.NewGuid()"/>, <see cref="DateTimeOffset.UtcNow"/> and
@@ -35,7 +35,7 @@ namespace CoreEx.Events
         public TextInfoCasing TypeCasing = TextInfoCasing.Lower;
 
         /// <summary>
-        /// Indicates whether to append the <see cref="IIdentifier.GetIdentifier"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Type"/> value.
+        /// Indicates whether to append the <see cref="IIdentifier.Id"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Type"/> value.
         /// </summary>
         public bool TypeAppendIdOrPrimaryKey { get; set; } = false;
 
@@ -46,7 +46,7 @@ namespace CoreEx.Events
         public char TypeSeparatorCharacter { get; set; } = '.';
 
         /// <summary>
-        /// Indicates whether to default the <see cref="EventDataBase.Type"/> to the <see cref="EventDataBase.GetValue"/> value <see cref="Type.FullName"/> where <c>null</c>.
+        /// Indicates whether to default the <see cref="EventDataBase.Type"/> to the <see cref="EventData.Value"/> value <see cref="Type.FullName"/> where <c>null</c>.
         /// </summary>
         public bool TypeDefaultToValueTypeName { get; set; } = true;
 
@@ -57,7 +57,7 @@ namespace CoreEx.Events
         public TextInfoCasing SubjectCasing = TextInfoCasing.Lower;
 
         /// <summary>
-        /// Indicates whether to append the <see cref="IIdentifier.GetIdentifier"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Subject"/> value.
+        /// Indicates whether to append the <see cref="IIdentifier.Id"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Subject"/> value.
         /// </summary>
         public bool SubjectAppendIdOrPrimaryKey { get; set; } = false;
 
@@ -68,7 +68,7 @@ namespace CoreEx.Events
         public char SubjectSeparatorCharacter { get; set; } = '.';
 
         /// <summary>
-        /// Indicates whether to default the <see cref="EventDataBase.Subject"/> to the <see cref="EventDataBase.GetValue"/> value <see cref="Type.FullName"/> where <c>null</c>.
+        /// Indicates whether to default the <see cref="EventDataBase.Subject"/> to the <see cref="EventData.Value"/> value <see cref="Type.FullName"/> where <c>null</c>.
         /// </summary>
         public bool SubjectDefaultToValueTypeName { get; set; } = false;
 
@@ -79,19 +79,19 @@ namespace CoreEx.Events
         public TextInfoCasing ActionCasing = TextInfoCasing.Lower;
 
         /// <summary>
-        /// Gets or sets the default <see cref="EventDataBase.Source"/> where not specified.
+        /// Gets or sets the <see cref="EventDataBase.Source"/> default delegate to be used where not specified.
         /// </summary>
-        /// <remarks>Defaults to the <see cref="string"/> literal '<c>null</c>'.</remarks>
-        public Uri? SourceDefault { get; set; } = new Uri("null", UriKind.Relative);
+        /// <remarks>Defaults to <c>null</c>.</remarks>
+        public Func<EventData, Uri?>? SourceDefault { get; set; }
 
         /// <summary>
-        /// Indicates whether to default the <see cref="EventDataBase.ETag"/> to the <see cref="EventDataBase.GetValue"/> value where it implements <see cref="IETag"/>.
+        /// Indicates whether to default the <see cref="EventDataBase.ETag"/> to the <see cref="EventData.Value"/> value where it implements <see cref="IETag"/>.
         /// </summary>
         /// <remarks>This is applied before <see cref="ETagDefaultGenerated"/>.</remarks>
         public bool ETagDefaultFromValue { get; set; }
 
         /// <summary>
-        /// Indicates whether to default the <see cref="EventDataBase.ETag"/> to the <see cref="EventDataBase.GetValue"/> value by using the <see cref="ETagGenerator"/>.
+        /// Indicates whether to default the <see cref="EventDataBase.ETag"/> to the <see cref="EventData.Value"/> value by using the <see cref="ETagGenerator"/>.
         /// </summary>
         /// <remarks>This is applied after <see cref="ETagDefaultFromValue"/>.</remarks>
         public bool ETagDefaultGenerated { get; set; }
@@ -105,10 +105,10 @@ namespace CoreEx.Events
         /// <summary>
         /// Formats the <paramref name="event"/> using the configured formatting options where applicable.
         /// </summary>
-        /// <param name="event">The <see cref="EventDataBase"/> to format.</param>
-        public virtual void Format(EventDataBase @event)
+        /// <param name="event">The <see cref="EventData"/> to format.</param>
+        public virtual void Format(EventData @event)
         {
-            var value = @event.GetValue();
+            var value = @event.Value;
 
             if (@event.Id == null)
                 @event.Id = Guid.NewGuid().ToString();
@@ -129,7 +129,7 @@ namespace CoreEx.Events
                 if (SubjectAppendIdOrPrimaryKey && value != null)
                 {
                     if (value is IIdentifier ii)
-                        @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, new CompositeKey(ii.GetIdentifier()).ToString());
+                        @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, new CompositeKey(ii.Id).ToString());
                     else if (value is IPrimaryKey pk)
                         @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, pk.PrimaryKey.ToString());
                 }
@@ -152,24 +152,16 @@ namespace CoreEx.Events
                 else if (@event.Type != null && TypeCasing != TextInfoCasing.None)
                     @event.Type = TextInfo.ToCasing(@event.Type, TypeCasing);
 
-                if (TypeAppendIdOrPrimaryKey && @event.GetValue() != null)
+                if (TypeAppendIdOrPrimaryKey && @event.Value != null)
                 {
                     if (value is IIdentifier ii)
-                        @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, new CompositeKey(ii.GetIdentifier()).ToString());
+                        @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, new CompositeKey(ii.Id).ToString());
                     else if (value is IPrimaryKey pk)
                         @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, pk.PrimaryKey.ToString());
                 }
             }
             else
                 @event.Type = null;
-
-            if (PropertySelection.HasFlag(EventDataProperty.Source))
-            {
-                if (@event.Source == null)
-                    @event.Source = SourceDefault;
-            }
-            else
-                @event.Source = null;
 
             if (!PropertySelection.HasFlag(EventDataProperty.CorrelationId))
                 @event.CorrelationId = null;
@@ -196,6 +188,14 @@ namespace CoreEx.Events
 
             if (!PropertySelection.HasFlag(EventDataProperty.Attributes))
                 @event.Attributes = null;
+
+            if (PropertySelection.HasFlag(EventDataProperty.Source))
+            {
+                if (@event.Source == null)
+                    @event.Source = SourceDefault?.Invoke(@event);
+            }
+            else
+                @event.Source = null;
         }
 
         /// <summary>

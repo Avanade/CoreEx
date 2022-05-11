@@ -1,14 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
-  </ItemGroup>
 
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -17,8 +13,8 @@
   
   <ItemGroup>
     <ProjectReference Include="..\My.Hr.Business\My.Hr.Business.csproj" />
-    <ProjectReference Include="..\..\..\src\CoreEx.Messaging.Azure\CoreEx.Messaging.Azure.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.HealthChecks\CoreEx.HealthChecks.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />
   </ItemGroup>
 
 </Project>

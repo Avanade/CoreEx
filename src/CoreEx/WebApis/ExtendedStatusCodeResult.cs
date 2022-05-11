@@ -21,6 +21,11 @@ namespace CoreEx.WebApis
         public ExtendedStatusCodeResult(HttpStatusCode statusCode) : base((int)statusCode) { }
 
         /// <summary>
+        /// Gets or sets the <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.
+        /// </summary>
+        public Uri? Location { get; set; }
+
+        /// <summary>
         /// Gets or sets the function to perform the extended <see cref="HttpResponse"/> customization.
         /// </summary>
         [JsonIgnore]
@@ -35,6 +40,9 @@ namespace CoreEx.WebApis
         /// <inheritdoc/>
         public override async Task ExecuteResultAsync(ActionContext context)
         {
+            if (Location != null)
+                context.HttpContext.Response.GetTypedHeaders().Location = Location;
+
             if (BeforeExtension != null)
                 await BeforeExtension(context.HttpContext.Response).ConfigureAwait(false);
 

@@ -20,7 +20,7 @@ public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
         client.BaseAddress = new Uri(settings.GenderizeApiClientApiEndpointUri);
     }
 
-    public override Task<HttpResult> HealthCheckAsync()
+    public override Task<HttpResult> HealthCheckAsync(CancellationToken cancellationToken = default)
     {
         return base.HeadAsync(string.Empty, null, new HttpArg<string>("name", "health"));
     }

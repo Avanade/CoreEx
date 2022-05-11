@@ -3,9 +3,11 @@
 using CoreEx.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using Nsj = Newtonsoft.Json;
 
 namespace CoreEx.Newtonsoft.Json
@@ -90,15 +92,54 @@ namespace CoreEx.Newtonsoft.Json
         }
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
-            => JsonFilterer.TryApply(value, names, out json, filter, Settings, comparer);
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
+            => JsonFilterer.TryApply(value, names, out json, filter, Settings, comparison, preFilterInspector);
 
         /// <inheritdoc/>
-        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, IEqualityComparer<string>? comparer = null)
+        public bool TryApplyFilter<T>(T value, IEnumerable<string>? names, out object json, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
-            var r = JsonFilterer.TryApply(value, names, out JToken node, filter, Settings, comparer);
+            var r = JsonFilterer.TryApply(value, names, out JToken node, filter, Settings, comparison, preFilterInspector);
             json = node;
             return r;
+        }
+
+        /// <inheritdoc/>
+        bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, out string? jsonName)
+        {
+            if (memberInfo == null)
+                throw new ArgumentNullException(nameof(memberInfo));
+
+            var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>(true);
+            if (ji != null)
+            {
+                jsonName = null;
+                return false;
+            }
+
+            var jpn = memberInfo.GetCustomAttribute<JsonPropertyAttribute>(true);
+            if (jpn?.PropertyName != null)
+            {
+                jsonName = jpn.PropertyName;
+                return true;
+            }
+
+            if (Settings.ContractResolver is ContractResolver cr)
+            {
+                var jo = memberInfo.DeclaringType.GetCustomAttribute<JsonObjectAttribute>(true);
+                var jp = cr.GetProperty(memberInfo, jo == null ? MemberSerialization.OptOut : jo.MemberSerialization);
+                if (jp != null)
+                {
+                    jsonName = jp.Ignored ? null : jp.PropertyName;
+                    return !jp.Ignored;
+                }
+            }
+
+            if (Settings.ContractResolver is CamelCasePropertyNamesContractResolver ccr && ccr.NamingStrategy != null)
+                jsonName = ccr.NamingStrategy.GetPropertyName(memberInfo.Name, false);
+            else
+                jsonName = memberInfo.Name;
+
+            return true;
         }
 
         /// <summary>

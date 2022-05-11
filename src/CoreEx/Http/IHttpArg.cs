@@ -3,6 +3,7 @@
 using CoreEx.Json;
 using Microsoft.AspNetCore.Http;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Http
@@ -25,6 +26,7 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        Task ModifyHttpRequestAsync(HttpRequestMessage request, IJsonSerializer jsonSerializer);
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        Task ModifyHttpRequestAsync(HttpRequestMessage request, IJsonSerializer jsonSerializer, CancellationToken cancellationToken = default);
     }
 }

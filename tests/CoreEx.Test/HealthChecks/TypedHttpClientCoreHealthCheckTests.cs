@@ -1,15 +1,15 @@
-using FluentAssertions;
-using System.Threading.Tasks;
 using System;
-using NUnit.Framework;
-using UnitTestEx.NUnit;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using CoreEx.HealthChecks.Checks;
 using CoreEx.TestFunction;
+using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
-using CoreEx.Healthchecks.Checks;
-using System.Threading;
-using System.Net.Http;
-using System.Net;
+using NUnit.Framework;
+using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
 {
@@ -92,7 +92,7 @@ namespace CoreEx.Test.HealthChecks
         public async Task CheckHealthAsync_Should_Fail_When_NoHttpClientInjected()
         {
             // Arrange
-            var target = new TypedHttpClientCoreHealthCheck<BackendHttpClient>(null);
+            var target = new TypedHttpClientCoreHealthCheck<BackendHttpClient>(null!);
             var context = new HealthCheckContext()
             {
                 Registration = new HealthCheckRegistration("test", new Mock<IHealthCheck>().Object, null, null)

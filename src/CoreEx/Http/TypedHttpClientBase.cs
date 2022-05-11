@@ -4,6 +4,7 @@ using CoreEx.Entities;
 using CoreEx.Json;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -47,9 +48,10 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => CreateRequestInternalAsync(method, requestUri, null, requestOptions, args);
+        protected Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+            => CreateRequestInternalAsync(method, requestUri, null, requestOptions, args, cancellationToken);
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> with the specified <paramref name="content"/>.
@@ -59,9 +61,10 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected Task<HttpRequestMessage> CreateContentRequestAsync(HttpMethod method, string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => CreateRequestInternalAsync(method, requestUri, content, requestOptions, args);
+        protected Task<HttpRequestMessage> CreateContentRequestAsync(HttpMethod method, string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+            => CreateRequestInternalAsync(method, requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> serializing the <paramref name="value"/> as JSON content.
@@ -72,9 +75,10 @@ namespace CoreEx.Http
         /// <param name="value">The request value to be serialized to JSON.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
-        protected Task<HttpRequestMessage> CreateJsonRequestAsync<TReq>(HttpMethod method, string requestUri, TReq value, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => CreateContentRequestAsync(method, requestUri, new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json), ApplyValueETagToRequestOptions(value, requestOptions), args);
+        protected Task<HttpRequestMessage> CreateJsonRequestAsync<TReq>(HttpMethod method, string requestUri, TReq value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+            => CreateContentRequestAsync(method, requestUri, new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json), ApplyValueETagToRequestOptions(value, requestOptions), args, cancellationToken);
 
         /// <summary>
         /// Applies the <paramref name="value"/> <see cref="IETag"/> to the <see cref="HttpRequestOptions"/> where not already specified.
@@ -98,7 +102,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Create the request applying the specified options and args.
         /// </summary>
-        private async Task<HttpRequestMessage> CreateRequestInternalAsync(HttpMethod method, string requestUri, HttpContent? content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
+        private async Task<HttpRequestMessage> CreateRequestInternalAsync(HttpMethod method, string requestUri, HttpContent? content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
         {
             // Replace any format placeholders within request uri.
             requestUri = FormatReplacement(requestUri, args);
@@ -128,7 +132,7 @@ namespace CoreEx.Http
             // Apply the body/content IHttpArg.
             foreach (var arg in args.Where(x => x != null))
             {
-                await arg.ModifyHttpRequestAsync(request, JsonSerializer).ConfigureAwait(false);
+                await arg.ModifyHttpRequestAsync(request, JsonSerializer, cancellationToken).ConfigureAwait(false);
             }
 
             return request;
@@ -137,7 +141,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Format replacement inspired by: https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/LogValuesFormatter.cs
         /// </summary>
-        private static string FormatReplacement(string requestUri, IHttpArg[] args)
+        private static string FormatReplacement(string requestUri, IEnumerable<IHttpArg>? args)
         {
             var sb = new StringBuilder();
             var scanIndex = 0;
@@ -159,9 +163,12 @@ namespace CoreEx.Http
                 {
                     sb.Append(requestUri, scanIndex, openBraceIndex - scanIndex);
 
-                    var arg = args.OfType<IHttpArgTypeArg>().Where(x => x != null && MemoryExtensions.Equals(requestUri.AsSpan(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1), x.Name, StringComparison.Ordinal)).FirstOrDefault();
-                    if (arg != null)
-                        sb.Append(arg.ToEscapeDataString());
+                    if (args != null)
+                    {
+                        var arg = args.OfType<IHttpArgTypeArg>().Where(x => x != null && MemoryExtensions.Equals(requestUri.AsSpan(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1), x.Name, StringComparison.Ordinal)).FirstOrDefault();
+                        if (arg != null)
+                            sb.Append(arg.ToEscapeDataString());
+                    }
 
                     scanIndex = closeBraceIndex + 1;
                 }
@@ -221,13 +228,16 @@ namespace CoreEx.Http
             return braceIndex;
         }
 
+
         /// <summary>
         /// Deserialize the JSON <see cref="HttpResponseMessage.Content"/> into <see cref="Type"/> of <typeparamref name="TResp"/>.
         /// </summary>
         /// <typeparam name="TResp">The response <see cref="Type"/>.</typeparam>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The deserialized response value.</returns>
-        protected async Task<TResp> ReadAsJsonAsync<TResp>(HttpResponseMessage response)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        protected async Task<TResp> ReadAsJsonAsync<TResp>(HttpResponseMessage response, CancellationToken cancellationToken = default)
         {
             response.EnsureSuccessStatusCode();
             if (response.Content == null)

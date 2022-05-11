@@ -77,7 +77,7 @@ namespace CoreEx.Entities
         /// <param name="other">The other <see cref="CompositeKey"/>.</param>
         /// <returns><c>true</c> if the values are equal; otherwise, <c>false</c>.</returns>
         /// <remarks>Uses the <see cref="CompositeKeyComparer.Equals(CompositeKey, CompositeKey)"/>.</remarks>
-        public bool Equals(CompositeKey other) => new CompositeKeyComparer().Equals(this, other);
+        public bool Equals(CompositeKey other) => CompositeKeyComparer.Default.Equals(this, other);
 
         /// <summary>
         /// Determines whether the current <see cref="CompositeKey"/> is equal to another <see cref="Object"/>.
@@ -91,7 +91,7 @@ namespace CoreEx.Entities
         /// </summary>
         /// <returns>A hash code for the <see cref="CompositeKey"/>.</returns>
         /// <remarks>Uses the <see cref="CompositeKeyComparer.GetHashCode(CompositeKey)"/>.</remarks>
-        public override int GetHashCode() => new CompositeKeyComparer().GetHashCode(this);
+        public override int GetHashCode() => CompositeKeyComparer.Default.GetHashCode(this);
 
         /// <summary>
         /// Compares two <see cref="CompositeKey"/> types for equality.

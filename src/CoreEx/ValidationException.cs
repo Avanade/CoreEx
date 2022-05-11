@@ -29,7 +29,7 @@ namespace CoreEx
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class.
         /// </summary>
-        public ValidationException() : this((string?)null!) { }
+        public ValidationException() : this(null!) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class using the specified <paramref name="message"/>.

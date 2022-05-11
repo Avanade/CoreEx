@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>CoreEx.FluentValidation</RootNamespace>
-    <Product>UnitTestEx</Product>
+    <Product>CoreEx</Product>
     <Title>CoreEx .NET Standard FluentValidation Extensions.</Title>
     <Description>CoreEx .NET Standard (v2.1) FluentValidation Extensions.</Description>
     <PackageTags>coreex api function aspnet validation fluentvalidation</PackageTags>

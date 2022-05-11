@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Collections.Generic;
 
 namespace CoreEx.Json
 {
@@ -21,9 +22,10 @@ namespace CoreEx.Json
             set => _jsonSerializer = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        internal static string Serialize(object? value)
-        {
-            throw new NotImplementedException();
-        }
+        /// <summary>
+        /// Gets the dictionary of JSON name substitutions that will be used during serialization to rename the .NET property to the specified JSON name.
+        /// </summary>
+        /// <remarks>The dictionary key is the .NET property name and the value is the corresponding JSON name.</remarks>
+        public static Dictionary<string, string> NameSubstitutions { get; } = new Dictionary<string, string> { { "ETag", "etag" } };
     }
 }

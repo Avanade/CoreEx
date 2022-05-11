@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Http
@@ -27,8 +28,10 @@ namespace CoreEx.Http
         /// Creates a new <see cref="HttpResult"/> with no value.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public static async Task<HttpResult> CreateAsync(HttpResponseMessage response)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        public static async Task<HttpResult> CreateAsync(HttpResponseMessage response, CancellationToken cancellationToken = default)
             => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), response.Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false));
 
         /// <summary>
@@ -36,14 +39,16 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/> for deserializing the <see cref="HttpResult{T}.Value"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public static async Task<HttpResult<T>> CreateAsync<T>(HttpResponseMessage response, IJsonSerializer jsonSerializer)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        public static async Task<HttpResult<T>> CreateAsync<T>(HttpResponseMessage response, IJsonSerializer jsonSerializer, CancellationToken cancellationToken = default)
         {
             var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
                 return new HttpResult<T>(response, content, default!);
 
-            if (typeof(T) == typeof(string) && response.Content.Headers?.ContentType?.MediaType == MediaTypeNames.Text.Plain)
+            if (typeof(T) == typeof(string) && StringComparer.OrdinalIgnoreCase.Compare(response.Content.Headers?.ContentType?.MediaType, MediaTypeNames.Text.Plain) == 0)
             {
                 try
                 {
@@ -69,6 +74,7 @@ namespace CoreEx.Http
             }
         }
 
+
         /// <summary>
         /// Creates a new <see cref="HttpResult{T}"/> with a <see cref="HttpResult{T}.Value"/> of <typeparamref name="TCollResult"/>.
         /// </summary>
@@ -77,8 +83,10 @@ namespace CoreEx.Http
         /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/> for deserializing the <see cref="HttpResult{T}.Value"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public static async Task<HttpResult<TCollResult>> CreateAsync<TCollResult, TColl, TItem>(HttpResponseMessage response, IJsonSerializer jsonSerializer)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+        public static async Task<HttpResult<TCollResult>> CreateAsync<TCollResult, TColl, TItem>(HttpResponseMessage response, IJsonSerializer jsonSerializer, CancellationToken cancellationToken = default)
             where TCollResult : ICollectionResult<TColl, TItem>, new()
             where TColl : ICollection<TItem>
         {

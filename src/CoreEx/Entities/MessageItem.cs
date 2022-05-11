@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities.Extended;
 using CoreEx.Localization;
 using System;
 using System.Text.Json.Serialization;
@@ -80,19 +81,16 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the message severity validatorType.
         /// </summary>
-        [JsonPropertyName("type")]
         public MessageType Type { get => _type; set => SetValue(ref _type, value); }
 
         /// <summary>
         /// Gets or sets the message text.
         /// </summary>
-        [JsonPropertyName("text")]
         public string? Text { get => _text; set => SetValue(ref _text, value); }
 
         /// <summary>
         /// Gets or sets the name of the property that the message relates to.
         /// </summary>
-        [JsonPropertyName("property")]
         public string? Property { get => _property; set => SetValue(ref _property, value); }
 
         /// <summary>

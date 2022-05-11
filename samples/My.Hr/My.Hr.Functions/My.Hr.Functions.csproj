@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <AzureFunctionsVersion>v3</AzureFunctionsVersion>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <_FunctionsSkipCleanOutput>true</_FunctionsSkipCleanOutput> <!-- because of https://github.com/Azure/azure-functions-core-tools/issues/2872 -->
   </PropertyGroup>
   <ItemGroup>
@@ -12,8 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\My.Hr.Business\My.Hr.Business.csproj" />
-    <ProjectReference Include="..\..\..\src\CoreEx.Messaging.Azure\CoreEx.Messaging.Azure.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.HealthChecks\CoreEx.HealthChecks.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

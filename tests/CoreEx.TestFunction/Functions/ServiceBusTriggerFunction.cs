@@ -1,6 +1,6 @@
 ﻿using Azure.Messaging.ServiceBus;
 using CoreEx.FluentValidation;
-using CoreEx.Messaging.Azure.ServiceBus;
+using CoreEx.Azure.ServiceBus;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Services;
 using CoreEx.TestFunction.Validators;
@@ -24,6 +24,6 @@ namespace CoreEx.TestFunction.Functions
         [FunctionName("ServiceBusFunction")]
         [ExponentialBackoffRetry(3, "00:02:00", "00:30:00")]
         public Task RunAsync([ServiceBusTrigger("%" + nameof(TestSettings.QueueName) + "%", Connection = nameof(TestSettings.ServiceBusConnection))] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
-            => _subscriber.ReceiveAsync<Product>(message, messageActions, ed => _service.UpdateProductAsync(ed.Validate<Product, ProductValidator>(), ed.Value.Id));
+            => _subscriber.ReceiveAsync(message, messageActions, ed => _service.UpdateProductAsync(ed.Value!, ed.Value.Id!), validator: new ProductValidator().Wrap());
     }
 }

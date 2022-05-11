@@ -16,10 +16,12 @@ namespace CoreEx.WebApis
         /// </summary>
         /// <param name="webApi">The parent <see cref="WebApiBase"/> instance.</param>
         /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
-        public WebApiParam(WebApiBase webApi, WebApiRequestOptions requestOptions)
+        /// <param name="operationType">The <see cref="CoreEx.OperationType"/>.</param>
+        public WebApiParam(WebApiBase webApi, WebApiRequestOptions requestOptions, OperationType operationType = OperationType.Unspecified)
         {
             WebApi = webApi ?? throw new ArgumentNullException(nameof(webApi));
             RequestOptions = requestOptions ?? throw new ArgumentNullException(nameof(requestOptions));
+            OperationType = operationType;
         }
 
         /// <summary>
@@ -41,6 +43,11 @@ namespace CoreEx.WebApis
         /// Gets the <see cref="Entities.PagingArgs"/>.
         /// </summary>
         public PagingArgs? Paging => RequestOptions.Paging;
+
+        /// <summary>
+        /// Gets the <see cref="CoreEx.OperationType"/>.
+        /// </summary>
+        public OperationType OperationType { get; }
 
         /// <summary>
         /// Inspects the <paramref name="value"/> to update the <see cref="WebApiRequestOptions.ETag"/> where appropriate.

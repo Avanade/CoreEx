@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Text.Json.Serialization;
 
 namespace CoreEx.Events
 {
@@ -26,11 +25,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Gets or sets the event data.
         /// </summary>
-        [JsonPropertyName("value")]
         public new T Value { get => (T)base.Value!; set => base.Value = value; }
-
-        /// <inheritdoc/>
-        public override object? GetValue() => Value;
 
         /// <summary>
         /// Copies the <see cref="EventData"/> (including the <see cref="Value"/>) creating a new instance.

@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Entities.Extended;
 using CoreEx.Events;
+using CoreEx.RefData;
 using CoreEx.RefData.Models;
 using CoreEx.WebApis;
 using Newtonsoft.Json;
@@ -15,7 +17,7 @@ using Stj = System.Text.Json.Serialization;
 namespace CoreEx.Newtonsoft.Json
 {
     /// <summary>
-    /// Extends the <see cref="DefaultContractResolver"/> to enable runtime configurable of JSON serialization property rename and ignore.
+    /// Extends the <see cref="CamelCasePropertyNamesContractResolver"/> to enable runtime configurable of JSON serialization property rename and ignore.
     /// </summary>
     public class ContractResolver : CamelCasePropertyNamesContractResolver
     {
@@ -30,20 +32,18 @@ namespace CoreEx.Newtonsoft.Json
         /// </summary>
         static ContractResolver()
         {
-            _default.AddType<EventDataBase>()
-                    .AddType<EventData>()
-                    .AddType(typeof(EventData<>))
-                    .AddType<ChangeLog>()
-                    .AddType(typeof(ReferenceDataBase<>))
-                    .AddType(typeof(ReferenceDataExtendedBase<>))
+            _default.AddType(typeof(ReferenceDataBase<>))
                     .AddType<MessageItem>()
-                    .AddType(typeof(CollectionResult<,>))
-                    .AddType(typeof(EntityCollectionResult<,,>))
                     .AddType<PagingArgs>()
                     .AddType<PagingResult>()
                     .AddType<ExtendedContentResult>()
                     .AddType<ExtendedStatusCodeResult>();
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ContractResolver"/>.
+        /// </summary>
+        public ContractResolver() => NamingStrategy = SubstituteNamingStrategy.Substitute;
 
         /// <summary>
         /// Gets the default <see cref="ContractResolver"/>.
@@ -152,8 +152,12 @@ namespace CoreEx.Newtonsoft.Json
             }
 
             if (_renameDict != null && _renameDict.TryGetValue(type, out var d) && d.TryGetValue(property.PropertyName!, out var jn))
+            {
                 property.PropertyName = jn;
-            else if (_typeDict != null && _typeDict.TryGetValue(type, out _))
+                return property;
+            }
+            
+            if (_typeDict != null && _typeDict.TryGetValue(type, out _))
             {
                 var jpna = member.GetCustomAttribute<Stj.JsonPropertyNameAttribute>(true);
                 if (jpna != null)
@@ -173,5 +177,13 @@ namespace CoreEx.Newtonsoft.Json
 
             return property;
         }
+
+        /// <summary>
+        /// Gets (creates) the <see cref="JsonProperty"/> from the <paramref name="memberInfo"/>.
+        /// </summary>
+        /// <param name="memberInfo">The <see cref="MemberInfo"/>.</param>
+        /// <param name="memberSerialization">The <see cref="MemberSerialization"/> option.</param>
+        /// <returns>The <see cref="JsonProperty"/>.</returns>
+        public JsonProperty GetProperty(MemberInfo memberInfo, MemberSerialization memberSerialization) => CreateProperty(memberInfo, memberSerialization);
     }
 }

@@ -4,12 +4,11 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class (not <see cref="EntityBaseCollection{TEntity, TSelf}"/>) with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.
+    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.
     /// </summary>
     /// <typeparam name="TColl">The result collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The underlying entity <see cref="Type"/>.</typeparam>
@@ -24,15 +23,19 @@ namespace CoreEx.Entities
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionResult{TColl, TEntity}"/> class.
         /// </summary>
+        public CollectionResult() { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CollectionResult{TColl, TEntity}"/> class with <paramref name="paging"/>.
+        /// </summary>
         /// <param name="paging">Defaults the <see cref="Paging"/> to the requesting <see cref="PagingArgs"/>.</param>
-        protected CollectionResult(PagingArgs? paging = null)
+        protected CollectionResult(PagingArgs paging)
         {
             if (paging != null)
                 Paging = new PagingResult(paging);
         }
 
         /// <inheritdoc/>
-        [JsonPropertyName("collection")]
         public TColl Collection
         {
             get => _collection ??= new TColl();
@@ -40,7 +43,6 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
-        [JsonPropertyName("paging")]
         public PagingResult? Paging { get; set; }
 
         /// <summary>

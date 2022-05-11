@@ -2,8 +2,10 @@
 
 using CoreEx.Entities;
 using CoreEx.Http;
+using CoreEx.RefData;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 
 namespace CoreEx
@@ -11,10 +13,15 @@ namespace CoreEx
     /// <summary>
     /// Represents a thread-bound (request) execution context using <see cref="AsyncLocal{ExecutionContext}"/>.
     /// </summary>
-    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments.</remarks>
-    public class ExecutionContext
+    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments. This class should be extended by consumers where additional properties are required.</remarks>
+    public class ExecutionContext : IETag
     {
         private static readonly AsyncLocal<ExecutionContext?> _asyncLocal = new();
+
+        private DateTime? _timestamp;
+        private readonly Lazy<MessageItemCollection> _messages = new(true);
+        private readonly Lazy<ConcurrentDictionary<string, object?>> _properties = new(true);
+        private IReferenceDataContext? _referenceDataContext;
 
         /// <summary>
         /// Gets or sets the function to create a default <see cref="ExecutionContext"/> instance.
@@ -54,42 +61,69 @@ namespace CoreEx
         /// Gets the service of <see cref="Type"/> <typeparamref name="T"/> from the <see cref="Current"/> <see cref="ServiceProvider"/>.
         /// </summary>
         /// <typeparam name="T">The service <see cref="Type"/>.</typeparam>
-        /// <param name="throwExceptionOnNull">Indicates whether to throw an <see cref="InvalidOperationException"/> where the underlying <see cref="IServiceProvider.GetService(Type)"/> returns <c>null</c>.</param>
         /// <returns>The corresponding instance.</returns>
-        public static T? GetService<T>(bool throwExceptionOnNull = true)
+        public static T? GetService<T>()
         {
             if (HasCurrent && Current.ServiceProvider != null)
-                return Current.ServiceProvider.GetService<T>() ??
-                    (throwExceptionOnNull ? throw new InvalidOperationException($"Attempted to get service '{typeof(T).FullName}' but null was returned; this would indicate that the service has not been configured correctly.") : default(T)!);
+                return Current.ServiceProvider.GetService<T>();
 
-            if (throwExceptionOnNull)
-                throw new InvalidOperationException($"Attempted to get service '{typeof(T).FullName}' but there is either no ExecutionContext.Current or the ExecutionContext.ServiceProvider has not been configured.");
+            return default;
+        }
 
-            return default!;
+        /// <summary>
+        /// Gets the service of <see cref="Type"/> <typeparamref name="T"/> from the <see cref="Current"/> <see cref="ServiceProvider"/> and will throw an <see cref="InvalidOperationException"/> where not found.
+        /// </summary>
+        /// <typeparam name="T">The service <see cref="Type"/>.</typeparam>
+        /// <returns>The corresponding instance.</returns>
+        public static T GetRequiredService<T>() where T : notnull
+        {
+            if (HasCurrent && Current.ServiceProvider != null)
+                return Current.ServiceProvider.GetRequiredService<T>();
+
+            throw new InvalidOperationException($"Attempted to get service '{typeof(T).FullName}' but there is either no ExecutionContext.Current or the ExecutionContext.ServiceProvider has not been configured.");
         }
 
         /// <summary>
         /// Gets the service of <see cref="Type"/> <paramref name="type"/> from the <see cref="Current"/> <see cref="ServiceProvider"/>.
         /// </summary>
         /// <param name="type">The service <see cref="Type"/>.</param>
-        /// <param name="throwExceptionOnNull">Indicates whether to throw an <see cref="InvalidOperationException"/> where the underlying <see cref="IServiceProvider.GetService(Type)"/> returns <c>null</c>.</param>
         /// <returns>The corresponding instance.</returns>
-        public static object? GetService(Type type, bool throwExceptionOnNull = true)
+        public static object? GetService(Type type)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
             if (HasCurrent && Current.ServiceProvider != null)
-                return Current.ServiceProvider.GetService(type) ??
-                    (throwExceptionOnNull ? throw new InvalidOperationException($"Attempted to get service '{type.FullName}' but null was returned; this would indicate that the service has not been configured correctly.") : (object?)null);
+                return Current.ServiceProvider.GetService(type);
 
             throw new InvalidOperationException($"Attempted to get service '{type.FullName}' but there is either no ExecutionContext.Current or the ExecutionContext.ServiceProvider has not been configured.");
         }
 
         /// <summary>
+        /// Gets the service of <see cref="Type"/> <paramref name="type"/> from the <see cref="Current"/> <see cref="ServiceProvider"/> and will throw an <see cref="InvalidOperationException"/> where not found.
+        /// </summary>
+        /// <param name="type">The service <see cref="Type"/>.</param>
+        /// <returns>The corresponding instance.</returns>
+        public static object GetRequiredService(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (HasCurrent && Current.ServiceProvider != null)
+                return Current.ServiceProvider.GetRequiredService(type);
+
+            throw new InvalidOperationException($"Attempted to get service '{type.FullName}' but there is either no ExecutionContext.Current or the ExecutionContext.ServiceProvider has not been configured.");
+        }
+
+        /// <summary>
+        /// Gets the <see cref="ISystemTime"/> instance from the <see cref="ServiceProvider"/>; where not found the <see cref="CoreEx.SystemTime.Default"/> will be used.
+        /// </summary>
+        public static ISystemTime SystemTime => GetService<ISystemTime>() ?? CoreEx.SystemTime.Default;
+
+        /// <summary>
         /// Gets the <see cref="ServiceProvider"/>.
         /// </summary>
-        /// <remarks>This is automatically set via the <see cref="DependencyInjection.ServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
+        /// <remarks>This is automatically set via the <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
         public IServiceProvider? ServiceProvider { get; set; }
 
         /// <summary>
@@ -112,5 +146,32 @@ namespace CoreEx
         /// Gets or sets the <b>result</b> entity tag (where value does not support <see cref="IETag"/>).
         /// </summary>
         public string? ETag { get; set; }
+
+        /// <summary>
+        /// Gets or sets the corresponding user name.
+        /// </summary>
+        public string? Username { get; set; }
+
+        /// <summary>
+        /// Gets the timestamp for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).
+        /// </summary>
+        /// <remarks>Gets the value from <see cref="ISystemTime"/>, where this has not been registered it will default to <see cref="DateTime.UtcNow"/>. The value will also be passed through <see cref="Cleaner.Clean(DateTime)"/>.</remarks>
+        public DateTime Timestamp => _timestamp ??= Cleaner.Clean(GetService<ISystemTime>()?.UtcNow ?? DateTime.UtcNow);
+
+        /// <summary>
+        /// Gets the <see cref="MessageItemCollection"/> to be passed back to the originating consumer.
+        /// </summary>
+        public MessageItemCollection Messages { get => _messages.Value; }
+
+        /// <summary>
+        /// Gets the properties <see cref="ConcurrentDictionary{TKey, TValue}"/> for passing/storing additional data.
+        /// </summary>
+        public ConcurrentDictionary<string, object?> Properties { get => _properties.Value; }
+
+        /// <summary>
+        /// Gets the <see cref="IReferenceDataContext"/>.
+        /// </summary>
+        /// <remarks>Where not configured will instantiate a <see cref="ReferenceDataContext"/>.</remarks>
+        public IReferenceDataContext ReferenceDataContext => _referenceDataContext ??= (GetService<IReferenceDataContext>() ?? new ReferenceDataContext());
     }
 }

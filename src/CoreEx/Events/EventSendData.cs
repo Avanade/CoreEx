@@ -5,8 +5,8 @@ using System;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Represents the <see cref="EventData"/> where the <see cref="Data"/> is the serialized (see <see cref="IEventSerializer.SerializeAsync(EventData)"/> or <see cref="IEventSerializer.SerializeAsync{T}(EventData{T})"/>) representation
-    /// that is to used for a <see cref="IEventSender.SendAsync(EventSendData[])"/>.
+    /// Represents the <see cref="EventData"/> where the <see cref="Data"/> is the serialized (see <see cref="IEventSerializer.SerializeAsync(EventData, System.Threading.CancellationToken)"/> or 
+    /// <see cref="IEventSerializer.SerializeAsync{T}(EventData{T}, System.Threading.CancellationToken)"/>) representation that is to used for a <see cref="IEventSender.SendAsync(System.Collections.Generic.IEnumerable{EventSendData}, System.Threading.CancellationToken)"/>.
     /// </summary>
     public class EventSendData : EventDataBase
     {
@@ -30,8 +30,5 @@ namespace CoreEx.Events
         /// Gets or sets the <see cref="BinaryData"/>.
         /// </summary>
         public BinaryData? Data { get; set; }
-
-        /// <inheritdoc/>
-        public override object? GetValue() => Data;
     }
 }

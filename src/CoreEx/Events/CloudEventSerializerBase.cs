@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -33,18 +34,18 @@ namespace CoreEx.Events
         public EventDataFormatter EventDataFormatter { get; }
 
         /// <inheritdoc/>
-        public async Task<EventData> DeserializeAsync(BinaryData eventData)
+        public async Task<EventData> DeserializeAsync(BinaryData eventData, CancellationToken cancellationToken = default)
         {
-            var ce = await DecodeAsync(eventData).ConfigureAwait(false);
+            var ce = await DecodeAsync(eventData, cancellationToken).ConfigureAwait(false);
             var @event = new EventData { Value = ce.Data };
             DeserializeFromCloudEvent(ce, @event);
             return @event;
         }
 
         /// <inheritdoc/>
-        public async Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData)
+        public async Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData, CancellationToken cancellationToken = default)
         {
-            var ce = await DecodeAsync<T>(eventData).ConfigureAwait(false);
+            var ce = await DecodeAsync<T>(eventData, cancellationToken).ConfigureAwait(false);
             var @event = new EventData<T> { Value = (T)ce.Data! };
             DeserializeFromCloudEvent(ce, @event);
             return @event;
@@ -53,7 +54,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Deserializes from the <paramref name="cloudEvent"/> into the <paramref name="event"/>.
         /// </summary>
-        private void DeserializeFromCloudEvent(CloudEvent cloudEvent, EventDataBase @event)
+        private void DeserializeFromCloudEvent(CloudEvent cloudEvent, EventData @event)
         {
             @event.Id = cloudEvent.Id;
             @event.Timestamp = cloudEvent.Time;
@@ -100,44 +101,44 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="event">The source <see cref="EventData"/>.</param>
         /// <param name="cloudEvent">The corresponding <see cref="CloudEvent"/>.</param>
-        protected virtual void OnDeserialize(CloudEvent cloudEvent, EventDataBase @event) { }
+        protected virtual void OnDeserialize(CloudEvent cloudEvent, EventData @event) { }
 
         /// <summary>
         /// Decodes (deserializes) the JSON <paramref name="eventData"/> into a <see cref="CloudEvent"/>.
         /// </summary>
         /// <returns>The <see cref="CloudEvent"/>.</returns>
-        protected abstract Task<CloudEvent> DecodeAsync(BinaryData eventData);
+        protected abstract Task<CloudEvent> DecodeAsync(BinaryData eventData, CancellationToken cancellation);
 
         /// <summary>
         /// Decodes (deserializes) the typed <paramref name="eventData"/> into a <see cref="CloudEvent"/>.
         /// </summary>
         /// <returns>The <see cref="CloudEvent"/>.</returns>
-        protected abstract Task<CloudEvent> DecodeAsync<T>(BinaryData eventData);
+        protected abstract Task<CloudEvent> DecodeAsync<T>(BinaryData eventData, CancellationToken cancellation);
 
         /// <inheritdoc/>
-        public Task<BinaryData> SerializeAsync(EventData @event)
+        public Task<BinaryData> SerializeAsync(EventData @event, CancellationToken cancellationToken = default)
         {
             if (@event == null)
                 throw new ArgumentNullException(nameof(@event));
 
             @event = @event.Copy();
-            return SerializeToCloudEventAsync(@event);
+            return SerializeToCloudEventAsync(@event, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public Task<BinaryData> SerializeAsync<T>(EventData<T> @event)
+        public Task<BinaryData> SerializeAsync<T>(EventData<T> @event, CancellationToken cancellationToken = default)
         {
             if (@event == null)
                 throw new ArgumentNullException(nameof(@event));
 
             @event = @event.Copy();
-            return SerializeToCloudEventAsync(@event);
+            return SerializeToCloudEventAsync(@event, cancellationToken);
         }
 
         /// <summary>
         /// Serializes the <paramref name="event"/>.
         /// </summary>
-        private async Task<BinaryData> SerializeToCloudEventAsync(EventDataBase @event)
+        private async Task<BinaryData> SerializeToCloudEventAsync(EventData @event, CancellationToken cancellationToken)
         {
             EventDataFormatter.Format(@event);
 
@@ -146,7 +147,7 @@ namespace CoreEx.Events
                 Id = @event.Id,
                 Time = @event.Timestamp,
                 Type = @event.Type,
-                Source = @event.Source
+                Source = @event.Source ?? throw new InvalidOperationException("CloudEvents must have a Source; the EventDataFormatter should be updated to set.")
             };
 
             SetExtensionAttribute(ce, "subject", @event.Subject);
@@ -167,17 +168,18 @@ namespace CoreEx.Events
             OnSerialize(@event, ce);
 
             ce.DataContentType = MediaTypeNames.Application.Json;
-            ce.Data = @event.GetValue();
+            ce.Data = @event.Value;
 
-            return await EncodeAsync(ce).ConfigureAwait(false);
+            return await EncodeAsync(ce, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Encodes (serializes) the <paramref name="cloudEvent"/> into <see cref="BinaryData"/>.
+        /// Encodes (serializes) the <paramref name="cloudEvent"/> into a <see cref="BinaryData"/>.
         /// </summary>
-        /// <param name="cloudEvent"></param>
-        /// <returns></returns>
-        protected abstract Task<BinaryData> EncodeAsync(CloudEvent cloudEvent); 
+        /// <param name="cloudEvent">The <see cref="CloudEvent"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="BinaryData"/>.</returns>
+        protected abstract Task<BinaryData> EncodeAsync(CloudEvent cloudEvent, CancellationToken cancellationToken); 
 
         /// <summary>
         /// Invoked after the standard <see cref="EventData"/> properties have been updated to the <see cref="CloudEvent"/> to enable further customization where required.
