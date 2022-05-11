@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.Json;
-using CoreEx.Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;

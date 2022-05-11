@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.Json;
-using CoreEx.Utility;
 using CoreEx.WebApis;
 using CoreEx.Wildcards;
 using Microsoft.Extensions.Caching.Memory;

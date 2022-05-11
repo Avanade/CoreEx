@@ -6,7 +6,7 @@ using System;
 using System.Globalization;
 using System.Text;
 
-namespace CoreEx.Utility
+namespace CoreEx.Abstractions
 {
     /// <summary>
     /// Provides <see cref="IETag.ETag"/> generator capabilities.

@@ -1,6 +1,6 @@
-﻿## Introduction
+﻿# CoreEx.WebApis
 
-The _CoreEx_ `WebApis` namespace provides extended capabilities to build Web APIs, for the likes of [ASP.NET](https://dotnet.microsoft.com/en-us/apps/aspnet/apis) or [HTTP-triggered Azure functions](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger). The [WebApi](./WebApi.cs) and [WebApiPublisher](./WebApiPublisher.cs) capabilities within encapsulate the consistent handling of the HTTP request and corresponding response, whilst also providing additional capabilities that are not available out-of-the-box within the .NET runtime.
+The `CoreEx.WebApis` namespace provides extended capabilities to build Web APIs, for the likes of [ASP.NET](https://dotnet.microsoft.com/en-us/apps/aspnet/apis) or [HTTP-triggered Azure functions](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger). The [WebApi](./WebApi.cs) and [WebApiPublisher](./WebApiPublisher.cs) capabilities within encapsulate the consistent handling of the HTTP request and corresponding response, whilst also providing additional capabilities that are not available out-of-the-box within the .NET runtime.
 
 <br/>
 
