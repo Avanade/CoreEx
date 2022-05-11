@@ -45,8 +45,8 @@ Sample | Description
 These other _Avanade_ repositories leverage _CoreEx_:
 
 - [DbEx](https://github.com/Avanade/dbex) - Provides database extensions for both, DbUp-based database migrations, and ADO.NET database access.
-- [UnitTestEx](https://github.com/Avanade/unittestex) - Provides .NET testing extensions to the most popular testing frameworks (MSTest, NUnit and Xunit).
 - [NTangle](https://github.com/Avanade/ntangle) - Change Data Capture (CDC) code generation tool and runtime.
+- [UnitTestEx](https://github.com/Avanade/unittestex) - Provides .NET testing extensions to the most popular testing frameworks (MSTest, NUnit and Xunit).
 
 <br/>
 
