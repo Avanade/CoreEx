@@ -65,9 +65,10 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
+        /// <param name="operationTime">Time in which response was received by the client</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
-        public async Task LogResponseAsync(HttpRequestMessage request, HttpResponseMessage response, CancellationToken cancellationToken = default)
+        public async Task LogResponseAsync(HttpRequestMessage request, HttpResponseMessage response, TimeSpan operationTime, CancellationToken cancellationToken = default)
         {
             // Logging should never throw an exception.
             try
@@ -76,7 +77,8 @@ namespace CoreEx.Http
                 {
                     if (_settings.HttpLogContent)
                     {
-                        _logger.LogInformation("Received HTTP Response {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode}) {HttpResponseContent} ({HttpResponseMediaType})",
+                        _logger.LogInformation("Received HTTP Response in {Time} {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode}) {HttpResponseContent} ({HttpResponseMediaType})",
+                            operationTime,
                             request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode,
@@ -88,7 +90,8 @@ namespace CoreEx.Http
                 {
                     if (_settings.HttpLogContent)
                     {
-                        _logger.LogError("Unexpected HTTP Response {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode}) {HttpResponseContent} ({HttpResponseMediaType})",
+                        _logger.LogError("Unexpected HTTP Response in {Time} {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode}) {HttpResponseContent} ({HttpResponseMediaType})",
+                            operationTime,
                             request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode,
@@ -97,7 +100,8 @@ namespace CoreEx.Http
                     }
                     else
                     {
-                        _logger.LogError("Unexpected HTTP Response {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode})",
+                        _logger.LogError("Unexpected HTTP Response in {Time} {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode})",
+                            operationTime,
                             request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode);
