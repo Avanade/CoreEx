@@ -36,7 +36,7 @@ namespace CoreEx.Http
         private bool _throwTransientException;
         private bool _throwKnownException;
         private bool _throwKnownUseContentAsMessage;
-        private PolicyBuilder<HttpResponseMessage> _retryPolicy;
+        private PolicyBuilder<HttpResponseMessage>? _retryPolicy;
         private Func<HttpResponseMessage?, Exception?, bool> _isTransient = IsTransient;
         private TimeSpan? _timeout;
 
@@ -54,7 +54,6 @@ namespace CoreEx.Http
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             RequestLogger = HttpRequestLogger.Create(settings, logger);
-             _retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().Or<SocketException>().Or<TimeoutException>();
         }
 
         /// <summary>
@@ -84,10 +83,14 @@ namespace CoreEx.Http
         protected virtual IEnumerable<string> CorrelationHeaderNames => new string[] { HttpConsts.CorrelationIdHeaderName, "x-ms-client-tracking-id" };
 
         /// <summary>
-        /// Gets or sets the underlying retry policy for the <see cref="WithRetry(int?, double?)"/>.
+        /// Sets the underlying retry policy for the <see cref="WithRetry(int?, double?)"/>.
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/> with additional handling of <see cref="SocketException"/> and <see cref="TimeoutException"/>.</remarks>
-        public PolicyBuilder<HttpResponseMessage> RetryPolicy { get => _retryPolicy; set => _retryPolicy = value ?? throw new ArgumentNullException(nameof(RetryPolicy)); }
+        public TSelf WithCustomRetryPolicy(PolicyBuilder<HttpResponseMessage> retryPolicy)
+        {
+            _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
+            return (TSelf)this;
+        }
 
         /// <summary>
         /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.
@@ -232,81 +235,89 @@ namespace CoreEx.Http
         {
             HttpResponseMessage? response = null;
             CancellationTokenSource? cts = null;
-
+            
             try
             {
-                var sw = Stopwatch.StartNew();
-                CorrelationHeaderNames.ForEach(n => request.Headers.TryAddWithoutValidation(n, ExecutionContext.CorrelationId));
+                try
+                {
+                    var sw = Stopwatch.StartNew();
+                    CorrelationHeaderNames.ForEach(n => request.Headers.TryAddWithoutValidation(n, ExecutionContext.CorrelationId));
 
-                await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
-                await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
+                    await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
+                    await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
 
-                var req = request;
-                response = await _retryPolicy.WaitAndRetryAsync(_retryCount ?? 0, attempt => TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500))), 
-                    async (result, timeSpan, retryCount, context) =>
-                    {
-                        if (result.Exception == null)
-                            Logger.LogWarning("Request failed with {HttpStatusCodeText} ({HttpStatusCode}). Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
-                                result.Result.StatusCode, (int)result.Result.StatusCode, timeSpan, retryCount);
-                        else
-                            Logger.LogWarning(result.Exception, "Request failed with '{ErrorMessage}' Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
-                                result.Exception.Message, timeSpan, retryCount);
+                    var req = request;
+                    response = await (_retryPolicy ?? HttpPolicyExtensions.HandleTransientHttpError().Or<SocketException>().Or<TimeoutException>())
+                        .WaitAndRetryAsync(_retryCount ?? 0, attempt => TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500))),
+                        async (result, timeSpan, retryCount, context) =>
+                        {
+                            if (result.Exception == null)
+                                Logger.LogWarning("Request failed with {HttpStatusCodeText} ({HttpStatusCode}). Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
+                                    result.Result.StatusCode, (int)result.Result.StatusCode, timeSpan, retryCount);
+                            else
+                                Logger.LogWarning(result.Exception, "Request failed with '{ErrorMessage}' Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
+                                    result.Exception.Message, timeSpan, retryCount);
 
                         // Clone and dispose of existing request to avoid error: The request message was already sent. Cannot send the same request message multiple times.
-                        var tmp = await CloneAsync(req).ConfigureAwait(false);
-                        req.Dispose();
-                        req = tmp;
-                        sw.Reset();
-                    })
-                    .ExecuteAsync(async () =>
-                    {
-                        try
+                            var tmp = await CloneAsync(req).ConfigureAwait(false);
+                            req.Dispose();
+                            req = tmp;
+                            sw.Reset();
+                        })
+                        .ExecuteAsync(async () =>
                         {
-                            return await Client.SendAsync(req, SetCancellationBasedOnTimeout(cancellationToken, out cts)).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException)
-                                  when (!cancellationToken.IsCancellationRequested)
-                        {
-                            throw new TimeoutException();
-                        }
-                    }).ConfigureAwait(false); ;
+                            try
+                            {
+                                return await Client.SendAsync(req, SetCancellationBasedOnTimeout(cancellationToken, out cts)).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                                      when (!cancellationToken.IsCancellationRequested)
+                            {
+                                throw new TimeoutException();
+                            }
+                        }).ConfigureAwait(false); ;
 
-                await RequestLogger.LogResponseAsync(request, response, sw.Elapsed, cancellationToken).ConfigureAwait(false);
-            }
-            catch (TimeoutException tex)
-            {
-                throw new TransientException("Timeout when calling service", tex);
-            }
-            catch (HttpRequestException hrex)
-            {
-                if (_throwTransientException && _isTransient(null, hrex))
-                    throw new TransientException(null, hrex);
+                    await RequestLogger.LogResponseAsync(request, response, sw.Elapsed, cancellationToken).ConfigureAwait(false);
+                }
+                catch (TimeoutException tex)
+                {
+                    throw new TransientException("Timeout when calling service", tex);
+                }
+                catch (HttpRequestException hrex)
+                {
+                    if (_throwTransientException && _isTransient(null, hrex))
+                        throw new TransientException(null, hrex);
 
-                throw;
+                    throw;
+                }
+                finally
+                {
+                    cts?.Dispose();
+                }
+
+                // This is the result of the final request after leaving the retry policy logic.
+                if (_throwTransientException && _isTransient(response, null))
+                    throw new TransientException();
+
+                if (_throwKnownException)
+                {
+                    var eex = await response.ToExtendedExceptionAsync(_throwKnownUseContentAsMessage, cancellationToken).ConfigureAwait(false);
+                    if (eex != null)
+                        throw (Exception)eex;
+                }
+
+                if (_ensureSuccess)
+                    response.EnsureSuccessStatusCode();
+
+                if (_ensureStatusCodes != null && !_ensureStatusCodes.Contains(response.StatusCode))
+                    throw new HttpRequestException($"Response status code {response.StatusCode}; expected one of the following: {string.Join(", ", _ensureStatusCodes)}.");
+
+                return response;
             }
             finally
             {
-                cts?.Dispose();
+                Reset();
             }
-
-            // This is the result of the final request after leaving the retry policy logic.
-            if (_throwTransientException && _isTransient(response, null))
-                throw new TransientException();
-
-            if (_throwKnownException)
-            {
-                var eex = await response.ToExtendedExceptionAsync(_throwKnownUseContentAsMessage, cancellationToken).ConfigureAwait(false);
-                if (eex != null)
-                    throw (Exception)eex;
-            }
-
-            if (_ensureSuccess)
-                response.EnsureSuccessStatusCode();
-
-            if (_ensureStatusCodes != null && !_ensureStatusCodes.Contains(response.StatusCode))
-                throw new HttpRequestException($"Response status code {response.StatusCode}; expected one of the following: {string.Join(", ", _ensureStatusCodes)}.");
-
-            return response;
         }
 
         /// <summary>
