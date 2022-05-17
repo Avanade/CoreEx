@@ -154,5 +154,8 @@ namespace CoreEx.Configuration
         /// Gets the <see cref="DeploymentInfo"/> from the environment variables. 
         /// </summary>
         public DeploymentInfo Deployment { get; }
+
+        /// <summary> Gets HTTP Timeout value - default 90s </summary>
+        public int HttpTimeoutSeconds => GetValue<int>(defaultValue: 90);
     }
 }

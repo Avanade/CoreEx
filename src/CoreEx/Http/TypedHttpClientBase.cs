@@ -1,8 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities;
-using CoreEx.Json;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +9,9 @@ using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreEx.Entities;
+using CoreEx.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreEx.Http
 {
@@ -35,6 +35,11 @@ namespace CoreEx.Http
         /// Gets the underlying <see cref="HttpClient"/>.
         /// </summary>
         protected HttpClient Client { get; }
+
+        /// <summary>
+        /// Gets the Base Address of the client
+        /// </summary>
+        public Uri? BaseAddress => Client?.BaseAddress;
 
         /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.

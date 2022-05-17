@@ -1,5 +1,16 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Entities;
@@ -7,15 +18,6 @@ using CoreEx.Json;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Extensions.Http;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CoreEx.Http
 {
@@ -36,6 +38,7 @@ namespace CoreEx.Http
         private bool _throwKnownUseContentAsMessage;
         private PolicyBuilder<HttpResponseMessage> _retryPolicy;
         private Func<HttpResponseMessage?, Exception?, bool> _isTransient = IsTransient;
+        private TimeSpan? _timeout;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TypedHttpClientBase{TBase}"/>.
@@ -51,7 +54,7 @@ namespace CoreEx.Http
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             RequestLogger = HttpRequestLogger.Create(settings, logger);
-            _retryPolicy = HttpPolicyExtensions.HandleTransientHttpError();
+             _retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().Or<SocketException>().Or<TimeoutException>();
         }
 
         /// <summary>
@@ -83,13 +86,13 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets or sets the underlying retry policy for the <see cref="WithRetry(int?, double?)"/>.
         /// </summary>
-        /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/>.</remarks>
+        /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/> with additional handling of <see cref="SocketException"/> and <see cref="TimeoutException"/>.</remarks>
         public PolicyBuilder<HttpResponseMessage> RetryPolicy { get => _retryPolicy; set => _retryPolicy = value ?? throw new ArgumentNullException(nameof(RetryPolicy)); }
 
         /// <summary>
         /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.
         /// </summary>
-        /// <param name="predicate">An oprtional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
+        /// <param name="predicate">An optional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
         public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, bool>? predicate = null)
@@ -212,6 +215,7 @@ namespace CoreEx.Http
             _isTransient = IsTransient;
             _ensureSuccess = false;
             _ensureStatusCodes = null;
+            _timeout = null;
 
             return (TSelf)this;
         }
@@ -227,21 +231,19 @@ namespace CoreEx.Http
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             HttpResponseMessage? response = null;
+            CancellationTokenSource? cts = null;
 
             try
             {
-                foreach (var name in CorrelationHeaderNames)
-                {
-                    request.Headers.Add(name, ExecutionContext.CorrelationId);
-                }
+                var sw = Stopwatch.StartNew();
+                CorrelationHeaderNames.ForEach(n => request.Headers.TryAddWithoutValidation(n, ExecutionContext.CorrelationId));
 
                 await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
                 await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
 
                 var req = request;
-                response = await
-                    (_retryPolicy ?? HttpPolicyExtensions.HandleTransientHttpError())
-                    .WaitAndRetryAsync(_retryCount ?? 0, attempt => TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500))), async (result, timeSpan, retryCount, context) =>
+                response = await _retryPolicy.WaitAndRetryAsync(_retryCount ?? 0, attempt => TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500))), 
+                    async (result, timeSpan, retryCount, context) =>
                     {
                         if (result.Exception == null)
                             Logger.LogWarning("Request failed with {HttpStatusCodeText} ({HttpStatusCode}). Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
@@ -254,10 +256,26 @@ namespace CoreEx.Http
                         var tmp = await CloneAsync(req).ConfigureAwait(false);
                         req.Dispose();
                         req = tmp;
+                        sw.Reset();
                     })
-                    .ExecuteAsync(() => Client.SendAsync(req, cancellationToken));
+                    .ExecuteAsync(async () =>
+                    {
+                        try
+                        {
+                            return await Client.SendAsync(req, SetCancellationBasedOnTimeout(cancellationToken, out cts)).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                                  when (!cancellationToken.IsCancellationRequested)
+                        {
+                            throw new TimeoutException();
+                        }
+                    }).ConfigureAwait(false); ;
 
-                await RequestLogger.LogResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
+                await RequestLogger.LogResponseAsync(request, response, sw.Elapsed, cancellationToken).ConfigureAwait(false);
+            }
+            catch (TimeoutException tex)
+            {
+                throw new TransientException("Timeout when calling service", tex);
             }
             catch (HttpRequestException hrex)
             {
@@ -265,6 +283,10 @@ namespace CoreEx.Http
                     throw new TransientException(null, hrex);
 
                 throw;
+            }
+            finally
+            {
+                cts?.Dispose();
             }
 
             // This is the result of the final request after leaving the retry policy logic.
@@ -285,6 +307,33 @@ namespace CoreEx.Http
                 throw new HttpRequestException($"Response status code {response.StatusCode}; expected one of the following: {string.Join(", ", _ensureStatusCodes)}.");
 
             return response;
+        }
+
+        /// <summary>
+        /// Sets timeout for given request
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        public TSelf WithTimeout(TimeSpan timeout)
+        {
+            _timeout = timeout;
+            return (TSelf)this;
+        }
+
+        private CancellationToken SetCancellationBasedOnTimeout(CancellationToken cancellationToken, out CancellationTokenSource? cts)
+        {
+            var timeout = _timeout ?? TimeSpan.FromSeconds(Settings.HttpTimeoutSeconds);
+            if (timeout == Timeout.InfiniteTimeSpan)
+            {
+                // No need to create a CTS if there's no timeout
+                cts = null;
+                return cancellationToken;
+            }
+            else
+            {
+                cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(timeout);
+                return cts.Token;
+            }
         }
 
         /// <summary>
