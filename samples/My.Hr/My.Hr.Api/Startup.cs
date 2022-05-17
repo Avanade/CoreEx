@@ -1,15 +1,7 @@
-﻿using CoreEx;
-using CoreEx.HealthChecks;
-using CoreEx.Azure.HealthChecks;
-using CoreEx.RefData;
+﻿using CoreEx.Azure.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using My.Hr.Business;
-using My.Hr.Business.Data;
-using My.Hr.Business.Services;
-using System.Reflection;
-using CoreEx.WebApis;
 
 namespace My.Hr.Api;
 
@@ -41,7 +33,8 @@ public class Startup
         // Register the business services.
         services
             .AddScoped<ReferenceDataService>()
-            .AddScoped<EmployeeService>();
+            .AddScoped<EmployeeService>()
+            .AddFluentValidators<EmployeeService>();
 
         // Database
         services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IConfiguration>().GetConnectionString("Database")));

@@ -1,7 +1,3 @@
-using CoreEx.RefData;
-using My.Hr.Business.Data;
-using My.Hr.Business.Models;
-
 namespace My.Hr.Business.Services;
 
 public class ReferenceDataService : IReferenceDataProvider

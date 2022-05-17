@@ -1,6 +1,3 @@
-using CoreEx.HealthChecks;
-using Microsoft.AspNetCore.Mvc;
-
 namespace My.Hr.Api.Controllers;
 
 /// <summary>

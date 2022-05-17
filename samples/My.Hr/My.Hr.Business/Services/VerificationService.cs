@@ -1,6 +1,3 @@
-using CoreEx.Events;
-using My.Hr.Business.ServiceContracts;
-
 namespace My.Hr.Business.Services;
 
 public class VerificationService

@@ -1,13 +1,3 @@
-using CoreEx.Http;
-using CoreEx.WebApis;
-using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
-using My.Hr.Business.Models;
-using My.Hr.Business.Services;
-using My.Hr.Business.Validators;
-using System.Net;
-using System.Net.Mime;
-
 namespace My.Hr.Api.Controllers;
 
 [Route("api/employees")]
@@ -16,11 +6,13 @@ public class EmployeeController : ControllerBase
 {
     private readonly WebApi _webApi;
     private readonly EmployeeService _service;
+    private readonly IValidator<Employee> _validator;
 
-    public EmployeeController(WebApi webApi, EmployeeService service)
+    public EmployeeController(WebApi webApi, EmployeeService service, IValidator<Employee> validator)
     {
         _webApi = webApi;
         _service = service;
+        _validator = validator;
     }
 
     /// <summary>
@@ -52,7 +44,7 @@ public class EmployeeController : ControllerBase
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.Created)]
     public Task<IActionResult> CreateAsync()
         => _webApi.PostAsync(Request, p => _service.AddEmployeeAsync(p.Value!),
-           statusCode: HttpStatusCode.Created, validator: new EmployeeValidator().Wrap(), locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
+           statusCode: HttpStatusCode.Created, validator: _validator, locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
 
     /// <summary>
     /// Updates an existing <see cref="Employee"/>.
@@ -63,7 +55,7 @@ public class EmployeeController : ControllerBase
     [AcceptsBody(typeof(Employee))]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> UpdateAsync(Guid id)
-        => _webApi.PutAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Wrap());
+        => _webApi.PutAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: _validator);
 
     /// <summary>
     /// Patches an existing <see cref="Employee"/>.
@@ -74,7 +66,7 @@ public class EmployeeController : ControllerBase
     [AcceptsBody(typeof(Employee), HttpConsts.MergePatchMediaTypeName)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> PatchAsync(Guid id)
-        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: new EmployeeValidator().Wrap());
+        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: _validator);
 
     /// <summary>
     /// Deletes the specified <see cref="Employee"/>.

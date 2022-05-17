@@ -1,10 +1,3 @@
-using CoreEx.RefData;
-using CoreEx.WebApis;
-using Microsoft.AspNetCore.Mvc;
-using My.Hr.Business.Models;
-using System.Net;
-using System.Net.Mime;
-
 namespace My.Hr.Api.Controllers;
 
 [Route("api/ref")]

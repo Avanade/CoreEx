@@ -1,8 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using My.Hr.Business.Models;
-
-namespace My.Hr.Business.Configuration;
+namespace My.Hr.Business.Data;
 
 public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 {

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using My.Hr.Api;
 using My.Hr.Api.Controllers;
 using My.Hr.Business.Models;
-using My.Hr.Business.ServiceContracts;
+using My.Hr.Business.External.Contracts;
 using NUnit.Framework;
 using System;
 using System.Linq;
