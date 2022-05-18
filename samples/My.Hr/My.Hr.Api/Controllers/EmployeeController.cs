@@ -6,13 +6,11 @@ public class EmployeeController : ControllerBase
 {
     private readonly WebApi _webApi;
     private readonly EmployeeService _service;
-    private readonly IValidator<Employee> _validator;
 
-    public EmployeeController(WebApi webApi, EmployeeService service, IValidator<Employee> validator)
+    public EmployeeController(WebApi webApi, EmployeeService service)
     {
         _webApi = webApi;
         _service = service;
-        _validator = validator;
     }
 
     /// <summary>
@@ -38,35 +36,38 @@ public class EmployeeController : ControllerBase
     /// <summary>
     /// Creates a new <see cref="Employee"/>.
     /// </summary>
+    /// <param name="validator">The validator.</param>
     /// <returns>The created <see cref="Employee"/>.</returns>
     [HttpPost("", Name = "Create")]
     [AcceptsBody(typeof(Employee))]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.Created)]
-    public Task<IActionResult> CreateAsync()
+    public Task<IActionResult> CreateAsync([FromServices] IValidator<Employee> validator)
         => _webApi.PostAsync(Request, p => _service.AddEmployeeAsync(p.Value!),
-           statusCode: HttpStatusCode.Created, validator: _validator, locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
+           statusCode: HttpStatusCode.Created, validator: validator, locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
 
     /// <summary>
     /// Updates an existing <see cref="Employee"/>.
     /// </summary>
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
+    /// <param name="validator">The validator.</param>
     /// <returns>The updated <see cref="Employee"/>.</returns>
     [HttpPut("{id}", Name = "Update")]
     [AcceptsBody(typeof(Employee))]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
-    public Task<IActionResult> UpdateAsync(Guid id)
-        => _webApi.PutAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: _validator);
+    public Task<IActionResult> UpdateAsync(Guid id, [FromServices] IValidator<Employee> validator)
+        => _webApi.PutAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: validator);
 
     /// <summary>
     /// Patches an existing <see cref="Employee"/>.
     /// </summary>
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
+    /// <param name="validator">The validator.</param>
     /// <returns>The updated <see cref="Employee"/>.</returns>
     [HttpPatch("{id}", Name = "Patch")]
     [AcceptsBody(typeof(Employee), HttpConsts.MergePatchMediaTypeName)]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
-    public Task<IActionResult> PatchAsync(Guid id)
-        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: _validator);
+    public Task<IActionResult> PatchAsync(Guid id, [FromServices] IValidator<Employee> validator)
+        => _webApi.PatchAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: validator);
 
     /// <summary>
     /// Deletes the specified <see cref="Employee"/>.

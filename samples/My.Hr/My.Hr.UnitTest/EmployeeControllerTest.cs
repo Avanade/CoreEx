@@ -151,7 +151,7 @@ namespace My.Hr.UnitTest
             };
 
             test.Controller<EmployeeController>()
-                .Run(c => c.CreateAsync(), e)
+                .Run(c => c.CreateAsync(null!), e)
                 .AssertErrors(
                     new ApiError("Email", "'Email' must not be empty."),
                     new ApiError("Gender", "'Gender' is invalid."));
@@ -174,7 +174,7 @@ namespace My.Hr.UnitTest
             };
 
             var v = test.Controller<EmployeeController>()
-                .Run(c => c.CreateAsync(), e)
+                .Run(c => c.CreateAsync(null!), e)
                 .AssertCreated()
                 .Assert(e, "Id", "ETag")
                 .AssertLocationHeader<Employee>(v => new Uri($"api/employees/{v!.Id}", UriKind.Relative))
@@ -203,7 +203,7 @@ namespace My.Hr.UnitTest
             };
 
             test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(404.ToGuid()), e)
+                .Run(c => c.UpdateAsync(404.ToGuid(), null!), e)
                 .AssertErrors(
                     new ApiError("Email", "'Email' must not be empty."));
         }
@@ -225,7 +225,7 @@ namespace My.Hr.UnitTest
             };
 
             test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(404.ToGuid()), e)
+                .Run(c => c.UpdateAsync(404.ToGuid(), null!), e)
                 .AssertNotFound();
         }
 
@@ -244,7 +244,7 @@ namespace My.Hr.UnitTest
             v.FirstName += "X";
 
             v = test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(v.Id), v)
+                .Run(c => c.UpdateAsync(v.Id, null!), v)
                 .AssertOK()
                 .Assert(v, "ETag")
                 .GetValue<Employee>()!;
@@ -272,7 +272,7 @@ namespace My.Hr.UnitTest
             v.ETag = "ZZZZZZZZZZZZ";
 
             test.Controller<EmployeeController>()
-                .Run(c => c.UpdateAsync(v.Id), v)
+                .Run(c => c.UpdateAsync(v.Id, null!), v)
                 .AssertPreconditionFailed();
         }
 
@@ -308,7 +308,7 @@ namespace My.Hr.UnitTest
             using var test = ApiTester.Create<Startup>();
 
             test.Controller<EmployeeController>()
-                .RunContent(c => c.PatchAsync(404.ToGuid()), "{}", HttpConsts.MergePatchMediaTypeName)
+                .RunContent(c => c.PatchAsync(404.ToGuid(), null!), "{}", HttpConsts.MergePatchMediaTypeName)
                 .AssertNotFound();
         }
 
@@ -327,7 +327,7 @@ namespace My.Hr.UnitTest
             v.FirstName += "X";
 
             test.Controller<EmployeeController>()
-                .RunContent(c => c.PatchAsync(v.Id), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" }, HttpConsts.MergePatchMediaTypeName)
+                .RunContent(c => c.PatchAsync(v.Id, null!), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" }, HttpConsts.MergePatchMediaTypeName)
                 .AssertPreconditionFailed();
         }
 
@@ -346,7 +346,7 @@ namespace My.Hr.UnitTest
             v.FirstName += "X";
 
             v = test.Controller<EmployeeController>()
-                .RunContent(c => c.PatchAsync(v.Id), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = v.ETag }, HttpConsts.MergePatchMediaTypeName)
+                .RunContent(c => c.PatchAsync(v.Id, null!), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = v.ETag }, HttpConsts.MergePatchMediaTypeName)
                 .AssertOK()
                 .Assert(v, "ETag")
                 .GetValue<Employee>()!;
