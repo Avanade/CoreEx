@@ -1,11 +1,3 @@
-using CoreEx;
-using CoreEx.Entities;
-using CoreEx.Events;
-using Microsoft.EntityFrameworkCore;
-using My.Hr.Business.Data;
-using My.Hr.Business.Models;
-using My.Hr.Business.ServiceContracts;
-
 namespace My.Hr.Business.Services;
 
 public class EmployeeService

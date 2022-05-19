@@ -119,7 +119,7 @@ namespace CoreEx.Http
         }
 
         /// <summary>
-        /// Indicates whether to perform a retry where an underlying transient error occurs; see <see cref="RetryPolicy"/>.
+        /// Indicates whether to perform a retry where an underlying transient error occurs.
         /// </summary>
         /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
         /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/></param>

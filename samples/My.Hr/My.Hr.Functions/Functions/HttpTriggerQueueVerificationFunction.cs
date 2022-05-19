@@ -11,7 +11,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 using Microsoft.OpenApi.Models;
 using My.Hr.Business;
-using My.Hr.Business.ServiceContracts;
+using My.Hr.Business.External.Contracts;
 using My.Hr.Business.Validators;
 
 namespace My.Hr.Functions;

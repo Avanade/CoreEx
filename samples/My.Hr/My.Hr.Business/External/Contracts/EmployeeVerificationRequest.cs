@@ -1,4 +1,4 @@
-namespace My.Hr.Business.ServiceContracts;
+namespace My.Hr.Business.External.Contracts;
 
 public class EmployeeVerificationRequest
 {

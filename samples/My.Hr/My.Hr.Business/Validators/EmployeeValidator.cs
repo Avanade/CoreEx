@@ -1,5 +1,4 @@
 using FluentValidation;
-using My.Hr.Business.Models;
 
 namespace My.Hr.Business.Validators;
 

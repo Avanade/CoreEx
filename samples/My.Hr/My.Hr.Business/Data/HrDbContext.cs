@@ -1,7 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using My.Hr.Business.Models;
-using My.Hr.Business.Configuration;
-
 namespace My.Hr.Business.Data;
 
 public class HrDbContext : DbContext
@@ -17,9 +13,10 @@ public class HrDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .ApplyConfiguration<USState>(new UsStateConfiguration())
-            .ApplyConfiguration<Gender>(new GenderConfiguration())
-            .ApplyConfiguration<Employee>(new EmployeeConfiguration());
+            .ApplyConfiguration(new UsStateConfiguration())
+            .ApplyConfiguration(new GenderConfiguration())
+            .ApplyConfiguration(new EmployeeConfiguration());
+
         base.OnModelCreating(modelBuilder);
     }
 }
