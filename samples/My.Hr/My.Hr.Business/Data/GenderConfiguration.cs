@@ -1,16 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using My.Hr.Business.Models;
+namespace My.Hr.Business.Data;
 
-namespace My.Hr.Business.Configuration;
-
-public class UsStateConfiguration : IEntityTypeConfiguration<USState>
+public class GenderConfiguration : IEntityTypeConfiguration<Gender>
 {
-    public void Configure(EntityTypeBuilder<USState> entity)
+    public void Configure(EntityTypeBuilder<Gender> entity)
     {
-        entity.ToTable("USState", "Hr");
+        entity.ToTable("Gender", "Hr");
         entity.HasKey("Id");
-        entity.Property(p => p.Id).HasColumnName("USStateId").HasColumnType("UNIQUEIDENTIFIER");
+        entity.Property(p => p.Id).HasColumnName("GenderId").HasColumnType("UNIQUEIDENTIFIER");
         entity.Property(p => p.Code).HasColumnType("NVARCHAR(50)");
         entity.Property(p => p.Text).HasColumnType("NVARCHAR(250)");
         entity.Property(p => p.IsActive).HasColumnType("BIT");

@@ -1,6 +1,3 @@
-using CoreEx.Configuration;
-using Microsoft.Extensions.Configuration;
-
 namespace My.Hr.Business;
 
 public class HrSettings : SettingsBase

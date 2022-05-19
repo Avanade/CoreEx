@@ -1,5 +1,5 @@
 ﻿using CoreEx.Events;
-using My.Hr.Business.ServiceContracts;
+using My.Hr.Business.External.Contracts;
 using My.Hr.Functions;
 using NUnit.Framework;
 using System.Net.Http;

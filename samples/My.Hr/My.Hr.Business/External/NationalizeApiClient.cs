@@ -1,9 +1,4 @@
-using CoreEx.Http;
-using CoreEx.Json;
-using Microsoft.Extensions.Logging;
-using My.Hr.Business.ServiceContracts;
-
-namespace My.Hr.Business.Services;
+namespace My.Hr.Business.External;
 
 /// <summary>
 /// Http client for https://nationalize.io/

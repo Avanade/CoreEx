@@ -12,6 +12,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using My.Hr.Business;
 using My.Hr.Business.Data;
 using My.Hr.Business.Services;
+using My.Hr.Business.External;
 
 [assembly: FunctionsStartup(typeof(My.Hr.Functions.Startup))]
 
@@ -56,7 +57,8 @@ public class Startup : FunctionsStartup
             builder.Services
                 .AddScoped<ReferenceDataService>()
                 .AddScoped<EmployeeService>()
-                .AddScoped<VerificationService>();
+                .AddScoped<VerificationService>()
+                .AddFluentValidators<EmployeeService>();
 
             // Register the typed backend http clients.
             builder.Services.AddTypedHttpClient<AgifyApiClient>("Agify");

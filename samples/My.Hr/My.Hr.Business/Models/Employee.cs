@@ -1,6 +1,3 @@
-using CoreEx.Entities;
-using System.Text.Json.Serialization;
-
 namespace My.Hr.Business.Models;
 
 /// <summary>
@@ -61,7 +58,6 @@ public class Employee : IIdentifier<Guid>, IETag
     /// <summary>
     /// Gets or sets the 'RowVersion' column value.
     /// </summary>
-    [JsonPropertyName("etag")]
     public string? ETag { get; set; }
 }
 

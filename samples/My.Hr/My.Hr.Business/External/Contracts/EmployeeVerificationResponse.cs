@@ -1,13 +1,8 @@
-using System.Text.Json.Serialization;
-
-namespace My.Hr.Business.ServiceContracts;
+namespace My.Hr.Business.External.Contracts;
 
 public class EmployeeVerificationResponse
 {
-    public EmployeeVerificationResponse(EmployeeVerificationRequest request)
-    {
-        Request = request;
-    }
+    public EmployeeVerificationResponse(EmployeeVerificationRequest request) => Request = request;
 
     public int Age { get; set; }
 
