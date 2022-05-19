@@ -15,8 +15,8 @@ namespace CoreEx.Entities.Extended
     /// <typeparam name="TEntity">The <see cref="EntityBase"/> <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="EntityBase"/> collection <see cref="Type"/> itself.</typeparam>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBaseCollection<TEntity, TSelf> : ObservableCollection<TEntity>, INotifyCollectionItemChanged, IEquatable<TSelf>, ICloneable, ICleanUp, IInitial
-        where TEntity : EntityBase 
+    public abstract class EntityBaseCollection<TEntity, TSelf> : ObservableCollection<TEntity>, INotifyCollectionItemChanged, IEntityBaseCollection
+        where TEntity : EntityBase
         where TSelf : EntityBaseCollection<TEntity, TSelf>, new()
     {
         /// <summary>
@@ -63,21 +63,20 @@ namespace CoreEx.Entities.Extended
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => (obj is TSelf other) && Equals(other);
-
-        /// <inheritdoc/>
-        public bool Equals(TSelf? other)
+        public override bool Equals(object? other)
         {
-            if (ReferenceEquals(this, other))
+            if (other is not TSelf otherv)
+                return false;
+            else if (ReferenceEquals(this, other))
                 return true;
             else if (other == null)
                 return false;
-            else if (Count != other.Count)
+            else if (Count != otherv.Count)
                 return false;
 
             for (int i = 0; i < Count; i++)
             {
-                if (!this[i].Equals(other[i]))
+                if (!this[i].Equals(otherv[i]))
                     return false;
             }
 
@@ -118,7 +117,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Performs a clean-up of the <see cref="EntityBaseCollection{TEntity, TSelf}"/> resetting item values as appropriate to ensure a basic level of data consistency.
         /// </summary>
-        public void CleanUp() => ApplyAction(EntityAction.CleanUp);
+        public void CleanUp() => this.ForEach(item => item.CleanUp());
 
         /// <summary>
         /// Collections do not support an initial state; will always be <c>false</c>.
@@ -185,7 +184,7 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger an <see cref="EntityCore.AcceptChanges"/> for each item.</remarks>
         public virtual void AcceptChanges()
         {
-            ApplyAction(EntityAction.AcceptChanges);
+            this.ForEach(item => item.AcceptChanges());
             IsChanged = false;
         }
 
@@ -203,7 +202,7 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger a <see cref="EntityCore.MakeReadOnly"/> for each item.</remarks>
         public void MakeReadOnly()
         {
-            ApplyAction(EntityAction.MakeReadOnly);
+            this.ForEach(item => item.MakeReadOnly());
             IsChanged = false;
             IsReadOnly = true;
         }
@@ -240,30 +239,6 @@ namespace CoreEx.Entities.Extended
                 throw new InvalidOperationException("Collection is read only; item(s) cannot be added, updated or deleted.");
             else
                 action();
-        }
-
-        /// <summary>
-        /// Performs the specified action.
-        /// </summary>
-        private void ApplyAction(EntityAction action)
-        {
-            foreach (var item in this)
-            {
-                switch (action)
-                {
-                    case EntityAction.CleanUp:
-                        item.CleanUp();
-                        break;
-
-                    case EntityAction.AcceptChanges:
-                        item.AcceptChanges();
-                        break;
-
-                    case EntityAction.MakeReadOnly:
-                        item.MakeReadOnly();
-                        break;
-                }
-            }
         }
     }
 }

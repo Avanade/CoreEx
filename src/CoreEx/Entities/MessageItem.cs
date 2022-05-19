@@ -2,7 +2,7 @@
 
 using CoreEx.Entities.Extended;
 using CoreEx.Localization;
-using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
@@ -118,51 +118,12 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
-        public override object Clone() => CreateClone(this);
-
-        /// <inheritdoc/>
-        public override bool Equals(MessageItem? other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
-            && Equals(Type, other.Type)
-            && Equals(Text, other.Text)
-            && Equals(Property, other.Property)
-            && Equals(Tag, other.Tag));
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
+        protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            var hash = new HashCode();
-            hash.Add(Type);
-            hash.Add(Text);
-            hash.Add(Property);
-            hash.Add(Tag);
-            return base.GetHashCode() ^ hash.ToHashCode();
+            yield return CreateProperty(Type, v => Type = v);
+            yield return CreateProperty(Text, v => Text = v);
+            yield return CreateProperty(Property, v => Property = v);
+            yield return CreateProperty(Tag, v => Tag = v);
         }
-
-        /// <inheritdoc/>
-        public override void CopyFrom(MessageItem from)
-        {
-            base.CopyFrom(from);
-            Type = from.Type;
-            Text = from.Text;
-            Property = from.Property;
-            Tag = from.Tag;
-        }
-
-        /// <inheritdoc/>
-        protected override void OnApplyAction(EntityAction action)
-        {
-            base.OnApplyAction(action);
-            Type = ApplyAction(Type, action);
-            Text = ApplyAction(Text, action);
-            Property = ApplyAction(Property, action);
-            Tag = ApplyAction(Tag, action);
-        }
-
-        /// <inheritdoc/>
-        public override bool IsInitial => base.IsInitial
-            && Cleaner.IsDefault(Type)
-            && Cleaner.IsDefault(Text)
-            && Cleaner.IsDefault(Property)
-            && Cleaner.IsDefault(Tag);
     }
 }

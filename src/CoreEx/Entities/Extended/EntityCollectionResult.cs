@@ -15,7 +15,7 @@ namespace CoreEx.Entities.Extended
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
     /// <remarks>Generally an <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Collection"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<EntityCollectionResult<TColl, TEntity, TSelf>>, ICollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom<EntityCollectionResult<TColl, TEntity, TSelf>>
+    public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<TSelf>, ICollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom
         where TColl : EntityBaseCollection<TEntity, TColl>, new()
         where TEntity : EntityBase<TEntity>, new()
         where TSelf : EntityCollectionResult<TColl, TEntity, TSelf>, new()
@@ -65,46 +65,10 @@ namespace CoreEx.Entities.Extended
         ICollection<TEntity>? ICollectionResult<TEntity>.Collection => Collection;
 
         /// <inheritdoc/>
-        public override bool Equals(EntityCollectionResult<TColl, TEntity, TSelf>? other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
-            && Equals(Collection, other!.Collection)
-            && Equals(Paging, other.Paging));
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
+        protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            var hash = new HashCode();
-            hash.Add(Collection);
-            hash.Add(Paging);
-            return base.GetHashCode() ^ hash.ToHashCode();
+            yield return CreateProperty(Paging, v => Paging = v);
+            yield return CreateProperty(Collection, v => Collection = v!);
         }
-
-        /// <inheritdoc/>
-        public override object Clone()
-        {
-            var clone = new TSelf();
-            clone.CopyFrom(this);
-            return clone;
-        }
-
-        /// <inheritdoc/>
-        public override void CopyFrom(EntityCollectionResult<TColl, TEntity, TSelf> from)
-        {
-            base.CopyFrom(from);
-            Collection = CopyOrClone(from.Collection, Collection)!;
-            Paging = from.Paging;
-        }
-
-        /// <inheritdoc/>
-        protected override void OnApplyAction(EntityAction action)
-        {
-            base.OnApplyAction(action);
-            Collection = ApplyAction(Collection, action);
-            Paging = ApplyAction(Paging, action);
-        }
-
-        /// <inheritdoc/>
-        public override bool IsInitial => base.IsInitial
-            && Cleaner.IsDefault(Collection)
-            && Cleaner.IsDefault(Paging);
     }
 }

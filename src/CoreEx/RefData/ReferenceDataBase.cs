@@ -14,7 +14,7 @@ namespace CoreEx.RefData
     /// Represents the base <see cref="IReferenceData"/> base implementation.
     /// </summary>
     /// <remarks>The <see cref="Id"/> can only be of type <see cref="int"/>, <see cref="long"/>, <see cref="string"/> and <see cref="Guid"/>.</remarks>
-    [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActivem = {IsActive}")]
+    [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActive = {IsActive}")]
     public class ReferenceDataBase<TId, TSelf> : EntityBase<TSelf>, IReferenceData<TId> where TId : IComparable<TId>, IEquatable<TId> where TSelf : ReferenceDataBase<TId, TSelf>, new()
     {
         private TId? _id;
@@ -27,7 +27,7 @@ namespace CoreEx.RefData
         private DateTime? _startDate;
         private DateTime? _endDate;
         private string? _etag;
-        private Dictionary<string, object?>? _mappings;
+        private MappingsDictionary? _mappings;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataBase{TId, TSelf}"/> class.
@@ -106,12 +106,7 @@ namespace CoreEx.RefData
         public bool HasMappings { get => _mappings != null && _mappings.Count > 0; }
 
         /// <inheritdoc/>
-        Dictionary<string, object?> IReferenceData.Mappings => Mappings;
-
-        /// <summary>
-        /// Gets (creates) the mappings dictionary.
-        /// </summary>
-        private Dictionary<string, object?> Mappings => _mappings ??= new Dictionary<string, object?>();
+        Dictionary<string, object?>? IReferenceData.Mappings => _mappings;
 
         /// <inheritdoc/>
         public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString();
@@ -122,19 +117,19 @@ namespace CoreEx.RefData
             if (Comparer<T?>.Default.Compare(value, default!) == 0)
                 return;
 
-            if (Mappings.ContainsKey(name))
+            if ((_mappings ??= new()).ContainsKey(name))
                 throw new InvalidOperationException(ValueIsImmutableMessage);
 
             if (IsReadOnly)
                 throw new InvalidOperationException(EntityIsReadOnlyMessage);
 
-            Mappings.Add(name, value);
+            _mappings.Add(name, value);
         }
 
         /// <inheritdoc/>
         public T? GetMapping<T>(string name) where T : IComparable<T?>, IEquatable<T?>
         {
-            if (!HasMappings || !Mappings.TryGetValue(name, out var value))
+            if (!HasMappings || !_mappings!.TryGetValue(name, out var value))
                 return default!;
 
             return (T?)value!;
@@ -144,7 +139,7 @@ namespace CoreEx.RefData
         public bool TryGetMapping<T>(string name, out T? value) where T : IComparable<T?>, IEquatable<T?>
         {
             value = default!;
-            if (!HasMappings || !Mappings.TryGetValue(name, out var val))
+            if (!HasMappings || !_mappings!.TryGetValue(name, out var val))
                 return false;
 
             value = (T?)val!;
@@ -152,99 +147,18 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        public override bool Equals(TSelf? other) => ReferenceEquals(this, other) || (base.Equals(other)
-            && Equals(Id, other!.Id)
-            && Equals(Code, other.Code)
-            && Equals(Text, other.Text)
-            && Equals(Description, other!.Description)
-            && Equals(SortOrder, other.SortOrder)
-            && Equals(IsActive, other.IsActive)
-            && Equals(StartDate, other.StartDate)
-            && Equals(EndDate, other.EndDate))
-            && MappingsEquals(other);
-
-        /// <summary>
-        /// Compare the mappings dictionaries.
-        /// </summary>
-        private bool MappingsEquals(TSelf other)
+        protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            if (!HasMappings && !other.HasMappings)
-                return true;
-
-            if (Mappings.Count != other.Mappings.Count)
-                return false;
-
-            var el = ((IDictionary<string, object?>)Mappings!).GetEnumerator();
-            var er = ((IDictionary<string, object?>)other.Mappings!).GetEnumerator();
-            while (el.MoveNext())
-            {
-                if (!(er.MoveNext() && el.Current.Key != er.Current.Key || el.Current.Value != er.Current.Value))
-                    return false;
-            }
-
-            return true;
+            yield return CreateProperty(Id, v => Id = v);
+            yield return CreateProperty(Code, v => Code = v);
+            yield return CreateProperty(Text, v => Text = v);
+            yield return CreateProperty(Description, v => Description = v);
+            yield return CreateProperty(SortOrder, v => SortOrder = v);
+            yield return CreateProperty(IsActive, v => IsActive = v, true);
+            yield return CreateProperty(StartDate, v => StartDate = v);
+            yield return CreateProperty(EndDate, v => EndDate = v);
+            yield return CreateProperty(_mappings, v => _mappings = v);
         }
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-            hash.Add(Id);
-            hash.Add(Code);
-            hash.Add(Text);
-            hash.Add(Description);
-            hash.Add(SortOrder);
-            hash.Add(IsActive);
-            hash.Add(StartDate);
-            hash.Add(EndDate);
-            if (HasMappings)
-                Mappings.ForEach(i => hash.Add(HashCode.Combine(i.Key, i.Value)));
-
-            return base.GetHashCode() ^ hash.ToHashCode();
-        }
-
-        /// <inheritdoc/>
-        public override void CopyFrom(TSelf from)
-        {
-            base.CopyFrom(from);
-            Id = from.Id;
-            Code = from.Code;
-            Text = from.Text;
-            Description = from.Description;
-            SortOrder = from.SortOrder;
-            IsActive = from.IsActive;
-            StartDate = from.StartDate;
-            EndDate = from.EndDate;
-
-            if (from.HasMappings)
-                from.Mappings.ForEach(i => Mappings.TryAdd(i.Key, i.Value));
-        }
-
-        /// <inheritdoc/>
-        protected override void OnApplyAction(EntityAction action)
-        {
-            base.OnApplyAction(action);
-            Id = ApplyAction(Id, action);
-            Code = ApplyAction(Code, action);
-            Text = ApplyAction(Text, action);
-            Description = ApplyAction(Description, action);
-            SortOrder = ApplyAction(SortOrder, action);
-            IsActive = ApplyAction(IsActive, action);
-            StartDate = ApplyAction(StartDate, action);
-            Text = ApplyAction(Text, action);
-        }
-
-        /// <inheritdoc/>
-        public override bool IsInitial => base.IsInitial
-            && Cleaner.IsDefault(Id)
-            && Cleaner.IsDefault(Code)
-            && Cleaner.IsDefault(Text)
-            && Cleaner.IsDefault(Description)
-            && Cleaner.IsDefault(SortOrder)
-            && Cleaner.IsDefault(IsActive, true)
-            && Cleaner.IsDefault(StartDate)
-            && Cleaner.IsDefault(EndDate)
-            && !HasMappings;
 
         /// <summary>
         /// An implicit cast from a <see cref="ReferenceDataBase{TId, TSelf}"/> to an <see cref="int"/> where the <see cref="IIdentifier.Id"/> is of <see cref="Type"/> <see cref="int"/>.
@@ -356,5 +270,66 @@ namespace CoreEx.RefData
         /// <returns></returns>
         /// <remarks>This is intended to be consumed by classes that wish to provide an opt-in serialization of corresponding <see cref="IReferenceData.Text"/>.</remarks>
         public static string? GetRefDataText(string? code) => code != null && ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled ? ConvertFromCode(code).Text : null;
+
+        #region MappingsDictionary
+
+        /// <summary>
+        /// Provides the 
+        /// </summary>
+        private class MappingsDictionary : Dictionary<string, object?>, IEquatable<MappingsDictionary?>, IEntityBaseCollection
+        {
+            /// <inheritdoc/>
+            public bool IsInitial => false;
+
+            /// <inheritdoc/>
+            public void CleanUp() { }
+
+            /// <inheritdoc/>
+            public object Clone()
+            {
+                var md = new MappingsDictionary();
+                this.ForEach(item => md.Add(item.Key, item.Value));
+                return md;
+            }
+
+            /// <inheritdoc/>
+            public bool Equals(ReferenceDataBase<TId, TSelf>.MappingsDictionary? other)
+            {
+                if (other == null || Count != other.Count)
+                    return false;
+
+                var el = ((IDictionary<string, object?>)this!).GetEnumerator();
+                var er = ((IDictionary<string, object?>)other!).GetEnumerator();
+                while (el.MoveNext())
+                {
+                    if (!er.MoveNext() || !el.Current.Key.Equals(er.Current.Key))
+                        return false;
+
+                    if (el.Current.Value == null && er.Current.Value == null)
+                        continue;
+
+                    if (el.Current.Value != null && !el.Current.Value.Equals(er.Current.Value))
+                        return false;
+
+                    if (!er.Current.Value!.Equals(el.Current.Value))
+                        return false;
+                }
+
+                return true;
+            }
+
+            /// <inheritdoc/>
+            public override bool Equals(object obj) => Equals(obj as ReferenceDataBase<TId, TSelf>.MappingsDictionary);
+
+            /// <inheritdoc/>
+            public override int GetHashCode()
+            {
+                var hash = new HashCode();
+                this.ForEach(item => hash.Add(item.GetHashCode()));
+                return hash.ToHashCode();
+            }
+        }
+
+        #endregion
     }
 }

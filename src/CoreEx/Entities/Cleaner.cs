@@ -180,7 +180,7 @@ namespace CoreEx.Entities
         /// <typeparam name="T">The <see cref="Type"/>.</typeparam>
         /// <param name="value">The value to clean.</param>
         /// <returns>The cleaned value.</returns>
-        /// <remarks>This invokes <see cref="Clean{T}(T, bool)"/> with '<c>overrideWithNullWhenIsInitial</c>' parameter set to <c>true</c>.</remarks>
+        /// <remarks>This invokes <see cref="Clean{T}(T, bool)"/> with '<c>overrideWithDefaultWhenIsInitial</c>' parameter set to <c>true</c>.</remarks>
         public static T Clean<T>(T value) => Clean(value, true);
 
         /// <summary>
@@ -188,9 +188,9 @@ namespace CoreEx.Entities
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/>.</typeparam>
         /// <param name="value">The value to clean.</param>
-        /// <param name="overrideWithNullWhenIsInitial">Indicates whether to override the value with <c>null</c> when the value is <see cref="IInitial.IsInitial"/>.</param>
+        /// <param name="overrideWithDefaultWhenIsInitial">Indicates whether to override the value with <c>default</c> when the value is <see cref="IInitial.IsInitial"/>.</param>
         /// <returns>The cleaned value.</returns>
-        public static T Clean<T>(T value, bool overrideWithNullWhenIsInitial)
+        public static T Clean<T>(T value, bool overrideWithDefaultWhenIsInitial)
         {
             if (value is string str)
                 return (T)Convert.ChangeType(Clean(str, StringTrim.UseDefault, StringTransform.UseDefault), typeof(string), CultureInfo.CurrentCulture)!;
@@ -200,7 +200,7 @@ namespace CoreEx.Entities
             if (value is ICleanUp ic)
                 ic.CleanUp();
 
-            if (overrideWithNullWhenIsInitial && value is IInitial ii && ii.IsInitial)
+            if (overrideWithDefaultWhenIsInitial && value is IInitial ii && ii.IsInitial)
                 return default!;
 
             return value;

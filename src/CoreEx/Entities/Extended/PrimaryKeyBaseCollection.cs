@@ -57,7 +57,10 @@ namespace CoreEx.Entities.Extended
         public void RemoveByKey(params object?[] args) => RemoveByKey(new CompositeKey(args));
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => (obj is TSelf other) && Equals(other);
+        public override bool Equals(object? obj) => base.Equals(obj);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => base.GetHashCode();
 
         /// <summary>
         /// Compares two values for equality.
@@ -74,20 +77,5 @@ namespace CoreEx.Entities.Extended
         /// <param name="b"><see cref="ChangeLog"/> B.</param>
         /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
         public static bool operator !=(PrimaryKeyBaseCollection<TEntity, TSelf>? a, PrimaryKeyBaseCollection<TEntity, TSelf>? b) => !Equals(a, b);
-
-        /// <summary>
-        /// Returns a hash code for the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.
-        /// </summary>
-        /// <returns>A hash code for the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.</returns>
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-            foreach (var item in this)
-            {
-                hash.Add(item);
-            }
-
-            return hash.ToHashCode();
-        }
     }
 }
