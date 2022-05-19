@@ -14,8 +14,8 @@ namespace CoreEx.Entities.Extended
     /// <typeparam name="TEntity">The <see cref="EntityBase"/> <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="EntityBase"/> dictionary <see cref="Type"/> itself.</typeparam>
     /// <remarks>The key is constrained to be of Type <see cref="string"/> as this is a constraint related to JSON serialization.</remarks>
-    public class EntityBaseDictionary<TEntity, TSelf> : ObservableDictionary<string, TEntity>, INotifyPropertyChanged, INotifyCollectionItemChanged, IEquatable<TSelf>, ICloneable, ICleanUp, IInitial
-        where TEntity : EntityBase
+    public class EntityBaseDictionary<TEntity, TSelf> : ObservableDictionary<string, TEntity>, INotifyPropertyChanged, INotifyCollectionItemChanged, IEntityBaseCollection
+        where TEntity : EntityBase, new()
         where TSelf : EntityBaseDictionary<TEntity, TSelf>, new()
     {
         /// <summary>
@@ -36,26 +36,25 @@ namespace CoreEx.Entities.Extended
         public object Clone()
         {
             var clone = new TSelf();
-            this.ForEach(item => clone.Add(item.Key, (TEntity)(item.Value as ICloneable).Clone()));
+            this.ForEach(item => clone.Add(item.Key, (TEntity)item.Value.Clone()));
             return clone;
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => (obj is TSelf other) && Equals(other);
-
-        /// <inheritdoc/>
-        public bool Equals(TSelf? other)
+        public override bool Equals(object? other)
         {
-            if (ReferenceEquals(this, other))
+            if (other is not TSelf otherv)
+                return false;
+            else if (ReferenceEquals(this, other))
                 return true;
             else if (other == null)
                 return false;
-            else if (Count != other.Count)
+            else if (Count != otherv.Count)
                 return false;
 
             foreach (var item in this)
             {
-                if (!other.TryGetValue(item.Key, out var value))
+                if (!otherv.TryGetValue(item.Key, out var value))
                     return false;
 
                 if (!item.Value.Equals(value))
@@ -100,7 +99,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Performs a clean-up of the <see cref="EntityBaseCollection{TEntity, TSelf}"/> resetting item values as appropriate to ensure a basic level of data consistency.
         /// </summary>
-        public void CleanUp() => ApplyAction(EntityAction.CleanUp);
+        public void CleanUp() => this.ForEach(item => item.Value.CleanUp());
 
         /// <summary>
         /// Collections do not support an initial state; will always be <c>false</c>.
@@ -169,7 +168,7 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger an <see cref="EntityCore.AcceptChanges"/> for each item.</remarks>
         public virtual void AcceptChanges()
         {
-            ApplyAction(EntityAction.AcceptChanges);
+            this.ForEach(item => item.Value.AcceptChanges());
             IsChanged = false;
         }
 
@@ -187,7 +186,7 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger a <see cref="EntityCore.MakeReadOnly"/> for each item.</remarks>
         public void MakeReadOnly()
         {
-            ApplyAction(EntityAction.MakeReadOnly);
+            this.ForEach(item => item.Value.MakeReadOnly());
             IsChanged = false;
             IsReadOnly = true;
         }
@@ -231,30 +230,6 @@ namespace CoreEx.Entities.Extended
                 throw new InvalidOperationException("Collection is read only; item(s) cannot be added, updated or deleted.");
             else
                 return func();
-        }
-
-        /// <summary>
-        /// Performs the specified action.
-        /// </summary>
-        private void ApplyAction(EntityAction action)
-        {
-            foreach (var item in this)
-            {
-                switch (action)
-                {
-                    case EntityAction.CleanUp:
-                        item.Value.CleanUp();
-                        break;
-
-                    case EntityAction.AcceptChanges:
-                        item.Value.AcceptChanges();
-                        break;
-
-                    case EntityAction.MakeReadOnly:
-                        item.Value.MakeReadOnly();
-                        break;
-                }
-            }
         }
     }
 }

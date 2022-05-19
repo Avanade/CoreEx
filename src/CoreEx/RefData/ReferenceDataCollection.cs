@@ -87,7 +87,7 @@ namespace CoreEx.RefData
                     _mappingsDict ??= new();
 
                     // Make sure there are no duplicates.
-                    foreach (var map in item.Mappings)
+                    foreach (var map in item.Mappings!)
                     {
                         if (_mappingsDict.ContainsKey((map.Key, map.Value)))
                             throw new ArgumentException($"Item with Mapping Key '{map.Key}' and Value '{map.Value}' already exists within the collection.");

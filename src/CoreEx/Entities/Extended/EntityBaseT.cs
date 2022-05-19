@@ -5,33 +5,47 @@ using System;
 namespace CoreEx.Entities.Extended
 {
     /// <summary>
-    /// Represents the base capabilities for a full featured <b>Entity</b>.
+    /// Represents the base capabilities for a full featured <b>Entity</b> which supports (overrides) the <c>==</c> and <c>!=</c> operators, and <see cref="Clone"/>.
     /// </summary>
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
-    /// <remarks>To leverage this base class correctly the following <b>must</b> be overridden: <see cref="Equals(TSelf)"/>, <see cref="GetHashCode"/>, <see cref="CopyFrom(TSelf)"/>, <see cref="EntityBase.IsInitial"/> and 
-    /// <see cref="EntityCore.OnApplyAction(EntityAction)"/>. <para>Also, note that when inheriting from a class that already inherits from <see cref="EntityBase{TSelf}"/> then the following interfaces must be added for the new type:
-    /// <see cref="ICopyFrom{T}"/> and <see cref="IEquatable{T}"/> to ensure correctness and consistency.</para></remarks>
+    /// <remarks>To leverage this base class correctly the <see cref="EntityBase.GetPropertyValues"/> <b>must</b> be overridden for all updateable properties. For an example, see the underlying 
+    /// <see href="https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Entities/ChangeLog.cs">ChangeLog</see> implementation.
+    /// <para>Note, that there is additional implementation work required where inheriting from a class that has inherited from <see cref="EntityBase{TSelf}"/> to enable correct equality functionality. For example, if inheriting from
+    /// <see cref="ChangeLog"/> then the following needs to be overridden to enable the expected functionality.
+    /// <code>
+    /// public class ChangeLogEx : ChangeLog
+    /// {
+    ///     private string? _reason;
+    /// 
+    ///     public string? Reason { get => _reason; set => SetValue(ref _reason, value); }
+    /// 
+    ///     protected override IEnumerable&lt;IPropertyValue> GetPropertyValues()
+    ///     {
+    ///         foreach (var pv in base.GetPropertyValues())
+    ///             yield return pv;
+    /// 
+    ///         yield return CreateProperty(Reason, v => Reason = v);
+    ///     }
+    /// 
+    ///     public override bool Equals(object? other) => base.Equals(other);
+    /// 
+    ///     public static bool operator ==(ChangeLogEx? a, ChangeLogEx? b) => Equals(a, b);
+    /// 
+    ///     public static bool operator !=(ChangeLogEx? a, ChangeLogEx? b) => !Equals(a, b);
+    /// 
+    ///     public override int GetHashCode() => base.GetHashCode();
+    /// 
+    ///     public override object Clone() => CreateClone&lt;ChangeLogEx>(this);
+    /// }
+    /// </code></para></remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBase<TSelf> : EntityBase, ICopyFrom<TSelf>, IEquatable<TSelf> where TSelf : EntityBase<TSelf>, new()
+    public abstract class EntityBase<TSelf> : EntityBase, ICloneable where TSelf : EntityBase<TSelf>, new()
     {
-        /// <summary>
-        /// Performs a deep copy from another object updating this instance.
-        /// </summary>
-        /// <param name="from">The object to copy from.</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Needed to support inheritance.")]
-        public void CopyFrom(EntityBase<TSelf> from) { }
-
-        /// <summary>
-        /// Performs a deep copy from another object updating this instance.
-        /// </summary>
-        /// <param name="from">The object to copy from.</param>
-        public virtual void CopyFrom(TSelf from) { }
+        /// <inheritdoc/>
+        public override int GetHashCode() => base.GetHashCode();
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => ReferenceEquals(this, obj) || ((obj is TSelf other) && Equals(other));
-
-        /// <inheritdoc/>
-        public virtual bool Equals(TSelf? other) => other != null;
+        public override bool Equals(object? other) => base.Equals(other);
 
         /// <summary>
         /// Compares two values for equality.
@@ -49,33 +63,12 @@ namespace CoreEx.Entities.Extended
         /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
         public static bool operator !=(EntityBase<TSelf>? a, EntityBase<TSelf>? b) => !Equals(a, b);
 
-        /// <summary>
-        /// Returns a hash code for the <see cref="EntityBase{TSelf}"/> (always returns the same value regardless; inheritors should override).
-        /// </summary>
-        /// <returns>A hash code for the <see cref="EntityBase{TSelf}"/>.</returns>
-        public override int GetHashCode() => 0;
-
         /// <inheritdoc/>
-        public override string ToString()
+        public override object Clone()
         {
-            if (this is IIdentifier ii)
-                return $"{base.ToString()} Id={ii.Id}";
-            else if (this is IPrimaryKey pk)
-                return $"{base.ToString()} PrimaryKey={pk.PrimaryKey}";
-            else
-                return base.ToString();
+            var @new = new TSelf();
+            @new.CopyFrom(this);
+            return @new;
         }
-
-        /// <summary>
-        /// <inheritdoc/>
-        /// </summary>
-        /// This will trigger the <see cref="EntityCore.OnApplyAction(EntityAction)"/> with <see cref="EntityAction.CleanUp"/>.
-        public override void CleanUp() => OnApplyAction(EntityAction.CleanUp);
-
-        /// <summary>
-        /// Creates a deep copy of the entity.
-        /// </summary>
-        /// <returns>A deep copy of the entity.</returns>
-        public override object Clone() => CreateClone((TSelf)this);
     }
 }

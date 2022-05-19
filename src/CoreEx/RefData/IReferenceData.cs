@@ -63,7 +63,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <remarks>The mapping dictionary property is intended for internal use only; generally speaking use <see cref="SetMapping{T}(string, T)"/>, <see cref="GetMapping{T}(string)"/> and <see cref="TryGetMapping{T}(string, out T)"/> 
         /// to access.</remarks>
-        Dictionary<string, object?> Mappings => null!;
+        Dictionary<string, object?>? Mappings => null!;
 
         /// <summary>
         /// Indicates whether any mapping values have been configured.

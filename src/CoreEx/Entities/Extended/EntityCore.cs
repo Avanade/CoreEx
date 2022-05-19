@@ -398,12 +398,17 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <remarks>This will trigger the <see cref="OnApplyAction(EntityAction)"/> with <see cref="EntityAction.AcceptChanges"/>.</remarks>
+        /// <remarks>This will trigger the <see cref="OnAcceptChanges"/> to perform the operation for all properties.</remarks>
         public void AcceptChanges()
         {
-            OnApplyAction(EntityAction.AcceptChanges);
+            OnAcceptChanges();
             IsChanged = false;
         }
+
+        /// <summary>
+        /// Applies the <see cref="AcceptChanges"/> to all the underlying properties.
+        /// </summary>
+        protected virtual void OnAcceptChanges() { }
 
         /// <inheritdoc/>
         public bool IsChanged { get; private set; }
@@ -414,48 +419,17 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <remarks>This will trigger the <see cref="OnApplyAction(EntityAction)"/> with <see cref="EntityAction.MakeReadOnly"/>.</remarks>
+        /// <remarks>This will trigger the <see cref="OnMakeReadOnly"/> to perform the operation for all properties.</remarks>
         public void MakeReadOnly()
         {
-            OnApplyAction(EntityAction.MakeReadOnly);
+            OnMakeReadOnly();
             IsChanged = false;
             IsReadOnly = true;
         }
 
         /// <summary>
-        /// Apply the specified <paramref name="action"/>.
+        /// Applies the <see cref="MakeReadOnly"/> to all the underlying properties.
         /// </summary>
-        /// <param name="action">The <see cref="EntityAction"/> to perform.</param>
-        protected virtual void OnApplyAction(EntityAction action) { }
-
-        /// <summary>
-        /// Applies the specified <paramref name="action"/> on the <paramref name="value"/>.
-        /// </summary>
-        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="value">The value to perform the <paramref name="action"/> on.</param>
-        /// <param name="action">The <see cref="EntityAction"/> to perform.</param>
-        /// <returns>The value.</returns>
-        protected static T ApplyAction<T>(T value, EntityAction action)
-        {
-            switch (action)
-            {
-                case EntityAction.CleanUp:
-                    return Cleaner.Clean(value);
-
-                case EntityAction.AcceptChanges:
-                    if (value is EntityCore ac)
-                        ac.AcceptChanges();
-
-                    break;
-
-                case EntityAction.MakeReadOnly:
-                    if (value is EntityCore mro)
-                        mro.MakeReadOnly();
-
-                    break;
-            }
-
-            return value;
-        }
+        protected virtual void OnMakeReadOnly() { }
     }
 }

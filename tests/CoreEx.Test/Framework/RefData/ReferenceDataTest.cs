@@ -1,8 +1,8 @@
-﻿using CoreEx.Http;
+﻿using CoreEx.Entities.Extended;
+using CoreEx.Http;
 using CoreEx.RefData;
 using CoreEx.TestFunction;
 using FluentAssertions;
-using FluentAssertions.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;

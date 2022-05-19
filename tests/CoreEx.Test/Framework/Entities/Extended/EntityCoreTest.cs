@@ -68,51 +68,6 @@ namespace CoreEx.Test.Framework.Entities.Extended
                 get { return _dateTime; }
                 set { SetValue(ref _dateTime, value); }
             }
-
-            //public override void CleanUp()
-            //{
-            //    base.CleanUp();
-            //    Id = Cleaner.Clean(Id);
-            //    Text = Cleaner.Clean(Text);
-            //    DateOnly = Cleaner.Clean(DateOnly);
-            //    DateTime = Cleaner.Clean(DateTime);
-            //}
         }
-
-        //public void Property_ConcurrentUpdating()
-        //{
-        //    // EntityBase etc. is not designed to be thread-sage. Not generally supported.
-        //    var a = new TestA();
-        //    a.TrackChanges();
-
-        //    var ts = new Task[100];
-
-        //    for (int i = 0; i < ts.Length; i++)
-        //        ts[i] = CreateValueUpdateTask(a);
-
-        //    for (int i = 0; i < ts.Length; i++)
-        //        ts[i].Start();
-
-        //    Task.WaitAll(ts);
-
-        //    Assert.IsNotNull(a.ChangeTracking);
-        //    Assert.AreEqual(4, a.ChangeTracking.Count);
-        //    Assert.AreEqual("Id", a.ChangeTracking[0]);
-        //    Assert.AreEqual("Text", a.ChangeTracking[1]);
-        //    Assert.AreEqual("Now", a.ChangeTracking[2]);
-        //    Assert.AreEqual("Time", a.ChangeTracking[3]);
-        //}
-
-        //private Task CreateValueUpdateTask(TestA a)
-        //{
-        //    return new Task(() =>
-        //    {
-        //        var now = Cleaner.Clean(DateTime.Now);
-        //        a.Id = now.Ticks;
-        //        a.Text = now.ToLongDateString();
-        //        a.DateOnly = now;
-        //        a.DateTime = now;
-        //    });
-        //}
     }
 }

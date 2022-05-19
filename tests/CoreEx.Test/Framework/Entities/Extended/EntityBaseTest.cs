@@ -316,6 +316,28 @@ namespace CoreEx.Test.Framework.Entities.Extended
         }
 
         [Test]
+        public void Person_Load()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                var p1 = new Person { Name = "dave", Age = i, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+                var p2 = new Person { Name = "dave", Age = i, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+
+                p1.CleanUp();
+                p1.Clone();
+                p1.AcceptChanges();
+
+                if (p1 == p2 && p1.GetHashCode() == p2.GetHashCode())
+                {
+                    if (!p1.IsReadOnly)
+                        p1.MakeReadOnly();
+                }
+                else
+                    throw new InvalidOperationException("Should not get here!");
+            }
+        }
+
+        [Test]
         public void PersonEx_Clone()
         {
             var p = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
@@ -768,40 +790,12 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             public CompositeKey PrimaryKey => new CompositeKey(Name);
 
-            public override bool Equals(Person? other) => ReferenceEquals(this, other) || (base.Equals(other)
-                && Equals(Name, other!.Name)
-                && Equals(Age, other.Age)
-                && Equals(ChangeLog, other.ChangeLog));
-
-            public override int GetHashCode()
+            protected override IEnumerable<IPropertyValue> GetPropertyValues()
             {
-                var hash = new HashCode();
-                hash.Add(Name);
-                hash.Add(Age);
-                hash.Add(ChangeLog);
-                return base.GetHashCode() ^ hash.ToHashCode();
+                yield return CreateProperty(Name, v => Name = v);
+                yield return CreateProperty(Age, v => Age = v);
+                yield return CreateProperty(ChangeLog, v => ChangeLog = v);
             }
-
-            public override void CopyFrom(Person from)
-            {
-                base.CopyFrom(from);
-                Name = from.Name;
-                Age = from.Age;
-                ChangeLog = CopyOrClone(from.ChangeLog, ChangeLog);
-            }
-
-            protected override void OnApplyAction(EntityAction action)
-            {
-                base.OnApplyAction(action);
-                Name = ApplyAction(Name, action);
-                Age = ApplyAction(Age, action);
-                ChangeLog = ApplyAction(ChangeLog, action);
-            }
-
-            public override bool IsInitial => base.IsInitial
-                && Cleaner.IsDefault(Name)
-                && Cleaner.IsDefault(Age)
-                && Cleaner.IsDefault(ChangeLog);
         }
 
         public class PersonCollection : PrimaryKeyBaseCollection<Person, PersonCollection>
@@ -822,45 +816,29 @@ namespace CoreEx.Test.Framework.Entities.Extended
             public PersonCollectionResult(PersonCollection collection, PagingArgs? paging = null) : base(paging) => Collection = collection;
         }
 
-        public class PersonEx : Person, ICopyFrom<PersonEx>, IEquatable<PersonEx>
+        public class PersonEx : Person
         {
             private decimal? _salary;
 
             public decimal? Salary { get => _salary; set => SetValue(ref _salary, value); }
 
-            public bool Equals(PersonEx? other) => ReferenceEquals(this, other) || (other != null && base.Equals(other)
-                && Equals(Salary, other!.Salary));
+            protected override IEnumerable<IPropertyValue> GetPropertyValues()
+            {
+                foreach (var pv in base.GetPropertyValues())
+                    yield return pv;
 
-            public override bool Equals(object? obj) => (obj is PersonEx other) && Equals(other);
+                yield return CreateProperty(Salary, v => Salary = v);
+            }
+
+            public override bool Equals(object? other) => base.Equals(other);
 
             public static bool operator ==(PersonEx? a, PersonEx? b) => Equals(a, b);
 
             public static bool operator !=(PersonEx? a, PersonEx? b) => !Equals(a, b);
 
-            public override int GetHashCode()
-            {
-                var hash = new HashCode();
-                hash.Add(Salary);
-                return base.GetHashCode() ^ hash.ToHashCode();
-            }
+            public override int GetHashCode() => base.GetHashCode();
 
-            public override object Clone() => CreateClone(this);
-
-            public void CopyFrom(PersonEx from)
-            {
-                base.CopyFrom(from);
-                Salary = from.Salary;
-                ChangeLog = CopyOrClone(from.ChangeLog, ChangeLog);
-            }
-
-            protected override void OnApplyAction(EntityAction action)
-            {
-                base.OnApplyAction(action);
-                Salary = ApplyAction(Salary, action);
-            }
-
-            public override bool IsInitial => base.IsInitial
-                && Cleaner.IsDefault(Salary);
+            public override object Clone() => CreateClone<PersonEx>(this);
         }
 
         public class PersonExCollection : EntityBaseCollection<PersonEx, PersonExCollection>
@@ -870,9 +848,6 @@ namespace CoreEx.Test.Framework.Entities.Extended
             public PersonExCollection(IEnumerable<PersonEx> entities) : base(entities) { }
         }
 
-        public class PersonDictionary : EntityBaseDictionary<Person, PersonDictionary>
-        {
-            //public PersonDictionary() { }
-        }
+        public class PersonDictionary : EntityBaseDictionary<Person, PersonDictionary> { }
     }
 }
