@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
 
@@ -11,6 +12,13 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     public class TypeReflectorArgs
     {
+        private static readonly Lazy<TypeReflectorArgs> _default = new(() => new TypeReflectorArgs());
+
+        /// <summary>
+        /// Gets the default <see cref="TypeReflectorArgs"/>.
+        /// </summary>
+        public static TypeReflectorArgs Default => (ExecutionContext.HasCurrent ? ExecutionContext.Current?.ServiceProvider?.GetService<TypeReflectorArgs>() : null) ?? _default.Value;
+
         /// <summary>
         /// Initializes an instance of the <see cref="TypeReflectorArgs"/> class with an optional <paramref name="cache"/>.
         /// </summary>

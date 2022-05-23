@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Globalization;
 using System.Linq.Expressions;
@@ -14,7 +15,7 @@ namespace CoreEx.Abstractions.Reflection
     public static class PropertyExpression
     {
         /// <summary>
-        /// The <see cref="Regex"/> expression pattern for splitting strings into words.
+        /// The <see cref="Regex"/> pattern for splitting strings into words.
         /// </summary>
         public const string WordSplitPattern = "([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))";
 
@@ -27,7 +28,16 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="JsonSerializer.Default"/> where not specified.</param>
         /// <returns>A <see cref="PropertyExpression{TEntity, TProperty}"/> which contains (in order) the compiled <see cref="System.Func{TEntity, TProperty}"/>, member name and resulting property text.</returns>
         public static PropertyExpression<TEntity, TProperty> Create<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, IJsonSerializer? jsonSerializer = null)
-            => PropertyExpression<TEntity, TProperty>.CreateInternal(propertyExpression, jsonSerializer ?? JsonSerializer.Default);
+            => PropertyExpression<TEntity, TProperty>.CreateInternal(propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression)), jsonSerializer ?? DetermineJsonSerializer());
+
+        /// <summary>
+        /// Determine the <see cref="IJsonSerializer"/> by firstly using the <see cref="ExecutionContext.ServiceProvider"/> to find, then falling back to the <see cref="JsonSerializer.Default"/>.
+        /// </summary>
+        /// <returns>The <see cref="IJsonSerializer"/>.</returns>
+        /// <remarks>This does scream <i>Service Locator</i>, which is considered an anti-pattern by some, but this avoids the added complexity of passing the <see cref="IJsonSerializer"/> where most implementations will default to the
+        /// <see cref="CoreEx.Json.JsonSerializer"/> implementation - this just avoids unnecessary awkwardness for sake of purity. Finally, this class is intended for largely internal use only.</remarks>
+        private static IJsonSerializer DetermineJsonSerializer()
+            => (ExecutionContext.HasCurrent && ExecutionContext.Current.ServiceProvider != null ? ExecutionContext.Current.ServiceProvider.GetService<IJsonSerializer>() : null) ?? JsonSerializer.Default;
 
         /// <summary>
         /// Converts a <see cref="string"/> into sentence case.
