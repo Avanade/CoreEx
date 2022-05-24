@@ -184,10 +184,10 @@
     <value>{0} already exists and would result in a duplicate.</value>
   </data>
   <data name="CoreEx.Validation.DuplicateValue2Format" xml:space="preserve">
-    <value>{0} contains duplicates; {2} value specified more than once.</value>
+    <value>{0} contains duplicates; {2} specified more than once.</value>
   </data>
   <data name="CoreEx.Validation.DuplicateValueFormat" xml:space="preserve">
-    <value>{0} contains duplicates; {2} value '{3}' specified more than once.</value>
+    <value>{0} contains duplicates; {2} '{3}' specified more than once.</value>
   </data>
   <data name="CoreEx.Validation.EmailFormat" xml:space="preserve">
     <value>{0} is not a valid e-mail address.</value>
@@ -200,6 +200,9 @@
   </data>
   <data name="CoreEx.Validation.InvalidFormat" xml:space="preserve">
     <value>{0} is invalid.</value>
+  </data>
+  <data name="CoreEx.Validation.InvalidItemsFormat" xml:space="preserve">
+    <value>{0} contains one or more invalid items.</value>
   </data>
   <data name="CoreEx.Validation.MandatoryFormat" xml:space="preserve">
     <value>{0} is required.</value>

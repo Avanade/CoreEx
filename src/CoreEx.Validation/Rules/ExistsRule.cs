@@ -18,7 +18,7 @@ namespace CoreEx.Validation.Rules
     {
         private readonly Predicate<TEntity>? _predicate;
         private readonly Func<TEntity, CancellationToken, Task<bool>>? _exists;
-        private readonly Func<TEntity, CancellationToken, Task<object>>? _existsNotNull;
+        private readonly Func<TEntity, CancellationToken, Task<object?>>? _existsNotNull;
         private readonly Func<TEntity, CancellationToken, Task<HttpResult>>? _httpResult;
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace CoreEx.Validation.Rules
         /// Initializes a new instance of the <see cref="ExistsRule{TEntity, TProperty}"/> class with an <paramref name="exists"/> function that must return a value.
         /// </summary>
         /// <param name="exists">The exists function.</param>
-        public ExistsRule(Func<TEntity, CancellationToken, Task<object>> exists) => _existsNotNull = exists ?? throw new ArgumentNullException(nameof(exists));
+        public ExistsRule(Func<TEntity, CancellationToken, Task<object?>> exists) => _existsNotNull = exists ?? throw new ArgumentNullException(nameof(exists));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExistsRule{TEntity, TProperty}"/> class with an <paramref name="httpResult"/> function that must return a successful <see cref="HttpResult"/>.

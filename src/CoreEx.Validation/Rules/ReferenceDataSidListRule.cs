@@ -40,7 +40,7 @@ namespace CoreEx.Validation.Rules
 
             if (context.Value.HasInvalidItems)
             {
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
+                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidItemsFormat);
                 return Task.CompletedTask;
             }
 
@@ -51,16 +51,19 @@ namespace CoreEx.Validation.Rules
                 context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MaxCountFormat, MaxCount);
 
             // Check duplicates.
-            var dict = new HashSet<string?>();
-            foreach (var item in context.Value.ToRefDataList().Where(x => x.IsValid))
+            if (!AllowDuplicates)
             {
-                if (dict.TryGetValue(item.Code, out _))
+                var dict = new HashSet<string?>();
+                foreach (var item in context.Value.ToRefDataList().Where(x => x.IsValid))
                 {
-                    context.CreateErrorMessage(ErrorText ?? ValidatorStrings.DuplicateValueFormat, context.Text, item.ToString());
-                    return Task.CompletedTask;
-                }
+                    if (dict.TryGetValue(item.Code, out _))
+                    {
+                        context.CreateErrorMessage(ErrorText ?? ValidatorStrings.DuplicateValueFormat, "Code", item.ToString());
+                        return Task.CompletedTask;
+                    }
 
-                dict.Add(item.Code);
+                    dict.Add(item.Code);
+                }
             }
 
             return Task.CompletedTask;

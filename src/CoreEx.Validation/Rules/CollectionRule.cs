@@ -1,36 +1,124 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions.Reflection;
 using System;
+using System.Collections;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreEx.Validation.Rules
 {
     /// <summary>
-    /// Provides the means to create a <see cref="CollectionRuleItem{TItemEntity}"/> instance.
+    /// Provides collection validation including <see cref="MinCount"/> and <see cref="MaxCount"/>.
     /// </summary>
-    public static class CollectionRuleItem
+    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TProperty">The collection property <see cref="Type"/>.</typeparam>
+    public class CollectionRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IEnumerable?
     {
-        /// <summary>
-        /// Create an instance of the <see cref="CollectionRuleItem{TItem}"/> class with no <see cref="Validator"/>.
-        /// </summary>
-        /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
-        /// <returns>The <see cref="CollectionRuleItem{TItem}"/>.</returns>
-        public static CollectionRuleItem<TItem> Create<TItem>() => new(null);
+        private readonly Type _itemType;
+        private ICollectionRuleItem? _item;
 
         /// <summary>
-        /// Create an instance of the <see cref="CollectionRuleItem{TItem}"/> class with a corresponding <paramref name="validator"/>.
+        /// Initializes a new instance of the <see cref="CollectionRule{TEntity, TProperty}"/> class.
         /// </summary>
-        /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
-        /// <param name="validator">The corresponding item <see cref="IValidatorEx{TItem}"/>.</param>
-        /// <returns>The <see cref="CollectionRuleItem{TItem}"/>.</returns>
-        public static CollectionRuleItem<TItem> Create<TItem>(IValidatorEx<TItem> validator) => new(validator ?? throw new ArgumentNullException(nameof(validator)));
+        public CollectionRule() => _itemType = TypeReflector.GetCollectionItemType(typeof(TProperty)).ItemType!;
 
         /// <summary>
-        /// Create an instance of the <see cref="CollectionRuleItem{TItem}"/> class leveraging the <paramref name="serviceProvider"/> to get the instance.
+        /// Gets or sets the minimum count.
         /// </summary>
-        /// <typeparam name="TItem">The item entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TValidator">The item validator <see cref="Type"/>.</typeparam>
-        /// <param name="serviceProvider">The <see cref="IServiceProvider"/>; defaults to <see cref="ExecutionContext.ServiceProvider"/> where not specified.</param>
-        /// <returns>The <see cref="CollectionRuleItem{TItem}"/>.</returns>
-        public static CollectionRuleItem<TItem> Create<TItem, TValidator>(IServiceProvider? serviceProvider = null) where TValidator : IValidatorEx<TItem> => new(Validator.Create<TValidator>(serviceProvider));
+        public int MinCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum count.
+        /// </summary>
+        public int? MaxCount { get; set; }
+
+        /// <summary>
+        /// Indicates whether the underlying collection items can be <c>null</c>.
+        /// </summary>
+        public bool AllowNullItems { get; set; }
+
+        /// <summary>
+        /// Gets or sets the collection item validation configuration.
+        /// </summary>
+        public ICollectionRuleItem? Item
+        {
+            get => _item;
+
+            set
+            {
+                if (value == null)
+                {
+                    _item = value;
+                    return;
+                }
+
+                if (_itemType != value.ItemType)
+                    throw new ArgumentException($"A CollectionRule TProperty ItemType '{_itemType.Name}' must be the same as the Item {value.ItemType.Name}");
+
+                _item = value;
+            }
+        }
+
+        /// <summary>
+        /// Overrides the <b>Check</b> method and will not validate where performing a shallow validation.
+        /// </summary>
+        /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
+        /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
+        public override bool Check(PropertyContext<TEntity, TProperty> context)
+        {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
+            return !context.Parent.ShallowValidation && base.Check(context);
+        }
+
+        /// <inheritdoc/>
+        public override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
+            if (context.Value == null)
+                return;
+
+            // Iterate through the collection validating each of the items.
+            var i = 0;
+            var hasNullItem = false;
+            var hasItemErrors = false;
+            foreach (var item in context.Value)
+            {
+                // Create the context args.
+                var args = context.CreateValidationArgs();
+                var indexer = $"[{i++}]";
+                args.FullyQualifiedEntityName += indexer;
+                args.FullyQualifiedJsonEntityName += indexer;
+
+                if (!AllowNullItems && item == null)
+                    hasNullItem = true;
+
+                // Validate and merge.
+                if (item != null && Item?.ItemValidator != null)
+                {
+                    var r = await Item.ItemValidator.ValidateAsync(item, args, cancellationToken).ConfigureAwait(false);
+                    context.MergeResult(r);
+                    if (r.HasErrors)
+                        hasItemErrors = true;
+                }
+            }
+
+            if (hasNullItem)
+                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.CollectionNullItemFormat);
+
+            // Check the length/count.
+            if (i < MinCount)
+                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MinCountFormat, MinCount);
+            else if (MaxCount.HasValue && i > MaxCount.Value)
+                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MaxCountFormat, MaxCount);
+
+            // Check for duplicates.
+            if (!hasItemErrors)
+                Item?.DuplicateValidation(context, context.Value);
+        }
     }
 }

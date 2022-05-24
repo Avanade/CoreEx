@@ -123,15 +123,18 @@ namespace CoreEx.Validation
             // Get the property info.
             if (Parent.Value is ValidationValue<TProperty> vv)
             {
-                var pr = TypeReflector.GetReflector(TypeReflectorArgs.Default, Parent.EntityType).GetProperty(Name) ?? throw new InvalidOperationException($"Property '{Name}' does not exist for Type {Parent.EntityType.Name}.");
+                if (vv.Entity != null)
+                {
+                    var pr = TypeReflector.GetReflector(TypeReflectorArgs.Default, vv.Entity.GetType()).GetProperty(Name) ?? throw new InvalidOperationException($"Property '{Name}' does not exist for Type {Parent.EntityType.Name}.");
 
-                try
-                {
-                    pr.PropertyInfo.SetValue(vv.Entity, value);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Type '{Parent.EntityType.Name}' Property '{Name}' value cannot be overridden: {ex.Message}", ex);
+                    try
+                    {
+                        pr.PropertyInfo.SetValue(vv.Entity, value);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"Type '{Parent.EntityType.Name}' Property '{Name}' value cannot be overridden: {ex.Message}", ex);
+                    }
                 }
             }
             else

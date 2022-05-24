@@ -21,7 +21,7 @@ namespace CoreEx.Validation.Rules
             if (context.Value == null)
                 return Task.CompletedTask;
 
-            if (!ReferenceDataOrchestrator.Current.GetByTypeRequired<TRef>().TryGetByCode(context.Value, out var rd) && rd!.IsValid)
+            if (!ReferenceDataOrchestrator.Current.GetByTypeRequired<TRef>().TryGetByCode(context.Value, out var rd) || !rd!.IsValid)
                 context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
 
             return Task.CompletedTask;

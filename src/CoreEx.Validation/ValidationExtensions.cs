@@ -156,7 +156,7 @@ namespace CoreEx.Validation
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object>> exists, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object?>> exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(exists) { ErrorText = errorText });
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace CoreEx.Validation
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, object exists, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, object? exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>((_, __) => Task.FromResult(exists != null)) { ErrorText = errorText });
 
         /// <summary>
@@ -248,7 +248,7 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
         public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
-            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(predicate) { ErrorText = errorText });
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(predicate) { ErrorText = errorText });
 
         /// <summary>
         /// Adds a validation where the rule <paramref name="immutable"/> function <b>must</b> return <c>true</c> to be considered valid (see <see cref="MustRule{TEntity, TProperty}"/>).
@@ -260,7 +260,7 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
         public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<bool> immutable, LText? errorText = null) where TEntity : class
-            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(immutable) { ErrorText = errorText });
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(immutable) { ErrorText = errorText });
 
         /// <summary>
         /// Adds a validation where the rule <paramref name="immutableAsync"/> function <b>must</b> return <c>true</c> to be considered valid (see <see cref="MustRule{TEntity, TProperty}"/>).
@@ -272,7 +272,7 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
         public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> immutableAsync, LText? errorText = null) where TEntity : class
-            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(immutableAsync) { ErrorText = errorText });
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(immutableAsync) { ErrorText = errorText });
 
         /// <summary>
         /// Adds a validation where the rule <paramref name="immutable"/> value be <c>true</c> to be considered valid (see <see cref="MustRule{TEntity, TProperty}"/>).
@@ -284,7 +284,7 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
         public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, bool immutable, LText? errorText = null) where TEntity : class
-            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(() => immutable) { ErrorText = errorText });
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(() => immutable) { ErrorText = errorText });
 
         /// <summary>
         /// Adds a validation where considered immutable (see <see cref="MustRule{TEntity, TProperty}"/>).
@@ -295,7 +295,7 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
         public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
-            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(() => true) { ErrorText = errorText });
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(() => true) { ErrorText = errorText });
 
         #endregion
 
@@ -815,7 +815,7 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <see cref="Validator.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T> Validate<T>(this T value, string? name = null, LText? text = null) => new(value, name, text);
+        public static ValueValidator<T?> Validate<T>(this T? value, string? name = null, LText? text = null) => new(value, name, text);
 
         #endregion
 
