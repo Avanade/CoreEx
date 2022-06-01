@@ -191,7 +191,7 @@ namespace CoreEx.Validation
         public PropertyRuleBase<TEntity, TProperty> WhenNotOperation(OperationType operationType) => When(x => ExecutionContext.Current.OperationType != operationType);
 
         /// <summary>
-        /// Adds a <see cref="DependsOnClause{TEntity, TProperty}"/> to this <see cref="PropertyRule{TEntity, TProperty}"/> which must be <c>true</c> for the rule to be validated.
+        /// Adds a <see cref="DependsOnClause{TEntity, TProperty}"/> to this <see cref="PropertyRule{TEntity, TProperty}"/> in that another specified property of the entity must have a non-default value (and not have a validation error) to continue.
         /// </summary>
         /// <param name="expression">A depends on expression.</param>
         /// <returns>The <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>

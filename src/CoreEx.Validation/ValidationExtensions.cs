@@ -295,7 +295,7 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
         public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
-            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(() => true) { ErrorText = errorText });
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(() => false) { ErrorText = errorText });
 
         #endregion
 

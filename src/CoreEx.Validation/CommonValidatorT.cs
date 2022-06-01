@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Validation
 {
     /// <summary>
-    /// Provides a common value rule that can be used by other validators that share the same <typeparamref name="T"/>.
+    /// Provides a common value rule that can be used by other validators that share the same <see cref="Type"/> being <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
     /// <remarks>Note: the <see cref="PropertyRuleBase{TEntity, TProperty}.Name"/>, <see cref="PropertyRuleBase{TEntity, TProperty}.JsonName"/> and <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/> initially default to <see cref="Validator.ValueNameDefault"/>.</remarks>
