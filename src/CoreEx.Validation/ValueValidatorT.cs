@@ -27,14 +27,11 @@ namespace CoreEx.Validation
         public TProperty Value { get; }
 
         /// <inheritdoc/>
-        public override async Task<ValueValidatorResult<TEntity, TProperty>> RunAsync(bool throwOnError = false, CancellationToken cancellationToken = default)
+        public override async Task<ValueValidatorResult<TEntity, TProperty>> ValidateAsync(CancellationToken cancellationToken = default)
         {
             var ctx = new PropertyContext<TEntity, TProperty>(new ValidationContext<TEntity>(null!, new ValidationArgs()), Value, this.Name, this.JsonName, this.Text);
             await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
             var res = new ValueValidatorResult<TEntity, TProperty>(ctx);
-            if (throwOnError)
-                res.ThrowOnError();
-
             return res;
         }
     }

@@ -1,7 +1,4 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/Beef
-
-using CoreEx.Entities;
-using CoreEx.Test.Framework.Validation;
+﻿using CoreEx.Entities;
 using CoreEx.Validation;
 using NUnit.Framework;
 using System;

@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using System;
+using System.Linq;
 
 namespace CoreEx.Validation
 {
@@ -10,7 +11,7 @@ namespace CoreEx.Validation
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public sealed class ValueValidatorResult<TEntity, TProperty> : IValidationContextBase where TEntity : class
+    public sealed class ValueValidatorResult<TEntity, TProperty> : IValidationResult<TProperty> where TEntity : class
     {
         private readonly PropertyContext<TEntity, TProperty> _context;
 
@@ -20,38 +21,26 @@ namespace CoreEx.Validation
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         public ValueValidatorResult(PropertyContext<TEntity, TProperty> context) => _context = context ?? throw new ArgumentNullException(nameof(context));
 
-        /// <summary>
-        /// Gets the value.
-        /// </summary>
-        object? IValidationContextBase.Value => Value;
-
-        /// <summary>
-        /// Gets the value.
-        /// </summary>
+        /// <inheritdoc/>
         public TProperty? Value => _context.Value;
 
-        /// <summary>
-        /// Indicates whether there has been a validation error.
-        /// </summary>
-        bool IValidationContextBase.HasErrors => HasError;
+        /// <inheritdoc/>
+        public bool HasErrors => _context.HasError; 
 
-        /// <summary>
-        /// Indicates whether there has been a validation error.
-        /// </summary>
-        public bool HasError => _context.HasError; 
-
-        /// <summary>
-        /// Gets the <see cref="MessageItemCollection"/>.
-        /// </summary>
+        /// <inheritdoc/>
         public MessageItemCollection? Messages => _context.Parent.Messages;
 
+        /// <inheritdoc/>
+        public ValidationException? ToValidationException() => HasErrors ? new ValidationException(Messages!) : null;
+
+        /// <inheritdoc/>
+        IValidationResult IValidationResult.ThrowOnError() => ThrowOnError();
+
         /// <summary>
-        /// Throws a <see cref="ValidationException"/> where an error was found.
+        /// Throws a <see cref="ValidationException"/> where an error was found (and optionally if warnings).
         /// </summary>
-        public void ThrowOnError()
-        {
-            if (HasError)
-                throw new ValidationException(Messages!);
-        }
+        /// <param name="includeWarnings">Indicates whether to throw where only warnings exist.</param>
+        /// <returns>The <see cref="ValidationContext{TEntity}"/> to support fluent-style method-chaining.</returns>
+        public ValueValidatorResult<TEntity, TProperty> ThrowOnError(bool includeWarnings = false) => (HasErrors || (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))) ? throw ToValidationException()! : this;
     }
 }

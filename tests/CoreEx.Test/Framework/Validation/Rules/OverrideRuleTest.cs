@@ -1,6 +1,4 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/Beef
-
-using CoreEx.Validation;
+﻿using CoreEx.Validation;
 using NUnit.Framework;
 using System;
 
@@ -15,7 +13,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public void Validate_Value()
         {
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await 123.Validate().Override(456).RunAsync());
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await 123.Validate().Override(456).ValidateAsync());
         }
     }
 }

@@ -29,12 +29,12 @@ namespace CoreEx.Test.Framework.Validation.Rules
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            var v1 = await ((RefDataEx)"Aaa").Validate().IsValid().RunAsync();
-            Assert.IsFalse(v1.HasError);
+            var v1 = await ((RefDataEx)"Aaa").Validate().IsValid().ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
 
-            v1 = await ((RefDataEx)"Abc").Validate().IsValid().RunAsync();
+            v1 = await ((RefDataEx)"Abc").Validate().IsValid().ValidateAsync();
 
-            Assert.IsTrue(v1.HasError);
+            Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
@@ -55,11 +55,11 @@ namespace CoreEx.Test.Framework.Validation.Rules
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            var v1 = await "Aaa".Validate().RefDataCode().As<RefDataEx>().RunAsync();
-            Assert.IsFalse(v1.HasError);
+            var v1 = await "Aaa".Validate().RefDataCode().As<RefDataEx>().ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "Abc".Validate().RefDataCode().As<RefDataEx>().RunAsync();
-            Assert.IsTrue(v1.HasError);
+            v1 = await "Abc".Validate().RefDataCode().As<RefDataEx>().ValidateAsync();
+            Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
@@ -81,33 +81,33 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
             var sids = new ReferenceDataSidList<string, RefDataEx>("Aaa", "Abc");
-            var v1 = await sids.Validate().AreValid().RunAsync();
-            Assert.IsTrue(v1.HasError);
+            var v1 = await sids.Validate().AreValid().ValidateAsync();
+            Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains one or more invalid items.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("Value", v1.Messages[0].Property);
 
             sids = new ReferenceDataSidList<string, RefDataEx>("Aaa", "Aaa");
-            v1 = await sids.Validate().AreValid().RunAsync();
-            Assert.IsTrue(v1.HasError);
+            v1 = await sids.Validate().AreValid().ValidateAsync();
+            Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains duplicates; Code 'AAA' specified more than once.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("Value", v1.Messages[0].Property);
 
-            v1 = await sids.Validate().AreValid(allowDuplicates: true).RunAsync();
-            Assert.IsFalse(v1.HasError);
+            v1 = await sids.Validate().AreValid(allowDuplicates: true).ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
 
-            v1 = await sids.Validate().AreValid(true, 5).RunAsync();
-            Assert.IsTrue(v1.HasError);
+            v1 = await sids.Validate().AreValid(true, 5).ValidateAsync();
+            Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must have at least 5 item(s).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("Value", v1.Messages[0].Property);
 
-            v1 = await sids.Validate().AreValid(true, maxCount: 1).RunAsync();
-            Assert.IsTrue(v1.HasError);
+            v1 = await sids.Validate().AreValid(true, maxCount: 1).ValidateAsync();
+            Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not exceed 1 item(s).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);

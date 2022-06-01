@@ -17,13 +17,15 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    /// <remarks>The internal reflection comes at a performance cost; the resulting <see cref="PropertyExpression{TEntity, TProperty}"/> should be cached and reused where possible.</remarks>
+    /// <remarks>The internal reflection comes at a performance cost; as such the resulting <see cref="PropertyExpression{TEntity, TProperty}"/> is cached using an <see cref="IMemoryCache"/>. The <see cref="AbsoluteExpirationTimespan"/>
+    /// and <see cref="SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
     public class PropertyExpression<TEntity, TProperty> : IPropertyExpression
     {
         private static IMemoryCache? _fallbackCache;
 
         private readonly Func<TEntity, TProperty> _getValue;
         private readonly Action<TEntity, TProperty>? _setValue;
+        private string? _text;
 
         /// <summary>
         /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>4</c> hours.
@@ -95,19 +97,19 @@ namespace CoreEx.Abstractions.Reflection
                 }
 
                 // Create expression (with compilation also).
-                return new PropertyExpression<TEntity, TProperty>(pi, name, jn, ca?.Name == null ? me.Member.Name.ToSentenceCase() : ca.Name, isSerializable, propertyExpression.Compile(), setValue);
+                return new PropertyExpression<TEntity, TProperty>(pi, name, jn, ca?.Name, isSerializable, propertyExpression.Compile(), setValue);
             });
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyExpression"/> class.
         /// </summary>
-        private PropertyExpression(PropertyInfo pi, string name, string? jsonName, string text, bool isSerializable, Func<TEntity, TProperty> getValue, Action<TEntity, TProperty>? setValue)
+        private PropertyExpression(PropertyInfo pi, string name, string? jsonName, string? text, bool isSerializable, Func<TEntity, TProperty> getValue, Action<TEntity, TProperty>? setValue)
         {
             PropertyInfo = pi;
             Name = name;
             JsonName = jsonName;
-            Text = text;
+            _text = text;
             IsJsonSerializable = isSerializable;
             _getValue = getValue;
             _setValue = setValue;
@@ -123,7 +125,7 @@ namespace CoreEx.Abstractions.Reflection
         public string? JsonName { get; }
 
         /// <inheritdoc/>
-        public LText Text { get; }
+        public LText Text => _text ??= Name.ToSentenceCase(); // Lazy generate the text.
 
         /// <inheritdoc/>
         public bool IsJsonSerializable { get;  }

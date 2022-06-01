@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -55,11 +56,11 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="args">The <see cref="TypeReflectorArgs"/>.</param>
         /// <returns>The <see cref="TypeReflector{TEntity}"/>.</returns>
         public static TypeReflector<TEntity> GetReflector<TEntity>(TypeReflectorArgs args)
-            => (TypeReflector<TEntity>)(args ?? throw new ArgumentNullException(nameof(args))).Cache.GetOrAdd(typeof(TEntity), (type) =>
+            => (args ?? throw new ArgumentNullException(nameof(args))).Cache.GetOrCreate(typeof(TEntity), ce =>
             {
-                var er = new TypeReflector<TEntity>(args);
-                args.TypeBuilder?.Invoke(er);
-                return er;
+                var tr = new TypeReflector<TEntity>(args);
+                args.TypeBuilder?.Invoke(tr);
+                return (TypeReflector<TEntity>)ConfigureCacheEntry(ce, tr);
             });
 
         /// <summary>
@@ -69,14 +70,20 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="type">The entity <see cref="Type"/>.</param>
         /// <returns>The <see cref="ITypeReflector"/>.</returns>
         public static ITypeReflector GetReflector(TypeReflectorArgs args, Type type) 
-            => (args ?? throw new ArgumentNullException(nameof(args))).Cache.GetOrAdd(type ?? throw new ArgumentNullException(nameof(args)), _ =>
+            => (args ?? throw new ArgumentNullException(nameof(args))).Cache.GetOrCreate(type ?? throw new ArgumentNullException(nameof(args)), ce =>
             {
                 var ec = typeof(TypeReflector<>).MakeGenericType(type).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(TypeReflectorArgs) }, null);
-                var er = (ITypeReflector)ec.Invoke(new object[] { args });
-                args.TypeBuilder?.Invoke(er);
-                return er;
+                var tr = (ITypeReflector)ec.Invoke(new object[] { args });
+                args.TypeBuilder?.Invoke(tr);
+                return ConfigureCacheEntry(ce, tr);
             });
 
+        private static ITypeReflector ConfigureCacheEntry(ICacheEntry ce, ITypeReflector tr)
+        {
+            ce.SetAbsoluteExpiration(tr.Args.AbsoluteExpirationTimespan);
+            ce.SetSlidingExpiration(tr.Args.SlidingExpirationTimespan);
+            return tr;
+        }
 
         #region Collections
 

@@ -82,8 +82,7 @@ namespace CoreEx.Validation
         /// <typeparam name="TInclude">The include <see cref="Type"/> in which <typeparamref name="TEntity"/> inherits from.</typeparam>
         /// <param name="include">The <see cref="IValidatorEx{TInclude}"/> to include (add).</param>
         /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
-        public Validator<TEntity> IncludeBase<TInclude>(IValidatorEx<TInclude> include)
-            where TInclude : class
+        public Validator<TEntity> IncludeBase<TInclude>(IValidatorEx<TInclude> include) where TInclude : class
         {
             if (include == null)
                 throw new ArgumentNullException(nameof(include));
@@ -150,7 +149,6 @@ namespace CoreEx.Validation
 
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-
 
             SetRuleSet(new RuleSet<TEntity>(predicate), action);
             return this;

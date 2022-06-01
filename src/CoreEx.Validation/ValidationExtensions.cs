@@ -27,7 +27,7 @@ namespace CoreEx.Validation
         #region Text
 
         /// <summary>
-        /// Updates the rule friendly name text used in validation messages (see <see cref="PropertyRuleBase.Text"/>.
+        /// Updates the rule friendly name text used in validation messages (see <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/>.
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
@@ -805,20 +805,6 @@ namespace CoreEx.Validation
 
         #endregion
 
-        #region ValueValidator
-
-        /// <summary>
-        /// Enables (sets up) validation for a value.
-        /// </summary>
-        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-        /// <param name="value">The value to validate.</param>
-        /// <param name="name">The value name (defaults to <see cref="Validator.ValueNameDefault"/>).</param>
-        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
-        /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T?> Validate<T>(this T? value, string? name = null, LText? text = null) => new(value, name, text);
-
-        #endregion
-
         #region Override/Default
 
         /// <summary>
@@ -886,6 +872,62 @@ namespace CoreEx.Validation
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
         public static PropertyRuleBase<TEntity, TProperty> Default<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, TProperty defaultValue) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(defaultValue) { OnlyOverrideDefault = true });
+
+        #endregion
+
+        #region ValueValidator
+
+        /// <summary>
+        /// Enables (sets up) validation for a value.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="name">The value name (defaults to <see cref="Validator.ValueNameDefault"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+        /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
+        public static ValueValidator<T?> Validate<T>(this T? value, string? name = null, LText? text = null) => new(value, name, text);
+
+        #endregion
+
+        #region MultiValidator
+
+        /// <summary>
+        /// Adds a <see cref="ValueValidator{T}"/>. 
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="multiValidator">The <see cref="MultiValidator"/>.</param>
+        /// <param name="validator">The <see cref="ValueValidator{T}"/>.</param>
+        /// <returns>The (this) <see cref="MultiValidator"/>.</returns>
+        public static MultiValidator Add<T>(this MultiValidator multiValidator, ValueValidator<T?> validator)
+        {
+            if (multiValidator == null)
+                throw new ArgumentNullException(nameof(multiValidator));
+
+            if (validator == null)
+                throw new ArgumentNullException(nameof(validator));
+
+            (multiValidator ?? throw new ArgumentNullException(nameof(multiValidator))).Validators.Add(async ct => await validator.ValidateAsync(ct).ConfigureAwait(false));
+            return multiValidator;
+        }
+
+        /// <summary>
+        /// Adds a <see cref="PropertyRuleBase{TEntity, TProperty}"/> <see cref="ValueValidator{T}"/>. 
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="multiValidator">The <see cref="MultiValidator"/>.</param>
+        /// <param name="validator">The <see cref="PropertyRuleBase{TEntity, TProperty}"/> <see cref="ValueValidator{T}"/>.</param>
+        /// <returns>The (this) <see cref="MultiValidator"/>.</returns>
+        public static MultiValidator Add<T>(this MultiValidator multiValidator, PropertyRuleBase<ValidationValue<T>, T> validator)
+        {
+            if (multiValidator == null)
+                throw new ArgumentNullException(nameof(multiValidator));
+
+            if (validator == null)
+                throw new ArgumentNullException(nameof(validator));
+
+            (multiValidator ?? throw new ArgumentNullException(nameof(multiValidator))).Validators.Add(async ct => await validator.ValidateAsync(ct).ConfigureAwait(false));
+            return multiValidator;
+        }
 
         #endregion
     }

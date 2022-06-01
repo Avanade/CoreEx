@@ -76,6 +76,6 @@ namespace CoreEx.Validation
         void IValueRule<TEntity, TProperty>.AddClause(IPropertyRuleClause<TEntity> clause) => AddClause(clause);
 
         /// <inheritdoc/>
-        public override Task<ValueValidatorResult<TEntity, TProperty>> RunAsync(bool throwOnError = false, CancellationToken cancellationToken = default) => throw new NotSupportedException("The RunAsync method is not supported for a PropertyRule<TEntity, TProperty>.");
+        public override Task<ValueValidatorResult<TEntity, TProperty>> ValidateAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException("The ValidateAsync method is not supported for a PropertyRule<TEntity, TProperty>.");
     }
 }

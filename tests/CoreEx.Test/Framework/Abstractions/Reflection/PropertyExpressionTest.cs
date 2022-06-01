@@ -13,7 +13,7 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             var pe1 = PropertyExpression.Create<Person, int>(p => p.Id);
             Assert.AreEqual("Id", pe1.Name);
             Assert.AreEqual("id", pe1.JsonName);
-            Assert.AreEqual("Id", (string)pe1.Text);
+            Assert.AreEqual("Identifier", (string)pe1.Text);
             Assert.IsTrue(pe1.IsJsonSerializable);
 
             var pe2 = PropertyExpression.Create<Person, string?>(p => p.Name);

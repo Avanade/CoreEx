@@ -12,7 +12,7 @@ namespace CoreEx.Validation
     /// Provides a common value rule that can be used by other validators that share the same <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-    /// <remarks>Note: the <see cref="PropertyRuleBase.Name"/>, <see cref="PropertyRuleBase.JsonName"/> and <see cref="PropertyRuleBase.Text"/> initially default to <see cref="Validator.ValueNameDefault"/>.</remarks>
+    /// <remarks>Note: the <see cref="PropertyRuleBase{TEntity, TProperty}.Name"/>, <see cref="PropertyRuleBase{TEntity, TProperty}.JsonName"/> and <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/> initially default to <see cref="Validator.ValueNameDefault"/>.</remarks>
     public class CommonValidator<T> : PropertyRuleBase<ValidationValue<T>, T>, IValidatorEx<T>
     {
         private Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task>? _additionalAsync;
@@ -24,8 +24,8 @@ namespace CoreEx.Validation
 
         /// <inheritdoc/>
         /// <exception cref="NotSupportedException"/>
-        public override Task<ValueValidatorResult<ValidationValue<T>, T>> RunAsync(bool throwOnError = false, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException("The Run method is not supported for a CommonValueRule<T>.");
+        public override Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(CancellationToken cancellationToken = default)
+            => throw new NotSupportedException("The ValidateAsync method is not supported for a CommonValueRule<T>.");
 
         /// <summary>
         /// Validates the value.

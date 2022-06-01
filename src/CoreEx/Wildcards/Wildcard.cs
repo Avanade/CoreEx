@@ -37,17 +37,17 @@ namespace CoreEx.Wildcards
         /// <summary>
         /// Gets the <see cref="WildcardSelection.MultiBasic"/> <see cref="Wildcard"/> using only the <see cref="MultiWildcardCharacter"/>.
         /// </summary>
-        public static Wildcard MultiBasic { get; } = new Wildcard(WildcardSelection.MultiBasic, MultiWildcardCharacter);
+        public static Wildcard MultiBasic { get; } = new Wildcard(WildcardSelection.MultiBasic);
 
         /// <summary>
         /// Gets the <see cref="WildcardSelection.MultiAll"/> <see cref="Wildcard"/> using only the <see cref="MultiWildcardCharacter"/>.
         /// </summary>
-        public static Wildcard MultiAll { get; } = new Wildcard(WildcardSelection.MultiAll, MultiWildcardCharacter);
+        public static Wildcard MultiAll { get; } = new Wildcard(WildcardSelection.MultiAll);
 
         /// <summary>
         /// Gets the <see cref="WildcardSelection.BothAll"/> <see cref="Wildcard"/> using both the <see cref="MultiWildcardCharacter"/> and <see cref="SingleWildcardCharacter"/>.
         /// </summary>
-        public static Wildcard BothAll { get; } = new Wildcard(WildcardSelection.BothAll, MultiWildcardCharacter, SingleWildcardCharacter);
+        public static Wildcard BothAll { get; } = new Wildcard(WildcardSelection.BothAll);
 
         /// <summary>
         /// Gets or sets the default <see cref="Wildcard"/> settings (defaults to <see cref="WildcardSelection.MultiAll"/>.
@@ -59,11 +59,11 @@ namespace CoreEx.Wildcards
         /// </summary>
         /// <param name="supported">The supported <see cref="WildcardSelection"/>.</param>
         /// <param name="multiWildcard">The .NET multi (zero or more) wildcard character (defaults to <see cref="MultiWildcardCharacter"/>).</param>
-        /// <param name="singleWildcard">The .NET single wildcard character (defaults to <see cref="char.MinValue"/>).</param>
+        /// <param name="singleWildcard">The .NET single wildcard character (defaults to <see cref="SingleWildcardCharacter"/>).</param>
         /// <param name="charactersNotAllowed">The list of characters that are not allowed.</param>
         /// <param name="transform">The <see cref="StringTransform"/> option for the wildcard text.</param>
         /// <param name="spaceTreatment">The <see cref="WildcardSpaceTreatment"/> that defines the treatment of embedded space ' ' characters within the wildcard.</param>
-        public Wildcard(WildcardSelection supported, char multiWildcard = MultiWildcardCharacter, char singleWildcard = char.MinValue, char[]? charactersNotAllowed = null,
+        public Wildcard(WildcardSelection supported, char multiWildcard = MultiWildcardCharacter, char singleWildcard = SingleWildcardCharacter, char[]? charactersNotAllowed = null,
             WildcardSpaceTreatment spaceTreatment = WildcardSpaceTreatment.None, StringTransform transform = StringTransform.EmptyToNull)
         {
             if (supported == WildcardSelection.Undetermined || supported.HasFlag(WildcardSelection.InvalidCharacter))

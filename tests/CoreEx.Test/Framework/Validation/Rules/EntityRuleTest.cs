@@ -19,9 +19,9 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate()
         {
             var te = new TestEntity { Item = new TestItem() };
-            var v1 = await te.Validate().Entity(_tev).RunAsync();
+            var v1 = await te.Validate().Entity(_tev).ValidateAsync();
 
-            Assert.IsTrue(v1.HasError);
+            Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Code is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
