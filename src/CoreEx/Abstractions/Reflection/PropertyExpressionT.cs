@@ -3,6 +3,7 @@
 using CoreEx.Json;
 using CoreEx.Localization;
 using CoreEx.RefData;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -16,11 +17,25 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    /// <remarks>The internal reflection comes at a performance cost; the resulting <see cref="PropertyExpression{TEntity, TProperty}"/> should be cached and reused where possible.</remarks>
+    /// <remarks>The internal reflection comes at a performance cost; as such the resulting <see cref="PropertyExpression{TEntity, TProperty}"/> is cached using an <see cref="IMemoryCache"/>. The <see cref="AbsoluteExpirationTimespan"/>
+    /// and <see cref="SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
     public class PropertyExpression<TEntity, TProperty> : IPropertyExpression
     {
+        private static IMemoryCache? _fallbackCache;
+
         private readonly Func<TEntity, TProperty> _getValue;
         private readonly Action<TEntity, TProperty>? _setValue;
+        private string? _text;
+
+        /// <summary>
+        /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>4</c> hours.
+        /// </summary>
+        public static TimeSpan AbsoluteExpirationTimespan { get; set; } = TimeSpan.FromHours(4);
+
+        /// <summary>
+        /// Gets or sets the <see cref="IMemoryCache"/> sliding expiration <see cref="TimeSpan"/>. Default to <c>30</c> minutes.
+        /// </summary>
+        public static TimeSpan SlidingExpirationTimespan { get; set; } = TimeSpan.FromMinutes(30);
 
         /// <summary>
         /// Validates, creates and compiles the property expression; whilst also determinig the property friendly <see cref="Text"/>.
@@ -35,57 +50,66 @@ namespace CoreEx.Abstractions.Reflection
 
             var me = (MemberExpression)propertyExpression.Body;
 
-            if (me.Member.MemberType != MemberTypes.Property)
-                throw new InvalidOperationException("Expression results in a Member that is not a Property.");
+            var cache = ExecutionContext.GetService<IMemoryCache>() ?? (_fallbackCache ??= new MemoryCache(new MemoryCacheOptions()));
 
-            if (!me.Member.DeclaringType.GetTypeInfo().IsAssignableFrom(typeof(TEntity).GetTypeInfo()))
-                throw new InvalidOperationException("Expression results in a Member for a different Entity class.");
-
-            string name = me.Member.Name;
-
-            // Get the JSON property name (where configured).
-            var isSerializable = jsonSerializer.TryGetJsonName(me.Member, out var jn);
-            if (!isSerializable)
+            // Check cache and reuse as this is a *really* expensive operation. Key contains: Entity type, property name, and json serializer (in case configuration is different).
+            return cache.GetOrCreate((me.Member.DeclaringType, me.Member.Name, jsonSerializer.GetType()), ce =>
             {
-                // Probe corresponding 'Sid' or 'Sids' properties (using the standardised naming convention) where IReferenceData Type.
-                if (me.Member is PropertyInfo rpi && rpi.PropertyType.IsClass && rpi.PropertyType.GetInterfaces().Contains(typeof(IReferenceData)))
+                ce.SetAbsoluteExpiration(AbsoluteExpirationTimespan);
+                ce.SetSlidingExpiration(SlidingExpirationTimespan);
+
+                if (me.Member.MemberType != MemberTypes.Property)
+                    throw new InvalidOperationException("Expression results in a Member that is not a Property.");
+
+                if (!me.Member.DeclaringType.GetTypeInfo().IsAssignableFrom(typeof(TEntity).GetTypeInfo()))
+                    throw new InvalidOperationException("Expression results in a Member for a different Entity class.");
+
+                string name = me.Member.Name;
+
+                // Get the JSON property name (where configured).
+                var isSerializable = jsonSerializer.TryGetJsonName(me.Member, out var jn);
+                if (!isSerializable)
                 {
-                    var spi = me.Member.DeclaringType.GetProperty($"{name}Sid");
-                    if (spi == null)
-                        spi = me.Member.DeclaringType.GetProperty($"{name}Sids");
+                    // Probe corresponding 'Sid' or 'Sids' properties (using the standardised naming convention) where IReferenceData Type.
+                    if (me.Member is PropertyInfo rpi && rpi.PropertyType.IsClass && rpi.PropertyType.GetInterfaces().Contains(typeof(IReferenceData)))
+                    {
+                        var spi = me.Member.DeclaringType.GetProperty($"{name}Sid");
+                        if (spi == null)
+                            spi = me.Member.DeclaringType.GetProperty($"{name}Sids");
 
-                    if (spi != null)
-                        jsonSerializer.TryGetJsonName(spi, out jn);
+                        if (spi != null)
+                            jsonSerializer.TryGetJsonName(spi, out jn);
+                    }
                 }
-            }
 
-            // Either get the friendly text from a corresponding DisplayAttribute or split the member name into friendlier sentence case text.
-            DisplayAttribute ca = me.Member.GetCustomAttribute<DisplayAttribute>(true);
+                // Either get the friendly text from a corresponding DisplayAttribute or split the member name into friendlier sentence case text.
+                DisplayAttribute ca = me.Member.GetCustomAttribute<DisplayAttribute>(true);
 
-            // Create a setter from the getter.
-            var pi = (PropertyInfo)me.Member;
-            Action<TEntity, TProperty>? setValue = null;
-            if (pi.CanWrite)
-            {
-                var pte = Expression.Parameter(typeof(TEntity), "e");
-                var ptp = Expression.Parameter(typeof(TProperty), "p");
-                var exp = Expression.Lambda<Action<TEntity, TProperty>>(Expression.Call(pte, pi.GetSetMethod(), ptp), pte, ptp);
-                setValue = exp.Compile();
-            }
+                // Create a setter from the getter.
+                var pi = (PropertyInfo)me.Member;
+                Action<TEntity, TProperty>? setValue = null;
+                if (pi.CanWrite)
+                {
+                    var pte = Expression.Parameter(typeof(TEntity), "e");
+                    var ptp = Expression.Parameter(typeof(TProperty), "p");
+                    var exp = Expression.Lambda<Action<TEntity, TProperty>>(Expression.Call(pte, pi.GetSetMethod(), ptp), pte, ptp);
+                    setValue = exp.Compile();
+                }
 
-            // Create expression (with compilation also).
-            return new PropertyExpression<TEntity, TProperty>(pi, name, jn, ca?.Name == null ? me.Member.Name.ToSentenceCase() : ca.Name, isSerializable, propertyExpression.Compile(), setValue);
+                // Create expression (with compilation also).
+                return new PropertyExpression<TEntity, TProperty>(pi, name, jn, ca?.Name, isSerializable, propertyExpression.Compile(), setValue);
+            });
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyExpression"/> class.
         /// </summary>
-        private PropertyExpression(PropertyInfo pi, string name, string? jsonName, string text, bool isSerializable, Func<TEntity, TProperty> getValue, Action<TEntity, TProperty>? setValue)
+        private PropertyExpression(PropertyInfo pi, string name, string? jsonName, string? text, bool isSerializable, Func<TEntity, TProperty> getValue, Action<TEntity, TProperty>? setValue)
         {
             PropertyInfo = pi;
             Name = name;
             JsonName = jsonName;
-            Text = text;
+            _text = text;
             IsJsonSerializable = isSerializable;
             _getValue = getValue;
             _setValue = setValue;
@@ -101,7 +125,7 @@ namespace CoreEx.Abstractions.Reflection
         public string? JsonName { get; }
 
         /// <inheritdoc/>
-        public LText Text { get; }
+        public LText Text => _text ??= Name.ToSentenceCase(); // Lazy generate the text.
 
         /// <inheritdoc/>
         public bool IsJsonSerializable { get;  }

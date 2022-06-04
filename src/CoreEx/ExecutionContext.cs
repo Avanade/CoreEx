@@ -96,7 +96,7 @@ namespace CoreEx
             if (HasCurrent && Current.ServiceProvider != null)
                 return Current.ServiceProvider.GetService(type);
 
-            throw new InvalidOperationException($"Attempted to get service '{type.FullName}' but there is either no ExecutionContext.Current or the ExecutionContext.ServiceProvider has not been configured.");
+            return null;
         }
 
         /// <summary>

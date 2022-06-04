@@ -312,7 +312,7 @@ namespace CoreEx.Test.Framework.Wildcards
             Assert.IsNull(GetPeople().WhereWildcard(x => x.First, "G?RY", ignoreCase: false, wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault());
 
             // Regex-based: single-char all.
-            Assert.IsNull(GetPeople().Where(x => true).WhereWildcard(x => x.First, " ? ").Select(x => x.Last).SingleOrDefault());
+            Assert.IsNull(GetPeople().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault());
             Assert.AreEqual("P", GetPeople().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault());
         }
 
@@ -347,8 +347,8 @@ namespace CoreEx.Test.Framework.Wildcards
             Assert.Throws<InvalidOperationException>(() => GetPeople().AsQueryable().WhereWildcard(x => x.First, "S*N", ignoreCase: false).Select(x => x.Last).SingleOrDefault())!.Message.Should().Be("Wildcard selection text is not supported.");
 
             // Single-char all; '?' is ignored.
-            Assert.IsNull(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", ignoreCase: false).Select(x => x.Last).SingleOrDefault());
+            Assert.IsNull(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault());
+            Assert.IsNull(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", ignoreCase: false, wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault());
         }
 
         [Test]
@@ -377,8 +377,8 @@ namespace CoreEx.Test.Framework.Wildcards
                 p.AsQueryable().WhereWildcard(x => x.First, "*ON", ignoreCase: false).SingleOrDefault();
                 p.AsQueryable().WhereWildcard(x => x.First, "*IM*").Select(x => x.Last).SingleOrDefault();
                 p.AsQueryable().WhereWildcard(x => x.First, "*IM*", ignoreCase: false).SingleOrDefault();
-                p.AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ").Select(x => x.Last).SingleOrDefault();
-                p.AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", ignoreCase: false).Select(x => x.Last).SingleOrDefault();
+                p.AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault();
+                p.AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", ignoreCase: false, wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault();
             }
 
             // Calc as t (time) / 100 (iterations) / 8 (queries) = avg per invocation cost :: this builds run-time expression to execute - super flexible but will not be uber fast.

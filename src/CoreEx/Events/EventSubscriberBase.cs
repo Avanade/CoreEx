@@ -4,6 +4,7 @@ using CoreEx.Configuration;
 using CoreEx.Validation;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Events
@@ -54,12 +55,13 @@ namespace CoreEx.Events
         /// Deserializes the JSON <paramref name="eventData"/> into the specified <see cref="EventData"/>.
         /// </summary>
         /// <param name="eventData">The event <see cref="BinaryData"/> to deserialize.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="EventData{T}"/> where deserialized successfully; otherwise, the corresponding <see cref="ValidationException"/>.</returns>
-        protected async Task<(EventData?, ValidationException?)> DeserializeEventAsync(BinaryData eventData)
+        protected async Task<(EventData?, ValidationException?)> DeserializeEventAsync(BinaryData eventData, CancellationToken cancellationToken = default)
         {
             try
             {
-                var @event = await EventSerializer.DeserializeAsync(eventData).ConfigureAwait(false)!;
+                var @event = await EventSerializer.DeserializeAsync(eventData, cancellationToken).ConfigureAwait(false)!;
                 return (@event, null);
             }
             catch (Exception ex)
@@ -75,18 +77,19 @@ namespace CoreEx.Events
         /// <param name="eventData">The event <see cref="BinaryData"/> to deserialize.</param>
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="EventData{T}"/> where deserialized successfully; otherwise, the corresponding <see cref="ValidationException"/>.</returns>
-        protected async Task<(EventData<T>?, ValidationException?)> DeserializeEventAsync<T>(BinaryData eventData, bool valueIsRequired = true, IValidator<T>? validator = null)
+        protected async Task<(EventData<T>?, ValidationException?)> DeserializeEventAsync<T>(BinaryData eventData, bool valueIsRequired = true, IValidator<T>? validator = null, CancellationToken cancellationToken = default)
         {
             try
             {
-                var @event = await EventSerializer.DeserializeAsync<T>(eventData).ConfigureAwait(false)!;
+                var @event = await EventSerializer.DeserializeAsync<T>(eventData, cancellationToken).ConfigureAwait(false)!;
                 if (valueIsRequired && @event.Value == null)
                     return (null, new ValidationException($"{_errorText} Value is mandatory."));
 
                 if (@event.Value != null && validator != null)
                 {
-                    var vr = await validator.ValidateAsync(@event.Value).ConfigureAwait(false);
+                    var vr = await validator.ValidateAsync(@event.Value, cancellationToken).ConfigureAwait(false);
                     if (vr.HasErrors)
                         return (null, vr.ToValidationException());
                 }

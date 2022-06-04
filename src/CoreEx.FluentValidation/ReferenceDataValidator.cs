@@ -18,7 +18,8 @@ namespace CoreEx.FluentValidation
         public override string Name => nameof(ReferenceDataValidator<T, TRef>);
 
         /// <inheritdoc/>
-        public override bool IsValid(ValidationContext<T> context, string? value) => value != null && ReferenceDataOrchestrator.Current.GetByTypeRequired<TRef>().ContainsCode(value);
+        public override bool IsValid(ValidationContext<T> context, string? value) => 
+            value == null || ReferenceDataOrchestrator.Current.GetByTypeRequired<TRef>().TryGetByCode(value, out var rd) && rd!.IsValid;
 
         /// <inheritdoc/>
         protected override string GetDefaultMessageTemplate(string errorCode) => "'{PropertyName}' is invalid.";

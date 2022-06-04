@@ -5,19 +5,24 @@ using CoreEx.Entities;
 namespace CoreEx.Validation
 {
     /// <summary>
-    /// Enables value validation results
+    /// Enables <see cref="Value"/> validation results.
     /// </summary>
     public interface IValidationResult
     {
+        /// <summary>
+        /// Gets the originating value being validated.
+        /// </summary>
+        object? Value { get; }
+
         /// <summary>
         /// Indicates whether there has been a validation error.
         /// </summary>
         bool HasErrors { get; }
 
         /// <summary>
-        /// Gets a <see cref="MessageItemCollection"/> where <see cref="HasErrors"/> and individual errors have been recorded; otherwise, <c>null</c>.
+        /// Gets a <see cref="MessageItemCollection"/> where <see cref="HasErrors"/> and individual errors have been recorded or other <see cref="MessageType"/> has been recorded; otherwise, <c>null</c>.
         /// </summary>
-        MessageItemCollection? Errors { get; }
+        MessageItemCollection? Messages { get; }
 
         /// <summary>
         /// Converts the <see cref="IValidationResult"/> into a corresponding <see cref="ValidationException"/>.

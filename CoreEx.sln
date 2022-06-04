@@ -49,6 +49,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "My.Hr.Database", "samples\M
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Azure", "src\CoreEx.Azure\CoreEx.Azure.csproj", "{431795AC-9CDC-4562-B422-B633FE725810}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Validation", "src\CoreEx.Validation\CoreEx.Validation.csproj", "{4AFA8838-7DF1-487E-8B72-452E4EFA3AD6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -107,6 +109,10 @@ Global
 		{431795AC-9CDC-4562-B422-B633FE725810}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{431795AC-9CDC-4562-B422-B633FE725810}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{431795AC-9CDC-4562-B422-B633FE725810}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AFA8838-7DF1-487E-8B72-452E4EFA3AD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AFA8838-7DF1-487E-8B72-452E4EFA3AD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AFA8838-7DF1-487E-8B72-452E4EFA3AD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AFA8838-7DF1-487E-8B72-452E4EFA3AD6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -126,6 +132,7 @@ Global
 		{CB46A8D4-60BE-48C9-9FCC-C62017F195AB} = {F53B0E83-87F8-4679-94B8-268FE6A9C0AD}
 		{86CEE51A-CCAB-4E35-835B-9B67C3D637C6} = {F53B0E83-87F8-4679-94B8-268FE6A9C0AD}
 		{431795AC-9CDC-4562-B422-B633FE725810} = {4B6BC31E-93B1-42B0-AE09-AD85AC4DB657}
+		{4AFA8838-7DF1-487E-8B72-452E4EFA3AD6} = {4B6BC31E-93B1-42B0-AE09-AD85AC4DB657}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8B4566D2-9B22-4E27-9654-402BDBA6C744}

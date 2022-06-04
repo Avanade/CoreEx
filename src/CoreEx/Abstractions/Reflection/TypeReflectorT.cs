@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace CoreEx.Abstractions.Reflection
 {
@@ -32,11 +31,11 @@ namespace CoreEx.Abstractions.Reflection
             _properties = new Dictionary<string, IPropertyReflector>(StringComparer.Ordinal);
             _jsonProperties = new Dictionary<string, IPropertyReflector>(Args.NameComparer ?? StringComparer.OrdinalIgnoreCase);
 
-            var tr = GetCollectionItemType(Type);
+            var tr = TypeReflector.GetCollectionItemType(Type);
             ItemType = tr.ItemType;
             TypeCode = tr.TypeCode;
             if (ItemType != null)
-                ItemTypeCode = GetCollectionItemType(ItemType).TypeCode;
+                ItemTypeCode = TypeReflector.GetCollectionItemType(ItemType).TypeCode;
 
             if (!Args.AutoPopulateProperties)
                 return;
@@ -132,117 +131,6 @@ namespace CoreEx.Abstractions.Reflection
 
         /// <inheritdoc/>
         public ITypeReflector? GetItemTypeReflector() => _itemReflector ??= TypeReflector.GetReflector(Args, ItemType!);
-
-        #region Collections
-
-        /// <summary>
-        /// Gets the underlying item <see cref="Type"/> where an <see cref="Array"/>, <see cref="IDictionary"/>, <see cref="ICollection"/> or <see cref="IEnumerable"/>. 
-        /// </summary>
-        /// <param name="type">The <see cref="Type"/>.</param>
-        /// <returns>The <see cref="TypeReflectorTypeCode"/> and corresponding item <see cref="Type"/> where a collection.</returns>
-        private static (TypeReflectorTypeCode TypeCode, Type? ItemType) GetCollectionItemType(Type type)
-        {
-            if ((type ?? throw new ArgumentNullException(nameof(type))) == typeof(string) || type.IsPrimitive || type.IsValueType)
-                return (TypeReflectorTypeCode.Simple, null);
-
-            if (type.IsArray)
-                return (TypeReflectorTypeCode.Array, type.GetElementType());
-
-            var (_, valueType) = GetDictionaryType(type);
-            if (valueType != null)
-                return (TypeReflectorTypeCode.IDictionary, valueType);
-
-            var t = GetCollectionType(type);
-            if (t != null)
-                return (TypeReflectorTypeCode.ICollection, t);
-
-            t = GetEnumerableType(type);
-            if (t != null)
-                return (TypeReflectorTypeCode.IEnumerable, t);
-
-            var (ItemType, _) = GetEnumerableTypeFromAdd(type);
-            if (ItemType != null)
-                return (TypeReflectorTypeCode.IEnumerable, ItemType);
-
-            return (TypeReflectorTypeCode.Complex, null);
-        }
-
-        /// <summary>
-        /// Gets the underlying <see cref="ICollection{T}"/> Type.
-        /// </summary>
-        private static Type? GetCollectionType(Type type)
-        {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ICollection<>))
-                return type.GetGenericArguments()[0];
-
-            var t = type.GetInterfaces().FirstOrDefault(x => x.GetTypeInfo().IsGenericType && x.GetGenericTypeDefinition() == typeof(ICollection<>));
-            if (t == null)
-                return null;
-
-            return ((t == typeof(ICollection<>)) ? type : t).GetGenericArguments()[0];
-        }
-
-        /// <summary>
-        /// Gets the underlying <see cref="IEnumerable"/> Type.
-        /// </summary>
-        private static Type? GetEnumerableType(Type type)
-        {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                return type.GetGenericArguments()[0];
-
-            var t = type.GetInterfaces().FirstOrDefault(x => x.GetTypeInfo().IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-            if (t == null)
-            {
-                t = type.GetInterfaces().FirstOrDefault(x => x == typeof(IEnumerable));
-                if (t == null)
-                    return null;
-            }
-
-            var gas = ((t == typeof(IEnumerable)) ? type : t).GetGenericArguments();
-            if (gas.Length == 0)
-                return null;
-
-            if (type == typeof(IEnumerable<>).MakeGenericType(new Type[] { gas[0] }))
-                return gas[0];
-
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the underlying <see cref="IDictionary{TKey, TValue}"/> Type.
-        /// </summary>
-        private static (Type? keyType, Type? valueType) GetDictionaryType(Type type)
-        {
-            Type? t;
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IDictionary<,>))
-                t = type;
-            else
-                t = type.GetInterfaces().FirstOrDefault(x => (x.GetTypeInfo().IsGenericType && x.GetGenericTypeDefinition() == typeof(IDictionary<,>)));
-
-            if (t == null)
-                return (null, null);
-
-            var gas = t.GetGenericArguments();
-            if (gas.Length != 2)
-                return (null, null);
-
-            return (gas[0], gas[1]);
-        }
-
-        /// <summary>
-        /// Gets the underlying <see cref="IEnumerable"/> Type by inferring from the Add method.
-        /// </summary>
-        private static (Type? ItemType, MethodInfo? AddMethod) GetEnumerableTypeFromAdd(Type type)
-        {
-            var mi = type.GetMethod("Add");
-            if (mi == null)
-                return (null, null);
-
-            var ps = mi.GetParameters();
-            return ps.Length == 1 ? (ps[0].ParameterType, mi) : (null, null);
-        }
-
-        #endregion
 
         #region Compare
 

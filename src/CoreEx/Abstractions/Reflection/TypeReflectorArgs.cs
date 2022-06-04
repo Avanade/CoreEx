@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Concurrent;
 
 namespace CoreEx.Abstractions.Reflection
 {
@@ -11,15 +12,22 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     public class TypeReflectorArgs
     {
+        private static readonly Lazy<TypeReflectorArgs> _default = new(() => new TypeReflectorArgs());
+
+        /// <summary>
+        /// Gets the default <see cref="TypeReflectorArgs"/>.
+        /// </summary>
+        public static TypeReflectorArgs Default => (ExecutionContext.HasCurrent ? ExecutionContext.Current?.ServiceProvider?.GetService<TypeReflectorArgs>() : null) ?? _default.Value;
+
         /// <summary>
         /// Initializes an instance of the <see cref="TypeReflectorArgs"/> class with an optional <paramref name="cache"/>.
         /// </summary>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
-        /// <param name="cache">The <b>cache</b> <see cref="ConcurrentDictionary{TKey, TValue}"/> to use versus instantiating each <see cref="TypeReflector"/> per use.</param>
-        public TypeReflectorArgs(IJsonSerializer? jsonSerializer = null, ConcurrentDictionary<Type, ITypeReflector>? cache = null)
+        /// <param name="cache">The <see cref="IMemoryCache"/> to use versus instantiating each <see cref="TypeReflector"/> per use (expensive operation).</param>
+        public TypeReflectorArgs(IJsonSerializer? jsonSerializer = null, IMemoryCache? cache = null)
         {
             JsonSerializer = jsonSerializer ?? Json.JsonSerializer.Default;
-            Cache = cache ?? new();
+            Cache = cache ?? new MemoryCache(new MemoryCacheOptions());
         }
 
         /// <summary>
@@ -28,9 +36,20 @@ namespace CoreEx.Abstractions.Reflection
         public IJsonSerializer JsonSerializer { get; }
 
         /// <summary>
-        /// Gets the <b>cache</b> <see cref="ConcurrentDictionary{TKey, TValue}"/> to use versus instantiating each <see cref="TypeReflector"/> per use.
+        /// Gets the <see cref="IMemoryCache"/> to use versus instantiating each <see cref="TypeReflector"/> per use.
         /// </summary>
-        public ConcurrentDictionary<Type, ITypeReflector> Cache { get; }
+        /// <remarks>The <see cref="AbsoluteExpirationTimespan"/> and <see cref="SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
+        public IMemoryCache Cache { get; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>4</c> hours.
+        /// </summary>
+        public TimeSpan AbsoluteExpirationTimespan { get; set; } = TimeSpan.FromHours(4);
+
+        /// <summary>
+        /// Gets or sets the <see cref="IMemoryCache"/> sliding expiration <see cref="TimeSpan"/>. Default to <c>30</c> minutes.
+        /// </summary>
+        public TimeSpan SlidingExpirationTimespan { get; set; } = TimeSpan.FromMinutes(30);
 
         /// <summary>
         /// Gets or sets the action to invoke to perform additional logic when reflecting/building the <b>entity</b> <see cref="Type"/>.
