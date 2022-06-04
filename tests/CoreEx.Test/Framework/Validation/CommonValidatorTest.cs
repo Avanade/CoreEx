@@ -24,7 +24,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual("Value must not exceed 5 characters in length.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value", r.Messages[0].Property);
+            Assert.AreEqual("value", r.Messages[0].Property);
 
             r = await _cv.ValidateAsync("XXXXX", "Name");
             Assert.IsNotNull(r);
@@ -82,7 +82,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual("Value must not be equal to 1.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value", r.Messages[0].Property);
+            Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]
@@ -121,7 +121,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.IsTrue(vr.HasErrors);
             Assert.AreEqual(1, vr.Messages!.Count);
             Assert.AreEqual("Count must be greater than or equal to 10.", vr.Messages[0].Text);
-            Assert.AreEqual("Value", vr.Messages[0].Property);
+            Assert.AreEqual("value", vr.Messages[0].Property);
         }
 
         [Test]
@@ -132,7 +132,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.IsTrue(vr.HasErrors);
             Assert.AreEqual(1, vr.Messages!.Count);
             Assert.AreEqual("Count must be less than or equal to 20.", vr.Messages[0].Text);
-            Assert.AreEqual("Value", vr.Messages[0].Property);
+            Assert.AreEqual("value", vr.Messages[0].Property);
         }
 
         [Test]
@@ -143,7 +143,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.IsTrue(vr.HasErrors);
             Assert.AreEqual(1, vr.Messages!.Count);
             Assert.AreEqual("Count is not allowed to be eleven.", vr.Messages[0].Text);
-            Assert.AreEqual("Value", vr.Messages[0].Property);
+            Assert.AreEqual("value", vr.Messages[0].Property);
         }
     }
 }

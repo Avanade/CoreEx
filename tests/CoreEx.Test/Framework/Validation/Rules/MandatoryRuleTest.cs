@@ -22,14 +22,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await (string.Empty).Validate().Mandatory().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
 
         [Test]
@@ -43,7 +43,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             var v2 = await ((int?)123).Validate().Mandatory().ValidateAsync();
             Assert.IsFalse(v2.HasErrors);
@@ -56,7 +56,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v2.Messages!.Count);
             Assert.AreEqual("Value is required.", v2.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v2.Messages[0].Type);
-            Assert.AreEqual("Value", v2.Messages[0].Property);
+            Assert.AreEqual("value", v2.Messages[0].Property);
         }
 
         public class Foo
@@ -77,7 +77,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
     }
 }

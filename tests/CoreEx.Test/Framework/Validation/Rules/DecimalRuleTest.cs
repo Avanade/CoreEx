@@ -23,7 +23,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not be negative.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await (-123).Validate().Numeric(true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -36,7 +36,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v2.Messages!.Count);
             Assert.AreEqual("Value must not be negative.", v2.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v2.Messages[0].Type);
-            Assert.AreEqual("Value", v2.Messages[0].Property);
+            Assert.AreEqual("value", v2.Messages[0].Property);
 
             v2 = await (-123m).Validate().Numeric(true).ValidateAsync();
             Assert.IsFalse(v2.HasErrors);
@@ -56,7 +56,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not exceed 5 digits in total.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             var v2 = await (12.34m).Validate().Numeric(maxDigits: 5).ValidateAsync();
             Assert.IsFalse(v2.HasErrors);
@@ -69,7 +69,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v2.Messages!.Count);
             Assert.AreEqual("Value must not exceed 5 digits in total.", v2.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v2.Messages[0].Type);
-            Assert.AreEqual("Value", v2.Messages[0].Property);
+            Assert.AreEqual("value", v2.Messages[0].Property);
         }
 
         [Test]
@@ -86,7 +86,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value exceeds the maximum specified number of decimal places (2).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
 
         [Test]
@@ -103,14 +103,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value exceeds the maximum specified number of decimal places (2).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await (1234.0m).Validate().Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not exceed 5 digits in total.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
 
         [Test]

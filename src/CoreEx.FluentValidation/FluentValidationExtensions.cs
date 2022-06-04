@@ -12,12 +12,12 @@ namespace FluentValidation
     public static class FluentValidationExtensions
     {
         /// <summary>
-        /// Defines an <see cref="IReferenceData"/> validator whereby the <see cref="ReferenceDataTypeOf{T}.TypeOf{TRef}"/> is required to specify corresponding <see cref="IReferenceData"/> <see cref="Type"/>.
+        /// Defines an <see cref="IReferenceData"/> validator whereby the <see cref="ReferenceDataTypeOf{T}.As{TRef}"/> is required to specify corresponding <see cref="IReferenceData"/> <see cref="Type"/>.
         /// </summary>
         /// <typeparam name="T">The owning object <see cref="Type"/>.</typeparam>
         /// <param name="ruleBuilder">The <paramref name="ruleBuilder"/> to enable the extension method.</param>
         /// <returns></returns>
-        public static ReferenceDataTypeOf<T> ReferenceData<T>(this IRuleBuilder<T, string?> ruleBuilder) => new(ruleBuilder);
+        public static ReferenceDataTypeOf<T> RefDataCode<T>(this IRuleBuilder<T, string?> ruleBuilder) => new(ruleBuilder);
 
         /// <summary>
         /// Provides for the specification of the corresponding <see cref="ReferenceDataTypeOf{T}"/> <see cref="IReferenceData"/> <see cref="Type"/>.
@@ -38,7 +38,7 @@ namespace FluentValidation
             /// </summary>
             /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
             /// <returns>The <see cref="IRuleBuilderOptions{T, TProperty}"/> to support fluent-style method-chaining.</returns>
-            public IRuleBuilderOptions<T, string?> TypeOf<TRef>() where TRef : IReferenceData => _ruleBuilder.SetValidator(new ReferenceDataValidator<T, TRef>()); 
+            public IRuleBuilderOptions<T, string?> As<TRef>() where TRef : IReferenceData => _ruleBuilder.SetValidator(new ReferenceDataValidator<T, TRef>()); 
         }
 
         /// <summary>

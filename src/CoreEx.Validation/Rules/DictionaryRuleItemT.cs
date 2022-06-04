@@ -17,8 +17,6 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <param name="keyValidator">The corresponding key <see cref="IValidatorEx{TKey}"/>.</param>
         /// <param name="valueValidator">The corresponding value <see cref="IValidatorEx{TValue}"/>.</param>
-        /// <remarks><i>Note:</i> the underlying <see cref="PropertyRuleBase{TEntity, TProperty}"/> properties <see cref="PropertyRuleBase{TEntity, TProperty}.Name"/>, <see cref="PropertyRuleBase{TEntity, TProperty}.JsonName"/> and <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/> will be automatically updated
-        /// (overridden) to <see cref="Validator.KeyNameDefault"/> when passing the <paramref name="keyValidator"/> (where the passed values are currently <see cref="Validator.ValueNameDefault"/>).</remarks>
         internal DictionaryRuleItem(IValidatorEx<TKey>? keyValidator, IValidatorEx<TValue>? valueValidator)
         {
             KeyValidator = keyValidator;

@@ -71,10 +71,10 @@ namespace CoreEx.Validation
 
             args ??= new ValidationArgs();
             if (string.IsNullOrEmpty(args.FullyQualifiedEntityName))
-                args.FullyQualifiedEntityName = Validator.ValueNameDefault;
+                args.FullyQualifiedEntityName = Validation.ValueNameDefault;
 
             if (string.IsNullOrEmpty(args.FullyQualifiedEntityName))
-                args.FullyQualifiedJsonEntityName = Validator.ValueNameDefault;
+                args.FullyQualifiedJsonEntityName = Validation.ValueNameDefault;
 
             var context = new ValidationContext<TColl>(value, args);
 
@@ -101,7 +101,7 @@ namespace CoreEx.Validation
                 i++;
             }
 
-            var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? PropertyExpression.ConvertToSentenceCase(Validator.ValueNameDefault)!);
+            var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? PropertyExpression.ConvertToSentenceCase(Validation.ValueNameDefault)!);
             if (hasNullItem)
                 context.AddMessage(Entities.MessageType.Error, ValidatorStrings.CollectionNullItemFormat, new object?[] { text.Value, null });
 

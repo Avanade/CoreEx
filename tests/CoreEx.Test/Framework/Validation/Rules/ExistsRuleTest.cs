@@ -22,7 +22,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await 123.Validate().Exists(true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -32,7 +32,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await 123.Validate().Exists((_, __) => Task.FromResult(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -42,7 +42,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await 123.Validate().Exists((_, __) => Task.FromResult<object?>(new object())).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -52,7 +52,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await 123.Validate().AgentExists((_, __) => CoreEx.Http.HttpResult.CreateAsync(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK))).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -62,7 +62,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
     }
 }

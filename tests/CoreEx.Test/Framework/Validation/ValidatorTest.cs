@@ -416,13 +416,13 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(3, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual("Value[0].Text", r.Messages[0].Property);
+            Assert.AreEqual("value[0].Text", r.Messages[0].Property);
             Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
             Assert.AreEqual("Description is invalid.", r.Messages[1].Text);
-            Assert.AreEqual("Value[1].Text", r.Messages[1].Property);
+            Assert.AreEqual("value[1].Text", r.Messages[1].Property);
             Assert.AreEqual(MessageType.Error, r.Messages[2].Type);
             Assert.AreEqual("Value must not exceed 2 item(s).", r.Messages[2].Text);
-            Assert.AreEqual("Value", r.Messages[2].Property);
+            Assert.AreEqual("value", r.Messages[2].Property);
         }
 
         [Test]
@@ -437,7 +437,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Value must have at least 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("Value", r.Messages[0].Property);
+            Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]
@@ -452,7 +452,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Value contains duplicates; Code 'A' specified more than once.", r.Messages[0].Text);
-            Assert.AreEqual("Value", r.Messages[0].Property);
+            Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]
@@ -489,7 +489,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Value must not exceed 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("Value", r.Messages[0].Property);
+            Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]
@@ -504,13 +504,13 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(3, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual("Value[k1].Text", r.Messages[0].Property);
+            Assert.AreEqual("value[k1].Text", r.Messages[0].Property);
             Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
             Assert.AreEqual("Description is invalid.", r.Messages[1].Text);
-            Assert.AreEqual("Value[k2].Text", r.Messages[1].Property);
+            Assert.AreEqual("value[k2].Text", r.Messages[1].Property);
             Assert.AreEqual(MessageType.Error, r.Messages[2].Type);
             Assert.AreEqual("Value must not exceed 2 item(s).", r.Messages[2].Text);
-            Assert.AreEqual("Value", r.Messages[2].Property);
+            Assert.AreEqual("value", r.Messages[2].Property);
         }
 
         [Test]
@@ -525,7 +525,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Value must have at least 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("Value", r.Messages[0].Property);
+            Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]
@@ -562,7 +562,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Value must not exceed 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("Value", r.Messages[0].Property);
+            Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]
@@ -579,7 +579,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Key must not exceed 2 characters in length.", r.Messages[0].Text);
-            Assert.AreEqual("Value[k2x]", r.Messages[0].Property);
+            Assert.AreEqual("value[k2x]", r.Messages[0].Property);
         }
 
         [Test]
@@ -598,6 +598,52 @@ namespace CoreEx.Test.Framework.Validation
 
             sw.Stop();
             System.Console.WriteLine($"100K validations - elapsed: {sw.Elapsed.TotalMilliseconds}ms");
+        }
+
+        [Test]
+        public void EnsureValue()
+        {
+            var vex = Assert.Throws<ValidationException>(() => 0.EnsureValue());
+            Assert.NotNull(vex);
+            Assert.NotNull(vex!.Messages);
+            Assert.AreEqual(1, vex.Messages!.Count);
+            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
+            Assert.AreEqual("Value is required.", vex.Messages[0].Text);
+            Assert.AreEqual("value", vex.Messages[0].Property);
+
+            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("count"));
+            Assert.NotNull(vex);
+            Assert.NotNull(vex!.Messages);
+            Assert.AreEqual(1, vex.Messages!.Count);
+            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
+            Assert.AreEqual("Count is required.", vex.Messages[0].Text);
+            Assert.AreEqual("count", vex.Messages[0].Property);
+
+            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("count", "Counter"));
+            Assert.NotNull(vex);
+            Assert.NotNull(vex!.Messages);
+            Assert.AreEqual(1, vex.Messages!.Count);
+            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
+            Assert.AreEqual("Counter is required.", vex.Messages[0].Text);
+            Assert.AreEqual("count", vex.Messages[0].Property);
+
+            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("numberOfPlayers"));
+            Assert.NotNull(vex);
+            Assert.NotNull(vex!.Messages);
+            Assert.AreEqual(1, vex.Messages!.Count);
+            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
+            Assert.AreEqual("Number Of Players is required.", vex.Messages[0].Text);
+            Assert.AreEqual("numberOfPlayers", vex.Messages[0].Property);
+
+            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("id"));
+            Assert.NotNull(vex);
+            Assert.NotNull(vex!.Messages);
+            Assert.AreEqual(1, vex.Messages!.Count);
+            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
+            Assert.AreEqual("Identifier is required.", vex.Messages[0].Text);
+            Assert.AreEqual("id", vex.Messages[0].Property);
+
+            Assert.AreEqual(123, 123.EnsureValue());
         }
     }
 }

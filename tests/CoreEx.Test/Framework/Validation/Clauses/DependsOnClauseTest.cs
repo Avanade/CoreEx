@@ -21,13 +21,13 @@ namespace CoreEx.Test.Framework.Validation.Clauses
             var v1 = await td.Validate().Entity(v).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value.Text", v1.Messages[0].Property);
+            Assert.AreEqual("value.Text", v1.Messages[0].Property);
 
             td = new TestData { Text = "xxx", CountA = 88 };
             v1 = await td.Validate().Entity(v).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value.CountA", v1.Messages[0].Property);
+            Assert.AreEqual("value.CountA", v1.Messages[0].Property);
 
             td = new TestData { Text = "xxx", CountA = 5 };
             v1 = await td.Validate().Entity(v).ValidateAsync();

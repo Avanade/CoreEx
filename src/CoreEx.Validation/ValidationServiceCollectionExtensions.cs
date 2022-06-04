@@ -28,7 +28,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="includeInternalTypes">Indicates whether to include internally defined types.</param>
         /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
-        public static IServiceCollection AddFluentValidators<TAssembly>(this IServiceCollection services, bool includeInternalTypes = false)
+        public static IServiceCollection AddValidators<TAssembly>(this IServiceCollection services, bool includeInternalTypes = false)
         {
             var av = typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidator), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
 

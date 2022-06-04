@@ -25,7 +25,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between 2 and 10.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await 10.Validate().Between(1, 10).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -35,7 +35,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between One and Ten.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await 2.Validate().Between(1, 10, exclusiveBetween: true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -48,7 +48,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between 1 and 10 (exclusive).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await 9.Validate().Between(1, 10, exclusiveBetween: true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -58,7 +58,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between One and Ten (exclusive).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
 
         [Test]
@@ -70,7 +70,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between 1 and 10.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v = 1;
             v1 = await v.Validate().Between(1, 10).ValidateAsync();
@@ -86,7 +86,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between 2 and 10.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v = 10;
             v1 = await v.Validate().Between(1, 10).ValidateAsync();
@@ -98,7 +98,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between One and Ten.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v = 2;
             v1 = await v.Validate().Between(1, 10, exclusiveBetween: true).ValidateAsync();
@@ -114,7 +114,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between 1 and 10 (exclusive).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v = 9;
             v1 = await v.Validate().Between(1, 10, exclusiveBetween: true).ValidateAsync();
@@ -126,7 +126,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must be between One and Ten (exclusive).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
     }
 }

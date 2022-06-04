@@ -38,7 +38,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
 
         [Test]
@@ -63,7 +63,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
 
         [Test]
@@ -86,7 +86,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains one or more invalid items.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             sids = new ReferenceDataSidList<string, RefDataEx>("Aaa", "Aaa");
             v1 = await sids.Validate().AreValid().ValidateAsync();
@@ -94,7 +94,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains duplicates; Code 'AAA' specified more than once.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await sids.Validate().AreValid(allowDuplicates: true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -104,14 +104,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must have at least 5 item(s).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
 
             v1 = await sids.Validate().AreValid(true, maxCount: 1).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not exceed 1 item(s).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Value", v1.Messages[0].Property);
+            Assert.AreEqual("value", v1.Messages[0].Property);
         }
     }
 }

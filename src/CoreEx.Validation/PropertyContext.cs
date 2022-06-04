@@ -47,8 +47,8 @@ namespace CoreEx.Validation
         public PropertyContext(LText? text, ValidationContext<TEntity> context, TProperty? value)
         {
             Parent = context ?? throw new ArgumentNullException(nameof(context));
-            FullyQualifiedPropertyName = Parent.FullyQualifiedEntityName ?? Validator.ValueNameDefault;
-            FullyQualifiedJsonPropertyName = Parent.FullyQualifiedJsonEntityName ?? Validator.ValueNameDefault;
+            FullyQualifiedPropertyName = Parent.FullyQualifiedEntityName ?? Validation.ValueNameDefault;
+            FullyQualifiedJsonPropertyName = Parent.FullyQualifiedJsonEntityName ?? Validation.ValueNameDefault;
             Name = FullyQualifiedPropertyName.Split('.', StringSplitOptions.RemoveEmptyEntries).Last();
             JsonName = FullyQualifiedJsonPropertyName.Split('.', StringSplitOptions.RemoveEmptyEntries).Last();
             Text = text ?? Name.ToSentenceCase();
@@ -136,6 +136,8 @@ namespace CoreEx.Validation
                         throw new InvalidOperationException($"Type '{Parent.EntityType.Name}' Property '{Name}' value cannot be overridden: {ex.Message}", ex);
                     }
                 }
+                else
+                    throw new InvalidOperationException("A value without a parent object owning the property value cannot be overridden.");
             }
             else
             {

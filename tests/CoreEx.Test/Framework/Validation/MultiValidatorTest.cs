@@ -37,7 +37,7 @@ namespace CoreEx.Test.Framework.Validation
 
             Assert.AreEqual("Value must be between 10 and 20.", r.Messages[2].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[2].Type);
-            Assert.AreEqual("Value", r.Messages[2].Property);
+            Assert.AreEqual("value", r.Messages[2].Property);
         }
 
         [Test]

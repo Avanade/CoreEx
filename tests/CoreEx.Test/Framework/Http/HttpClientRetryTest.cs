@@ -150,7 +150,7 @@ namespace CoreEx.Test.Framework.Http
                 .AssertException<TransientException>();
 
             // Assert
-            result.Exception.InnerException.Should().BeOfType<TimeoutException>();
+            result.Exception!.InnerException.Should().BeOfType<TimeoutException>();
             sw.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(20), because: "There is 1 http call and 3 retries, with built in delay between each retry.");
             mcf.VerifyAll();
         }

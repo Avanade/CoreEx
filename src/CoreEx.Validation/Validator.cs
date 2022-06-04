@@ -13,16 +13,6 @@ namespace CoreEx.Validation
     public static class Validator
     {
         /// <summary>
-        /// Gets or sets the default value name (used by the <see cref="ValueValidator{T}"/>).
-        /// </summary>
-        public static string ValueNameDefault { get; set; } = "Value";
-
-        /// <summary>
-        /// Gets or sets the default key name (used by the <see cref="DictionaryValidator{TDict, TKey, TValue}"/>).
-        /// </summary>
-        public static string KeyNameDefault { get; set; } = "Key";
-
-        /// <summary>
         /// Creates a <see cref="Validator{TEntity}"/>.
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>

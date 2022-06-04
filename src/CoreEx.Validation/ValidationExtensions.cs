@@ -882,7 +882,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="value">The value to validate.</param>
-        /// <param name="name">The value name (defaults to <see cref="Validator.ValueNameDefault"/>).</param>
+        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
         public static ValueValidator<T?> Validate<T>(this T? value, string? name = null, LText? text = null) => new(value, name, text);

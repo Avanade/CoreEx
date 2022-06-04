@@ -12,7 +12,7 @@ namespace CoreEx.Validation
     /// Provides a common value rule that can be used by other validators that share the same <see cref="Type"/> being <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-    /// <remarks>Note: the <see cref="PropertyRuleBase{TEntity, TProperty}.Name"/>, <see cref="PropertyRuleBase{TEntity, TProperty}.JsonName"/> and <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/> initially default to <see cref="Validator.ValueNameDefault"/>.</remarks>
+    /// <remarks>Note: the <see cref="PropertyRuleBase{TEntity, TProperty}.Name"/>, <see cref="PropertyRuleBase{TEntity, TProperty}.JsonName"/> and <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/> initially default to <see cref="Validation.ValueNameDefault"/>.</remarks>
     public class CommonValidator<T> : PropertyRuleBase<ValidationValue<T>, T>, IValidatorEx<T>
     {
         private Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task>? _additionalAsync;
@@ -20,7 +20,7 @@ namespace CoreEx.Validation
         /// <summary>
         /// Initializes a new instance of the <see cref="CommonValidator{T}"/>.
         /// </summary>
-        public CommonValidator() : base(Validator.ValueNameDefault) { }
+        public CommonValidator() : base(Validation.ValueNameDefault) { }
 
         /// <inheritdoc/>
         /// <exception cref="NotSupportedException"/>
@@ -31,7 +31,7 @@ namespace CoreEx.Validation
         /// Validates the value.
         /// </summary>
         /// <param name="value">The value to validate.</param>
-        /// <param name="name">The value name (defaults to <see cref="Validator.ValueNameDefault"/>).</param>
+        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <param name="throwOnError">Indicates to throw a <see cref="ValidationException"/> where an error was found.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
