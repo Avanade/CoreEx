@@ -123,7 +123,7 @@ namespace CoreEx.Test.TestFunction
         {
             var mcf = MockHttpClientFactory.Create();
             var mc = mcf.CreateClient("Backend", "https://backend/");
-            mc.Request(HttpMethod.Post, "products").WithJsonBody(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }).Respond.With(HttpStatusCode.Conflict);
+            mc.Request(HttpMethod.Post, "products").WithJsonBody(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }).Respond.With(HttpStatusCode.Ambiguous);
 
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
