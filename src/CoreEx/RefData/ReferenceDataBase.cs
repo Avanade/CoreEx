@@ -228,9 +228,12 @@ namespace CoreEx.RefData
         /// <param name="code">The <see cref="Code"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        public static TSelf ConvertFromCode(string? code)
+        public static TSelf? ConvertFromCode(string? code)
         {
-            if (code != null && ExecutionContext.HasCurrent)
+            if (code == null)
+                return default;
+
+            if (ExecutionContext.HasCurrent)
             {
                 var rdc = ReferenceDataOrchestrator.Current[typeof(TSelf)];
                 if (rdc != null && rdc.TryGetByCode(code, out var rd))
@@ -269,7 +272,7 @@ namespace CoreEx.RefData
         /// <param name="code"></param>
         /// <returns></returns>
         /// <remarks>This is intended to be consumed by classes that wish to provide an opt-in serialization of corresponding <see cref="IReferenceData.Text"/>.</remarks>
-        public static string? GetRefDataText(string? code) => code != null && ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled ? ConvertFromCode(code).Text : null;
+        public static string? GetRefDataText(string? code) => code != null && ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled ? ConvertFromCode(code)?.Text : null;
 
         #region MappingsDictionary
 

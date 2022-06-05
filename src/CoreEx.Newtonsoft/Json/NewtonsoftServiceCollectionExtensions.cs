@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <summary>
     /// Provides <see cref="IServiceCollection"/> extensions.
     /// </summary>
-    public static class ServiceCollectionExtensions
+    public static class NewtonsoftServiceCollectionExtensions
     {
         /// <summary>
         /// Checks that the <see cref="IServiceCollection"/> is not null.
@@ -17,19 +17,13 @@ namespace Microsoft.Extensions.DependencyInjection
         private static IServiceCollection CheckServices(IServiceCollection services) => services ?? throw new ArgumentNullException(nameof(services));
 
         /// <summary>
-        /// Adds the <see cref="CoreEx.Newtonsoft.Json.JsonSerializer"/> as the <see cref="IJsonSerializer"/> singleton service.
+        /// Adds the <see cref="CoreEx.Newtonsoft.Json.JsonSerializer"/> as the <see cref="IJsonSerializer"/> and <see cref="CoreEx.Newtonsoft.Json.ReferenceDataContentJsonSerializer"/> as the <see cref="IReferenceDataContentJsonSerializer"/> singleton services.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddNewtonsoftJsonSerializer(this IServiceCollection services) => CheckServices(services).AddSingleton<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>();
-
-        /// <summary>
-        /// Adds the <see cref="System.Text.Json.JsonSerializerOptions"/> as the singleton service.
-        /// </summary>
-        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-        /// <param name="settings">The <see cref=" Newtonsoft.Json.JsonSerializerSettings"/>.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddNewtonsoftJsonSerializerSettings(this IServiceCollection services, Newtonsoft.Json.JsonSerializerSettings settings) => CheckServices(services).AddSingleton(_ => settings ?? throw new ArgumentNullException(nameof(settings)));
+        public static IServiceCollection AddNewtonsoftJsonSerializer(this IServiceCollection services) 
+            => CheckServices(services).AddSingleton<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>()
+                                      .AddSingleton<IReferenceDataContentJsonSerializer, CoreEx.Newtonsoft.Json.ReferenceDataContentJsonSerializer>();
 
         /// <summary>
         /// Adds the <see cref="CoreEx.Newtonsoft.Json.CloudEventSerializer"/> as the <see cref="IEventSerializer"/> singleton service.

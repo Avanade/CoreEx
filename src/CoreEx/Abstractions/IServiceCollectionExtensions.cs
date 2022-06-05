@@ -175,19 +175,13 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddEventSender<TEventSender>(this IServiceCollection services) where TEventSender : class, IEventSender => CheckServices(services).AddScoped<IEventSender, TEventSender>();
 
         /// <summary>
-        /// Adds the <see cref="CoreEx.Text.Json.JsonSerializer"/> as the <see cref="IJsonSerializer"/> singleton service.
+        /// Adds the <see cref="CoreEx.Text.Json.JsonSerializer"/> as the <see cref="IJsonSerializer"/> and <see cref="CoreEx.Text.Json.ReferenceDataContentJsonSerializer"/> as the <see cref="IReferenceDataContentJsonSerializer"/> singleton services.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddJsonSerializer(this IServiceCollection services) => CheckServices(services).AddSingleton<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>();
-
-        /// <summary>
-        /// Adds the <see cref="System.Text.Json.JsonSerializerOptions"/> as the singleton service.
-        /// </summary>
-        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-        /// <param name="options">The <see cref="System.Text.Json.JsonSerializerOptions"/>.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddJsonSerializerOptions(this IServiceCollection services, System.Text.Json.JsonSerializerOptions options) => CheckServices(services).AddSingleton(_ => options ?? throw new ArgumentNullException(nameof(options)));
+        public static IServiceCollection AddJsonSerializer(this IServiceCollection services)
+            => CheckServices(services).AddSingleton<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
+                                      .AddSingleton<IReferenceDataContentJsonSerializer, CoreEx.Text.Json.ReferenceDataContentJsonSerializer>();
 
         /// <summary>
         /// Adds the <see cref="CoreEx.Json.Merge.JsonMergePatch"/> as the singleton service.
@@ -246,6 +240,19 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddWebApi(this IServiceCollection services, Action<WebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
         {
             var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<WebApiInvoker>(), sp.GetService<IJsonMergePatch>());
+            configure?.Invoke(wa);
+            return wa;
+        });
+
+        /// <summary>
+        /// Adds the <see cref="ReferenceDataContentWebApi"/> as a scoped service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddReferenceDataContentWebApi(this IServiceCollection services, Action<ReferenceDataContentWebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
+        {
+            var wa = new ReferenceDataContentWebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IReferenceDataContentJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<WebApiInvoker>(), sp.GetService<IJsonMergePatch>());
             configure?.Invoke(wa);
             return wa;
         });

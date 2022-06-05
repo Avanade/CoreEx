@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities.Extended
 {
@@ -37,6 +38,7 @@ namespace CoreEx.Entities.Extended
         /// Indicates whether the <see cref="INotifyPropertyChanged.PropertyChanged"/> event is raised when a property is set with a value that is the same as the existing overriding
         /// the <see cref="ShouldNotifyChangesWhenSameValue"/> for the specific instance. A value of <c>null</c> indicates to use the <see cref="ShouldNotifyChangesWhenSameValue"/> setting.
         /// </summary>
+        [JsonIgnore]
         public bool? NotifyChangesWhenSameValue { get; set; } = null;
 
         /// <summary>
@@ -390,8 +392,7 @@ namespace CoreEx.Entities.Extended
         }
 
         /// <summary>
-        /// Indicates whether to raise the property changed event when same value by reviewing the current settings for <see cref="NotifyChangesWhenSameValue"/>
-        /// and <see cref="ShouldNotifyChangesWhenSameValue"/>.
+        /// Indicates whether to raise the property changed event when same value by reviewing the current settings for <see cref="NotifyChangesWhenSameValue"/> and <see cref="ShouldNotifyChangesWhenSameValue"/>.
         /// </summary>
         protected bool RaisePropertyChangedWhenSame => NotifyChangesWhenSameValue ?? ShouldNotifyChangesWhenSameValue;
 
@@ -411,9 +412,11 @@ namespace CoreEx.Entities.Extended
         protected virtual void OnAcceptChanges() { }
 
         /// <inheritdoc/>
+        [JsonIgnore]
         public bool IsChanged { get; private set; }
 
         /// <inheritdoc/>
+        [JsonIgnore]
         public bool IsReadOnly { get; private set; }
 
         /// <summary>

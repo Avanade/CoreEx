@@ -7,12 +7,15 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx.NUnit;
+using Nsj = Newtonsoft.Json;
+using Stj = System.Text.Json;
 
 namespace CoreEx.Test.Framework.RefData
 {
@@ -630,7 +633,7 @@ namespace CoreEx.Test.Framework.RefData
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 _ = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
             }
@@ -690,20 +693,152 @@ namespace CoreEx.Test.Framework.RefData
             Assert.NotNull(c);
             Assert.IsTrue(c!.ContainsId("BB"));
         }
+
+        [Test]
+        public void Serialization_STJ_NoOrchestrator()
+        {
+            // Serialize.
+            var td = new TestData { Id = 1, Name = "Bob" };
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Text.Json.JsonSerializer().Serialize(td));
+
+            td.RefData = new RefData { Code = "a" };
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}", new Text.Json.JsonSerializer().Serialize(td));
+
+            // Deserialize.
+            td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.Null(td.RefData);
+
+            td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.NotNull(td.RefData);
+            Assert.AreEqual("a", td.RefData!.Code);
+            Assert.IsFalse(td.RefData.IsValid);
+
+            var ex = Assert.Throws<Stj.JsonException>(() => new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":1}"));
+            Assert.AreEqual("The JSON value could not be converted to CoreEx.Test.Framework.RefData.RefData. Path: $.refData | LineNumber: 0 | BytePositionInLine: 32.", ex!.Message);
+        }
+
+        [Test]
+        public void Serialization_STJ_WithOrchestrator()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            // Serialize.
+            var td = new TestData { Id = 1, Name = "Bob" };
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Text.Json.JsonSerializer().Serialize(td));
+
+            td.RefData = "a";
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"A\"}", new Text.Json.JsonSerializer().Serialize(td));
+
+            // Deserialize.
+            td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.Null(td.RefData);
+
+            td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.NotNull(td.RefData);
+            Assert.AreEqual("A", td.RefData!.Code);
+            Assert.IsTrue(td.RefData.IsValid);
+        }
+
+        [Test]
+        public void Serialization_NSJ_NoOrchestrator()
+        {
+            // Serialize.
+            var td = new TestData { Id = 1, Name = "Bob" };
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+
+            td.RefData = new RefData { Code = "a" };
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+
+            // Deserialize.
+            td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.Null(td.RefData);
+
+            td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.NotNull(td.RefData);
+            Assert.AreEqual("a", td.RefData!.Code);
+            Assert.IsFalse(td.RefData.IsValid);
+
+            var ex = Assert.Throws<Nsj.JsonSerializationException>(() => new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":1}"));
+            Assert.AreEqual("Reference data value must be a string.", ex!.Message);
+        }
+
+        [Test]
+        public void Serialization_NSJ_WithOrchestrator()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            // Serialize.
+            var td = new TestData { Id = 1, Name = "Bob" };
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+
+            td.RefData = "a";
+            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"A\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+
+            // Deserialize.
+            td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.Null(td.RefData);
+
+            td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
+            Assert.NotNull(td);
+            Assert.AreEqual(1, td!.Id);
+            Assert.AreEqual("Bob", td.Name);
+            Assert.NotNull(td.RefData);
+            Assert.AreEqual("A", td.RefData!.Code);
+            Assert.IsTrue(td.RefData.IsValid);
+        }
     }
 
     public class RefData : ReferenceDataBase<int, RefData> 
     {
         public static implicit operator RefData(int id) => ConvertFromId(id);
 
-        public static implicit operator RefData(string code) => ConvertFromCode(code);
+        public static implicit operator RefData?(string? code) => ConvertFromCode(code);
     }
 
     public class RefDataCollection : ReferenceDataCollection<int, RefData> { }
 
     public class RefDataEx : ReferenceDataBase<string, RefDataEx>
     {
-        public static implicit operator RefDataEx(string code) => ConvertFromCode(code);
+        public static implicit operator RefDataEx?(string? code) => ConvertFromCode(code);
     }
 
     public class RefDataExCollection : ReferenceDataCollection<string, RefDataEx> { }
@@ -772,6 +907,26 @@ namespace CoreEx.Test.Framework.RefData
             await Task.Delay(500).ConfigureAwait(false);
 
             return coll;
+        }
+    }
+
+    public class TestData : CoreEx.Entities.Extended.EntityBase<TestData>
+    {
+        private int _id;
+        private string? _name;
+        private string? _gender;
+
+        public int Id { get => _id; set => SetValue(ref _id, value); }
+
+        public string? Name { get => _name; set => SetValue(ref _name, value); }
+
+        public RefData? RefData { get => _gender; set => SetValue(ref _gender, value); }
+
+        protected override IEnumerable<IPropertyValue> GetPropertyValues()
+        {
+            yield return CreateProperty(Id, v => Id = v);
+            yield return CreateProperty(Name, v => Name = v);
+            yield return CreateProperty(RefData, v => RefData = v);
         }
     }
 }

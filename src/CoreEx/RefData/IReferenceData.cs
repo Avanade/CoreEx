@@ -56,7 +56,7 @@ namespace CoreEx.RefData
         /// Overrides the standard <see cref="IsValid"/> check and flags the <see cref="ReferenceDataBase{TId, TSelf}"/> as <b>Invalid</b>.
         /// </summary>
         /// <remarks>Will result in <see cref="IsActive"/> set to <c>false</c>. Once set to invalid it can not be changed; i.e. there is not an means to set back to valid.</remarks>
-        void SetInvalid() => throw new NotImplementedException();
+        void SetInvalid() { }
 
         /// <summary>
         /// Gets the underlying mapping dictionary.

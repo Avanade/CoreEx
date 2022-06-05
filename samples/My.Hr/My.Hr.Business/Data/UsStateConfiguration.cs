@@ -15,5 +15,10 @@ public class UsStateConfiguration : IEntityTypeConfiguration<USState>
         entity.Ignore(p => p.EndDate);
         entity.Ignore(p => p.StartDate);
         entity.Ignore(p => p.Description);
+        entity.Ignore(p => p.IsReadOnly);
+        entity.Ignore(p => p.IsValid);
+        entity.Ignore(p => p.IsChanged);
+        entity.Ignore(p => p.IsInitial);
+        entity.Ignore(p => p.NotifyChangesWhenSameValue);
     }
 }
