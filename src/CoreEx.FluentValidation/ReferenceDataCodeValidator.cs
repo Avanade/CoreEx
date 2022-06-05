@@ -8,17 +8,18 @@ using System;
 namespace CoreEx.FluentValidation
 {
     /// <summary>
-    /// Represents a <see cref="IReferenceData"/> validator.
+    /// Represents a <see cref="IReferenceData.Code"/> validator.
     /// </summary>
     /// <typeparam name="T">The owning object <see cref="Type"/>.</typeparam>
     /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
-    public class ReferenceDataValidator<T, TRef> : PropertyValidator<T, TRef?> where TRef : IReferenceData
+    public class ReferenceDataCodeValidator<T, TRef> : PropertyValidator<T, string?> where TRef : IReferenceData
     {
         /// <inheritdoc/>
-        public override string Name => nameof(ReferenceDataValidator<T, TRef>);
+        public override string Name => nameof(ReferenceDataCodeValidator<T, TRef>);
 
         /// <inheritdoc/>
-        public override bool IsValid(ValidationContext<T> context, TRef? value) => value == null || value.IsValid;
+        public override bool IsValid(ValidationContext<T> context, string? value) => 
+            value == null || ReferenceDataOrchestrator.Current.GetByTypeRequired<TRef>().TryGetByCode(value, out var rd) && rd!.IsValid;
 
         /// <inheritdoc/>
         protected override string GetDefaultMessageTemplate(string errorCode) => "'{PropertyName}' is invalid.";

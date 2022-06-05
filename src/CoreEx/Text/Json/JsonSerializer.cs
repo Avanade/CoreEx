@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
+using CoreEx.RefData;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -16,29 +17,31 @@ namespace CoreEx.Text.Json
     public class JsonSerializer : IJsonSerializer
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
+        /// Gets or sets the default <see cref="Stj.JsonSerializerOptions"/>.
         /// </summary>
-        /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>; where <c>null</c> these will default.</param>
-        /// <remarks>Where the <paramref name="options"/> are <c>null</c> the following <see cref="Stj.JsonSerializerOptions"/>, including use of <see cref="Stj.JsonSerializerDefaults.Web"/>, will default:
+        /// <remarks>The following <see cref="Stj.JsonSerializerOptions"/>, including use of <see cref="Stj.JsonSerializerDefaults.Web"/>, will default:
         /// <list type="bullet">
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DefaultIgnoreCondition"/> = <see cref="JsonIgnoreCondition.WhenWritingDefault"/>.</description></item>
-        ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c></description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DictionaryKeyPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.PropertyNamingPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
-        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/></description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/> and <see cref="ReferenceDataConverterFactory"/>.</description></item>
         /// </list>
         /// </remarks>
-        public JsonSerializer(Stj.JsonSerializerOptions? options = null)
+        public static Stj.JsonSerializerOptions DefaultOptions { get; set; } = new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
         {
-            Options = options ?? new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
-            {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-                WriteIndented = false,
-                DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
-                PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
-                Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
-            };
-        }
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+            WriteIndented = false,
+            DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
+            PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
+            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new ReferenceDataConverterFactory() }
+        };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
+        /// </summary>
+        /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>. Defaults to <see cref="DefaultOptions"/>.</param>
+        public JsonSerializer(Stj.JsonSerializerOptions? options = null) => Options = options ?? DefaultOptions;
 
         /// <summary>
         /// Gets the underlying serializer configuration settings/options.

@@ -38,7 +38,7 @@ namespace CoreEx.RefData
         private readonly Lazy<ILogger> _logger;
 
         /// <summary>
-        /// Gets the current <see cref="ReferenceDataOrchestrator"/> from the <see cref="IServiceProvider"/> within the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> scope (see <see cref="ExecutionContext.GetService(Type)"/>).
+        /// Gets the current <see cref="ReferenceDataOrchestrator"/> from the <see cref="IServiceProvider"/> within the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> scope (see <see cref="ExecutionContext.GetService(Type)"/>) and will throw an <see cref="InvalidOperationException"/> where not found.
         /// </summary>
         public static ReferenceDataOrchestrator Current => 
             ExecutionContext.GetService<ReferenceDataOrchestrator>() ?? throw new InvalidOperationException($"To access {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} it must be added as a Dependency Injection service ({nameof(IServiceProvider)}) and the request must be mande within an {nameof(ExecutionContext)} scope.");

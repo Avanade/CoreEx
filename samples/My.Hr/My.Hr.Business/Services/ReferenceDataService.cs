@@ -15,7 +15,7 @@ public class ReferenceDataService : IReferenceDataProvider
         _ => throw new InvalidOperationException()
     };
 
-    public Task<USStateCollection> GetUSStatesAsync() => USStateCollection.CreateAsync(_dbContext.USStates);
+    public Task<USStateCollection> GetUSStatesAsync() => USStateCollection.CreateAsync(_dbContext.USStates.AsNoTracking());
 
-    public Task<GenderCollection> GetGendersAsync() => GenderCollection.CreateAsync(_dbContext.Genders);
+    public Task<GenderCollection> GetGendersAsync() => GenderCollection.CreateAsync(_dbContext.Genders.AsNoTracking());
 }

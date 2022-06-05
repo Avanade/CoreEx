@@ -5,7 +5,6 @@ global using CoreEx.Events;
 global using CoreEx.Http;
 global using CoreEx.Json;
 global using CoreEx.RefData;
-global using CoreEx.RefData.Models;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.Metadata.Builders;
 global using Microsoft.Extensions.Configuration;

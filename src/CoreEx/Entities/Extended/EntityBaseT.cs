@@ -66,9 +66,9 @@ namespace CoreEx.Entities.Extended
         /// <inheritdoc/>
         public override object Clone()
         {
-            var @new = new TSelf();
-            @new.CopyFrom(this);
-            return @new;
+            var clone = new TSelf();
+            clone.CopyFrom(this);
+            return clone;
         }
     }
 }

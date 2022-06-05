@@ -838,7 +838,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             public override int GetHashCode() => base.GetHashCode();
 
-            public override object Clone() => CreateClone<PersonEx>(this);
+            public override object Clone() => CreateClone(this);
         }
 
         public class PersonExCollection : EntityBaseCollection<PersonEx, PersonExCollection>

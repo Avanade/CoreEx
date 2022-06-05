@@ -6,7 +6,7 @@ public class ReferenceDataController : ControllerBase
     private readonly WebApi _webApi;
     private readonly ReferenceDataOrchestrator _orchestrator;
 
-    public ReferenceDataController(WebApi webApi, ReferenceDataOrchestrator orchestrator)
+    public ReferenceDataController(ReferenceDataContentWebApi webApi, ReferenceDataOrchestrator orchestrator)
     {
         _webApi = webApi;
         _orchestrator = orchestrator;

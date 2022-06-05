@@ -19,7 +19,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void A100_USState_All()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = ApiTester.Create<Startup>().UseJsonSerializer(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer());
 
             var v = test.Controller<ReferenceDataController>()
                 .Run(c => c.USStateGetAll(null, null))
@@ -32,7 +32,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void A110_USState_Codes()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = ApiTester.Create<Startup>().UseJsonSerializer(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer());
 
             var v = test.Controller<ReferenceDataController>()
                 .Run(c => c.USStateGetAll(new string[] { "WA", "CO" }, null))
@@ -46,7 +46,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void A120_USState_Text()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = ApiTester.Create<Startup>().UseJsonSerializer(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer());
 
             var v = test.Controller<ReferenceDataController>()
                 .Run(c => c.USStateGetAll(null, "*or*"))
@@ -61,7 +61,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void A130_USState_FieldsAndNotModified()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = ApiTester.Create<Startup>().UseJsonSerializer(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer());
 
             var r = test.Controller<ReferenceDataController>()
                 .Run(c => c.USStateGetAll(new string[] { "WA", "CO" }, null), new HttpRequestOptions().Include("code", "text"))
@@ -76,7 +76,7 @@ namespace My.Hr.UnitTest
         [Test]
         public void B100_Gender_All()
         {
-            using var test = ApiTester.Create<Startup>();
+            using var test = ApiTester.Create<Startup>().UseJsonSerializer(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer());
 
             var v = test.Controller<ReferenceDataController>()
                 .Run(c => c.GenderGetAll(null, null))

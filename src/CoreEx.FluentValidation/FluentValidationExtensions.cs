@@ -16,7 +16,7 @@ namespace FluentValidation
         /// </summary>
         /// <typeparam name="T">The owning object <see cref="Type"/>.</typeparam>
         /// <param name="ruleBuilder">The <paramref name="ruleBuilder"/> to enable the extension method.</param>
-        /// <returns></returns>
+        /// <returns>The <see cref="ReferenceDataTypeOf{T}"/>.</returns>
         public static ReferenceDataTypeOf<T> RefDataCode<T>(this IRuleBuilder<T, string?> ruleBuilder) => new(ruleBuilder);
 
         /// <summary>
@@ -34,12 +34,22 @@ namespace FluentValidation
             internal ReferenceDataTypeOf(IRuleBuilder<T, string?> ruleBuilder) => _ruleBuilder = ruleBuilder;
 
             /// <summary>
-            /// Sets the <see cref="ReferenceDataValidator{T, TRef}"/> for the specified <typeparamref name="TRef"/> <see cref="Type"/>.
+            /// Sets the <see cref="ReferenceDataCodeValidator{T, TRef}"/> for the specified <typeparamref name="TRef"/> <see cref="Type"/>.
             /// </summary>
             /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
             /// <returns>The <see cref="IRuleBuilderOptions{T, TProperty}"/> to support fluent-style method-chaining.</returns>
-            public IRuleBuilderOptions<T, string?> As<TRef>() where TRef : IReferenceData => _ruleBuilder.SetValidator(new ReferenceDataValidator<T, TRef>()); 
+            public IRuleBuilderOptions<T, string?> As<TRef>() where TRef : IReferenceData => _ruleBuilder.SetValidator(new ReferenceDataCodeValidator<T, TRef>()); 
         }
+
+        /// <summary>
+        /// Defines an <see cref="IReferenceData"/> validator to ensure that the <see cref="IReferenceData.IsValid"/> is <c>true</c>.
+        /// </summary>
+        /// <typeparam name="T">The owning object <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <param name="ruleBuilder">The <paramref name="ruleBuilder"/> to enable the extension method.</param>
+        /// <returns>The <see cref="IRuleBuilderOptions{T, TProperty}"/> to support fluent-style method-chaining.</returns>
+		public static IRuleBuilderOptions<T, TRef?> IsValid<T, TRef>(this IRuleBuilder<T, TRef?> ruleBuilder) where TRef : IReferenceData
+			=> ruleBuilder.SetValidator(new ReferenceDataValidator<T, TRef>());
 
         /// <summary>
         /// Associates a validator provider with the current property rule where the property is nullable (and therefore optional).

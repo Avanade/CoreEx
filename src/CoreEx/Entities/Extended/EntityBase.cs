@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities.Extended
 {
@@ -70,6 +71,7 @@ namespace CoreEx.Entities.Extended
         internal EntityBase() { }
 
         /// <inheritdoc/>
+        [JsonIgnore]
         public virtual bool IsInitial => !GetPropertyValues().Any(x => !x.IsInitial);
 
         /// <summary>

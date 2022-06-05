@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
+using CoreEx.RefData;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -18,29 +19,31 @@ namespace CoreEx.Newtonsoft.Json
     public class JsonSerializer : IJsonSerializer
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
+        /// Gets or sets the default <see cref="JsonSerializerSettings"/>.
         /// </summary>
-        /// <param name="settings">The <see cref="JsonSerializerSettings"/>; where <c>null</c> these will default.</param>
-        /// <remarks>Where the <paramref name="settings"/> are <c>null</c> the following <see cref="JsonSerializerSettings"/> will default:
+        /// <remarks>The following <see cref="JsonSerializerSettings"/> will default:
         /// <list type="bullet">
         ///  <item><description><see cref="JsonSerializerSettings.DefaultValueHandling"/> = <see cref="DefaultValueHandling.Ignore"/>.</description></item>
-        ///  <item><description><see cref="JsonSerializerSettings.NullValueHandling"/> = <see cref="NullValueHandling.Ignore"/></description></item>
-        ///  <item><description><see cref="JsonSerializerSettings.Formatting"/> = <see cref="Formatting.None"/></description></item>
-        ///  <item><description><see cref="JsonSerializerSettings.ContractResolver"/> = <see cref="ContractResolver.Default"/></description></item>
-        ///  <item><description><see cref="JsonSerializerSettings.Converters"/> = <see cref="Nsj.Converters.StringEnumConverter"/></description></item>
+        ///  <item><description><see cref="JsonSerializerSettings.NullValueHandling"/> = <see cref="NullValueHandling.Ignore"/>.</description></item>
+        ///  <item><description><see cref="JsonSerializerSettings.Formatting"/> = <see cref="Formatting.None"/>.</description></item>
+        ///  <item><description><see cref="JsonSerializerSettings.ContractResolver"/> = <see cref="ContractResolver.Default"/>.</description></item>
+        ///  <item><description><see cref="JsonSerializerSettings.Converters"/> = <see cref="Nsj.Converters.StringEnumConverter"/> and <see cref="ReferenceDataJsonConverter"/>.</description></item>
         /// </list>
         /// </remarks>
-        public JsonSerializer(JsonSerializerSettings? settings = null)
+        public static JsonSerializerSettings DefaultSettings { get; set; } = new JsonSerializerSettings
         {
-            Settings = settings ?? new JsonSerializerSettings
-            {
-                DefaultValueHandling = DefaultValueHandling.Ignore,
-                NullValueHandling = NullValueHandling.Ignore,
-                Formatting = Formatting.None,
-                ContractResolver = ContractResolver.Default,
-                Converters = { new Nsj.Converters.StringEnumConverter() }
-            };
-        }
+            DefaultValueHandling = DefaultValueHandling.Ignore,
+            NullValueHandling = NullValueHandling.Ignore,
+            Formatting = Formatting.None,
+            ContractResolver = ContractResolver.Default,
+            Converters = { new Nsj.Converters.StringEnumConverter(), new ReferenceDataJsonConverter() }
+        };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
+        /// </summary>
+        /// <param name="settings">The <see cref="JsonSerializerSettings"/>. Defaults to <see cref="DefaultSettings"/>.</param>
+        public JsonSerializer(JsonSerializerSettings? settings = null) => Settings = settings ?? DefaultSettings;
 
         /// <summary>
         /// Gets the underlying serializer configuration settings/options.
