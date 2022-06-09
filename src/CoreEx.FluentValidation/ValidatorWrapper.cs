@@ -26,7 +26,7 @@ namespace CoreEx.FluentValidation
         public FV.IValidator<T> Validator { get; }
 
         /// <inheritdoc/>
-        public async Task<IValidationResult<T>> ValidateAsync(T? value, CancellationToken cancellationToken = default)
+        public async Task<IValidationResult<T>> ValidateAsync(T value, CancellationToken cancellationToken = default)
             => value == null ? new ValidationResultWrapper<T>() : new ValidationResultWrapper<T>(await Validator.ValidateAsync(value, cancellationToken).ConfigureAwait(false), value);
     }
 }

@@ -10,45 +10,44 @@ using System.Linq;
 namespace CoreEx.RefData
 {
     /// <summary>
-    /// Provides the capabilities for a special purpose <typeparamref name="TRef"/> collection specifically for managing a referenced list of <b>Serialization Identifiers</b> (SIDs) being the underlying <see cref="IReferenceData.Code"/>.
+    /// Provides the capabilities for a special purpose <typeparamref name="TRef"/> collection specifically for managing a referenced list of <i>serialization identifiers</i> being the underlying <see cref="IReferenceData.Code"/>.
     /// </summary>
-    /// <typeparam name="TId">The <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TRef">The <see cref="IReferenceData{TId}"/> <see cref="Type"/>.</typeparam>
-    public class ReferenceDataSidList<TId, TRef> : IReferenceDataSidList, IList<TRef>, INotifyCollectionChanged where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId>, new()
+    public class ReferenceDataCodeList<TRef> : IReferenceDataCodeList, IList<TRef>, INotifyCollectionChanged where TRef : class, IReferenceData, new()
     {
-        private readonly List<string?> _sids;
+        private readonly List<string?> _codes;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataSidList{TId, TRef}"/> class.
+        /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class.
         /// </summary>
-        public ReferenceDataSidList() => _sids = new();
+        public ReferenceDataCodeList() => _codes = new();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataSidList{TId, TRef}"/> class with a reference to an external <b>Serialization Identifier</b> (SID) list.
+        /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class with a reference to an external <see cref="IReferenceData.Code"/> list.
         /// </summary>
-        /// <param name="sids">A reference to the externa; <b>Serialization Identifier</b> (SID) list; it is this list that will be maintained by this collection. Changes made to the referenced list will bypass <see cref="INotifyCollectionChanged"/>.</param>
-        public ReferenceDataSidList(ref List<string?>? sids) => _sids = sids ?? new();
+        /// <param name="codes">A reference to the external <see cref="IReferenceData.Code"/> list; it is this list that will be maintained by this collection. Changes made to the referenced list will bypass <see cref="INotifyCollectionChanged"/>.</param>
+        public ReferenceDataCodeList(ref List<string?>? codes) => _codes = codes ?? new();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataSidList{TId, TRef}"/> class with a list of items.
+        /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class with a list of items.
         /// </summary>
         /// <param name="items">The list of <see cref="IReferenceData"/> items.</param>
-        public ReferenceDataSidList(IEnumerable<TRef> items) => _sids = new((items ?? Array.Empty<TRef>()).Select(x => x.Code));
+        public ReferenceDataCodeList(IEnumerable<TRef> items) => _codes = new((items ?? Array.Empty<TRef>()).Select(x => x.Code));
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataSidList{TId, TRef}"/> class with a list of <b>Serialization Identifiers</b> (SIDs).
+        /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class with a <see cref="IReferenceData.Code"/> array.
         /// </summary>
-        /// <param name="sids">The list of <b>Serialization Identifiers</b> (SIDs).</param>
-        public ReferenceDataSidList(params string?[] sids) => _sids = new(sids);
+        /// <param name="codes">The <see cref="IReferenceData.Code"/> array.</param>
+        public ReferenceDataCodeList(params string?[] codes) => _codes = new(codes);
 
         /// <summary>
         /// Creates a new <see cref="IReferenceData.Code"/> list from the underlying contents.
         /// </summary>
         /// <returns>A new <see cref="IReferenceData.Code"/> list list.</returns>
-        public List<string?> ToCodeList() => new(_sids);
+        public List<string?> ToCodeList() => new(_codes);
 
         /// <inheritdoc/>
-        List<IReferenceData> IReferenceDataSidList.ToRefDataList() => new(this);
+        List<IReferenceData> IReferenceDataCodeList.ToRefDataList() => new(this);
 
         /// <summary>
         /// Creates a new <typeparamref name="TRef"/> list from the underlying contents.
@@ -59,8 +58,9 @@ namespace CoreEx.RefData
         /// <summary>
         /// Creates a new <see cref="IIdentifier{TId}.Id"/> list from the underlying contents.
         /// </summary>
+        /// <typeparam name="TId">The <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
         /// <returns>A new <see cref="IIdentifier{TId}.Id"/> list</returns>
-        public List<TId?> ToIdList() => this.Select(x => x.Id).ToList();
+        public List<TId?> ToIdList<TId>() => this.Select(x => (TId?)x.Id).ToList();
 
         /// <summary>
         /// Indicates whether the collection contains invalid items (i.e. not <see cref="IReferenceData.IsValid"/>).
@@ -69,18 +69,18 @@ namespace CoreEx.RefData
         public bool HasInvalidItems => this.Any(x => x == null || !x.IsValid);
 
         /// <summary>
-        /// Gets the item for the sid/code.
+        /// Gets the item for the specified <paramref name="code"/>.
         /// </summary>
-        private static TRef GetItem(string? sid)
+        private static TRef GetItem(string? code)
         {
-            if (sid != null && ExecutionContext.HasCurrent)
+            if (code != null && ExecutionContext.HasCurrent)
             {
                 var rdc = ReferenceDataOrchestrator.Current[typeof(TRef)];
-                if (rdc != null && rdc.TryGetByCode(sid, out var rd))
+                if (rdc != null && rdc.TryGetByCode(code, out var rd))
                     return (TRef)rd!;
             }
 
-            var rdx = new TRef { Code = sid };
+            var rdx = new TRef { Code = code };
             rdx.SetInvalid();
             return rdx;
         }
@@ -91,27 +91,27 @@ namespace CoreEx.RefData
         /// <inheritdoc/>
         public TRef this[int index] 
         { 
-            get => GetItem(_sids[index]); 
+            get => GetItem(_codes[index]); 
 
             set
             {
-                var e = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, value, GetItem(_sids[index]!));
-                _sids[index] = value?.Code;
+                var e = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, value, GetItem(_codes[index]!));
+                _codes[index] = value?.Code;
                 OnCollectionChanged(e);
             }
         }
 
         /// <inheritdoc/>
-        public int Count => _sids.Count;
+        public int Count => _codes.Count;
 
         /// <inheritdoc/>
-        public bool IsReadOnly => ((IList)_sids).IsReadOnly;
+        public bool IsReadOnly => ((IList)_codes).IsReadOnly;
 
         /// <inheritdoc/>
         public void Add(TRef item)
         {
-            var e = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, _sids.Count);
-            _sids.Add(item?.Code);
+            var e = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, _codes.Count);
+            _codes.Add(item?.Code);
             OnCollectionChanged(e);
         }
 
@@ -119,11 +119,11 @@ namespace CoreEx.RefData
         public void Clear()
         {
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, this));
-            _sids.Clear();
+            _codes.Clear();
         }
 
         /// <inheritdoc/>
-        public bool Contains(TRef item) => _sids.Contains(item?.Code);
+        public bool Contains(TRef item) => _codes.Contains(item?.Code);
 
         /// <inheritdoc/>
         public void CopyTo(TRef[] array, int arrayIndex)
@@ -131,32 +131,32 @@ namespace CoreEx.RefData
             if (array == null || array.Length == 0)
                 return;
 
-            var sids = new string?[array.Length];
+            var codes = new string?[array.Length];
             for (int i = 0; i < array.Length; i++)
             {
-                sids[i] = array[i]?.Code;
+                codes[i] = array[i]?.Code;
             }
 
-            _sids.CopyTo(sids, arrayIndex);
+            _codes.CopyTo(codes, arrayIndex);
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, array, arrayIndex));
         }
 
         /// <inheritdoc/>
         public IEnumerator<TRef> GetEnumerator()
         {
-            foreach (string? sid in _sids)
+            foreach (string? code in _codes)
             {
-                yield return GetItem(sid!);
+                yield return GetItem(code!);
             }
         }
 
         /// <inheritdoc/>
-        public int IndexOf(TRef item) => _sids.IndexOf(item?.Code);
+        public int IndexOf(TRef item) => _codes.IndexOf(item?.Code);
 
         /// <inheritdoc/>
         public void Insert(int index, TRef item)
         {
-            _sids.Insert(index, item?.Code);
+            _codes.Insert(index, item?.Code);
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
         }
 
@@ -175,7 +175,7 @@ namespace CoreEx.RefData
         public void RemoveAt(int index)
         {
             var e = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, this[index], index);
-            _sids.RemoveAt(index);
+            _codes.RemoveAt(index);
             OnCollectionChanged(e);
         }
 

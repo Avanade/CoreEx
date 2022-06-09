@@ -5,9 +5,9 @@ using System.Collections.Generic;
 namespace CoreEx.RefData
 {
     /// <summary>
-    /// Enables the base capabilities for a special purpose <see cref="IReferenceData"/> collection specifically for managing a referenced list of <b>Serialization Identifiers</b> (SIDs) being the underlying <see cref="IReferenceData.Code"/>.
+    /// Enables the base capabilities for a special purpose <see cref="IReferenceData"/> collection specifically for managing a referenced list of <i>serialization identifiers</i> being the underlying <see cref="IReferenceData.Code"/>.
     /// </summary>
-    public interface IReferenceDataSidList
+    public interface IReferenceDataCodeList
     {
         /// <summary>
         /// Indicates whether the collection contains invalid items (i.e. not <see cref="IReferenceData.IsValid"/>).

@@ -42,8 +42,17 @@ namespace CoreEx.Abstractions
         /// <param name="func">The function to invoke.</param>
         /// <param name="param">The optional parameter passed to the invoke.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task InvokeAsync(TOwner invoker, Func<CancellationToken, Task> func, TParam? param = default, CancellationToken cancellationToken = default) 
+        public Task InvokeAsync(TOwner invoker, Func<CancellationToken, Task> func, TParam? param, CancellationToken cancellationToken = default) 
             => OnInvokeAsync<object?>(invoker ?? throw new ArgumentNullException(nameof(invoker)), async ct => { await (func ?? throw new ArgumentNullException(nameof(func))).Invoke(ct).ConfigureAwait(false); return null; }, param, cancellationToken);
+
+        /// <summary>
+        /// Invokes a <paramref name="func"/> asynchronously.
+        /// </summary>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="func">The function to invoke.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task InvokeAsync(TOwner invoker, Func<CancellationToken, Task> func, CancellationToken cancellationToken = default)
+            => OnInvokeAsync<object?>(invoker ?? throw new ArgumentNullException(nameof(invoker)), async ct => { await (func ?? throw new ArgumentNullException(nameof(func))).Invoke(ct).ConfigureAwait(false); return null; }, default, cancellationToken);
 
         /// <summary>
         /// Invokes a <paramref name="func"/> with a <typeparamref name="TResult"/> synchronously.
@@ -65,7 +74,18 @@ namespace CoreEx.Abstractions
         /// <param name="param">The optional parameter passed to the invoke.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The result.</returns>
-        public Task<TResult> InvokeAsync<TResult>(TOwner invoker, Func<CancellationToken, Task<TResult>> func, TParam? param = default, CancellationToken cancellationToken = default) 
+        public Task<TResult> InvokeAsync<TResult>(TOwner invoker, Func<CancellationToken, Task<TResult>> func, TParam? param, CancellationToken cancellationToken = default) 
             => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), func ?? throw new ArgumentNullException(nameof(func)), param, cancellationToken);
+
+        /// <summary>
+        /// Invokes a <paramref name="func"/> with a <typeparamref name="TResult"/> asynchronously.
+        /// </summary>
+        /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="func">The function to invoke.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The result.</returns>
+        public Task<TResult> InvokeAsync<TResult>(TOwner invoker, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken = default)
+            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), func ?? throw new ArgumentNullException(nameof(func)), default, cancellationToken);
     }
 }

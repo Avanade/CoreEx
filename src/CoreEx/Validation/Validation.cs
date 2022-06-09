@@ -18,13 +18,19 @@ namespace CoreEx.Validation
         /// <summary>
         /// Gets or sets the format string for the Mandatory error message.
         /// </summary>
-        /// <remarks>Defaults to: '<c>{0} is required</c>'.</remarks>
+        /// <remarks>Defaults to: '<c>{0} is required.</c>'.</remarks>
         public static LText MandatoryFormat { get; set; } = new("CoreEx.Validation.MandatoryFormat", "{0} is required.");
 
         /// <summary>
         /// Gets or sets the default value name.
         /// </summary>
+        /// <remarks>Defaults to: '<c>value</c>'.</remarks>
         public static string ValueNameDefault { get; set; } = "value";
+
+        /// <summary>
+        /// Gets or sets the default value <see cref="LText"/>.
+        /// </summary>
+        public static LText ValueTextDefault { get; set; } = "Value";
 
         /// <summary>
         /// Validates the value asynchronously using the specified <paramref name="validator"/>.
@@ -35,7 +41,7 @@ namespace CoreEx.Validation
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The validated value.</returns>
         /// <exception cref="ValidationException">Thrown where a validation error(s) occurs.</exception>
-        public static async Task<T?> ValidateValueAsync<T>(this T? value, IValidator<T> validator, CancellationToken cancellationToken = default) where T : class
+        public static async Task<T?> ValidateValueAsync<T>(this T value, IValidator<T> validator, CancellationToken cancellationToken = default) where T : class
         {
             (await (validator ?? throw new ArgumentNullException(nameof(validator))).ValidateAsync(value, cancellationToken).ConfigureAwait(false)).ThrowOnError();
             return value;
@@ -51,6 +57,6 @@ namespace CoreEx.Validation
         /// <returns>The value where non-default.</returns>
         /// <exception cref="ValidationException">Thrown where the value is default.</exception>
         public static T? EnsureValue<T>(this T? value, string? name = "value", LText? text = null) 
-            => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? (name ?? ValueNameDefault).ToSentenceCase())) : value;
+            => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? ((name == null || name == ValueNameDefault) ? ValueTextDefault : name.ToSentenceCase()))) : value;
     }
 }

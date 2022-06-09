@@ -4,6 +4,7 @@ using CoreEx.Json;
 using CoreEx.RefData;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -91,7 +92,7 @@ namespace CoreEx.Text.Json
         }
 
         /// <inheritdoc/>
-        bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, out string? jsonName)
+        bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, [NotNullWhen(true)] out string? jsonName)
         {
             if (memberInfo == null)
                 throw new ArgumentNullException(nameof(memberInfo));

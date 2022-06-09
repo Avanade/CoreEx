@@ -25,7 +25,7 @@ namespace CoreEx.Validation
         /// <param name="args">The <see cref="ValidationArgs"/>.</param>
         /// <param name="fullyQualifiedEntityNameOverride">Optional <see cref="ValidationArgs.FullyQualifiedEntityName"/> override.</param>
         /// <param name="fullyQualifiedJsonEntityNameOverride">Optional <see cref="ValidationArgs.FullyQualifiedJsonEntityName"/> override.</param>
-        public ValidationContext(TEntity? value, ValidationArgs args, string? fullyQualifiedEntityNameOverride = null, string? fullyQualifiedJsonEntityNameOverride = null)
+        public ValidationContext(TEntity value, ValidationArgs args, string? fullyQualifiedEntityNameOverride = null, string? fullyQualifiedJsonEntityNameOverride = null)
         {
             if (args == null)
                 throw new ArgumentNullException(nameof(args));
@@ -39,6 +39,11 @@ namespace CoreEx.Validation
             ShallowValidation = args.ShallowValidation;
         }
 
+        /// <summary>
+        /// Gets the <see cref="ExecutionContext.Current"/> instance.
+        /// </summary>
+        public CoreEx.ExecutionContext ExecutionContext => ExecutionContext.Current;
+
         /// <inheritdoc/>
         public Type EntityType => typeof(TEntity);
 
@@ -48,7 +53,7 @@ namespace CoreEx.Validation
         /// <summary>
         /// Gets the entity value.
         /// </summary>
-        public TEntity? Value { get; }
+        public TEntity Value { get; }
 
         /// <summary>
         /// Gets the entity prefix used for fully qualified <i>entity.property</i> naming (<c>null</c> represents the root).

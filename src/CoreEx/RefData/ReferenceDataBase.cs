@@ -5,6 +5,7 @@ using CoreEx.Entities.Extended;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
 
@@ -136,7 +137,7 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        public bool TryGetMapping<T>(string name, out T? value) where T : IComparable<T?>, IEquatable<T?>
+        public bool TryGetMapping<T>(string name, [NotNullWhen(true)] out T? value) where T : IComparable<T?>, IEquatable<T?>
         {
             value = default!;
             if (!HasMappings || !_mappings!.TryGetValue(name, out var val))
@@ -228,6 +229,7 @@ namespace CoreEx.RefData
         /// <param name="code">The <see cref="Code"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        [return: NotNullIfNotNull("code")]
         public static TSelf? ConvertFromCode(string? code)
         {
             if (code == null)
@@ -269,8 +271,8 @@ namespace CoreEx.RefData
         /// <summary>
         /// Gets the corresponding <see cref="IReferenceData.Text"/> for the specified <paramref name="code"/> where <see cref="ExecutionContext.IsTextSerializationEnabled"/> is <c>true</c>.
         /// </summary>
-        /// <param name="code"></param>
-        /// <returns></returns>
+        /// <param name="code">The <see cref="IReferenceData.Code"/>.</param>
+        /// <returns>The <see cref="IReferenceData.Text"/>.</returns>
         /// <remarks>This is intended to be consumed by classes that wish to provide an opt-in serialization of corresponding <see cref="IReferenceData.Text"/>.</remarks>
         public static string? GetRefDataText(string? code) => code != null && ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled ? ConvertFromCode(code)?.Text : null;
 

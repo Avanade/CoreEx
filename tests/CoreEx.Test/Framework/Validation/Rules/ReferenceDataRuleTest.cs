@@ -80,7 +80,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            var sids = new ReferenceDataSidList<string, RefDataEx>("Aaa", "Abc");
+            var sids = new ReferenceDataCodeList<RefDataEx>("Aaa", "Abc");
             var v1 = await sids.Validate().AreValid().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
@@ -88,7 +88,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            sids = new ReferenceDataSidList<string, RefDataEx>("Aaa", "Aaa");
+            sids = new ReferenceDataCodeList<RefDataEx>("Aaa", "Aaa");
             v1 = await sids.Validate().AreValid().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);

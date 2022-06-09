@@ -8,8 +8,8 @@ namespace CoreEx.Entities
     public interface ITenantId
     {
         /// <summary>
-        /// Gets the tenant identifier.
+        /// Gets or sets the tenant identifier.
         /// </summary>
-        public string? TenantId { get; }
+        string? TenantId { get; set; }
     }
 }

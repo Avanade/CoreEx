@@ -39,13 +39,16 @@ namespace CoreEx.Entities.Extended
     /// }
     /// </code></para></remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBase<TSelf> : EntityBase, ICloneable where TSelf : EntityBase<TSelf>, new()
+    public abstract class EntityBase<TSelf> : EntityBase, IEquatable<TSelf>, ICloneable where TSelf : EntityBase<TSelf>, new()
     {
         /// <inheritdoc/>
         public override int GetHashCode() => base.GetHashCode();
 
         /// <inheritdoc/>
         public override bool Equals(object? other) => base.Equals(other);
+
+        /// <inheritdoc/>
+        public bool Equals(TSelf? other) => base.Equals(other);
 
         /// <summary>
         /// Compares two values for equality.

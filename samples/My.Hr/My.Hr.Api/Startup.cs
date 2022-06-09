@@ -15,7 +15,6 @@ public class Startup
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     public void ConfigureServices(IServiceCollection services)
     {
-        // Add services to the container.
         // Register the core services.
         services
             .AddSettings<HrSettings>()
@@ -63,15 +62,11 @@ public class Startup
     /// </summary>
     /// <param name="app">The <see cref="IApplicationBuilder"/>.</param>
     public void Configure(IApplicationBuilder app)
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-        app.UseHttpsRedirection();
-        app.UseRouting();
-        app.UseAuthorization();
-        app.UseEndpoints(endpoints =>
-        {
-            endpoints.MapControllers();
-        });
-    }
+        => app.UseSwagger()
+           .UseSwaggerUI()
+           .UseHttpsRedirection()
+           .UseRouting()
+           .UseAuthorization()
+           .UseExecutionContext()
+           .UseEndpoints(endpoints => endpoints.MapControllers());
 }

@@ -104,7 +104,7 @@ namespace CoreEx.Validation
         /// <param name="mustAsync">The must function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Must<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> mustAsync, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> MustAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> mustAsync, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(mustAsync) { ErrorText = errorText });
 
         #endregion
@@ -132,7 +132,7 @@ namespace CoreEx.Validation
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<bool>> exists, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> ExistsAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<bool>> exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(exists) { ErrorText = errorText });
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace CoreEx.Validation
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object?>> exists, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> ExistsAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object?>> exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(exists) { ErrorText = errorText });
 
         /// <summary>
@@ -180,7 +180,7 @@ namespace CoreEx.Validation
         /// <param name="agentResult">The <see cref="HttpResult"/> function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> AgentExists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<HttpResult>> agentResult, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> AgentExistsAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<HttpResult>> agentResult, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(agentResult) { ErrorText = errorText });
 
         #endregion
@@ -271,7 +271,7 @@ namespace CoreEx.Validation
         /// <param name="immutableAsync">The must function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> immutableAsync, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> ImmutableAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> immutableAsync, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(immutableAsync) { ErrorText = errorText });
 
         /// <summary>
@@ -346,7 +346,7 @@ namespace CoreEx.Validation
         /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Between<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> compareFromValueFunctionAsync, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> BetweenAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> compareFromValueFunctionAsync, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValueFunctionAsync, compareToValueFunctionAsync, compareFromTextFunction, compareToTextFunction, exclusiveBetween) { ErrorText = errorText });
 
         #endregion
@@ -392,7 +392,7 @@ namespace CoreEx.Validation
         /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunctionAsync"/>).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> CompareValue<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, CompareOperator compareOperator, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> CompareValueAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, CompareOperator compareOperator, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValueRule<TEntity, TProperty>(compareOperator, compareToValueFunctionAsync, compareToTextFunction) { ErrorText = errorText });
 
         #endregion
@@ -670,17 +670,17 @@ namespace CoreEx.Validation
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ReferenceDataRule<TEntity, TProperty> { ErrorText = errorText });
 
         /// <summary>
-        /// Adds a <see cref="IReferenceDataSidList"/> validation (see <see cref="ReferenceDataRule{TEntity, TProperty}"/>) to ensure the list of SIDs are valid.
+        /// Adds a <see cref="IReferenceDataCodeList"/> validation (see <see cref="ReferenceDataRule{TEntity, TProperty}"/>) to ensure the list of SIDs are valid.
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TProperty">The property <see cref="Type"/> (must inherit from <see cref="IReferenceDataSidList"/>).</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/> (must inherit from <see cref="IReferenceDataCodeList"/>).</typeparam>
         /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="allowDuplicates">Indicates whether duplicate values are allowed.</param>
         /// <param name="minCount">The minimum count.</param>
         /// <param name="maxCount">The maximum count.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty?> AreValid<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty?> rule, bool allowDuplicates = false, int minCount = 0, int? maxCount = null, LText? errorText = null) where TEntity : class where TProperty : IReferenceDataSidList
+        public static PropertyRuleBase<TEntity, TProperty?> AreValid<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty?> rule, bool allowDuplicates = false, int minCount = 0, int? maxCount = null, LText? errorText = null) where TEntity : class where TProperty : IReferenceDataCodeList
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ReferenceDataSidListRule<TEntity, TProperty> { AllowDuplicates = allowDuplicates, MinCount = minCount, MaxCount = maxCount, ErrorText = errorText });
 
         /// <summary>
@@ -785,7 +785,7 @@ namespace CoreEx.Validation
         /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="customAsync">The custom function.</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Custom<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task> customAsync) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> CustomAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task> customAsync) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CustomRule<TEntity, TProperty>(customAsync));
 
         #endregion
@@ -826,7 +826,7 @@ namespace CoreEx.Validation
         /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="overrideFuncAsync">The override function.</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Override<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> overrideFuncAsync) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> OverrideAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> overrideFuncAsync) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(overrideFuncAsync));
 
         /// <summary>
@@ -859,7 +859,7 @@ namespace CoreEx.Validation
         /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="defaultFuncAsync">The override function.</param>
         /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Default<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> defaultFuncAsync) where TEntity : class
+        public static PropertyRuleBase<TEntity, TProperty> DefaultAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> defaultFuncAsync) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(defaultFuncAsync) { OnlyOverrideDefault = true });
 
         /// <summary>

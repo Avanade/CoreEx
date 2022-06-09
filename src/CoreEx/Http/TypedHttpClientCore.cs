@@ -37,19 +37,9 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> HeadAsync(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => HeadAsync(requestUri, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Head"/> request to the specified Uri as an asynchronous operation.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> HeadAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> HeadAsync(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.HeadAsync(requestUri, requestOptions, args, cancellationToken);
 
         #endregion
@@ -62,19 +52,9 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> GetAsync(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => GetAsync(requestUri, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> GetAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> GetAsync(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.GetAsync(requestUri, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -84,20 +64,9 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> GetAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => GetAsync<TResponse>(requestUri, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
-        /// </summary>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> GetAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> GetAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.GetAsync<TResponse>(requestUri, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -109,24 +78,9 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TCollResult>> GetCollectionResultAsync<TCollResult, TColl, TItem>(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            where TCollResult : ICollectionResult<TColl, TItem>, new()
-            where TColl : ICollection<TItem>
-            => GetCollectionResultAsync<TCollResult, TColl, TItem>(requestUri, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
-        /// </summary>
-        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> response <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TCollResult>> GetCollectionResultAsync<TCollResult, TColl, TItem>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TCollResult>> GetCollectionResultAsync<TCollResult, TColl, TItem>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             where TCollResult : ICollectionResult<TColl, TItem>, new()
             where TColl : ICollection<TItem>
             => base.GetCollectionResultAsync<TCollResult, TColl, TItem>(requestUri, requestOptions, args, cancellationToken);
@@ -141,19 +95,9 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> PostAsync(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PostAsync(requestUri, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> PostAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> PostAsync(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PostAsync(requestUri, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -163,20 +107,9 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> PostAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PostAsync(requestUri, content, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/>.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="content">The <see cref="HttpContent"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> PostAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> PostAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PostAsync(requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -187,21 +120,9 @@ namespace CoreEx.Http
         /// <param name="value">The request value.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> PostAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PostAsync<TRequest>(requestUri, value, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/>.
-        /// </summary>
-        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="value">The request value.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> PostAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> PostAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PostAsync<TRequest>(requestUri, value, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -211,20 +132,9 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PostAsync<TResponse>(requestUri, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
-        /// </summary>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PostAsync<TResponse>(requestUri, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -235,21 +145,9 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PostAsync<TResponse>(requestUri, content, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
-        /// </summary>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="content">The <see cref="HttpContent"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> PostAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PostAsync<TResponse>(requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -261,22 +159,9 @@ namespace CoreEx.Http
         /// <param name="value">The request value.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> PostAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PostAsync<TRequest, TResponse>(requestUri, value, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
-        /// </summary>
-        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="value">The request value.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> PostAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> PostAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PostAsync<TRequest, TResponse>(requestUri, value, requestOptions, args, cancellationToken);
 
         #endregion
@@ -290,20 +175,9 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> PutAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PutAsync(requestUri, content, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/>.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="content">The <see cref="HttpContent"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> PutAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> PutAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PutAsync(requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -314,21 +188,9 @@ namespace CoreEx.Http
         /// <param name="value">The request value.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult> PutAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PutAsync<TRequest>(requestUri, value, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/>.
-        /// </summary>
-        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="value">The request value.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult> PutAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> PutAsync<TRequest>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PutAsync<TRequest>(requestUri, value, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -339,21 +201,9 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> PutAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PutAsync<TResponse>(requestUri, content, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
-        /// </summary>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="content">The <see cref="HttpContent"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> PutAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> PutAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PutAsync<TResponse>(requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -365,22 +215,9 @@ namespace CoreEx.Http
         /// <param name="value">The request value.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> PutAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PutAsync<TRequest, TResponse>(requestUri, value, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Put"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="value"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
-        /// </summary>
-        /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="value">The request value.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> PutAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> PutAsync<TRequest, TResponse>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PutAsync<TRequest, TResponse>(requestUri, value, requestOptions, args, cancellationToken);
 
         #endregion
@@ -394,20 +231,9 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> PatchAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PatchAsync(requestUri, content, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/>.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="content">The <see cref="HttpContent"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> PatchAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> PatchAsync(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PatchAsync(requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -418,21 +244,9 @@ namespace CoreEx.Http
         /// <param name="json">The JSON formatted as per the selected <paramref name="patchOption"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult> PatchAsync(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PatchAsync(requestUri, patchOption, json, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="json"/>.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="patchOption">The <see cref="HttpPatchOption"/>.</param>
-        /// <param name="json">The JSON formatted as per the selected <paramref name="patchOption"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult> PatchAsync(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> PatchAsync(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PatchAsync(requestUri, patchOption, json, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -443,21 +257,9 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpContent"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => PatchAsync<TResponse>(requestUri, content, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="content"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
-        /// </summary>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="content">The <see cref="HttpContent"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PatchAsync<TResponse>(requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -469,22 +271,9 @@ namespace CoreEx.Http
         /// <param name="json">The JSON formatted as per the selected <paramref name="patchOption"/>.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions, params IHttpArg[] args)
-            => PatchAsync<TResponse>(requestUri, patchOption, json, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Patch"/> request to the specified Uri as an asynchronous operation with the specified <paramref name="json"/> and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
-        /// </summary>
-        /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="patchOption">The <see cref="HttpPatchOption"/>.</param>
-        /// <param name="json">The JSON formatted as per the selected <paramref name="patchOption"/>.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult<TResponse>> PatchAsync<TResponse>(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.PatchAsync<TResponse>(requestUri, patchOption, json, requestOptions, args, cancellationToken);
 
         #endregion
@@ -497,19 +286,9 @@ namespace CoreEx.Http
         /// <param name="requestUri">The Uri the request is sent to.</param>
         /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <returns>The <see cref="HttpResult"/>.</returns>
-        public Task<HttpResult> DeleteAsync(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
-            => DeleteAsync(requestUri, requestOptions, args, default);
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Delete"/> request to the specified Uri as an asynchronous operation.
-        /// </summary>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        public new Task<HttpResult> DeleteAsync(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
+        public new Task<HttpResult> DeleteAsync(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.DeleteAsync(requestUri, requestOptions, args, cancellationToken);
 
         #endregion

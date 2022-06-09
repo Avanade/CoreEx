@@ -9,6 +9,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -438,14 +439,14 @@ namespace CoreEx.Test.Framework.RefData
         [Test]
         public void SidList()
         {
-            var sl = new ReferenceDataSidList<int, RefData>("A", "B");
+            var sl = new ReferenceDataCodeList<RefData>("A", "B");
             Assert.AreEqual("A", sl[0].Code);
             Assert.AreEqual(0, sl[0].Id);
             Assert.AreEqual("B", sl[1].Code);
             Assert.AreEqual(0, sl[1].Id);
 
             var sids = new System.Collections.Generic.List<string?>() { "A" };
-            sl = new ReferenceDataSidList<int, RefData>(ref sids);
+            sl = new ReferenceDataCodeList<RefData>(ref sids);
             Assert.AreEqual(1, sl.Count);
             Assert.AreEqual("A", sl[0].Code);
             Assert.AreEqual(0, sl[0].Id);
@@ -477,7 +478,7 @@ namespace CoreEx.Test.Framework.RefData
             Assert.IsFalse(sl.HasInvalidItems);
 
             sids = new System.Collections.Generic.List<string?>() { "A" };
-            sl = new ReferenceDataSidList<int, RefData>(ref sids);
+            sl = new ReferenceDataCodeList<RefData>(ref sids);
             Assert.AreEqual(1, sl.Count);
 
             sl.Add((RefData)"B");
@@ -485,7 +486,7 @@ namespace CoreEx.Test.Framework.RefData
             Assert.AreEqual(2, sids!.Count);
             Assert.AreEqual(new string?[] { "A", "B" }, sids);
 
-            Assert.AreEqual(new int[] { 1, 2 }, sl.ToIdList());
+            Assert.AreEqual(new int[] { 1, 2 }, sl.ToIdList<int>());
             Assert.AreEqual(new string?[] { "A", "B" }, sl.ToCodeList());
         }
 
@@ -831,6 +832,7 @@ namespace CoreEx.Test.Framework.RefData
     {
         public static implicit operator RefData(int id) => ConvertFromId(id);
 
+        [return: NotNullIfNotNull("code")]
         public static implicit operator RefData?(string? code) => ConvertFromCode(code);
     }
 
@@ -838,6 +840,7 @@ namespace CoreEx.Test.Framework.RefData
 
     public class RefDataEx : ReferenceDataBase<string, RefDataEx>
     {
+        [return: NotNullIfNotNull("code")]
         public static implicit operator RefDataEx?(string? code) => ConvertFromCode(code);
     }
 

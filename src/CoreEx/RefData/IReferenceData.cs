@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CoreEx.RefData
 {
@@ -94,6 +95,6 @@ namespace CoreEx.RefData
         /// <param name="name">The mapping name.</param>
         /// <param name="value">The mapping value.</param>
         /// <returns><c>true</c> indicates that the name exists; otherwise, <c>false</c>.</returns>
-        public bool TryGetMapping<T>(string name, out T? value) where T : IComparable<T?>, IEquatable<T?> { value = default!; return false; }
+        public bool TryGetMapping<T>(string name, [NotNullWhen(true)] out T? value) where T : IComparable<T?>, IEquatable<T?> { value = default!; return false; }
     }
 }

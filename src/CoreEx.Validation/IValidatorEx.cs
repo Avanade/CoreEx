@@ -17,6 +17,6 @@ namespace CoreEx.Validation
         /// <param name="args">An optional <see cref="ValidationArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IValidationContext"/>.</returns>
-        Task<IValidationContext> ValidateAsync(object? value, ValidationArgs? args, CancellationToken cancellationToken);
+        Task<IValidationContext> ValidateAsync(object value, ValidationArgs? args, CancellationToken cancellationToken);
     }
 }
