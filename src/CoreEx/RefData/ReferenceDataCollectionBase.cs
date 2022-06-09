@@ -14,8 +14,8 @@ namespace CoreEx.RefData
     /// </summary>
     /// <typeparam name="TId">The <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TRef">The <see cref="IReferenceData{TId}"/> <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TSelf">The <see cref="ReferenceDataCollection{TId, TRef, TSelf}"/> itself.</typeparam>
-    public class ReferenceDataCollection<TId, TRef, TSelf> : ReferenceDataCollection<TId, TRef> where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId> where TSelf : ReferenceDataCollection<TId, TRef, TSelf>, new()
+    /// <typeparam name="TSelf">The <see cref="ReferenceDataCollectionBase{TId, TRef, TSelf}"/> itself.</typeparam>
+    public abstract class ReferenceDataCollectionBase<TId, TRef, TSelf> : ReferenceDataCollection<TId, TRef> where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId> where TSelf : ReferenceDataCollectionBase<TId, TRef, TSelf>, new()
     {
         /// <summary>
         /// Creates an instance of <typeparamref name="TSelf"/> and adds from the <paramref name="source"/>.
@@ -39,7 +39,6 @@ namespace CoreEx.RefData
         /// <returns>An instance of <typeparamref name="TSelf"/>.</returns>
         public static Task<TSelf> CreateAsync(IQueryable<TRef> source, CancellationToken cancellationToken = default) 
             => CreateAsync(source is IAsyncEnumerable<TRef> ae ? ae : throw new ArgumentException("The source must implement IAsyncEnumerable<TRef>.", nameof(source)), cancellationToken);
-
 
         /// <summary>
         /// Creates an instance of <typeparamref name="TSelf"/> and adds from the <paramref name="source"/> asynchronously.

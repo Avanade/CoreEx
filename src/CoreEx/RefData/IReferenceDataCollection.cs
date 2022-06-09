@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CoreEx.RefData
 {
@@ -53,7 +54,7 @@ namespace CoreEx.RefData
         /// <param name="id">The <see cref="IIdentifier.Id"/>.</param>
         /// <param name="item">The corresponding <see cref="IReferenceData"/> item where found; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        bool TryGetById(object id, out IReferenceData? item);
+        bool TryGetById(object id, [NotNullWhen(true)] out IReferenceData? item);
 
         /// <summary>
         /// Attempts to get the <paramref name="item"/> with the specifed <paramref name="code"/>.
@@ -61,7 +62,7 @@ namespace CoreEx.RefData
         /// <param name="code">The <see cref="IReferenceData.Code"/>.</param>
         /// <param name="item">The corresponding <see cref="IReferenceData"/> item where found; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        bool TryGetByCode(string code, out IReferenceData? item);
+        bool TryGetByCode(string code, [NotNullWhen(true)] out IReferenceData? item);
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> for the specified <see cref="IIdentifier.Id"/>.
@@ -94,7 +95,7 @@ namespace CoreEx.RefData
         /// <param name="value">The mapping value.</param>
         /// <param name="item">The corresponding <see cref="IReferenceData"/> item where found; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        bool TryGetByMapping<T>(string name, T value, out IReferenceData? item) where T : IComparable<T>, IEquatable<T>;
+        bool TryGetByMapping<T>(string name, T value, [NotNullWhen(true)] out IReferenceData? item) where T : IComparable<T>, IEquatable<T>;
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> for the specified <see cref="IReferenceData.GetMapping{T}(string)"/> value.

@@ -16,7 +16,7 @@ namespace CoreEx.Validation
         Type IValidator.ValueType => typeof(T);
 
         /// <inheritdoc/>
-        async Task<IValidationResult> IValidator.ValidateAsync(object? value, CancellationToken cancellationToken) => await ValidateAsync((T)value!, cancellationToken).ConfigureAwait(false);
+        async Task<IValidationResult> IValidator.ValidateAsync(object value, CancellationToken cancellationToken) => await ValidateAsync((T)value!, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Validate the <paramref name="value"/> asynchronously.
@@ -24,6 +24,6 @@ namespace CoreEx.Validation
         /// <param name="value">The value to validate.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IValidationResult"/>.</returns>
-        Task<IValidationResult<T>> ValidateAsync(T? value, CancellationToken cancellationToken);
+        Task<IValidationResult<T>> ValidateAsync(T value, CancellationToken cancellationToken = default);
     }
 }

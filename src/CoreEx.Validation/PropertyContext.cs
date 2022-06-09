@@ -57,6 +57,11 @@ namespace CoreEx.Validation
         }
 
         /// <summary>
+        /// Gets the <see cref="ExecutionContext.Current"/> instance.
+        /// </summary>
+        public CoreEx.ExecutionContext ExecutionContext => ExecutionContext.Current;
+
+        /// <summary>
         /// Gets the <see cref="ValidationContext{TEntity}"/> for the parent entity.
         /// </summary>
         public ValidationContext<TEntity> Parent { get; }

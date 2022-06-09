@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace CoreEx.Entities.Extended
@@ -140,7 +141,7 @@ namespace CoreEx.Entities.Extended
         public bool ContainsKey(TKey key) => _dict.ContainsKey(key);
 
         /// <inheritdoc/>
-        public bool TryGetValue(TKey key, out TValue value) => _dict.TryGetValue(key, out value);
+        public bool TryGetValue(TKey key, [NotNullWhen(true)] out TValue value) => _dict.TryGetValue(key, out value);
 
         /// <inheritdoc/>
         public bool Remove(TKey key) => TryGetValue(key, out var value) && RemoveItem(new KeyValuePair<TKey, TValue>(key, value));

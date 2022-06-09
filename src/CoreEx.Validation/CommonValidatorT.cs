@@ -123,7 +123,7 @@ namespace CoreEx.Validation
         }
 
         /// <inheritdoc/>
-        async Task<ValidationContext<T>> IValidatorEx<T>.ValidateAsync(T? value, ValidationArgs? args, CancellationToken cancellationToken)
+        async Task<ValidationContext<T>> IValidatorEx<T>.ValidateAsync(T value, ValidationArgs? args, CancellationToken cancellationToken)
         {
             var context = new ValidationContext<T>(value, args ?? new ValidationArgs());
             var ir = await ValidateAsync(value, context.FullyQualifiedEntityName, context.FullyQualifiedEntityName, Text, cancellationToken: cancellationToken).ConfigureAwait(false);

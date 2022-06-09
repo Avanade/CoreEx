@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace CoreEx.Json
@@ -112,6 +113,6 @@ namespace CoreEx.Json
         /// <param name="memberInfo">The <see cref="MemberInfo"/></param>
         /// <param name="jsonName">The JSON name where underlying JSON attribute is defined or not; <c>null</c> where not serializable.</param>
         /// <returns><c>true</c> indicates that the property is considered serializable; otherwise, <c>false</c>.</returns>
-        bool TryGetJsonName(MemberInfo memberInfo, out string? jsonName);
+        bool TryGetJsonName(MemberInfo memberInfo, [NotNullWhen(true)] out string? jsonName);
     }
 }

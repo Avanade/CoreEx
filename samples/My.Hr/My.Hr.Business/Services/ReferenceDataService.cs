@@ -12,7 +12,7 @@ public class ReferenceDataService : IReferenceDataProvider
     {
         Type _ when type == typeof(USState) => await GetUSStatesAsync().ConfigureAwait(false),
         Type _ when type == typeof(Gender) => await GetGendersAsync().ConfigureAwait(false),
-        _ => throw new InvalidOperationException()
+        _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")
     };
 
     public Task<USStateCollection> GetUSStatesAsync() => USStateCollection.CreateAsync(_dbContext.USStates.AsNoTracking());

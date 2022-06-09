@@ -7,7 +7,7 @@ using System.Linq;
 namespace CoreEx.Validation
 {
     /// <summary>
-    /// Represents the result of a <see cref="ValueValidator{T}"/> or <see cref="ValueValidator{TEntity, TProperty}"/>.
+    /// Represents the result of a <see cref="ValueValidator{T}"/>.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>

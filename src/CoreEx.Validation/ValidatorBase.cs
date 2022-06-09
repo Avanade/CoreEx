@@ -20,6 +20,11 @@ namespace CoreEx.Validation
         internal protected List<IPropertyRule<TEntity>> Rules { get; } = new List<IPropertyRule<TEntity>>();
 
         /// <summary>
+        /// Gets the <see cref="ExecutionContext.Current"/> instance.
+        /// </summary>
+        public CoreEx.ExecutionContext ExecutionContext => ExecutionContext.Current;
+
+        /// <summary>
         /// Adds a <see cref="PropertyRule{TEntity, TProperty}"/> to the validator.
         /// </summary>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
@@ -33,6 +38,6 @@ namespace CoreEx.Validation
         }
 
         /// <inheritdoc/>
-        public virtual Task<ValidationContext<TEntity>> ValidateAsync(TEntity? value, ValidationArgs? args, CancellationToken cancellationToken = default) => throw new NotSupportedException("Validate is not supported by this class.");
+        public virtual Task<ValidationContext<TEntity>> ValidateAsync(TEntity value, ValidationArgs? args, CancellationToken cancellationToken = default) => throw new NotSupportedException("Validate is not supported by this class.");
     }
 }

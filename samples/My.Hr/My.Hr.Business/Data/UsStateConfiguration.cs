@@ -19,6 +19,5 @@ public class UsStateConfiguration : IEntityTypeConfiguration<USState>
         entity.Ignore(p => p.IsValid);
         entity.Ignore(p => p.IsChanged);
         entity.Ignore(p => p.IsInitial);
-        entity.Ignore(p => p.NotifyChangesWhenSameValue);
     }
 }

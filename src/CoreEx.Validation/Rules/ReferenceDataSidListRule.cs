@@ -10,9 +10,9 @@ using System.Threading.Tasks;
 namespace CoreEx.Validation.Rules
 {
     /// <summary>
-    /// Provides validation for a <see cref="IReferenceDataSidList"/> including <see cref="MinCount"/>, <see cref="MaxCount"/>, per item <see cref="IReferenceData.IsValid"/>, and whether to <see cref="AllowDuplicates"/>.
+    /// Provides validation for a <see cref="IReferenceDataCodeList"/> including <see cref="MinCount"/>, <see cref="MaxCount"/>, per item <see cref="IReferenceData.IsValid"/>, and whether to <see cref="AllowDuplicates"/>.
     /// </summary>
-    public class ReferenceDataSidListRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty?> where TEntity : class where TProperty : IReferenceDataSidList
+    public class ReferenceDataSidListRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty?> where TEntity : class where TProperty : IReferenceDataCodeList
     {
         /// <summary>
         /// Gets or sets the minimum count;

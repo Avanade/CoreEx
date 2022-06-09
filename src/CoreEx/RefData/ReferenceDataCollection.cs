@@ -4,6 +4,7 @@ using CoreEx.Entities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace CoreEx.RefData
@@ -128,7 +129,7 @@ namespace CoreEx.RefData
         public bool ContainsId(TId id) => _rdcId.ContainsKey(id);
 
         /// <inheritdoc/>
-        public bool TryGetById(TId id, out TRef? item)
+        public bool TryGetById(TId id, [NotNullWhen(true)] out TRef? item)
         {
             if (id != null)
                 return _rdcId.TryGetValue(id, out item);
@@ -144,7 +145,7 @@ namespace CoreEx.RefData
         public bool ContainsCode(string code) => _rdcCode.ContainsKey(code);
 
         /// <inheritdoc/>
-        public bool TryGetByCode(string code, out TRef? item)
+        public bool TryGetByCode(string code, [NotNullWhen(true)] out TRef? item)
         {
             if (code != null)
                 return _rdcCode.TryGetValue(code, out item);
@@ -160,7 +161,7 @@ namespace CoreEx.RefData
         public bool ContainsMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => _mappingsDict != null && _mappingsDict.ContainsKey((name, value));
 
         /// <inheritdoc/>
-        bool IReferenceDataCollection.TryGetByMapping<T>(string name, T value, out IReferenceData? item)
+        bool IReferenceDataCollection.TryGetByMapping<T>(string name, T value, [NotNullWhen(true)] out IReferenceData? item)
         {
             var r = TryGetByMapping<T>(name, value, out TRef? itemx);
             item = itemx;
@@ -168,7 +169,7 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        public bool TryGetByMapping<T>(string name, T value, out TRef? item) where T : IComparable<T>, IEquatable<T>
+        public bool TryGetByMapping<T>(string name, T value, [NotNullWhen(true)] out TRef? item) where T : IComparable<T>, IEquatable<T>
         {
             if (_mappingsDict != null)
                 return _mappingsDict.TryGetValue((name, value), out item);

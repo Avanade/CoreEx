@@ -14,7 +14,7 @@ namespace CoreEx
     /// Represents a thread-bound (request) execution context using <see cref="AsyncLocal{ExecutionContext}"/>.
     /// </summary>
     /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments. This class should be extended by consumers where additional properties are required.</remarks>
-    public class ExecutionContext : IETag
+    public class ExecutionContext : ITenantId
     {
         private static readonly AsyncLocal<ExecutionContext?> _asyncLocal = new();
 
@@ -38,7 +38,7 @@ namespace CoreEx
         /// </summary>
         /// <remarks>Where not previously set (see <see cref="SetCurrent(ExecutionContext?)"/> then the <see cref="Create"/> will be invoked as a backup to create an instance.</remarks>
         public static ExecutionContext Current => _asyncLocal.Value ??= Create?.Invoke() ?? 
-            throw new InvalidOperationException("There is currently no ExecutionContext.Current instance; this must be set (SetCurrent) prior to access. Use ExecutionContext.HasCurrent to verify value and avoid this exception.");
+            throw new InvalidOperationException("There is currently no ExecutionContext.Current instance; this must be set (SetCurrent) prior to access. Use ExecutionContext.HasCurrent to verify value and avoid this exception if appropriate.");
 
         /// <summary>
         /// Resets (clears) the <see cref="Current"/> <see cref="ExecutionContext"/>.
@@ -121,6 +121,12 @@ namespace CoreEx
         public static ISystemTime SystemTime => GetService<ISystemTime>() ?? CoreEx.SystemTime.Default;
 
         /// <summary>
+        /// Gets the username from the <see cref="Environment"/> settings.
+        /// </summary>
+        /// <returns>The fully qualified username.</returns>
+        public static string EnvironmentUsername => Environment.UserDomainName == null ? Environment.UserName : Environment.UserDomainName + "\\" + Environment.UserName;
+
+        /// <summary>
         /// Gets the <see cref="ServiceProvider"/>.
         /// </summary>
         /// <remarks>This is automatically set via the <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
@@ -153,10 +159,15 @@ namespace CoreEx
         public string? Username { get; set; }
 
         /// <summary>
-        /// Gets the timestamp for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).
+        /// Gets or sets the tenant identifier.
         /// </summary>
-        /// <remarks>Gets the value from <see cref="ISystemTime"/>, where this has not been registered it will default to <see cref="DateTime.UtcNow"/>. The value will also be passed through <see cref="Cleaner.Clean(DateTime)"/>.</remarks>
-        public DateTime Timestamp => _timestamp ??= Cleaner.Clean(GetService<ISystemTime>()?.UtcNow ?? DateTime.UtcNow);
+        public string? TenantId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the timestamp for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).
+        /// </summary>
+        /// <remarks>Defaults the value from <see cref="ISystemTime"/>, where this has not been registered it will default to <see cref="DateTime.UtcNow"/>. The value will also be passed through <see cref="Cleaner.Clean(DateTime)"/>.</remarks>
+        public DateTime Timestamp { get => _timestamp ??= Cleaner.Clean(GetService<ISystemTime>()?.UtcNow ?? DateTime.UtcNow); set => _timestamp = Cleaner.Clean(value); }
 
         /// <summary>
         /// Gets the <see cref="MessageItemCollection"/> to be passed back to the originating consumer.

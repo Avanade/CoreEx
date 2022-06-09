@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace My.Hr.Business.Models;
 
 /// <summary>
@@ -28,6 +30,7 @@ public class Employee : IIdentifier<Guid>, IETag
     /// <summary>
     /// Gets or sets the 'GenderCode' column value.
     /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public Gender? Gender { get; set; }
 
     /// <summary>

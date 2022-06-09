@@ -25,7 +25,7 @@ public class AgifyApiClient : TypedHttpClientCore<AgifyApiClient>
         var response = await
             WithRetry(1, 5)
             .ThrowTransientException()
-            .GetAsync<AgifyResponse>(string.Empty, null, new HttpArg<string>("name", name));
+            .GetAsync<AgifyResponse>(string.Empty, null, HttpArgs.Create(new HttpArg<string>("name", name)));
 
         return response.Value;
     }

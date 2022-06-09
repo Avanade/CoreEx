@@ -890,7 +890,7 @@ namespace CoreEx.WebApis
                 {
                     if (validator != null)
                     {
-                        var vr = await validator.ValidateAsync(Value, ct).ConfigureAwait(false);
+                        var vr = await validator.ValidateAsync(Value!, ct).ConfigureAwait(false);
                         if (vr.HasErrors)
                             return vr.ToValidationException()!.ToResult();
                     }

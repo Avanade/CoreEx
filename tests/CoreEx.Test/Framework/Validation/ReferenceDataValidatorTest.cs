@@ -20,9 +20,13 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Validate_Null()
         {
-            var r = await new ReferenceDataValidator<Gender>().ValidateAsync(null);
+            var r = await new ReferenceDataValidator<Gender>().ValidateAsync(null!);
             Assert.IsNotNull(r);
-            Assert.IsFalse(r.HasErrors);
+            Assert.IsTrue(r.HasErrors);
+            Assert.AreEqual(1, r.Messages!.Count);
+            Assert.AreEqual("Value is required.", r.Messages[0].Text);
+            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
+            Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]

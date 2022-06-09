@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.Mime;
@@ -174,7 +175,7 @@ namespace CoreEx.WebApis
         /// <param name="value">The value.</param>
         /// <param name="etag">The ETag for the value where it exists.</param>
         /// <returns><c>true</c> indicates that the ETag value exists; otherwise, <c>false</c> to generate.</returns>
-        internal static bool TryGetETag(object value, out string? etag)
+        internal static bool TryGetETag(object value, [NotNullWhen(true)] out string? etag)
         {
             if (value is IETag ietag && ietag.ETag != null)
             {

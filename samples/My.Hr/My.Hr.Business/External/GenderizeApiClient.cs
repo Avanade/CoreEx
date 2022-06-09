@@ -6,7 +6,7 @@ namespace My.Hr.Business.External;
 public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
 {
     public GenderizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings, ILogger<TypedHttpClientCore<GenderizeApiClient>> logger)
-            : base(client, jsonSerializer, executionContext, settings, logger)
+        : base(client, jsonSerializer, executionContext, settings, logger)
     {
         if (!Uri.IsWellFormedUriString(settings.GenderizeApiClientApiEndpointUri, UriKind.Absolute))
             throw new InvalidOperationException(@$"The Api endpoint URI is not valid: {settings.GenderizeApiClientApiEndpointUri}. Provide valid Api endpoint URI in the configuration '{nameof(settings.GenderizeApiClientApiEndpointUri)}'.
@@ -17,7 +17,7 @@ public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
 
     public override Task<HttpResult> HealthCheckAsync(CancellationToken cancellationToken = default)
     {
-        return base.HeadAsync(string.Empty, null, new HttpArg<string>("name", "health"));
+        return base.HeadAsync(string.Empty, null, HttpArgs.Create(new HttpArg<string>("name", "health")), cancellationToken);
     }
 
     public async Task<GenderizeResponse> GetGenderAsync(string name)
@@ -25,7 +25,7 @@ public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
         var response = await
             WithRetry(1, 5)
             .ThrowTransientException()
-            .GetAsync<GenderizeResponse>(string.Empty, null, new HttpArg<string>("name", name));
+            .GetAsync<GenderizeResponse>(string.Empty, null, HttpArgs.Create(new HttpArg<string>("name", name)));
 
         return response.Value;
     }

@@ -22,9 +22,14 @@ namespace CoreEx.Validation
         private Func<ValidationContext<TEntity>, CancellationToken, Task>? _additionalAsync;
 
         /// <inheritdoc/>
-        public override async Task<ValidationContext<TEntity>> ValidateAsync(TEntity? value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
+        public override async Task<ValidationContext<TEntity>> ValidateAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
         {
             var context = new ValidationContext<TEntity>(value, args ?? new ValidationArgs());
+            if (value is null)
+            {
+                context.AddMessage(nameof(value), nameof(value), MessageType.Error, ValidatorStrings.MandatoryFormat, Validation.ValueTextDefault);
+                return context;
+            }
 
             // Validate each of the property rules.
             foreach (var rule in Rules)

@@ -3,6 +3,7 @@
 using CloudNative.CloudEvents;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Mime;
 using System.Threading;
@@ -209,7 +210,7 @@ namespace CoreEx.Events
         /// <param name="name">The attribute name.</param>
         /// <param name="value">The attribute value.</param>
         /// <returns><c>true</c> indicates that the extension attribute exists; otherwise, <c>false</c>.</returns>
-        private static bool TryGetExtensionAttribute<T>(CloudEvent ce, string name, out T value)
+        private static bool TryGetExtensionAttribute<T>(CloudEvent ce, string name, [NotNullWhen(true)] out T? value)
         {
             value = default!;
             var val = ce[name];

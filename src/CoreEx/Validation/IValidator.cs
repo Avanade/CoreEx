@@ -22,6 +22,6 @@ namespace CoreEx.Validation
         /// <param name="value">The value to validate.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IValidationResult"/>.</returns>
-        Task<IValidationResult> ValidateAsync(object? value, CancellationToken cancellationToken);
+        Task<IValidationResult> ValidateAsync(object value, CancellationToken cancellationToken = default);
     }
 }

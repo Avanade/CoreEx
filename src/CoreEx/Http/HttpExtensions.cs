@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -256,7 +257,7 @@ namespace CoreEx.Http
         /// <param name="name">The header name.</param>
         /// <param name="value">The header value where found.</param>
         /// <returns><c>true</c> where the header value is found; otherwise, <c>false</c>.</returns>
-        public static bool TryGetHeaderValue(this HttpResponseMessage response, string name, out string? value)
+        public static bool TryGetHeaderValue(this HttpResponseMessage response, string name, [NotNullWhen(true)] out string? value)
         {
             value = null;
             if (response == null || response.Headers == null || string.IsNullOrEmpty(name))
@@ -277,7 +278,7 @@ namespace CoreEx.Http
         /// <param name="response">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="result">The <see cref="PagingResult"/> where found.</param>
         /// <returns><c>true</c> where the <see cref="PagingResult"/> is found; otherwise, <c>false</c>.</returns>
-        public static bool TryGetPagingResult(this HttpResponseMessage response, out PagingResult? result)
+        public static bool TryGetPagingResult(this HttpResponseMessage response, [NotNullWhen(true)] out PagingResult? result)
         {
             var skip = HttpUtility.ParseLongValue(TryGetHeaderValue(response, HttpConsts.PagingSkipHeaderName, out var vs) ? vs : null);
             var page = skip.HasValue ? null : HttpUtility.ParseLongValue(TryGetHeaderValue(response, HttpConsts.PagingPageNumberHeaderName, out var vpn) ? vpn : null);
