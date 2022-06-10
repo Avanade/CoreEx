@@ -62,6 +62,11 @@ namespace CoreEx.Events
         Attributes = 256,
 
         /// <summary>
+        /// Selects the <see cref="EventDataBase.TimeToLive"/> property.
+        /// </summary>
+        TimeToLive = 512,
+
+        /// <summary>
         /// Selects all of the properties.
         /// </summary>
         All = AllExceptAttributes | Attributes,
@@ -69,6 +74,6 @@ namespace CoreEx.Events
         /// <summary>
         /// Selects all of the properties except <see cref="Attributes"/>.
         /// </summary>
-        AllExceptAttributes = Subject | Action | Type | Source | TenantId | PartitionKey | ETag | CorrelationId
+        AllExceptAttributes = Subject | Action | Type | Source | TenantId | PartitionKey | ETag | CorrelationId,
     }
 }

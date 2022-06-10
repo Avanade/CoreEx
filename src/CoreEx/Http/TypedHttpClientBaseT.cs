@@ -37,8 +37,9 @@ namespace CoreEx.Http
         private bool _throwKnownException;
         private bool _throwKnownUseContentAsMessage;
         private PolicyBuilder<HttpResponseMessage>? _retryPolicy;
-        private Func<HttpResponseMessage?, Exception?, bool> _isTransient = IsTransient;
+        private Func<HttpResponseMessage?, Exception?, (bool result, string error)> _isTransient = IsTransient;
         private TimeSpan? _timeout;
+        private TimeSpan? _maxRetryDelay;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TypedHttpClientBase{TBase}"/>.
@@ -98,7 +99,7 @@ namespace CoreEx.Http
         /// <param name="predicate">An optional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
-        public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, bool>? predicate = null)
+        public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, (bool result, string error)>? predicate = null)
         {
             _throwTransientException = true;
             _isTransient = predicate ?? IsTransient;
@@ -219,6 +220,7 @@ namespace CoreEx.Http
             _ensureSuccess = false;
             _ensureStatusCodes = null;
             _timeout = null;
+            _maxRetryDelay = null;
 
             return (TSelf)this;
         }
@@ -235,7 +237,7 @@ namespace CoreEx.Http
         {
             HttpResponseMessage? response = null;
             CancellationTokenSource? cts = null;
-            
+
             try
             {
                 try
@@ -247,9 +249,26 @@ namespace CoreEx.Http
                     await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
 
                     var req = request;
-                    response = await (_retryPolicy ?? HttpPolicyExtensions.HandleTransientHttpError().Or<SocketException>().Or<TimeoutException>())
-                        .WaitAndRetryAsync(_retryCount ?? 0, attempt => TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500))),
-                        async (result, timeSpan, retryCount, context) =>
+                    response = await (_retryPolicy ?? HttpPolicyExtensions.HandleTransientHttpError().Or<SocketException>().Or<TimeoutException>().OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests))
+                        .WaitAndRetryAsync(_retryCount ?? 0,
+                        sleepDurationProvider: (attempt, e, Context) =>
+                        {
+                            TimeSpan? delay = null;
+                            if (e.Result?.Headers.RetryAfter?.Delta != null)
+                            {
+                                delay = e.Result.Headers.RetryAfter.Delta.Value;
+                            }
+                            if (e.Result?.Headers.RetryAfter?.Date != null)
+                            {
+                                delay = e.Result.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
+                            }
+                            // calculate exponential with jitter
+                            delay ??= TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500)));
+                            // do not go over max delay
+                            var maxDelay = _maxRetryDelay ?? Settings.MaxRetryDelay;
+                            return delay.Value > maxDelay ? maxDelay : delay.Value;
+                        },
+                        onRetryAsync: async (result, timeSpan, retryCount, context) =>
                         {
                             if (result.Exception == null)
                                 Logger.LogWarning("Request failed with {HttpStatusCodeText} ({HttpStatusCode}). Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
@@ -258,7 +277,7 @@ namespace CoreEx.Http
                                 Logger.LogWarning(result.Exception, "Request failed with '{ErrorMessage}' Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
                                     result.Exception.Message, timeSpan, retryCount);
 
-                        // Clone and dispose of existing request to avoid error: The request message was already sent. Cannot send the same request message multiple times.
+                            // Clone and dispose of existing request to avoid error: The request message was already sent. Cannot send the same request message multiple times.
                             var tmp = await CloneAsync(req).ConfigureAwait(false);
                             req.Dispose();
                             req = tmp;
@@ -279,14 +298,17 @@ namespace CoreEx.Http
 
                     await RequestLogger.LogResponseAsync(request, response, sw.Elapsed, cancellationToken).ConfigureAwait(false);
                 }
-                catch (TimeoutException tex)
+                catch (Exception tex)
+                     when (tex is TimeoutException || tex is SocketException)
                 {
+                    // both TimeoutException and SocketException are transient and indicate a connection was terminated
                     throw new TransientException("Timeout when calling service", tex);
                 }
                 catch (HttpRequestException hrex)
                 {
-                    if (_throwTransientException && _isTransient(null, hrex))
-                        throw new TransientException(null, hrex);
+                    (bool isTransient, string error) = IsTransient(null, hrex);
+                    if (_throwTransientException && isTransient)
+                        throw new TransientException(error, hrex);
 
                     throw;
                 }
@@ -296,8 +318,9 @@ namespace CoreEx.Http
                 }
 
                 // This is the result of the final request after leaving the retry policy logic.
-                if (_throwTransientException && _isTransient(response, null))
-                    throw new TransientException();
+                (bool wasTransient, string errorMsg) = IsTransient(response, null);
+                if (_throwTransientException && wasTransient)
+                    throw new TransientException(errorMsg);
 
                 if (_throwKnownException)
                 {
@@ -327,6 +350,17 @@ namespace CoreEx.Http
         public TSelf WithTimeout(TimeSpan timeout)
         {
             _timeout = timeout;
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Sets max retry delay that polly retries will be capped with (this affects mostly 429 and 503 responses that can return Retry-After header).
+        /// Default is 30s but it can be overridden for async calls (e.g. when using service bus trigger).
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        public TSelf WithMaxRetryDelay(TimeSpan maxRetryDelay)
+        {
+            _maxRetryDelay = maxRetryDelay;
             return (TSelf)this;
         }
 

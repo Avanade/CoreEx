@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using Azure.Messaging.ServiceBus;
-using CoreEx.Configuration;
-using CoreEx.Events;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
+using CoreEx.Configuration;
+using CoreEx.Events;
+using Microsoft.Extensions.Logging;
 
 namespace CoreEx.Azure.ServiceBus
 {
@@ -118,6 +118,9 @@ namespace CoreEx.Azure.ServiceBus
 
                 if (@event.ETag != null && PropertySelection.HasFlag(EventDataProperty.ETag))
                     msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
+
+                if (@event.TimeToLive != null && PropertySelection.HasFlag(EventDataProperty.TimeToLive))
+                    msg.TimeToLive = @event.TimeToLive.Value;
 
                 if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
                 {
