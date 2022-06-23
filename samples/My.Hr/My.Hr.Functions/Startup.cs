@@ -13,6 +13,7 @@ using My.Hr.Business;
 using My.Hr.Business.Data;
 using My.Hr.Business.Services;
 using My.Hr.Business.External;
+using CoreEx.Database;
 
 [assembly: FunctionsStartup(typeof(My.Hr.Functions.Startup))]
 
@@ -67,7 +68,7 @@ public class Startup : FunctionsStartup
 
             // Database
             builder.Services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()));
-            builder.Services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<HrDb>().GetConnection()));
+            builder.Services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
         }
         catch (System.Exception ex)
         {

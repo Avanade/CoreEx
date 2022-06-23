@@ -14,7 +14,7 @@ namespace My.Hr.UnitTest
     public class ReferenceDataControllerTest
     {
         [OneTimeSetUp]
-        public Task Init() => new EmployeeControllerTest().Init();
+        public Task Init() => EmployeeControllerTest.Init();
 
         [Test]
         public void A100_USState_All()
