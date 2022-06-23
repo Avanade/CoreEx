@@ -35,7 +35,7 @@ namespace CoreEx.Entities.Extended
         public EntityCollectionResult(PagingArgs? paging)
         {
             if (paging != null)
-                _paging = new PagingResult(paging);
+                _paging = Paging is PagingResult pr ? pr : new PagingResult(paging);
         }
 
         /// <summary>

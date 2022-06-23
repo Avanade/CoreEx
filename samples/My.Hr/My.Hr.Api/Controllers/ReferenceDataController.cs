@@ -1,9 +1,10 @@
 namespace My.Hr.Api.Controllers;
 
 [Route("api/ref")]
+[Produces(MediaTypeNames.Application.Json)]
 public class ReferenceDataController : ControllerBase
 {
-    private readonly WebApi _webApi;
+    private readonly ReferenceDataContentWebApi _webApi;
     private readonly ReferenceDataOrchestrator _orchestrator;
 
     public ReferenceDataController(ReferenceDataContentWebApi webApi, ReferenceDataOrchestrator orchestrator)
@@ -19,9 +20,7 @@ public class ReferenceDataController : ControllerBase
     /// <param name="text">The reference data text (including wildcards).</param>
     /// <returns>A <see cref="USStateCollection"/>.</returns>
     [HttpGet("usstates")]
-    [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(IEnumerable<USState>), (int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NoContent)]
     public Task<IActionResult> USStateGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
         _webApi.GetAsync(Request, x => _orchestrator.GetWithFilterAsync<USState>(codes, text, x.RequestOptions.IncludeInactive));
 
@@ -32,9 +31,11 @@ public class ReferenceDataController : ControllerBase
     /// <param name="text">The reference data text (including wildcards).</param>
     /// <returns>A <see cref="GenderCollection"/>.</returns>
     [HttpGet("genders")]
-    [Produces(MediaTypeNames.Application.Json)]
-    [ProducesResponseType(typeof(IEnumerable<Gender>), (int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    [ProducesResponseType(typeof(ReferenceDataMultiCollection), (int)HttpStatusCode.OK)]
     public Task<IActionResult> GenderGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
         _webApi.GetAsync(Request, x => _orchestrator.GetWithFilterAsync<Gender>(codes, text, x.RequestOptions.IncludeInactive));
+
+    [HttpGet()]
+    [ProducesResponseType(typeof(ReferenceDataMultiCollection), (int)HttpStatusCode.OK)]
+    public Task<IActionResult> GetNamed() => _webApi.GetAsync(Request, p => _orchestrator.GetNamedAsync(p.RequestOptions));
 }

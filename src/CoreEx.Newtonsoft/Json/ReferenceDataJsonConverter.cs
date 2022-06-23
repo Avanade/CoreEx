@@ -7,7 +7,7 @@ using System;
 namespace CoreEx.Newtonsoft.Json
 {
     /// <summary>
-    /// 
+    /// Performs JSON value conversion for <see cref="IReferenceData"/> values.
     /// </summary>
     public class ReferenceDataJsonConverter : JsonConverter
     {

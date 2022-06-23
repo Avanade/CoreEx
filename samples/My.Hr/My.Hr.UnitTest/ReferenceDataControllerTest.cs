@@ -85,5 +85,15 @@ namespace My.Hr.UnitTest
 
             Assert.AreEqual(3, v.Length);
         }
+
+        [Test]
+        public void C100_Named()
+        {
+            using var test = ApiTester.Create<Startup>().UseJsonSerializer(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer());
+
+            var r = test.Controller<ReferenceDataController>()
+                .Run(c => c.GetNamed(), new HttpRequestOptions { UrlQueryString = "gender&usstate" })
+                .AssertOK();
+        }
     }
 }

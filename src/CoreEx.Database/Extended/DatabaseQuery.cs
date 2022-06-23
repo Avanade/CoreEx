@@ -1,0 +1,136 @@
+﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace CoreEx.Database.Extended
+{
+    /// <summary>
+    /// Encapsulates a SQL query enabling select-like capabilities.
+    /// </summary>
+    /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+    public class DatabaseQuery<T> : IDatabaseParameters<DatabaseQuery<T>> where T : class, new()
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DatabaseQuery{T}"/> class.
+        /// </summary>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="queryParams">The query <see cref="DatabaseParameterCollection"/> action to enable additional filtering.</param>
+        internal DatabaseQuery(DatabaseCommand command, DatabaseArgs args, Action<DatabaseParameterCollection>? queryParams)
+        {
+            Command = command ?? throw new ArgumentNullException(nameof(command));
+            Parameters = new DatabaseParameterCollection(Database);
+            Args = args;
+            Mapper = (IDatabaseMapper<T>)args.Mapper;
+
+            queryParams?.Invoke(Parameters);
+        }
+
+        /// <summary>
+        /// Gets the <see cref="DatabaseCommand"/>.
+        /// </summary>
+        public DatabaseCommand Command { get; }
+
+        /// <inheritdoc/>
+        public IDatabase Database => Command.Database;
+
+        /// <inheritdoc/>
+        public DatabaseParameterCollection Parameters { get; }
+
+        /// <summary>
+        /// Gets the <see cref="DatabaseArgs"/>.
+        /// </summary>
+        public DatabaseArgs Args { get; }
+
+        /// <summary>
+        /// Gets the <see cref="IDatabaseMapper{TSource}"/>.
+        /// </summary>
+        public IDatabaseMapper<T> Mapper { get; }
+
+        #region SelectSingle/SelectFirst
+
+        /// <summary>
+        /// Selects a single item.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item.</returns>
+        public Task<T> SelectSingleAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectSingleAsync(Mapper, ct), cancellationToken);
+
+        /// <summary>
+        /// Selects a single item or default.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public Task<T?> SelectSingleOrDefaultAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectSingleOrDefaultAsync(Mapper, ct), cancellationToken);
+
+        /// <summary>
+        /// Selects first item.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The first item.</returns>
+        public Task<T> SelectFirstAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectFirstAsync(Mapper, ct), cancellationToken);
+
+        /// <summary>
+        /// Selects first item or default.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectFirstOrDefaultAsync(Mapper, ct), cancellationToken);
+
+        #endregion
+
+        #region SelectQuery
+
+        /// <summary>
+        /// Executes the query command creating a resultant collection.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>A resultant collection.</returns>
+        public async Task<TColl> SelectQueryAsync<TColl>(CancellationToken cancellationToken = default) where TColl : ICollection<T>, new()
+        {
+            var coll = new TColl();
+            return await SelectWrapperAsync(async (cmd, ct) =>
+            {
+                await cmd.SelectQueryAsync(coll, Mapper, ct).ConfigureAwait(false);
+                return coll;
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes a query adding to the passed collection.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="coll">The collection to add items to.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task SelectQueryAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+        {
+            return SelectWrapperAsync(async (cmd, ct) =>
+            {
+                await cmd.SelectQueryAsync(coll, Mapper, ct).ConfigureAwait(false);
+                return coll;
+            }, cancellationToken);
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Wraps the select query to perform standard logic.
+        /// </summary>
+        private async Task<TResult> SelectWrapperAsync<TResult>(Func<DatabaseCommand, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        {
+            var rvp = Args.Paging != null && Args.Paging.IsGetCount ? Parameters.AddReturnValueParameter() : null;
+            var cmd = Command.Params(Parameters).PagingParam(Args.Paging);
+
+            var res = await func(cmd, cancellationToken).ConfigureAwait(false);
+
+            if (rvp != null && rvp.Value != null)
+                Args.Paging!.TotalCount = (long)rvp.Value;
+
+            return res;
+        }
+    }
+}

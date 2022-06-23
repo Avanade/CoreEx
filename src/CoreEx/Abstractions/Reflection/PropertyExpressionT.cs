@@ -21,8 +21,6 @@ namespace CoreEx.Abstractions.Reflection
     /// and <see cref="SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
     public class PropertyExpression<TEntity, TProperty> : IPropertyExpression
     {
-        private static IMemoryCache? _fallbackCache;
-
         private readonly Func<TEntity, TProperty> _getValue;
         private readonly Action<TEntity, TProperty>? _setValue;
         private string? _text;
@@ -48,12 +46,11 @@ namespace CoreEx.Abstractions.Reflection
             if ((propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression))).Body.NodeType != ExpressionType.MemberAccess)
                 throw new InvalidOperationException("Only Member access expressions are supported.");
 
+            var cache = PropertyExpression.Cache;
             var me = (MemberExpression)propertyExpression.Body;
 
-            var cache = ExecutionContext.GetService<IMemoryCache>() ?? (_fallbackCache ??= new MemoryCache(new MemoryCacheOptions()));
-
             // Check cache and reuse as this is a *really* expensive operation. Key contains: Entity type, property name, and json serializer (in case configuration is different).
-            return cache.GetOrCreate((me.Member.DeclaringType, me.Member.Name, jsonSerializer.GetType()), ce =>
+            return cache.GetOrCreate((typeof(TEntity), me.Member.Name, jsonSerializer.GetType()), ce =>
             {
                 ce.SetAbsoluteExpiration(AbsoluteExpirationTimespan);
                 ce.SetSlidingExpiration(SlidingExpirationTimespan);
@@ -111,6 +108,7 @@ namespace CoreEx.Abstractions.Reflection
             JsonName = jsonName;
             _text = text;
             IsJsonSerializable = isSerializable;
+            IsClass = PropertyInfo.PropertyType.IsClass && PropertyInfo.PropertyType != typeof(string);
             _getValue = getValue;
             _setValue = setValue;
         }
@@ -129,6 +127,9 @@ namespace CoreEx.Abstractions.Reflection
 
         /// <inheritdoc/>
         public bool IsJsonSerializable { get;  }
+
+        /// <inheritdoc/>
+        public bool IsClass { get; }
 
         /// <inheritdoc/>
         object? IPropertyExpression.GetDefault() => default;

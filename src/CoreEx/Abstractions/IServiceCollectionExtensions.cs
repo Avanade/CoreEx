@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx;
+using CoreEx.Caching;
 using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Events;
@@ -278,5 +279,12 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator)
             => CheckServices(services).AddSingleton(sp => createOrchestrator(sp));
+
+        /// <summary>
+        /// Adds the <see cref="RequestCache"/> as the <see cref="IRequestCache"/> scoped service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddRequestCache(this IServiceCollection services) => CheckServices(services).AddScoped<IRequestCache>(_ => new RequestCache());
     }
 }

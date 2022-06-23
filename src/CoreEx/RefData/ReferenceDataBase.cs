@@ -209,19 +209,8 @@ namespace CoreEx.RefData
         /// <param name="id">The <see cref="Id"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        public static TSelf ConvertFromId(TId id)
-        {
-            if (ExecutionContext.HasCurrent)
-            {
-                var rdc = ReferenceDataOrchestrator.Current[typeof(TSelf)];
-                if (rdc != null && rdc.TryGetById(id, out var rd))
-                    return (TSelf)rd!;
-            }
-
-            var rdx = new TSelf { Id = id };
-            ((IReferenceData)rdx).SetInvalid();
-            return rdx;
-        }
+        [return: NotNullIfNotNull("id")]
+        public static TSelf? ConvertFromId(TId? id) => ReferenceDataOrchestrator.ConvertFromId<TSelf, TId>(id);
 
         /// <summary>
         /// Performs a conversion from a <see cref="Code"/> to an instance of <typeparamref name="TSelf"/>.
@@ -230,22 +219,7 @@ namespace CoreEx.RefData
         /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
         [return: NotNullIfNotNull("code")]
-        public static TSelf? ConvertFromCode(string? code)
-        {
-            if (code == null)
-                return default;
-
-            if (ExecutionContext.HasCurrent)
-            {
-                var rdc = ReferenceDataOrchestrator.Current[typeof(TSelf)];
-                if (rdc != null && rdc.TryGetByCode(code, out var rd))
-                    return (TSelf)rd!;
-            }
-
-            var rdx = new TSelf { Code = code };
-            ((IReferenceData)rdx).SetInvalid();
-            return rdx;
-        }
+        public static TSelf? ConvertFromCode(string? code) => ReferenceDataOrchestrator.ConvertFromCode<TSelf>(code);
 
         /// <summary>
         /// Performs a conversion from a mapping value to an instance of <typeparamref name="TSelf"/>.
@@ -254,19 +228,7 @@ namespace CoreEx.RefData
         /// <param name="name">The mapping name.</param>
         /// <param name="value">The mapping value.</param>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        public static TSelf ConvertFromMapping<T>(string name, T? value) where T : IComparable<T?>, IEquatable<T?>
-        {
-            if (value != null && ExecutionContext.HasCurrent)
-            {
-                var rdc = ReferenceDataOrchestrator.Current[typeof(TSelf)];
-                if (rdc != null && rdc.TryGetByMapping(name, value, out var rd))
-                    return (TSelf)rd!;
-            }
-
-            var rdx = new TSelf();
-            ((IReferenceData)rdx).SetInvalid();
-            return rdx;
-        }
+        public static TSelf ConvertFromMapping<T>(string name, T? value) where T : IComparable<T?>, IEquatable<T?> => ReferenceDataOrchestrator.ConvertFromMapping<TSelf, T>(name, value);
 
         /// <summary>
         /// Gets the corresponding <see cref="IReferenceData.Text"/> for the specified <paramref name="code"/> where <see cref="ExecutionContext.IsTextSerializationEnabled"/> is <c>true</c>.
