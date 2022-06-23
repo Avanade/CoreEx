@@ -1,11 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using CoreEx.Configuration;
-using CoreEx.Events;
 using Microsoft.Extensions.Logging;
 
 namespace CoreEx.Azure.ServiceBus
@@ -35,33 +34,41 @@ namespace CoreEx.Azure.ServiceBus
         }
 
         /// <inheritdoc/>
-        public Task PurgeDeadLetterAsync(string queueName, Action<PurgedMessageData>? messageAction = null)
-        {
-            return PurgeAsync(queueName, SubQueue.DeadLetter, messageAction);
-        }
+        public Task PurgeDeadLetterAsync(string queueName, Action<ServiceBusReceivedMessage>? messageAction = null, CancellationToken cancellationToken = default) 
+            => PurgeAsync(queueName, null, SubQueue.DeadLetter, messageAction, cancellationToken);
 
         /// <inheritdoc/>
-        public Task PurgeQueueAsync(string queueName, Action<PurgedMessageData>? messageAction = null)
+        public Task PurgeAsync(string queueName, Action<ServiceBusReceivedMessage>? messageAction = null, CancellationToken cancellationToken = default)
+            => PurgeAsync(queueName, null, SubQueue.None, messageAction, cancellationToken);
+
+        /// <inheritdoc/>
+        public Task PurgeDeadLetterAsync(string topicName, string subscriptionName, Action<ServiceBusReceivedMessage>? messageAction = null, CancellationToken cancellationToken = default)
+            => PurgeAsync(topicName, subscriptionName, SubQueue.DeadLetter, messageAction, cancellationToken);
+
+        /// <inheritdoc/>
+        public Task PurgeAsync(string topicName, string subscriptionName, Action<ServiceBusReceivedMessage>? messageAction = null, CancellationToken cancellationToken = default)
+            => PurgeAsync(topicName, subscriptionName, SubQueue.None, messageAction, cancellationToken);
+
+        /// <summary>
+        /// Purges the queue or topic subscription.
+        /// </summary>
+        private async Task PurgeAsync(string queueOrTopicName, string? subscriptionName, SubQueue subQueue, Action<ServiceBusReceivedMessage>? messageAction, CancellationToken cancellationToken)
         {
-            return PurgeAsync(queueName, SubQueue.None, messageAction);
-        }
+            if (string.IsNullOrEmpty(queueOrTopicName))
+                throw new ArgumentNullException(nameof(queueOrTopicName));
 
-        private async Task PurgeAsync(string queueName, SubQueue subQueue, Action<PurgedMessageData>? messageAction = null)
-        {
-            if (string.IsNullOrEmpty(queueName))
-                throw new ArgumentNullException(nameof(queueName));
-
-
-            // Get queue name by checking config override.
-            var qn = Settings.GetValue<string>($"Publisher_ServiceBusQueueName_{queueName}", defaultValue: queueName);
+            // Get queue name and subscription name by checking settings override.
+            var qn = Settings.GetValue($"Publisher_ServiceBusQueueName_{queueOrTopicName}", defaultValue: queueOrTopicName);
+            var sn = string.IsNullOrEmpty(subscriptionName) ? null : Settings.GetValue($"Publisher_ServiceBusSubscriptionName_{subscriptionName}", defaultValue: subscriptionName);
 
             // Receive from Dead letter
-            await using var receiver = _client.CreateReceiver(qn, new ServiceBusReceiverOptions { SubQueue = subQueue, PrefetchCount = 500, ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete });
+            var o = new ServiceBusReceiverOptions { SubQueue = subQueue, PrefetchCount = 500, ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete };
+            await using var receiver = sn == null ? _client.CreateReceiver(qn, o) : _client.CreateReceiver(qn, sn, o);
 
             // Purge messages.
             try
             {
-                IReadOnlyList<ServiceBusReceivedMessage>? messages = await receiver.ReceiveMessagesAsync(500, maxWaitTime: TimeSpan.FromSeconds(3));
+                var messages = await receiver.ReceiveMessagesAsync(500, maxWaitTime: TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
 
                 while (messages != null && messages.Count > 0)
                 {
@@ -69,17 +76,16 @@ namespace CoreEx.Azure.ServiceBus
                     {
                         foreach (var message in messages)
                         {
-                            var msgData = new PurgedMessageData(message.MessageId, message.Subject, message.CorrelationId, message.DeadLetterReason, message.DeadLetterErrorDescription, message.DeadLetterSource, message.Body.ToString());
-                            messageAction(msgData);
+                            messageAction(message);
                         }
                     }
 
-                    messages = await receiver.ReceiveMessagesAsync(500, maxWaitTime: TimeSpan.FromSeconds(3));
+                    messages = await receiver.ReceiveMessagesAsync(500, maxWaitTime: TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogWarning(ex, $"Service Bus message(s) couldn't be purged from {qn} sub-queue: {subQueue}.");
+                Logger.LogWarning(ex, $"Service Bus message(s) couldn't be purged from {qn} {(subscriptionName == null ? "" : $"{subscriptionName} ")}sub-queue: {subQueue}.");
                 throw;
             }
         }

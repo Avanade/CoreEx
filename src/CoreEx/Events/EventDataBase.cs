@@ -44,11 +44,6 @@ namespace CoreEx.Events
         }
 
         /// <summary>
-        /// Gets or sets the Time to Lve for the message.
-        /// </summary>
-        public TimeSpan? TimeToLive { get; set; }
-
-        /// <summary>
         /// Gets or sets the unique event identifier.
         /// </summary>
         public string? Id { get; set; }

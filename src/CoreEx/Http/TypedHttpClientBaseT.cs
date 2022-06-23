@@ -255,16 +255,15 @@ namespace CoreEx.Http
                         {
                             TimeSpan? delay = null;
                             if (e.Result?.Headers.RetryAfter?.Delta != null)
-                            {
                                 delay = e.Result.Headers.RetryAfter.Delta.Value;
-                            }
+
                             if (e.Result?.Headers.RetryAfter?.Date != null)
-                            {
                                 delay = e.Result.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
-                            }
-                            // calculate exponential with jitter
+
+                            // Calculate exponential with jitter.
                             delay ??= TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500)));
-                            // do not go over max delay
+
+                            // Do not go over max delay.
                             var maxDelay = _maxRetryDelay ?? Settings.MaxRetryDelay;
                             return delay.Value > maxDelay ? maxDelay : delay.Value;
                         },
@@ -298,11 +297,10 @@ namespace CoreEx.Http
 
                     await RequestLogger.LogResponseAsync(request, response, sw.Elapsed, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception tex)
-                     when (tex is TimeoutException || tex is SocketException)
+                catch (Exception ex) when (ex is TimeoutException || ex is SocketException)
                 {
                     // both TimeoutException and SocketException are transient and indicate a connection was terminated
-                    throw new TransientException("Timeout when calling service", tex);
+                    throw new TransientException("Timeout when calling service", ex);
                 }
                 catch (HttpRequestException hrex)
                 {
