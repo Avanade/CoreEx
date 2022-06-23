@@ -1,11 +1,11 @@
-﻿using CoreEx.Http;
-using CoreEx.RefData.Models;
-using NUnit.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreEx.Http;
+using CoreEx.RefData.Models;
+using NUnit.Framework;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -61,7 +61,7 @@ namespace CoreEx.Test.Framework.Http
         [Test]
         public void UpdateRequestUri_QueryArgs()
         {
-            var uri = new TestHttpClient().VerifyUri("product", null, 
+            var uri = new TestHttpClient().VerifyUri("product", null,
                 new HttpArg<int>("id", 88), new HttpArg<string>("text", "bananas"), new HttpArg<DateTime>("date", new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc)),
                 new HttpArg<string>("body", "in_the_body_only", HttpArgType.FromBody),
                 new HttpArg<int?>("id2", null), new HttpArg<HttpArgType>("type", HttpArgType.FromUri), new HttpArg<char[]>("char", new char[] { 'a', 'b', 'c' }), new HttpArg<Gender>("gender", new Gender { Id = 1, Code = "F", Text = "Female" }));
@@ -91,6 +91,8 @@ namespace CoreEx.Test.Framework.Http
             uri = new TestHttpClient().VerifyUri("people", null, arg);
             Assert.AreEqual("/people?person.id=88&person.name=%22gary%22&person.date=%222020-01-01T11%3A59%3A58Z%22&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
         }
+
+   
 
         public class Person
         {

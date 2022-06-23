@@ -157,5 +157,8 @@ namespace CoreEx.Configuration
 
         /// <summary> Gets HTTP Timeout value - default 90s </summary>
         public int HttpTimeoutSeconds => GetValue<int>(defaultValue: 90);
+
+        /// <summary> Gets HTTP Max Retry Delay value - default 2 min </summary>
+        public TimeSpan MaxRetryDelay => TimeSpan.FromSeconds(GetValue<int>(defaultValue: 120));
     }
 }

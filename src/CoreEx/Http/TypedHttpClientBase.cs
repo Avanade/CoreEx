@@ -266,27 +266,30 @@ namespace CoreEx.Http
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="exception">The <see cref="Exception"/>.</param>
         /// <returns><c>true</c> indicates transient; otherwise, <c>false</c>.</returns>
-        public static bool IsTransient(HttpResponseMessage? response = null, Exception? exception = null)
+        public static (bool result, string error) IsTransient(HttpResponseMessage? response = null, Exception? exception = null)
         {
             if (exception != null)
             {
                 if (exception is HttpRequestException)
-                    return true;
+                    return (true, "Http Request Exception occurred: " + exception.Message);
 
                 if (exception is TaskCanceledException)
-                    return true;
+                    return (true, "Task was cancelled");
             }
 
             if (response == null)
-                return false;
+                return (false, string.Empty);
 
             if ((int)response.StatusCode >= 500)
-                return true;
+                return (true, $"Response status code was {response.StatusCode} >= 500");
 
             if (response.StatusCode == HttpStatusCode.RequestTimeout)
-                return true;
+                return (true, "Response status code was RequestTimeout (408)");
 
-            return false;
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                return (true, "Response status code was TooManyRequests (429)");
+
+            return (false, string.Empty);
         }
     }
 }

@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
 using Azure.Identity;
 using CoreEx;
+using CoreEx.Azure.ServiceBus;
 using CoreEx.Configuration;
 using CoreEx.Events;
-using CoreEx.Azure.ServiceBus;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
-using System;
 using Asb = Azure.Messaging.ServiceBus;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -58,8 +58,22 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddAzureServiceBusSender(this IServiceCollection services, Action<IServiceProvider, ServiceBusSender>? configure = null) => services.AddScoped<IEventSender>(sp =>
         {
             var sbs = new ServiceBusSender(sp.GetRequiredService<Asb.ServiceBusClient>(), sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<ILogger<ServiceBusSender>>());
+            var sbp = new ServiceBusPurger(sp.GetRequiredService<Asb.ServiceBusClient>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<ILogger<ServiceBusPurger>>());
             configure?.Invoke(sp, sbs);
             return sbs;
+        });
+
+        /// <summary>
+        /// Adds the <see cref="ServiceBusPurger"/> as the <see cref="IEventSender"/> scoped service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="ServiceBusPurger"/> to be further configured.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddAzureServiceBusPurger(this IServiceCollection services, Action<IServiceProvider, ServiceBusPurger>? configure = null) => services.AddScoped<IEventPurger>(sp =>
+        {
+            var sbp = new ServiceBusPurger(sp.GetRequiredService<Asb.ServiceBusClient>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<ILogger<ServiceBusPurger>>());
+            configure?.Invoke(sp, sbp);
+            return sbp;
         });
     }
 }

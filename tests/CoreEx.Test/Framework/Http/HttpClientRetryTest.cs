@@ -4,9 +4,11 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using UnitTestEx.NUnit;
 
@@ -180,6 +182,114 @@ namespace CoreEx.Test.Framework.Http
             // Assert
             result.Result.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
             sw.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(20), because: "There is 1 http call and 3 retries, with built in delay between each retry.");
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void Client_Should_ThrowTransientException_When_SocketException()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Post, "test").WithAnyBody().Respond.With(HttpStatusCode.OK, _ => throw new SocketException());
+
+            using var test = FunctionTester.Create<Startup>()
+            .ConfigureServices(sc => mcf.Replace(sc));
+
+            test.Type<BackendHttpClient>().Run(dhc => dhc.ThrowTransientException().PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m }))
+            .AssertException<TransientException>();
+        }
+
+        [Test]
+        public async Task Client_Should_Retry_When_Server_Returns_429()
+        {
+            // Arrange
+            var mcf = MockHttpClientFactory.Create();
+            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Post, "test").WithAnyBody().Respond.WithSequence(seq =>
+            {
+                seq.Respond().With(statusCode: HttpStatusCode.TooManyRequests, response => response.Headers.Add("Retry-After", "5"));
+                seq.Respond().WithJson("{ }", HttpStatusCode.OK);
+            });
+
+            using var test = FunctionTester.Create<Startup>();
+            var services = test.ConfigureServices(sc => mcf.Replace(sc)).Services;
+            var dhc = services.GetService<BackendHttpClient>()!;
+
+            // Act
+            var result = await dhc.ThrowTransientException().WithRetry(1, 0).PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m });
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public async Task Client_Call_Should_RespectMaxDelay_When_Server_Returns_429()
+        {
+            // Arrange
+            var mcf = MockHttpClientFactory.Create();
+            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Post, "test").WithAnyBody().Respond.WithSequence(seq =>
+            {
+                seq.Respond().With(statusCode: HttpStatusCode.TooManyRequests, response => response.Headers.Add("Retry-After", "60"));
+                seq.Respond().WithJson("{ }", HttpStatusCode.OK);
+            });
+
+            using var test = FunctionTester.Create<Startup>();
+            var services = test.ConfigureServices(sc => mcf.Replace(sc)).Services;
+            var dhc = services.GetService<BackendHttpClient>()!;
+
+            // Act
+            var result = await dhc
+                .ThrowTransientException()
+                .WithMaxRetryDelay(TimeSpan.FromSeconds(5))
+                .WithRetry(1, 0)
+                .PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m });
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public async Task Client_Call_Should_Retry_When_Server_Returns_429_With_Date()
+        {
+            // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
+            // Arrange
+            var mcf = MockHttpClientFactory.Create();
+            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Post, "test").WithAnyBody().Respond.WithSequence(seq =>
+            {
+                seq.Respond().With(statusCode: HttpStatusCode.TooManyRequests, response => response.Headers.Add("Retry-After", DateTime.UtcNow.AddSeconds(5).ToString("R")));
+                seq.Respond().WithJson("{ }", HttpStatusCode.OK);
+            });
+
+            using var test = FunctionTester.Create<Startup>();
+            var services = test.ConfigureServices(sc => mcf.Replace(sc)).Services;
+            var dhc = services.GetService<BackendHttpClient>()!;
+
+            // Act
+            var result = await dhc.ThrowTransientException().WithRetry(1, 0).PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m });
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void Client_Call_Should_ThrowTransientException_When_429_Response()
+        {
+            // Arrange
+            var mcf = MockHttpClientFactory.Create();
+            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Post, "test").WithAnyBody().Respond
+                .With(statusCode: HttpStatusCode.TooManyRequests, response => response.Headers.Add("Retry-After", "5"));
+
+            using var test = FunctionTester.Create<Startup>();
+            var services = test.ConfigureServices(sc => mcf.Replace(sc)).Services;
+            var dhc = services.GetService<BackendHttpClient>();
+
+            // Act
+            test.Type<BackendHttpClient>()
+                .Run(x => x.ThrowTransientException().PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m }))
+                .AssertException<TransientException>();
+
+            // Assert
             mcf.VerifyAll();
         }
     }
