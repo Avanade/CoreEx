@@ -156,7 +156,12 @@ namespace CoreEx
         /// <summary>
         /// Gets or sets the corresponding user name.
         /// </summary>
-        public string? Username { get; set; }
+        public string Username { get; set; } = EnvironmentUsername;
+
+        /// <summary>
+        /// Gets or sets the corresponding user identifier.
+        /// </summary>
+        public string? UserId { get; set; }
 
         /// <summary>
         /// Gets or sets the tenant identifier.

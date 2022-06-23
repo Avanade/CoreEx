@@ -10,7 +10,7 @@ namespace CoreEx.RefData
     /// <summary>
     /// Provides <see cref="GetById(TId?)"/> functionality for an <see cref="IReferenceData{TId}"/> collection with a typed <see cref="IIdentifier{T}.Id"/>.
     /// </summary>
-    public interface IReferenceDataCollection<TId, TRef> : IReferenceDataCollection where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId>
+    public interface IReferenceDataCollection<TId, TRef> : IReferenceDataCollection, ICollection<TRef> where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId>
     {
         /// <inheritdoc/>
         Type IReferenceDataCollection.ItemType => typeof(TRef);
@@ -58,12 +58,6 @@ namespace CoreEx.RefData
 
         /// <inheritdoc/>
         IReferenceData? IReferenceDataCollection.GetByMapping<T>(string name, T value) => GetByMapping(name, value);
-
-        /// <summary>
-        /// Adds the <typeparamref name="TRef"/> <paramref name="item"/> to the <see cref="IReferenceDataCollection"/>.
-        /// </summary>
-        /// <param name="item">The <typeparamref name="TRef"/> item.</param>
-        public void Add(TRef item);
 
         /// <summary>
         /// Adds the <paramref name="collection"/> to the <see cref="ReferenceDataCollection{TId, TRef}"/>.

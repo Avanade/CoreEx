@@ -22,7 +22,7 @@ namespace My.Hr.UnitTest
     public class EmployeeControllerTest
     {
         [OneTimeSetUp]
-        public async Task Init()
+        public static async Task Init()
         {
             HttpConsts.IncludeFieldsQueryStringName = "include-fields";
 

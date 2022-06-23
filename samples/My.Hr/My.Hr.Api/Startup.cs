@@ -1,4 +1,5 @@
 ﻿using CoreEx.Azure.HealthChecks;
+using CoreEx.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -28,7 +29,8 @@ public class Startup
             .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection))
             .AddJsonMergePatch()
             .AddWebApi(c => c.OnUnhandledException = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
-            .AddReferenceDataContentWebApi();
+            .AddReferenceDataContentWebApi()
+            .AddRequestCache();
 
         // Register the business services.
         services
@@ -37,7 +39,8 @@ public class Startup
             .AddFluentValidators<EmployeeService>();
 
         // Database
-        services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IConfiguration>().GetConnectionString("Database")));
+        services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()));
+        services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
 
         // Register the health checks.
         services

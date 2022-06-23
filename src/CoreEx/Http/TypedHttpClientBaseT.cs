@@ -258,7 +258,7 @@ namespace CoreEx.Http
                                 Logger.LogWarning(result.Exception, "Request failed with '{ErrorMessage}' Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
                                     result.Exception.Message, timeSpan, retryCount);
 
-                        // Clone and dispose of existing request to avoid error: The request message was already sent. Cannot send the same request message multiple times.
+                            // Clone and dispose of existing request to avoid error: The request message was already sent. Cannot send the same request message multiple times.
                             var tmp = await CloneAsync(req).ConfigureAwait(false);
                             req.Dispose();
                             req = tmp;
@@ -330,6 +330,9 @@ namespace CoreEx.Http
             return (TSelf)this;
         }
 
+        /// <summary>
+        /// Sets the cancellation token source based on timeout.
+        /// </summary>
         private CancellationToken SetCancellationBasedOnTimeout(CancellationToken cancellationToken, out CancellationTokenSource? cts)
         {
             var timeout = _timeout ?? TimeSpan.FromSeconds(Settings.HttpTimeoutSeconds);

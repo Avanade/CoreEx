@@ -32,6 +32,11 @@ namespace CoreEx.Abstractions.Reflection
         bool IsJsonSerializable { get; }
 
         /// <summary>
+        /// Indicates that the property is a class with properties (and is not a <see cref="string"/>).
+        /// </summary>
+        bool IsClass { get; }
+
+        /// <summary>
         /// Gets the property text.
         /// </summary>
         LText Text { get; }

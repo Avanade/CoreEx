@@ -109,22 +109,22 @@ namespace CoreEx.Test.Framework.Entities
         {
             var ck = new CompositeKey();
             Assert.AreEqual("null", ck.ToJsonString());
-            ck = CompositeKey.Create(ck.ToJsonString());
+            ck = CompositeKey.CreateFromJson(ck.ToJsonString());
             Assert.IsTrue(ck == new CompositeKey());
 
             ck = new CompositeKey(88);
             Assert.AreEqual("[{\"int\":88}]", ck.ToJsonString());
-            ck = CompositeKey.Create(ck.ToJsonString());
+            ck = CompositeKey.CreateFromJson(ck.ToJsonString());
             Assert.IsTrue(ck == new CompositeKey(88));
 
             ck = new CompositeKey((int?)null);
             Assert.AreEqual("[{}]", ck.ToJsonString());
-            ck = CompositeKey.Create(ck.ToJsonString());
+            ck = CompositeKey.CreateFromJson(ck.ToJsonString());
             Assert.IsTrue(ck == new CompositeKey((int?)null));
 
             ck = new CompositeKey((int?)88);
             Assert.AreEqual("[{\"int\":88}]", ck.ToJsonString());
-            ck = CompositeKey.Create(ck.ToJsonString());
+            ck = CompositeKey.CreateFromJson(ck.ToJsonString());
             Assert.IsTrue(ck == new CompositeKey(88));
 
             ck = new CompositeKey("text", 'x', short.MinValue, int.MinValue, long.MinValue, ushort.MaxValue, uint.MaxValue, long.MaxValue, Guid.Parse("8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc"),
@@ -133,17 +133,17 @@ namespace CoreEx.Test.Framework.Entities
             Assert.AreEqual("[{\"string\":\"text\"},{\"char\":\"x\"},{\"short\":-32768},{\"int\":-2147483648},{\"long\":-9223372036854775808},{\"ushort\":65535},{\"uint\":4294967295},{\"long\":9223372036854775807},{\"guid\":\"8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc\"},{\"date\":\"1970-01-22T00:00:00\"},{\"date\":\"2000-01-22T20:59:43Z\"},{\"date\":\"2000-01-23T04:59:43Z\"}]", ck.ToJsonString());
 
             var ck2 = ck;
-            ck = CompositeKey.Create(ck.ToJsonString());
+            ck = CompositeKey.CreateFromJson(ck.ToJsonString());
             Assert.IsTrue(ck == ck2);
         }
 
         [Test]
         public void KeyDeserializeErrors()
         {
-            Assert.Throws<ArgumentException>(() => CompositeKey.Create("{}"));
-            Assert.Throws<ArgumentException>(() => CompositeKey.Create("[[]]"));
-            Assert.Throws<ArgumentException>(() => CompositeKey.Create("[{\"xxx\":1}]"));
-            Assert.Throws<ArgumentException>(() => CompositeKey.Create("[{\"int\":\"x\"}]"));
+            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("{}"));
+            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("[[]]"));
+            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("[{\"xxx\":1}]"));
+            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("[{\"int\":\"x\"}]"));
         }
     }
 }

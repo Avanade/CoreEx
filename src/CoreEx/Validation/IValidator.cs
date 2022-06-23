@@ -9,6 +9,7 @@ namespace CoreEx.Validation
     /// <summary>
     /// Enables value validation.
     /// </summary>
+    /// <remarks>Decouples <i>CoreEx</i> from any specific implementation.</remarks>
     public interface IValidator
     {
         /// <summary>
