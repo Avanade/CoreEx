@@ -12,14 +12,14 @@ namespace CoreEx.Database
     /// Provides the standard <see cref="Database{TConnection}"/> invoker functionality.
     /// </summary>
     /// <remarks>Catches any unhandled <see cref="DbException"/> and invokes <see cref="Database{TConnection}.OnDbException(DbException)"/> to handle before bubbling up.</remarks>
-    public class DatabaseInvoker : InvokerBase<IDatabase, object?>
+    public class DatabaseInvoker : InvokerBase<IDatabase>
     {
         /// <inheritdoc/>
-        protected override Task<TResult> OnInvokeAsync<TResult>(IDatabase database, Func<CancellationToken, Task<TResult>> func, object? param, CancellationToken cancellationToken)
+        protected override Task<TResult> OnInvokeAsync<TResult>(IDatabase database, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {
-                return base.OnInvokeAsync(database, func, param, cancellationToken);
+                return base.OnInvokeAsync(database, func, cancellationToken);
             }
             catch (DbException dbex)
             {

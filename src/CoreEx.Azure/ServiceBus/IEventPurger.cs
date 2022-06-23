@@ -29,7 +29,7 @@ namespace CoreEx.Azure.ServiceBus
         Task PurgeAsync(string queueName, Action<ServiceBusReceivedMessage>? messageAction = null, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Purges the dead letter <paramref name="topicName"/> and <<paramref name="subscriptionName"/> of all the messages.
+        /// Purges the dead letter <paramref name="topicName"/> and <paramref name="subscriptionName"/> of all the messages.
         /// </summary>
         /// <param name="topicName">The topic name.</param>
         /// <param name="subscriptionName">The subscription name.</param>
@@ -38,7 +38,7 @@ namespace CoreEx.Azure.ServiceBus
         Task PurgeDeadLetterAsync(string topicName, string subscriptionName, Action<ServiceBusReceivedMessage>? messageAction = null, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Purges the <paramref name="topicName"/> and <<paramref name="subscriptionName"/> of all the messages.
+        /// Purges the <paramref name="topicName"/> and <paramref name="subscriptionName"/> of all the messages.
         /// </summary>
         /// <param name="topicName">The topic name.</param>
         /// <param name="subscriptionName">The subscription name.</param>

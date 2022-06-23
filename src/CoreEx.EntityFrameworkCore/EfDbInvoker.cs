@@ -12,14 +12,14 @@ namespace CoreEx.EntityFrameworkCore
     /// Provides the standard <see cref="IEfDb"/> invoker functionality.
     /// </summary>
     /// <remarks>Catches any unhandled <see cref="DbUpdateConcurrencyException"/> or <see cref="DbException"/> and invokes <see cref="Database{TConnection}.HandleDbException(DbException)"/> to handle before bubbling up.</remarks>
-    public class EfDbInvoker : InvokerBase<IEfDb, object?>
+    public class EfDbInvoker : InvokerBase<IEfDb>
     {
         /// <inheritdoc/>
-        protected override Task<TResult> OnInvokeAsync<TResult>(IEfDb efdb, Func<CancellationToken, Task<TResult>> func, object? param, CancellationToken cancellationToken)
+        protected override Task<TResult> OnInvokeAsync<TResult>(IEfDb efdb, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {
-                return base.OnInvokeAsync(efdb, func, param, cancellationToken);
+                return base.OnInvokeAsync(efdb, func, cancellationToken);
             }
             catch (DbException dbex)
             {

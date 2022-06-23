@@ -48,11 +48,7 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken)
         {
-            var efdb = EfDb;
-            var query = _query;
-            var args = Args;
-
-            return EfDb.Invoker.InvokeAsync(efdb, ct =>
+            return EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
             {
                 var dbSet = efdb.DbContext.Set<TModel>();
                 return executeAsync((query == null) ? dbSet : query(dbSet, args), ct);

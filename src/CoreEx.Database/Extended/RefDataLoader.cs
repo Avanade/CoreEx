@@ -46,7 +46,6 @@ namespace CoreEx.Database.Extended
             if (coll == null)
                 throw new ArgumentNullException(nameof(coll));
 
-
             var list = new List<IMultiSetArgs> { new RefDataMultiSetCollArgs<TColl, TItem, TId>(Command.Database, r => coll.Add(r), idColumnName, additionalProperties, confirmItemIsToBeAdded) };
             if (multiSetArgs != null)
                 list.AddRange(multiSetArgs);

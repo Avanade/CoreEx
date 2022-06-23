@@ -74,7 +74,7 @@ namespace CoreEx.Database
             if (multiSetList == null || multiSetList.Count == 0)
                 throw new ArgumentException($"At least one {nameof(IMultiSetArgs)} must be supplied.", nameof(multiSetArgs));
 
-            return Database.Invoker.InvokeAsync(Database, async ct =>
+            return Database.Invoker.InvokeAsync(Database, multiSetArgs, multiSetList, async (multiSetArgs, multiSetList, ct) =>
             {
                 // Create and execute the command. 
                 using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
@@ -97,13 +97,13 @@ namespace CoreEx.Database
                         {
                             records++;
                             if (multiSetArg.MaxRows.HasValue && records > multiSetArg.MaxRows.Value)
-                                throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} (multiSetArgs[{index}]) has returned more records than expected ({multiSetArg.MaxRows.Value}).");
+                                throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} (msa[{index}]) has returned more records than expected ({multiSetArg.MaxRows.Value}).");
 
                             multiSetArg.DatasetRecord(new DatabaseRecord(Database, dr));
                         }
 
                         if (records < multiSetArg.MinRows)
-                            throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)}  (multiSetArgs[{index}]) has returned less records ({records}) than expected ({multiSetArg.MinRows}).");
+                            throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)}  (msa[{index}]) has returned less records ({records}) than expected ({multiSetArg.MinRows}).");
 
                         if (records == 0 && multiSetArg.StopOnNull)
                             return;
@@ -132,7 +132,7 @@ namespace CoreEx.Database
         /// <param name="parameters">The post-execution delegate to enable parameter access.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The number of rows affected.</returns>
-        public Task<int> NonQueryAsync(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, async ct =>
+        public Task<int> NonQueryAsync(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
         {
             using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
             parameters?.Invoke(cmd.Parameters);
@@ -155,7 +155,7 @@ namespace CoreEx.Database
         /// <param name="parameters">The post-execution delegate to enable parameter access.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value of the first column of the first row in the result set.</returns>
-        public Task<T> ScalarAsync<T>(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, async ct =>
+        public Task<T> ScalarAsync<T>(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
         {
             using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
             parameters?.Invoke(cmd.Parameters);
@@ -282,7 +282,7 @@ namespace CoreEx.Database
             if (mapper == null)
                 throw new ArgumentNullException(nameof(mapper));
 
-            await Database.Invoker.InvokeAsync(Database, async ct =>
+            await Database.Invoker.InvokeAsync(Database, mapper, throwWhereMulti, stopAfterOneRow, async (mapper, throwWhereMulti, stopAfterOneRow, ct) =>
             {
                 int i = 0;
 

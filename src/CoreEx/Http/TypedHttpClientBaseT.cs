@@ -304,7 +304,7 @@ namespace CoreEx.Http
                 }
                 catch (HttpRequestException hrex)
                 {
-                    (bool isTransient, string error) = IsTransient(null, hrex);
+                    (bool isTransient, string error) = _isTransient(null, hrex);
                     if (_throwTransientException && isTransient)
                         throw new TransientException(error, hrex);
 
@@ -316,7 +316,7 @@ namespace CoreEx.Http
                 }
 
                 // This is the result of the final request after leaving the retry policy logic.
-                (bool wasTransient, string errorMsg) = IsTransient(response, null);
+                (bool wasTransient, string errorMsg) = _isTransient(response, null);
                 if (_throwTransientException && wasTransient)
                     throw new TransientException(errorMsg);
 
