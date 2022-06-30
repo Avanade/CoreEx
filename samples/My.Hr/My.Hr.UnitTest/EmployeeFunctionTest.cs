@@ -96,7 +96,7 @@ namespace My.Hr.UnitTest
 
             var v = test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees")))
-                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+                .GetValue<EmployeeCollectionResult>();
 
             Assert.IsNotNull(v?.Collection);
             Assert.AreEqual(4, v!.Collection.Count);
@@ -111,7 +111,7 @@ namespace My.Hr.UnitTest
             var v = test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", new CoreEx.Http.HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, true) })))
                 .AssertOK()
-                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+                .GetValue<EmployeeCollectionResult>();
 
             Assert.IsNotNull(v?.Collection);
             Assert.AreEqual(2, v!.Collection.Count);
@@ -129,7 +129,7 @@ namespace My.Hr.UnitTest
                 .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", new CoreEx.Http.HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, false) }.Include("lastname"))))
                 .AssertOK()
                 .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")
-                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+                .GetValue<EmployeeCollectionResult>();
 
             Assert.IsNull(v!.Paging!.TotalCount); // No count requested.
         }

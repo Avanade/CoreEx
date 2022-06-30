@@ -240,5 +240,19 @@ namespace CoreEx.Entities
         /// <returns><c>true</c> indicates that the value is initial; otherwise, <c>false</c>.</returns>
         /// <remarks>This determines whether is initial by comparing against its default value; this does not leverage <see cref="IInitial.IsInitial"/>.</remarks>
         public static bool IsDefault<T>(T value, T @default) => Comparer<T>.Default.Compare(value, @default) == 0;
+
+        /// <summary>
+        /// Resets the <see cref="ITenantId.TenantId"/> by overridding with <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/> where <see cref="ExecutionContext.HasCurrent"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value.</param>
+        public static void ResetTenantId<T>(T? value)
+        {
+            if (value == null || value is not ITenantId ti)
+                return;
+
+            if (ExecutionContext.HasCurrent)
+                ti.TenantId = ExecutionContext.Current.TenantId;
+        }
     }
 }

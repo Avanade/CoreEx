@@ -14,7 +14,7 @@ namespace CoreEx.Text.Json
     public class ReferenceDataContentJsonSerializer : JsonSerializer, IReferenceDataContentJsonSerializer
     {
         /// <summary>
-        /// Gets or sets the default <see cref="Stj.JsonSerializerOptions"/> without <see cref="ReferenceDataConverterFactory"/> to allow <see cref="IReferenceData"/> types to serialize contents.
+        /// Gets or sets the default <see cref="Stj.JsonSerializerOptions"/> without <see cref="CollectionResultConverterFactory"/> to allow <see cref="IReferenceData"/> types to serialize contents.
         /// </summary>
         /// <remarks>The following <see cref="Stj.JsonSerializerOptions"/>, including use of <see cref="Stj.JsonSerializerDefaults.Web"/>, will default:
         /// <list type="bullet">
@@ -22,7 +22,7 @@ namespace CoreEx.Text.Json
         ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c></description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DictionaryKeyPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.PropertyNamingPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
-        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/> and <see cref="ExceptionConverterFactory"/>.</description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/> and <see cref="CollectionResultConverterFactory"/>.</description></item>
         /// </list>
         /// </remarks>
         public static new Stj.JsonSerializerOptions DefaultOptions { get; set; } = new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
@@ -31,7 +31,7 @@ namespace CoreEx.Text.Json
             WriteIndented = false,
             DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
             PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
-            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory() }
+            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new CollectionResultConverterFactory() }
         };
 
         /// <summary>

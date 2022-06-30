@@ -99,7 +99,7 @@ namespace CoreEx.WebApis
             // Invoke the "actual" function via the pluggable invoker.
             ExecutionContext.OperationType = operationType;
             var wap = new WebApiParam(this, new WebApiRequestOptions(request), operationType);
-            return await Invoker.InvokeAsync(this, ct => function(wap, ct), wap, cancellationToken).ConfigureAwait(false);
+            return await Invoker.InvokeAsync(this, wap, (w, ct) => function(w, ct), wap, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>

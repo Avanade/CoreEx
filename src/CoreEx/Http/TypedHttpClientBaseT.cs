@@ -255,16 +255,15 @@ namespace CoreEx.Http
                         {
                             TimeSpan? delay = null;
                             if (e.Result?.Headers.RetryAfter?.Delta != null)
-                            {
                                 delay = e.Result.Headers.RetryAfter.Delta.Value;
-                            }
+
                             if (e.Result?.Headers.RetryAfter?.Date != null)
-                            {
                                 delay = e.Result.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
-                            }
-                            // calculate exponential with jitter
+
+                            // Calculate exponential with jitter.
                             delay ??= TimeSpan.FromSeconds(Math.Pow(_retrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500)));
-                            // do not go over max delay
+
+                            // Do not go over max delay.
                             var maxDelay = _maxRetryDelay ?? Settings.MaxRetryDelay;
                             return delay.Value > maxDelay ? maxDelay : delay.Value;
                         },
@@ -298,15 +297,14 @@ namespace CoreEx.Http
 
                     await RequestLogger.LogResponseAsync(request, response, sw.Elapsed, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception tex)
-                     when (tex is TimeoutException || tex is SocketException)
+                catch (Exception ex) when (ex is TimeoutException || ex is SocketException)
                 {
                     // both TimeoutException and SocketException are transient and indicate a connection was terminated
-                    throw new TransientException("Timeout when calling service", tex);
+                    throw new TransientException("Timeout when calling service", ex);
                 }
                 catch (HttpRequestException hrex)
                 {
-                    (bool isTransient, string error) = IsTransient(null, hrex);
+                    (bool isTransient, string error) = _isTransient(null, hrex);
                     if (_throwTransientException && isTransient)
                         throw new TransientException(error, hrex);
 
@@ -318,7 +316,7 @@ namespace CoreEx.Http
                 }
 
                 // This is the result of the final request after leaving the retry policy logic.
-                (bool wasTransient, string errorMsg) = IsTransient(response, null);
+                (bool wasTransient, string errorMsg) = _isTransient(response, null);
                 if (_throwTransientException && wasTransient)
                     throw new TransientException(errorMsg);
 
@@ -476,25 +474,6 @@ namespace CoreEx.Http
         {
             var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
-        /// </summary>
-        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> response <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        protected async Task<HttpResult<TCollResult>> GetCollectionResultAsync<TCollResult, TColl, TItem>(string requestUri, HttpRequestOptions? requestOptions, IEnumerable<IHttpArg>? args, CancellationToken cancellationToken = default)
-            where TCollResult : ICollectionResult<TColl, TItem>, new()
-            where TColl : ICollection<TItem>
-        {
-            var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TCollResult, TColl, TItem>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion

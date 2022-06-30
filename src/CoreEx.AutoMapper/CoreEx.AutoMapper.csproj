@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>CoreEx.Mapping</RootNamespace>
+    <Product>CoreEx.AutoMapper</Product>
+    <Title>CoreEx .NET AutoMapper Extensions.</Title>
+    <Description>CoreEx .NET AutoMapper Extensions.</Description>
+    <PackageTags>coreex automapper mapper imapper</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="11.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -66,49 +66,18 @@ namespace CoreEx.Http
                 if (value != null && value is IETag etag && etag.ETag == null && response.Headers.ETag != null)
                     etag.ETag = response.Headers.ETag.Tag;
 
+                // Where the value is an ICollectionResult then update the Paging property from the corresponding response headers.
+                if (value is ICollectionResult cr && cr != null)
+                {
+                    if (response.TryGetPagingResult(out var paging))
+                        cr.Paging = paging;
+                }
+
                 return new HttpResult<T>(response, content, value!);
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Unable to deserialize the JSON content '{content}' [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] to Type {typeof(T).FullName}", ex);
-            }
-        }
-
-
-        /// <summary>
-        /// Creates a new <see cref="HttpResult{T}"/> with a <see cref="HttpResult{T}.Value"/> of <typeparamref name="TCollResult"/>.
-        /// </summary>
-        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> response <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
-        /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/> for deserializing the <see cref="HttpResult{T}.Value"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
-        public static async Task<HttpResult<TCollResult>> CreateAsync<TCollResult, TColl, TItem>(HttpResponseMessage response, IJsonSerializer jsonSerializer, CancellationToken cancellationToken = default)
-            where TCollResult : ICollectionResult<TColl, TItem>, new()
-            where TColl : ICollection<TItem>
-        {
-            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
-                return new HttpResult<TCollResult>(response, content, default!);
-
-            try
-            {
-                var result = new TCollResult
-                {
-                    Collection = (jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).Deserialize<TColl>(content)!,
-                };
-
-                if (response.TryGetPagingResult(out var paging))
-                    result.Paging = paging;
-
-                return new HttpResult<TCollResult>(response, content, result);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Unable to deserialize the JSON content '{content}' [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] to Type {typeof(TColl).FullName}", ex);
             }
         }
 

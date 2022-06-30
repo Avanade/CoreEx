@@ -62,7 +62,7 @@ namespace CoreEx.Events
             @event.Type = cloudEvent.Type;
             @event.Source = cloudEvent.Source;
 
-            if (TryGetExtensionAttribute(cloudEvent, "subject", out string val))
+            if (TryGetExtensionAttribute(cloudEvent, "subject", out string? val))
                 @event.Subject = val;
 
             if (TryGetExtensionAttribute(cloudEvent, "action", out val))
@@ -89,8 +89,8 @@ namespace CoreEx.Events
                     if (@event.Attributes == null)
                         @event.Attributes = new Dictionary<string, string>();
 
-                    TryGetExtensionAttribute(cloudEvent, att.Name, out val);
-                    @event.Attributes.Add(att.Name, val);
+                    if (TryGetExtensionAttribute(cloudEvent, att.Name, out val))
+                        @event.Attributes.Add(att.Name, val);
                 }
             }
 

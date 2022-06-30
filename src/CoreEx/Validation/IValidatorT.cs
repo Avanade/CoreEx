@@ -10,6 +10,7 @@ namespace CoreEx.Validation
     /// Enables typed value validation.
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+    /// <remarks>Decouples <i>CoreEx</i> from any specific implementation.</remarks>
     public interface IValidator<T> : IValidator
     {
         /// <inheritdoc/>

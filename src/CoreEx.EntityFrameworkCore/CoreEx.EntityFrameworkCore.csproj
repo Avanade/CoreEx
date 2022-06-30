@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>CoreEx.EntityFrameworkCore</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx .NET Entity Framework Core (EF) extras.</Title>
+    <Description>CoreEx .NET Entity Framework (EF) Core extras.</Description>
+    <PackageTags>coreex api db database sql sqlserver ado.net entityframework entityframeworkcore ef efcore</PackageTags>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -4,9 +4,9 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>CoreEx.Validation</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Standard Validation (Alternative).</Title>
-    <Description>CoreEx .NET Standard (v2.1) Validation (Alternative).</Description>
-    <PackageTags>coreex api function aspnet entity microservices referencedata validation validator</PackageTags>
+    <Title>CoreEx .NET Validation (Alternative).</Title>
+    <Description>CoreEx .NET Validation (Alternative).</Description>
+    <PackageTags>coreex api function aspnet entity microservices referencedata validation validator validate</PackageTags>
   </PropertyGroup>
 
   <Import Project="..\..\Common.targets" />

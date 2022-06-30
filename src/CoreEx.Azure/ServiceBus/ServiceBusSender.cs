@@ -69,6 +69,12 @@ namespace CoreEx.Azure.ServiceBus
         public string SessionIdAttributeName { get; set; } = $"_{nameof(ServiceBusMessage.SessionId)}";
 
         /// <summary>
+        /// Gets or sets the <see cref="EventDataBase.Attributes"/> name for the <see cref="ServiceBusMessage.TimeToLive"/>.
+        /// </summary>
+        /// <remarks>Defaults to '<c>_TimeToLive</c>'.</remarks>
+        public string TimeToLiveAttributeName { get; set; } = $"_{nameof(ServiceBusMessage.TimeToLive)}";
+
+        /// <summary>
         /// Indicates whether to use the <see cref="EventDataBase.PartitionKey"/> as the <see cref="ServiceBusMessage.SessionId"/>.
         /// </summary>
         public bool UsePartitionKeyAsSessionId { get; set; } = true;
@@ -119,12 +125,10 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event.ETag != null && PropertySelection.HasFlag(EventDataProperty.ETag))
                     msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
 
-                if (@event.TimeToLive != null && PropertySelection.HasFlag(EventDataProperty.TimeToLive))
-                    msg.TimeToLive = @event.TimeToLive.Value;
-
                 if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
                 {
-                    foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && x.Key != SessionIdAttributeName))
+                    // Attrtibutes that start with an underscore are considered internal and will not be sent automatically; i.e. _SessionId and _TimeToLive.
+                    foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith("_")))
                     {
                         msg.ApplicationProperties.Add(attribute.Key, attribute.Value);
                     }
@@ -207,19 +211,16 @@ namespace CoreEx.Azure.ServiceBus
         /// <see cref="UsePartitionKeyAsSessionId"/> option, until not <c>null</c>; otherwise, will be left as <c>null</c>./</remarks>
         protected virtual void OnServiceBusMessage(EventSendData @event, ServiceBusMessage message)
         {
-            if (message.SessionId != null)
-                return;
-
-            if (@event.Attributes != null && @event.Attributes.Count > 0)
+            if (message.SessionId == null)
             {
-                if (@event.Attributes.TryGetValue(SessionIdAttributeName, out var sessionId))
-                {
+                if (@event.Attributes != null && @event.Attributes.TryGetValue(SessionIdAttributeName, out var sessionId))
                     message.SessionId = sessionId;
-                    return;
-                }
+                else
+                    message.SessionId = UsePartitionKeyAsSessionId ? @event.PartitionKey : null;
             }
 
-            message.SessionId = UsePartitionKeyAsSessionId ? @event.PartitionKey : null;
+            if (@event.Attributes != null && @event.Attributes.TryGetValue(TimeToLiveAttributeName, out var ttl) && TimeSpan.TryParse(ttl, out var timeToLive))
+                message.TimeToLive = timeToLive;
         }
     }
 }

@@ -13,6 +13,7 @@ using My.Hr.Business;
 using My.Hr.Business.Data;
 using My.Hr.Business.Services;
 using My.Hr.Business.External;
+using CoreEx.Database;
 
 [assembly: FunctionsStartup(typeof(My.Hr.Functions.Startup))]
 
@@ -66,8 +67,8 @@ public class Startup : FunctionsStartup
             builder.Services.AddTypedHttpClient<NationalizeApiClient>("Nationalize");
 
             // Database
-            builder.Services.AddDbContext<HrDbContext>(
-                options => options.UseSqlServer("name=ConnectionStrings:Database"));
+            builder.Services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()));
+            builder.Services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
         }
         catch (System.Exception ex)
         {
@@ -75,6 +76,5 @@ public class Startup : FunctionsStartup
             System.Console.Error.WriteLine(ex);
             throw;
         }
-
     }
 }

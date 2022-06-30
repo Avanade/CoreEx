@@ -271,23 +271,23 @@ namespace CoreEx.Http
             if (exception != null)
             {
                 if (exception is HttpRequestException)
-                    return (true, "Http Request Exception occurred: " + exception.Message);
+                    return (true, $"Http Request Exception occurred: {exception.Message}");
 
                 if (exception is TaskCanceledException)
-                    return (true, "Task was cancelled");
+                    return (true, "Task was cancelled.");
             }
 
             if (response == null)
                 return (false, string.Empty);
 
             if ((int)response.StatusCode >= 500)
-                return (true, $"Response status code was {response.StatusCode} >= 500");
+                return (true, $"Response status code was {response.StatusCode} >= 500.");
 
             if (response.StatusCode == HttpStatusCode.RequestTimeout)
-                return (true, "Response status code was RequestTimeout (408)");
+                return (true, $"Response status code was {HttpStatusCode.RequestTimeout} ({(int)HttpStatusCode.RequestTimeout}).");
 
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
-                return (true, "Response status code was TooManyRequests (429)");
+                return (true, $"Response status code was {HttpStatusCode.TooManyRequests} ({(int)HttpStatusCode.TooManyRequests}).");
 
             return (false, string.Empty);
         }

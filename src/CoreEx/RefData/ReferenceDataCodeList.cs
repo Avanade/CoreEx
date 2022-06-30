@@ -73,18 +73,13 @@ namespace CoreEx.RefData
         /// </summary>
         private static TRef GetItem(string? code)
         {
-            if (code != null && ExecutionContext.HasCurrent)
-            {
-                var rdc = ReferenceDataOrchestrator.Current[typeof(TRef)];
-                if (rdc != null && rdc.TryGetByCode(code, out var rd))
-                    return (TRef)rd!;
-            }
+            if (code != null)
+                return ReferenceDataOrchestrator.ConvertFromCode<TRef>(code);
 
-            var rdx = new TRef { Code = code };
+            var rdx = new TRef();
             rdx.SetInvalid();
             return rdx;
         }
-
 
         #region IList
 

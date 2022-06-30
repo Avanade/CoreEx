@@ -49,10 +49,14 @@ param(
     [string]$NugetCacheFolder = "$($env:USERPROFILE)\.nuget\packages",
     [String[]]$ProjectsToPublish = @(
         "src\CoreEx",
+        "src\CoreEx.AutoMapper",
         "src\CoreEx.Azure",
+        "src\CoreEx.Database",
+        "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.FluentValidation",
         "src\CoreEx.HealthChecks",
-        "src\CoreEx.Newtonsoft")
+        "src\CoreEx.Newtonsoft",
+        "src\CoreEx.Validation")
     )
 
 $ShouldPublishRemote = (![string]::IsNullOrEmpty($apiKey) -and ![string]::IsNullOrEmpty($NugetServer))
@@ -80,7 +84,7 @@ $successPackageRegexp = [regex] 'Successfully\screated\spackage\s''(?<packagePat
 $packageDetailsRegexp = [regex] '(?<name>.*?)\.(?<version>\d*\.\d*\.\d*\.\d*.*)(?<!\.symbols)$'
 
 foreach ($project in $projectsToPublish) {
-    $packCommand = "dotnet pack $($project) -o $($publishFolder) -c $($configuration)" # --no-build")
+    $packCommand = "dotnet pack $($project) -o $($publishFolder) -c $($configuration)  --force" # --no-build")
     if($IncludeSource) { $packCommand = "$($packCommand) --include-source"}
     if($IncludeSymbols) { $packCommand = "$($packCommand) --include-symbols"}
 

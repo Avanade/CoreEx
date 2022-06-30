@@ -14,7 +14,6 @@ public class HrDbContext : DbContext
     {
         modelBuilder
             .ApplyConfiguration(new UsStateConfiguration())
-            .ApplyConfiguration(new GenderConfiguration())
             .ApplyConfiguration(new EmployeeConfiguration());
 
         base.OnModelCreating(modelBuilder);

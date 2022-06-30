@@ -22,7 +22,7 @@ namespace My.Hr.UnitTest
     public class EmployeeControllerTest
     {
         [OneTimeSetUp]
-        public async Task Init()
+        public static async Task Init()
         {
             HttpConsts.IncludeFieldsQueryStringName = "include-fields";
 
@@ -97,7 +97,7 @@ namespace My.Hr.UnitTest
             var v = test.Controller<EmployeeController>()
                 .Run(c => c.GetAllAsync())
                 .AssertOK()
-                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+                .GetValue<EmployeeCollectionResult>();
 
             Assert.IsNotNull(v?.Collection);
             Assert.AreEqual(4, v!.Collection.Count);
@@ -112,7 +112,7 @@ namespace My.Hr.UnitTest
             var v = test.Controller<EmployeeController>()
                 .Run(c => c.GetAllAsync(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, true) })
                 .AssertOK()
-                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+                .GetValue<EmployeeCollectionResult>();
 
             Assert.IsNotNull(v?.Collection);
             Assert.AreEqual(2, v!.Collection.Count);
@@ -130,7 +130,7 @@ namespace My.Hr.UnitTest
                 .Run(c => c.GetAllAsync(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2) }.Include("lastname"))
                 .AssertOK()
                 .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")
-                .GetValue<EmployeeCollectionResult, EmployeeCollection, Employee>();
+                .GetValue<EmployeeCollectionResult>();
 
             Assert.IsNull(v!.Paging!.TotalCount); // No count requested.
         }

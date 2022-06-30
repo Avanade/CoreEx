@@ -26,9 +26,9 @@ namespace CoreEx.Events
         /// Initializes a new instance of the <see cref="InMemoryPublisher"/> class.
         /// </summary>
         /// <param name="logger">The optional <see cref="ILogger"/> for logging the events (each <see cref="EventData"/>).</param>
+        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/> for the logging. Defaults to <see cref="JsonSerializer.Default"/></param>
         /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>; defaults where not specified.</param>
         /// <param name="eventSerializer">The optional <see cref="IEventSerializer"/>. Defaults to <see cref="Text.Json.EventDataSerializer"/>.</param>
-        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/> for the logging. Defaults to <see cref="JsonSerializer.Default"/></param>
         public InMemoryPublisher(ILogger? logger = null, IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null, IEventSerializer? eventSerializer = null)
             : base(eventDataFormatter, eventSerializer ?? new Text.Json.EventDataSerializer(), new InMemorySender())
         {

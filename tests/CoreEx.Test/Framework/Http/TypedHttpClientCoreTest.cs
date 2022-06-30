@@ -135,7 +135,7 @@ namespace CoreEx.Test.Framework.Http
             using var test = FunctionTester.Create<Startup>();
             var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
-                .Run(f => f.GetCollectionResultAsync<ProductCollectionResult, ProductCollection, Product>("product"))
+                .Run(f => f.GetAsync<ProductCollectionResult>("product"))
                 .AssertSuccess();
 
             Assert.IsTrue(r.Result.IsSuccess);
@@ -162,7 +162,7 @@ namespace CoreEx.Test.Framework.Http
             using var test = FunctionTester.Create<Startup>();
             var r = test.ReplaceHttpClientFactory(mcf)
                 .Type<BackendHttpClient>()
-                .Run(f => f.GetCollectionResultAsync<ProductCollectionResult, ProductCollection, Product>("product"))
+                .Run(f => f.GetAsync<ProductCollectionResult>("product"))
                 .AssertSuccess();
 
             Assert.IsTrue(r.Result.IsSuccess);

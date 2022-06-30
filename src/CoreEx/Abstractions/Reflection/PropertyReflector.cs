@@ -28,7 +28,6 @@ namespace CoreEx.Abstractions.Reflection
         {
             Args = args ?? throw new ArgumentNullException(nameof(args));
             PropertyExpression = Reflection.PropertyExpression.Create(propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression)), args.JsonSerializer);
-            IsClass = PropertyInfo.PropertyType.IsClass && PropertyInfo.PropertyType != typeof(string);
             TypeCode = IsClass ? TypeReflectorTypeCode.Complex : TypeReflectorTypeCode.Simple;
             IsEnumerable = IsClass && (PropertyInfo.PropertyType.IsArray || PropertyInfo.PropertyType.GetInterfaces().Any(x => x == typeof(IEnumerable)));
             if (IsEnumerable)
@@ -62,7 +61,7 @@ namespace CoreEx.Abstractions.Reflection
         public PropertyInfo PropertyInfo => PropertyExpression.PropertyInfo;
 
         /// <inheritdoc/>
-        public bool IsClass { get; }
+        public bool IsClass => PropertyExpression.IsClass;
 
         /// <inheritdoc/>
         public bool IsEnumerable { get; }

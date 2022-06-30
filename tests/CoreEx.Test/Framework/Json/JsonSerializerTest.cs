@@ -195,6 +195,48 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\",\"etag\":\"ETAG\"}", json);
         }
 
+        [Test]
+        public void SystemTextJson_Serialize_CollectionResult()
+        {
+            var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
+
+            // Null object.
+            var pcr = (PersonCollectionResult?)null;
+
+            var json = js.Serialize(pcr);
+            Assert.AreEqual("null", json);
+
+            pcr = js.Deserialize<PersonCollectionResult>(json);
+            Assert.IsNull(pcr);
+
+            // Empty collection.
+            pcr = new PersonCollectionResult();
+
+            json = js.Serialize(pcr);
+            Assert.AreEqual("[]", json);
+
+            pcr = js.Deserialize<PersonCollectionResult>(json);
+            Assert.IsNotNull(pcr);
+            Assert.IsNotNull(pcr!.Collection);
+            Assert.AreEqual(0, pcr.Collection.Count);
+            Assert.IsNull(pcr.Paging);
+
+            // Items in collection.
+            pcr.Collection.Add(new Person { FirstName = "Jane" });
+            pcr.Collection.Add(new Person { FirstName = "John" });
+
+            json = js.Serialize(pcr);
+            Assert.AreEqual("[{\"firstName\":\"Jane\"},{\"firstName\":\"John\"}]", json);
+
+            pcr = js.Deserialize<PersonCollectionResult>(json);
+            Assert.IsNotNull(pcr);
+            Assert.IsNotNull(pcr!.Collection);
+            Assert.AreEqual(2, pcr.Collection.Count);
+            Assert.IsNull(pcr.Paging);
+            Assert.AreEqual("Jane", pcr.Collection[0].FirstName);
+            Assert.AreEqual("John", pcr.Collection[1].FirstName);
+        }
+
         #endregion
 
         #region NewtonsoftJson
@@ -398,6 +440,48 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual("{\"abc\":\"XXX\",\"efg\":\"Xxx\",\"hij\":\"xxx\",\"abEfg\":\"xxXxx\",\"etag\":\"ETAG\"}", json);
         }
 
+        [Test]
+        public void NewtonsoftJson_Serialize_CollectionResult()
+        {
+            var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
+
+            // Null object.
+            var pcr = (PersonCollectionResult?)null;
+
+            var json = js.Serialize(pcr);
+            Assert.AreEqual("null", json);
+
+            pcr = js.Deserialize<PersonCollectionResult>(json);
+            Assert.IsNull(pcr);
+
+            // Empty collection.
+            pcr = new PersonCollectionResult();
+
+            json = js.Serialize(pcr);
+            Assert.AreEqual("[]", json);
+
+            pcr = js.Deserialize<PersonCollectionResult>(json);
+            Assert.IsNotNull(pcr);
+            Assert.IsNotNull(pcr!.Collection);
+            Assert.AreEqual(0, pcr.Collection.Count);
+            Assert.IsNull(pcr.Paging);
+
+            // Items in collection.
+            pcr.Collection.Add(new Person { FirstName = "Jane" });
+            pcr.Collection.Add(new Person { FirstName = "John" });
+
+            json = js.Serialize(pcr);
+            Assert.AreEqual("[{\"firstName\":\"Jane\"},{\"firstName\":\"John\"}]", json);
+
+            pcr = js.Deserialize<PersonCollectionResult>(json);
+            Assert.IsNotNull(pcr);
+            Assert.IsNotNull(pcr!.Collection);
+            Assert.AreEqual(2, pcr.Collection.Count);
+            Assert.IsNull(pcr.Paging);
+            Assert.AreEqual("Jane", pcr.Collection[0].FirstName);
+            Assert.AreEqual("John", pcr.Collection[1].FirstName);
+        }
+
         #endregion
 
         public class Person
@@ -416,6 +500,10 @@ namespace CoreEx.Test.Framework.Json
             public string? Street { get; set; }
             public string? City { get; set; }
         }
+
+        public class PersonCollection : List<Person> { }
+
+        public class PersonCollectionResult : CollectionResult<PersonCollection, Person> { }
 
         public class Other
         {

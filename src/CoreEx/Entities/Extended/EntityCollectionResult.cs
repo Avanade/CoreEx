@@ -2,7 +2,6 @@
 
 using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace CoreEx.Entities.Extended
@@ -35,7 +34,7 @@ namespace CoreEx.Entities.Extended
         public EntityCollectionResult(PagingArgs? paging)
         {
             if (paging != null)
-                _paging = new PagingResult(paging);
+                _paging = Paging is PagingResult pr ? pr : new PagingResult(paging);
         }
 
         /// <summary>
@@ -53,16 +52,6 @@ namespace CoreEx.Entities.Extended
         /// Gets the item <see cref="Type"/>.
         /// </summary>
         Type ICollectionResult.ItemType => typeof(TEntity);
-
-        /// <summary>
-        /// Gets the underlying <see cref="ICollection"/>.
-        /// </summary>
-        ICollection? ICollectionResult.Collection => Collection;
-
-        /// <summary>
-        /// Gets the underlying <see cref="ICollection{TEntity}"/>.
-        /// </summary>
-        ICollection<TEntity>? ICollectionResult<TEntity>.Collection => Collection;
 
         /// <inheritdoc/>
         protected override IEnumerable<IPropertyValue> GetPropertyValues()

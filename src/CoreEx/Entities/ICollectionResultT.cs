@@ -16,6 +16,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the underlying <see cref="ICollection{TItem}"/>.
         /// </summary>
-        new ICollection<TItem>? Collection { get; }
+        new ICollection<TItem> Collection { get; set; }
     }
 }

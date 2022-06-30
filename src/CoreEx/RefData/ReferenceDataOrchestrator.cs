@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Entities;
 using CoreEx.Json;
 using CoreEx.WebApis;
 using CoreEx.Wildcards;
@@ -11,9 +12,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace CoreEx.RefData
 {
@@ -312,7 +315,6 @@ namespace CoreEx.RefData
         public async Task<IEnumerable<IReferenceData>> GetWithFilterAsync(string name, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false, CancellationToken cancellationToken = default)
             => await GetWithFilterAsync(await GetByNameAsync(name, cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist."), codes, text, includeInactive, cancellationToken).ConfigureAwait(false);
 
-
         /// <summary>
         /// Applys the selected filter to the collection.
         /// </summary>
@@ -455,6 +457,79 @@ namespace CoreEx.RefData
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Performs a conversion from a <see cref="IReferenceData.Code"/> to an instance of <typeparamref name="TRef"/>.
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <param name="code">The <see cref="IReferenceData.Code"/>.</param>
+        /// <returns>The <typeparamref name="TRef"/> instance.</returns>
+        /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        [return: NotNullIfNotNull("code")]
+        public static TRef? ConvertFromCode<TRef>(string? code) where TRef : IReferenceData, new()
+        {
+            if (code == null)
+                return default;
+
+            if (ExecutionContext.HasCurrent)
+            {
+                var rdc = Current.GetByType<TRef>();
+                if (rdc != null && rdc.TryGetByCode(code, out var rd))
+                    return (TRef)rd!;
+            }
+
+            var rdx = new TRef { Code = code };
+            ((IReferenceData)rdx).SetInvalid();
+            return rdx;
+        }
+
+        /// <summary>
+        /// Performs a conversion from an <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> to an instance of <typeparamref name="TRef"/>.
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TId">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
+        /// <param name="id">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/>.</param>
+        /// <returns>The <typeparamref name="TRef"/> instance.</returns>
+        /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        [return: NotNullIfNotNull("id")]
+        public static TRef? ConvertFromId<TRef, TId>(TId? id) where TRef : IReferenceData<TId>, new() where TId : IComparable<TId>, IEquatable<TId>
+        {
+            if (id == null)
+                return default;
+
+            if (ExecutionContext.HasCurrent)
+            {
+                var rdc = Current.GetByType<TRef>();
+                if (rdc != null && rdc.TryGetById(id, out var rd))
+                    return (TRef)rd!;
+            }
+
+            var rdx = new TRef { Id = id };
+            ((IReferenceData)rdx).SetInvalid();
+            return rdx;
+        }
+
+        /// <summary>
+        /// Performs a conversion from a mapping value to an instance of <typeparamref name="TRef"/>.
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="T">The mapping value <see cref="Type"/>.</typeparam>
+        /// <param name="name">The mapping name.</param>
+        /// <param name="value">The mapping value.</param>
+        /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        public static TRef ConvertFromMapping<TRef, T>(string name, T? value) where TRef : IReferenceData, new() where T : IComparable<T?>, IEquatable<T?>
+        {
+            if (value != null && ExecutionContext.HasCurrent)
+            {
+                var rdc = Current.GetByType<TRef>();
+                if (rdc != null && rdc.TryGetByMapping(name, value, out var rd))
+                    return (TRef)rd!;
+            }
+
+            var rdx = new TRef();
+            ((IReferenceData)rdx).SetInvalid();
+            return rdx;
         }
     }
 }

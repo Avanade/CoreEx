@@ -25,6 +25,13 @@ namespace CoreEx.Entities
         public static readonly CompositeKey Empty;
 
         /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from the argument values,
+        /// </summary>
+        /// <param name="args">The argument values for the key.</param>
+        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        public static CompositeKey Create(params object?[] args) => new(args);
+
+        /// <summary>
         /// Initializes a new <see cref="CompositeKey"/> structure.
         /// </summary>
         public CompositeKey() => _args = ImmutableArray<object?>.Empty;
@@ -235,7 +242,7 @@ namespace CoreEx.Entities
         /// </summary>
         /// <param name="json">The JSON string.</param>
         /// <returns>The <see cref="CompositeKey"/>.</returns>
-        public static CompositeKey Create(string json)
+        public static CompositeKey CreateFromJson(string json)
         {
             if (string.IsNullOrEmpty(json) || json == "null")
                 return new CompositeKey();
