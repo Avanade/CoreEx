@@ -4,8 +4,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>CoreEx.Newtonsoft</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Standard Newtonsoft Extensions.</Title>
-    <Description>CoreEx .NET Standard (v2.1) Newtonsoft Extensions.</Description>
+    <Title>CoreEx .NET Newtonsoft Extensions.</Title>
+    <Description>CoreEx .NET Newtonsoft Extensions.</Description>
     <PackageTags>coreex api function aspnet json newtonsoft jsonserializer</PackageTags>
   </PropertyGroup>
 

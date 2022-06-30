@@ -4,9 +4,9 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>CoreEx.Database</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Standard Database extras.</Title>
-    <Description>CoreEx .NET Standard (v2.1) Database extras.</Description>
-    <PackageTags>coreex api function aspnet entity microservices database sql sqlserver ado.net entityframework ef efcore</PackageTags>
+    <Title>CoreEx .NET Relational Database extras.</Title>
+    <Description>CoreEx .NET Relational Database extras.</Description>
+    <PackageTags>coreex db database sql sqlserver ado.net relational</PackageTags>
   </PropertyGroup>
 
   <Import Project="..\..\Common.targets" />

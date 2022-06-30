@@ -69,22 +69,6 @@ namespace CoreEx.Http
         public new Task<HttpResult<TResponse>> GetAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
             => base.GetAsync<TResponse>(requestUri, requestOptions, args, cancellationToken);
 
-        /// <summary>
-        /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
-        /// </summary>
-        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> response <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
-        /// <param name="requestUri">The Uri the request is sent to.</param>
-        /// <param name="requestOptions">The optional <see cref="HttpRequestOptions"/>.</param>
-        /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        public new Task<HttpResult<TCollResult>> GetCollectionResultAsync<TCollResult, TColl, TItem>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
-            where TCollResult : ICollectionResult<TColl, TItem>, new()
-            where TColl : ICollection<TItem>
-            => base.GetCollectionResultAsync<TCollResult, TColl, TItem>(requestUri, requestOptions, args, cancellationToken);
-
         #endregion
 
         #region PostAsync

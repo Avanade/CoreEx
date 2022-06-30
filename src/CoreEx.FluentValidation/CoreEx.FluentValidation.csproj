@@ -4,9 +4,9 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>CoreEx.FluentValidation</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Standard FluentValidation Extensions.</Title>
-    <Description>CoreEx .NET Standard (v2.1) FluentValidation Extensions.</Description>
-    <PackageTags>coreex api function aspnet validation fluentvalidation</PackageTags>
+    <Title>CoreEx .NET FluentValidation Extensions.</Title>
+    <Description>CoreEx .NET FluentValidation Extensions.</Description>
+    <PackageTags>coreex api function aspnet validation validator validate fluentvalidation</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

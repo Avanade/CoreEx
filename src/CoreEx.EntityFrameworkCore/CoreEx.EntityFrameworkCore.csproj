@@ -4,9 +4,9 @@
     <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>CoreEx.EntityFrameworkCore</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Entity Framework Core extras.</Title>
+    <Title>CoreEx .NET Entity Framework Core (EF) extras.</Title>
     <Description>CoreEx .NET Entity Framework (EF) Core extras.</Description>
-    <PackageTags>coreex api function aspnet entity microservices database sql sqlserver ado.net entityframework ef efcore</PackageTags>
+    <PackageTags>coreex api db database sql sqlserver ado.net entityframework entityframeworkcore ef efcore</PackageTags>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 

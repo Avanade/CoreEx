@@ -18,6 +18,11 @@ namespace CoreEx.Entities
         Type ItemType { get; }
 
         /// <summary>
+        /// Gets the <see cref="Collection"/> <see cref="Type"/>.
+        /// </summary>
+        Type CollectionType { get;  }
+
+        /// <summary>
         /// Gets or sets the <see cref="PagingResult"/>.
         /// </summary>
         PagingResult? Paging { get; set; }
@@ -25,6 +30,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the underlying <see cref="ICollection"/>.
         /// </summary>
-        ICollection? Collection { get; }
+        ICollection Collection { get; set; }
     }
 }
