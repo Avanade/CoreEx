@@ -15,11 +15,11 @@ namespace CoreEx.Database
     public class DatabaseInvoker : InvokerBase<IDatabase>
     {
         /// <inheritdoc/>
-        protected override Task<TResult> OnInvokeAsync<TResult>(IDatabase database, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected override async Task<TResult> OnInvokeAsync<TResult>(IDatabase database, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {
-                return base.OnInvokeAsync(database, func, cancellationToken);
+                return await base.OnInvokeAsync(database, func, cancellationToken).ConfigureAwait(false);
             }
             catch (DbException dbex)
             {

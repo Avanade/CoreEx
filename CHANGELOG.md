@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v1.0.7
+- *Fixed:* Invokers updated to leverage `async/await` correctly.
+
 ## v1.0.6
 - *Enhancement:* Added `WithTimeout(TimeSpan timeout)` support to `TypedHttpClientBase` to enable per request timeouts.
 - *Enhancement:* Added `AddFluentValidators<TAssembly>` to automatically add the requisite dependency injection (DI) configuration for all validators defined within an `Assembly`.
