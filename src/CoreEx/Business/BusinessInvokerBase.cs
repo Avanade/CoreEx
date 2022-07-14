@@ -33,7 +33,8 @@ namespace CoreEx.Business
                 var result = await func(cancellationToken).ConfigureAwait(false);
 
                 // Send any published events where applicable.
-                bia.EventPublisher?.SendAsync(cancellationToken);
+                if (bia.EventPublisher != null)
+                    await bia.EventPublisher.SendAsync(cancellationToken).ConfigureAwait(false);
 
                 // Complete the transaction where requested to orchestrate one.
                 txn?.Complete();

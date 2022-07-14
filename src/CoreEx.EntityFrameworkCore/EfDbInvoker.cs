@@ -15,11 +15,11 @@ namespace CoreEx.EntityFrameworkCore
     public class EfDbInvoker : InvokerBase<IEfDb>
     {
         /// <inheritdoc/>
-        protected override Task<TResult> OnInvokeAsync<TResult>(IEfDb efdb, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(IEfDb efdb, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {
-                return base.OnInvokeAsync(efdb, func, cancellationToken);
+                return await base.OnInvokeAsync(efdb, func, cancellationToken).ConfigureAwait(false);
             }
             catch (DbException dbex)
             {
