@@ -21,6 +21,8 @@ services:
       - ServiceBusConnection=Endpoint=sb://coreex.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxxx
 ```
 
+Service Bus should have `pendingverifications` queue used by *My.Hr* sample.
+
 ## To build
 
 ```bash
@@ -40,7 +42,6 @@ Sample curl commands:
 ### Function
 
 ```bash
-curl localhost:5104/api/health
 curl localhost:5104/api/health  # to [get] to 'HealthInfo'
 curl localhost:5104/api/employee/verify  # to [post] to 'HttpTriggerQueueVerificationFuncion'
 curl localhost:5104/api/oauth2-redirect.html  # to [GET] to 'RenderOAuth2Redirect'

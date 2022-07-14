@@ -19,10 +19,14 @@ COPY "samples/My.Hr/My.Hr.Database/My.Hr.Database.csproj" "samples/My.Hr/My.Hr.D
 COPY "samples/My.Hr/My.Hr.Functions/My.Hr.Functions.csproj" "samples/My.Hr/My.Hr.Functions/My.Hr.Functions.csproj"
 
 COPY "src/CoreEx/CoreEx.csproj" "src/CoreEx/CoreEx.csproj"
+COPY "src/CoreEx.AutoMapper/CoreEx.AutoMapper.csproj" "src/CoreEx.AutoMapper/CoreEx.AutoMapper.csproj"
+COPY "src/CoreEx.Azure/CoreEx.Azure.csproj" "src/CoreEx.Azure/CoreEx.Azure.csproj"
+COPY "src/CoreEx.Database/CoreEx.Database.csproj" "src/CoreEx.Database/CoreEx.Database.csproj"
+COPY "src/CoreEx.EntityFrameworkCore/CoreEx.EntityFrameworkCore.csproj" "src/CoreEx.EntityFrameworkCore/CoreEx.EntityFrameworkCore.csproj"
 COPY "src/CoreEx.FluentValidation/CoreEx.FluentValidation.csproj" "src/CoreEx.FluentValidation/CoreEx.FluentValidation.csproj"
 COPY "src/CoreEx.HealthChecks/CoreEx.HealthChecks.csproj" "src/CoreEx.HealthChecks/CoreEx.HealthChecks.csproj"
-COPY "src/CoreEx.Azure/CoreEx.Azure.csproj" "src/CoreEx.Azure/CoreEx.Azure.csproj"
 COPY "src/CoreEx.Newtonsoft/CoreEx.Newtonsoft.csproj" "src/CoreEx.Newtonsoft/CoreEx.Newtonsoft.csproj"
+COPY "src/CoreEx.Validation/CoreEx.Validation.csproj" "src/CoreEx.Validation/CoreEx.Validation.csproj"
 
 
 RUN dotnet restore "samples/My.Hr/My.Hr.sln"
