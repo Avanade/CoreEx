@@ -40,7 +40,7 @@ namespace CoreEx.Database.Mapping
         /// <inheritdoc/>
         public void MapToDb(ChangeLog? value, DatabaseParameterCollection parameters, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (value == null)
+            if (value == null || !parameters.Database.EnableChangeLogMapperToDb)
                 return;
 
             if (OperationTypes.AnyExceptUpdate.HasFlag(operationType))

@@ -48,6 +48,10 @@ namespace CoreEx.Test.Framework.Http
             var arg2 = new HttpArg<string>("id", "&;");
             uri = new TestHttpClient().VerifyUri("product/{id}", null, arg2);
             Assert.AreEqual("/product/%26%3B", uri);
+
+            arg2 = new HttpArg<string>("id", "abc");
+            uri = new TestHttpClient().VerifyUri("product/{id}/other", null, arg2);
+            Assert.AreEqual("/product/abc/other", uri);
         }
 
         [Test]
@@ -56,6 +60,14 @@ namespace CoreEx.Test.Framework.Http
             var arg = new HttpArg<int>("id", 88);
             var uri = new TestHttpClient().VerifyUri("product", null, arg);
             Assert.AreEqual("/product?id=88", uri);
+
+            var arg2 = new HttpArg<string>("id", "abc");
+            uri = new TestHttpClient().VerifyUri("product", null, arg2);
+            Assert.AreEqual("/product?id=abc", uri);
+
+            var arg3 = new HttpArg<DateTime>("id", new DateTime(2022, 01, 31, 08, 45, 59, DateTimeKind.Utc));
+            uri = new TestHttpClient().VerifyUri("product", null, arg3);
+            Assert.AreEqual("/product?id=2022-01-31T08%3A45%3A59.0000000Z", uri);
         }
 
         [Test]
@@ -85,14 +97,16 @@ namespace CoreEx.Test.Framework.Http
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUseProperties);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?id=88&name=%22gary%22&date=%222020-01-01T11%3A59%3A58Z%22&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
+            Assert.AreEqual("/people?id=88&name=gary&date=2020-01-01T11%3A59%3A58Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
+
+            arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "*gary*", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUseProperties);
+            uri = new TestHttpClient().VerifyUri("people", null, arg);
+            Assert.AreEqual("/people?id=88&name=*gary*&date=2020-01-01T11%3A59%3A58Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUsePropertiesAndPrefix);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?person.id=88&person.name=%22gary%22&person.date=%222020-01-01T11%3A59%3A58Z%22&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
+            Assert.AreEqual("/people?person.id=88&person.name=gary&person.date=2020-01-01T11%3A59%3A58Z&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
         }
-
-   
 
         public class Person
         {

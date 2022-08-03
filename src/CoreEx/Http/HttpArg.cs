@@ -161,6 +161,9 @@ namespace CoreEx.Http
                     switch (jp.Value.ValueKind)
                     {
                         case Stj.JsonValueKind.String:
+                            queryString = queryString.Add(qn, jp.Value.GetString());
+                            break;
+
                         case Stj.JsonValueKind.Number:
                         case Stj.JsonValueKind.True:
                         case Stj.JsonValueKind.False:

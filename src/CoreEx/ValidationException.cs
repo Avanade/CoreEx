@@ -101,7 +101,7 @@ namespace CoreEx
         public IActionResult ToResult()
         {
             if (Messages == null || Messages.Count == 0)
-                return new BadRequestObjectResult(Message);
+                return ExceptionResultExtensions.ToResult(this, StatusCode);
 
             var msd = new ModelStateDictionary();
             foreach (var item in Messages.GetMessagesForType(MessageType.Error))

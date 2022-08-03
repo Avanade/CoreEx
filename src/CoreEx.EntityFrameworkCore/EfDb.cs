@@ -89,7 +89,7 @@ namespace CoreEx.EntityFrameworkCore
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
-            ChangeLog.PrepareCreated(value);
+            ChangeLog.PrepareUpdated(value);
             Cleaner.ResetTenantId(value);
 
             return await Invoker.InvokeAsync(this, args, value, async (args, value, ct) =>
@@ -122,7 +122,7 @@ namespace CoreEx.EntityFrameworkCore
             await Invoker.InvokeAsync(this, args, key, async (args, key, ct) =>
             {
                 // A pre-read is required to get the row version for concurrency.
-                var model = await DbContext.FindAsync<TModel>(key.Args, ct).ConfigureAwait(false);
+                var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), ct).ConfigureAwait(false);
                 if (model == null)
                     throw new NotFoundException();
 

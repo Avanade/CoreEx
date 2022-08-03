@@ -55,12 +55,15 @@ namespace CoreEx.WebApis
             }
             catch (Exception ex) when (CatchAndHandleExceptions)
             {
-                owner.Logger.LogDebug("WebApi stopped; {Type}: {Message}", ex.GetType().Name, ex.Message);
+                owner.Logger.LogDebug("WebApi stopped; {Type}: {Error}", ex.GetType().Name, ex.Message);
 
                 if (ex is IExtendedException eex)
                 {
                     if (eex.ShouldBeLogged)
                         owner.Logger.LogError(ex, "{Error}", ex.Message);
+
+                    param.Request.HttpContext.Response.Headers.Add(HttpConsts.ErrorTypeHeaderName, eex.ErrorType);
+                    param.Request.HttpContext.Response.Headers.Add(HttpConsts.ErrorCodeHeaderName, eex.ErrorCode.ToString());
 
                     return await OnAfterExceptionAsync(owner, param, ex, (TResult)eex.ToResult(), cancellationToken).ConfigureAwait(false);
                 }
@@ -80,7 +83,7 @@ namespace CoreEx.WebApis
             }
             catch (Exception ex) when (!CatchAndHandleExceptions)
             {
-                owner.Logger.LogDebug("WebApi stopped; {Type}: {Message}", ex.GetType().Name, ex.Message);
+                owner.Logger.LogDebug("WebApi stopped; {Type}: {Error}", ex.GetType().Name, ex.Message);
                 throw;
             }
         }

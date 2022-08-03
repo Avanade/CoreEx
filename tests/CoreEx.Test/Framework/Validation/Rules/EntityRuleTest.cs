@@ -9,7 +9,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
     [TestFixture]
     public class EntityRuleTest
     {
-        private static readonly IValidatorEx _tiv = Validator.Create<TestItem>().HasProperty(x => x.Code, p => p.Mandatory());
+        private static readonly IValidatorEx _tiv = Validator.Create<TestItem>().HasProperty(x => x.Id, p => p.Mandatory());
         private static readonly IValidatorEx _tev = Validator.Create<TestEntity>().HasProperty(x => x.Item, p => p.Entity(_tiv));
 
         [OneTimeSetUp]
@@ -23,9 +23,9 @@ namespace CoreEx.Test.Framework.Validation.Rules
 
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Code is required.", v1.Messages[0].Text);
+            Assert.AreEqual("Identifier is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value.Item.Code", v1.Messages[0].Property);
+            Assert.AreEqual("value.Item.Id", v1.Messages[0].Property);
         }
     }
 }

@@ -598,7 +598,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"name\": \"Gazza\" }", etag: "Q8nNyU0hP+j7+1tDN0JzLGMcfPOX8OsLAh7lma4U0xo=");
             test.Type<WebApi>()
-                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Id = 13, Name = "Deano" }), put: _ => Task.FromResult<Person>(null!), simulatedConcurrency: true))
+                .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Id = 13, Name = "Deano" }), put: _ => Task.FromResult<Person>(new Person { Id = 13, Name = "Gazza" }), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new Person { Id = 13, Name = "Gazza" });

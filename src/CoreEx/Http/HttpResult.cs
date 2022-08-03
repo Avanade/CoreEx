@@ -169,7 +169,7 @@ namespace CoreEx.Http
         /// <param name="throwKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be thrown.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>The <see cref="HttpResult"/> instance to support fluent-style method-chaining.</returns>
-        public HttpResult ThrowOnError(bool throwKnownException = true, bool useContentAsErrorMessage = false)
+        public HttpResult ThrowOnError(bool throwKnownException = true, bool useContentAsErrorMessage = true)
         {
             if (IsSuccess)
                 return this;
@@ -192,7 +192,7 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>The corresponding <see cref="IExtendedException"/> where applicable; otherwise, <c>null</c>.</returns>
-        internal static IExtendedException? CreateExtendedException(HttpResponseMessage response, string? content, bool useContentAsErrorMessage = false)
+        internal static IExtendedException? CreateExtendedException(HttpResponseMessage response, string? content, bool useContentAsErrorMessage = true)
         {
             if (response == null || response.IsSuccessStatusCode)
                 return null;

@@ -64,24 +64,24 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Ruleset_UsingValidatorClass()
         {
-            var r = await new TestItemValidator().ValidateAsync(new TestItem { Code = "A", Text = "X" });
+            var r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "A", Text = "X" });
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Text", r.Messages[0].Property);
 
-            r = await new TestItemValidator().ValidateAsync(new TestItem { Code = "A", Text = "A" });
+            r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "A", Text = "A" });
             Assert.IsFalse(r.HasErrors);
 
-            r = await new TestItemValidator().ValidateAsync(new TestItem { Code = "B", Text = "X" });
+            r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "B", Text = "X" });
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Text", r.Messages[0].Property);
 
-            r = await new TestItemValidator().ValidateAsync(new TestItem { Code = "B", Text = "B" });
+            r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "B", Text = "B" });
             Assert.IsFalse(r.HasErrors);
         }
 
@@ -89,33 +89,33 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Ruleset_UsingInline()
         {
             var v = Validator.Create<TestItem>()
-                .HasRuleSet(x => x.Value!.Code == "A", y =>
+                .HasRuleSet(x => x.Value!.Id == "A", y =>
                 {
                     y.Property(x => x.Text).Mandatory().Must(x => x.Text == "A");
                 })
-                .HasRuleSet(x => x.Value!.Code == "B", (y) =>
+                .HasRuleSet(x => x.Value!.Id == "B", (y) =>
                 {
                     y.Property(x => x.Text).Mandatory().Must(x => x.Text == "B");
                 });
 
-            var r = await v.ValidateAsync(new TestItem { Code = "A", Text = "X" });
+            var r = await v.ValidateAsync(new TestItem { Id = "A", Text = "X" });
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Text", r.Messages[0].Property);
 
-            r = await v.ValidateAsync(new TestItem { Code = "A", Text = "A" });
+            r = await v.ValidateAsync(new TestItem { Id = "A", Text = "A" });
             Assert.IsFalse(r.HasErrors);
 
-            r = await v.ValidateAsync(new TestItem { Code = "B", Text = "X" });
+            r = await v.ValidateAsync(new TestItem { Id = "B", Text = "X" });
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Text", r.Messages[0].Property);
 
-            r = await v.ValidateAsync(new TestItem { Code = "B", Text = "B" });
+            r = await v.ValidateAsync(new TestItem { Id = "B", Text = "B" });
             Assert.IsFalse(r.HasErrors);
         }
 
@@ -137,9 +137,9 @@ namespace CoreEx.Test.Framework.Validation
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(2, r.Messages!.Count);
 
-            Assert.AreEqual("Code is invalid.", r.Messages[0].Text);
+            Assert.AreEqual("Identifier is invalid.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("code", r.Messages[0].Property);
+            Assert.AreEqual("id", r.Messages[0].Property);
 
             Assert.AreEqual("Description must not exceed 10 item(s).", r.Messages[1].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
@@ -172,10 +172,10 @@ namespace CoreEx.Test.Framework.Validation
             var cv2 = CommonValidator.Create<string?>(v => v.String(2).Must(x => x.Value != "YYY"));
 
             var vx = Validator.Create<TestItem>()
-                .HasProperty(x => x.Code, p => p.Common(cv2))
+                .HasProperty(x => x.Id, p => p.Common(cv2))
                 .HasProperty(x => x.Text, p => p.Common(cv1));
 
-            var r = await vx.ValidateAsync(new TestItem { Code = "YYY", Text = "XXXXX" });
+            var r = await vx.ValidateAsync(new TestItem { Id = "YYY", Text = "XXXXX" });
 
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(2, r.Messages!.Count);
@@ -197,12 +197,12 @@ namespace CoreEx.Test.Framework.Validation
         {
             public TestItemValidator()
             {
-                RuleSet(x => x.Value!.Code == "A", () =>
+                RuleSet(x => x.Value!.Id == "A", () =>
                 {
                     Property(x => x.Text).Mandatory().Must(x => x.Text == "A");
                 });
 
-                RuleSet(x => x.Value!.Code == "B", () =>
+                RuleSet(x => x.Value!.Id == "B", () =>
                 {
                     Property(x => x.Text).Mandatory().Must(x => x.Text == "B");
                 });
@@ -213,10 +213,10 @@ namespace CoreEx.Test.Framework.Validation
         {
             protected override Task OnValidateAsync(ValidationContext<TestItem> context, CancellationToken ct)
             {
-                if (!context.HasError(x => x.Code))
-                    context.AddError(x => x.Code, ValidatorStrings.InvalidFormat);
+                if (!context.HasError(x => x.Id))
+                    context.AddError(x => x.Id, ValidatorStrings.InvalidFormat);
 
-                if (!context.HasError(x => x.Code))
+                if (!context.HasError(x => x.Id))
                     Assert.Fail();
 
                 context.Check(x => x.Text, (v) => string.IsNullOrEmpty(v), ValidatorStrings.MaxCountFormat, 10);
@@ -236,35 +236,37 @@ namespace CoreEx.Test.Framework.Validation
             public Dictionary<string, TestItem>? Dict2 { get; set; }
         }
 
-        public class TestItem
+        public class TestItem : IIdentifier<string>, IPrimaryKey
         {
-            public string? Code { get; set; }
+            public string? Id { get; set; }
 
             [JsonPropertyName("Text")]
             [System.ComponentModel.DataAnnotations.Display(Name = "Description")]
             public string? Text { get; set; }
+
+            public CompositeKey PrimaryKey => new CompositeKey(Id);
         }
 
         [Test]
         public async Task Create_NewValidator_CollectionDuplicate()
         {
             var e = new TestEntity();
-            e.Items!.Add(new TestItem { Code = "ABC", Text = "Abc" });
-            e.Items.Add(new TestItem { Code = "DEF", Text = "Abc" });
-            e.Items.Add(new TestItem { Code = "ABC", Text = "Def" });
-            e.Items.Add(new TestItem { Code = "XYZ", Text = "Xyz" });
+            e.Items!.Add(new TestItem { Id = "ABC", Text = "Abc" });
+            e.Items.Add(new TestItem { Id = "DEF", Text = "Abc" });
+            e.Items.Add(new TestItem { Id = "ABC", Text = "Def" });
+            e.Items.Add(new TestItem { Id = "XYZ", Text = "Xyz" });
 
             var v = Validator.Create<TestItem>();
 
             var r = await Validator.Create<TestEntity>()
-                .HasProperty(x => x.Items, p => p.Collection(item: CollectionRuleItem.Create(v).DuplicateCheck(y => y.Code)))
+                .HasProperty(x => x.Items, p => p.Collection(item: CollectionRuleItem.Create(v).DuplicateCheck(y => y.Id)))
                 .ValidateAsync(e);
 
             Assert.IsNotNull(r);
             Assert.IsTrue(r.HasErrors);
 
             Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Items contains duplicates; Code 'ABC' specified more than once.", r.Messages[0].Text);
+            Assert.AreEqual("Items contains duplicates; Identifier 'ABC' specified more than once.", r.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
             Assert.AreEqual("Items", r.Messages[0].Property);
         }
@@ -274,14 +276,14 @@ namespace CoreEx.Test.Framework.Validation
         {
             try
             {
-                Validator.Create<TestItem>().ThrowValidationException(x => x.Code, "Some text.");
+                Validator.Create<TestItem>().ThrowValidationException(x => x.Id, "Some text.");
                 Assert.Fail();
             }
             catch (ValidationException vex)
             {
                 Assert.AreEqual("Some text.", vex.Messages![0].Text);
                 Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-                Assert.AreEqual("Code", vex.Messages[0].Property);
+                Assert.AreEqual("Id", vex.Messages[0].Property);
             }
         }
 
@@ -290,14 +292,14 @@ namespace CoreEx.Test.Framework.Validation
         {
             try
             {
-                Validator.Create<TestItem>().ThrowValidationException(x => x.Code, "{0} {1} {2} Stuff.", "XXX", "ZZZ");
+                Validator.Create<TestItem>().ThrowValidationException(x => x.Id, "{0} {1} {2} Stuff.", "XXX", "ZZZ");
                 Assert.Fail();
             }
             catch (ValidationException vex)
             {
-                Assert.AreEqual("Code XXX ZZZ Stuff.", vex.Messages![0].Text);
+                Assert.AreEqual("Identifier XXX ZZZ Stuff.", vex.Messages![0].Text);
                 Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-                Assert.AreEqual("Code", vex.Messages[0].Property);
+                Assert.AreEqual("Id", vex.Messages[0].Property);
             }
         }
 
@@ -408,7 +410,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Coll_Validator_MaxCount()
         {
             var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()));
-            var tc = new List<TestItem> { new TestItem { Code = "A", Text = "aaa" }, new TestItem { Code = "B", Text = "bbb" }, new TestItem { Code = "C", Text = "ccc" } };
+            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "aaa" }, new TestItem { Id = "B", Text = "bbb" }, new TestItem { Id = "C", Text = "ccc" } };
 
             var r = await vxc.ValidateAsync(tc);
 
@@ -429,7 +431,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Coll_Validator_MinCount()
         {
             var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 3, item: CollectionRuleItem.Create(new TestItemValidator()));
-            var tc = new List<TestItem> { new TestItem { Code = "A", Text = "A" }, new TestItem { Code = "B", Text = "B" } };
+            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "A" }, new TestItem { Id = "B", Text = "B" } };
 
             var r = await vxc.ValidateAsync(tc);
 
@@ -443,23 +445,23 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_Duplicate()
         {
-            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Code));
-            var tc = new List<TestItem> { new TestItem { Code = "A", Text = "A" }, new TestItem { Code = "A", Text = "A" } };
+            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
+            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "A" }, new TestItem { Id = "A", Text = "A" } };
 
             var r = await vxc.ValidateAsync(tc);
 
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value contains duplicates; Code 'A' specified more than once.", r.Messages[0].Text);
+            Assert.AreEqual("Value contains duplicates; Identifier 'A' specified more than once.", r.Messages[0].Text);
             Assert.AreEqual("value", r.Messages[0].Property);
         }
 
         [Test]
         public async Task Coll_Validator_OK()
         {
-            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Code));
-            var tc = new List<TestItem> { new TestItem { Code = "A", Text = "A" }, new TestItem { Code = "B", Text = "B" } };
+            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
+            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "A" }, new TestItem { Id = "B", Text = "B" } };
 
             var r = await vxc.ValidateAsync(tc);
 
@@ -496,7 +498,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Dict_Validator_MaxCount()
         {
             var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 1, maxCount: 2, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
-            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Code = "A", Text = "aaa" } }, { "k2", new TestItem { Code = "B", Text = "bbb" } }, { "k3", new TestItem { Code = "C", Text = "ccc" } } };
+            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "aaa" } }, { "k2", new TestItem { Id = "B", Text = "bbb" } }, { "k3", new TestItem { Id = "C", Text = "ccc" } } };
 
             var r = await vxd.ValidateAsync(tc);
 
@@ -517,7 +519,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Dict_Validator_MinCount()
         {
             var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 3, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
-            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Code = "A", Text = "A" } }, { "k2", new TestItem { Code = "B", Text = "B" } } };
+            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2", new TestItem { Id = "B", Text = "B" } } };
 
             var r = await vxd.ValidateAsync(tc);
 
@@ -532,7 +534,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Dict_Validator_OK()
         {
             var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 2, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
-            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Code = "A", Text = "A" } }, { "k2", new TestItem { Code = "B", Text = "B" } } };
+            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2", new TestItem { Id = "B", Text = "B" } } };
 
             var r = await vxd.ValidateAsync(tc);
 
@@ -571,7 +573,7 @@ namespace CoreEx.Test.Framework.Validation
             var kv = CommonValidator.Create<string?>(x => x.Text("Key").Mandatory().String(2));
 
             var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 2, item: DictionaryRuleItem.Create(key: kv, value: new TestItemValidator()));
-            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Code = "A", Text = "A" } }, { "k2x", new TestItem { Code = "B", Text = "B" } } };
+            var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2x", new TestItem { Id = "B", Text = "B" } } };
 
             var r = await vxd.ValidateAsync(tc);
 

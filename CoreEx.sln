@@ -55,7 +55,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Database", "src\Core
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.EntityFrameworkCore", "src\CoreEx.EntityFrameworkCore\CoreEx.EntityFrameworkCore.csproj", "{9824E0A9-B9A6-49B1-8B7C-A2E157406C66}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.AutoMapper", "src\CoreEx.AutoMapper\CoreEx.AutoMapper.csproj", "{F3384ADC-1DA8-4538-B991-DBD2BC591AF1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.AutoMapper", "src\CoreEx.AutoMapper\CoreEx.AutoMapper.csproj", "{F3384ADC-1DA8-4538-B991-DBD2BC591AF1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
