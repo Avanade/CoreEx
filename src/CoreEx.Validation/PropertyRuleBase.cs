@@ -32,7 +32,7 @@ namespace CoreEx.Validation
         protected PropertyRuleBase(string name, LText? text = null, string? jsonName = null)
         {
             Name = string.IsNullOrEmpty(name) ? throw new ArgumentNullException(nameof(name)) : name;
-            Text = text ?? Name.ToSentenceCase();
+            Text = text ?? Name.ToSentenceCase()!;
             JsonName = string.IsNullOrEmpty(jsonName) ? Name : jsonName;
         }
 

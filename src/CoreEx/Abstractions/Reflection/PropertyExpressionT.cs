@@ -123,7 +123,7 @@ namespace CoreEx.Abstractions.Reflection
         public string? JsonName { get; }
 
         /// <inheritdoc/>
-        public LText Text => _text ??= Name.ToSentenceCase(); // Lazy generate the text.
+        public LText Text => _text ??= Name.ToSentenceCase()!; // Lazy generate the text to avoid logic execution if not needed.
 
         /// <inheritdoc/>
         public bool IsJsonSerializable { get;  }

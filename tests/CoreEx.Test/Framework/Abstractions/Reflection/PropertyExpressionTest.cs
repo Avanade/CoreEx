@@ -40,5 +40,17 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             Assert.AreEqual("Secret", (string)pe5.Text);
             Assert.IsFalse(pe5.IsJsonSerializable);
         }
+
+        [Test]
+        public void ToSentenceCase()
+        {
+            Assert.IsNull(PropertyExpression.ToSentenceCase(null));
+            Assert.AreEqual(string.Empty, PropertyExpression.ToSentenceCase(string.Empty));
+            Assert.AreEqual("Identifier", PropertyExpression.ToSentenceCase("Id"));
+            Assert.AreEqual("Identifier", PropertyExpression.ToSentenceCase("id"));
+            Assert.AreEqual("First Name", PropertyExpression.ToSentenceCase("FirstName"));
+            Assert.AreEqual("First Name", PropertyExpression.ToSentenceCase("firstName"));
+            Assert.AreEqual("Employee", PropertyExpression.ToSentenceCase("EmployeeId"));
+        }
     }
 }

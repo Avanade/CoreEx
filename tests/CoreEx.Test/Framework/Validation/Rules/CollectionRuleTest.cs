@@ -5,6 +5,7 @@ using CoreEx.Entities;
 using CoreEx.Validation.Rules;
 using System.Threading.Tasks;
 using static CoreEx.Test.Framework.Validation.ValidatorTest;
+using System;
 
 namespace CoreEx.Test.Framework.Validation.Rules
 {
@@ -178,6 +179,30 @@ namespace CoreEx.Test.Framework.Validation.Rules
         }
 
         [Test]
+        public async Task Validate_Item_Duplicates_Identifier2()
+        {
+            var v1 = await new TestItem2[0].Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
+
+            var tis = new TestItem2[] { new TestItem2 { Id = 1.ToGuid() }, new TestItem2 { Id = 2.ToGuid() }, new TestItem2 { Id = 3.ToGuid() } };
+
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
+
+            tis[2].Id = 1.ToGuid();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            Assert.IsTrue(v1.HasErrors);
+            Assert.AreEqual(1, v1.Messages!.Count);
+            Assert.AreEqual($"Value contains duplicates; Identifier '{1.ToGuid()}' specified more than once.", v1.Messages[0].Text);
+            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
+            Assert.AreEqual("value", v1.Messages[0].Property);
+
+            tis[2].Id = Guid.Empty;
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
+        }
+
+        [Test]
         public async Task Validate_Ints()
         {
             var v1 = await new int[] { 1, 2, 3, 4 }.Validate(name: "Array").Collection(maxCount: 5).ValidateAsync();
@@ -189,6 +214,11 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual("Array must not exceed 3 item(s).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("Array", v1.Messages[0].Property);
+        }
+
+        public class TestItem2 : IIdentifier<Guid>
+        {
+            public Guid Id { get; set; }
         }
     }
 }

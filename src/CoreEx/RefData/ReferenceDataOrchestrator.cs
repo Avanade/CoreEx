@@ -50,12 +50,19 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
         /// <param name="cache">The optional <see cref="IMemoryCache"/> to be used where not specifically overridden by <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>.</param>
-        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache = null)
+        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache)
         {
             ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
             _cache = cache;
-            _logger = new Lazy<ILogger>(() => ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>());
+            _logger = new Lazy<ILogger>(ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>);
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
+        /// </summary>
+        /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
+        /// <param name="useDefaultMemoryCache">Indicates whether to use a default <see cref="MemoryCache"/>; otherwise, no <see cref="IMemoryCache"/> at all.</param>
+        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, bool useDefaultMemoryCache = true) : this(serivceProvider, useDefaultMemoryCache ? new MemoryCache(new MemoryCacheOptions()) : null) { }
 
         /// <summary>
         /// Gets the <see cref="IServiceProvider"/>.
@@ -67,6 +74,14 @@ namespace CoreEx.RefData
         /// </summary>
         [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
         public ILogger Logger => _logger.Value;
+
+        /// <summary>
+        /// Registers the <see cref="IReferenceDataProvider"/> <see cref="Type"/>.
+        /// </summary>
+        /// <returns>The <see cref="ReferenceDataOrchestrator"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>Internally this builds the relationship between the <see cref="IReferenceDataProvider.Types"/> and the owning <see cref="IReferenceDataProvider"/> to enable cached access to the underlying 
+        /// <see cref="IReferenceDataCollection"/> using <see cref="GetByTypeAsync(Type, CancellationToken)"/> or <see cref="this[Type]"/>.</remarks>
+        public ReferenceDataOrchestrator Register() => Register<IReferenceDataProvider>();
 
         /// <summary>
         /// Registers an <see cref="IReferenceDataProvider"/> <see cref="Type"/>.

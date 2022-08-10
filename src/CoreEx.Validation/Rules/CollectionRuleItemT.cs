@@ -22,6 +22,7 @@ namespace CoreEx.Validation.Rules
         private LText? _duplicateText = null;
         private bool _ignoreWherePrimaryKeyIsInitial = false;
         private bool _isIdDuplicateCheck = false;
+        private bool _isDefaultValueCalculated = false;
         private object? _idDefaultValue;
         private bool _ignoreWhereIdIsDefault = false;
 
@@ -174,8 +175,13 @@ namespace CoreEx.Validation.Rules
                         if (item.Id == null)
                             continue;
 
-                        _idDefaultValue ??= item.Id.GetType().IsClass ? null : Activator.CreateInstance(item.Id.GetType());
-                        if (item.Id == _idDefaultValue)
+                        if (!_isDefaultValueCalculated)
+                        {
+                            _idDefaultValue ??= item.Id.GetType().IsClass ? null : Activator.CreateInstance(item.Id.GetType());
+                            _isDefaultValueCalculated = true;
+                        }
+
+                        if (Comparer.Default.Compare(item.Id, _idDefaultValue) == 0)
                             continue;
                     }
 

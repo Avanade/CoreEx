@@ -1,7 +1,6 @@
 ﻿using CoreEx.Azure.HealthChecks;
 using CoreEx.Database;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace My.Hr.Api;
@@ -19,7 +18,7 @@ public class Startup
         // Register the core services.
         services
             .AddSettings<HrSettings>()
-            .AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<ReferenceDataService>())
+            .AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<ReferenceDataService>())
             .AddExecutionContext()
             .AddJsonSerializer()
             .AddEventDataSerializer()
@@ -29,7 +28,7 @@ public class Startup
             .AddAzureServiceBusPurger()
             .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection))
             .AddJsonMergePatch()
-            .AddWebApi(c => c.OnUnhandledException = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
+            .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
             .AddReferenceDataContentWebApi()
             .AddRequestCache();
 

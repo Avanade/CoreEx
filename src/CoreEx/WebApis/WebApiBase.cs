@@ -151,12 +151,12 @@ namespace CoreEx.WebApis
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IActionResult"/> to return where handled; otherwise, <c>null</c> which in turn will result in <see cref="ExceptionResultExtensions.ToUnexpectedResult(Exception, bool)"/>.</returns>
         /// <remarks>Any <see cref="IExtendedException"/> exceptions will be handled per their implementation; see <see cref="IExceptionResult.ToResult"/>.</remarks>
-        protected internal virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex, CancellationToken cancellationToken) => OnUnhandledException(ex, cancellationToken);
+        protected internal virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex, CancellationToken cancellationToken) => UnhandledExceptionAsync(ex, cancellationToken);
 
         /// <summary>
         /// Gets or sets the delegate that is invoked as an opportunity to handle an unhandled exception.
         /// </summary>
         /// <remarks>This is invoked by <see cref="OnUnhandledExceptionAsync(Exception, CancellationToken)"/>.</remarks>
-        public Func<Exception, CancellationToken, Task<IActionResult?>> OnUnhandledException { get; set; } = (_, __) => Task.FromResult<IActionResult?>(null!);
+        public Func<Exception, CancellationToken, Task<IActionResult?>> UnhandledExceptionAsync { get; set; } = (_, __) => Task.FromResult<IActionResult?>(null!);
     }
 }
