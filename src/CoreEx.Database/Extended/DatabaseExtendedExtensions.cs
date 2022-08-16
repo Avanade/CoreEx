@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
-using CoreEx.Entities.Extended;
 using CoreEx.Mapping;
 using CoreEx.RefData;
 using System;
@@ -178,6 +177,13 @@ namespace CoreEx.Database.Extended
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
+            // Set ChangeLog properties where appropriate.
+            if (operationType == OperationTypes.Create)
+                ChangeLog.PrepareCreated(value);
+            else
+                ChangeLog.PrepareUpdated(value);
+
+            // Map the parameters.
             var map = (IDatabaseMapper<T>)args.Mapper;
             map.MapToDb(value, command.Parameters, operationType);
 
@@ -218,7 +224,7 @@ namespace CoreEx.Database.Extended
         {
             var rowsAffected = await (command ?? throw new ArgumentNullException(nameof(command)))
                 .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
-                .NonQueryAsync(cancellationToken);
+                .NonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             if (rowsAffected == 0)
                 throw new NotFoundException();

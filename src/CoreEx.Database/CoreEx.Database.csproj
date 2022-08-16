@@ -12,7 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="4.1.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>

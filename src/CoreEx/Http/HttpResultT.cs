@@ -39,7 +39,7 @@ namespace CoreEx.Http
         /// <param name="throwKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be thrown.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>The <see cref="HttpResult"/> instance to support fluent-style method-chaining.</returns>
-        public new HttpResult<T> ThrowOnError(bool throwKnownException = true, bool useContentAsErrorMessage = false)
+        public new HttpResult<T> ThrowOnError(bool throwKnownException = true, bool useContentAsErrorMessage = true)
         {
             base.ThrowOnError(throwKnownException, useContentAsErrorMessage);
             return this;

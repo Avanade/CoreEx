@@ -27,12 +27,11 @@ namespace CoreEx.Test.TestFunction
         public void InvalidBody()
         {
             using var test = FunctionTester.Create<Startup>();
-            test
-               .ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
-               .HttpTrigger<HttpTriggerFunction>()
-               .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
-               .AssertBadRequest()
-               .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: '<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
+            var r = test.ReplaceScoped<IJsonSerializer, CoreEx.Text.Json.JsonSerializer>()
+                .HttpTrigger<HttpTriggerFunction>()
+                .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest/products", "<xml/>")))
+                .AssertBadRequest()
+                .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: '<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
         }
 
         [Test]

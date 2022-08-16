@@ -195,5 +195,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <remarks>Defaults to: '<c>Primary Key</c>'</remarks>
         public static LText PrimaryKey { get; set; } = new("CoreEx.Validation.PrimaryKey");
+
+        /// <summary>
+        /// Gets or sets the string for the <see cref="Entities.IIdentifier.Id"/> literal.
+        /// </summary>
+        /// <remarks>Defaults to: '<c>Identifier</c>'</remarks>
+        public static LText Identifier { get; set; } = new("CoreEx.Validation.Identifier");
     }
 }

@@ -53,7 +53,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_Value()
         {
-            var iv = Validator.Create<TestItem>().HasProperty(x => x.Code, p => p.Mandatory());
+            var iv = Validator.Create<TestItem>().HasProperty(x => x.Id, p => p.Mandatory());
 
             var v1 = await new Dictionary<string, TestItem>().Validate("Dict").Dictionary(item: DictionaryRuleItem.Create<string, TestItem>(value: iv)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -61,9 +61,9 @@ namespace CoreEx.Test.Framework.Validation.Rules
             v1 = await new Dictionary<string, TestItem> { { "k1", new TestItem() } }.Validate("Dict").Dictionary(item: DictionaryRuleItem.Create<string, TestItem>(value: iv)).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Code is required.", v1.Messages[0].Text);
+            Assert.AreEqual("Identifier is required.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Dict[k1].Code", v1.Messages[0].Property);
+            Assert.AreEqual("Dict[k1].Id", v1.Messages[0].Property);
         }
 
         [Test]

@@ -55,6 +55,36 @@ namespace CoreEx.Test.Framework.Http
         }
 
         [Test]
+        public void Get_ValidationError_NoMessages()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Get, "test").Respond.With("Serious error occurred.", HttpStatusCode.BadRequest, r =>
+            {
+                r.Headers.Add(HttpConsts.ErrorTypeHeaderName, ErrorType.ValidationError.ToString());
+                r.Headers.Add(HttpConsts.ErrorCodeHeaderName, ((int)ErrorType.ValidationError).ToString());
+            });
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ReplaceHttpClientFactory(mcf)
+                .Type<BackendHttpClient>()
+                .Run(f => f.GetAsync("test"))
+                .AssertSuccess();
+
+            Assert.IsFalse(r.Result.IsSuccess);
+            Assert.AreEqual(HttpStatusCode.BadRequest, r.Result.StatusCode);
+            Assert.AreEqual(1, r.Result.ErrorCode);
+            Assert.AreEqual("ValidationError", r.Result.ErrorType);
+            Assert.AreEqual("Serious error occurred.", r.Result.Content);
+
+            var vex = Assert.Throws<ValidationException>(() => r.Result.ThrowOnError());
+            Assert.AreEqual("Serious error occurred.", vex!.Message);
+            Assert.Throws<HttpRequestException>(() => r.Result.ThrowOnError(false));
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
         public void Get_BusinessError()
         {
             var mcf = MockHttpClientFactory.Create();

@@ -241,7 +241,7 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IExtendedException"/> where applicable; otherwise, <c>null</c>.</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there is case it ever does.")]
-        public async static Task<IExtendedException?> ToExtendedExceptionAsync(this HttpResponseMessage response, bool useContentAsErrorMessage = false, CancellationToken cancellationToken = default)
+        public async static Task<IExtendedException?> ToExtendedExceptionAsync(this HttpResponseMessage response, bool useContentAsErrorMessage = true, CancellationToken cancellationToken = default)
         {
             if (response == null || response.IsSuccessStatusCode)
                 return null;

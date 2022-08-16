@@ -40,6 +40,11 @@ namespace CoreEx.WebApis
         public IJsonMergePatch? JsonMergePatch { get; }
 
         /// <summary>
+        /// Indicates whether to convert a <see cref="NotFoundException"/> to the default <see cref="HttpStatusCode"/> on delete (see <see cref="DeleteAsync(HttpRequest, Func{WebApiParam, CancellationToken, Task}, HttpStatusCode, OperationType, CancellationToken)"/>.
+        /// </summary>
+        public bool ConvertNotfoundToDefaultStatusCodeOnDelete { get; } = true;
+
+        /// <summary>
         /// Encapsulates the execution of an <see cref="HttpRequest"/> <paramref name="function"/> returning a corresponding <see cref="IActionResult"/>.
         /// </summary>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
@@ -796,7 +801,12 @@ namespace CoreEx.WebApis
 
             return await RunAsync(request, async (wap, ct) =>
             {
-                await function(wap, ct).ConfigureAwait(false);
+                try
+                {
+                    await function(wap, ct).ConfigureAwait(false);
+                }
+                catch (NotFoundException) when (ConvertNotfoundToDefaultStatusCodeOnDelete) { /* Return default status code. */ }
+
                 return new ExtendedStatusCodeResult(statusCode);
             }, operationType, cancellationToken).ConfigureAwait(false);
         }
@@ -895,7 +905,7 @@ namespace CoreEx.WebApis
                             return vr.ToValidationException()!.ToResult();
                     }
 
-                    await put(new WebApiParam<TValue>(wap, Value!), ct).ConfigureAwait(false);
+                    Value = await put(new WebApiParam<TValue>(wap, Value!), ct).ConfigureAwait(false);
                 }
 
                 return ValueContentResult.CreateResult(Value, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);

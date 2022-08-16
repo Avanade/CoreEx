@@ -51,6 +51,11 @@ namespace CoreEx.Database
         DatabaseWildcard Wildcard { get; set; }
 
         /// <summary>
+        /// Indicates whether the <see cref="Mapping.ChangeLogDatabaseMapper.MapToDb(ChangeLog?, DatabaseParameterCollection, CoreEx.Mapping.OperationTypes)"/> passes values via parameters.
+        /// </summary>
+        bool EnableChangeLogMapperToDb { get; }
+
+        /// <summary>
         /// Gets the <see cref="DbConnection"/>.
         /// </summary>
         /// <remarks>The connection is created and opened on first use, and closed on <see cref="IAsyncDisposable.DisposeAsync()"/> or <see cref="IDisposable.Dispose()"/>.</remarks>

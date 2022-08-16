@@ -57,6 +57,6 @@ namespace CoreEx.Validation
         /// <returns>The value where non-default.</returns>
         /// <exception cref="ValidationException">Thrown where the value is default.</exception>
         public static T? EnsureValue<T>(this T? value, string? name = "value", LText? text = null) 
-            => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? ((name == null || name == ValueNameDefault) ? ValueTextDefault : name.ToSentenceCase()))) : value;
+            => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? ((name == null || name == ValueNameDefault) ? ValueTextDefault : name.ToSentenceCase()!))) : value;
     }
 }

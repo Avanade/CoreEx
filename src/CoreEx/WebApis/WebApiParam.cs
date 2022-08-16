@@ -50,15 +50,18 @@ namespace CoreEx.WebApis
         public OperationType OperationType { get; }
 
         /// <summary>
-        /// Inspects the <paramref name="value"/> to update the <see cref="WebApiRequestOptions.ETag"/> where appropriate.
+        /// Inspects the <paramref name="value"/> to either update the <see cref="WebApiRequestOptions.ETag"/> or <paramref name="value"/> <see cref="IETag.ETag"/> where appropriate.
         /// </summary>
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="value">The value.</param>
         /// <returns>The value to support fluent-style method-chaining.</returns>
+        /// <remarks>The <see cref="WebApiRequestOptions.ETag"/> takes precedence over the <paramref name="value"/> <see cref="IETag.ETag"/> and will override value where specified.</remarks>
         public T InspectValue<T>(T value)
         {
-            if (RequestOptions.ETag == null && value != null && value is IETag etag && etag.ETag != null)
-                RequestOptions.ETag = etag.ETag;
+            if (RequestOptions.ETag != null && value != null && value is IETag etag)
+                etag.ETag = RequestOptions.ETag;
+            else if (RequestOptions.ETag == null && value != null && value is IETag etag2 && etag2.ETag != null)
+                RequestOptions.ETag = etag2.ETag;
 
             return value;
         }

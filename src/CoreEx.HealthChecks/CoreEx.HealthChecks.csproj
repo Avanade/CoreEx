@@ -11,13 +11,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="6.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="6.0.8" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 
-  <Import Project="..\..\Common.targets"/>
+  <Import Project="..\..\Common.targets" />
 
 </Project>

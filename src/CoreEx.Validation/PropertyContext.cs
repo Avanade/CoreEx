@@ -32,7 +32,7 @@ namespace CoreEx.Validation
             Name = string.IsNullOrEmpty(name) ? throw new ArgumentNullException(nameof(name)) : name;
             JsonName = jsonName ?? Name;
             UseJsonName = context.UsedJsonNames;
-            Text = text ?? Name.ToSentenceCase();
+            Text = text ?? Name.ToSentenceCase()!;
             Value = value;
             FullyQualifiedPropertyName = CreateFullyQualifiedPropertyName(Name);
             FullyQualifiedJsonPropertyName = CreateFullyQualifiedJsonPropertyName(JsonName);
@@ -51,7 +51,7 @@ namespace CoreEx.Validation
             FullyQualifiedJsonPropertyName = Parent.FullyQualifiedJsonEntityName ?? Validation.ValueNameDefault;
             Name = FullyQualifiedPropertyName.Split('.', StringSplitOptions.RemoveEmptyEntries).Last();
             JsonName = FullyQualifiedJsonPropertyName.Split('.', StringSplitOptions.RemoveEmptyEntries).Last();
-            Text = text ?? Name.ToSentenceCase();
+            Text = text ?? Name.ToSentenceCase()!;
             Value = value;
             _doNotAppendName = true;
         }

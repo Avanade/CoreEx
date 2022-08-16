@@ -36,7 +36,8 @@ namespace CoreEx.WebApis
             if (ec == null)
                 throw new ArgumentNullException(nameof(ec));
 
-            ec.Username ??= context.User?.Identity?.Name ?? DefaultUsername;
+            ec.Username = context.User?.Identity?.Name ?? DefaultUsername;
+            ec.Timestamp = context.RequestServices.GetService<ISystemTime>()?.UtcNow ?? SystemTime.Default.UtcNow;
             return Task.CompletedTask;
         }
 

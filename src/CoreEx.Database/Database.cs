@@ -65,6 +65,9 @@ namespace CoreEx.Database
         public DatabaseWildcard Wildcard { get; set; } = _defaultWildcard;
 
         /// <inheritdoc/>
+        public bool EnableChangeLogMapperToDb { get; }
+
+        /// <inheritdoc/>
         public DbConnection GetConnection() => GetConnectionAsync().GetAwaiter().GetResult();
 
         /// <inheritdoc/>
@@ -74,7 +77,9 @@ namespace CoreEx.Database
             {
                 Logger?.LogDebug("Creating and opening the database connection. DatabaseId: {DatabaseId}", DatabaseId);
                 _dbConn = _dbConnCreate() ?? throw new InvalidOperationException($"The create function must create a valid {nameof(TConnection)} instance.");
+                await OnBeforeConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
                 await _dbConn.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await OnConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
             }
 
             return _dbConn;
