@@ -13,6 +13,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using UnitTestEx;
+using UnitTestEx.Expectations;
 using UnitTestEx.NUnit;
 
 namespace My.Hr.UnitTest
@@ -383,6 +384,17 @@ namespace My.Hr.UnitTest
             var e = imp.GetEvents("pendingVerifications");
             Assert.AreEqual(1, e.Length);
             ObjectComparer.Assert(new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" }, e[0].Value);
+        }
+
+        [Test]
+        public void G100_Verify_Publish_WithExpectations()
+        {
+            using var test = ApiTester.Create<Startup>();
+            test.UseExpectedEvents()
+                .Controller<EmployeeController>()
+                .ExpectDestinationEvent("pendingVerifications", new EventData<EmployeeVerificationRequest> { Value = new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" } })
+                .ExpectStatusCode(System.Net.HttpStatusCode.Accepted)
+                .Run(c => c.VerifyAsync(1.ToGuid()));
         }
     }
 }

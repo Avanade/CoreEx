@@ -55,7 +55,7 @@ namespace CoreEx.EntityFrameworkCore
         }
 
         /// <inheritdoc/>
-        public Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken) where T : class, new() where TModel : class, new()
+        public Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new()
             => Invoker.InvokeAsync(this, key, (key, ct) => FindAsync<T, TModel>(key.Args.ToArray(), ct), cancellationToken);
 
         /// <inheritdoc/>
