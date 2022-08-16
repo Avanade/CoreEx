@@ -66,6 +66,13 @@ namespace CoreEx.Database
         /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>.
         /// </summary>
         /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public Task SelectMultiSetAsync(params IMultiSetArgs[] multiSetArgs) => SelectMultiSetAsync(multiSetArgs, default);
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>.
+        /// </summary>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
         public Task SelectMultiSetAsync(IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
