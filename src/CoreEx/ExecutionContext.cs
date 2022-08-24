@@ -124,7 +124,7 @@ namespace CoreEx
         /// Gets the username from the <see cref="Environment"/> settings.
         /// </summary>
         /// <returns>The fully qualified username.</returns>
-        public static string EnvironmentUsername => Environment.UserDomainName == null ? Environment.UserName : Environment.UserDomainName + "\\" + Environment.UserName;
+        public static string EnvironmentUserName => Environment.UserDomainName == null ? Environment.UserName : Environment.UserDomainName + "\\" + Environment.UserName;
 
         /// <summary>
         /// Gets the <see cref="ServiceProvider"/>.
@@ -156,7 +156,7 @@ namespace CoreEx
         /// <summary>
         /// Gets or sets the corresponding user name.
         /// </summary>
-        public string Username { get; set; } = EnvironmentUsername;
+        public string UserName { get; set; } = EnvironmentUserName;
 
         /// <summary>
         /// Gets or sets the corresponding user identifier.

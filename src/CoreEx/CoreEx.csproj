@@ -24,6 +24,7 @@
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Memory.Data" Version="6.0.0" />
     <PackageReference Include="System.Text.Json" Version="6.0.5" />
+    <PackageReference Include="YamlDotNet" Version="11.2.1" />
   </ItemGroup>
 
   <Import Project="..\..\Common.targets" />

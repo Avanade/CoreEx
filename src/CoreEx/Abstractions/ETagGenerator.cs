@@ -86,5 +86,19 @@ namespace CoreEx.Abstractions
                 ? ic.ToString(null, CultureInfo.InvariantCulture)
                 : ((value is IComparable) ? value.ToString() : jsonSerializer.Serialize(value)) ?? string.Empty;
         }
+
+        /// <summary>
+        /// Formats a <paramref name="value"/> as an <see cref="IETag.ETag"/> by bookending with the requisite double quotes character; for example '<c>abc</c>' would be formatted as '<c>"abc"</c>'.
+        /// </summary>
+        /// <param name="value">The value to format.</param>
+        /// <returns>The formatted <see cref="IETag.ETag"/>.</returns>
+        public static string? FormatETag(string? value) => value == null || (value.Length > 1 && value.StartsWith("\"", StringComparison.InvariantCultureIgnoreCase) && value.EndsWith("\"", StringComparison.InvariantCultureIgnoreCase)) ? value : "\"" + value + "\"";
+
+        /// <summary>
+        /// Parses an <see cref="IETag.ETag"/> by removing double quotes character bookends; for example '<c>"abc"</c>' would be formatted as '<c>abc</c>'.
+        /// </summary>
+        /// <param name="etag">The <see cref="IETag.ETag"/> to unformat.</param>
+        /// <returns>The unformatted value.</returns>
+        public static string? ParseETag(string? etag) => etag is not null && etag.Length > 1 && etag.StartsWith("\"", StringComparison.InvariantCultureIgnoreCase) && etag.EndsWith("\"", StringComparison.InvariantCultureIgnoreCase) ? etag[1..^1] : etag;
     }
 }

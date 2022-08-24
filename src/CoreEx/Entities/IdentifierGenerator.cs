@@ -8,8 +8,36 @@ namespace CoreEx.Entities
     /// <summary>
     /// Provides an <see cref="IIdentifierGenerator{T}"/> for both a <see cref="string"/> and <see cref="Guid"/> where each is created using <see cref="Guid.NewGuid()"/>.
     /// </summary>
-    public class IdentifierGenerator : IIdentifierGenerator<string>, IIdentifierGenerator<Guid>
+    public class IdentifierGenerator : IIdentifierGenerator, IIdentifierGenerator<string>, IIdentifierGenerator<Guid>
     {
+        /// <inheritdoc/>
+        public async Task<TId> GenerateIdentifierAsync<TId, TFor>() => typeof(TId) switch
+        {
+            Type _ when typeof(TId) == typeof(string) => (TId)Convert.ChangeType(await ((IIdentifierGenerator<string>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false), typeof(TId)),
+            Type _ when typeof(TId) == typeof(Guid) => (TId)Convert.ChangeType(await ((IIdentifierGenerator<Guid>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false), typeof(TId)),
+            _ => throw new NotSupportedException($"Identifier Type '{typeof(TId).Name}' is not supported; only String or Guid.")
+        };
+
+        /// <inheritdoc/>
+        public async Task AssignIdentifierAsync<TFor>(TFor value)
+        {
+            if (value is not IIdentifier ii)
+                return;
+
+            if (value is IIdentifier<string> iis)
+            {
+                if (iis.Id == null)
+                    iis.Id = await ((IIdentifierGenerator<string>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false);
+            }
+            else if (value is IIdentifier<Guid> iig)
+            {
+                if (iig.Id == Guid.Empty)
+                    iig.Id = await ((IIdentifierGenerator<Guid>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false);
+            }
+            else
+                throw new NotSupportedException($"Identifier Type '{ii.IdType.Name}' is not supported; only String or Guid.");
+        }
+
         /// <summary>
         /// Generate a new identifier value being a <see cref="Guid.NewGuid()"/> formatted as a <see cref="string"/>.
         /// </summary>

@@ -49,7 +49,7 @@ namespace CoreEx.EntityFrameworkCore
             where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() where T : class, new() where TModel : class, new()
         {
             var result = new TCollResult { Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging)) };
-            var efq = new EfDbQuery<T, TModel>(this, EfDbArgs.Create(result.Paging), query);
+            var efq = new EfDbQuery<T, TModel>(this, new EfDbArgs(result.Paging), query);
             result.Collection = await efq.SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false);
             return result;
         }

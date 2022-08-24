@@ -73,18 +73,13 @@ namespace CoreEx.Http
             if (!string.IsNullOrEmpty(etag))
             {
                 if (httpRequest.Method == HttpMethod.Get || httpRequest.Method == HttpMethod.Head)
-                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(FormatETag(etag)));
+                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)));
                 else
-                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(FormatETag(etag)));
+                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)));
             }
 
             return httpRequest;
         }
-
-        /// <summary>
-        /// Formats the ETag to be compliant.
-        /// </summary>
-        private static string FormatETag(string etag) => etag.StartsWith('\"') && etag.EndsWith('\"') ? etag : $"\"{etag}\"";
 
         /// <summary>
         /// Applies the <see cref="HttpRequestOptions"/> to the <see cref="HttpRequest"/>.
@@ -123,9 +118,9 @@ namespace CoreEx.Http
             if (!string.IsNullOrEmpty(etag))
             {
                 if (httpRequest.Method.Equals(HttpMethod.Get.Method, StringComparison.InvariantCultureIgnoreCase) || httpRequest.Method.Equals(HttpMethod.Head.Method, StringComparison.InvariantCultureIgnoreCase))
-                    httpRequest.Headers.Add(HeaderNames.IfNoneMatch, FormatETag(etag));
+                    httpRequest.Headers.Add(HeaderNames.IfNoneMatch, ETagGenerator.FormatETag(etag));
                 else
-                    httpRequest.Headers.Add(HeaderNames.IfMatch, FormatETag(etag));
+                    httpRequest.Headers.Add(HeaderNames.IfMatch, ETagGenerator.FormatETag(etag));
             }
 
             return httpRequest;

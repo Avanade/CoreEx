@@ -148,6 +148,12 @@ namespace CoreEx.RefData
         public IReferenceDataCollection? this[string name] => GetByNameAsync(name).GetAwaiter().GetResult();
 
         /// <summary>
+        /// Gets a <see cref="Type"/> list for the registered <see cref="IReferenceData"/> types.
+        /// </summary>
+        /// <returns>The <see cref="Type"/> list.</returns>
+        public IEnumerable<Type> GetAllTypes() => _typeToProvider.Keys;
+
+        /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
         /// </summary>
         /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>

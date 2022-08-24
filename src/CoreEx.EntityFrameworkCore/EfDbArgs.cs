@@ -11,16 +11,15 @@ namespace CoreEx.EntityFrameworkCore
     public struct EfDbArgs
     {
         /// <summary>
-        /// Creates an <see cref="EfDbArgs"/>.
-        /// </summary>
-        /// <param name="paging">The optional <see cref="PagingArgs"/>.</param>
-        /// <returns>The <see cref="EfDbArgs"/>.</returns>
-        public static EfDbArgs Create(PagingArgs? paging = null) => new() { Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging)) };
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="EfDbArgs"/> struct.
         /// </summary>
         public EfDbArgs() { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EfDbArgs"/> struct with <see cref="Paging"/>.
+        /// </summary>
+        /// <param name="paging"></param>
+        public EfDbArgs(PagingArgs? paging = null) => Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
 
         /// <summary>
         /// Gets or sets the <see cref="PagingResult"/> (where paging is required for a <b>query</b>).
