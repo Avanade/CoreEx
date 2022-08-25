@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -23,7 +24,7 @@ namespace CoreEx.Database.Extended
         {
             Command = command ?? throw new ArgumentNullException(nameof(command));
             Parameters = new DatabaseParameterCollection(Database);
-            Args = args;
+            QueryArgs = args;
             Mapper = (IDatabaseMapper<T>)args.Mapper;
 
             queryParams?.Invoke(Parameters);
@@ -43,12 +44,36 @@ namespace CoreEx.Database.Extended
         /// <summary>
         /// Gets the <see cref="DatabaseArgs"/>.
         /// </summary>
-        public DatabaseArgs Args { get; }
+        public DatabaseArgs QueryArgs { get; }
 
         /// <summary>
         /// Gets the <see cref="IDatabaseMapper{TSource}"/>.
         /// </summary>
         public IDatabaseMapper<T> Mapper { get; }
+
+        /// <summary>
+        /// Gets the <see cref="PagingResult"/>.
+        /// </summary>
+        public PagingResult? Paging { get; private set; }
+
+        /// <summary>
+        /// Adds <see cref="PagingArgs"/> to the query.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+        /// <returns>The <see cref="DatabaseQuery{T}"/> to suport fluent-style method-chaining.</returns>
+        public DatabaseQuery<T> WithPaging(PagingArgs paging)
+        {
+            Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds <see cref="PagingArgs"/> to the query.
+        /// </summary>
+        /// <param name="skip">The specified number of elements in a sequence to bypass.</param>
+        /// <param name="take">The specified number of contiguous elements from the start of a sequence.</param>
+        /// <returns>The <see cref="DatabaseQuery{T}"/> to suport fluent-style method-chaining.</returns>
+        public DatabaseQuery<T> WithPaging(long skip, long? take = null) => WithPaging(PagingArgs.CreateSkipAndTake(skip, take));
 
         #region SelectSingle/SelectFirst
 
@@ -122,13 +147,13 @@ namespace CoreEx.Database.Extended
         /// </summary>
         private async Task<TResult> SelectWrapperAsync<TResult>(Func<DatabaseCommand, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
-            var rvp = Args.Paging != null && Args.Paging.IsGetCount ? Parameters.AddReturnValueParameter() : null;
-            var cmd = Command.Params(Parameters).PagingParam(Args.Paging);
+            var rvp = Paging != null && Paging.IsGetCount ? Parameters.AddReturnValueParameter() : null;
+            var cmd = Command.Params(Parameters).PagingParam(Paging);
 
             var res = await func(cmd, cancellationToken).ConfigureAwait(false);
 
             if (rvp != null && rvp.Value != null)
-                Args.Paging!.TotalCount = (long)rvp.Value;
+                Paging!.TotalCount = (long)rvp.Value;
 
             return res;
         }

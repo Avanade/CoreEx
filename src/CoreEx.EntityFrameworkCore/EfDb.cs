@@ -2,7 +2,6 @@
 
 using CoreEx.Database;
 using CoreEx.Entities;
-using CoreEx.Entities.Extended;
 using CoreEx.Mapping;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,17 +41,10 @@ namespace CoreEx.EntityFrameworkCore
         public IMapper Mapper { get; }
 
         /// <inheritdoc/>
-        public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => new(this, args, query);
+        public EfDbArgs DbArgs { get; set; } = new EfDbArgs();
 
         /// <inheritdoc/>
-        public async Task<TCollResult> SelectResultQueryAsync<TCollResult, TColl, T, TModel>(PagingArgs? paging = null, Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null, CancellationToken cancellationToken = default)
-            where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() where T : class, new() where TModel : class, new()
-        {
-            var result = new TCollResult { Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging)) };
-            var efq = new EfDbQuery<T, TModel>(this, new EfDbArgs(result.Paging), query);
-            result.Collection = await efq.SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false);
-            return result;
-        }
+        public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => new(this, args, query);
 
         /// <inheritdoc/>
         public Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new()

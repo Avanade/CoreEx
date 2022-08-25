@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities;
 using System;
 
 namespace CoreEx.Database.Extended
@@ -10,29 +9,39 @@ namespace CoreEx.Database.Extended
     /// </summary>
     public struct DatabaseArgs
     {
+        private IDatabaseMapper? _mapper = null;
+
         /// <summary>
-        /// Creates a <see cref="DatabaseArgs"/>.
+        /// Initializes a new instance of the <see cref="DatabaseArgs"/> struct.
         /// </summary>
+        public DatabaseArgs() { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DatabaseArgs"/> struct.
+        /// </summary>
+        /// <param name="template">The template <see cref="DatabaseArgs"/> to copy from.</param>
         /// <param name="mapper">The <see cref="IDatabaseMapper"/>.</param>
-        /// <param name="paging">The optional <see cref="PagingArgs"/>.</param>
-        /// <returns>The <see cref="DatabaseArgs"/>.</returns>
-        public static DatabaseArgs Create(IDatabaseMapper mapper, PagingArgs? paging = null) => new(mapper) { Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging)) };
+        public DatabaseArgs(DatabaseArgs template, IDatabaseMapper mapper)
+        {
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            Refresh = template.Refresh;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseArgs"/> struct.
         /// </summary>
         /// <param name="mapper">The <see cref="IDatabaseMapper"/>.</param>
-        public DatabaseArgs(IDatabaseMapper mapper) => Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        public DatabaseArgs(IDatabaseMapper mapper) => _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
 
         /// <summary>
         /// Gets the <see cref="IDatabaseMapper"/>.
         /// </summary>
-        public IDatabaseMapper Mapper { get;}
+        public IDatabaseMapper Mapper => _mapper ?? throw new InvalidOperationException("Mapper must have been specified for it to be referenced.");
 
         /// <summary>
-        /// Gets or sets the <see cref="PagingResult"/> (where paging is required for a <b>query</b>).
+        /// Indicates whether the <see cref="Mapper"/> has been specified.
         /// </summary>
-        public PagingResult? Paging { get; set; } = null;
+        public bool HasMapper => _mapper != null;
 
         /// <summary>
         /// Indicates whether the data should be refreshed (reselected where applicable) after a <b>save</b> operation (defaults to <c>true</c>).

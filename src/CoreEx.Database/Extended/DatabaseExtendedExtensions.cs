@@ -77,18 +77,7 @@ namespace CoreEx.Database.Extended
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="queryParams">The query <see cref="DatabaseParameterCollection"/> action to enable additional filtering.</param>
         /// <returns>The <see cref="DatabaseQuery{T}"/></returns>
-        public static DatabaseQuery<T> Query<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, Action<DatabaseParameterCollection>? queryParams = null) where T : class, new() => new(command, new DatabaseArgs(mapper), queryParams);
-
-        /// <summary>
-        /// Creates a <see cref="DatabaseQuery{T}"/> to enable select-like capabilities.
-        /// </summary>
-        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
-        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
-        /// <param name="pagingResult">The <see cref="PagingResult"/>.</param>
-        /// <param name="queryParams">The query <see cref="DatabaseParameterCollection"/> action to enable additional filtering.</param>
-        /// <returns>The <see cref="DatabaseQuery{T}"/></returns>
-        public static DatabaseQuery<T> Query<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, PagingResult pagingResult, Action<DatabaseParameterCollection>? queryParams = null) where T : class, new() => new(command, DatabaseArgs.Create(mapper, pagingResult), queryParams);
+        public static DatabaseQuery<T> Query<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, Action<DatabaseParameterCollection>? queryParams = null) where T : class, new() => new(command, new DatabaseArgs(command.Database.DbArgs, mapper), queryParams);
 
         /// <summary>
         /// Gets the value for the specified <paramref name="keys"/> mapping to <typeparamref name="T"/>.
@@ -140,7 +129,7 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (reselected where specified).</returns>
         public static Task<T> CreateAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
-            => SaveAsync(command, DatabaseArgs.Create(mapper), value, OperationTypes.Create, cancellationToken);
+            => SaveAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Create, cancellationToken);
 
         /// <summary>
         /// Performs an update using the specified stored procedure and value (reselects where specified).
@@ -164,7 +153,7 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (reselected where specified).</returns>
         public static Task<T> UpdateAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
-            => SaveAsync(command, DatabaseArgs.Create(mapper), value, OperationTypes.Update, cancellationToken);
+            => SaveAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Update, cancellationToken);
 
         /// <summary>
         /// Performs the save (create or update) operation.
@@ -211,7 +200,7 @@ namespace CoreEx.Database.Extended
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="keys">The key values.</param>
         public static Task DeleteAsync(this DatabaseCommand command, IDatabaseMapper mapper, IComparable[] keys)
-            => DeleteAsync(command, DatabaseArgs.Create(mapper), CompositeKey.Create(keys), CancellationToken.None);
+            => DeleteAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(keys), CancellationToken.None);
 
         /// <summary>
         /// Performs a delete for the specified <paramref name="key"/>.
@@ -238,6 +227,6 @@ namespace CoreEx.Database.Extended
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public static Task DeleteAsync(this DatabaseCommand command, IDatabaseMapper mapper, CompositeKey key, CancellationToken cancellationToken = default)
-            => DeleteAsync(command, DatabaseArgs.Create(mapper), key, cancellationToken);
+            => DeleteAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), key, cancellationToken);
     }
 }

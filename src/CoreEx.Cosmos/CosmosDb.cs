@@ -18,6 +18,7 @@ namespace CoreEx.Cosmos
         private Action<RequestOptions>? _updateRequestOptionsAction;
         private Action<QueryRequestOptions>? _updateQueryRequestOptionsAction;
         private readonly ConcurrentDictionary<Key, Func<IQueryable, IQueryable>> _filters = new();
+        private PartitionKey? _partitionKey;
 
         private struct Key
         {
@@ -31,16 +32,6 @@ namespace CoreEx.Cosmos
 
             public string ContainerId { get; }
         }
-
-        /// <summary>
-        /// Gets a <see cref="PagingArgs"/> with a skip of 0 and top/take of 1.
-        /// </summary>
-        internal static PagingArgs PagingTop1 { get; } = PagingArgs.CreateSkipAndTake(0, 1);
-
-        /// <summary>
-        /// Gets a <see cref="PagingArgs"/> with a skip of 0 and top/take of 2.
-        /// </summary>
-        internal static PagingArgs PagingTop2 { get; } = PagingArgs.CreateSkipAndTake(0, 2);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CosmosDb"/> class.
@@ -65,30 +56,31 @@ namespace CoreEx.Cosmos
         public CosmosDbInvoker Invoker { get; }
 
         /// <inheritdoc/>
-        public PartitionKey? PartitionKey { get; set; }
+        public virtual PartitionKey? PartitionKey => _partitionKey;
+
+        /// <inheritdoc/>
+        public CosmosDbArgs DbArgs { get; set; } = new CosmosDbArgs();
+
+        /// <summary>
+        /// Uses (sets) the <see cref="PartitionKey"/>.
+        /// </summary>
+        /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.</param>
+        /// <returns>The <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</returns>
+        /// <remarks>As the <see cref="PartitionKey"/> property can be overridden by an inheritor this may have no affect.</remarks>
+        public CosmosDb UsePartitionKey(PartitionKey? partitionKey)
+        {
+            _partitionKey = partitionKey;
+            return this;
+        }
 
         /// <inheritdoc/>
         public Container GetCosmosContainer(string containerId) => Database.GetContainer(containerId);
 
-        /// <summary>
-        /// Gets (creates) the <see cref="CosmosDbContainer{T, TModel}"/> using the specified <paramref name="dbArgs"/>.
-        /// </summary>
-        /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-        /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
-        /// <returns>The <see cref="CosmosDbContainer{T, TModel}"/>.</returns>
-        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId, dbArgs);
+        /// <inheritdoc/>
+        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId);
 
-        /// <summary>
-        /// Gets (creates) the <see cref="CosmosDbValueContainer{T, TModel}"/> using the specified <paramref name="dbArgs"/>.
-        /// </summary>
-        /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-        /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
-        /// <returns>The <see cref="CosmosDbValueContainer{T, TModel}"/>.</returns>
-        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, new() where TModel : class, IIdentifier, new() => new(this, containerId, dbArgs);
+        /// <inheritdoc/>
+        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier, new() => new(this, containerId);
 
         /// <summary>
         /// Sets the filter for all operations performed on the <typeparamref name="TModel"/> for the specified <paramref name="containerId"/> to ensure authorisation is applied. Applies automatically 
@@ -97,18 +89,14 @@ namespace CoreEx.Cosmos
         /// <typeparam name="TModel">The model <see cref="Type"/> persisted within the container.</typeparam>
         /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
         /// <param name="filter">The filter query.</param>
-        public void SetAuthorizeFilter<TModel>(string containerId, Func<IQueryable, IQueryable> filter)
+        /// <remarks>The <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</remarks>
+        public CosmosDb UseAuthorizeFilter<TModel>(string containerId, Func<IQueryable, IQueryable> filter)
         {
             if (!_filters.TryAdd(new Key(typeof(TModel), containerId ?? throw new ArgumentNullException(nameof(containerId))), filter ?? throw new ArgumentNullException(nameof(filter))))
-                throw new InvalidOperationException("A filter cannot be overridden; it must be removed (RemoveAuthorizeFilter) then set (SetAuthorizeFilter).");
-        }
+                throw new InvalidOperationException("A filter cannot be overridden.");
 
-        /// <summary>
-        /// Removes the specified authorization filter.
-        /// </summary>
-        /// <typeparam name="TModel">The model <see cref="Type"/> persisted within the container.</typeparam>
-        /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-        public void RemoveAuthorizeFilter<TModel>(string containerId) => _filters.TryRemove(new Key(typeof(TModel), containerId ?? throw new ArgumentNullException(nameof(containerId))), out _);
+            return this;
+        }
 
         /// <inheritdoc/>
         public Func<IQueryable, IQueryable>? GetAuthorizeFilter<TModel>(string containerId) => _filters.TryGetValue(new Key(typeof(TModel), containerId ?? throw new ArgumentNullException(nameof(containerId))), out var filter) ? filter : null;
@@ -131,9 +119,9 @@ namespace CoreEx.Cosmos
         public void UpdateItemRequestOptions(RequestOptions itemRequestOptions) => _updateRequestOptionsAction?.Invoke(itemRequestOptions ?? throw new ArgumentNullException(nameof(itemRequestOptions)));
 
         /// <inheritdoc/>
-        ItemRequestOptions ICosmosDb.GetItemRequestOptions<T, TModel>(CosmosDbArgs? dbArgs) where T : class where TModel : class
+        ItemRequestOptions ICosmosDb.GetItemRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
         {
-            var iro = dbArgs?.ItemRequestOptions ?? new ItemRequestOptions();
+            var iro = dbArgs.ItemRequestOptions ?? new ItemRequestOptions();
             UpdateItemRequestOptions(iro);
             return iro;
         }
@@ -156,9 +144,11 @@ namespace CoreEx.Cosmos
         public void UpdateQueryRequestOptions(QueryRequestOptions queryRequestOptions) => _updateQueryRequestOptionsAction?.Invoke(queryRequestOptions ?? throw new ArgumentNullException(nameof(queryRequestOptions)));
 
         /// <inheritdoc/>
-        QueryRequestOptions ICosmosDb.GetQueryRequestOptions<T, TModel>(CosmosDbArgs? dbArgs) where T : class where TModel : class
+        QueryRequestOptions ICosmosDb.GetQueryRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
         {
-            var ro = dbArgs?.QueryRequestOptions ?? new QueryRequestOptions();
+            var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
+            ro.PartitionKey ??= dbArgs.PartitionKey ?? PartitionKey;
+
             UpdateQueryRequestOptions(ro);
             return ro;
         }
@@ -173,10 +163,7 @@ namespace CoreEx.Cosmos
         /// <remarks>Where overridding and the <see cref="CosmosException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</remarks>
         protected virtual void OnCosmosException(CosmosException cex)
         {
-            if (cex == null)
-                throw new ArgumentNullException(nameof(cex));
-
-            switch (cex.StatusCode)
+            switch ((cex ?? throw new ArgumentNullException(nameof(cex))).StatusCode)
             {
                 case System.Net.HttpStatusCode.NotFound:
                     throw new NotFoundException(null, cex);
@@ -190,7 +177,7 @@ namespace CoreEx.Cosmos
         }
 
         /// <inheritdoc/>
-        public virtual string? FormatIdentifier(object? id) => id == null ? null : id switch
+        public virtual string FormatIdentifier(object? id) => id == null ? throw new ArgumentNullException(nameof(id)) : id switch
         {
             string si => si,
             int ii => ii.ToString(System.Globalization.CultureInfo.InvariantCulture),

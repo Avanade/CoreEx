@@ -31,7 +31,7 @@ namespace CoreEx.Text.Json
                     return default;
 
                 if (reader.TokenType != JsonTokenType.String)
-                    throw new JsonException($"The {nameof(IReferenceData)} property TokenType must be a {nameof(JsonTokenType.String)} not a {reader.TokenType}. To support an {nameof(IReferenceData)} Object consider using the {nameof(ReferenceDataContentJsonSerializer)} {nameof(CoreEx.Json.IJsonSerializer)} instead.");
+                    throw new JsonException(null, new InvalidCastException($"The {nameof(IReferenceData)} property TokenType must be a {nameof(JsonTokenType.String)} not a {reader.TokenType}. To support an {nameof(IReferenceData)} Object consider using the {nameof(ReferenceDataContentJsonSerializer)} {nameof(CoreEx.Json.IJsonSerializer)} instead."));
 
                 var code = reader.GetString();
                 if (code == null)

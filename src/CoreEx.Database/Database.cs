@@ -52,6 +52,9 @@ namespace CoreEx.Database
         public DatabaseInvoker Invoker { get; }
 
         /// <inheritdoc/>
+        public DatabaseArgs DbArgs { get; set; } = new DatabaseArgs();
+
+        /// <inheritdoc/>
         public DateTimeTransform DateTimeTransform { get; set; } = DateTimeTransform.UseDefault;
 
         /// <inheritdoc/>

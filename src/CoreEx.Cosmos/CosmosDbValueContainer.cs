@@ -12,51 +12,21 @@ using System.Threading.Tasks;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Provides <see cref="Container"/> <see cref="CosmosDbValue{TModel}"/> operations for a specified <see cref="CosmosDb"/> and <see cref="DbArgs"/>.
+    /// Provides <see cref="Container"/> <see cref="CosmosDbValue{TModel}"/> operations for a specified <see cref="CosmosDb"/> container.
     /// </summary>
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <remarks>Represents a special-purpose <b>CosmosDb/DocumentDb</b> <see cref="Container"/> that houses an underlying <see cref="CosmosDbValue{TModel}.Value"/>, including <see cref="CosmosDbValue{TModel}.Type"/> name, and flexible <see cref="IIdentifier"/>, for persistence.</remarks>
-    public class CosmosDbValueContainer<T, TModel> : ICosmosDbContainer<T, TModel> where T : class, new() where TModel : class, IIdentifier, new()
+    public class CosmosDbValueContainer<T, TModel> : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>> where T : class, new() where TModel : class, IIdentifier, new()
     {
         private readonly string _typeName = typeof(TModel).Name;
-        private Func<T, PartitionKey>? _partitionKey;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CosmosDbValueContainer{T, TModel}"/> class.
         /// </summary>
         /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
         /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
-        public CosmosDbValueContainer(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null)
-        {
-            CosmosDb = cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb));
-            Container = cosmosDb.GetCosmosContainer(containerId);
-            DbArgs = dbArgs;
-        }
-
-        /// <inheritdoc/>
-        public ICosmosDb CosmosDb { get; }
-
-        /// <inheritdoc/>
-        public CosmosDbArgs? DbArgs { get; }
-
-        /// <inheritdoc/>
-        public Container Container { get; }
-
-        /// <inheritdoc/>
-        public PartitionKey GetPartitionKey(T value) => _partitionKey?.Invoke(value) ?? CosmosDb.PartitionKey ?? PartitionKey.None;
-
-        /// <summary>
-        /// Sets the function to determine the <see cref="PartitionKey"/>; used for <see cref="GetPartitionKey(T)"/>.
-        /// </summary>
-        /// <param name="partitionKey">The function to determine the <see cref="PartitionKey"/>.</param>
-        /// <returns>The <see cref="CosmosDbValueContainer{T, TModel}"/> to support fluent-style method-chaining.</returns>
-        public CosmosDbValueContainer<T, TModel> UsePartitionKey(Func<T, PartitionKey> partitionKey)
-        {
-            _partitionKey = partitionKey;
-            return this;
-        }
+        public CosmosDbValueContainer(ICosmosDb cosmosDb, string containerId) : base(cosmosDb, containerId) { }
 
         /// <summary>
         /// Gets the <b>value</b> from the response updating any special properties as required.
@@ -112,13 +82,24 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param name="query">The function to perform additional query execution.</param>
         /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
-        public CosmosDbValueQuery<T, TModel> Query(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, query);
+        public CosmosDbValueQuery<T, TModel> Query(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) => Query(new CosmosDbArgs(CosmosDb.DbArgs), query);
 
         /// <summary>
-        /// Creates a <see cref="CosmosDbQuery{T, TModel}"/> and returns the corresponding <see cref="CosmosDbQuery{T, TModel}.AsQueryable()"/> to enable ad-hoc LINQ-style queries.
+        /// Gets (creates) a <see cref="CosmosDbValueQuery{T, TModel}"/> to enable LINQ-style queries.
         /// </summary>
-        /// <returns>An <see cref="IQueryable{T}"/>.</returns>
-        public IQueryable<CosmosDbValue<TModel>> AsQueryable() => new CosmosDbValueQuery<T, TModel>(this, null).AsQueryable();
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>.</param>
+        /// <param name="query">The function to perform additional query execution.</param>
+        /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
+        public CosmosDbValueQuery<T, TModel> Query(PartitionKey? partitionKey = null, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => Query(new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), query);
+
+        /// <summary>
+        /// Gets (creates) a <see cref="CosmosDbValueQuery{T, TModel}"/> to enable LINQ-style queries.
+        /// </summary>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="query">The function to perform additional query execution.</param>
+        /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
+        public CosmosDbValueQuery<T, TModel> Query(CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, dbArgs, query);
+
 
         /// <summary>
         /// Gets the entity for the specified <paramref name="id"/>.
@@ -127,22 +108,35 @@ namespace CoreEx.Cosmos
         /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="ICosmosDb.PartitionKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
-        public Task<T?> GetAsync(object id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => GetAsync(CosmosDb.FormatIdentifier(id)!, partitionKey, cancellationToken);
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1061:Do not hide base class methods", Justification = "By design, to enable identifier flexibility.")]
+        public Task<T?> GetAsync(object? id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => GetAsync(id, new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), cancellationToken);
+
+        /// <summary>
+        /// Gets the entity for the specified <paramref name="id"/>.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1061:Do not hide base class methods", Justification = "By design, to enable identifier flexibility.")]
+        public Task<T?> GetAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => GetInternalAsync(CosmosDb.FormatIdentifier(id), dbArgs, cancellationToken);
 
         /// <inheritdoc/>
-        public async Task<T?> GetAsync(string id, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => await CosmosDb.Invoker.InvokeAsync(CosmosDb, id, async (key, ct) =>
-        {
-            if (id == null)
-                throw new ArgumentNullException(nameof(id));
+        public override Task<T?> GetAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => GetInternalAsync(id, dbArgs, cancellationToken);
 
+        /// <summary>
+        /// Performs the actual get.
+        /// </summary>
+        public Task<T?> GetInternalAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, id ?? throw new ArgumentNullException(nameof(id)), dbArgs, async (key, args, ct) =>
+        {
             try
             {
-                var val = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, partitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None, CosmosDb.GetItemRequestOptions<T, TModel>(DbArgs), ct).ConfigureAwait(false);
+                var val = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, args.PartitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
 
                 // Check that the TypeName is the same.
                 if (val?.Resource == null || val.Resource.Type != _typeName)
                 {
-                    if (!DbArgs.HasValue || DbArgs.Value.NullOnNotFoundResponse)
+                    if (args.NullOnNotFoundResponse)
                         return null;
                     else
                         throw new NotFoundException();
@@ -151,72 +145,55 @@ namespace CoreEx.Cosmos
                 CheckAuthorized(val);
                 return GetResponseValue(val);
             }
-            catch (CosmosException dcex)
-            {
-                if ((!DbArgs.HasValue || DbArgs.Value.NullOnNotFoundResponse) && dcex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    return null;
-
-                throw;
-            }
-        }, cancellationToken).ConfigureAwait(false);
+            catch (CosmosException dcex) when (args.NullOnNotFoundResponse && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
+        }, cancellationToken);
 
         /// <inheritdoc/>
-        public async Task<T> CreateAsync(T value, CancellationToken cancellationToken = default)
+        public override Task<T> CreateAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (v, args, ct) =>
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            var pk = GetPartitionKey(v);
+            ChangeLog.PrepareCreated(v);
+            TModel model = CosmosDb.Mapper.Map<T, TModel>(v, OperationTypes.Create)!;
 
-            return await CosmosDb.Invoker.InvokeAsync(CosmosDb, value, async (v, ct) =>
-            {
-                ChangeLog.PrepareCreated(v);
-                TModel model = CosmosDb.Mapper.Map<T, TModel>(v, OperationTypes.Create)!;
+            var cvm = new CosmosDbValue<TModel>(model!);
+            CheckAuthorized(cvm);
+            ((ICosmosDbValue)cvm).PrepareBefore(CosmosDb);
 
-                var cvm = new CosmosDbValue<TModel>(model!);
-                CheckAuthorized(cvm);
-                ((ICosmosDbValue)cvm).PrepareBefore(CosmosDb);
-
-                var resp = await Container.CreateItemAsync(cvm, GetPartitionKey(v), CosmosDb.GetItemRequestOptions<T, TModel>(DbArgs), ct).ConfigureAwait(false);
-                return GetResponseValue(resp)!;
-            }, cancellationToken).ConfigureAwait(false);
-        }
+            var resp = await Container.CreateItemAsync(cvm, pk, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
+            return GetResponseValue(resp)!;
+        }, cancellationToken);
 
         /// <inheritdoc/>
-        public async Task<T> UpdateAsync(T value, CancellationToken cancellationToken = default)
+        public override Task<T> UpdateAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (v, args, ct) =>
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            var key = GetCosmosKey(v);
+            var pk = GetPartitionKey(v);
 
-            return await CosmosDb.Invoker.InvokeAsync(CosmosDb, value, async (v, ct) =>
-            {
-                // Where supporting etag then use IfMatch for concurreny.
-                var ro = CosmosDb.GetItemRequestOptions<T, TModel>(DbArgs);
-                if (ro.IfMatchEtag == null && v is IETag etag && etag.ETag != null)
-                    ro.IfMatchEtag = ETagGenerator.FormatETag(etag.ETag);
+            // Where supporting etag then use IfMatch for concurreny.
+            var ro = CosmosDb.GetItemRequestOptions<T, TModel>(args);
+            if (ro.IfMatchEtag == null && v is IETag etag && etag.ETag != null)
+                ro.IfMatchEtag = ETagGenerator.FormatETag(etag.ETag);
 
-                var key = GetCosmosKey(v);
-                var pk = GetPartitionKey(v);
+            // Must read existing to update.
+            var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, pk, ro, ct).ConfigureAwait(false);
+            if (resp?.Resource == null || resp.Resource.Type != _typeName)
+                throw new NotFoundException();
 
-                // Must read existing to update.
-                var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, pk, ro, ct).ConfigureAwait(false);
-                if (resp?.Resource == null || resp.Resource.Type != _typeName)
-                    throw new NotFoundException();
+            CheckAuthorized(resp.Resource);
+            if (v is IETag etag2 && etag2.ETag != null && ETagGenerator.FormatETag(etag2.ETag) != resp.ETag)
+                throw new ConcurrencyException();
 
-                CheckAuthorized(resp.Resource);
-                if (v is IETag etag2 && etag2.ETag != null && ETagGenerator.FormatETag(etag2.ETag) != resp.ETag)
-                    throw new ConcurrencyException();
+            ro.SessionToken = resp.Headers?.Session;
+            ChangeLog.PrepareUpdated(v);
+            CosmosDb.Mapper.Map(v, resp.Resource.Value, OperationTypes.Update);
+            ((ICosmosDbValue)resp.Resource).PrepareBefore(CosmosDb);
 
-                ro.SessionToken = resp.Headers?.Session;
-                ChangeLog.PrepareUpdated(v);
-                CosmosDb.Mapper.Map(v, resp.Resource.Value, OperationTypes.Update);
-                ((ICosmosDbValue)resp.Resource).PrepareBefore(CosmosDb);
+            // Re-check auth to make sure not updating to something not allowed.
+            CheckAuthorized(resp);
 
-                // Re-check auth to make sure not updating to something not allowed.
-                CheckAuthorized(resp);
-
-                resp = await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
-                return GetResponseValue(resp)!;
-            }, cancellationToken).ConfigureAwait(false);
-        }
+            resp = await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
+            return GetResponseValue(resp)!;
+        }, cancellationToken);
 
         /// <summary>
         /// Deleted the entity for the specified <paramref name="id"/>.
@@ -224,19 +201,31 @@ namespace CoreEx.Cosmos
         /// <param name="id">The identifier.</param>
         /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="ICosmosDb.PartitionKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task DeleteAsync(object id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteAsync(CosmosDb.FormatIdentifier(id)!, partitionKey, cancellationToken);
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1061:Do not hide base class methods", Justification = "By design, to enable identifier flexibility.")]
+        public Task DeleteAsync(object? id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteAsync(id, new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), cancellationToken);
+
+        /// <summary>
+        /// Deleted the entity for the specified <paramref name="id"/>.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1061:Do not hide base class methods", Justification = "By design, to enable identifier flexibility.")]
+        public Task DeleteAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => DeleteInternalAsync(CosmosDb.FormatIdentifier(id), dbArgs, cancellationToken);
 
         /// <inheritdoc/>
-        public async Task DeleteAsync(string id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => await CosmosDb.Invoker.InvokeAsync(CosmosDb, id, async (key, ct) =>
-        {
-            if (id == null)
-                throw new ArgumentNullException(nameof(id));
+        public override Task DeleteAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => DeleteInternalAsync(id, dbArgs, cancellationToken);
 
+        /// <summary>
+        /// Performs the actual delete.
+        /// </summary>
+        private Task DeleteInternalAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, id ?? throw new ArgumentNullException(nameof(id)), dbArgs, async (key, args, ct) =>
+        {
             try
             {
                 // Must read existing to delete and to make sure we are deleting for the correct Type; don't just trust the key.
-                var ro = CosmosDb.GetItemRequestOptions<T, TModel>(DbArgs);
-                var pk = partitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None;
+                var ro = CosmosDb.GetItemRequestOptions<T, TModel>(args);
+                var pk = dbArgs.PartitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None;
                 var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, pk, ro, ct).ConfigureAwait(false);
                 if (resp?.Resource == null || resp.Resource.Type != _typeName)
                     throw new NotFoundException();
@@ -245,13 +234,7 @@ namespace CoreEx.Cosmos
                 ro.SessionToken = resp.Headers?.Session;
                 await Container.DeleteItemAsync<T>(key, pk, ro, ct).ConfigureAwait(false);
             }
-            catch (CosmosException cex)
-            {
-                if (cex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    throw new NotFoundException();
-
-                throw;
-            }
-        }, cancellationToken).ConfigureAwait(false);
+            catch (CosmosException cex) when (cex.StatusCode == System.Net.HttpStatusCode.NotFound) { throw new NotFoundException(); }
+        }, cancellationToken);
     }
 }

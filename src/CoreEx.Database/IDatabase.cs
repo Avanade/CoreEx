@@ -31,6 +31,11 @@ namespace CoreEx.Database
         DatabaseInvoker Invoker { get; }
 
         /// <summary>
+        /// Gets the default <see cref="DatabaseArgs"/> used where not expliticly specified for an operation.
+        /// </summary>
+        DatabaseArgs DbArgs { get; }
+
+        /// <summary>
         /// Gets the unique database instance identifier.
         /// </summary>
         Guid DatabaseId { get; }

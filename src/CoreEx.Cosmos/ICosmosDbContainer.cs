@@ -15,11 +15,6 @@ namespace CoreEx.Cosmos
         ICosmosDb CosmosDb { get; }
 
         /// <summary>
-        /// Gets the <see cref="CosmosDbArgs"/>.
-        /// </summary>
-        CosmosDbArgs? DbArgs { get; }
-
-        /// <summary>
         /// Gets the <see cref="Microsoft.Azure.Cosmos.Container"/>.
         /// </summary>
         Container Container { get; }

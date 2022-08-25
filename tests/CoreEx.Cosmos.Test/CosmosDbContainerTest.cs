@@ -9,7 +9,7 @@
         public async Task SetUp()
         {
             await TestSetUp.SetUpAsync().ConfigureAwait(false);
-            _db = new CosmosDb();
+            _db = new CosmosDb(auth: false);
         }
 
         [Test]

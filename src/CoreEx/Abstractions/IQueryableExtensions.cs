@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using CoreEx.Wildcards;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -11,6 +12,30 @@ namespace System.Linq
     /// </summary>
     public static class IQueryableExtensions
     {
+        /// <summary>
+        /// Adds paging to the query.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> being queried.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+        /// <returns>The query.</returns>
+        public static IQueryable<T> WithPaging<T>(this IQueryable<T> query, PagingArgs? paging) => paging == null ? query.WithPaging(0, null) : query.WithPaging(paging.Skip, paging.Take);
+
+        /// <summary>
+        /// Adds paging to the query using the specified <paramref name="skip"/> and <paramref name="take"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> being queried.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="skip">The specified number of elements in a sequence to bypass.</param>
+        /// <param name="take">The specified number of contiguous elements from the start of a sequence.</param>
+        /// <returns>The query.</returns>
+        public static IQueryable<T> WithPaging<T>(this IQueryable<T> query, long skip, long? take = null)
+        {
+            var q = query.Skip(skip <= 0 ? 0 : (int)skip);
+            q = q.Take(take == null || take.Value < 1 ? (int)PagingArgs.DefaultTake : (int)take.Value);
+            return q;
+        }
+
         /// <summary>
         /// Creates a collection from a <see cref="IQueryable{TItem}"/>.
         /// </summary>

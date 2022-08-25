@@ -12,10 +12,18 @@ using System.Threading.Tasks;
 namespace CoreEx.Cosmos.Batch
 {
     /// <summary>
-    /// Provides <b>CosmosDb/DocumentDb</b>-related <i>batch</i> extension methods.
+    /// Provides <b>CosmosDb/DocumentDb</b>-related <i>batch</i> extension methods. The implementation is <b>bulk-ready</b> as per <see href="https://devblogs.microsoft.com/cosmosdb/introducing-bulk-support-in-the-net-sdk/"/>; to properly
+    /// enable use <c>new CosmosClientOptions() { AllowBulkExecution = true }</c> as described.
     /// </summary>
-    public static class CosmosDbBatchExtensions
+    public static class CosmosDbBatch
     {
+        /// <summary>
+        /// Inidicates whether the items in the batch are executed sequentially.
+        /// </summary>
+        /// <remarks><c>true</c> results in sequenital (order-based and slower) execution; otherwise, <c>false</c> results in parallel (no order guarantees and faster) execution. Also, see 
+        /// <see href="https://devblogs.microsoft.com/cosmosdb/introducing-bulk-support-in-the-net-sdk/"/> to further improve throughput.</remarks>
+        public static bool SequentialExecution { get; set; }
+
         /// <summary>
         /// Imports (creates) a batch of <paramref name="items"/>.
         /// </summary>
@@ -27,7 +35,7 @@ namespace CoreEx.Cosmos.Batch
         /// <param name="requestOptions">The <see cref="ItemRequestOptions"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>Each item is added individually and is not transactional.</remarks>
-        public static async Task ImportBatchAsync<TModel>(ICosmosDb cosmosDb, Container container, IEnumerable<TModel> items, Func<TModel, TModel>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier<string>
+        public static async Task ImportBatchAsync<TModel>(this ICosmosDb cosmosDb, Container container, IEnumerable<TModel> items, Func<TModel, TModel>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier<string>
         {
             if (cosmosDb == null)
                 throw new ArgumentNullException(nameof(cosmosDb));
@@ -41,10 +49,16 @@ namespace CoreEx.Cosmos.Batch
             if (items == null)
                 return;
 
+            List<Task> tasks = new();
             foreach (var item in items)
             {
-                await container.CreateItemAsync(modelUpdater?.Invoke(item) ?? item, null, requestOptions, cancellationToken).ConfigureAwait(false);
+                if (SequentialExecution)
+                    await container.CreateItemAsync(modelUpdater?.Invoke(item) ?? item, null, requestOptions, cancellationToken).ConfigureAwait(false);
+                else
+                    tasks.Add(container.CreateItemAsync(modelUpdater?.Invoke(item) ?? item, null, requestOptions, cancellationToken));
             }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -57,7 +71,7 @@ namespace CoreEx.Cosmos.Batch
         /// <param name="requestOptions">The <see cref="ItemRequestOptions"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>Each item is added individually and is not transactional.</remarks>
-        public static Task ImportBatchAsync<TModel>(ICosmosDbContainer container, IEnumerable<TModel> items, Func<TModel, TModel>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier<string>
+        public static Task ImportBatchAsync<TModel>(this ICosmosDbContainer container, IEnumerable<TModel> items, Func<TModel, TModel>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier<string>
             => ImportBatchAsync(container?.CosmosDb!, container?.Container!, items, modelUpdater, requestOptions, cancellationToken);
 
         /// <summary>
@@ -189,12 +203,19 @@ namespace CoreEx.Cosmos.Batch
             if (items == null)
                 return;
 
+            List<Task> tasks = new();
             foreach (var item in items)
             {
                 var cdv = new CosmosDbValue<TModel>(item);
                 ((ICosmosDbValue)cdv).PrepareBefore(cosmosDb);
-                await container.CreateItemAsync(modelUpdater?.Invoke(cdv) ?? cdv, null, requestOptions, cancellationToken).ConfigureAwait(false);
+
+                if (SequentialExecution)
+                    await container.CreateItemAsync(modelUpdater?.Invoke(cdv) ?? cdv, null, requestOptions, cancellationToken).ConfigureAwait(false);
+                else
+                    tasks.Add(container.CreateItemAsync(modelUpdater?.Invoke(cdv) ?? cdv, null, requestOptions, cancellationToken));
             }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         /// <summary>

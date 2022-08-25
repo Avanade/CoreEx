@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Cosmos;
 using CoreEx.Entities;
-using System;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 
-namespace CoreEx.Cosmos
+namespace System.Linq
 {
     /// <summary>
     /// Adds additional extension methods to <see cref="IQueryable{T}"/> for where <i>T</i> is <see cref="CosmosDbValue{TModel}"/>.

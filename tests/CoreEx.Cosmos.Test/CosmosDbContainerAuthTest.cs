@@ -9,10 +9,7 @@
         public async Task SetUp()
         {
             await TestSetUp.SetUpAsync().ConfigureAwait(false);
-            _db = new CosmosDb();
-            _db.SetAuthorizeFilter<Person1>("Persons1", q => ((IQueryable<Person1>)q).Where(x => x.Locked == false));
-            _db.SetAuthorizeFilter<Person2>("Persons2", q => ((IQueryable<Person2>)q).Where(x => x.Locked == false));
-            _db.SetAuthorizeFilter<Person3>("Persons3", q => ((IQueryable<CosmosDbValue<Person3>>)q).Where(x => x.Value.Locked == false));
+            _db = new CosmosDb(auth: true);
         }
 
         [Test]

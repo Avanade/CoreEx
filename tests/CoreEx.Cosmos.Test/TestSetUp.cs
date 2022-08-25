@@ -12,7 +12,7 @@ namespace CoreEx.Cosmos.Test
 
         public static IMapper? Mapper { get; private set; }
 
-        public static async Task SetUpAsync()
+        public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey")
         {
             var cco = new AzCosmos.CosmosClientOptions { SerializerOptions = new AzCosmos.CosmosSerializationOptions { PropertyNamingPolicy = AzCosmos.CosmosPropertyNamingPolicy.CamelCase, IgnoreNullValues = true } };
             CosmosClient = new AzCosmos.CosmosClient("https://localhost:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
@@ -29,21 +29,21 @@ namespace CoreEx.Cosmos.Test
             var c1 = await CosmosDatabase.ReplaceOrCreateContainerAsync(new AzCosmos.ContainerProperties
             {
                 Id = "Persons1",
-                PartitionKeyPath = "/_partitionKey",
+                PartitionKeyPath = partitionKeyPath,
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/name" } } } }
             }, 400).ConfigureAwait(false);
 
             var c2 = await CosmosDatabase.ReplaceOrCreateContainerAsync(new AzCosmos.ContainerProperties
             {
                 Id = "Persons2",
-                PartitionKeyPath = "/_partitionKey",
+                PartitionKeyPath = partitionKeyPath,
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/name" } } } }
             }, 400).ConfigureAwait(false);
 
             var c3 = await CosmosDatabase.ReplaceOrCreateContainerAsync(new AzCosmos.ContainerProperties
             {
                 Id = "Persons3",
-                PartitionKeyPath = "/_partitionKey",
+                PartitionKeyPath = valuePartitionKeyPath,
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/type", "/value/name" } } } }
             }, 400).ConfigureAwait(false);
 
@@ -54,7 +54,7 @@ namespace CoreEx.Cosmos.Test
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/type", "/value/code" } } } }
             }, 400);
 
-            var db = new CosmosDb();
+            var db = new CosmosDb(auth: false);
             await db.Persons1.ImportYamlBatchAsync<CosmosDb, Person1>("Data.yaml");
             await db.ImportYamlBatchAsync<CosmosDb, Person2>(c2, "Data.yaml");
             await db.Persons3.ImportYamlValueBatchAsync<CosmosDb, Person3>("Data.yaml");
