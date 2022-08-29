@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.Core;
-using Azure.Identity;
 using CoreEx.Configuration;
 using HealthChecks.SqlServer;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CoreEx.Azure.HealthChecks
+namespace CoreEx.DataBase.HealthChecks
 {
 
     /// <summary> Sql Server Health Check. </summary>
@@ -50,12 +48,13 @@ namespace CoreEx.Azure.HealthChecks
             {
                 try
                 {
-                    SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(_sqlConnectionString);
+                    SqlConnectionStringBuilder builder = new(_sqlConnectionString);
                     _data = new Dictionary<string, object>
                     {
                         { "server", builder.DataSource },
                         { "database", builder.InitialCatalog },
-                        { "timeout", builder.ConnectTimeout }
+                        { "timeout", builder.ConnectTimeout },
+                        { "authenticationMethod", builder.Authentication}
                     };
                 }
                 catch (Exception ex)
@@ -64,26 +63,7 @@ namespace CoreEx.Azure.HealthChecks
                 }
             }
 
-            string? accessToken = null;
-
-            if (_sqlConnectionString.Contains("Password") || _sqlConnectionString.Contains("PWD"))
-            {
-                // SQL connection is using SQL Auth
-            }
-            else
-            {
-                accessToken = await GetAccessToken();
-                // SQL connection is using Integrated AD Auth with token
-            }
-
-            _innerHealthCheck ??= new SqlServerHealthCheck(_sqlConnectionString, HEALTH_QUERY, beforeOpenConnectionConfigurer: (connection) =>
-            {
-                if (accessToken != null)
-                {
-                    connection.AccessToken = accessToken;
-                    // SQL connection is using Integrated AD Auth with token
-                }
-            });
+            _innerHealthCheck ??= new SqlServerHealthCheck(_sqlConnectionString, HEALTH_QUERY);
 
             try
             {
@@ -94,16 +74,6 @@ namespace CoreEx.Azure.HealthChecks
             {
                 return new HealthCheckResult(context.Registration.FailureStatus, exception: ex, data: _data);
             }
-        }
-
-        private static async Task<string> GetAccessToken()
-        {
-            var tokenCredential = new DefaultAzureCredential(includeInteractiveCredentials: true);
-            var accessToken = await tokenCredential.GetTokenAsync(
-                new TokenRequestContext(scopes: new string[] { "https://database.windows.net/.default" }) { }
-            );
-
-            return accessToken.Token;
         }
     }
 }

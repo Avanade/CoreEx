@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\My.Hr.Business\My.Hr.Business.csproj" />
-    <ProjectReference Include="..\..\..\src\CoreEx.HealthChecks\CoreEx.HealthChecks.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />
   </ItemGroup>
 
