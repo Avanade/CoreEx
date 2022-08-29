@@ -1,8 +1,9 @@
 using System.Threading.Tasks;
 using CoreEx;
-using CoreEx.HealthChecks;
-using CoreEx.HealthChecks.Checks;
 using CoreEx.Azure.HealthChecks;
+using CoreEx.Database;
+using CoreEx.DataBase.HealthChecks;
+using CoreEx.HealthChecks;
 using CoreEx.RefData;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using My.Hr.Business;
 using My.Hr.Business.Data;
-using My.Hr.Business.Services;
 using My.Hr.Business.External;
-using CoreEx.Database;
+using My.Hr.Business.Services;
 
 [assembly: FunctionsStartup(typeof(My.Hr.Functions.Startup))]
 

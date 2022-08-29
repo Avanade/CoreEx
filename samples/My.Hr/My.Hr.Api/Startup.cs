@@ -1,5 +1,6 @@
 ﻿using CoreEx.Azure.HealthChecks;
 using CoreEx.Database;
+using CoreEx.DataBase.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -46,7 +47,9 @@ public class Startup
         services
             .AddScoped<HealthService>()
             .AddHealthChecks()
-            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName));
+            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
+            .AddTypeActivatedCheck<SqlHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default, timeout: TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
+
 
         services.AddControllers();
 

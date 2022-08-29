@@ -26,7 +26,6 @@ Package | Status | Source & documentation
 `CoreEx.Database` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.svg)](https://badge.fury.io/nu/CoreEx.Database) | [Link](./src/CoreEx.Database)
 `CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx.EntityFrameworkCore)
 `CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [Link](./src/CoreEx.FluentValidation)
-`CoreEx.HealthChecks` | [![NuGet version](https://badge.fury.io/nu/CoreEx.HealthChecks.svg)](https://badge.fury.io/nu/CoreEx.HealthChecks) | [Link](./src/CoreEx.HealthChecks)
 `CoreEx.Newtonsoft` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
 `CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx.Validation)
 

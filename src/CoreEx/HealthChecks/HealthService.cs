@@ -24,11 +24,11 @@ namespace CoreEx.HealthChecks
         /// <summary>
         /// Initializes a new instance of the <see cref="HealthService"/> class.
         /// </summary>
-        public HealthService(SettingsBase settings, HealthCheckService healthCheckService, IJsonSerializer jsonSerializer)
+        public HealthService(SettingsBase settings!!, HealthCheckService healthCheckService!!, IJsonSerializer jsonSerializer!!)
         {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _healthCheckService = healthCheckService ?? throw new ArgumentNullException(nameof(healthCheckService));
-            _jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            _settings = settings;
+            _healthCheckService = healthCheckService;
+            _jsonSerializer = jsonSerializer;
         }
 
         /// <summary>

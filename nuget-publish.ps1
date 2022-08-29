@@ -54,7 +54,6 @@ param(
         "src\CoreEx.Database",
         "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.FluentValidation",
-        "src\CoreEx.HealthChecks",
         "src\CoreEx.Newtonsoft",
         "src\CoreEx.Validation")
     )
