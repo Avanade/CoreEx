@@ -31,37 +31,47 @@ namespace CoreEx.Cosmos
         /// </summary>
         public new CosmosDbContainer<T, TModel> Container => (CosmosDbContainer<T, TModel>)base.Container;
 
-        /// <inheritdoc/>
-        public override async Task SelectQueryAsync<TColl>(TColl coll, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Instantiates the <see cref="IQueryable"/>.
+        /// </summary>
+        private IQueryable<TModel> AsQueryable(bool allowSynchronousQueryExecution, bool pagingSupported)
         {
-            IQueryable<TModel> query = Container.Container.GetItemLinqQueryable<TModel>(requestOptions: Container.CosmosDb.GetQueryRequestOptions<T, TModel>(QueryArgs));
+            if (!pagingSupported && Paging is not null)
+                throw new NotSupportedException("Paging is not supported when accessing AsQueryable directly; paging must be applied directly to the resulting IQueryable instance.");
+
+            IQueryable<TModel> query = Container.Container.GetItemLinqQueryable<TModel>(allowSynchronousQueryExecution: allowSynchronousQueryExecution, requestOptions: Container.CosmosDb.GetQueryRequestOptions<T, TModel>(QueryArgs));
             query = _query == null ? query : _query(query);
 
             var filter = Container.CosmosDb.GetAuthorizeFilter<TModel>(Container.Container.Id);
             if (filter != null)
                 query = (IQueryable<TModel>)filter(query);
 
-            await Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, query, coll, async (q, items, ct) =>
+            return query;
+        }
+
+        /// <summary>
+        /// Gets a pre-prepared <see cref="IQueryable"/> with filtering applied as applicable.
+        /// </summary>
+        /// <returns>The <see cref="IQueryable"/>.</returns>
+        /// <remarks>The <see cref="CosmosDbQueryBase{T, TModel, TSelf}.Paging"/> is not supported. The query will <i>not</i> be automatically included within an <see cref="CosmosDb.Invoker"/> execution.</remarks>
+        public IQueryable<TModel> AsQueryable() => AsQueryable(true, false);
+
+        /// <inheritdoc/>
+        public override Task SelectQueryAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, coll, async (items, ct) =>
+        {
+            var q = AsQueryable(false, true);
+
+            using var iterator = q.WithPaging(Paging).ToFeedIterator();
+            while (iterator.HasMoreResults)
             {
-                using var iterator = q.WithPaging(Paging).ToFeedIterator();
-                while (iterator.HasMoreResults)
+                foreach (var item in await iterator.ReadNextAsync(ct).ConfigureAwait(false))
                 {
-                    foreach (var item in await iterator.ReadNextAsync(ct).ConfigureAwait(false))
-                    {
-                        items.Add(Container.GetValue(item));
-                    }
+                    items.Add(Container.GetValue(item));
                 }
-            }, cancellationToken).ConfigureAwait(false);
+            }
 
             if (Paging != null && Paging.IsGetCount)
-            {
-                IQueryable<TModel> query2 = Container.Container.GetItemLinqQueryable<TModel>(requestOptions: Container.CosmosDb.GetQueryRequestOptions<T, TModel>(QueryArgs));
-                query2 = _query == null ? query2 : _query(query2);
-                if (filter != null)
-                    query2 = (IQueryable<TModel>)filter(query);
-
-                Paging.TotalCount = (await query2.CountAsync(cancellationToken).ConfigureAwait(false)).Resource;
-            }
-        }
+                Paging.TotalCount = (await q.CountAsync(cancellationToken).ConfigureAwait(false)).Resource;
+        }, cancellationToken);
     }
 }

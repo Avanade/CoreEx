@@ -13,7 +13,7 @@ namespace CoreEx.EntityFrameworkCore
     /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
     public struct EfDbQuery<T, TModel> where T : class, new() where TModel : class, new()
     {
-        private readonly Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? _query;
+        private readonly Func<IQueryable<TModel>, IQueryable<TModel>>? _query;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EfDbQuery{T, TModel}"/> struct.
@@ -21,7 +21,7 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="efdb">The <see cref="IEfDb"/>.</param>
         /// <param name="args">The <see cref="EfDbArgs"/>.</param>
         /// <param name="query">A function to modify the underlying <see cref="IQueryable{TModel}"/>.</param>
-        internal EfDbQuery(IEfDb efdb, EfDbArgs args, Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null)
+        internal EfDbQuery(IEfDb efdb, EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null)
         {
             EfDb = efdb ?? throw new ArgumentNullException(nameof(efdb));
             Args = args;
@@ -76,7 +76,7 @@ namespace CoreEx.EntityFrameworkCore
             return EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
             {
                 var dbSet = efdb.DbContext.Set<TModel>();
-                return executeAsync((query == null) ? dbSet : query(dbSet, args), ct);
+                return executeAsync((query == null) ? dbSet : query(dbSet), ct);
             }, cancellationToken);
         }
 
@@ -103,8 +103,6 @@ namespace CoreEx.EntityFrameworkCore
 
             return q.Take((int)(paging == null ? PagingArgs.DefaultTake : paging.Take));
         }
-
-        #region SelectSingle/SelectFirst
 
         /// <summary>
         /// Selects a single item.
@@ -133,10 +131,6 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
         public Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => ExecuteQueryAndMapAsync((q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
-
-        #endregion
-
-        #region SelectQuery
 
         /// <summary>
         /// Executes the query command creating a <typeparamref name="TCollResult"/>.
@@ -195,7 +189,5 @@ namespace CoreEx.EntityFrameworkCore
 
             return coll!;
         }
-
-        #endregion
     }
 }

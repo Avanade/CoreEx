@@ -45,7 +45,7 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="queryArgs">The <see cref="EfDbArgs"/>.</param>
         /// <param name="query">The function to further define the query.</param>
         /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
-        EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs queryArgs, Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new();
+        EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs queryArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new();
 
         /// <summary>
         /// Creates an <see cref="EfDbQuery{T, TModel}"/> to enable select-like capabilities.
@@ -54,7 +54,7 @@ namespace CoreEx.EntityFrameworkCore
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
         /// <param name="query">The function to further define the query.</param>
         /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
-        public EfDbQuery<T, TModel> Query<T, TModel>(Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => Query<T, TModel>(new EfDbArgs(DbArgs), query);
+        public EfDbQuery<T, TModel> Query<T, TModel>(Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => Query<T, TModel>(new EfDbArgs(DbArgs), query);
 
         /// <summary>
         /// Gets the entity for the specified <paramref name="keys"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/>.

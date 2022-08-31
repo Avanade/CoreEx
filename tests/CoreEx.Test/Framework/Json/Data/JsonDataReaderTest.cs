@@ -136,6 +136,35 @@ namespace CoreEx.Test.Framework.Json.Data
             Assert.AreEqual(false, coll[2].IsActive);
         }
 
+        [Test]
+        public void Deserialize_NumberToStringIdentifier()
+        {
+            var jdr = JsonDataReader.ParseJson("{\"data\":[{\"Contact\":[{\"id\":123456}]}]}");
+            Assert.IsTrue(jdr.TryDeserialize<Contact>("Contact", out var coll));
+            Assert.IsNotNull(coll);
+            Assert.AreEqual(1, coll!.Count);
+            Assert.AreEqual("123456", coll[0].Id);
+
+            jdr = JsonDataReader.ParseYaml(
+@"data:
+ - Contact:
+   - { id: 0123456, first: Bob }");
+
+            Assert.IsTrue(jdr.TryDeserialize<Contact>("Contact", out coll));
+            Assert.IsNotNull(coll);
+            Assert.AreEqual(1, coll!.Count);
+            Assert.AreEqual("0123456", coll[0].Id);
+
+            jdr = JsonDataReader.ParseJson("{\"data\":[{\"Contact\":[{\"id\":123.456}]}]}");
+            Assert.IsTrue(jdr.TryDeserialize<Contact>("Contact", out coll));
+            Assert.IsNotNull(coll);
+            Assert.AreEqual(1, coll!.Count);
+            Assert.AreEqual("123.456", coll[0].Id);
+
+            jdr = JsonDataReader.ParseJson("{\"data\":[{\"Contact\":[{\"id\":true}]}]}");
+            Assert.Throws<System.Text.Json.JsonException>(() => jdr.TryDeserialize<Contact>("Contact", out coll));
+        }
+
         public class Person : IIdentifier<Guid>, IChangeLog
         {
             public Guid Id { get; set; }
@@ -143,6 +172,12 @@ namespace CoreEx.Test.Framework.Json.Data
             public string? Last { get; set; }
             public int? Age { get; set; }
             public ChangeLog? ChangeLog { get; set; }
+        }
+
+        public class Contact : IIdentifier<string>
+        {
+            public string? Id { get; set; }
+            public string? First { get; set; }
         }
 
         public class Gender : ReferenceDataBase<string> { }

@@ -28,7 +28,7 @@ namespace CoreEx.Json.Data
 
         private class YamlNodeTypeResolver : INodeTypeResolver
         {
-            private static string[] boolValues = { "y", "Y", "yes", "Yes", "YES", "n", "N", "no", "No", "NO", "true", "True", "TRUE", "false", "False", "FALSE", "on", "On", "ON", "off", "Off", "OFF" };
+            private static readonly string[] boolValues = { "y", "Y", "yes", "Yes", "YES", "n", "N", "no", "No", "NO", "true", "True", "TRUE", "false", "False", "FALSE", "on", "On", "ON", "off", "Off", "OFF" };
 
             /// <inheritdoc/>
             bool INodeTypeResolver.Resolve(NodeEvent? nodeEvent, ref Type currentType)
@@ -37,7 +37,11 @@ namespace CoreEx.Json.Data
                 {
                     if (decimal.TryParse(scalar.Value, out _))
                     {
-                        currentType = typeof(decimal);
+                        if (scalar.Value.Length > 1 && scalar.Value.StartsWith('0')) // Valid JSON does not support a number that starts with a zero.
+                            currentType = typeof(string);
+                        else
+                            currentType = typeof(decimal);
+
                         return true;
                     }
 
@@ -163,7 +167,40 @@ namespace CoreEx.Json.Data
                             (items ??= new List<T>()).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
-                            PrepareReferenceData(item, jd, items.Count - 1);
+                            PrepareReferenceData(typeof(T), item, jd, items.Count - 1);
+                        }
+                    }
+                }
+            }
+
+            return items != null;
+        }
+
+        /// <summary>
+        /// Deserializes the contents of the named element into a collection of the specified <paramref name="type"/>.
+        /// </summary>
+        /// <param name="type">The <see cref="Type"/> to deserialize to.</param>
+        /// <param name="name">The element name where the array of items to deserialize are housed. Defaults to the <see cref="Type"/> name.</param>
+        /// <param name="items">The resulting collection of items.</param>
+        /// <returns><c>true</c> indicates that one or more items were deserialized; otherwise, <c>false</c> for none found.</returns>
+        public bool TryDeserialize(Type type, string? name, [NotNullWhen(true)] out List<object>? items)
+        {
+            items = null;
+
+            // Find the named object and deserialize corresponding items.
+            foreach (var ji in _json.Value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Object))
+            {
+                foreach (var jo in ji.EnumerateObject().Where(x => x.Name == (name ?? type.Name) && x.Value.ValueKind == JsonValueKind.Array))
+                {
+                    foreach (var jd in jo.Value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Object))
+                    {
+                        var item = Deserialize(type, jd);
+                        if (item != null)
+                        {
+                            (items ??= new List<object>()).Add(item);
+                            _args.IdentifierGenerator?.AssignIdentifierAsync(item);
+                            ChangeLog.PrepareCreated(item, _executionContext);
+                            PrepareReferenceData(type, item, jd, items.Count - 1);
                         }
                     }
                 }
@@ -186,6 +223,22 @@ namespace CoreEx.Json.Data
 
             // Deserialize the new JSON.
             return _args.JsonSerializer.Deserialize<T>(new BinaryData(ms.ToArray()));
+        }
+
+        /// <summary>
+        /// Deserialize the JSON replacing any dynamic parameters.
+        /// </summary>
+        private object? Deserialize(Type type, JsonElement json)
+        {
+            using var ms = new MemoryStream();
+            using var jw = new Utf8JsonWriter(ms);
+
+            // Copy and replace JSON.
+            CopyAndReplace(json, jw);
+            jw.Flush();
+
+            // Deserialize the new JSON.
+            return _args.JsonSerializer.Deserialize(new BinaryData(ms.ToArray()), type);
         }
 
         /// <summary>
@@ -354,7 +407,7 @@ namespace CoreEx.Json.Data
         /// <summary>
         /// Prepare the <see cref="IReferenceData"/> value.
         /// </summary>
-        private void PrepareReferenceData<T>(T? item, JsonElement json, int index)
+        private void PrepareReferenceData(Type type, object item, JsonElement json, int index)
         {
             if (item is not IReferenceData rd)
                 return;
@@ -372,7 +425,7 @@ namespace CoreEx.Json.Data
             if (_args.RefDataColumnDefaults.Count == 0)
                 return;
 
-            var tr = TypeReflector.GetReflector(_typeReflectorArgs, typeof(T));
+            var tr = TypeReflector.GetReflector(_typeReflectorArgs, type);
             foreach (var rp in _args.RefDataColumnDefaults)
             {
                 var pr = tr.GetProperty(rp.Key);

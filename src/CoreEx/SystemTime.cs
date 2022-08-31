@@ -25,6 +25,12 @@ namespace CoreEx
         /// <remarks>This is generally intended for testing purposes.</remarks>
         public static SystemTime CreateFixed(DateTime time) => new() { _time = Cleaner.Clean(time, DateTimeTransform.DateTimeUtc) };
 
+        /// <summary>
+        /// Gets the <see cref="ISystemTime"/> instance from the <see cref="ExecutionContext.ServiceProvider"/> where configured; otherwise, returns a new instance of <see cref="SystemTime"/>.
+        /// </summary>
+        /// <returns>The <see cref="ISystemTime"/> using the <see cref="ExecutionContext.ServiceProvider"/> where configured; otherwise, a new instance of <see cref="SystemTime"/>.</returns>
+        public static ISystemTime Get() => ExecutionContext.GetService<ISystemTime>() ?? new SystemTime();
+
         /// <inheritdoc/>
         public DateTime UtcNow => _time ?? DateTime.UtcNow;
     }

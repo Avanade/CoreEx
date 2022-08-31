@@ -75,8 +75,6 @@ namespace CoreEx.Database.Extended
         /// <returns>The <see cref="DatabaseQuery{T}"/> to suport fluent-style method-chaining.</returns>
         public DatabaseQuery<T> WithPaging(long skip, long? take = null) => WithPaging(PagingArgs.CreateSkipAndTake(skip, take));
 
-        #region SelectSingle/SelectFirst
-
         /// <summary>
         /// Selects a single item.
         /// </summary>
@@ -105,9 +103,18 @@ namespace CoreEx.Database.Extended
         /// <returns>The single item or default.</returns>
         public Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectFirstOrDefaultAsync(Mapper, ct), cancellationToken);
 
-        #endregion
-
-        #region SelectQuery
+        /// <summary>
+        /// Executes the query command creating a <typeparamref name="TCollResult"/>.
+        /// </summary>
+        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
+        public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
+        {
+            Paging = Paging,
+            Collection = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
+        };
 
         /// <summary>
         /// Executes the query command creating a resultant collection.
@@ -139,8 +146,6 @@ namespace CoreEx.Database.Extended
                 return coll;
             }, cancellationToken);
         }
-
-        #endregion
 
         /// <summary>
         /// Wraps the select query to perform standard logic.

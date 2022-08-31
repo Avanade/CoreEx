@@ -13,6 +13,15 @@
         }
 
         [Test]
+        public void AsQueryable1() => Assert.That(_db.Persons1.Query().AsQueryable().Count(), Is.EqualTo(3));
+
+        [Test]
+        public void AsQueryable2() => Assert.That(_db.Persons2.Query().AsQueryable().Count(), Is.EqualTo(3));
+
+        [Test]
+        public void AsQueryable3() => Assert.That(_db.Persons3.Query().AsQueryable().Count(), Is.EqualTo(3));
+
+        [Test]
         public async Task Get1Async()
         {
             Assert.That(await _db.Persons1.GetAsync(404.ToGuid().ToString()), Is.Null);

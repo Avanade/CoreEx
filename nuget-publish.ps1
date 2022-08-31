@@ -53,6 +53,7 @@ param(
         "src\CoreEx.Azure",
         "src\CoreEx.Database",
         "src\CoreEx.EntityFrameworkCore",
+        "src\CoreEx.Cosmos",
         "src\CoreEx.FluentValidation",
         "src\CoreEx.HealthChecks",
         "src\CoreEx.Newtonsoft",

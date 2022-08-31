@@ -159,6 +159,12 @@ namespace CoreEx
         public string UserName { get; set; } = EnvironmentUserName;
 
         /// <summary>
+        /// Gets the corresponding user name.
+        /// </summary>
+        [Obsolete("Please use UserName property instead.")]
+        public string Username { get => UserName; set => UserName = value; }
+
+        /// <summary>
         /// Gets or sets the corresponding user identifier.
         /// </summary>
         public string? UserId { get; set; }

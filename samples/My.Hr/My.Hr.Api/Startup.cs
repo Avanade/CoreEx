@@ -65,7 +65,9 @@ public class Startup
     /// </summary>
     /// <param name="app">The <see cref="IApplicationBuilder"/>.</param>
     public void Configure(IApplicationBuilder app)
-        => app.UseSwagger()
+        => app
+           .UseWebApiExceptionHandler()
+           .UseSwagger()
            .UseSwaggerUI()
            .UseHttpsRedirection()
            .UseRouting()

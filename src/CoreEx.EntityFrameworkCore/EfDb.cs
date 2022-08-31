@@ -44,7 +44,7 @@ namespace CoreEx.EntityFrameworkCore
         public EfDbArgs DbArgs { get; set; } = new EfDbArgs();
 
         /// <inheritdoc/>
-        public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => new(this, args, query);
+        public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => new(this, args, query);
 
         /// <inheritdoc/>
         public Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new()

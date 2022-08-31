@@ -1,6 +1,7 @@
 ﻿using CoreEx.Mapping;
 using CoreEx.Cosmos.Batch;
 using AzCosmos = Microsoft.Azure.Cosmos;
+using CoreEx.RefData;
 
 namespace CoreEx.Cosmos.Test
 {
@@ -56,10 +57,10 @@ namespace CoreEx.Cosmos.Test
 
             var db = new CosmosDb(auth: false);
             await db.Persons1.ImportYamlBatchAsync<CosmosDb, Person1>("Data.yaml");
-            await db.ImportYamlBatchAsync<CosmosDb, Person2>(c2, "Data.yaml");
+            await db.Persons2.ImportYamlBatchAsync<CosmosDb, Person2>("Data.yaml");
             await db.Persons3.ImportYamlValueBatchAsync<CosmosDb, Person3>("Data.yaml");
             await db.Persons3.ImportValueBatchAsync(new Person1[] { new Person1 { Id = 100.ToGuid().ToString() } }); // Add other random "type" to Person3.
-            await db.ImportYamlValueBatchAsync<CosmosDb, Gender>(c4, "RefData.yaml", dataReaderArgs: new Json.Data.JsonDataReaderArgs(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer()));
+            await db.ImportYamlValueBatchAsync<CosmosDb>("RefData", new Type[] { typeof(Gender) }, "RefData.yaml", dataReaderArgs: new Json.Data.JsonDataReaderArgs(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer()));
         }
     }
 }

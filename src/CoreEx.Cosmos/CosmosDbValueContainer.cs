@@ -100,7 +100,6 @@ namespace CoreEx.Cosmos
         /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
         public CosmosDbValueQuery<T, TModel> Query(CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, dbArgs, query);
 
-
         /// <summary>
         /// Gets the entity for the specified <paramref name="id"/>.
         /// </summary>
