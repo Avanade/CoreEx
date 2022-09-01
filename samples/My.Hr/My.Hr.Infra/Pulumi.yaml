@@ -1,0 +1,3 @@
+name: My.Hr.Infra
+runtime: dotnet
+description: Infrastructure for CoreEx sample application
