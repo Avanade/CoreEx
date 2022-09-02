@@ -16,7 +16,9 @@ public class CoreExStack : Stack
         var defaultUsername = Output.Format($"sqlGlobalAdAdmin@{domainResult.Apply(d => d.Domains[0].DomainName)}");
         var defaultPassword = new Pulumi.Random.RandomPassword("sqlAdPassword", new()
         {
-            Length = 16,
+            Length = 32,
+            Upper = true,
+            Number = true,
             Special = true,
             OverrideSpecial = "@",
         }).Result;
@@ -24,6 +26,7 @@ public class CoreExStack : Stack
         Input<string> sqlAdAdminLogin = Extensions.GetConfigValue("sqlAdAdmin", defaultUsername);
         Input<string> sqlAdAdminPassword = Extensions.GetConfigValue("sqlAdPassword", defaultPassword);
         Input<bool> isAppsDeploymentEnabled = config.GetBoolean("isAppsDeploymentEnabled") ?? false;
+        Input<bool> isDBSchemaDeploymentEnabled = config.GetBoolean("isDBSchemaDeploymentEnabled") ?? false;
 
         var pendingVerificationsQueue = config.Get("pendingVerificationsQueue") ?? "pendingVerifications";
         var verificationResultsQueue = config.Get("verificationResultsQueue") ?? "verificationResults";
@@ -62,6 +65,7 @@ public class CoreExStack : Stack
             ResourceGroupName = resourceGroup.Name,
             SqlAdAdminLogin = sqlAdAdminLogin,
             SqlAdAdminPassword = sqlAdAdminPassword,
+            IsAppsDeploymentEnabled = isAppsDeploymentEnabled,
             Tags = tags
         });
 

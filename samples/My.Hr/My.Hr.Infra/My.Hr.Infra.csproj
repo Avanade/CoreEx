@@ -14,6 +14,14 @@
     <PackageReference Include="Pulumi.AzureNative" Version="1.*" />
     <PackageReference Include="Pulumi.Command" Version="0.4.1" />
     <PackageReference Include="Pulumi.Random" Version="4.8.2" />
+    <PackageReference Include="PulumiCSharpAnalyzer" Version="0.1.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\My.Hr.Database\My.Hr.Database.csproj" />
   </ItemGroup>
 
 </Project>

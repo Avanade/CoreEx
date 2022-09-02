@@ -36,7 +36,7 @@ public class Storage : ComponentResource
             AccountName = storageAccount.Name,
             PublicAccess = PublicAccess.None,
             ResourceGroupName = args.ResourceGroupName,
-        });
+        }, new CustomResourceOptions { Parent = this });
 
         var connectionString = GetConnectionString(args.ResourceGroupName, storageAccount.Name);
 
