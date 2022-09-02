@@ -1,36 +1,17 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Pulumi;
 using Pulumi.AzureNative.Resources;
 using AD = Pulumi.AzureAD;
 
 namespace CoreEx.Infra;
 
-public class CoreExStack : Stack
+public class CoreExStack
 {
-    public CoreExStack()
+    public async Task<IDictionary<string, object?>> ExecuteStackAsync()
     {
-        // read stack config
-        var config = new Config();
-
-        // get some info from Azure AD
-        var domainResult = AD.GetDomains.Invoke(new AD.GetDomainsInvokeArgs { OnlyDefault = true });
-        var defaultUsername = Output.Format($"sqlGlobalAdAdmin@{domainResult.Apply(d => d.Domains[0].DomainName)}");
-        var defaultPassword = new Pulumi.Random.RandomPassword("sqlAdPassword", new()
-        {
-            Length = 32,
-            Upper = true,
-            Number = true,
-            Special = true,
-            OverrideSpecial = "@",
-        }).Result;
-
-        Input<string> sqlAdAdminLogin = Extensions.GetConfigValue("sqlAdAdmin", defaultUsername);
-        Input<string> sqlAdAdminPassword = Extensions.GetConfigValue("sqlAdPassword", defaultPassword);
-        Input<bool> isAppsDeploymentEnabled = config.GetBoolean("isAppsDeploymentEnabled") ?? false;
-        Input<bool> isDBSchemaDeploymentEnabled = config.GetBoolean("isDBSchemaDeploymentEnabled") ?? false;
-
-        var pendingVerificationsQueue = config.Get("pendingVerificationsQueue") ?? "pendingVerifications";
-        var verificationResultsQueue = config.Get("verificationResultsQueue") ?? "verificationResults";
-        var massPublishQueue = config.Get("massPublishQueue") ?? "massPublish";
+        var config = await StackConfiguration.CreateConfiguration();
+        Log.Info("Configuration completed");
 
         var tags = new InputMap<string> { { "App", "CoreEx" } };
 
@@ -45,9 +26,9 @@ public class CoreExStack : Stack
             ResourceGroupName = resourceGroup.Name,
             Tags = tags
         });
-        serviceBus.AddQueue(pendingVerificationsQueue);
-        serviceBus.AddQueue(verificationResultsQueue);
-        serviceBus.AddQueue(massPublishQueue, batchOperationsEnabled: true);
+        serviceBus.AddQueue(config.pendingVerificationsQueue);
+        serviceBus.AddQueue(config.verificationResultsQueue!);
+        serviceBus.AddQueue(config.massPublishQueue, batchOperationsEnabled: true);
 
         var storage = new Components.Storage("sa", new Components.Storage.StorageArgs
         {
@@ -63,9 +44,9 @@ public class CoreExStack : Stack
         var sql = new Components.Sql("sql", new Components.Sql.SqlArgs
         {
             ResourceGroupName = resourceGroup.Name,
-            SqlAdAdminLogin = sqlAdAdminLogin,
-            SqlAdAdminPassword = sqlAdAdminPassword,
-            IsAppsDeploymentEnabled = isAppsDeploymentEnabled,
+            SqlAdAdminLogin = config.sqlAdAdminLogin!,
+            SqlAdAdminPassword = config.sqlAdAdminPassword!,
+            IsDBSchemaDeploymentEnabled = config.isDBSchemaDeploymentEnabled,
             Tags = tags
         });
 
@@ -77,10 +58,10 @@ public class CoreExStack : Stack
             ServiceBusNamespaceName = serviceBus.NamespaceName,
             SqlConnectionString = sql.SqlDatabaseConnectionString,
             ApplicationInsightsInstrumentationKey = appInsights.InstrumentationKey,
-            PendingVerificationsQueue = pendingVerificationsQueue,
-            VerificationResultsQueue = verificationResultsQueue,
-            MassPublishQueue = massPublishQueue,
-            IsAppDeploymentEnabled = isAppsDeploymentEnabled,
+            PendingVerificationsQueue = config.pendingVerificationsQueue,
+            VerificationResultsQueue = config.verificationResultsQueue,
+            MassPublishQueue = config.massPublishQueue,
+            IsAppDeploymentEnabled = config.isAppsDeploymentEnabled,
             Tags = tags
         });
 
@@ -100,21 +81,61 @@ public class CoreExStack : Stack
         sql.AddFirewallRule(apps.FunctionOutboundIps, "appService");
         sql.AddFirewallRule(apps.AppOutboundIps, "appService");
 
-        SqlDatabaseConnectionString = sql.SqlDatabaseConnectionString;
-        FunctionHealthUrl = apps.FunctionHealthUrl;
-        FunctionSwaggerUrl = apps.FunctionSwaggerUrl;
-        AppSwaggerUrl = apps.AppSwaggerUrl;
+        return new Dictionary<string, object?>
+        {
+            ["SqlDatabaseConnectionString"] = sql.SqlDatabaseConnectionString,
+            ["FunctionHealthUrl"] = apps.FunctionHealthUrl,
+            ["FunctionSwaggerUrl"] = apps.FunctionSwaggerUrl,
+            ["AppSwaggerUrl"] = apps.AppSwaggerUrl,
+        };
     }
 
-    [Output]
-    public Output<string> SqlDatabaseConnectionString { get; set; }
+    public class StackConfiguration
+    {
+        public Input<string>? sqlAdAdminLogin { get; private set; }
+        public Input<string>? sqlAdAdminPassword { get; private set; }
+        public bool isAppsDeploymentEnabled { get; private set; }
+        public bool isDBSchemaDeploymentEnabled { get; private set; }
+        public string pendingVerificationsQueue { get; private set; } = default!;
+        public string verificationResultsQueue { get; private set; } = default!;
+        public string massPublishQueue { get; private set; } = default!;
 
-    [Output]
-    public Output<string> AppSwaggerUrl { get; set; }
+        private StackConfiguration() { }
 
-    [Output]
-    public Output<string> FunctionHealthUrl { get; set; }
+        public static async Task<StackConfiguration> CreateConfiguration()
+        {
+            // read stack config
+            var config = new Config();
 
-    [Output]
-    public Output<string> FunctionSwaggerUrl { get; set; }
+            // get some info from Azure AD
+            var domainResult = await AD.GetDomains.InvokeAsync(new AD.GetDomainsArgs { OnlyDefault = true });
+            var defaultUsername = $"sqlGlobalAdAdmin{Pulumi.Deployment.Instance.StackName}@{domainResult.Domains[0].DomainName}";
+            var defaultPassword = new Pulumi.Random.RandomPassword("sqlAdPassword", new()
+            {
+                Length = 32,
+                Upper = true,
+                Number = true,
+                Special = true,
+                OverrideSpecial = "@",
+                MinLower = 2,
+                MinUpper = 2,
+                MinSpecial = 2,
+                MinNumeric = 2
+            }).Result;
+
+            Pulumi.Log.Info($"Default username is: {defaultUsername}");
+
+            return new StackConfiguration
+            {
+                sqlAdAdminLogin = Extensions.GetConfigValue("sqlAdAdmin", defaultUsername),
+                sqlAdAdminPassword = Extensions.GetConfigValue("sqlAdPassword", defaultPassword),
+                isAppsDeploymentEnabled = config.GetBoolean("isAppsDeploymentEnabled") ?? false,
+                isDBSchemaDeploymentEnabled = config.GetBoolean("isDBSchemaDeploymentEnabled") ?? false,
+
+                pendingVerificationsQueue = config.Get("pendingVerificationsQueue") ?? "pendingVerifications",
+                verificationResultsQueue = config.Get("verificationResultsQueue") ?? "verificationResults",
+                massPublishQueue = config.Get("massPublishQueue") ?? "massPublish"
+            };
+        }
+    }
 }

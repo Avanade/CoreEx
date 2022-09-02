@@ -209,36 +209,36 @@ public class Apps : ComponentResource
         FunctionOutboundIps = functionApp.OutboundIpAddresses;
         AppOutboundIps = app.OutboundIpAddresses;
 
-        // var keys = Output.CreateSecret(ListWebAppHostKeys.InvokeAsync(new ListWebAppHostKeysArgs
-        // {
-        //     Name = functionApp.Name,
-        //     ResourceGroupName = args.ResourceGroupName
-        // }, new InvokeOptions { Parent = functionApp }));
+        var keys = Output.CreateSecret(ListWebAppHostKeys.Invoke(new ListWebAppHostKeysInvokeArgs
+        {
+            Name = functionApp.Name,
+            ResourceGroupName = args.ResourceGroupName
+        }, new InvokeOptions { Parent = functionApp }));
         
 
         // should wait 5 seconds before calling function
         //System.Threading.Thread.Sleep(5000);
-        // Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, keys)
-        //     .Apply(t =>
-        //     {
-        //         var (isAppDeploymentEnabled, defaultHostName, keys) = t;
+        Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, keys)
+            .Apply(t =>
+            {
+                var (isAppDeploymentEnabled, defaultHostName, keys) = t;
 
-        //         if (isAppDeploymentEnabled)
-        //         {
-        //             Log.Info("Syncing triggers for azure function");
-        //             var syncUrl = $"https://{functionApp.DefaultHostName}/admin/host/synctriggers?code={keys.MasterKey}";
+                if (isAppDeploymentEnabled)
+                {
+                    Log.Info("Syncing triggers for azure function");
+                    var syncUrl = $"https://{defaultHostName}/admin/host/synctriggers?code={keys.MasterKey}";
 
-        //             using var httpClient = new HttpClient();
-        //             return httpClient.PostAsync(syncUrl, null);
-        //         }
+                    using var httpClient = new HttpClient();
+                    return httpClient.PostAsync(syncUrl, null);
+                }
 
-        //         return Task.FromResult<HttpResponseMessage>(null);
-        //     });
+                return Task.FromResult<HttpResponseMessage>(null);
+            });
 
-        // FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={keys.Apply(k => k.MasterKey)}");
-        // FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={keys.Apply(k => k.MasterKey)}");
-        FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={"foo"}");
-        FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={"foo"}");
+        FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={keys.Apply(k => k.MasterKey)}");
+        FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={keys.Apply(k => k.MasterKey)}");
+        // FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={"foo"}");
+        // FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={"foo"}");
         AppSwaggerUrl = Output.Format($"https://{app.DefaultHostName}/swagger/index.html");
 
         RegisterOutputs();
