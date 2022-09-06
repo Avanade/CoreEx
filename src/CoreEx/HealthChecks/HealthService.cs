@@ -1,12 +1,12 @@
 // Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Configuration;
-using CoreEx.Json;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Mime;
 using System.Threading.Tasks;
+using CoreEx.Configuration;
+using CoreEx.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -58,12 +58,13 @@ namespace CoreEx.HealthChecks
 
             var json = _jsonSerializer.Serialize(new
             {
-                healthReport = new 
+                healthReport = new
                 {
                     Status = healthReport.Status.ToString(),
                     TotalDuration = healthReport.TotalDuration.ToString(),
                     healthReport.Entries
-                }, _settings.Deployment
+                },
+                _settings.Deployment
             }, JsonWriteFormat.Indented);
 
             return new ContentResult
