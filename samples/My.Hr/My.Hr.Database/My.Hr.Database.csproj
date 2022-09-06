@@ -21,14 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- <PackageReference Include="DbEx" Version="1.0.13" /> -->
+    <PackageReference Include="DbEx" Version="1.0.14" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
     <PackageReference Include="Microsoft.Tye.Extensions.Configuration" Version="0.10.0-alpha.21420.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx\CoreEx.csproj" />
-    <ProjectReference Include="..\..\..\..\DbEx\src\DbEx\DbEx.csproj" />
   </ItemGroup>
 
 </Project>
