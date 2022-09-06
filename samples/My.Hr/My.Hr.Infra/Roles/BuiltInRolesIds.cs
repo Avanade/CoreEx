@@ -19,7 +19,7 @@ public static class BuiltInRolesIds
     public const string ServiceBusDataSender = "/providers/Microsoft.Authorization/roleDefinitions/69a216fc-b8fb-44d8-bc22-1f3c2cd27a39";
 
     /// <summary>
-    /// Gets role id based on the provided role name
+    /// Gets role id based on the provided role name. This method can be used instead of hardcoded role Ids above
     /// </summary>
     /// <param name="roleName"></param>
     /// <param name="scope"></param>
