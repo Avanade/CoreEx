@@ -10,10 +10,10 @@ public class CoreExStackTests
     [Test]
     public async Task ResourceGroupHasNameTag()
     {
-        var resources = await Testing.RunAsync<CoreExStack>();
+        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
 
         var rgs = resources.OfType<ResourceGroup>();
-        var rg = rgs.FirstOrDefault();
+        var rg = rgs.First();
         var tags = await rg.Tags.GetValueAsync();
 
         // Assert
@@ -25,11 +25,10 @@ public class CoreExStackTests
     [Test]
     public async Task FunctionIsCreatedWithAUrl()
     {
-        var resources = await Testing.RunAsync<CoreExStack>();
+        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
 
-        var stack = resources.OfType<CoreExStack>().First();
-        var healthUrl = await stack.FunctionHealthUrl.GetValueAsync();
-        var appSwaggerUrl = await stack.AppSwaggerUrl.GetValueAsync();
+        var healthUrl = await (outputs["FunctionHealthUrl"] as Output<string>)!.GetValueAsync(); ;
+        var appSwaggerUrl = await (outputs["AppSwaggerUrl"] as Output<string>)!.GetValueAsync(); ;
 
         // Assert
         healthUrl.Should().Be("https://unittest.azurewebsites.net/api/health?code=key", because: "mock values set in Testing class");
@@ -39,13 +38,23 @@ public class CoreExStackTests
     [Test]
     public async Task SqlIsCreatedWithConnectionString()
     {
-        var resources = await Testing.RunAsync<CoreExStack>();
+        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
 
-        var stack = resources.OfType<CoreExStack>().First();
-        var connectionString = await stack.SqlDatabaseConnectionString.GetValueAsync();
+        var connectionString = await (outputs["SqlDatabaseConnectionString"] as Output<string>)!.GetValueAsync();
 
         // Assert
         connectionString.Should().Be("Server=sql-server-stack.database.windows.net; Authentication=Active Directory Default; Database=sqldb", because: "mock values set in Testing class");
+    }
+
+    [Test]
+    public async Task DbOperationsShouldExecute()
+    {
+        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
+
+        // Assert
+        //   because DB schema deployment is enabled in Testing class
+        dbOperationsMock.Verify(op => op.DeployDbSchemaAsync(It.IsAny<string>()));
+        dbOperationsMock.Verify(op => op.ProvisionUsers(It.IsAny<Input<string>>(), It.IsAny<string>()));
     }
 }
 

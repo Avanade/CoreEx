@@ -1,21 +1,32 @@
 using System.Collections.Immutable;
 using System.Text.Json;
-using Pulumi;
+using CoreEx.Infra;
+using My.Hr.Infra.Services;
 
 public static class Testing
 {
-    public static Task<ImmutableArray<Resource>> RunAsync<T>() where T : Stack, new()
+    public static async Task<(ImmutableArray<Resource> Resources, IDictionary<string, object?> Outputs, Mock<IDbOperations>)> RunAsync()
     {
         var config = new Dictionary<string, object>{
             {"unittest:sqlAdAdmin", "sqlAdAdmin"},
             {"unittest:sqlAdPassword", "sqlAdPassword"},
-            {"unittest:isAppsDeploymentEnabled", "true"}
+            {"unittest:isAppsDeploymentEnabled", "true"},
+            {"unittest:isDBSchemaDeploymentEnabled", "true"}
         };
 
         Environment.SetEnvironmentVariable("PULUMI_CONFIG", JsonSerializer.Serialize(config));
         var mocks = new Mocks();
+        var dbOperationsMock = new Mock<IDbOperations>();
 
-        return Deployment.TestAsync<T>(mocks, new TestOptions { IsPreview = false, ProjectName = "unittest" });
+        TestOptions options = new()
+        {
+            IsPreview = false,
+            ProjectName = "unittest"
+        };
+
+        var (resources, outputs) = await Deployment.TestAsync(mocks, options, () => CoreExStack.ExecuteStackAsync(dbOperationsMock.Object));
+
+        return (resources, outputs, dbOperationsMock);
     }
 
     public class Mocks : IMocks

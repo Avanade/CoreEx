@@ -215,9 +215,6 @@ public class Apps : ComponentResource
             ResourceGroupName = args.ResourceGroupName
         }, new InvokeOptions { Parent = functionApp }));
         
-
-        // should wait 5 seconds before calling function
-        //System.Threading.Thread.Sleep(5000);
         Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, keys)
             .Apply(t =>
             {

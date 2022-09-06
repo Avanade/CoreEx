@@ -6,4 +6,11 @@ public static class TestingExtensions
         output.Apply(v => { tcs.SetResult(v); return v; });
         return tcs.Task;
     }
+
+        public static Task<object> GetValueAsync(this Output<object?> output)
+    {
+        var tcs = new TaskCompletionSource<object>();
+        output.Apply(v => { tcs.SetResult(v); return v; });
+        return tcs.Task;
+    }
 }

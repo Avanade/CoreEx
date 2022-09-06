@@ -73,7 +73,6 @@ public class Messaging : ComponentResource
                 PrincipalId = principalId,
                 PrincipalType = "ServicePrincipal",
 
-                // todo: fix hardcoded subscription
                 RoleDefinitionId = Roles.BuiltInRolesIds.ServiceBusDataSender,
                 Scope = NamespaceId
             },

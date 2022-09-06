@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Threading.Tasks;
-using Dapper;
-using Microsoft.Data.SqlClient;
+using My.Hr.Infra.Services;
 using Pulumi;
 using Pulumi.AzureNative.Sql;
 using Pulumi.AzureNative.Sql.Inputs;
@@ -14,17 +12,18 @@ namespace CoreEx.Infra.Components;
 public class Sql : ComponentResource
 {
     private readonly SqlArgs args;
+    private readonly IDbOperations dbOperations;
     private readonly HashSet<string> firewallAllowedIps = new();
 
     public Output<string> SqlDatabaseConnectionString { get; }
     public Output<string> SqlServerName { get; }
     public Output<string> SqlDatabaseAuthorizedGroupId { get; }
 
-    public Sql(string name, SqlArgs args, ComponentResourceOptions? options = null)
+    public Sql(string name, SqlArgs args, IDbOperations dbOperations, ComponentResourceOptions? options = null)
          : base("coreexinfra:web:sql", name, options)
     {
         this.args = args;
-
+        this.dbOperations = dbOperations;
         var sqlAdAdmin = new AD.User("sqlAdmin", new AD.UserArgs
         {
             UserPrincipalName = args.SqlAdAdminLogin,
@@ -80,14 +79,14 @@ public class Sql : ComponentResource
         var sqlADConnectionString = Output.Format($"Server={sqlServer.Name}.database.windows.net; Authentication=Active Directory Password; User={args.SqlAdAdminLogin}; Password={args.SqlAdAdminPassword}; Database={database.Name}");
 
         // login with AD admin credentials to give access to AD group that contains App and Function managed identity users
-        ProvisionUsers(sqlADConnectionString!, sqlDatabaseAuthorizedGroupName);
+        dbOperations.ProvisionUsers(sqlADConnectionString!, sqlDatabaseAuthorizedGroupName);
 
         // create SQL user and setup schema
         if (args.IsDBSchemaDeploymentEnabled)
         {
-            sqlADConnectionString.Apply(cs =>
+            sqlADConnectionString.Apply(async cs =>
             {
-                return DeployDbSchemaAsync(cs);
+                return await dbOperations.DeployDbSchemaAsync(cs);
             });
         }
 
@@ -130,45 +129,6 @@ public class Sql : ComponentResource
             GroupObjectId = SqlDatabaseAuthorizedGroupId,
             MemberObjectId = principalId,
         }, new CustomResourceOptions { Parent = this });
-    }
-
-    private static void ProvisionUsers(Input<string> connectionString, string groupName)
-    {
-        if (Deployment.Instance.IsDryRun || Deployment.Instance.ProjectName == "unittest")
-            // skip in dry run and in unit tests
-            return;
-
-        Log.Info($"Provisioning user {groupName} in SQL DB");
-        string commandText = @$"
-        IF NOT EXISTS (SELECT [name]
-                FROM [sys].[database_principals]
-                WHERE [type] = N'X' AND [name] = N'{groupName}')
-        BEGIN
-            CREATE USER {groupName} FROM EXTERNAL PROVIDER; 
-        END
-       
-        ALTER ROLE db_datareader ADD MEMBER {groupName}; 
-        ALTER ROLE db_datawriter ADD MEMBER {groupName};
-        ";
-
-        connectionString.Apply(cs =>
-        {
-            using SqlConnection conn = new(cs);
-            conn.Open();
-
-            var result = conn.Execute(commandText);
-            return true;
-        });
-    }
-
-    private static Task<int> DeployDbSchemaAsync(string connectionString)
-    {
-        if (Deployment.Instance.IsDryRun || Deployment.Instance.ProjectName == "unittest")
-            // skip in dry run
-            return Task.FromResult(0);
-
-        Log.Info($"Deploying DB schema using {connectionString}");
-        return My.Hr.Database.Program.RunMigrator(connectionString, assembly: typeof(My.Hr.Database.Program).Assembly, "DeployWithData");
     }
 
     public class SqlArgs

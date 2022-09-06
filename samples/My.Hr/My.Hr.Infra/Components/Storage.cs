@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Pulumi;
 using Pulumi.AzureNative.Authorization;
 using Pulumi.AzureNative.Storage;
@@ -8,14 +11,20 @@ namespace CoreEx.Infra.Components;
 
 public class Storage : ComponentResource
 {
-    public Output<string> Id { get; } = default!;
-    public Output<string> AccountName { get; } = default!;
-    public Output<string> ConnectionString { get; } = default!;
-    public Output<string> DeploymentContainerName { get; } = default!;
+    private readonly StorageArgs args;
+    private readonly string name;
+    private Output<string> Id = default!;
+
+    public Output<string> AccountName { get; private set; } = default!;
+    public Output<string> DeploymentContainerName { get; private set; } = default!;
+    public Output<string> ConnectionString { get; private set; } = default!;
 
     public Storage(string name, StorageArgs args, ComponentResourceOptions? options = null)
         : base("coreexinfra:web:storage", name, options)
     {
+        this.args = args;
+        this.name = name;
+
         // Create an Azure resource (Storage Account)
         var storageAccount = new StorageAccount(name, new StorageAccountArgs
         {
@@ -40,35 +49,34 @@ public class Storage : ComponentResource
 
         var connectionString = GetConnectionString(args.ResourceGroupName, storageAccount.Name);
 
-        AccountName = storageAccount.Name;
-        Id = storageAccount.Id;
+        AccountName = storageAccount.Name!;
+        Id = storageAccount.Id!;
         ConnectionString = connectionString;
         DeploymentContainerName = deploymentContainer.Name;
 
         RegisterOutputs();
     }
 
-    static Output<string> GetConnectionString(Input<string> resourceGroupName, Input<string> accountName)
+    private static Output<string> GetConnectionString(Input<string> resourceGroupNameInput, Input<string> accountNameInput)
     {
-        // Retrieve the primary storage account key.
-        var storageAccountKeys = ListStorageAccountKeys.Invoke(new ListStorageAccountKeysInvokeArgs
-        {
-            ResourceGroupName = resourceGroupName,
-            AccountName = accountName
-        });
+        return Output.Tuple(resourceGroupNameInput, accountNameInput)
+             .Apply(async t =>
+             {
+                 var (resourceGroupName, accountName) = t;
 
-        return storageAccountKeys.Apply(keys =>
-        {
-            var primaryStorageKey = keys.Keys[0].Value;
+                 var storageAccountKeys = await ListStorageAccountKeys.InvokeAsync(new ListStorageAccountKeysArgs
+                 {
+                     ResourceGroupName = resourceGroupName,
+                     AccountName = accountName
+                 });
 
-            // Build the connection string to the storage account.
-            return Output.Format($"DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey={primaryStorageKey}");
-        });
+                 // Retrieve the primary storage account key.
+                 return $"DefaultEndpointsProtocol=https;AccountName={accountNameInput};AccountKey={storageAccountKeys.Keys.First().Value}";
+             });
     }
 
     public RoleAssignment AddAccess(Input<string> principalId, string name)
     {
-
         return new RoleAssignment(
         $"useblob-for-{name}",
             new RoleAssignmentArgs
