@@ -6,9 +6,9 @@ template:
     azure-native:location:
       description: The Azure region to deploy into
       default: EastUs
-     My.Hr.Infra:isAppsDeploymentEnabled:
+    My.Hr.Infra:isAppsDeploymentEnabled:
       description: Whether Application code should be deployed
       default: true
-     My.Hr.Infra:isDBSchemaDeploymentEnabled:
+    My.Hr.Infra:isDBSchemaDeploymentEnabled:
       description: Whether Database schema should be deployed
       default: true      
