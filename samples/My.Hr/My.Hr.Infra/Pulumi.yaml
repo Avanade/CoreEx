@@ -1,7 +1,6 @@
 name: My.Hr.Infra
 runtime: dotnet
 description: Infrastructure for CoreEx sample application
-
 template:
   config:
     azure-native:location:
