@@ -234,8 +234,6 @@ public class Apps : ComponentResource
 
         FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={keys.Apply(k => k.MasterKey)}");
         FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={keys.Apply(k => k.MasterKey)}");
-        // FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={"foo"}");
-        // FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={"foo"}");
         AppSwaggerUrl = Output.Format($"https://{app.DefaultHostName}/swagger/index.html");
 
         RegisterOutputs();

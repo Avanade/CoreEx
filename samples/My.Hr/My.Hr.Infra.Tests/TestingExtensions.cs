@@ -7,10 +7,13 @@ public static class TestingExtensions
         return tcs.Task;
     }
 
-        public static Task<object> GetValueAsync(this Output<object?> output)
+    public static Task<T> GetValueAsync<T>(this object outputObj)
     {
-        var tcs = new TaskCompletionSource<object>();
-        output.Apply(v => { tcs.SetResult(v); return v; });
-        return tcs.Task;
+        if (outputObj is Output<T> output)
+        {
+           return output.GetValueAsync();
+        }
+
+        return Task.FromException<T>(new ArgumentException("Provided object is not Output<T>", nameof(outputObj)));
     }
 }

@@ -18,7 +18,14 @@ public static class BuiltInRolesIds
     // https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#azure-service-bus-data-sender
     public const string ServiceBusDataSender = "/providers/Microsoft.Authorization/roleDefinitions/69a216fc-b8fb-44d8-bc22-1f3c2cd27a39";
 
-    // code from: https://github.com/pulumi/examples/blob/28b559d68eb6a67f3e6b5fb3d2a337b5b9ed35d5/azure-cs-call-azure-api/Program.cs#L45
+    /// <summary>
+    /// Gets role id based on the provided role name
+    /// </summary>
+    /// <param name="roleName"></param>
+    /// <param name="scope"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception">Thrown when request fails</exception>
+    /// <other>code from: https://github.com/pulumi/examples/blob/28b559d68eb6a67f3e6b5fb3d2a337b5b9ed35d5/azure-cs-call-azure-api/Program.cs#L45 </other>
     public static async System.Threading.Tasks.Task<string> GetRoleIdByName(string roleName, string? scope = null)
     {
         var config = await GetClientConfig.InvokeAsync();
