@@ -1,7 +1,7 @@
 ﻿using CoreEx.Mapping;
 using CoreEx.Cosmos.Batch;
 using AzCosmos = Microsoft.Azure.Cosmos;
-using CoreEx.RefData;
+using CoreEx.Json.Data;
 
 namespace CoreEx.Cosmos.Test
 {
@@ -56,11 +56,15 @@ namespace CoreEx.Cosmos.Test
             }, 400);
 
             var db = new CosmosDb(auth: false);
-            await db.Persons1.ImportYamlBatchAsync<CosmosDb, Person1>("Data.yaml");
-            await db.Persons2.ImportYamlBatchAsync<CosmosDb, Person2>("Data.yaml");
-            await db.Persons3.ImportYamlValueBatchAsync<CosmosDb, Person3>("Data.yaml");
-            await db.Persons3.ImportValueBatchAsync(new Person1[] { new Person1 { Id = 100.ToGuid().ToString() } }); // Add other random "type" to Person3.
-            await db.ImportYamlValueBatchAsync<CosmosDb>("RefData", new Type[] { typeof(Gender) }, "RefData.yaml", dataReaderArgs: new Json.Data.JsonDataReaderArgs(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer()));
+
+            var jdr = JsonDataReader.ParseYaml<CosmosDb>("Data.yaml");
+            await db.Persons1.ImportBatchAsync(jdr);
+            await db.Persons2.ImportBatchAsync(jdr);
+            await db.Persons3.ImportValueBatchAsync(jdr);
+            await db.ImportValueBatchAsync("Persons3", new Person1[] { new Person1 { Id = 100.ToGuid().ToString() } }); // Add other random "type" to Person3.
+
+            jdr = JsonDataReader.ParseYaml<CosmosDb>("RefData.yaml", new JsonDataReaderArgs(new Text.Json.ReferenceDataContentJsonSerializer()));
+            await db.ImportValueBatchAsync("RefData", jdr, new Type[] { typeof(Gender) });
         }
     }
 }

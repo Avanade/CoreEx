@@ -14,7 +14,7 @@ namespace CoreEx.Cosmos
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="Type"/> itself.</typeparam>
-    public abstract class CosmosDbContainerBase<T, TModel, TSelf> : ICosmosDbContainer where T : class, new() where TModel : class, IIdentifier, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
+    public abstract class CosmosDbContainerBase<T, TModel, TSelf> : ICosmosDbContainer<T, TModel> where T : class, new() where TModel : class, IIdentifier, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
     {
         private Func<T, PartitionKey>? _partitionKey;
 

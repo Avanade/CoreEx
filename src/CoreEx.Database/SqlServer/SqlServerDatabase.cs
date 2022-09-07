@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Database.Extended;
-using CoreEx.Entities;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System;

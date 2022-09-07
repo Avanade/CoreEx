@@ -45,7 +45,7 @@ namespace CoreEx.Abstractions
         /// Gets the named embedded resource <see cref="Stream"/> from the <see name="Assembly"/> inferred from the <typeparamref name="TResource"/> <see cref="Type"/>.
         /// </summary>
         /// <typeparam name="TResource">The <see cref="Type"/> to infer the <see cref="Assembly"/> to find manifest resources (see <see cref="Assembly.GetManifestResourceStream(string)"/>).</typeparam>
-        /// <param name="resourceName">The <see cref="Assembly"/> that contains the embedded resource; defaults to <see cref="Assembly.GetCallingAssembly"/>.</param>
+        /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
         /// <returns>The <see cref="Stream"/>; otherwise, an <see cref="ArgumentException"/> will be thrown.</returns>
         public static Stream GetStream<TResource>(string resourceName) => GetStream(resourceName, typeof(TResource).Assembly);
 
@@ -61,7 +61,7 @@ namespace CoreEx.Abstractions
         /// Gets the named embedded resource <see cref="StreamReader"/> from the <see name="Assembly"/> inferred from the <typeparamref name="TResource"/> <see cref="Type"/>.
         /// </summary>
         /// <typeparam name="TResource">The <see cref="Type"/> to infer the <see cref="Assembly"/> to find manifest resources (see <see cref="Assembly.GetManifestResourceStream(string)"/>).</typeparam>
-        /// <param name="resourceName">The <see cref="Assembly"/> that contains the embedded resource; defaults to <see cref="Assembly.GetCallingAssembly"/>.</param>
+        /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
         /// <returns>The <see cref="StreamReader"/>; otherwise, an <see cref="ArgumentException"/> will be thrown.</returns>
         public static StreamReader GetStreamReader<TResource>(string resourceName) => GetStreamReader(resourceName, typeof(TResource).Assembly);
     }

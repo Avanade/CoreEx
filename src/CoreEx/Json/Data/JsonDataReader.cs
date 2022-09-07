@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Entities;
 using CoreEx.RefData;
@@ -8,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
@@ -57,6 +59,15 @@ namespace CoreEx.Json.Data
         }
 
         /// <summary>
+        /// Reads and parses the YAML from the named embedded resource <see cref="Stream"/> within the <see name="Assembly"/> inferred from the <typeparamref name="TResource"/> <see cref="Type"/>.
+        /// </summary>
+        /// <typeparam name="TResource">The <see cref="Type"/> to infer the <see cref="Assembly"/> to find manifest resources (see <see cref="Assembly.GetManifestResourceStream(string)"/>).</typeparam>
+        /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
+        /// <param name="args">The optional <see cref="JsonDataReaderArgs"/>.</param>
+        /// <returns>The <see cref="JsonDataReader"/>.</returns>
+        public static JsonDataReader ParseYaml<TResource>(string resourceName, JsonDataReaderArgs? args = null) => ParseYaml(Resource.GetStream<TResource>(resourceName), args);
+
+        /// <summary>
         /// Reads and parses the YAML <see cref="string"/>.
         /// </summary>
         /// <param name="yaml">The YAML <see cref="string"/>.</param>
@@ -88,6 +99,15 @@ namespace CoreEx.Json.Data
             var json = new SerializerBuilder().JsonCompatible().Build().Serialize(yaml!);
             return new(JsonDocument.Parse(json) ?? throw new InvalidOperationException("JsonNode.Parse resulted in a null."), args, true);
         }
+
+        /// <summary>
+        /// Reads and parses the JSON from the named embedded resource <see cref="Stream"/> within the <see name="Assembly"/> inferred from the <typeparamref name="TResource"/> <see cref="Type"/>.
+        /// </summary>
+        /// <typeparam name="TResource">The <see cref="Type"/> to infer the <see cref="Assembly"/> to find manifest resources (see <see cref="Assembly.GetManifestResourceStream(string)"/>).</typeparam>
+        /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
+        /// <param name="args">The optional <see cref="JsonDataReaderArgs"/>.</param>
+        /// <returns>The <see cref="JsonDataReader"/>.</returns>
+        public static JsonDataReader ParseJson<TResource>(string resourceName, JsonDataReaderArgs? args = null) => ParseJson(Resource.GetStream<TResource>(resourceName), args);
 
         /// <summary>
         /// Reads and parses the JSON <see cref="string"/>.
