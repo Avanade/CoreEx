@@ -1,6 +1,5 @@
 # About
 
-[![Deploy](https://get.pulumi.com/new/button.svg)](https://app.pulumi.com/new?template=https://github.com/Avanade/CoreEx/tree/feature/infra/samples/My.Hr/My.Hr.Infra)
 Infrastructure is built with [Pulumi](https://www.pulumi.com/).
 
 The easiest way to deploy it is by using Pulumi account (Free), but it's not mandatory.
@@ -18,7 +17,7 @@ Pulumi can be used without Pulumi Account, by using [Azure Storage as backend](h
 1. set the `AZURE_STORAGE_KEY` or the `AZURE_STORAGE_SAS_TOKEN` environment variables to let Pulumi access the storage
 1. execute the following command `pulumi login azblob://<container-path>` where container-path is the path to a blob container in the storage account
 
-## Configuring Pulumi
+## Configuring Pulumi (optional)
 
 Infrastructure project has only 2 settings:
 
@@ -44,7 +43,10 @@ config:
 
 ## Deploy with Pulumi
 
-Deployment can be done using `pulumi up` command.
+Execute following steps to deploy:
+
+1. In the main directory run `dotnet publish` (if code deployment is required)
+2. In `samples/My.Hr/My.Hr.Infra` run `pulumi up`
 
 ## Alternative deployment methods
 
