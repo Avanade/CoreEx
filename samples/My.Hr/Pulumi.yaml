@@ -11,4 +11,4 @@ template:
       default: true
     My.Hr.Infra:isDBSchemaDeploymentEnabled:
       description: Whether Database schema should be deployed
-      default: true      
+      default: true
