@@ -24,7 +24,7 @@ Infrastructure project has only 2 settings:
 * `My.Hr.Infra:isAppsDeploymentEnabled` for controlling application deployment via zip deploy
 * `My.Hr.Infra:isDBSchemaDeploymentEnabled` for publishing Database schema and data
 
-> Before applications are deployed, they need to be published with `dotnet publish`
+> When `isAppsDeploymentEnabled` flag is set, pulumi code is executing `dotnet publish -c RELEASE`
 
 Pulumi can be configured and previewed with:
 
@@ -32,7 +32,7 @@ Pulumi can be configured and previewed with:
 pulumi preview -c azure-native:location=EastUs -c My.Hr.Infra:isAppsDeploymentEnabled=true -c My.Hr.Infra:isDBSchemaDeploymentEnabled=true
 ```
 
-or by creating a config file `Pulumi.dev.yaml`
+which creates a stack config file `Pulumi.dev.yaml`
 
 ```yaml
 config:
@@ -43,10 +43,9 @@ config:
 
 ## Deploy with Pulumi
 
-Execute following steps to deploy:
+To deploy in `samples/My.Hr/My.Hr.Infra` run `pulumi up -c azure-native:location=EastUs -c My.Hr.Infra:isAppsDeploymentEnabled=true -c My.Hr.Infra:isDBSchemaDeploymentEnabled=true`
 
-1. In the main directory run `dotnet publish` (if code deployment is required)
-2. In `samples/My.Hr/My.Hr.Infra` run `pulumi up`
+To display outputs of the stack deployment run: `pulumi stack output --show-secrets` which will display function links with secret api key.
 
 ## Alternative deployment methods
 

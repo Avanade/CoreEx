@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Pulumi;
@@ -26,21 +27,24 @@ public class Apps : ComponentResource
     {
         this.args = args;
 
-        // set to 1 if app is going to be deployed separately 
-        Output<string> appRunFromPackage = Output.Create("1");
-        Output<string> funcRunFromPackage = Output.Create("1");
 
-        args.IsAppDeploymentEnabled.Apply(isEnabled =>
+
+        Output<Output<(string appZipUrl, string funZipUrl)>> packageZips = args.IsAppDeploymentEnabled.Apply(async isEnabled =>
         {
             if (isEnabled)
             {
-                Log.Info("Setting up deployments from zip for the app and function");
-                appRunFromPackage = PrepareAppForDeployment("app", "../My.Hr.Api/bin/Debug/net6.0/publish");
-                funcRunFromPackage = PrepareAppForDeployment("function", "../My.Hr.Functions/bin/Debug/net6.0/publish");
+                await PublishApp();
+
+                var appZipUrl = PrepareAppForDeployment("app", "../My.Hr.Api/bin/Release/net6.0/publish");
+                var funZipUrl = PrepareAppForDeployment("function", "../My.Hr.Functions/bin/Release/net6.0/publish");
+
+                return Output.Tuple(appZipUrl, funZipUrl);
             }
 
-            return true;
+            return Output.Create((string.Empty, string.Empty));
         });
+
+        var packageUrls = packageZips.Apply(t => t.Apply(u => u));
 
         // https://github.com/pulumi/examples/blob/master/azure-cs-functions/FunctionsStack.cs
         var appServicePlan = new AppServicePlan("apps-linux-asp", new()
@@ -84,7 +88,8 @@ public class Apps : ComponentResource
                     {
                     new NameValuePairArgs{
                         Name = "WEBSITE_RUN_FROM_PACKAGE",
-                        Value = appRunFromPackage
+                        // set to 1 if app is going to be deployed separately 
+                        Value = args.IsAppDeploymentEnabled.Apply(isEnabled => isEnabled ? packageUrls.Apply(p => p.appZipUrl) : Output.Create("1"))
                     },
                     new NameValuePairArgs{
                         Name = "AzureWebJobsStorage__accountName",
@@ -152,7 +157,8 @@ public class Apps : ComponentResource
                     },
                     new NameValuePairArgs{
                         Name = "WEBSITE_RUN_FROM_PACKAGE",
-                        Value = funcRunFromPackage
+                        // set to 1 if app is going to be deployed separately 
+                        Value = args.IsAppDeploymentEnabled.Apply(isEnabled => isEnabled ? packageUrls.Apply(p => p.funZipUrl) : Output.Create("1"))
                     },
                     new NameValuePairArgs{
                         Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
@@ -201,7 +207,14 @@ public class Apps : ComponentResource
                 },
             },
             Tags = args.Tags,
-        }, new CustomResourceOptions { Parent = this });
+        }, new CustomResourceOptions
+        {
+            Parent = this,
+            CustomTimeouts = new CustomTimeouts
+            {
+                Create = TimeSpan.FromMinutes(4)
+            }
+        });
 
         FunctionPrincipalId = functionApp.Identity.Apply(identity => identity?.PrincipalId ?? "11111111-1111-1111-1111-111111111111");
         AppPrincipalId = app.Identity.Apply(identity => identity?.PrincipalId ?? "11111111-1111-1111-1111-111111111111");
@@ -209,12 +222,19 @@ public class Apps : ComponentResource
         FunctionOutboundIps = functionApp.OutboundIpAddresses;
         AppOutboundIps = app.OutboundIpAddresses;
 
+        // sleep 10s because Azure...
+        if (!Deployment.Instance.IsDryRun)
+        {
+            Log.Info("Waiting 10s before calling function to get host keys");
+            System.Threading.Thread.Sleep(10000);
+        }
+
         var keys = Output.CreateSecret(ListWebAppHostKeys.Invoke(new ListWebAppHostKeysInvokeArgs
         {
             Name = functionApp.Name,
             ResourceGroupName = args.ResourceGroupName
         }, new InvokeOptions { Parent = functionApp }));
-        
+
         Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, keys)
             .Apply(t =>
             {
@@ -237,6 +257,24 @@ public class Apps : ComponentResource
         AppSwaggerUrl = Output.Format($"https://{app.DefaultHostName}/swagger/index.html");
 
         RegisterOutputs();
+    }
+
+    private static async Task PublishApp()
+    {
+        Log.Info("Setting up deployments from zip for the app and function and executing [dotnet publish]");
+
+        var sw = Stopwatch.StartNew();
+        var publishProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            WorkingDirectory = "../",
+            FileName = "dotnet",
+            Arguments = "publish --nologo -c RELEASE",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        });
+        await publishProcess!.WaitForExitAsync();
+        sw.Stop();
+        Log.Info($"[dotnet publish] completed in {sw.Elapsed}");
     }
 
     private Output<string> PrepareAppForDeployment(string name, string path)

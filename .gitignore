@@ -754,4 +754,4 @@ docker-compose.local.override.yml
 __azurite_db_*
 
 # Pulumi
-Pulumi.dev.yaml
+Pulumi.*.yaml
