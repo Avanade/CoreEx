@@ -35,12 +35,15 @@ public class Startup
         // Register the business services.
         services
             .AddScoped<ReferenceDataService>()
-            .AddScoped<EmployeeService>()
+            .AddScoped<IEmployeeService, EmployeeService>()
             .AddFluentValidators<EmployeeService>();
 
-        // Database
-        services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()));
-        services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
+        // Register the database and EF services, including required AutoMapper.
+        services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()))
+                .AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()))
+                .AddEfDb<HrEfDb>()
+                .AddAutoMapper(typeof(HrEfDb).Assembly)
+                .AddAutoMapperWrapper();
 
         // Register the health checks.
         services

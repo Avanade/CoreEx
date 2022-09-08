@@ -1,6 +1,7 @@
 ﻿global using CoreEx;
 global using CoreEx.Configuration;
 global using CoreEx.Entities;
+global using CoreEx.EntityFrameworkCore;
 global using CoreEx.Events;
 global using CoreEx.Http;
 global using CoreEx.Json;

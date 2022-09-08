@@ -1,6 +1,6 @@
 namespace My.Hr.Business.Services;
 
-public class EmployeeService
+public class EmployeeService : IEmployeeService
 {
     private readonly HrDbContext _dbContext;
     private readonly IEventPublisher _publisher;

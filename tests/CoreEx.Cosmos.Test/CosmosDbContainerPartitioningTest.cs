@@ -3,6 +3,7 @@
 namespace CoreEx.Cosmos.Test
 {
     [TestFixture]
+    [Category("WithCosmos")]
     public class CosmosDbContainerPartitioningTest
     {
         private CosmosDb _db;

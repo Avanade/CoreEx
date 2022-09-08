@@ -8,6 +8,7 @@ Represents the **NuGet** versions.
 - *Enhancement:* **Breaking change**: Replaced `EfDbArgs.Paging` with `EfDbQuery.Paging` and `EfDbQuery.WithPaging`.
 - *Enhancement:* Added `JsonDataReader` to enable dynamic loading of either YAML or JSON formatted data for data migration/uploading.
 - *Enhancement:* Added `WebApiExceptionHandlerMiddleware` to manage any unhandled exceptions.
+- *Enhancement:* **Breaking change**: HealthChecks project deprecated with functionality moved to individual projects where applicable.
 - *Fixed:* The `AuthenticationException` and `AuthorizationException` HTTP status codes were incorrect; updated to `401` and `403` respectively.
 
 ## v1.0.8

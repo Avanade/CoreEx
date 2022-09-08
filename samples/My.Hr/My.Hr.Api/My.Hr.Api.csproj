@@ -10,8 +10,13 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
+  </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.AutoMapper\CoreEx.AutoMapper.csproj" />
     <ProjectReference Include="..\My.Hr.Business\My.Hr.Business.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.HealthChecks\CoreEx.HealthChecks.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />

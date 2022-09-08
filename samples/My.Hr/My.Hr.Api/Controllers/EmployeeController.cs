@@ -5,9 +5,9 @@ namespace My.Hr.Api.Controllers;
 public class EmployeeController : ControllerBase
 {
     private readonly WebApi _webApi;
-    private readonly EmployeeService _service;
+    private readonly IEmployeeService _service;
 
-    public EmployeeController(WebApi webApi, EmployeeService service)
+    public EmployeeController(WebApi webApi, IEmployeeService service)
     {
         _webApi = webApi;
         _service = service;

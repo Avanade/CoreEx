@@ -54,7 +54,7 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         /// <param name="paging">The <see cref="PagingArgs"/>.</param>
         /// <returns>The <see cref="EfDbQuery{T, TModel}"/> to suport fluent-style method-chaining.</returns>
-        public EfDbQuery<T, TModel> WithPaging(PagingArgs paging)
+        public EfDbQuery<T, TModel> WithPaging(PagingArgs? paging)
         {
             Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
             return this;

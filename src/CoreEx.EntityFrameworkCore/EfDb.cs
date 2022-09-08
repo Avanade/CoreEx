@@ -95,7 +95,7 @@ namespace CoreEx.EntityFrameworkCore
                 DbContext.Remove(model);
                 DbContext.ChangeTracker.AcceptAllChanges();
 
-                Mapper.Map(value, model, Mapping.OperationTypes.Update);
+                model = Mapper.Map(value, model, Mapping.OperationTypes.Update);
 
                 DbContext.Update(model);
 

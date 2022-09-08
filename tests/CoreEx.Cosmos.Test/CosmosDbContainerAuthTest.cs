@@ -1,6 +1,7 @@
 ﻿namespace CoreEx.Cosmos.Test
 {
     [TestFixture]
+    [Category("WithCosmos")]
     public class CosmosDbContainerAuthTest
     {
         private CosmosDb _db;
