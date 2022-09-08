@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using CoreEx.Http;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CoreEx.HealthChecks.Checks
+namespace CoreEx.HealthChecks
 {
     /// <summary>
     /// Health check for Typed Http clients inheriting from <see cref="TypedHttpClientCore{T}"/>.

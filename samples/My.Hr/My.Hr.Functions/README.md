@@ -26,7 +26,9 @@ Sample configuration for `local.settings.json`
         "AzureFunctionsJobHost__logging__logLevel__CoreEx": "Debug",
         "AzureFunctionsJobHost__logging__logToConsole": "true",
         "AzureFunctionsJobHost__logging__logToConsoleColor": "true",
-        "AzureFunctionsJobHost__logging__console__isEnabled": "true"
+        "AzureFunctionsJobHost__logging__console__isEnabled": "true",
+
+        "MassPublishQueueName": "mass-publish"
     }
 }
 ```

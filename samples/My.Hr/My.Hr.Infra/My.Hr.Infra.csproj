@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.0.123" />
+    <PackageReference Include="Microsoft.Azure.Management.Authorization" Version="2.13.0-preview" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
+    <PackageReference Include="Pulumi" Version="3.*" />
+    <PackageReference Include="Pulumi.AzureAD" Version="5.27.0" />
+    <PackageReference Include="Pulumi.AzureNative" Version="1.*" />
+    <PackageReference Include="Pulumi.Command" Version="0.4.1" />
+    <PackageReference Include="Pulumi.Random" Version="4.8.2" />
+    <PackageReference Include="PulumiCSharpAnalyzer" Version="0.1.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\My.Hr.Database\My.Hr.Database.csproj" />
+  </ItemGroup>
+
+</Project>
