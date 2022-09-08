@@ -5,7 +5,7 @@ using Pulumi;
 using Pulumi.AzureNative.Resources;
 using AD = Pulumi.AzureAD;
 
-namespace CoreEx.Infra;
+namespace My.Hr.Infra;
 
 public static class CoreExStack
 {

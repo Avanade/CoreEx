@@ -7,12 +7,11 @@ using Pulumi.AzureNative.Sql.Inputs;
 using AD = Pulumi.AzureAD;
 using Deployment = Pulumi.Deployment;
 
-namespace CoreEx.Infra.Components;
+namespace My.Hr.Infra.Components;
 
 public class Sql : ComponentResource
 {
     private readonly SqlArgs args;
-    private readonly IDbOperations dbOperations;
     private readonly HashSet<string> firewallAllowedIps = new();
 
     public Output<string> SqlDatabaseConnectionString { get; }
@@ -23,7 +22,6 @@ public class Sql : ComponentResource
          : base("coreexinfra:web:sql", name, options)
     {
         this.args = args;
-        this.dbOperations = dbOperations;
         var sqlAdAdmin = new AD.User("sqlAdmin", new AD.UserArgs
         {
             UserPrincipalName = args.SqlAdAdminLogin,
@@ -100,6 +98,7 @@ public class Sql : ComponentResource
 
     public void AddFirewallRule(Output<string> ips, string name)
     {
+        // this shows warning in Pulumi, but there's no other way to create this resource without doing it in Apply
         ips.Apply(ips =>
         {
             foreach (var address in ips.Split(","))

@@ -4,7 +4,7 @@ using Pulumi.AzureNative.Authorization;
 using Pulumi.AzureNative.ServiceBus;
 using AzureNative = Pulumi.AzureNative;
 
-namespace CoreEx.Infra.Components;
+namespace My.Hr.Infra.Components;
 
 public class Messaging : ComponentResource
 {

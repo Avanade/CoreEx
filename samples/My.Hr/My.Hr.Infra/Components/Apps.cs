@@ -8,7 +8,7 @@ using Pulumi.AzureNative.Web;
 using Pulumi.AzureNative.Web.Inputs;
 using AzureNative = Pulumi.AzureNative;
 
-namespace CoreEx.Infra.Components;
+namespace My.Hr.Infra.Components;
 
 public class Apps : ComponentResource
 {
@@ -27,8 +27,7 @@ public class Apps : ComponentResource
     {
         this.args = args;
 
-
-
+        // publish app and push zip packages to blob storage when app deployment is done via pulumi
         Output<Output<(string appZipUrl, string funZipUrl)>> packageZips = args.IsAppDeploymentEnabled.Apply(async isEnabled =>
         {
             if (isEnabled)
@@ -44,7 +43,7 @@ public class Apps : ComponentResource
             return Output.Create((string.Empty, string.Empty));
         });
 
-        var packageUrls = packageZips.Apply(t => t.Apply(u => u));
+        var packageUrls = packageZips.Apply(t => t);
 
         // https://github.com/pulumi/examples/blob/master/azure-cs-functions/FunctionsStack.cs
         var appServicePlan = new AppServicePlan("apps-linux-asp", new()
@@ -222,7 +221,7 @@ public class Apps : ComponentResource
         FunctionOutboundIps = functionApp.OutboundIpAddresses;
         AppOutboundIps = app.OutboundIpAddresses;
 
-        // sleep 10s because Azure...
+        // sleep 10s because Azure... List Host Keys method sometimes fails with HTTP 400, re-running stack fixes it.
         if (!Deployment.Instance.IsDryRun)
         {
             Log.Info("Waiting 10s before calling function to get host keys");
@@ -264,7 +263,7 @@ public class Apps : ComponentResource
         Log.Info("Setting up deployments from zip for the app and function and executing [dotnet publish]");
 
         var sw = Stopwatch.StartNew();
-        var publishProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        var publishProcess = Process.Start(new ProcessStartInfo
         {
             WorkingDirectory = "../",
             FileName = "dotnet",

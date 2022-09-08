@@ -2,7 +2,7 @@
 
 using Pulumi.AzureNative.Resources;
 
-namespace UnitTesting;
+namespace My.Hr.Infra.Tests;
 
 public class CoreExStackTests
 {

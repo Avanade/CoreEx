@@ -2,7 +2,7 @@ using Pulumi;
 using Pulumi.AzureNative.Insights.V20200202;
 using Pulumi.AzureNative.OperationalInsights;
 
-namespace CoreEx.Infra.Components;
+namespace My.Hr.Infra.Components;
 
 public class Diagnostics : ComponentResource
 {

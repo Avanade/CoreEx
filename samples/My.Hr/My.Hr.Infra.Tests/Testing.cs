@@ -1,7 +1,8 @@
 using System.Collections.Immutable;
 using System.Text.Json;
-using CoreEx.Infra;
 using My.Hr.Infra.Services;
+
+namespace My.Hr.Infra.Tests;
 
 public static class Testing
 {

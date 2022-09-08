@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Pulumi;
 
+namespace My.Hr.Infra;
+
 public static class Extensions
 {
     public static Input<string> GetConfigValue(string name, Input<string> defaultValue)

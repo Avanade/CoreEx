@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Pulumi.AzureNative.Authorization;
 
-namespace CoreEx.Infra.Roles;
+namespace My.Hr.Infra.Roles;
 
 public static class BuiltInRolesIds
 {

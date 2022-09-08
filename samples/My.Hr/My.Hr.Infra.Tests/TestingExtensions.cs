@@ -1,3 +1,5 @@
+namespace My.Hr.Infra.Tests;
+
 public static class TestingExtensions
 {
     public static Task<T> GetValueAsync<T>(this Output<T> output)

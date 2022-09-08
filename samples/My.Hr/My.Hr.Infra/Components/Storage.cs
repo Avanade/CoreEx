@@ -7,14 +7,11 @@ using Pulumi.AzureNative.Storage;
 
 using AzureNative = Pulumi.AzureNative;
 
-namespace CoreEx.Infra.Components;
+namespace My.Hr.Infra.Components;
 
 public class Storage : ComponentResource
 {
-    private readonly StorageArgs args;
-    private readonly string name;
-    private Output<string> Id = default!;
-
+    private readonly Output<string> id = default!;
     public Output<string> AccountName { get; private set; } = default!;
     public Output<string> DeploymentContainerName { get; private set; } = default!;
     public Output<string> ConnectionString { get; private set; } = default!;
@@ -22,9 +19,6 @@ public class Storage : ComponentResource
     public Storage(string name, StorageArgs args, ComponentResourceOptions? options = null)
         : base("coreexinfra:web:storage", name, options)
     {
-        this.args = args;
-        this.name = name;
-
         // Create an Azure resource (Storage Account)
         var storageAccount = new StorageAccount(name, new StorageAccountArgs
         {
@@ -50,7 +44,7 @@ public class Storage : ComponentResource
         var connectionString = GetConnectionString(args.ResourceGroupName, storageAccount.Name);
 
         AccountName = storageAccount.Name!;
-        Id = storageAccount.Id!;
+        id = storageAccount.Id!;
         ConnectionString = connectionString;
         DeploymentContainerName = deploymentContainer.Name;
 
@@ -85,7 +79,7 @@ public class Storage : ComponentResource
                 PrincipalId = principalId,
                 PrincipalType = "ServicePrincipal",
                 RoleDefinitionId = Roles.BuiltInRolesIds.StorageBlobDataOwner,
-                Scope = Id
+                Scope = id
             },
             new CustomResourceOptions { Parent = this }
         );
