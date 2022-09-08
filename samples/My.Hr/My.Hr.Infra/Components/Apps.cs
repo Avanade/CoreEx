@@ -248,7 +248,7 @@ public class Apps : ComponentResource
                     return httpClient.PostAsync(syncUrl, null);
                 }
 
-                return Task.FromResult<HttpResponseMessage>(null);
+                return Task.FromResult<HttpResponseMessage>(default!);
             });
 
         FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={keys.Apply(k => k.MasterKey)}");
