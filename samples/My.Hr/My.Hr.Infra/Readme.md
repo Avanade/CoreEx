@@ -24,7 +24,7 @@ Infrastructure project has only 2 settings:
 * `My.Hr.Infra:isAppsDeploymentEnabled` for controlling application deployment via zip deploy
 * `My.Hr.Infra:isDBSchemaDeploymentEnabled` for publishing Database schema and data
 
-> When `isAppsDeploymentEnabled` flag is set, pulumi code is executing `dotnet publish -c RELEASE`
+> When `isAppsDeploymentEnabled` flag is set, pulumi code executes `dotnet publish -c RELEASE` to create app packages.
 
 Pulumi can be configured and previewed with:
 
