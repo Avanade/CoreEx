@@ -752,3 +752,6 @@ __azurite_db_blob_extent__.json
 __blobstorage__/
 docker-compose.local.override.yml
 __azurite_db_*
+
+# Pulumi
+Pulumi.*.yaml
