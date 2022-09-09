@@ -71,14 +71,11 @@ namespace CoreEx.EntityFrameworkCore
         /// <summary>
         /// Manages the DbContext and underlying query construction and lifetime.
         /// </summary>
-        private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken)
+        private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken) => EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
         {
-            return EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
-            {
-                var dbSet = efdb.DbContext.Set<TModel>();
-                return executeAsync((query == null) ? dbSet : query(dbSet), ct);
-            }, cancellationToken);
-        }
+            var dbSet = efdb.DbContext.Set<TModel>();
+            return executeAsync((query == null) ? dbSet : query(dbSet), ct);
+        }, cancellationToken);
 
         /// <summary>
         /// Executes the query and maps.

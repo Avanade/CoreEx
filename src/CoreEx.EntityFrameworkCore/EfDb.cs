@@ -11,6 +11,25 @@ namespace CoreEx.EntityFrameworkCore
     /// Provides the extended <b>Entity Framework</b> <see cref="IEfDbContext"/> functionality.
     /// </summary>
     /// <typeparam name="TDbContext">The <see cref="DbContext"/> <see cref="Type"/>.</typeparam>
+    /// <remarks>Provides extended functionality to simply basic CRUD activities whilst also providing encapsuled <see cref="IMapper">mapping</see> between an entity and the underlying model to minimise tight-coupling to the 
+    /// underlying data source (and minimise the <see href="https://en.wikipedia.org/wiki/Object%E2%80%93relational_impedance_mismatch">object-relational impedence mismatch</see>.
+    /// <para>Additionally, extended functionality is performed where the entity implements any of the following:
+    ///   <list type="bullet">
+    ///     <item><see cref="IIdentifier"/> - Will use the <see cref="IIdentifier.Id"/> as the underlying primary key.</item>
+    ///     <item><see cref="IPrimaryKey"/> - Will use the <see cref="IPrimaryKey.PrimaryKey"/> as the underlying primary key.</item>
+    ///     <item><see cref="IChangeLog"/> - Will automatically update the corresponding properties depending on where performing a <see cref="CreateAsync{T, TModel}(EfDbArgs, T, CancellationToken)">Create</see> or an <see cref="UpdateAsync{T, TModel}(EfDbArgs, T, CancellationToken)">Update</see>.</item>
+    ///     <item><see cref="ITenantId"/>Will automatically update the <see cref="ITenantId.TenantId"/> from the <see cref="ExecutionContext.TenantId"/> to ensure not overridden.</item>
+    ///     </list>
+    /// </para>
+    /// <para>Additionally, extended functionality is performed where the EF model implements any of the following:
+    ///   <list type="bullet">
+    ///     <item><see cref="ILogicallyDeleted"/> - <see cref="GetAsync{T, TModel}(EfDbArgs, CompositeKey, CancellationToken)">Get</see> and <see cref="UpdateAsync{T, TModel}(EfDbArgs, T, CancellationToken)">Update</see> will automatically 
+    ///     filter out previously deleted items. On a <see cref="DeleteAsync{T, TModel}(EfDbArgs, CompositeKey, CancellationToken)">Delete</see> the <see cref="ILogicallyDeleted.IsDeleted"/> property will be automatically set and updated, 
+    ///     versus, performing a physical delete. A <see cref="Query{T, TModel}(EfDbArgs, Func{IQueryable{TModel}, IQueryable{TModel}}?)">Query</see> will need to be handled explicitly by the developer; recommend using EF native filtering to
+    ///     achieve; for example: <c>entity.HasQueryFilter(v => v.IsDeleted != true);</c>.</item>
+    ///   </list>
+    /// </para>
+    /// </remarks>
     public class EfDb<TDbContext> : IEfDb where TDbContext : DbContext, IEfDbContext
     {
         private readonly TDbContext _dbContext;
@@ -47,8 +66,14 @@ namespace CoreEx.EntityFrameworkCore
         public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => new(this, args, query);
 
         /// <inheritdoc/>
-        public Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new()
-            => Invoker.InvokeAsync(this, key, (key, ct) => FindAsync<T, TModel>(key.Args.ToArray(), ct), cancellationToken);
+        public async Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
+        {
+            var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), cancellationToken).ConfigureAwait(false);
+            if (model == default || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
+                return default!;
+
+            return Mapper.Map<T>(model) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value.");
+        }, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
         public async Task<T> CreateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new()
@@ -88,7 +113,7 @@ namespace CoreEx.EntityFrameworkCore
             {
                 // Check (find) if the entity exists.
                 var model = await DbContext.FindAsync<TModel>(GetEfKeys(value), ct).ConfigureAwait(false);
-                if (model == null)
+                if (model == null || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
                     throw new NotFoundException();
 
                 // Remove the entity from the tracker before we attempt to update; otherwise, will use existing rowversion and concurrency will not work as expected.
@@ -119,9 +144,12 @@ namespace CoreEx.EntityFrameworkCore
                     throw new NotFoundException();
 
                 // Delete; either logically or physically.
-                if (model is ILogicallyDeleted emld)
+                if (model is ILogicallyDeleted ld)
                 {
-                    emld.IsDeleted = true;
+                    if (ld.IsDeleted.HasValue && ld.IsDeleted.Value)
+                        throw new NotFoundException();
+
+                    ld.IsDeleted = true;
                     DbContext.Update(model);
                 }
                 else
@@ -133,24 +161,12 @@ namespace CoreEx.EntityFrameworkCore
         }
 
         /// <summary>
-        /// Performs the EF select single (find).
-        /// </summary>
-        private async Task<T?> FindAsync<T, TModel>(object?[] keys, CancellationToken cancellationToken) where T : class, new() where TModel : class, new()
-        {
-            var model = await DbContext.FindAsync<TModel>(keys, cancellationToken).ConfigureAwait(false);
-            if (model == default)
-                return default!;
-
-            return Mapper.Map<T>(model) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value.");
-        }
-
-        /// <summary>
         /// Gets the <b>Entity Framework</b> keys from the value.
         /// </summary>
         /// <param name="value">The entity value.</param>
         /// <returns>The key values.</returns>
         /// <remarks>The <paramref name="value"/> must implement either <see cref="IIdentifier"/> or <see cref="IPrimaryKey"/>.</remarks>
-        public static object?[] GetEfKeys(object value) => value switch
+        public virtual object?[] GetEfKeys(object value) => value switch
         {
             IIdentifier ii => new object?[] { ii.Id! },
             IPrimaryKey pk => pk.PrimaryKey.Args.ToArray(),
