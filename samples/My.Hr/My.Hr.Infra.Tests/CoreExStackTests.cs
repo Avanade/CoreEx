@@ -22,6 +22,28 @@ public class CoreExStackTests
     }
 
     [Test]
+    public async Task AllResourcesHaveNameTag()
+    {
+        // unfortunately this doesn't test tags created by auto-tagging dove via ResourceTransformation
+        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
+
+        var rs = resources.Select(async r =>
+        {
+            var tagsProp = r.GetType().GetProperty("Tags");
+
+            return tagsProp != null
+            ? (resource: r, tags: await tagsProp!.GetValue(r)!.GetValueAsync<System.Collections.Immutable.ImmutableDictionary<string, string>?>())
+            : (resource: r, tags: null);
+        });
+
+        var result = (await Task.WhenAll(rs)).Where(anyResource => anyResource.tags != null);
+
+        // Assert
+        result.Should().HaveCountGreaterThan(5);
+        result.Should().AllSatisfy(r => r.tags!.ContainsKey("App"), because: "All resources should be tagged");
+    }
+
+    [Test]
     public async Task FunctionIsCreatedWithAUrl()
     {
         var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
