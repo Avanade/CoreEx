@@ -9,7 +9,7 @@ namespace CoreEx.RefData.Models
     /// <summary>
     /// Represents the <see cref="IReferenceData{TId}"/> implementation.
     /// </summary>
-    [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActivem = {IsActive}")]
+    [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActive = {IsActive}")]
     public class ReferenceDataBase<TId> : IReferenceData<TId> where TId : IComparable<TId>, IEquatable<TId>
     {
         /// <summary>

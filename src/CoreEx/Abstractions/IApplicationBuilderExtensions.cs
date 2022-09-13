@@ -21,5 +21,12 @@ namespace Microsoft.AspNetCore.Builder
         /// <returns>The <see cref="IApplicationBuilder"/>.</returns>
         public static IApplicationBuilder UseExecutionContext(this IApplicationBuilder builder, Func<HttpContext, ExecutionContext, Task>? executionContextUpdate = null)
             => builder.UseMiddleware<WebApiExecutionContextMiddleware>(executionContextUpdate ?? WebApiExecutionContextMiddleware.DefaultExecutionContextUpdate);
+
+        /// <summary>
+        /// Adds the <see cref="WebApiExceptionHandlerMiddleware"/> to the <see cref="IApplicationBuilder"/> request execution pipeline.
+        /// </summary>
+        /// <param name="builder">The <see cref="IApplicationBuilder"/>.</param>
+        /// <returns>The <see cref="IApplicationBuilder"/>.</returns>
+        public static IApplicationBuilder UseWebApiExceptionHandler(this IApplicationBuilder builder) => builder.UseMiddleware<WebApiExceptionHandlerMiddleware>();
     }
 }

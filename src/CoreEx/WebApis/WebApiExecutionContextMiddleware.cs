@@ -27,7 +27,7 @@ namespace CoreEx.WebApis
         /// </summary>
         /// <param name="context">The <see cref="HttpContext"/>.</param>
         /// <param name="ec">The <see cref="ExecutionContext"/>.</param>
-        /// <remarks>The <see cref="ExecutionContext.Username"/> will be set to the <see cref="System.Security.Principal.IIdentity.Name"/> from the <see cref="HttpContext"/> <see cref="HttpContext.User"/>; otherwise, <see cref="DefaultUsername"/> where <c>null</c>.</remarks>
+        /// <remarks>The <see cref="ExecutionContext.UserName"/> will be set to the <see cref="System.Security.Principal.IIdentity.Name"/> from the <see cref="HttpContext"/> <see cref="HttpContext.User"/>; otherwise, <see cref="DefaultUsername"/> where <c>null</c>.</remarks>
         public static Task DefaultExecutionContextUpdate(HttpContext context, ExecutionContext ec)
         {
             if (context == null)
@@ -36,7 +36,7 @@ namespace CoreEx.WebApis
             if (ec == null)
                 throw new ArgumentNullException(nameof(ec));
 
-            ec.Username = context.User?.Identity?.Name ?? DefaultUsername;
+            ec.UserName = context.User?.Identity?.Name ?? DefaultUsername;
             ec.Timestamp = context.RequestServices.GetService<ISystemTime>()?.UtcNow ?? SystemTime.Default.UtcNow;
             return Task.CompletedTask;
         }

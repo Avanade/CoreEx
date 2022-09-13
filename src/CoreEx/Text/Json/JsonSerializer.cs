@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
-using CoreEx.RefData;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;

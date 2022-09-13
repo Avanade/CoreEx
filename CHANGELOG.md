@@ -2,6 +2,16 @@
 
 Represents the **NuGet** versions.
 
+## v1.0.9
+- *Enhancement:* Ported and refactored CosmosDb components from _Beef_ repo.
+- *Enhancement:* **Breaking change**: Replaced `DatabaseArgs.Paging` with `DatabaseQuery.Paging` and `DatabaseQuery.WithPaging`.
+- *Enhancement:* **Breaking change**: Replaced `EfDbArgs.Paging` with `EfDbQuery.Paging` and `EfDbQuery.WithPaging`.
+- *Enhancement:* Added `JsonDataReader` to enable dynamic loading of either YAML or JSON formatted data for data migration/uploading.
+- *Enhancement:* Added `WebApiExceptionHandlerMiddleware` to manage any unhandled exceptions.
+- *Enhancement:* **Breaking change**: HealthChecks project deprecated with functionality moved to individual projects where applicable.
+- *Enhancement:* Added `EfDbEntity` to provide a typed entity wrapper over the `IEfDb` operations.
+- *Fixed:* The `AuthenticationException` and `AuthorizationException` HTTP status codes were incorrect; updated to `401` and `403` respectively.
+
 ## v1.0.8
 - *Enhancement:* `InvokerBase<TInvoker, TArgs>` has been updated to that the `TArgs` value is optional.
 - *Enhancement:* `ReferenceDataFilter` added to simplify HTTP Agent filtering as a single encapsulated object.
@@ -23,12 +33,12 @@ Represents the **NuGet** versions.
 ## v1.0.6
 - *Enhancement:* Added `WithTimeout(TimeSpan timeout)` support to `TypedHttpClientBase` to enable per request timeouts.
 - *Enhancement:* Added `AddFluentValidators<TAssembly>` to automatically add the requisite dependency injection (DI) configuration for all validators defined within an `Assembly`.
-- *Enhancement:* **Breaking change** Refactored the extended entities to simplify implementation and improve experience via new `EntityBase.GetPropertyValues` and corresponding `PropertyValue`. 
-- *Enhancement:* Ported validation framework from _Beef_ repo.
+- *Enhancement:* **Breaking change**: Refactored the extended entities to simplify implementation and improve experience via new `EntityBase.GetPropertyValues` and corresponding `PropertyValue`. 
+- *Enhancement:* Ported and refactored validation framework from _Beef_ repo.
 - *Enhancement:* Added support for `IReferenceData` serialization where only the `Code` is serialized/deserialized. This also required new `IReferenceDataContentJsonSerializer`, `ReferenceDataContentJsonSerializer` and `ReferenceDataContentWebApi` for when full `IReferenceData` content serialization is required.
 - *Enhancement:* Serializers updated to support `ICollectionResult` which by default only (de)serializes the underlying `Collection`. The `Paging` is expected to be handled separately.
-- *Enhancement:* Ported _core_ database framework components from _DbEx_ rep.
-- *Enhancement:* Ported extended database and entity framework components from _Beef_ repo.
+- *Enhancement:* Ported and refactored _core_ database framework components from _DbEx_ rep.
+- *Enhancement:* Ported and refactored extended database and entity framework components from _Beef_ repo.
 - *Enhancement:* Added implementation agnostic `IMapper` for typed value mappings. Added _AutoMapper_ implementation with wrapper to enable.
 
 ## v1.0.5
@@ -53,7 +63,7 @@ Represents the **NuGet** versions.
 - Plus, many more minor fixes and enhancements.
 
 ## v1.0.2
-- *Enhancement:* **Breaking change** The event publishing (`IEventPublisher`) is now designed to occur in three distinct phases: 1) formatting (`EventDataFormatter.Format`), 2) serialization (`IEventSerializer.SerializeAsync`), and 3) sending (`IEventSender.SendAsync`). The `EventPublisher` has been added to orchestrate this flow.
+- *Enhancement:* **Breaking change**: The event publishing (`IEventPublisher`) is now designed to occur in three distinct phases: 1) formatting (`EventDataFormatter.Format`), 2) serialization (`IEventSerializer.SerializeAsync`), and 3) sending (`IEventSender.SendAsync`). The `EventPublisher` has been added to orchestrate this flow.
 - *Enhancement:* Updated the `IJsonSerializer` implementation defaults to align with the expected default serialization behavior.
 - *Fixed:* The `TypedHttpClientBase` fixed to handle where the `requestUri` parameter is only a query string and not a path.
 

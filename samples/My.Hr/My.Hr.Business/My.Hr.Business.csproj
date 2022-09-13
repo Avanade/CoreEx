@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.Database\CoreEx.Database.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.EntityFrameworkCore\CoreEx.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />

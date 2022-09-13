@@ -61,28 +61,21 @@ namespace CoreEx.Wildcards
         /// Creates the corresponding <see cref="Regex"/> for the wildcard text.
         /// </summary>
         /// <param name="ignoreCase">Indicates whether the regular expression should ignore case (default) or not.</param>
-        /// <returns></returns>
-        public Regex CreateRegex(bool ignoreCase = true)
-        {
-            ThrowOnError();
-
-            if (Selection.HasFlag(WildcardSelection.Single))
-                return CreateRegex(Selection.HasFlag(WildcardSelection.MultiWildcard) ? "^.*$" : "^.$", ignoreCase);
-
-            var p = Regex.Escape(Text);
-            if (Selection.HasFlag(WildcardSelection.MultiWildcard))
-                p = p.Replace("\\*", ".*", StringComparison.InvariantCulture);
-
-            if (Selection.HasFlag(WildcardSelection.SingleWildcard))
-                p = p.Replace("\\?", ".", StringComparison.InvariantCulture);
-
-            return CreateRegex($"^{p}$", ignoreCase);
-        }
+        /// <returns>The corresponding <see cref="Regex"/>.</returns>
+        /// <exception cref="InvalidOperationException">Throws an <see cref="InvalidOperationException"/> where result <see cref="HasError"/> is <c>true</c>.</exception>
+        public Regex CreateRegex(bool ignoreCase = true) => CreateRegex(ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
 
         /// <summary>
-        /// Create the <see cref="Regex"/>.
+        /// Creates the corresponding <see cref="Regex"/> for the wildcard text.
         /// </summary>
-        private static Regex CreateRegex(string pattern, bool ignoreCase) => ignoreCase ? new Regex(pattern, RegexOptions.IgnoreCase) : new Regex(pattern);
+        /// <param name="options">The <see cref="RegexOptions"/>.</param>
+        /// <returns>The corresponding <see cref="Regex"/>.</returns>
+        /// <exception cref="InvalidOperationException">Throws an <see cref="InvalidOperationException"/> where result <see cref="HasError"/> is <c>true</c>.</exception>
+        public Regex CreateRegex(RegexOptions options)
+        {
+            ThrowOnError();
+            return new Regex(GetRegexPattern(), options);
+        }
 
         /// <summary>
         /// Gets the corresponding <b>regular expression</b> pattern for the wildcard text.

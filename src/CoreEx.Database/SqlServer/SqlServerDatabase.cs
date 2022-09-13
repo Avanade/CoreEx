@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Database.Extended;
-using CoreEx.Entities;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System;
@@ -68,7 +67,7 @@ namespace CoreEx.Database.SqlServer
             return Invoker.InvokeAsync(this, username, timestamp, tenantId, userId, async (username, timestamp, tenantId, userId, ct) =>
             {
                 return await StoredProcedure(SessionContextStoredProcedure)
-                    .Param($"@{DatabaseColumns.SessionContextUsernameName}", username ?? ExecutionContext.EnvironmentUsername)
+                    .Param($"@{DatabaseColumns.SessionContextUsernameName}", username ?? ExecutionContext.EnvironmentUserName)
                     .Param($"@{DatabaseColumns.SessionContextTimestampName}", timestamp ?? Entities.Cleaner.Clean(DateTime.UtcNow))
                     .ParamWith(tenantId, $"@{DatabaseColumns.SessionContextTenantIdName}")
                     .ParamWith(userId, $"@{DatabaseColumns.SessionContextUserIdName}")
@@ -87,7 +86,7 @@ namespace CoreEx.Database.SqlServer
             var ec = executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : null);
             return (ec == null)
                 ? SetSqlSessionContextAsync(null!, null, cancellationToken: cancellationToken)
-                : SetSqlSessionContextAsync(ec.Username, ec.Timestamp, ec.TenantId, ec.UserId, cancellationToken);
+                : SetSqlSessionContextAsync(ec.UserName, ec.Timestamp, ec.TenantId, ec.UserId, cancellationToken);
         }
 
         /// <inheritdoc/>

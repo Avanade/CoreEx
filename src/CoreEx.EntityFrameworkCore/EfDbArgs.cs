@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoreEx.EntityFrameworkCore
@@ -11,21 +10,19 @@ namespace CoreEx.EntityFrameworkCore
     public struct EfDbArgs
     {
         /// <summary>
-        /// Creates an <see cref="EfDbArgs"/>.
-        /// </summary>
-        /// <param name="paging">The optional <see cref="PagingArgs"/>.</param>
-        /// <returns>The <see cref="EfDbArgs"/>.</returns>
-        public static EfDbArgs Create(PagingArgs? paging = null) => new() { Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging)) };
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="EfDbArgs"/> struct.
         /// </summary>
         public EfDbArgs() { }
 
         /// <summary>
-        /// Gets or sets the <see cref="PagingResult"/> (where paging is required for a <b>query</b>).
+        /// Initializes a new instance of the <see cref="EfDbArgs"/> struct.
         /// </summary>
-        public PagingResult? Paging { get; set; } = null;
+        /// <param name="template">The template <see cref="EfDbArgs"/> to copy from.</param>
+        public EfDbArgs(EfDbArgs template)
+        {
+            SaveChanges = template.SaveChanges;
+            Refresh = template.Refresh;
+        }
 
         /// <summary>
         /// Indicates that the underlying <see cref="DbContext"/> <see cref="DbContext.SaveChanges()"/> is to be performed automatically (defauls to <c>true</c>);

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>CoreEx.Cosmos</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx .NET Cosmos DB extras.</Title>
+    <Description>CoreEx .NET Cosmos DB extras.</Description>
+    <PackageTags>coreex api data nosql documentdb cosmos cosmosdb</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.29.0" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.2.19" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+  </ItemGroup>
+
+</Project>

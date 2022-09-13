@@ -13,7 +13,7 @@ namespace CoreEx.EntityFrameworkCore
     /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
     public struct EfDbQuery<T, TModel> where T : class, new() where TModel : class, new()
     {
-        private readonly Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? _query;
+        private readonly Func<IQueryable<TModel>, IQueryable<TModel>>? _query;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EfDbQuery{T, TModel}"/> struct.
@@ -21,11 +21,12 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="efdb">The <see cref="IEfDb"/>.</param>
         /// <param name="args">The <see cref="EfDbArgs"/>.</param>
         /// <param name="query">A function to modify the underlying <see cref="IQueryable{TModel}"/>.</param>
-        internal EfDbQuery(IEfDb efdb, EfDbArgs args, Func<IQueryable<TModel>, EfDbArgs, IQueryable<TModel>>? query = null)
+        internal EfDbQuery(IEfDb efdb, EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null)
         {
             EfDb = efdb ?? throw new ArgumentNullException(nameof(efdb));
             Args = args;
             _query = query;
+            Paging = null;
         }
 
         /// <summary>
@@ -44,16 +45,37 @@ namespace CoreEx.EntityFrameworkCore
         public IMapper Mapper => EfDb.Mapper;
 
         /// <summary>
+        /// Gets the <see cref="PagingResult"/>.
+        /// </summary>
+        public PagingResult? Paging { get; private set; }
+
+        /// <summary>
+        /// Adds <see cref="PagingArgs"/> to the query.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+        /// <returns>The <see cref="EfDbQuery{T, TModel}"/> to suport fluent-style method-chaining.</returns>
+        public EfDbQuery<T, TModel> WithPaging(PagingArgs? paging)
+        {
+            Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds <see cref="PagingArgs"/> to the query.
+        /// </summary>
+        /// <param name="skip">The specified number of elements in a sequence to bypass.</param>
+        /// <param name="take">The specified number of contiguous elements from the start of a sequence.</param>
+        /// <returns>The <see cref="EfDbQuery{T, TModel}"/> to suport fluent-style method-chaining.</returns>
+        public EfDbQuery<T, TModel> WithPaging(long skip, long? take = null) => WithPaging(PagingArgs.CreateSkipAndTake(skip, take));
+
+        /// <summary>
         /// Manages the DbContext and underlying query construction and lifetime.
         /// </summary>
-        private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken)
+        private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken) => EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
         {
-            return EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
-            {
-                var dbSet = efdb.DbContext.Set<TModel>();
-                return executeAsync((query == null) ? dbSet : query(dbSet, args), ct);
-            }, cancellationToken);
-        }
+            var dbSet = efdb.DbContext.Set<TModel>();
+            return executeAsync((query == null) ? dbSet : query(dbSet), ct);
+        }, cancellationToken);
 
         /// <summary>
         /// Executes the query and maps.
@@ -79,8 +101,6 @@ namespace CoreEx.EntityFrameworkCore
             return q.Take((int)(paging == null ? PagingArgs.DefaultTake : paging.Take));
         }
 
-        #region SelectSingle/SelectFirst
-
         /// <summary>
         /// Selects a single item.
         /// </summary>
@@ -100,18 +120,27 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The first item.</returns>
-        public async Task<T> SelectFirst(CancellationToken cancellationToken = default) => (await ExecuteQueryAndMapAsync(async (q, ct) => await q.FirstAsync(ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))!;
+        public async Task<T> SelectFirstAsync(CancellationToken cancellationToken = default) => (await ExecuteQueryAndMapAsync(async (q, ct) => await q.FirstAsync(ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))!;
 
         /// <summary>
         /// Selects first item or default.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
-        public Task<T?> SelectFirstOrDefault(CancellationToken cancellationToken = default) => ExecuteQueryAndMapAsync((q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
+        public Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => ExecuteQueryAndMapAsync((q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
 
-        #endregion
-
-        #region SelectQuery
+        /// <summary>
+        /// Executes the query command creating a <typeparamref name="TCollResult"/>.
+        /// </summary>
+        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
+        public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
+        {
+            Paging = Paging,
+            Collection = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
+        };
 
         /// <summary>
         /// Executes the query command creating a resultant collection.
@@ -137,27 +166,25 @@ namespace CoreEx.EntityFrameworkCore
             if (collection == null)
                 throw new ArgumentNullException(nameof(collection));
 
-            var args = Args;
+            var paging = Paging;
             var mapper = Mapper;
 
             var coll = await ExecuteQueryAsync(async (query, ct) =>
             {
-                var q = SetPaging(query, args.Paging);
+                var q = SetPaging(query, paging);
 
                 await foreach (var item in q.AsAsyncEnumerable().WithCancellation(ct))
                 {
                     collection.Add(mapper.Map<TModel, T>(item, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value."));
                 }
 
-                if (args.Paging != null && args.Paging.IsGetCount)
-                    args.Paging.TotalCount = query.LongCount();
+                if (paging != null && paging.IsGetCount)
+                    paging.TotalCount = query.LongCount();
 
                 return collection;
             }, cancellationToken);
 
             return coll!;
         }
-
-        #endregion
     }
 }

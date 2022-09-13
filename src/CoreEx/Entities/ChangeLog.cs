@@ -102,7 +102,7 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the username.
         /// </summary>
-        private static string GetUsername(ExecutionContext? ec) => ec != null ? ec.Username : (ExecutionContext.HasCurrent ? ExecutionContext.Current.Username : ExecutionContext.EnvironmentUsername);
+        private static string GetUsername(ExecutionContext? ec) => ec != null ? ec.UserName : (ExecutionContext.HasCurrent ? ExecutionContext.Current.UserName : ExecutionContext.EnvironmentUserName);
 
         /// <summary>
         /// Gets the timestamp.
