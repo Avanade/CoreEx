@@ -54,7 +54,7 @@ namespace CoreEx
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        /// <returns>The <see cref="HttpStatusCode.Forbidden"/> value.</returns>
+        /// <returns>The <see cref="HttpStatusCode.Unauthorized"/> value.</returns>
         public HttpStatusCode StatusCode => HttpStatusCode.Unauthorized;
 
         /// <summary>
