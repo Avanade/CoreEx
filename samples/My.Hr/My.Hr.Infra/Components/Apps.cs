@@ -234,6 +234,8 @@ public class Apps : ComponentResource
             ResourceGroupName = args.ResourceGroupName
         }, new InvokeOptions { Parent = functionApp }));
 
+        var otherKey = new Services.AzureApi().GetHostKeys(args.ResourceGroupName, functionApp.Name);
+
         Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, keys)
             .Apply(t =>
             {
@@ -260,6 +262,9 @@ public class Apps : ComponentResource
 
     private static async Task PublishApp()
     {
+        if (Deployment.Instance.IsDryRun)
+            return;
+
         Log.Info("Setting up deployments from zip for the app and function and executing [dotnet publish]");
 
         var sw = Stopwatch.StartNew();

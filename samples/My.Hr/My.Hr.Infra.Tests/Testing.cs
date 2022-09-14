@@ -57,8 +57,16 @@ public static class Testing
                     outputs.Add("domains", adJson);
                     break;
 
+                case "azure-native:authorization:getClientConfig":
+                    outputs.Add("subscriptionId", "622637dd-a3e9-4e54-test-56d9247c70ee");
+                    break;
+
+                case "azure-native:authorization:getClientToken":
+                    outputs.Add("token", "not-a-real-token");
+                    break;
+
                 default:
-                    throw new InvalidOperationException($"Operation {args.Token} is not supported");
+                    throw new InvalidOperationException($"Operation {args.Token} is not supported. Fix your mock setup.");
             }
 
             return Task.FromResult((object)outputs);

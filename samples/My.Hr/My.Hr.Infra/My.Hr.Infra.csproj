@@ -10,6 +10,7 @@
     <PackageReference Include="Dapper" Version="2.0.123" />
     <PackageReference Include="Microsoft.Azure.Management.Authorization" Version="2.13.0-preview" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
+    <PackageReference Include="Polly" Version="7.2.3" />
     <PackageReference Include="Pulumi" Version="3.*" />
     <PackageReference Include="Pulumi.AzureAD" Version="5.27.0" />
     <PackageReference Include="Pulumi.AzureNative" Version="1.*" />
