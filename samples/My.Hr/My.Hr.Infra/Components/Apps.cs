@@ -224,19 +224,8 @@ public class Apps : ComponentResource
 
         var functionKey = Output.CreateSecret(azureApiService.GetHostKeys(args.ResourceGroupName, functionApp.Name));
 
-        Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, functionKey)
-            .Apply(async t =>
-            {
-                var (isAppDeploymentEnabled, defaultHostName, key) = t;
-
-                if (isAppDeploymentEnabled)
-                {
-                    await azureApiService.SyncFunctionAppTriggers(defaultHostName, key);
-                    return true;
-                }
-
-                return false;
-            });
+        // sync function app service triggers
+        azureApiService.SyncFunctionAppTriggers(args.ResourceGroupName, functionApp.Name);
 
         FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={functionKey}");
         FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={functionKey}");

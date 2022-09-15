@@ -23,7 +23,7 @@ public static class Testing
         mc.Request(HttpMethod.Get, "https://api.ipify.org")
             .Respond.With(new StringContent("215.45.1.567"));
 
-        mc.Request(HttpMethod.Post, "https://unittest.azurewebsites.net/admin/host/synctriggers?code=mocked-key")
+        mc.Request(HttpMethod.Post, $"https://management.azure.com/subscriptions/{SubscriptionId}/resourceGroups/coreEx-{StackName}/providers/Microsoft.Web/sites/funApp/syncfunctiontriggers?api-version=2016-08-01")
             .Respond.With(statusCode: System.Net.HttpStatusCode.NoContent);
 
         var (resources, outputs) = await RunAsync(() => CoreExStack.ExecuteStackAsync(dbOperationsMock.Object, mcf.GetHttpClient("azure")!));

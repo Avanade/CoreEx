@@ -43,6 +43,7 @@ public class AzureApiService
         return Output.Tuple(rgName, functionName).Apply(async t =>
         {
             var (resourceGroupName, siteName) = t;
+            Log.Info("Getting host keys for: " + siteName);
 
             var config = await GetClientConfig.InvokeAsync();
 
@@ -56,15 +57,25 @@ public class AzureApiService
         });
     }
 
-    public async Task SyncFunctionAppTriggers(string hostName, string functionKey)
+    // https://docs.microsoft.com/en-us/azure/azure-functions/functions-deployment-technologies#trigger-syncing
+    public Output<bool> SyncFunctionAppTriggers(Output<string> rgName, Output<string> functionName)
     {
-        Log.Info("Syncing Function App triggers");
-        var syncUrl = $"https://{hostName}/admin/host/synctriggers?code={functionKey}";
+        return Output.Tuple(rgName, functionName).Apply(async t =>
+        {
+            var (resourceGroupName, siteName) = t;
+            Log.Info("Syncing Function App triggers");
 
-        await ApiClient
-            .WithRetry()
-            .ThrowTransientException()
-            .PostAsync(syncUrl);
+            var config = await GetClientConfig.InvokeAsync();
+
+            var url = $"https://management.azure.com/subscriptions/{config.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{siteName}/syncfunctiontriggers?api-version=2016-08-01";
+
+            await ApiClient
+                .WithRetry()
+                .ThrowTransientException()
+                .PostAsync(url);
+
+            return true;
+        });
     }
 
     public class HostKeys

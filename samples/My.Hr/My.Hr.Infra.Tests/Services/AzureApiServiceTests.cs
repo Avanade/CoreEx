@@ -30,6 +30,7 @@ public class AzureApiServiceTests
 
         // Assert
         result.Should().Be(mockedKey);
+        mcf.VerifyAll();
     }
 
     [Test]
@@ -63,6 +64,7 @@ public class AzureApiServiceTests
 
         // Assert
         result.Should().Be(mockedKey);
+        mcf.VerifyAll();
     }
 
     [Test]
@@ -85,5 +87,31 @@ public class AzureApiServiceTests
 
         // Assert
         result.Should().Be(mockedId);
+        mcf.VerifyAll();
+    }
+
+    [Test]
+    public async Task SyncTriggers_Should_SyncTriggersOnTheFunctionApp()
+    {
+        // Arrange
+        const string resourceGroupName = "resource-group-name";
+        const string functionAppName = "function-app";
+        var resourceGroup = Output.Create(resourceGroupName);
+        var functionApp = Output.Create(functionAppName);
+        var mcf = MockHttpClientFactory.Create();
+        var mc = mcf.CreateClient("azure");
+
+        mc.Request(HttpMethod.Post, $"https://management.azure.com/subscriptions/{Testing.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{functionAppName}/syncfunctiontriggers?api-version=2016-08-01")
+            .Respond.With(statusCode: HttpStatusCode.NoContent);
+
+        var target = new AzureApiService(new AzureApiClient(mcf.GetHttpClient("azure")!));
+
+        // Act
+        var resultOutput = await Testing.RunAsync(() => target.SyncFunctionAppTriggers(resourceGroup, functionApp));
+        var result = await resultOutput.GetValueAsync();
+
+        // Assert
+        result.Should().BeTrue();
+        mcf.VerifyAll();
     }
 }
