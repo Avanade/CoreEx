@@ -225,20 +225,17 @@ public class Apps : ComponentResource
         var functionKey = Output.CreateSecret(azureApiService.GetHostKeys(args.ResourceGroupName, functionApp.Name));
 
         Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, functionKey)
-            .Apply(t =>
+            .Apply(async t =>
             {
-                var (isAppDeploymentEnabled, defaultHostName, keys) = t;
+                var (isAppDeploymentEnabled, defaultHostName, key) = t;
 
                 if (isAppDeploymentEnabled)
                 {
-                    Log.Info("Syncing triggers for azure function");
-                    var syncUrl = $"https://{defaultHostName}/admin/host/synctriggers?code={functionKey}";
-
-                    using var httpClient = new HttpClient();
-                    return httpClient.PostAsync(syncUrl, null);
+                    await azureApiService.SyncFunctionAppTriggers(defaultHostName, key);
+                    return true;
                 }
 
-                return Task.FromResult<HttpResponseMessage>(default!);
+                return false;
             });
 
         FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={functionKey}");

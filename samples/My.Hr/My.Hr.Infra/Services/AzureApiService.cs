@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Polly.Extensions.Http;
@@ -13,11 +10,12 @@ namespace My.Hr.Infra.Services;
 
 public class AzureApiService
 {
-    private readonly AzureApiClient apiClient;
+
+    public AzureApiClient ApiClient { get; private set; }
 
     public AzureApiService(AzureApiClient apiClient)
     {
-        this.apiClient = apiClient;
+        ApiClient = apiClient;
     }
 
     /// <summary>
@@ -31,22 +29,14 @@ public class AzureApiService
     public async Task<string> GetRoleIdByName(string roleName, string? scope = null)
     {
         var config = await GetClientConfig.InvokeAsync();
-        var token = await GetClientToken.InvokeAsync();
 
-        // Unfortunately, Microsoft hasn't shipped an .NET5-compatible SDK at the time of writing this.
-        // So, we have to hand-craft an HTTP request to retrieve a role definition.
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
-        var response = await httpClient.GetAsync($"https://management.azure.com/subscriptions/{config.SubscriptionId}/providers/Microsoft.Authorization/roleDefinitions?api-version=2018-01-01-preview&$filter=roleName%20eq%20'{roleName}'");
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception($"Request failed with {response.StatusCode}");
-        }
-        var body = await response.Content.ReadAsStringAsync();
-        var definition = JsonSerializer.Deserialize<RoleDefinition>(body)!;
-        return definition.Value[0].Id;
+        var result = await ApiClient
+            .ThrowTransientException()
+            .WithRetry()
+            .GetAsync<RoleDefinition>($"https://management.azure.com/subscriptions/{config.SubscriptionId}/providers/Microsoft.Authorization/roleDefinitions?api-version=2018-01-01-preview&$filter=roleName%20eq%20'{roleName}'");
+
+        return result.Value.Value[0].Id;
     }
-
 
     public Output<string> GetHostKeys(Output<string> rgName, Output<string> functionName)
     {
@@ -56,14 +46,25 @@ public class AzureApiService
 
             var config = await GetClientConfig.InvokeAsync();
 
-            var result = await apiClient
-                .WithRetry(count: 4, seconds: 20)
+            var result = await ApiClient
+                .WithRetry(count: 4, seconds: 5)
                 // Azure returns 400 BadRequest when Function App is not ready
                 .WithCustomRetryPolicy(HttpPolicyExtensions.HandleTransientHttpError().OrResult(http => http.StatusCode == System.Net.HttpStatusCode.BadRequest || http.StatusCode == System.Net.HttpStatusCode.NotFound))
                 .PostAsync<HostKeys>($"https://management.azure.com/subscriptions/{config.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{siteName}/host/default/listkeys?api-version=2022-03-01");
 
             return result.Value.FunctionKeys.Key;
         });
+    }
+
+    public async Task SyncFunctionAppTriggers(string hostName, string functionKey)
+    {
+        Log.Info("Syncing Function App triggers");
+        var syncUrl = $"https://{hostName}/admin/host/synctriggers?code={functionKey}";
+
+        await ApiClient
+            .WithRetry()
+            .ThrowTransientException()
+            .PostAsync(syncUrl);
     }
 
     public class HostKeys

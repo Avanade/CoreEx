@@ -55,7 +55,7 @@ public static class CoreExStack
             SqlAdAdminPassword = config.SqlAdAdminPassword!,
             IsDBSchemaDeploymentEnabled = config.IsDBSchemaDeploymentEnabled,
             Tags = tags
-        }, dbOperations);
+        }, dbOperations, azureApiClient);
 
         var apps = new Components.Apps("apps", new Components.Apps.FunctionArgs
         {

@@ -18,7 +18,13 @@ public static class Testing
         var mc = mcf.CreateClient("azure");
 
         mc.Request(HttpMethod.Post, $"https://management.azure.com/subscriptions/{SubscriptionId}/resourceGroups/coreEx-{StackName}/providers/Microsoft.Web/sites/funApp/host/default/listkeys?api-version=2022-03-01")
-        .Respond.WithJson(new AzureApiService.HostKeys { FunctionKeys = new AzureApiService.FunctionKeysValue { Key = "mocked-key" } });
+            .Respond.WithJson(new AzureApiService.HostKeys { FunctionKeys = new AzureApiService.FunctionKeysValue { Key = "mocked-key" } });
+
+        mc.Request(HttpMethod.Get, "https://api.ipify.org")
+            .Respond.With(new StringContent("215.45.1.567"));
+
+        mc.Request(HttpMethod.Post, "https://unittest.azurewebsites.net/admin/host/synctriggers?code=mocked-key")
+            .Respond.With(statusCode: System.Net.HttpStatusCode.NoContent);
 
         var (resources, outputs) = await RunAsync(() => CoreExStack.ExecuteStackAsync(dbOperationsMock.Object, mcf.GetHttpClient("azure")!));
 
@@ -48,6 +54,20 @@ public static class Testing
         var (resources, outputs) = await Deployment.TestAsync(mocks, options, () => createResources());
 
         return (resources, outputs);
+    }
+
+    public static async Task<T> RunAsync<T>(Func<T> createResources) where T : class
+    {
+        var (resources, outputs) = await RunAsync(() =>
+        {
+            var result = createResources();
+            return Task.FromResult<IDictionary<string, object?>>(new Dictionary<string, object?>
+            {
+                ["result"] = result
+            });
+        });
+
+        return (T)outputs["result"]!;
     }
 
     public class Mocks : IMocks

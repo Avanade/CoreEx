@@ -2,7 +2,6 @@
 using My.Hr.Infra.Services;
 using Pulumi;
 
-// todo: replace all http client instances with the one injected
 return await Deployment.RunAsync(() =>
 {
     var client = new System.Net.Http.HttpClient();
