@@ -1,11 +1,9 @@
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using CoreEx;
 using CoreEx.Configuration;
 using CoreEx.Http;
-using CoreEx.Json;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 /// <summary>
 /// Http client for Azure APIs
@@ -13,7 +11,7 @@ using Microsoft.Extensions.Logging;
 public class AzureApiClient : TypedHttpClientCore<AzureApiClient>
 {
     public AzureApiClient(HttpClient client)
-        : base(client, CoreEx.Json.JsonSerializer.Default, new CoreEx.ExecutionContext(), new DefaultSettings(), Microsoft.Extensions.Logging.Abstractions.NullLogger<TypedHttpClientCore<AzureApiClient>>.Instance)
+        : base(client, CoreEx.Json.JsonSerializer.Default, new CoreEx.ExecutionContext(), new DefaultSettings(new ConfigurationBuilder().Build()), Microsoft.Extensions.Logging.Abstractions.NullLogger<TypedHttpClientCore<AzureApiClient>>.Instance)
     {
 
     }

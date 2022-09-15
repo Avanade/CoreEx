@@ -2,10 +2,12 @@
 using My.Hr.Infra.Services;
 using Pulumi;
 
+// todo: replace all http client instances with the one injected
 return await Deployment.RunAsync(() =>
 {
+    var client = new System.Net.Http.HttpClient();
     // create and use actual instance of DB Operations service
-    return My.Hr.Infra.CoreExStack.ExecuteStackAsync(new DbOperations());
+    return My.Hr.Infra.CoreExStack.ExecuteStackAsync(new DbOperations(), client);
 }, new StackOptions
 {
     // apply auto-tagging transformation
@@ -17,7 +19,7 @@ return await Deployment.RunAsync(() =>
             if(tagsProp?.GetValue(args.Args) is InputMap<string> tags)
             {
                 Log.Debug("Adding tags to " + args.Resource.GetResourceName());
-                
+
                 tags.Add("user:Stack", Deployment.Instance.StackName);
                 tags.Add("user:Project", Deployment.Instance.ProjectName);
                 tags.Add("App:Name", "CoreEx");

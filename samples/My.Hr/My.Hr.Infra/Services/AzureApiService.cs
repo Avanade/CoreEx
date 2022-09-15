@@ -5,7 +5,6 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Polly;
 using Polly.Extensions.Http;
 using Pulumi;
 using Pulumi.AzureNative.Authorization;
@@ -56,31 +55,14 @@ public class AzureApiService
             var (resourceGroupName, siteName) = t;
 
             var config = await GetClientConfig.InvokeAsync();
-            var token = await GetClientToken.InvokeAsync();
 
-            // var client = new AzureApiClient(httpClient);
-            // await client
-            //     .WithRetry(count: 4, seconds: 20)
-            //     .PostAsync($"https://management.azure.com/subscriptions/{config.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{siteName}/host/default/listkeys?api-version=2022-03-01");
+            var result = await apiClient
+                .WithRetry(count: 4, seconds: 20)
+                // Azure returns 400 BadRequest when Function App is not ready
+                .WithCustomRetryPolicy(HttpPolicyExtensions.HandleTransientHttpError().OrResult(http => http.StatusCode == System.Net.HttpStatusCode.BadRequest || http.StatusCode == System.Net.HttpStatusCode.NotFound))
+                .PostAsync<HostKeys>($"https://management.azure.com/subscriptions/{config.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{siteName}/host/default/listkeys?api-version=2022-03-01");
 
-            var httpResponse = await HttpPolicyExtensions.HandleTransientHttpError().OrResult(result => result.StatusCode == System.Net.HttpStatusCode.BadRequest)
-               .WaitAndRetryAsync(4, retryAttempt => TimeSpan.FromSeconds(Math.Pow(4, retryAttempt)))
-                .ExecuteAsync(async () =>
-                {
-                    using var httpClient = new HttpClient();
-                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
-
-                    Log.Info("Trying to get host keys from Azure");
-                    return await httpClient.PostAsync($"https://management.azure.com/subscriptions/{config.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{siteName}/host/default/listkeys?api-version=2022-03-01", null);
-
-                }).ConfigureAwait(false);
-
-            httpResponse.EnsureSuccessStatusCode();
-
-            var body = await httpResponse.Content.ReadAsStringAsync();
-            var definition = JsonSerializer.Deserialize<HostKeys>(body)!;
-
-            return definition.FunctionKeys.Key;
+            return result.Value.FunctionKeys.Key;
         });
     }
 
