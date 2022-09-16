@@ -6,7 +6,7 @@ using System;
 namespace Microsoft.Extensions.DependencyInjection
 {
     /// <summary>
-    /// Provides <see cref="IServiceCollection"/> extenstion methods.
+    /// Provides <see cref="IServiceCollection"/> extension methods.
     /// </summary>
     public static class DatabaseServiceCollectionExtensions
     {
