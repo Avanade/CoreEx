@@ -47,11 +47,38 @@ jobs:
     - name: TestWithDB
       run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
 
-    # - name: Start CosmosDB
-    #   run: docker run --rm --publish 8081:8081 --publish 10251-10254:10251-10254 --memory 3g --cpus=2.0 --name=cosmos-test-linux-emulator --env AZURE_COSMOS_EMULATOR_PARTITION_COUNT=4 --env AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true --env AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=127.0.0.1 -d mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
-
     - name: Azure Cosmos Emulator
-      uses: galvesribeiro/AzureCosmosAction@v1.0.0
+      run: |
+        PORT=8081
+        ipaddr=$(ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1)
+        echo "Using ${ipaddr} for CosmosDB configuration..."
+
+        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+
+        docker run \
+            --detach \
+            --publish $PORT:8081 \
+            --publish 10251-10254:10251-10254 \
+            --memory 3g --cpus=2.0 \
+            --name=azure-cosmosdb-linux-emulator \
+            --env AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10 \
+            --env AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true \
+            --env AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=$ipaddr \
+            --interactive \
+            --tty \
+            mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+
+        echo -n "CosmosDB starting..."
+        cosmos_started=$(docker logs azure-cosmosdb-linux-emulator | grep -wc Started)
+        # check cosmos is UP
+        while [ "$cosmos_started" != "12" ]
+        do
+            sleep 3
+            echo -n "."
+            cosmos_started=$(docker logs azure-cosmosdb-linux-emulator | grep -wc Started)
+        done
+
+        echo "!!! STARTED !!!"
 
     - name: Test With Cosmos DB
       run: dotnet test --filter TestCategory=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
