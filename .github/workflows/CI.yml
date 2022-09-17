@@ -8,11 +8,36 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+
+    services:
+      cosmos:
+        image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+        ports:
+          - 8081:8081
+          - 10251:10251
+          - 10252:10252
+          - 10253:10253
+          - 10254:10254
+        env:
+          AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 3
+          AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
+        options: -m 2g --cpus=1.0
+      
+      sql:
+       image: mcr.microsoft.com/mssql/server
+       ports:
+         - 1433:1433
+       env:
+         ACCEPT_EULA: Y
+         SA_PASSWORD: sAPWD23.^0
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Set EnvVar for Test
+      run: |
+        echo "ConnectionStrings__Database=Data Source=sql,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
@@ -27,58 +52,22 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
 
-    - name: Pull SqlServer
-      run: docker pull mcr.microsoft.com/mssql/server
-      
-    - name: Start SqlServer
-      run: docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sAPWD23.^0" --name sqlserver -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-      
-    - name: Sleep (allow SqlServer to complete startup)
-      run: sleep 10
-
-    - name: Set EnvVar for Test
+    - name: Wait for DBs
       run: |
-        echo "ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
-        echo 
+        while true
+        do
+          curl -k -f https://localhost:8081/_explorer/emulator.pem || echo
+          docker ps -a
+          PID=$(docker ps -a | grep emulator | cut -d ' ' -f 1)
+          [ -n "${PID}" ] && docker logs $PID
+          sleep 5
+        done
 
     - name: Test
       run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
 
     - name: TestWithDB
       run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
-
-    - name: Azure Cosmos Emulator
-      run: |
-        PORT=8081
-        ipaddr=$(ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1)
-        echo "Using ${ipaddr} for CosmosDB configuration..."
-
-        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
-
-        docker run \
-            --detach \
-            --publish $PORT:8081 \
-            --publish 10251-10254:10251-10254 \
-            --memory 3g --cpus=2.0 \
-            --name=azure-cosmosdb-linux-emulator \
-            --env AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10 \
-            --env AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true \
-            --env AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=$ipaddr \
-            --interactive \
-            --tty \
-            mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
-
-        echo -n "CosmosDB starting..."
-        cosmos_started=$(docker logs azure-cosmosdb-linux-emulator | grep -wc Started)
-        # check cosmos is UP
-        while [ "$cosmos_started" != "12" ]
-        do
-            sleep 3
-            echo -n "."
-            cosmos_started=$(docker logs azure-cosmosdb-linux-emulator | grep -wc Started)
-        done
-
-        echo "STARTED"
 
     - name: Test With Cosmos DB
       run: dotnet test --filter TestCategory=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
