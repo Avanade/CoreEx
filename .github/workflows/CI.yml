@@ -51,18 +51,7 @@ jobs:
       
     - name: Build
       run: dotnet build --no-restore
-
-    - name: Wait for DBs
-      run: |
-        while true
-        do
-          curl -k -f https://localhost:8081/_explorer/emulator.pem || echo
-          docker ps -a
-          PID=$(docker ps -a | grep emulator | cut -d ' ' -f 1)
-          [ -n "${PID}" ] && docker logs $PID
-          sleep 5
-        done
-
+ 
     - name: Test
       run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
 
