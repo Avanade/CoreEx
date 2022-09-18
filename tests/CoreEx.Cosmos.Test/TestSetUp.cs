@@ -7,8 +7,6 @@ namespace CoreEx.Cosmos.Test
 {
     public static class TestSetUp
     {
-        public const int TestDelayMs = 100000;
-
         public static AzCosmos.CosmosClient? CosmosClient { get; private set; }
 
         public static AzCosmos.Database? CosmosDatabase { get; private set; }
@@ -49,42 +47,36 @@ namespace CoreEx.Cosmos.Test
                 Id = "Persons1",
                 PartitionKeyPath = partitionKeyPath,
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/name" } } } }
-            }, 1000).ConfigureAwait(false);
+            }, 400).ConfigureAwait(false);
 
-            await Task.Delay(5000);
             var c2 = await CosmosDatabase.ReplaceOrCreateContainerAsync(new AzCosmos.ContainerProperties
             {
                 Id = "Persons2",
                 PartitionKeyPath = partitionKeyPath,
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/name" } } } }
-            }, 1000).ConfigureAwait(false);
+            }, 400).ConfigureAwait(false);
 
-            await Task.Delay(5000);
             var c3 = await CosmosDatabase.ReplaceOrCreateContainerAsync(new AzCosmos.ContainerProperties
             {
                 Id = "Persons3",
                 PartitionKeyPath = valuePartitionKeyPath,
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/type", "/value/name" } } } }
-            }, 1000).ConfigureAwait(false);
+            }, 400).ConfigureAwait(false);
 
-            await Task.Delay(5000);
             var c4 = await CosmosDatabase.ReplaceOrCreateContainerAsync(new AzCosmos.ContainerProperties
             {
                 Id = "RefData",
                 PartitionKeyPath = "/_partitionKey",
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/type", "/value/code" } } } }
-            }, 1000);
+            }, 400);
 
             var db = new CosmosDb(auth: false);
 
             var jdr = JsonDataReader.ParseYaml<CosmosDb>("Data.yaml");
             await db.Persons1.ImportBatchAsync(jdr);
-            await Task.Delay(5000);
             await db.Persons2.ImportBatchAsync(jdr);
-            await Task.Delay(5000);
             await db.Persons3.ImportValueBatchAsync(jdr);
             await db.ImportValueBatchAsync("Persons3", new Person1[] { new Person1 { Id = 100.ToGuid().ToString() } }); // Add other random "type" to Person3.
-            await Task.Delay(5000);
 
             jdr = JsonDataReader.ParseYaml<CosmosDb>("RefData.yaml", new JsonDataReaderArgs(new Text.Json.ReferenceDataContentJsonSerializer()));
             await db.ImportValueBatchAsync("RefData", jdr, new Type[] { typeof(Gender) });

@@ -19,13 +19,6 @@ namespace CoreEx.Cosmos.Test
             _db.Persons3.UsePartitionKey(p => new PartitionKey(p.Filter));
         }
 
-        [SetUp]
-        public void Setup()
-        {
-            Console.Error.WriteLineAsync("waiting 1 sec before starting test");
-            Thread.Sleep(TestSetUp.TestDelayMs);
-        }
-
         [Test]
         public async Task Get1Async()
         {

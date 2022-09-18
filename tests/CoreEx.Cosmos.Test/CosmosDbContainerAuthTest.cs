@@ -13,13 +13,6 @@
             _db = new CosmosDb(auth: true);
         }
 
-        [SetUp]
-        public void Setup()
-        {
-            Console.Error.WriteLineAsync("waiting 1 sec before starting test");
-            Thread.Sleep(TestSetUp.TestDelayMs);
-        }
-
         [Test]
         public void AsQueryable1() => Assert.That(_db.Persons1.Query().AsQueryable().Count(), Is.EqualTo(3));
 
