@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-18.04
+    # because: https://github.com/Qayme/qayme-action-cosmosdb-emulator
     # runs-on: ubuntu-latest
 
     services:
@@ -21,7 +22,7 @@ jobs:
           - 10253:10253
           - 10254:10254
         env:
-          AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 3
+          AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 10
           AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
         options: -m 2g --cpus=1.0
       
