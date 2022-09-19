@@ -66,4 +66,4 @@ jobs:
         curl -v -k https://localhost:8081/_explorer/emulator.pem > ~/emulatorcert.crt 
 
     - name: Test With Cosmos DB TestCategory=WithCosmos 
-      run: dotnet test --filter Name=AsQueryable1 --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
+      run: dotnet test --filter Name=AsQueryable1 --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
