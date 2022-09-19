@@ -24,7 +24,7 @@ jobs:
         env:
           AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 10
           AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
-        options: -m 2g --cpus=1.0
+        options: -m 3g --cpus=2.0
       
       sql:
        image: mcr.microsoft.com/mssql/server
@@ -48,17 +48,22 @@ jobs:
           3.1.x
           6.0.x
 
-    - name: Restore dependencies
-      run: dotnet restore
+    # - name: Restore dependencies
+    #   run: dotnet restore
       
-    - name: Build
-      run: dotnet build --no-restore
+    # - name: Build
+    #   run: dotnet build --no-restore
  
-    - name: Test
-      run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
+    # - name: Test
+    #   run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
 
-    - name: TestWithDB
-      run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
+    # - name: TestWithDB
+    #   run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
 
-    - name: Test With Cosmos DB
-      run: dotnet test --filter TestCategory=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
+    - name: Cosmos Logs
+      run: |
+        docker ps --all
+        curl -v -k https://localhost:8081/_explorer/emulator.pem > ~/emulatorcert.crt 
+
+    - name: Test With Cosmos DB TestCategory=WithCosmos 
+      run: dotnet test --filter Name=AsQueryable1 --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
