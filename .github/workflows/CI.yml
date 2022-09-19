@@ -51,8 +51,8 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
       
-    # - name: Build
-    #   run: dotnet build --no-restore
+    - name: Build
+      run: dotnet build --no-restore
  
     # - name: Test
     #   run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
