@@ -45,4 +45,8 @@ services:
       - cosmos
 ```
 
-Connection string needs to be updated to reflect docker service name: `AzCosmos.CosmosClient("https://cosmos:8081"`.
+## Running tests
+
+* Connection string needs to be updated to reflect docker service name: `AzCosmos.CosmosClient("https://cosmos:8081"`.
+* cd to tests directory `cd src/tests/CoreEx.Cosmos.Test/`
+* run tests `dotnet test`
