@@ -2,7 +2,7 @@
 {
     [TestFixture]
     [Category("WithCosmos")]
-    public class CosmosDbQueryTestcs
+    public class CosmosDbQueryTest
     {
         private CosmosDb _db;
 

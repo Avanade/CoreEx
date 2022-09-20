@@ -16,6 +16,9 @@ namespace CoreEx.Cosmos.Test
 
         public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey")
         {
+            // cleanup if client was already created ??
+            // CosmosClient?.Dispose();
+
             var cco = new AzCosmos.CosmosClientOptions
             {
                 SerializerOptions = new AzCosmos.CosmosSerializationOptions { PropertyNamingPolicy = AzCosmos.CosmosPropertyNamingPolicy.CamelCase, IgnoreNullValues = true },
@@ -33,13 +36,11 @@ namespace CoreEx.Cosmos.Test
                 RequestTimeout = TimeSpan.FromMinutes(3)
             };
 
-            CosmosClient = new AzCosmos.CosmosClient("https://localhost:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
+            CosmosClient ??= new AzCosmos.CosmosClient("https://localhost:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
 
-            CosmosDatabase = (await CosmosClient.CreateDatabaseIfNotExistsAsync("CoreEx.Cosmos.Test").ConfigureAwait(false)).Database;
-            await CosmosDatabase.DeleteAsync();
-            CosmosDatabase = (await CosmosClient.CreateDatabaseIfNotExistsAsync("CoreEx.Cosmos.Test").ConfigureAwait(false)).Database;
+            CosmosDatabase ??= (await CosmosClient.CreateDatabaseIfNotExistsAsync("CoreEx.Cosmos.Test").ConfigureAwait(false)).Database;
 
-            Mapper = new AutoMapperWrapper(new AutoMapper.Mapper(new AutoMapper.MapperConfiguration(c =>
+            Mapper ??= new AutoMapperWrapper(new AutoMapper.Mapper(new AutoMapper.MapperConfiguration(c =>
             {
                 c.AddProfile<AutoMapperProfile>();
                 c.CreateMap<Person1, Person1>();

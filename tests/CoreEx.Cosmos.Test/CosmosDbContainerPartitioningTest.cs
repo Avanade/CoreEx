@@ -18,7 +18,7 @@ namespace CoreEx.Cosmos.Test
             _db.Persons2.UsePartitionKey(p => new PartitionKey(p.Filter));
             _db.Persons3.UsePartitionKey(p => new PartitionKey(p.Filter));
         }
-        
+
         [SetUp]
         public async Task Setup()
         {
