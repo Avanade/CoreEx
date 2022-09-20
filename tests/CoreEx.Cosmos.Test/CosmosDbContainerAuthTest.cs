@@ -13,6 +13,13 @@
             _db = new CosmosDb(auth: true);
         }
 
+        [SetUp]
+        public async Task Setup()
+        {
+            await Console.Error.WriteLineAsync($"waiting {TestSetUp.TestDelayMs / 1000} s before starting test");
+            await Task.Delay(TestSetUp.TestDelayMs);
+        }
+
         [Test]
         public void AsQueryable1() => Assert.That(_db.Persons1.Query().AsQueryable().Count(), Is.EqualTo(3));
 
@@ -123,7 +130,7 @@
 
             v.Locked = false;
             await _db.Persons1.UpdateAsync(v);
-        }   
+        }
 
         [Test]
         public async Task Update2Async()

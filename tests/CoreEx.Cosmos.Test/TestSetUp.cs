@@ -12,6 +12,7 @@ namespace CoreEx.Cosmos.Test
         public static AzCosmos.Database? CosmosDatabase { get; private set; }
 
         public static IMapper? Mapper { get; private set; }
+        public static int TestDelayMs { get; internal set; } = 1000;
 
         public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey")
         {
