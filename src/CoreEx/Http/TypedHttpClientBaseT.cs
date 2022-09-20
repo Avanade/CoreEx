@@ -123,7 +123,7 @@ namespace CoreEx.Http
         /// Indicates whether to perform a retry where an underlying transient error occurs.
         /// </summary>
         /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
-        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry</param>
+        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This is <see cref="Reset"/> after each invocation (see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TSelf WithRetry(int? count = null, double? seconds = null)

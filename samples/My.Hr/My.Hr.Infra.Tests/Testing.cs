@@ -77,15 +77,12 @@ public static class Testing
             var outputs = ImmutableDictionary.CreateBuilder<string, object>();
             outputs.AddRange(args.Args);
 
+            // mock responses for API calls
             switch (args.Token)
             {
                 case "azure:keyvault/getKeyVault:getKeyVault":
                     outputs.Add("id", Guid.NewGuid().ToString());
                     break;
-
-                // case "azure-native:web:listWebAppHostKeys":
-                //     outputs.Add("masterKey", "key");
-                //     break;
 
                 case "azure-native:storage:listStorageAccountKeys":
                     var kvJson = JsonDocument.Parse("[{\"value\":\"valueKeyStorage\"}]").RootElement;
@@ -123,7 +120,7 @@ public static class Testing
             if (!args.Inputs.ContainsKey("name"))
                 outputs.Add("name", args.Name ?? "name");
 
-            // <-- We'll customize the mocks here
+            // Mocks customizations
             if (args.Type == "azure-native:web:WebApp")
             {
                 outputs["outboundIpAddresses"] = "192.167.12.1,24.56.76.1";
