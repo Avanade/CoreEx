@@ -16,6 +16,8 @@ namespace CoreEx.Cosmos.Test
 
         public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey")
         {
+            CoreEx.Cosmos.Batch.CosmosDbBatch.SequentialExecution = true;
+
             // cleanup if client was already created ??
             // CosmosClient?.Dispose();
 
