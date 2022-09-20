@@ -24,7 +24,7 @@ jobs:
         env:
           AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 10
           AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
-        options: -m 5g --cpus=4.0
+        options: -m 4g --cpus=2.0
       
       sql:
        image: mcr.microsoft.com/mssql/server
