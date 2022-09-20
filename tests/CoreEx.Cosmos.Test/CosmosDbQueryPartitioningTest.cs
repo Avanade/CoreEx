@@ -11,7 +11,7 @@ namespace CoreEx.Cosmos.Test
         [OneTimeSetUp]
         public async Task SetUp()
         {
-            await TestSetUp.SetUpAsync("/filter", "/value/filter").ConfigureAwait(false);
+            await TestSetUp.SetUpAsync("/filter", "/value/filter", dbName: "CoreEx.Cosmos.Test4").ConfigureAwait(false);
             _db = new CosmosDb(auth: false);
         }
         

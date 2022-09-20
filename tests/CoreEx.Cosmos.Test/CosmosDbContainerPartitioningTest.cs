@@ -11,7 +11,7 @@ namespace CoreEx.Cosmos.Test
         [OneTimeSetUp]
         public async Task SetUp()
         {
-            await TestSetUp.SetUpAsync("/filter", "/value/filter").ConfigureAwait(false);
+            await TestSetUp.SetUpAsync("/filter", "/value/filter", dbName: "CoreEx.Cosmos.Test2").ConfigureAwait(false);
             _db = new CosmosDb(auth: false, partitioning: true);
             _db.UsePartitionKey(new PartitionKey("A"));
             _db.Persons1.UsePartitionKey(p => new PartitionKey(p.Filter));

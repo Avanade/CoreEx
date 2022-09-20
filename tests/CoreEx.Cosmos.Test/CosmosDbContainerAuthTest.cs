@@ -1,7 +1,6 @@
 ﻿namespace CoreEx.Cosmos.Test
 {
     [TestFixture]
-    [Ignore("15 tests failing in github")]
     [Category("WithCosmos")]
     public class CosmosDbContainerAuthTest
     {
@@ -10,7 +9,7 @@
         [OneTimeSetUp]
         public async Task SetUp()
         {
-            await TestSetUp.SetUpAsync().ConfigureAwait(false);
+            await TestSetUp.SetUpAsync(dbName: "CoreEx.Cosmos.Test1").ConfigureAwait(false);
             _db = new CosmosDb(auth: true);
         }
 
@@ -51,7 +50,7 @@
             Assert.That(v, Is.Not.Null);
             Assert.That(v.Id, Is.EqualTo(1.ToGuid().ToString()));
 
-            Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons2.GetAsync(2.ToGuid().ToString()));
+           Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons2.GetAsync(2.ToGuid().ToString()));
         }
 
         [Test]

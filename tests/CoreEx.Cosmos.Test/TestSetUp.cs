@@ -14,12 +14,12 @@ namespace CoreEx.Cosmos.Test
         public static IMapper? Mapper { get; private set; }
         public static int TestDelayMs { get; internal set; } = 100;
 
-        public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey")
+        public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey", string dbName = "CoreEx.Cosmos.Test")
         {
             CoreEx.Cosmos.Batch.CosmosDbBatch.SequentialExecution = true;
 
-            // cleanup if client was already created ??
-            // CosmosClient?.Dispose();
+            //cleanup if client was already created ??
+            CosmosClient?.Dispose();
 
             var cco = new AzCosmos.CosmosClientOptions
             {
@@ -40,7 +40,7 @@ namespace CoreEx.Cosmos.Test
 
             CosmosClient ??= new AzCosmos.CosmosClient("https://localhost:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
 
-            CosmosDatabase ??= (await CosmosClient.CreateDatabaseIfNotExistsAsync("CoreEx.Cosmos.Test").ConfigureAwait(false)).Database;
+            CosmosDatabase ??= (await CosmosClient.CreateDatabaseIfNotExistsAsync(dbName).ConfigureAwait(false)).Database;
 
             Mapper ??= new AutoMapperWrapper(new AutoMapper.Mapper(new AutoMapper.MapperConfiguration(c =>
             {

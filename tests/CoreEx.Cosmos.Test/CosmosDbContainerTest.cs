@@ -9,7 +9,7 @@
         [OneTimeSetUp]
         public async Task SetUp()
         {
-            await TestSetUp.SetUpAsync().ConfigureAwait(false);
+            await TestSetUp.SetUpAsync(dbName: "CoreEx.Cosmos.Test3").ConfigureAwait(false);
             _db = new CosmosDb(auth: false);
         }
         
