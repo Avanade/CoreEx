@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreEx.Events;
+using System;
 using System.Net.Http;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Moq;
