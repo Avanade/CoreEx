@@ -43,16 +43,16 @@ Sample curl commands:
 
 ```bash
 curl localhost:5104/api/health  # to [get] to 'HealthInfo'
-curl localhost:5104/api/employee/verify  # to [post] to 'HttpTriggerQueueVerificationFuncion'
-curl localhost:5104/api/oauth2-redirect.html  # to [GET] to 'RenderOAuth2Redirect'
-curl localhost:5104/api/openapi/{version}.{extension}  # to [GET] to 'RenderOpenApiDocument'
-curl localhost:5104/api/swagger.{extension}  # to [GET] to 'RenderSwaggerDocument'
-curl localhost:5104/api/swagger/ui  # to [GET] to 'RenderSwaggerUI'
+curl localhost:5104/api/employee/verify  # to [post] to 'HttpTriggerQueueVerificationFunction'
+curl localhost:5104/api/oauth2-redirect.html  # to [GET] to 'OAuth2Redirect'
+curl localhost:5104/api/openapi/{version}.{extension}  # to [GET] to 'OpenApiDocument'
+curl localhost:5104/api/swagger.{extension}  # to [GET] to 'SwaggerDocument'
+curl localhost:5104/api/swagger/ui  # to [GET] to 'SwaggerUI'
 ```
 
 ### API
 
 ```bash
-curl localhost:5103/swagger/index.html
-curl localhost:5103/swagger/index.html
+curl localhost:5103/health  # to [get] to 'HealthInfo' 
+curl localhost:5103/swagger/index.html #  to [GET] to 'SwaggerUI'
 ```
