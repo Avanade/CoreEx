@@ -2,6 +2,8 @@
 
 Tests can be executed with [Cosmos Db Emulator](https://learn.microsoft.com/en-us/azure/cosmos-db/linux-emulator?tabs=sql-api%2Cssl-netstd21) running in a container.
 
+> Caution! Emulator requires 4 CPUs to execute tests successfully. That's more than free GitHub runners offer (2).
+
 ## Docker compose
 
 Use following docker compose file to simulate github actions environment:
@@ -15,6 +17,12 @@ services:
   cosmos:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
     container_name: azure-cosmos-emulator
+    healthcheck:
+      test: curl -f -k https://localhost:8081/_explorer/emulator.pem || exit 1
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     tty: true
     ports:
       - 8081:8081
@@ -24,23 +32,21 @@ services:
       - 10254:10254
       - 10255:10255
     environment:
-      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=20
       - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=false
-    # cpus: "2.0" # Use this param at v2
-    # mem_limit: 3g # Use this param at v2
-    deploy: # Use these param at v3 & add `–compatibility` when compose up
+    deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 3g
+          cpus: "4.0" # Tests fail with 2 CPUs
+          memory: 4g
 
   myhr-cosmos-tests:
     image: mcr.microsoft.com/dotnet/sdk:6.0
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     volumes:
-       - .:/src    
-
+       - .:/src
+    command: cd /src/tests/CoreEx.Cosmos.Test && dotnet test
     depends_on:
       - cosmos
 ```

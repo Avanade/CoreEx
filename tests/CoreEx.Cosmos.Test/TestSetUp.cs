@@ -12,9 +12,8 @@ namespace CoreEx.Cosmos.Test
         public static AzCosmos.Database? CosmosDatabase { get; private set; }
 
         public static IMapper? Mapper { get; private set; }
-        public static int TestDelayMs { get; internal set; } = 100;
 
-        public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey", string dbName = "CoreEx.Cosmos.Test")
+        public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey")
         {
             CoreEx.Cosmos.Batch.CosmosDbBatch.SequentialExecution = true;
 
@@ -38,9 +37,9 @@ namespace CoreEx.Cosmos.Test
                 RequestTimeout = TimeSpan.FromMinutes(3)
             };
 
-            CosmosClient = new AzCosmos.CosmosClient("https://localhost:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
+            CosmosClient = new AzCosmos.CosmosClient("https://cosmos:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
 
-            CosmosDatabase = (await CosmosClient.CreateDatabaseIfNotExistsAsync(dbName).ConfigureAwait(false)).Database;
+            CosmosDatabase = (await CosmosClient.CreateDatabaseIfNotExistsAsync("CoreEx.Cosmos.Test").ConfigureAwait(false)).Database;
 
             Mapper ??= new AutoMapperWrapper(new AutoMapper.Mapper(new AutoMapper.MapperConfiguration(c =>
             {

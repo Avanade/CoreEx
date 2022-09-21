@@ -8,23 +8,22 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
-    # because: https://github.com/Qayme/qayme-action-cosmosdb-emulator
-    # runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
+    # ubuntu-18.04 # cosmos emulator doesn't work on ubuntu 20 and 22: https://github.com/Qayme/qayme-action-cosmosdb-emulator
 
     services:
-      cosmos:
-        image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
-        ports:
-          - 8081:8081
-          - 10251:10251
-          - 10252:10252
-          - 10253:10253
-          - 10254:10254
-        env:
-          AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 20
-          AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
-        options: -m 4g --cpus=2.0
+      # cosmos: # tests fail when cosmos has less than 4 CPUs assigned, but github free runners have only 2
+      #   image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+      #   ports:
+      #     - 8081:8081
+      #     - 10251:10251
+      #     - 10252:10252
+      #     - 10253:10253
+      #     - 10254:10254
+      #   env:
+      #     AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 20
+      #     AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
+      #   options: -m 4g --cpus=2.0
       
       sql:
        image: mcr.microsoft.com/mssql/server
@@ -54,17 +53,12 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
  
-    # - name: Test
-    #   run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
+    - name: Test
+      run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
 
-    # - name: TestWithDB
-    #   run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
+    - name: TestWithDB
+      run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
 
-    - name: Cosmos Logs
-      run: |
-        docker ps --all
-        curl -v -k https://localhost:8081/_explorer/emulator.pem > ~/emulatorcert.crt
-        ls /home/runner/work/CoreEx/CoreEx/tests/CoreEx.Test/CoreEx.Test.csproj
-
-    - name: Test With Cosmos DB TestCategory=WithCosmos 
+    - name: Test With Cosmos DB TestCategory=WithCosmos
       run: dotnet test --filter Category=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
+      if: ${{ false }}
