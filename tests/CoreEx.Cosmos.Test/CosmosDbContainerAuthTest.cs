@@ -9,15 +9,8 @@
         [OneTimeSetUp]
         public async Task SetUp()
         {
-            await TestSetUp.SetUpAsync(dbName: "CoreEx.Cosmos.Test1").ConfigureAwait(false);
+            await TestSetUp.SetUpAsync().ConfigureAwait(false);
             _db = new CosmosDb(auth: true);
-        }
-
-        [SetUp]
-        public async Task Setup()
-        {
-            await Console.Error.WriteLineAsync($"waiting {TestSetUp.TestDelayMs / 1000} s before starting test");
-            await Task.Delay(TestSetUp.TestDelayMs);
         }
 
         [Test]
