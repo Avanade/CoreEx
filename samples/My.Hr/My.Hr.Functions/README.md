@@ -21,6 +21,7 @@ Sample configuration for `local.settings.json`
         "VerificationResultsQueueName": "verificationResults",
 
         "ServiceBusConnection__fullyQualifiedNamespace": "coreex.servicebus.windows.net",
+        "AzureWebJobs.ServiceBusExecuteVerificationFunction.Disabled": true, // disable when service bus is not available
 
         "HttpLogContent": "true",
         "AzureFunctionsJobHost__logging__logLevel__CoreEx": "Debug",
