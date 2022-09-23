@@ -1,0 +1,50 @@
+version: '3.4'
+
+# The default docker-compose.override file can use the "localhost" as the external name for testing web apps within the same dev machine.
+# The ESHOP_EXTERNAL_DNS_NAME_OR_IP environment variable is taken, by default, from the ".env" file defined like:
+#     ESHOP_EXTERNAL_DNS_NAME_OR_IP=localhost
+# but values present in the environment vars at runtime will always override those defined inside the .env file
+# An external IP or DNS name has to be used (instead localhost and the 10.0.75.1 IP) when testing the Web apps and the Xamarin apps from remote machines/devices using the same WiFi, for instance.
+
+services:
+
+  sqldata:
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=sAPWD23.^0
+      - MSSQL_TCP_PORT=1433
+      - MSSQL_AGENT_ENABLED=true
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__sqlserver:Company.AppName=Data Source=localhost,1433;Initial Catalog=Company.AppName;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
+    ports:
+      - "5433:1433"
+    volumes:
+      - app-sqldata:/var/opt/mssql
+
+  app-api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ConnectionStrings__Database=Data Source=sqldata,1433;Initial Catalog=Company.AppName;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
+      - PORT=80
+    ports:
+      - "5103:80"
+
+  app-functions:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - AZURE_FUNCTIONS_ENVIRONMENT=Development
+      - OpenApi__HideSwaggerUI=false
+      - AgifyApiEndpointUri=https://api.agify.io
+      - NationalizeApiClientApiEndpointUri=https://api.nationalize.io
+      - GenderizeApiClientApiEndpointUri=https://api.genderize.io
+      - VerificationQueueName=pendingVerifications
+      - VerificationResultsQueueName=verificationResults
+      - ConnectionStrings__Database=Data Source=sqldata,1433;Initial Catalog=Company.AppName;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
+      - PORT=80
+    ports:
+      - "5104:80"
+
+volumes:
+  app-sqldata:
+    external: false
