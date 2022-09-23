@@ -90,36 +90,36 @@
   },
   "sources": [
     {
-      "modifiers": [
-        {
-          "condition": "(implement_none)",
-          "exclude": [ "Company.AppName.Business/Validation/**/*", "Company.AppName.Business/Data/PersonData.cs" ]
-        },
-        {
-          "condition": "(implement_cosmos || implement_httpagent || implement_none)",
-          "exclude": [ "Company.AppName.Database/**/*" ]
-        },
-        {
-          "condition": "(!implement_entityframework)",
-          "exclude": [ "Company.AppName.Business/Data/AppNameEfDb.cs", "Company.AppName.Business/Data/AppNameEfDbContext.cs" ]
-        },
-        {
-          "condition": "(!implement_cosmos)",
-          "exclude": [ "Company.AppName.Business/Data/AppNameCosmosDb.cs", "Company.AppName.Test/Cosmos/**/*" ]
-        },
-        {
-          "condition": "(!implement_httpagent)",
-          "exclude": [ "Company.AppName.Business/Data/XxxAgent.cs", "Company.AppName.Business/Data/ReferenceDataData.cs" ]
-        },
-        {
-          "condition": "(implement_httpagent)",
-          "exclude": [ "Company.AppName.Business/Data/PersonData.cs", "Company.AppName.Business/Validation/PersonArgsValidator.cs" ]
-        },
-        {
-          "condition": "(!implement_database && !implement_entityframework)",
-          "exclude": [ "Company.AppName.Business/Data/AppNameDb.cs", "Company.AppName.Test/Data/**/*" ]
-        }
-      ]
+    //   "modifiers": [
+    //     {
+    //       "condition": "(implement_none)",
+    //       "exclude": [ "Company.AppName.Business/Validation/**/*", "Company.AppName.Business/Data/PersonData.cs" ]
+    //     },
+    //     {
+    //       "condition": "(implement_cosmos || implement_httpagent || implement_none)",
+    //       "exclude": [ "Company.AppName.Database/**/*" ]
+    //     },
+    //     {
+    //       "condition": "(!implement_entityframework)",
+    //       "exclude": [ "Company.AppName.Business/Data/AppNameEfDb.cs", "Company.AppName.Business/Data/AppNameEfDbContext.cs" ]
+    //     },
+    //     {
+    //       "condition": "(!implement_cosmos)",
+    //       "exclude": [ "Company.AppName.Business/Data/AppNameCosmosDb.cs", "Company.AppName.Test/Cosmos/**/*" ]
+    //     },
+    //     {
+    //       "condition": "(!implement_httpagent)",
+    //       "exclude": [ "Company.AppName.Business/Data/XxxAgent.cs", "Company.AppName.Business/Data/ReferenceDataData.cs" ]
+    //     },
+    //     {
+    //       "condition": "(implement_httpagent)",
+    //       "exclude": [ "Company.AppName.Business/Data/PersonData.cs", "Company.AppName.Business/Validation/PersonArgsValidator.cs" ]
+    //     },
+    //     {
+    //       "condition": "(!implement_database && !implement_entityframework)",
+    //       "exclude": [ "Company.AppName.Business/Data/AppNameDb.cs", "Company.AppName.Test/Data/**/*" ]
+    //     }
+    //   ]
     }
   ],
   "primaryOutputs": [
