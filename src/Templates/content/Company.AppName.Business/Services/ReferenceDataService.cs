@@ -6,9 +6,9 @@ namespace Company.AppName.Business.Services;
 public class ReferenceDataService : IReferenceDataProvider
 {
     private readonly IDatabase _db;
-    private readonly HrDbContext _dbContext;
+    private readonly AppNameDbContext _dbContext;
 
-    public ReferenceDataService(IDatabase db, HrDbContext dbContext)
+    public ReferenceDataService(IDatabase db, AppNameDbContext dbContext)
     {
         _db = db;
         _dbContext = dbContext;

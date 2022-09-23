@@ -40,10 +40,10 @@ public class Startup
             .AddFluentValidators<EmployeeService>();
 
         // Register the database and EF services, including required AutoMapper.
-        services.AddDatabase(sp => new HrDb(sp.GetRequiredService<AppNameSettings>()))
+        services.AddDatabase(sp => new AppNameDb(sp.GetRequiredService<AppNameSettings>()))
                 .AddDbContext<AppNameDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()))
-                .AddScoped<IHrEfDb, HrEfDb>()
-                .AddAutoMapper(typeof(HrEfDb).Assembly)
+                .AddScoped<IAppNameEfDb, AppNameEfDb>()
+                .AddAutoMapper(typeof(AppNameEfDb).Assembly)
                 .AddAutoMapperWrapper();
 
         // Register the health checks.

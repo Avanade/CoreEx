@@ -68,8 +68,8 @@ public class Startup : FunctionsStartup
             builder.Services.AddTypedHttpClient<NationalizeApiClient>("Nationalize");
 
             // Database
-            builder.Services.AddScoped<IDatabase, HrDb>();
-            // builder.Services.AddDatabase(sp => new HrDb(sp.GetRequiredService<AppNameSettings>()));
+            builder.Services.AddScoped<IDatabase, AppNameDb>();
+            builder.Services.AddDatabase(sp => new AppNameDb(sp.GetRequiredService<AppNameSettings>()));
             builder.Services.AddDbContext<AppNameDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
         }
         catch (System.Exception ex)
