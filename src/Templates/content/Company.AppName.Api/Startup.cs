@@ -41,7 +41,7 @@ public class Startup
 
         // Register the database and EF services, including required AutoMapper.
         services.AddDatabase(sp => new HrDb(sp.GetRequiredService<AppNameSettings>()))
-                .AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()))
+                .AddDbContext<AppNameDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()))
                 .AddScoped<IHrEfDb, HrEfDb>()
                 .AddAutoMapper(typeof(HrEfDb).Assembly)
                 .AddAutoMapperWrapper();

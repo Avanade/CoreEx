@@ -5,7 +5,7 @@ public class AppNameSettings : SettingsBase
     /// <summary>
     /// Gets the setting prefixes in order of precedence.
     /// </summary>
-    public static string[] Prefixes { get; } = { "Hr/", "Common/" };
+    public static string[] Prefixes { get; } = { "AppName/", "Common/" };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AppNameSettings"/> class.

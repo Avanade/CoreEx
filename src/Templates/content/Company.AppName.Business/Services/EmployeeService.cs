@@ -2,11 +2,11 @@ namespace Company.AppName.Business.Services;
 
 public class EmployeeService : IEmployeeService
 {
-    private readonly HrDbContext _dbContext;
+    private readonly AppNameDbContext _dbContext;
     private readonly IEventPublisher _publisher;
     private readonly AppNameSettings _settings;
 
-    public EmployeeService(HrDbContext dbContext, IEventPublisher publisher, AppNameSettings settings)
+    public EmployeeService(AppNameDbContext dbContext, IEventPublisher publisher, AppNameSettings settings)
     {
         _dbContext = dbContext;
         _publisher = publisher;

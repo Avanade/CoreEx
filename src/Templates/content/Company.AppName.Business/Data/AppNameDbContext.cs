@@ -3,7 +3,7 @@ using CoreEx.EntityFrameworkCore;
 
 namespace Company.AppName.Business.Data;
 
-public class HrDbContext : DbContext, IEfDbContext
+public class AppNameDbContext : DbContext, IEfDbContext
 {
     public IDatabase BaseDatabase { get; }
 
@@ -14,7 +14,7 @@ public class HrDbContext : DbContext, IEfDbContext
     public DbSet<Employee> Employees { get; set; }
 
 #pragma warning disable CS8618 // Non-nullable property - properties set by Entity Framework Core
-    public HrDbContext(DbContextOptions options, IDatabase database) : base(options) => BaseDatabase = database ?? throw new ArgumentNullException(nameof(database));
+    public AppNameDbContext(DbContextOptions options, IDatabase database) : base(options) => BaseDatabase = database ?? throw new ArgumentNullException(nameof(database));
 #pragma warning restore CS8618 // Non-nullable property
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

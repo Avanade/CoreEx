@@ -16,14 +16,14 @@ namespace My.Hr.Business.Data
     /// <summary>
     /// Represents the <b>My.Hr</b> database using Entity Framework.
     /// </summary>
-    public class HrEfDb : EfDb<HrDbContext>, IHrEfDb
+    public class HrEfDb : EfDb<AppNameDbContext>, IHrEfDb
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HrEfDb"/> class.
         /// </summary>
         /// <param name="dbContext">The entity framework database context.</param>
         /// <param name="mapper">The <see cref="IMapper"/>.</param>
-        public HrEfDb(HrDbContext dbContext, IMapper mapper) : base(dbContext, mapper) { }
+        public HrEfDb(AppNameDbContext dbContext, IMapper mapper) : base(dbContext, mapper) { }
 
         /// <summary>
         /// Gets the <see cref="Employee"/> encapsulated entity.

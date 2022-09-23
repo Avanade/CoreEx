@@ -33,7 +33,7 @@ ENV ACCEPT_EULA Y
 ENV MSSQL_SA_PASSWORD sAPWD23.^0
 ENV MSSQL_TCP_PORT 1433
 ENV MSSQL_AGENT_ENABLED true
-ENV ConnectionStrings__sqlserver:MyHr Data Source=localhost, $MSSQL_TCP_PORT;Initial Catalog=Company.AppName;User id=sa;Password=$MSSQL_SA_PASSWORD;TrustServerCertificate=true
+ENV ConnectionStrings__sqlserver:CompanyAppName Data Source=localhost, $MSSQL_TCP_PORT;Initial Catalog=Company.AppName;User id=sa;Password=$MSSQL_SA_PASSWORD;TrustServerCertificate=true
 
 
 # Copy setup scripts
