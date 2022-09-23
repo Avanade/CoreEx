@@ -1,0 +1,16 @@
+﻿global using CoreEx;
+global using CoreEx.Configuration;
+global using CoreEx.Entities;
+global using CoreEx.EntityFrameworkCore;
+global using CoreEx.Events;
+global using CoreEx.Http;
+global using CoreEx.Json;
+global using CoreEx.RefData;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.EntityFrameworkCore.Metadata.Builders;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.Logging;
+global using Company.AppName.Business.Data;
+global using Company.AppName.Business.External;
+global using Company.AppName.Business.External.Contracts;
+global using Company.AppName.Business.Models;

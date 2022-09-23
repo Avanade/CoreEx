@@ -7,6 +7,7 @@
 * [Docs](https://learn.microsoft.com/en-us/dotnet/core/tools/custom-templates)
 * [Tutorial](https://learn.microsoft.com/en-us/dotnet/core/tutorials/cli-templates-create-item-template)
 * [NTangle template](https://github.com/Avanade/NTangle/tree/main/tools/NTangle.Template)
+* [Template Analyzer](https://github.com/sayedihashimi/template-sample#template-analyzer)
 
 ## Dev container
 
