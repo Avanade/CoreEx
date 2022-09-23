@@ -4,9 +4,9 @@ public class EmployeeService : IEmployeeService
 {
     private readonly HrDbContext _dbContext;
     private readonly IEventPublisher _publisher;
-    private readonly HrSettings _settings;
+    private readonly AppNameSettings _settings;
 
-    public EmployeeService(HrDbContext dbContext, IEventPublisher publisher, HrSettings settings)
+    public EmployeeService(HrDbContext dbContext, IEventPublisher publisher, AppNameSettings settings)
     {
         _dbContext = dbContext;
         _publisher = publisher;

@@ -7,9 +7,9 @@ public class EmployeeService2 : IEmployeeService
 {
     private readonly IHrEfDb _efDb;
     private readonly IEventPublisher _publisher;
-    private readonly HrSettings _settings;
+    private readonly AppNameSettings _settings;
 
-    public EmployeeService2(IHrEfDb efDb, IEventPublisher publisher, HrSettings settings)
+    public EmployeeService2(IHrEfDb efDb, IEventPublisher publisher, AppNameSettings settings)
     {
         _efDb = efDb;
         _publisher = publisher;

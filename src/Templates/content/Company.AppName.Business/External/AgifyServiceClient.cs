@@ -5,7 +5,7 @@ namespace Company.AppName.Business.External;
 /// </summary>
 public class AgifyApiClient : TypedHttpClientCore<AgifyApiClient>
 {
-    public AgifyApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings, ILogger<TypedHttpClientCore<AgifyApiClient>> logger)
+    public AgifyApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, AppNameSettings settings, ILogger<TypedHttpClientCore<AgifyApiClient>> logger)
             : base(client, jsonSerializer, executionContext, settings, logger)
     {
         if (!Uri.IsWellFormedUriString(settings.AgifyApiEndpointUri, UriKind.Absolute))

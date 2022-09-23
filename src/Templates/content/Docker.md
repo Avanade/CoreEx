@@ -14,11 +14,11 @@ version: '3.4'
 services:
   app-functions:
     environment:
-      - ServiceBusConnection=Endpoint=sb://Company.AppName.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxxx
+      - ServiceBusConnection=Endpoint=sb://Company-AppName.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxxx
 
   app-api:
     environment:
-      - ServiceBusConnection=Endpoint=sb://Company.AppName.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxxx
+      - ServiceBusConnection=Endpoint=sb://Company-AppName.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxxx
 ```
 
 Service Bus should have `pendingverifications` queue used by *Company.AppName* sample.

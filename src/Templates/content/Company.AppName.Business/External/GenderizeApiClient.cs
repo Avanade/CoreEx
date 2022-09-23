@@ -5,7 +5,7 @@ namespace Company.AppName.Business.External;
 /// </summary>
 public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
 {
-    public GenderizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings, ILogger<TypedHttpClientCore<GenderizeApiClient>> logger)
+    public GenderizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, AppNameSettings settings, ILogger<TypedHttpClientCore<GenderizeApiClient>> logger)
         : base(client, jsonSerializer, executionContext, settings, logger)
     {
         if (!Uri.IsWellFormedUriString(settings.GenderizeApiClientApiEndpointUri, UriKind.Absolute))

@@ -19,9 +19,9 @@ namespace Company.AppName.Functions;
 public class HttpTriggerQueueVerificationFunction
 {
     private readonly WebApiPublisher _webApiPublisher;
-    private readonly HrSettings _settings;
+    private readonly AppNameSettings _settings;
 
-    public HttpTriggerQueueVerificationFunction(WebApiPublisher webApiPublisher, HrSettings settings)
+    public HttpTriggerQueueVerificationFunction(WebApiPublisher webApiPublisher, AppNameSettings settings)
     {
         _webApiPublisher = webApiPublisher;
         _settings = settings;

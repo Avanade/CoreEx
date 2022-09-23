@@ -1,6 +1,6 @@
 namespace Company.AppName.Business;
 
-public class HrSettings : SettingsBase
+public class AppNameSettings : SettingsBase
 {
     /// <summary>
     /// Gets the setting prefixes in order of precedence.
@@ -8,10 +8,10 @@ public class HrSettings : SettingsBase
     public static string[] Prefixes { get; } = { "Hr/", "Common/" };
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HrSettings"/> class.
+    /// Initializes a new instance of the <see cref="AppNameSettings"/> class.
     /// </summary>
     /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
-    public HrSettings(IConfiguration configuration) : base(configuration, Prefixes) { }
+    public AppNameSettings(IConfiguration configuration) : base(configuration, Prefixes) { }
 
     public string AgifyApiEndpointUri => GetValue<string>();
 

@@ -18,7 +18,7 @@ public class Startup
     {
         // Register the core services.
         services
-            .AddSettings<HrSettings>()
+            .AddSettings<AppNameSettings>()
             .AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<ReferenceDataService>())
             .AddExecutionContext()
             .AddJsonSerializer()
@@ -27,7 +27,7 @@ public class Startup
             .AddEventPublisher()
             .AddAzureServiceBusSender()
             .AddAzureServiceBusPurger()
-            .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection))
+            .AddAzureServiceBusClient(connectionName: nameof(AppNameSettings.ServiceBusConnection))
             .AddJsonMergePatch()
             .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
             .AddReferenceDataContentWebApi()
@@ -40,7 +40,7 @@ public class Startup
             .AddFluentValidators<EmployeeService>();
 
         // Register the database and EF services, including required AutoMapper.
-        services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()))
+        services.AddDatabase(sp => new HrDb(sp.GetRequiredService<AppNameSettings>()))
                 .AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()))
                 .AddScoped<IHrEfDb, HrEfDb>()
                 .AddAutoMapper(typeof(HrEfDb).Assembly)
@@ -50,8 +50,8 @@ public class Startup
         services
             .AddScoped<HealthService>()
             .AddHealthChecks()
-            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
-            .AddTypeActivatedCheck<SqlHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default!, timeout: TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
+            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(AppNameSettings.ServiceBusConnection), nameof(AppNameSettings.VerificationQueueName))
+            .AddTypeActivatedCheck<SqlHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default!, timeout: TimeSpan.FromSeconds(15), nameof(AppNameSettings.ConnectionStrings__Database));
 
 
         services.AddControllers();

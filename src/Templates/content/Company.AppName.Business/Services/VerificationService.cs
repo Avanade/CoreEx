@@ -5,10 +5,10 @@ public class VerificationService
     private readonly AgifyApiClient _agifyApiClient;
     private readonly GenderizeApiClient _genderizeApiClient;
     private readonly NationalizeApiClient _nationalizeApiClient;
-    private readonly HrSettings _settings;
+    private readonly AppNameSettings _settings;
     private readonly IEventPublisher _publisher;
 
-    public VerificationService(AgifyApiClient agifyApiClient, GenderizeApiClient genderizeApiClient, NationalizeApiClient nationalizeApiClient, HrSettings settings, IEventPublisher publisher)
+    public VerificationService(AgifyApiClient agifyApiClient, GenderizeApiClient genderizeApiClient, NationalizeApiClient nationalizeApiClient, AppNameSettings settings, IEventPublisher publisher)
     {
         _agifyApiClient = agifyApiClient;
         _genderizeApiClient = genderizeApiClient;

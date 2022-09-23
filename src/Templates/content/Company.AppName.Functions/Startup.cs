@@ -31,7 +31,7 @@ public class Startup : FunctionsStartup
         {
             // Register the core services.
             builder.Services
-                .AddSettings<HrSettings>()
+                .AddSettings<AppNameSettings>()
                 .AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<ReferenceDataService>())
                 .AddExecutionContext()
                 .AddJsonSerializer()
@@ -43,7 +43,7 @@ public class Startup : FunctionsStartup
                 .AddJsonMergePatch()
                 .AddWebApiPublisher()
                 .AddAzureServiceBusSubscriber()
-                .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection));
+                .AddAzureServiceBusClient(connectionName: nameof(AppNameSettings.ServiceBusConnection));
 
             // Register the health checks.
             builder.Services
@@ -52,8 +52,8 @@ public class Startup : FunctionsStartup
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<GenderizeApiClient>>("Genderize API")
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<AgifyApiClient>>("Agify API")
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<NationalizeApiClient>>("Nationalize API")
-                .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
-                .AddTypeActivatedCheck<SqlHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default, timeout: System.TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
+                .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(AppNameSettings.ServiceBusConnection), nameof(AppNameSettings.VerificationQueueName))
+                .AddTypeActivatedCheck<SqlHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default, timeout: System.TimeSpan.FromSeconds(15), nameof(AppNameSettings.ConnectionStrings__Database));
 
             // Register the business services.
             builder.Services
@@ -69,7 +69,7 @@ public class Startup : FunctionsStartup
 
             // Database
             builder.Services.AddScoped<IDatabase, HrDb>();
-            // builder.Services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()));
+            // builder.Services.AddDatabase(sp => new HrDb(sp.GetRequiredService<AppNameSettings>()));
             builder.Services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
         }
         catch (System.Exception ex)

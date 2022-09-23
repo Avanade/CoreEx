@@ -12,14 +12,14 @@
   },
   "defaultName": "CoreEx",
   "description": "CoreEx ",
-  "sourceName": "Company.AppName", // Not acutally used; template uses the below parameters exclusively.
+  "sourceName": "XXCompany.AppNameXX", // Not acutally used; template uses the below parameters exclusively.
   "preferNameDirectory": true,
   "symbols": {
     "company": {
       "type": "parameter",
       "replaces": "Company",
       "fileRename": "Company",
-      "isRequired": false,
+      "isRequired": true,
       "datatype": "text",
       "description": "The company name 'Company' used to define the namespace etc; e.g. 'Company.AppName'."
     },
@@ -27,7 +27,7 @@
       "type": "parameter",
       "replaces": "AppName",
       "fileRename": "AppName",
-      "isRequired": false,
+      "isRequired": true,
       "datatype": "text",
       "description": "The application (domain) name 'AppName' used to define the namespace etc; e.g. 'Company.AppName'."
     },
@@ -122,6 +122,11 @@
       ]
     }
   ],
+  "primaryOutputs": [
+    {
+      "path": "./Company.AppName.sln"        
+    }
+  ],
   "postActions": [{
     "condition": "(!skipRestore)",
     "description": "Restore NuGet packages required by this project.",
@@ -129,6 +134,9 @@
       "text": "Run 'dotnet restore'"
     }],
     "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
-    "continueOnError": true
+    "continueOnError": true,
+    "args": {
+      "files": [ "Company.AppName.sln" ]
+    }
   }]
 }

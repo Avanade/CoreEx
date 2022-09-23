@@ -5,7 +5,7 @@ namespace Company.AppName.Business.External;
 /// </summary>
 public class NationalizeApiClient : TypedHttpClientCore<NationalizeApiClient>
 {
-    public NationalizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings, ILogger<TypedHttpClientCore<NationalizeApiClient>> logger)
+    public NationalizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, AppNameSettings settings, ILogger<TypedHttpClientCore<NationalizeApiClient>> logger)
             : base(client, jsonSerializer, executionContext, settings, logger)
     {
         if (!Uri.IsWellFormedUriString(settings.NationalizeApiClientApiEndpointUri, UriKind.Absolute))
