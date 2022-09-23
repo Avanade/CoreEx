@@ -48,3 +48,6 @@ jobs:
 
     - name: Test Docker Build
       run: docker-compose -f docker-compose.myHr.yml -f docker-compose.myHr.override.yml build --build-arg LOCAL=true
+
+    - name: Build Template
+      run: dotnet build src/Templates/content
