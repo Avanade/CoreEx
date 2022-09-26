@@ -19,7 +19,7 @@ public class ReferenceDataService : IReferenceDataProvider
     public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         Type t when t == typeof(USState) => await USStateCollection.CreateAsync(_dbContext.USStates.AsNoTracking(), cancellationToken).ConfigureAwait(false),
-        Type t when t == typeof(Gender) => await _db.ReferenceData<GenderCollection, Gender, Guid>("Hr", "Gender").LoadAsync("GenderId", cancellationToken: cancellationToken).ConfigureAwait(false),
+        Type t when t == typeof(Gender) => await _db.ReferenceData<GenderCollection, Gender, Guid>("AppName", "Gender").LoadAsync("GenderId", cancellationToken: cancellationToken).ConfigureAwait(false),
         _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")
     };
 }

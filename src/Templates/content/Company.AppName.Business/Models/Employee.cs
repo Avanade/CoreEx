@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace Company.AppName.Business.Models;
 
 /// <summary>
-/// Represents the Entity Framework (EF) model for database object 'Hr.Employee'.
+/// Represents the Entity Framework (EF) model for database object 'AppName.Employee'.
 /// </summary>
 public class Employee : IIdentifier<Guid>, IETag
 {

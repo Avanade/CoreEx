@@ -4,7 +4,7 @@ public class UsStateConfiguration : IEntityTypeConfiguration<USState>
 {
     public void Configure(EntityTypeBuilder<USState> entity)
     {
-        entity.ToTable("USState", "Hr");
+        entity.ToTable("USState", "AppName");
         entity.HasKey("Id");
         entity.Property(p => p.Id).HasColumnName("USStateId").HasColumnType("UNIQUEIDENTIFIER");
         entity.Property(p => p.Code).HasColumnType("NVARCHAR(50)");

@@ -1,4 +1,4 @@
-CREATE TABLE [Hr].[EventOutboxData] (
+CREATE TABLE [AppName].[EventOutboxData] (
   /*
    * This is automatically generated; any changes will be lost.
    */

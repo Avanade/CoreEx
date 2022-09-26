@@ -1,4 +1,4 @@
-CREATE TABLE [Hr].[EventOutbox] (
+CREATE TABLE [AppName].[EventOutbox] (
   /*
    * This is automatically generated; any changes will be lost.
    */
@@ -7,5 +7,5 @@ CREATE TABLE [Hr].[EventOutbox] (
   [EnqueuedDate] DATETIME2 NOT NULL,
   [PartitionKey] NVARCHAR(128) NULL,
   [DequeuedDate] DATETIME2 NULL,
-  CONSTRAINT [IX_Hr_EventOutbox_DequeuedDate] UNIQUE CLUSTERED ([DequeuedDate], [EventOutboxId])
+  CONSTRAINT [IX_AppName_EventOutbox_DequeuedDate] UNIQUE CLUSTERED ([DequeuedDate], [EventOutboxId])
 );

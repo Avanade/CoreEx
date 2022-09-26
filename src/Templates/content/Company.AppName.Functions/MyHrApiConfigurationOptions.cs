@@ -11,8 +11,8 @@ public class MyOpenApiConfigurationOptions : DefaultOpenApiConfigurationOptions
     public override OpenApiInfo Info { get; set; } = new OpenApiInfo()
     {
         Version = "1.0.1",
-        Title = "CoreEx My HR Sample",
-        Description = "A serverless Azure Function which demonstrates the use of CoreEx.",
+        Title = "Company AppName API",
+        Description = "A serverless Azure Function which demonstrates the use of CoreEx for Company AppName - to be updated",
         TermsOfService = new Uri("https://github.com/Avanade/CoreEx"),
 
         License = new OpenApiLicense()

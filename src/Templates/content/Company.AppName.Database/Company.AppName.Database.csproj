@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Migrations\20190101-000001-create-Hr-schema.sql" />
+    <None Remove="Migrations\20190101-000001-create-AppName-schema.sql" />
   </ItemGroup>
 
   <ItemGroup>

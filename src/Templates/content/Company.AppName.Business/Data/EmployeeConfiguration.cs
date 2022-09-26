@@ -4,7 +4,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 {
     public void Configure(EntityTypeBuilder<Employee> builder)
     {
-        builder.ToTable("Employee", "Hr");
+        builder.ToTable("Employee", "AppName");
         builder.Property(p => p.Id).HasColumnName("EmployeeId").HasColumnType("UNIQUEIDENTIFIER");
         builder.Property(p => p.Email).HasColumnType("NVARCHAR(250)");
         builder.Property(p => p.FirstName).HasColumnType("NVARCHAR(100)");

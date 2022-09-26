@@ -2,7 +2,7 @@
 
 BEGIN TRANSACTION
 
-CREATE TABLE [Hr].[Employee] (
+CREATE TABLE [AppName].[Employee] (
   [EmployeeId] UNIQUEIDENTIFIER NOT NULL DEFAULT (NEWSEQUENTIALID()) PRIMARY KEY,  -- This is the primary key
   [Email] NVARCHAR(250) NULL UNIQUE,                                               -- This is the employee's unique email address
   [FirstName] NVARCHAR(100) NULL,
