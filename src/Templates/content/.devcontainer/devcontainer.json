@@ -9,7 +9,12 @@
 	// The 'service' property is the name of the service for the container that VS Code should use.
 	"service": "dev",
   "workspaceFolder": "/workspace",
-
+  "features": {
+    "github-cli": "2",
+    "azure-cli": "2.38",
+    "dotnet": "6.0",
+    "docker-from-docker": "20.10"
+  },
   "settings": {
     "files.associations": {
       "*.csproj": "msbuild",
