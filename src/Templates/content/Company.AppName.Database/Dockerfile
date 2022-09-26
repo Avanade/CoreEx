@@ -20,6 +20,10 @@ COPY "Company.AppName.Functions/Company.AppName.Functions.csproj" "Company.AppNa
 COPY "Company.AppName.Infra/Company.AppName.Infra.csproj" "Company.AppName.Infra/Company.AppName.Infra.csproj"
 COPY "Company.AppName.Infra.Tests/Company.AppName.Infra.Tests.csproj" "Company.AppName.Infra.Tests/Company.AppName.Infra.Tests.csproj"
 
+# todo: - remove this
+COPY "NuGet.config" "NuGet.config"
+COPY "nuget-publish" "nuget-publish"
+
 RUN dotnet restore "Company.AppName.sln"
 
 COPY . .

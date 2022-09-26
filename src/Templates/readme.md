@@ -52,3 +52,9 @@ Expose ports for function, app service and sql server
         Update: [PUT] http://localhost:7071/api/api/employees/{id}
 
 ## Add file that contains recommended VS CODE extensions
+
+DONE
+
+## Readme on configuring ADO
+
+https://github.com/Azure-Samples/todo-csharp-sql/tree/main/.azdo/pipelines
