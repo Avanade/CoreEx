@@ -27,7 +27,7 @@ public class Startup
             .AddEventPublisher()
             .AddAzureServiceBusSender()
             .AddAzureServiceBusPurger()
-            .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection))
+            .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection), configure: (o, sp) => o.RetryOptions.MaxRetries = 3)
             .AddJsonMergePatch()
             .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
             .AddReferenceDataContentWebApi()

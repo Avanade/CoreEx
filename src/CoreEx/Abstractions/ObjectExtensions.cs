@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace System
+using System;
+
+namespace CoreEx
 {
     /// <summary>
     /// Provides standard <see cref="object"/> extensions.
