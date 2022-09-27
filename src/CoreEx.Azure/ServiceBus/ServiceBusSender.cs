@@ -19,6 +19,7 @@ namespace CoreEx.Azure.ServiceBus
     /// <remarks>See <see cref="OnServiceBusMessage(EventSendData, ServiceBusMessage)"/> for details of automatic <see cref="ServiceBusMessage.SessionId"/> allocation.</remarks>
     public class ServiceBusSender : IEventSender
     {
+        private static ServiceBusSenderInvoker? _invoker;
         private readonly ServiceBusClient _client;
 
         /// <summary>
@@ -28,12 +29,14 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public ServiceBusSender(ServiceBusClient client, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSender> logger)
+        /// <param name="invoker">The optional <see cref="ServiceBusSenderInvoker"/>.</param>
+        public ServiceBusSender(ServiceBusClient client, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSender> logger, ServiceBusSenderInvoker? invoker = null)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client), "Verify dependency injection configuration and if service bus connection string for publisher was correctly defined.");
             ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            Invoker = invoker ?? (_invoker ??= new ServiceBusSenderInvoker());
         }
 
         /// <summary>
@@ -45,6 +48,11 @@ namespace CoreEx.Azure.ServiceBus
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
         protected ILogger Logger { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ServiceBusSenderInvoker"/>.
+        /// </summary>
+        protected ServiceBusSenderInvoker Invoker { get; }
 
         /// <summary>
         /// Gets the <see cref="CoreEx.ExecutionContext"/>.
@@ -80,121 +88,124 @@ namespace CoreEx.Azure.ServiceBus
         public bool UsePartitionKeyAsSessionId { get; set; } = true;
 
         /// <inheritdoc/>
-        public async Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
+        public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
         {
             if (events == null || !events.Any())
-                return;
+                return Task.CompletedTask;
 
-            var totalCount = events.Count();
-            Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);
-
-            if (events.Count() != events.Select(x => x.Id).Distinct().Count())
-                throw new EventSendException(PrependStats($"All events must have a unique identifier ({nameof(EventSendData)}.{nameof(EventSendData.Id)}).", totalCount, totalCount), events);
-
-            // Sets up the list of unsent events.
-            var unsentEvents = new List<EventSendData>(events);
-
-            // Why this logic: https://github.com/Azure/azure-sdk-for-net/tree/Azure.Messaging.ServiceBus_7.1.0/sdk/servicebus/Azure.Messaging.ServiceBus/#send-and-receive-a-batch-of-messages
-            var queueDict = new Dictionary<string, Queue<(ServiceBusMessage Message, int Index)>>();
-            var index = 0;
-            foreach (var @event in events)
+            return Invoker.InvokeAsync(this, events, async (events, cancellationToken) =>
             {
-                var msg = new ServiceBusMessage(@event.Data)
+                var totalCount = events.Count();
+                Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);
+
+                if (events.Count() != events.Select(x => x.Id).Distinct().Count())
+                    throw new EventSendException(PrependStats($"All events must have a unique identifier ({nameof(EventSendData)}.{nameof(EventSendData.Id)}).", totalCount, totalCount), events);
+
+                // Sets up the list of unsent events.
+                var unsentEvents = new List<EventSendData>(events);
+
+                // Why this logic: https://github.com/Azure/azure-sdk-for-net/tree/Azure.Messaging.ServiceBus_7.1.0/sdk/servicebus/Azure.Messaging.ServiceBus/#send-and-receive-a-batch-of-messages
+                var queueDict = new Dictionary<string, Queue<(ServiceBusMessage Message, int Index)>>();
+                var index = 0;
+                foreach (var @event in events)
                 {
-                    MessageId = @event.Id,
-                    ContentType = MediaTypeNames.Application.Json,
-                    CorrelationId = @event.CorrelationId ?? ExecutionContext.CorrelationId,
-                    Subject = @event.Subject
-                };
-
-                if (@event.Action != null && PropertySelection.HasFlag(EventDataProperty.Action))
-                    msg.ApplicationProperties.Add(nameof(EventData.Action), @event.Action);
-
-                if (@event.Source != null && PropertySelection.HasFlag(EventDataProperty.Source))
-                    msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Source.ToString());
-
-                if (@event.Type != null && PropertySelection.HasFlag(EventDataProperty.Type))
-                    msg.ApplicationProperties.Add(nameof(EventData.Type), @event.Type);
-
-                if (@event.TenantId != null && PropertySelection.HasFlag(EventDataProperty.TenantId))
-                    msg.ApplicationProperties.Add(nameof(EventData.TenantId), @event.TenantId);
-
-                if (@event.PartitionKey != null && PropertySelection.HasFlag(EventDataProperty.PartitionKey))
-                    msg.ApplicationProperties.Add(nameof(EventData.PartitionKey), @event.PartitionKey);
-
-                if (@event.ETag != null && PropertySelection.HasFlag(EventDataProperty.ETag))
-                    msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
-
-                if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
-                {
-                    // Attrtibutes that start with an underscore are considered internal and will not be sent automatically; i.e. _SessionId and _TimeToLive.
-                    foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith("_")))
+                    var msg = new ServiceBusMessage(@event.Data)
                     {
-                        msg.ApplicationProperties.Add(attribute.Key, attribute.Value);
-                    }
-                }
+                        MessageId = @event.Id,
+                        ContentType = MediaTypeNames.Application.Json,
+                        CorrelationId = @event.CorrelationId ?? ExecutionContext.CorrelationId,
+                        Subject = @event.Subject
+                    };
 
-                OnServiceBusMessage(@event, msg);
+                    if (@event.Action != null && PropertySelection.HasFlag(EventDataProperty.Action))
+                        msg.ApplicationProperties.Add(nameof(EventData.Action), @event.Action);
 
-                var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new EventSendException(PrependStats($"{nameof(DefaultQueueOrTopicName)} must have a non null value.", totalCount, unsentEvents.Count), unsentEvents);
-                if (queueDict.TryGetValue(name, out var queue))
-                    queue.Enqueue((msg, index++));
-                else
-                {
-                    queue = new Queue<(ServiceBusMessage, int)>();
-                    queue.Enqueue((msg, index++));
-                    queueDict.Add(name, queue);
-                }
-            }
+                    if (@event.Source != null && PropertySelection.HasFlag(EventDataProperty.Source))
+                        msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Source.ToString());
 
-            Logger.LogDebug("There are {QueueTopicCount} queues/topics specified; as such there will be that many batches sent as a minimum.", queueDict.Keys.Count);
+                    if (@event.Type != null && PropertySelection.HasFlag(EventDataProperty.Type))
+                        msg.ApplicationProperties.Add(nameof(EventData.Type), @event.Type);
 
-            // Get queue name by checking configuration override.
-            foreach (var qitem in queueDict)
-            {
-                var qn = Settings.GetValue($"Publisher_ServiceBusName_{qitem.Key}", defaultValue: qitem.Key);
-                var queue = qitem.Value;
-                var sentIds = new List<string>();
+                    if (@event.TenantId != null && PropertySelection.HasFlag(EventDataProperty.TenantId))
+                        msg.ApplicationProperties.Add(nameof(EventData.TenantId), @event.TenantId);
 
-                // Send in batches.
-                await using var sender = _client.CreateSender(qn);
-                while (queue.Count > 0)
-                {
-                    sentIds.Clear();
-                    using var batch = await sender.CreateMessageBatchAsync(cancellationToken).ConfigureAwait(false);
+                    if (@event.PartitionKey != null && PropertySelection.HasFlag(EventDataProperty.PartitionKey))
+                        msg.ApplicationProperties.Add(nameof(EventData.PartitionKey), @event.PartitionKey);
 
-                    // Add the first message to the batch.
-                    var firstMsg = queue.Peek();
-                    if (batch.TryAddMessage(firstMsg.Message))
+                    if (@event.ETag != null && PropertySelection.HasFlag(EventDataProperty.ETag))
+                        msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
+
+                    if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
                     {
-                        sentIds.Add(firstMsg.Message.MessageId);
-                        queue.Dequeue();
+                        // Attrtibutes that start with an underscore are considered internal and will not be sent automatically; i.e. _SessionId and _TimeToLive.
+                        foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith("_")))
+                        {
+                            msg.ApplicationProperties.Add(attribute.Key, attribute.Value);
+                        }
                     }
+
+                    OnServiceBusMessage(@event, msg);
+
+                    var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new EventSendException(PrependStats($"{nameof(DefaultQueueOrTopicName)} must have a non null value.", totalCount, unsentEvents.Count), unsentEvents);
+                    if (queueDict.TryGetValue(name, out var queue))
+                        queue.Enqueue((msg, index++));
                     else
-                        throw new EventSendException(PrependStats("ServiceBusMessage is too large and cannot be sent.", totalCount, unsentEvents.Count), unsentEvents);
-
-                    // Keep adding until done or max size reached for batch.
-                    while (queue.Count > 0 && batch.TryAddMessage(queue.Peek().Message))
                     {
-                        sentIds.Add(queue.Peek().Message.MessageId);
-                        queue.Dequeue();
+                        queue = new Queue<(ServiceBusMessage, int)>();
+                        queue.Enqueue((msg, index++));
+                        queueDict.Add(name, queue);
                     }
-
-                    try
-                    {
-                        Logger.LogInformation($"Sending {batch.Count} messages to {qn}.");
-                        await sender.SendMessagesAsync(batch, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogDebug("{UnsentCount} of the total {TotalCount} events were not successfully sent.", unsentEvents.Count, totalCount);
-                        throw new EventSendException(PrependStats($"ServiceBusMessage cannot be sent: {ex.Message}", totalCount, unsentEvents.Count), ex, unsentEvents);
-                    }
-
-                    // Begin next batch after confirming sent events; continue ^ where any left.
-                    unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id));
                 }
-            }
+
+                Logger.LogDebug("There are {QueueTopicCount} queues/topics specified; as such there will be that many batches sent as a minimum.", queueDict.Keys.Count);
+
+                // Get queue name by checking configuration override.
+                foreach (var qitem in queueDict)
+                {
+                    var qn = Settings.GetValue($"Publisher_ServiceBusName_{qitem.Key}", defaultValue: qitem.Key);
+                    var queue = qitem.Value;
+                    var sentIds = new List<string>();
+
+                    // Send in batches.
+                    await using var sender = _client.CreateSender(qn);
+                    while (queue.Count > 0)
+                    {
+                        sentIds.Clear();
+                        using var batch = await sender.CreateMessageBatchAsync(cancellationToken).ConfigureAwait(false);
+
+                        // Add the first message to the batch.
+                        var firstMsg = queue.Peek();
+                        if (batch.TryAddMessage(firstMsg.Message))
+                        {
+                            sentIds.Add(firstMsg.Message.MessageId);
+                            queue.Dequeue();
+                        }
+                        else
+                            throw new EventSendException(PrependStats("ServiceBusMessage is too large and cannot be sent.", totalCount, unsentEvents.Count), unsentEvents);
+
+                        // Keep adding until done or max size reached for batch.
+                        while (queue.Count > 0 && batch.TryAddMessage(queue.Peek().Message))
+                        {
+                            sentIds.Add(queue.Peek().Message.MessageId);
+                            queue.Dequeue();
+                        }
+
+                        try
+                        {
+                            Logger.LogInformation($"Sending {batch.Count} messages to {qn}.");
+                            await sender.SendMessagesAsync(batch, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogDebug("{UnsentCount} of the total {TotalCount} events were not successfully sent.", unsentEvents.Count, totalCount);
+                            throw new EventSendException(PrependStats($"ServiceBusMessage cannot be sent: {ex.Message}", totalCount, unsentEvents.Count), ex, unsentEvents);
+                        }
+
+                        // Begin next batch after confirming sent events; continue ^ where any left.
+                        unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id));
+                    }
+                }
+            }, cancellationToken);
         }
 
         /// <summary>
