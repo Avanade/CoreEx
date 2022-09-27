@@ -38,7 +38,7 @@ services:
       - MSSQL_TCP_PORT=1433
       - MSSQL_AGENT_ENABLED=true
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__sqlserver:Company.AppName=Data Source=localhost,1433;Initial Catalog=Company.AppName;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
+      - ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=Company.AppName;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
     volumes:
       - app-sqldata:/var/opt/mssql
 

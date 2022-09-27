@@ -20,7 +20,7 @@ namespace Company.AppName.Database
                 .Create<Program>(connectionString)
                 .ConsoleArgs(a =>
                 {
-                    a.ConnectionStringEnvironmentVariableName = "Company_AppNameDb";
+                    a.ConnectionStringEnvironmentVariableName = "ConnectionStrings__Database";
                     a.DataParserArgs.RefDataColumnDefaults.TryAdd("IsActive", _ => true);
                     a.DataParserArgs.RefDataColumnDefaults.TryAdd("SortOrder", i => i);
                     if (assembly != null)
