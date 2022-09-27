@@ -60,5 +60,5 @@
   ],
   "postCreateCommand": "dotnet restore",
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [80, 1433]
+  "forwardPorts": [80, 1433, 7071, 7129]
 }

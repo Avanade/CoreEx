@@ -4,7 +4,7 @@ namespace Company.AppName.Api.Controllers;
 /// Health Controller
 /// </summary>
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class HealthController : ControllerBase
 {
     private readonly HealthService _health;

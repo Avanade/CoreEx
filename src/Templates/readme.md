@@ -24,6 +24,8 @@ Extensions required:
 * Azurite Extension
 * REST Client
 
+--> DONE
+
 Expose ports for function, app service and sql server
 
 ## Update readme to use REST Client

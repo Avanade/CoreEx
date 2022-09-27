@@ -1,0 +1,58 @@
+@port = 7071
+@hostname = localhost
+@scheme = http
+@host = {{scheme}}://{{hostname}}:{{port}}
+
+
+
+### Health endpoint
+GET {{host}}/api/health
+
+# Swagger
+
+### Get openapi json
+GET {{host}}/api/openapi/1.0
+
+### Get swagger json
+GET {{host}}/api/swagger.json
+
+### Get swagger UI
+GET {{host}}/api/swagger/ui
+
+# Employee CRUD operations
+# todo: add payloads
+### Get all Employees
+GET {{host}}/api/employees
+x-correlation-id: 123-my-correlation-id
+
+### Get Employee
+GET {{host}}/api/employees/{id}
+x-correlation-id: 123-my-correlation-id
+
+### Create Employee
+POST {{host}}/api/employees
+x-correlation-id: 123-my-correlation-id
+
+### Update Employee
+PUT {{host}}/api/employees/{id}
+x-correlation-id: 123-my-correlation-id
+
+### Path Employee
+PATCH {{host}}/api/employees/{id}
+x-correlation-id: 123-my-correlation-id
+
+### Delete Employee
+DELETE {{host}}/api/employees/{id}
+x-correlation-id: 123-my-correlation-id
+
+
+### Employee Verification scenario with service bus
+POST {{host}}/api/employee/verify
+Content-Type: application/json
+x-correlation-id: 123-my-correlation-id
+
+{
+    "name": "John",
+    "age": 27,
+    "gender": "male"
+}
