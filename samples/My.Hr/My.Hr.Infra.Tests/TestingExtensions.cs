@@ -13,7 +13,7 @@ public static class TestingExtensions
     {
         if (outputObj is Output<T> output)
         {
-           return output.GetValueAsync();
+            return output.GetValueAsync();
         }
 
         return Task.FromException<T>(new ArgumentException("Provided object is not Output<T>", nameof(outputObj)));

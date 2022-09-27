@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using My.Hr.Infra.Services;
 using Pulumi;
@@ -9,12 +10,16 @@ namespace My.Hr.Infra;
 
 public static class CoreExStack
 {
-    public static async Task<IDictionary<string, object?>> ExecuteStackAsync(IDbOperations dbOperations)
+    public static async Task<IDictionary<string, object?>> ExecuteStackAsync(IDbOperations dbOperations, HttpClient client)
     {
         var config = await StackConfiguration.CreateConfiguration();
         Log.Info("Configuration completed");
 
         var tags = new InputMap<string> { { "App", "CoreEx" } };
+
+        // Create Azure API client for direct HTTP calls
+        var azureApiClient = new AzureApiClient(client);
+        var azureApiService = new AzureApiService(azureApiClient);
 
         // Create an Azure Resource Group
         var resourceGroup = new ResourceGroup($"coreEx-{Pulumi.Deployment.Instance.StackName}", new ResourceGroupArgs
@@ -50,7 +55,7 @@ public static class CoreExStack
             SqlAdAdminPassword = config.SqlAdAdminPassword!,
             IsDBSchemaDeploymentEnabled = config.IsDBSchemaDeploymentEnabled,
             Tags = tags
-        }, dbOperations);
+        }, dbOperations, azureApiClient);
 
         var apps = new Components.Apps("apps", new Components.Apps.FunctionArgs
         {
@@ -65,7 +70,7 @@ public static class CoreExStack
             MassPublishQueue = config.MassPublishQueue,
             IsAppDeploymentEnabled = config.IsAppsDeploymentEnabled,
             Tags = tags
-        });
+        }, azureApiService);
 
         // Permissions for function app
         storage.AddAccess(apps.FunctionPrincipalId, "functionApp");

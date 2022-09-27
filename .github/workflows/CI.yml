@@ -8,11 +8,37 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    # ubuntu-18.04 # cosmos emulator doesn't work on ubuntu 20 and 22: https://github.com/Qayme/qayme-action-cosmosdb-emulator
+
+    services:
+      # cosmos: # tests fail when cosmos has less than 4 CPUs assigned, but github free runners have only 2
+      #   image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+      #   ports:
+      #     - 8081:8081
+      #     - 10251:10251
+      #     - 10252:10252
+      #     - 10253:10253
+      #     - 10254:10254
+      #   env:
+      #     AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 20
+      #     AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
+      #   options: -m 4g --cpus=2.0
+      
+      sql:
+       image: mcr.microsoft.com/mssql/server
+       ports:
+         - 1433:1433
+       env:
+         ACCEPT_EULA: Y
+         SA_PASSWORD: sAPWD23.^0
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Set EnvVar for Test
+      run: |
+        echo "ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
@@ -26,25 +52,16 @@ jobs:
       
     - name: Build
       run: dotnet build --no-restore
-
-    - name: Pull SqlServer
-      run: docker pull mcr.microsoft.com/mssql/server
-      
-    - name: Start SqlServer
-      run: docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sAPWD23.^0" --name sqlserver -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-      
-    - name: Sleep (allow SqlServer to complete startup)
-      run: sleep 10
-
-    - name: Set EnvVar for Test
-      run: |
-        echo "ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
-
+ 
     - name: Test
       run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
 
     - name: Test With DB
-      run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
+      run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
+
+    - name: Test With Cosmos DB TestCategory=WithCosmos
+      run: dotnet test --filter Category=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
+      if: ${{ false }}
 
     - name: Test Docker Build
       run: docker-compose -f docker-compose.myHr.yml -f docker-compose.myHr.override.yml build --build-arg LOCAL=true

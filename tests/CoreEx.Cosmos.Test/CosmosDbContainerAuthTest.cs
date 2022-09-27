@@ -43,7 +43,7 @@
             Assert.That(v, Is.Not.Null);
             Assert.That(v.Id, Is.EqualTo(1.ToGuid().ToString()));
 
-            Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons2.GetAsync(2.ToGuid().ToString()));
+           Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons2.GetAsync(2.ToGuid().ToString()));
         }
 
         [Test]
@@ -123,7 +123,7 @@
 
             v.Locked = false;
             await _db.Persons1.UpdateAsync(v);
-        }   
+        }
 
         [Test]
         public async Task Update2Async()
