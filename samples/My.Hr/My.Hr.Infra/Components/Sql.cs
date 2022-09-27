@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Net.Http;
 using My.Hr.Infra.Services;
 using Pulumi;
 using Pulumi.AzureNative.Sql;
@@ -18,7 +17,7 @@ public class Sql : ComponentResource
     public Output<string> SqlServerName { get; }
     public Output<string> SqlDatabaseAuthorizedGroupId { get; }
 
-    public Sql(string name, SqlArgs args, IDbOperations dbOperations, ComponentResourceOptions? options = null)
+    public Sql(string name, SqlArgs args, IDbOperations dbOperations, AzureApiClient apiClient, ComponentResourceOptions? options = null)
          : base("coreexinfra:web:sql", name, options)
     {
         this.args = args;
@@ -44,7 +43,7 @@ public class Sql : ComponentResource
             Tags = args.Tags
         }, new CustomResourceOptions { Parent = this });
 
-        var publicIp = Output.Create(new HttpClient().GetStringAsync("https://api.ipify.org"));
+        var publicIp = Output.Create(apiClient.GetMyIP());
 
         var enableLocalMachine = new FirewallRule("AllowLocalMachine", new FirewallRuleArgs
         {
