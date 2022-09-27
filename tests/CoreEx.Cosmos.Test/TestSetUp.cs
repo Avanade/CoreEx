@@ -1,7 +1,7 @@
-﻿using CoreEx.Mapping;
-using CoreEx.Cosmos.Batch;
-using AzCosmos = Microsoft.Azure.Cosmos;
+﻿using CoreEx.Cosmos.Batch;
 using CoreEx.Json.Data;
+using CoreEx.Mapping;
+using AzCosmos = Microsoft.Azure.Cosmos;
 
 namespace CoreEx.Cosmos.Test
 {
@@ -15,11 +15,33 @@ namespace CoreEx.Cosmos.Test
 
         public static async Task SetUpAsync(string partitionKeyPath = "/_partitionKey", string valuePartitionKeyPath = "/_partitionKey")
         {
-            var cco = new AzCosmos.CosmosClientOptions { SerializerOptions = new AzCosmos.CosmosSerializationOptions { PropertyNamingPolicy = AzCosmos.CosmosPropertyNamingPolicy.CamelCase, IgnoreNullValues = true } };
-            CosmosClient = new AzCosmos.CosmosClient("https://localhost:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
+            CoreEx.Cosmos.Batch.CosmosDbBatch.SequentialExecution = true;
+
+            //cleanup if client was already created ??
+            CosmosClient?.Dispose();
+
+            var cco = new AzCosmos.CosmosClientOptions
+            {
+                SerializerOptions = new AzCosmos.CosmosSerializationOptions { PropertyNamingPolicy = AzCosmos.CosmosPropertyNamingPolicy.CamelCase, IgnoreNullValues = true },
+                // https://docs.microsoft.com/en-us/azure/cosmos-db/linux-emulator?tabs=sql-api%2Cssl-netstd21#my-app-cant-connect-to-emulator-endpoint-the-tlsssl-connection-couldnt-be-established-or-i-cant-start-the-data-explorer
+                HttpClientFactory = () =>
+                {
+                    HttpMessageHandler httpMessageHandler = new HttpClientHandler()
+                    {
+                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                    };
+
+                    return new HttpClient(httpMessageHandler);
+                },
+                ConnectionMode = AzCosmos.ConnectionMode.Gateway,
+                RequestTimeout = TimeSpan.FromMinutes(3)
+            };
+
+            CosmosClient = new AzCosmos.CosmosClient("https://cosmos:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
+
             CosmosDatabase = (await CosmosClient.CreateDatabaseIfNotExistsAsync("CoreEx.Cosmos.Test").ConfigureAwait(false)).Database;
 
-            Mapper = new AutoMapperWrapper(new AutoMapper.Mapper(new AutoMapper.MapperConfiguration(c =>
+            Mapper ??= new AutoMapperWrapper(new AutoMapper.Mapper(new AutoMapper.MapperConfiguration(c =>
             {
                 c.AddProfile<AutoMapperProfile>();
                 c.CreateMap<Person1, Person1>();
