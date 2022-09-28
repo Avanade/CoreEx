@@ -1,0 +1,58 @@
+variables:
+- name: vmImageName
+  value: 'windows-latest'
+
+# Explicitly set none for repository trigger
+trigger:
+- none
+
+resources:
+  pipelines:
+  - pipeline: 'D365-Employee'  # Name of the pipeline resource
+    source: 'D365-Employee' # Name of the triggering pipeline
+    trigger: 
+      branches:
+      - develop
+      - test
+      - preprod
+      - main
+
+stages:
+- stage: Dev
+  jobs:
+    - template: app-template.yml
+      parameters:
+        AzureSubscription: rg-priv-inte-dev-nte-na-01
+        env: dev
+        ado_environment: development
+        AppSrvName: appsvc-priv-inte-dataload-dev-nte-na-01
+
+- stage: Test
+  condition: or(eq(variables['resources.pipeline.D365-Employee.sourceBranch'], 'refs/heads/test'), eq(variables['resources.pipeline.D365-Employee.sourceBranch'], 'refs/heads/preprod'), eq(variables['resources.pipeline.D365-Employee.sourceBranch'], 'refs/heads/main'))
+  jobs:
+    - template: app-template.yml
+      parameters:
+        AzureSubscription: rg-priv-inte-test-nte-na-01
+        env: test
+        ado_environment: D365-test
+        AppSrvName: appsvc-priv-inte-dataload-test-nte-na-01
+
+- stage: PreProd
+  condition: or(eq(variables['resources.pipeline.D365-Employee.sourceBranch'], 'refs/heads/preprod'), eq(variables['resources.pipeline.D365-Employee.sourceBranch'], 'refs/heads/main'))
+  jobs:
+    - template: app-template.yml
+      parameters:
+        AzureSubscription: rg-priv-inte-preprod-nte-na-01
+        env: preprod
+        ado_environment: D365-preprod
+        AppSrvName: appsvc-priv-inte-dataload-preprod-nte-na-01
+
+- stage: Prod
+  condition: eq(variables['resources.pipeline.D365-Employee.sourceBranch'], 'refs/heads/main')
+  jobs:
+    - template: app-template.yml
+      parameters:
+        AzureSubscription: rg-priv-inte-prod-nte-na-01
+        env: prod
+        ado_environment: D365-prod
+        AppSrvName: appsvcpl-priv-inte-prod-nte-na-01

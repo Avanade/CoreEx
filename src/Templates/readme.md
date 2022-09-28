@@ -29,7 +29,7 @@ Extensions required:
 Expose ports for function, app service and sql server
 --> DONE
 
-## Update readme to use REST Client -> IN PROGRESS
+## Update readme to use REST Client -> DONE
         Create: [POST] http://localhost:7071/api/api/employees
 
         Delete: [DELETE] http://localhost:7071/api/api/employees/{id}

@@ -49,6 +49,7 @@ Content-Type: application/json
 PUT {{host}}/api/employees/3fa85f64-5717-4562-b3fc-2c963f66afa6
 x-correlation-id: 123-my-correlation-id-update
 Content-Type: application/json
+If-Match: AAAAAAAACBg=
 
 {
   "email": "alice@alice.com",

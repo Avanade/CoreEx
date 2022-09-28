@@ -45,10 +45,10 @@ Content-Type: application/json
 }
 
 ### Update Employee
-# todo: this fails with The database operation was expected to affect 1 row(s), but actually affected 0 row(s); data may have been modified or deleted since entities were loaded
 PUT {{host}}/api/employees/3fa85f64-5717-4562-b3fc-2c963f66afa6
 x-correlation-id: 123-my-correlation-id-update
 Content-Type: application/json
+If-Match: AAAAAAAACBg=
 
 {
   "email": "alice@alice.com",

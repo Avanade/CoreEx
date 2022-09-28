@@ -1,0 +1,69 @@
+name: D365-Apps-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+- name: vmImageName
+  value: 'windows-latest'
+
+# Explicitly set none for repository trigger
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: 'D365-Apps'  # Name of the pipeline resource
+    source: 'D365-Apps' # Name of the triggering pipeline
+    trigger: 
+      branches:
+      - develop
+      - test
+      - preprod
+      - main
+
+# Note: Azure Service connection passed as param due to: https://developercommunity.visualstudio.com/t/using-a-variable-for-the-service-connection-result/676259
+
+stages:
+- stage: Dev
+  jobs:
+    - template: function-template.yml
+      parameters:
+        AzureSubscription: rg-priv-inte-dev-nte-na-01
+        env: dev
+        ado_environment: development
+        FunctionAppName: fnc-priv-inte-dev-nte-na-34
+        MovementJournalQueueName: d365-apps-movementjournal
+        GoogleInventoryFullFeedTimer: 0 */10 * * * *
+
+- stage: Test
+  condition: or(eq(variables['resources.pipeline.D365-Apps.sourceBranch'], 'refs/heads/test'), eq(variables['resources.pipeline.D365-Apps.sourceBranch'], 'refs/heads/preprod'), eq(variables['resources.pipeline.D365-Apps.sourceBranch'], 'refs/heads/main'))
+  jobs:
+    - template: function-template.yml
+      parameters:
+        AzureSubscription: rg-priv-inte-test-nte-na-01
+        env: test
+        ado_environment: D365-test
+        FunctionAppName: fnc-priv-inte-test-nte-na-34
+        MovementJournalQueueName: d365-apps-movementjournal
+        GoogleInventoryFullFeedTimer: 0 0 * * * *
+
+- stage: Preprod
+  condition: or(eq(variables['resources.pipeline.D365-Apps.sourceBranch'], 'refs/heads/preprod'), eq(variables['resources.pipeline.D365-Apps.sourceBranch'], 'refs/heads/main'))
+  jobs:
+    - template: function-template.yml
+      parameters:
+        env: preprod
+        AzureSubscription: rg-priv-inte-preprod-nte-na-01
+        ado_environment: D365-preprod
+        FunctionAppName: fnc-priv-inte-preprod-nte-na-34
+        MovementJournalQueueName: d365-apps-movementjournal
+        GoogleInventoryFullFeedTimer: 0 0 * * * *
+
+- stage: Prod
+  condition: eq(variables['resources.pipeline.D365-Apps.sourceBranch'], 'refs/heads/main')
+  jobs:
+    - template: function-template.yml
+      parameters:
+        env: prod
+        AzureSubscription: rg-priv-inte-prod-nte-na-01
+        ado_environment: D365-prod
+        FunctionAppName: fnc-priv-inte-prod-nte-na-34
+        MovementJournalQueueName: d365-apps-movementjournal
+        GoogleInventoryFullFeedTimer: 0 0 0 * * *
