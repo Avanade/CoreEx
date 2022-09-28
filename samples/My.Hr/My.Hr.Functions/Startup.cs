@@ -69,7 +69,7 @@ public class Startup : FunctionsStartup
 
             // Database
             builder.Services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()));
-            builder.Services.AddDbContext<AppNameDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
+            builder.Services.AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()));
         }
         catch (System.Exception ex)
         {
