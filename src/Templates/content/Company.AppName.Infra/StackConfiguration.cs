@@ -28,7 +28,7 @@ public class StackConfiguration
 
         // get some info from Azure AD
         var domainResult = await AD.GetDomains.InvokeAsync(new AD.GetDomainsArgs { OnlyDefault = true });
-        var defaultUsername = $"sqlGlobalAdAdmin{Pulumi.Deployment.Instance.StackName}@{domainResult.Domains[0].DomainName}";
+        var defaultUsername = $"sqlGlobalAdAdminCompanyAppName{Pulumi.Deployment.Instance.StackName}@{domainResult.Domains[0].DomainName}";
         var defaultPassword = new Pulumi.Random.RandomPassword("sqlAdPassword", new()
         {
             Length = 32,
@@ -43,7 +43,6 @@ public class StackConfiguration
         }).Result;
 
         Log.Info($"Default username is: {defaultUsername}");
-        Log.Info($"developerEmails: {config.Get("developerEmails")}");
 
         return new StackConfiguration
         {

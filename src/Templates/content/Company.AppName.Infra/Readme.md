@@ -21,10 +21,11 @@ Pulumi can be used without Pulumi Account, by using [Azure Storage as backend](h
 
 ## Configuring Pulumi (optional)
 
-Infrastructure project has only 2 settings:
+Infrastructure project has only few settings:
 
 * `Company.AppName.Infra:isAppsDeploymentEnabled` for controlling application deployment via zip deploy
 * `Company.AppName.Infra:isDBSchemaDeploymentEnabled` for publishing Database schema and data
+* `Company.AppName.Infra:developerEmails` comma separated list of developer team emails that will get access to created resources
 
 > When `isAppsDeploymentEnabled` flag is set, pulumi code executes `dotnet publish -c RELEASE` to create app packages.
 
@@ -41,7 +42,30 @@ config:
   azure-native:location: EastUs
   Company.AppName.Infra:isAppsDeploymentEnabled: true
   Company.AppName.Infra:isDBSchemaDeploymentEnabled: true
+  Company.AppName.Infra:developerEmails: "bob@mycustomad.onmicrosoft.com, alice@mycustomad.onmicrosoft.com"
 ```
+
+### Note on best practices
+
+Infrastructure project has built-in ability to deploy application code and database schema, in real-life scenarios those operations should be separated out. Code will most likely be deployed more often than infrastructure piece, with additional options for tagging, versioning etc.
+
+It's also important to keep infrastructure project up to date and deploy it often. Pulumi state change analysis is quick and should not add a lot to deployment time.
+
+## Infrastructure deployed
+
+Pulumi creates full stack infrastructure designed for production. Resources deployed include:
+
+* Storage account with RBAC enabled for app service and function app managed identities
+* App Service Plan
+* Log analytics workspace and Application Insights
+* SQL Server with SQL Database enabled for Azure AD access with permissions setup for app service and function app managed identities
+* Service Bus with queues and topics and permissions setup for app service and function app managed identities
+* Function App and App Service
+* Azure AD group for developer access
+
+> **Considerations for enhancing security pasture**
+>
+> Networking stack can be enhanced with private networking capabilities - private endpoints, service endpoints. Tunneling traffic via API Management with WAF, cross region replication and more.
 
 ## Deploy with Pulumi
 

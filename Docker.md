@@ -23,6 +23,14 @@ services:
 
 Service Bus should have `pendingverifications` queue used by *My.Hr* sample.
 
+## Running SQL database only
+
+It's possible to run only DB container for local development with
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.DB.only.yml up
+```
+
 ## To build
 
 ```bash
