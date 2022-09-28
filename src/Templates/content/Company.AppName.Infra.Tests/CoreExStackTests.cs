@@ -9,7 +9,7 @@ public class CoreExStackTests
     [Test]
     public async Task ResourceGroupHasNameTag()
     {
-        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
+        var (resources, _, _) = await Testing.RunAsync();
 
         var rgs = resources.OfType<ResourceGroup>();
         var rg = rgs.First();
@@ -46,25 +46,25 @@ public class CoreExStackTests
     [Test]
     public async Task FunctionIsCreatedWithAUrl()
     {
-        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
+        var (_, outputs, _) = await Testing.RunAsync();
 
         var healthUrl = await outputs["FunctionHealthUrl"]!.GetValueAsync<string>();
         var appSwaggerUrl = await outputs["AppSwaggerUrl"]!.GetValueAsync<string>();
 
         // Assert
-        healthUrl.Should().Be("https://unittest.azurewebsites.net/api/health?code=key", because: "mock values set in Testing class");
+        healthUrl.Should().Be("https://unittest.azurewebsites.net/api/health?code=mocked-key", because: "mock values set in Testing class");
         appSwaggerUrl.Should().Be("https://unittest.azurewebsites.net/swagger/index.html", because: "mock values set in Testing class");
     }
 
     [Test]
     public async Task SqlIsCreatedWithConnectionString()
     {
-        var (resources, outputs, dbOperationsMock) = await Testing.RunAsync();
+        var (_, outputs, _) = await Testing.RunAsync();
 
         var connectionString = await outputs["SqlDatabaseConnectionString"]!.GetValueAsync<string>();
 
         // Assert
-        connectionString.Should().Be("Server=sql-server-stack.database.windows.net; Authentication=Active Directory Default; Database=sqldb", because: "mock values set in Testing class");
+        connectionString.Should().Be("Server=sql-server-unit-test-stack.database.windows.net; Authentication=Active Directory Default; Database=sqldb", because: "mock values set in Testing class");
     }
 
     [Test]

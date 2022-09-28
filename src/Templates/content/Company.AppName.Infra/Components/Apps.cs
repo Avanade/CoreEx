@@ -1,7 +1,8 @@
 using System;
 using System.Diagnostics;
-using System.Net.Http;
+using System.IO;
 using System.Threading.Tasks;
+using Company.AppName.Infra.Services;
 using Pulumi;
 using Pulumi.AzureNative.Storage;
 using Pulumi.AzureNative.Web;
@@ -22,8 +23,8 @@ public class Apps : ComponentResource
     public Output<string> FunctionOutboundIps { get; } = default!;
     public Output<string> AppOutboundIps { get; } = default!;
 
-    public Apps(string name, FunctionArgs args, ComponentResourceOptions? options = null)
-        : base("coreexinfra:web:apps", name, options)
+    public Apps(string name, FunctionArgs args, AzureApiService azureApiService, ComponentResourceOptions? options = null)
+        : base("Company:AppName:web:apps", name, options)
     {
         this.args = args;
 
@@ -221,38 +222,13 @@ public class Apps : ComponentResource
         FunctionOutboundIps = functionApp.OutboundIpAddresses;
         AppOutboundIps = app.OutboundIpAddresses;
 
-        // sleep 10s because Azure... List Host Keys method sometimes fails with HTTP 400, re-running stack fixes it.
-        if (!Deployment.Instance.IsDryRun)
-        {
-            Log.Info("Waiting 10s before calling function to get host keys");
-            System.Threading.Thread.Sleep(10000);
-        }
+        var functionKey = Output.CreateSecret(azureApiService.GetHostKeys(args.ResourceGroupName, functionApp.Name));
 
-        var keys = Output.CreateSecret(ListWebAppHostKeys.Invoke(new ListWebAppHostKeysInvokeArgs
-        {
-            Name = functionApp.Name,
-            ResourceGroupName = args.ResourceGroupName
-        }, new InvokeOptions { Parent = functionApp }));
+        // sync function app service triggers
+        azureApiService.SyncFunctionAppTriggers(args.ResourceGroupName, functionApp.Name);
 
-        Output.Tuple(args.IsAppDeploymentEnabled.ToOutput(), functionApp.DefaultHostName, keys)
-            .Apply(t =>
-            {
-                var (isAppDeploymentEnabled, defaultHostName, keys) = t;
-
-                if (isAppDeploymentEnabled)
-                {
-                    Log.Info("Syncing triggers for azure function");
-                    var syncUrl = $"https://{defaultHostName}/admin/host/synctriggers?code={keys.MasterKey}";
-
-                    using var httpClient = new HttpClient();
-                    return httpClient.PostAsync(syncUrl, null);
-                }
-
-                return Task.FromResult<HttpResponseMessage>(default!);
-            });
-
-        FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={keys.Apply(k => k.MasterKey)}");
-        FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={keys.Apply(k => k.MasterKey)}");
+        FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={functionKey}");
+        FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={functionKey}");
         AppSwaggerUrl = Output.Format($"https://{app.DefaultHostName}/swagger/index.html");
 
         RegisterOutputs();
@@ -260,6 +236,13 @@ public class Apps : ComponentResource
 
     private static async Task PublishApp()
     {
+        if (Deployment.Instance.IsDryRun)
+        {
+            Directory.CreateDirectory("../Company.AppName.Api/bin/Release/net6.0/publish");
+            Directory.CreateDirectory("../Company.AppName.Functions/bin/Release/net6.0/publish");
+            return;
+        }
+
         Log.Info("Setting up deployments from zip for the app and function and executing [dotnet publish]");
 
         var sw = Stopwatch.StartNew();

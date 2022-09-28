@@ -15,7 +15,7 @@ public class Messaging : ComponentResource
     public Output<string> NamespaceId { get; } = default!;
 
     public Messaging(string name, MessagingArgs args, ComponentResourceOptions? options = null)
-        : base("coreexinfra:web:messaging", name, options)
+        : base("Company:AppName:web:messaging", name, options)
     {
         this.args = args;
         this.name = name;
@@ -50,7 +50,7 @@ public class Messaging : ComponentResource
         }, new CustomResourceOptions { Parent = this });
     }
 
-    public IEnumerable<RoleAssignment> AddAccess(Input<string> principalId, string name)
+    public IEnumerable<RoleAssignment> AddAccess(Input<string> principalId, string name, string principalType = "ServicePrincipal")
     {
         var receive_permission = new RoleAssignment(
         $"receive-for-{name}",
@@ -58,7 +58,7 @@ public class Messaging : ComponentResource
             {
                 Description = $"{name} receiving data from service bus",
                 PrincipalId = principalId,
-                PrincipalType = "ServicePrincipal",
+                PrincipalType = principalType,
                 RoleDefinitionId = Roles.BuiltInRolesIds.ServiceBusDataReceiver,
                 Scope = NamespaceId
             },
@@ -71,7 +71,7 @@ public class Messaging : ComponentResource
             {
                 Description = $"{name} sending data to service bus",
                 PrincipalId = principalId,
-                PrincipalType = "ServicePrincipal",
+                PrincipalType = principalType,
 
                 RoleDefinitionId = Roles.BuiltInRolesIds.ServiceBusDataSender,
                 Scope = NamespaceId

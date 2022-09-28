@@ -2,7 +2,7 @@
 
 namespace Company.AppName.Business.Models;
 
-public class Gender : ReferenceDataBase<Guid, Gender> 
+public class Gender : ReferenceDataBase<Guid, Gender>
 {
     public static implicit operator Gender?(string? code) => ConvertFromCode(code);
 }

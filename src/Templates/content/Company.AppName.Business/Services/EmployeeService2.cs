@@ -18,7 +18,7 @@ public class EmployeeService2 : IEmployeeService
 
     public Task<Employee?> GetEmployeeAsync(Guid id) => _efDb.Employees.GetAsync(id);
 
-    public Task<EmployeeCollectionResult> GetAllAsync(PagingArgs? paging) 
+    public Task<EmployeeCollectionResult> GetAllAsync(PagingArgs? paging)
         => _efDb.Employees.Query(q => q.OrderBy(x => x.LastName).ThenBy(x => x.FirstName)).WithPaging(paging).SelectResultAsync<EmployeeCollectionResult, EmployeeCollection>();
 
     public Task<Employee> AddEmployeeAsync(Employee employee) => _efDb.Employees.CreateAsync(employee);

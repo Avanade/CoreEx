@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Net.Http;
+using System.Collections.Concurrent;
 using Company.AppName.Infra.Services;
 using Pulumi;
 using Pulumi.AzureNative.Sql;
@@ -12,14 +11,14 @@ namespace Company.AppName.Infra.Components;
 public class Sql : ComponentResource
 {
     private readonly SqlArgs args;
-    private readonly HashSet<string> firewallAllowedIps = new();
+    private readonly ConcurrentDictionary<string, bool> firewallAllowedIps = new();
 
     public Output<string> SqlDatabaseConnectionString { get; }
     public Output<string> SqlServerName { get; }
     public Output<string> SqlDatabaseAuthorizedGroupId { get; }
 
-    public Sql(string name, SqlArgs args, IDbOperations dbOperations, ComponentResourceOptions? options = null)
-         : base("coreexinfra:web:sql", name, options)
+    public Sql(string name, SqlArgs args, IDbOperations dbOperations, AzureApiClient apiClient, ComponentResourceOptions? options = null)
+         : base("Company:AppName:web:sql", name, options)
     {
         this.args = args;
         var sqlAdAdmin = new AD.User("sqlAdmin", new AD.UserArgs
@@ -44,7 +43,7 @@ public class Sql : ComponentResource
             Tags = args.Tags
         }, new CustomResourceOptions { Parent = this });
 
-        var publicIp = Output.Create(new HttpClient().GetStringAsync("https://api.ipify.org"));
+        var publicIp = Output.Create(apiClient.GetMyIP());
 
         var enableLocalMachine = new FirewallRule("AllowLocalMachine", new FirewallRuleArgs
         {
@@ -103,10 +102,8 @@ public class Sql : ComponentResource
         {
             foreach (var address in ips.Split(","))
             {
-                if (!firewallAllowedIps.Contains(address))
+                if (firewallAllowedIps.TryAdd(address, default))
                 {
-                    firewallAllowedIps.Add(address);
-
                     var enableIp = new FirewallRule("Enable_" + name + "_" + address, new FirewallRuleArgs
                     {
                         ResourceGroupName = args.ResourceGroupName,

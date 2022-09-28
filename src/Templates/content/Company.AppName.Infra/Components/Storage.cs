@@ -17,7 +17,7 @@ public class Storage : ComponentResource
     public Output<string> ConnectionString { get; private set; } = default!;
 
     public Storage(string name, StorageArgs args, ComponentResourceOptions? options = null)
-        : base("coreexinfra:web:storage", name, options)
+        : base("Company:AppName:web:storage", name, options)
     {
         // Create an Azure resource (Storage Account)
         var storageAccount = new StorageAccount(name, new StorageAccountArgs
@@ -69,7 +69,7 @@ public class Storage : ComponentResource
              });
     }
 
-    public RoleAssignment AddAccess(Input<string> principalId, string name)
+    public RoleAssignment AddAccess(Input<string> principalId, string name, string principalType = "ServicePrincipal")
     {
         return new RoleAssignment(
         $"useblob-for-{name}",
@@ -77,7 +77,7 @@ public class Storage : ComponentResource
             {
                 Description = $"{name} accessing storage account",
                 PrincipalId = principalId,
-                PrincipalType = "ServicePrincipal",
+                PrincipalType = principalType,
                 RoleDefinitionId = Roles.BuiltInRolesIds.StorageBlobDataOwner,
                 Scope = id
             },

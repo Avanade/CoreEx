@@ -7,7 +7,9 @@ The easiest way to deploy it is by using Pulumi account (Free), but it's not man
 Prerequisites:
 
 1. [Pulumi CLI](https://www.pulumi.com/docs/get-started/install/)
-2. Azure CLI - logged in to Azure
+2. Azure CLI - logged in to Azure subscription with permissions to create service principals
+
+> Note: Some corporate AAD restrict what can be done in AAD. Since this sample creates AAD User and Group, infrastructure needs to be created in AAD tenant that allows it.
 
 ## Pulumi with azure storage
 

@@ -1,19 +1,25 @@
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Company.AppName.Infra.Services;
 using Pulumi;
 using Pulumi.AzureNative.Resources;
+using AD = Pulumi.AzureAD;
 
 namespace Company.AppName.Infra;
 
 public static class CoreExStack
 {
-    public static async Task<IDictionary<string, object?>> ExecuteStackAsync(IDbOperations dbOperations)
+    public static async Task<IDictionary<string, object?>> ExecuteStackAsync(IDbOperations dbOperations, HttpClient client)
     {
         var config = await StackConfiguration.CreateConfiguration();
         Log.Info("Configuration completed");
 
         var tags = new InputMap<string> { { "App", "CoreEx" } };
+
+        // Create Azure API client for direct HTTP calls
+        var azureApiClient = new AzureApiClient(client);
+        var azureApiService = new AzureApiService(azureApiClient);
 
         // Create an Azure Resource Group
         var resourceGroup = new ResourceGroup($"coreEx-{Pulumi.Deployment.Instance.StackName}", new ResourceGroupArgs
@@ -49,7 +55,7 @@ public static class CoreExStack
             SqlAdAdminPassword = config.SqlAdAdminPassword!,
             IsDBSchemaDeploymentEnabled = config.IsDBSchemaDeploymentEnabled,
             Tags = tags
-        }, dbOperations);
+        }, dbOperations, azureApiClient);
 
         var apps = new Components.Apps("apps", new Components.Apps.FunctionArgs
         {
@@ -64,9 +70,10 @@ public static class CoreExStack
             MassPublishQueue = config.MassPublishQueue,
             IsAppDeploymentEnabled = config.IsAppsDeploymentEnabled,
             Tags = tags
-        });
+        }, azureApiService);
 
-
+        // Developer group
+        var devSetup = new Components.DevSetup("devs", config.DeveloperEmails);
 
         // Permissions for function app
         storage.AddAccess(apps.FunctionPrincipalId, "functionApp");
@@ -76,9 +83,16 @@ public static class CoreExStack
         storage.AddAccess(apps.AppPrincipalId, "appService");
         serviceBus.AddAccess(apps.AppPrincipalId, "appService");
 
+        // Permissions for dev group
+        storage.AddAccess(devSetup.DevelopersGroupId, "devGroup", principalType: "Group");
+        serviceBus.AddAccess(devSetup.DevelopersGroupId, "devGroup", principalType: "Group");
+
         // allow app and function to query/use DB
         sql.AddToSqlDatabaseAuthorizedGroup("functionGroupMember", apps.FunctionPrincipalId);
         sql.AddToSqlDatabaseAuthorizedGroup("appGroupMember", apps.AppPrincipalId);
+
+        // allow dev team to query/use DB
+        sql.AddToSqlDatabaseAuthorizedGroup("devGroupMember", devSetup.DevelopersGroupId);
 
         // allow app and function through SQL firewall
         sql.AddFirewallRule(apps.FunctionOutboundIps, "appService");

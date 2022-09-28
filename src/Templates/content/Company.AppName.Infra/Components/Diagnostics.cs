@@ -9,7 +9,7 @@ public class Diagnostics : ComponentResource
     public Output<string> InstrumentationKey { get; } = default!;
 
     public Diagnostics(string name, DiagnosticsArgs args, ComponentResourceOptions? options = null)
-         : base("coreexinfra:web:diagnostics", name, options)
+         : base("Company:AppName:web:diagnostics", name, options)
     {
         // Log Analytics Workspace
         var workspace = new Workspace("workspace", new()

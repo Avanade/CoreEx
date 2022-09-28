@@ -27,8 +27,9 @@ Extensions required:
 --> DONE
 
 Expose ports for function, app service and sql server
+--> DONE
 
-## Update readme to use REST Client
+## Update readme to use REST Client -> IN PROGRESS
         Create: [POST] http://localhost:7071/api/api/employees
 
         Delete: [DELETE] http://localhost:7071/api/api/employees/{id}
@@ -60,3 +61,8 @@ DONE
 ## Readme on configuring ADO
 
 https://github.com/Azure-Samples/todo-csharp-sql/tree/main/.azdo/pipelines
+
+## Readme on running the DB container locally
+
+## Cosmos Tests
+todo: update cosmos tests with env variable

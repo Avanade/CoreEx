@@ -13,6 +13,7 @@ COPY "Company.AppName.Api/Company.AppName.Api.csproj" "Company.AppName.Api/Compa
 COPY "Company.AppName.Business/Company.AppName.Business.csproj" "Company.AppName.Business/Company.AppName.Business.csproj"
 COPY "Company.AppName.Database/Company.AppName.Database.csproj" "Company.AppName.Database/Company.AppName.Database.csproj"
 COPY "Company.AppName.Functions/Company.AppName.Functions.csproj" "Company.AppName.Functions/Company.AppName.Functions.csproj"
+COPY "Company.AppName.UnitTest/Company.AppName.UnitTest.csproj" "Company.AppName.UnitTest/Company.AppName.UnitTest.csproj"
 COPY "Company.AppName.Infra/Company.AppName.Infra.csproj" "Company.AppName.Infra/Company.AppName.Infra.csproj"
 COPY "Company.AppName.Infra.Tests/Company.AppName.Infra.Tests.csproj" "Company.AppName.Infra.Tests/Company.AppName.Infra.Tests.csproj"
 

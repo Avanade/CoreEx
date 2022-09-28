@@ -43,6 +43,7 @@ public class StackConfiguration
         }).Result;
 
         Log.Info($"Default username is: {defaultUsername}");
+        Log.Info($"developerEmails: {config.Get("developerEmails")}");
 
         return new StackConfiguration
         {
@@ -55,7 +56,7 @@ public class StackConfiguration
             VerificationResultsQueue = config.Get("verificationResultsQueue") ?? "verificationResults",
             MassPublishQueue = config.Get("massPublishQueue") ?? "massPublish",
 
-            DeveloperEmails = config.Get("developerEmails")
-        };
+            DeveloperEmails = config.Get("developerEmails") ?? string.Empty
+    };
     }
 }
