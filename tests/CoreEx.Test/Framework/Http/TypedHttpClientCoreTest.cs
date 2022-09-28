@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Http;
@@ -460,6 +461,23 @@ namespace CoreEx.Test.Framework.Http
                 .Type<BackendHttpClient>()
                 .Run(f => f.WithRetry().ThrowTransientException().PostAsync("test", new { ClassName = "Retry" } ))
                 .AssertException<TransientException>();
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public async Task TypedHttpClientInstance()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Get, "test").Respond.With("test-content");
+
+            var thc = mcf.GetHttpClient("Backend")!.CreateTypedClient(onBeforeRequest: (req, ct) => { req.Headers.MaxForwards = 88; return Task.CompletedTask; });
+            var res = await thc.GetAsync("test");
+
+            Assert.That(res, Is.Not.Null);
+            Assert.That(res.IsSuccess, Is.True);
+            Assert.That(res.Content, Is.EqualTo("test-content"));
 
             mcf.VerifyAll();
         }

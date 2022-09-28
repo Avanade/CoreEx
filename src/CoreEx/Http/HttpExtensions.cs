@@ -1,11 +1,14 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Json;
 using CoreEx.Validation;
 using CoreEx.WebApis;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
@@ -30,6 +33,20 @@ namespace CoreEx.Http
         /// Gets the standard invalid JSON message prefix.
         /// </summary>
         public const string InvalidJsonMessagePrefix = "Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted:";
+
+        /// <summary>
+        /// Creates a <see cref="TypedHttpClient"/> for the <paramref name="httpClient"/>.
+        /// </summary>
+        /// <param name="httpClient">The underlying <see cref="HttpClient"/>.</param>
+        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
+        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
+        /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
+        /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
+        /// <param name="onBeforeRequest">The optional <see cref="TypedHttpClientBase{TSelf}.OnBeforeRequest(HttpRequestMessage, CancellationToken)"/> function. Defaults to <c>null</c>.</param>
+        /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defauls.</remarks>
+        /// <returns>The <see cref="TypedHttpClient"/>.</returns>
+        public static TypedHttpClient CreateTypedClient(this HttpClient httpClient, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClient>? logger = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null)
+            => new(httpClient, jsonSerializer, executionContext, settings, logger, onBeforeRequest);
 
         /// <summary>
         /// Applies the <see cref="HttpRequestOptions"/> to the <see cref="HttpRequestMessage"/>.

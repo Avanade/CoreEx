@@ -45,14 +45,9 @@ namespace CoreEx.Test.Framework.Configuration
         }
 
         [Test]
-        public void CommonSettings_Should_ThrowException_When_ConfigurationNull()
+        public void CommonSettings_Should_Not_ThrowException_When_ConfigurationNull()
         {
-            // Arrange
-            // Act
-            Action act = () => new SettingsForTesting(null!);
-
-            // Assert
-            act.Should().Throw<ArgumentNullException>();
+            new SettingsForTesting(null!);
         }
 
         [Test]
