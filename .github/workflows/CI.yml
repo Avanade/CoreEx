@@ -70,4 +70,4 @@ jobs:
       run: dotnet build src/Templates/content
 
     - name: Test Template
-      run: dotnet test src/Templates/content --filter Category=!WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info   
+      run: dotnet test src/Templates/content --filter Category!=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info   
