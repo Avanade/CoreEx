@@ -18,5 +18,14 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/> to support fluent-style method-chaining.</returns>
         public static IServiceCollection AddDatabase(this IServiceCollection services, Func<IServiceProvider, IDatabase> create)
             => services.AddScoped(sp => create(sp) ?? throw new InvalidOperationException($"An {nameof(IDatabase)} instance must be instantiated."));
+
+        /// <summary>
+        /// Adds an <see cref="IDatabase"/> as a scoped service.
+        /// </summary>
+        /// <typeparam name="TDb">The <see cref="IDatabase"/> <see cref="Type"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> to support fluent-style method-chaining.</returns>
+        public static IServiceCollection AddDatabase<TDb>(this IServiceCollection services) where TDb : class, IDatabase
+            => services.AddScoped<IDatabase, TDb>();
     }
 }

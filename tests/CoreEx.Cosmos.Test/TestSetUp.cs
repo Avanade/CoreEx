@@ -37,7 +37,9 @@ namespace CoreEx.Cosmos.Test
                 RequestTimeout = TimeSpan.FromMinutes(3)
             };
 
-            CosmosClient = new AzCosmos.CosmosClient("https://cosmos:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", cco);
+            var endpoint = Environment.GetEnvironmentVariable("CoreEx_Cosmos_Test_Endpoint") ?? "https://localhost:8081";
+            var token = Environment.GetEnvironmentVariable("CoreEx_Cosmos_Test_Token") ?? "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
+            CosmosClient = new AzCosmos.CosmosClient(endpoint, token, cco);
 
             CosmosDatabase = (await CosmosClient.CreateDatabaseIfNotExistsAsync("CoreEx.Cosmos.Test").ConfigureAwait(false)).Database;
 

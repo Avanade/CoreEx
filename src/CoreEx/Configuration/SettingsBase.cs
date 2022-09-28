@@ -28,7 +28,7 @@ namespace CoreEx.Configuration
         /// <param name="prefixes">The key prefixes to use in order of precedence, first through to last. At least one prefix must be specified.</param>
         public SettingsBase(IConfiguration? configuration, params string[] prefixes)
         {
-            Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            Configuration = configuration;
             Deployment = new DeploymentInfo(configuration);
 
             foreach (var prefix in prefixes ?? throw new ArgumentNullException(nameof(prefixes)))
