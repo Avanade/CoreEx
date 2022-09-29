@@ -57,7 +57,7 @@ public class Sql : ComponentResource
         {
             ResourceGroupName = args.ResourceGroupName,
             ServerName = sqlServer.Name,
-            DatabaseName = "CoreExDB",
+            DatabaseName = "CompanyAppNameDB",
             Sku = new SkuArgs
             {
                 Name = "Basic"

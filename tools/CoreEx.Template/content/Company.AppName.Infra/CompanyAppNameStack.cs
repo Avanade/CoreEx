@@ -8,26 +8,26 @@ using AD = Pulumi.AzureAD;
 
 namespace Company.AppName.Infra;
 
-public static class CoreExStack
+public static class CompanyAppNameStack
 {
     public static async Task<IDictionary<string, object?>> ExecuteStackAsync(IDbOperations dbOperations, HttpClient client)
     {
         var config = await StackConfiguration.CreateConfiguration();
         Log.Info("Configuration completed");
 
-        var tags = new InputMap<string> { { "App", "CoreEx" } };
+        var tags = new InputMap<string> { { "App", "Company-AppName" } };
 
         // Create Azure API client for direct HTTP calls
         var azureApiClient = new AzureApiClient(client);
         var azureApiService = new AzureApiService(azureApiClient);
 
         // Create an Azure Resource Group
-        var resourceGroup = new ResourceGroup($"coreEx-{Pulumi.Deployment.Instance.StackName}", new ResourceGroupArgs
+        var resourceGroup = new ResourceGroup($"Company-AppName-{Pulumi.Deployment.Instance.StackName}", new ResourceGroupArgs
         {
             Tags = tags
         });
 
-        var serviceBus = new Components.Messaging("coreExBus", new Components.Messaging.MessagingArgs
+        var serviceBus = new Components.Messaging("CompanyAppNameBus", new Components.Messaging.MessagingArgs
         {
             ResourceGroupName = resourceGroup.Name,
             Tags = tags

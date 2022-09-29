@@ -7,7 +7,7 @@ return await Deployment.RunAsync(() =>
     // running with using statement (to Dispose) doesn't work with Pulumi
     var client = new System.Net.Http.HttpClient();
     // create and use actual instance of DB Operations service
-    return Company.AppName.Infra.CoreExStack.ExecuteStackAsync(new DbOperations(), client);
+    return Company.AppName.Infra.CompanyAppNameStack.ExecuteStackAsync(new DbOperations(), client);
 }, new StackOptions
 {
     // apply auto-tagging transformation
