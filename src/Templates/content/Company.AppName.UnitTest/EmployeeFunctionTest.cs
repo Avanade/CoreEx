@@ -175,7 +175,7 @@ namespace Company.AppName.UnitTest
                 .Run(c => c.CreateAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "api/employees", e)))
                 .AssertCreated()
                 .Assert(e, "Id", "ETag")
-                .AssertLocationHeader<Employee>(v => new Uri($"api/employees/{v!.Id}", UriKind.Relative))
+                .AssertLocationHeader<Employee>(v => new Uri($"employees/{v!.Id}", UriKind.Relative))
                 .GetValue<Employee>();
 
             // Do a GET to make sure it is in the database and all fields equal.
