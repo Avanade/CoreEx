@@ -17,16 +17,16 @@ public static class Testing
         var mcf = MockHttpClientFactory.Create();
         var mc = mcf.CreateClient("azure");
 
-        mc.Request(HttpMethod.Post, $"https://management.azure.com/subscriptions/{SubscriptionId}/resourceGroups/coreEx-{StackName}/providers/Microsoft.Web/sites/funApp/host/default/listkeys?api-version=2022-03-01")
+        mc.Request(HttpMethod.Post, $"https://management.azure.com/subscriptions/{SubscriptionId}/resourceGroups/Company-AppName-{StackName}/providers/Microsoft.Web/sites/funApp/host/default/listkeys?api-version=2022-03-01")
             .Respond.WithJson(new AzureApiService.HostKeys { FunctionKeys = new AzureApiService.FunctionKeysValue { Key = "mocked-key" } });
 
         mc.Request(HttpMethod.Get, "https://api.ipify.org")
             .Respond.With(new StringContent("215.45.1.567"));
 
-        mc.Request(HttpMethod.Post, $"https://management.azure.com/subscriptions/{SubscriptionId}/resourceGroups/coreEx-{StackName}/providers/Microsoft.Web/sites/funApp/syncfunctiontriggers?api-version=2016-08-01")
+        mc.Request(HttpMethod.Post, $"https://management.azure.com/subscriptions/{SubscriptionId}/resourceGroups/Company-AppName-{StackName}/providers/Microsoft.Web/sites/funApp/syncfunctiontriggers?api-version=2016-08-01")
             .Respond.With(statusCode: System.Net.HttpStatusCode.NoContent);
 
-        var (resources, outputs) = await RunAsync(() => CoreExStack.ExecuteStackAsync(dbOperationsMock.Object, mcf.GetHttpClient("azure")!));
+        var (resources, outputs) = await RunAsync(() => CompanyAppNameStack.ExecuteStackAsync(dbOperationsMock.Object, mcf.GetHttpClient("azure")!));
 
         return (resources, outputs, dbOperationsMock);
     }

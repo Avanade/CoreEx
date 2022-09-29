@@ -42,6 +42,10 @@ public class AzureApiService
     {
         return Output.Tuple(rgName, functionName).Apply(async t =>
         {
+            // do not call in preview
+            if (Deployment.Instance.IsDryRun)
+                return "tbd";
+
             var (resourceGroupName, siteName) = t;
             Log.Info("Getting host keys for: " + siteName);
 
@@ -62,6 +66,10 @@ public class AzureApiService
     {
         return Output.Tuple(rgName, functionName).Apply(async t =>
         {
+            // do not call in preview
+            if (Deployment.Instance.IsDryRun)
+                return true;
+
             var (resourceGroupName, siteName) = t;
             Log.Info("Syncing Function App triggers");
 

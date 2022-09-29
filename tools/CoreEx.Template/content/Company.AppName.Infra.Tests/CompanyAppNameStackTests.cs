@@ -4,7 +4,7 @@ using Pulumi.AzureNative.Resources;
 
 namespace Company.AppName.Infra.Tests;
 
-public class CoreExStackTests
+public class CompanyAppNameStackTests
 {
     [Test]
     public async Task ResourceGroupHasNameTag()
