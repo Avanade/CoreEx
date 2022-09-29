@@ -62,7 +62,7 @@ jobs:
     displayName: 'Run unit tests - $(buildConfiguration)'
     inputs:
       command: 'test'
-      arguments: '-c $(buildConfiguration) --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/'
+      arguments: '-c $(buildConfiguration) --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/coverageApp.json'
       publishTestResults: true
       projects: '**/*.UnitTest.csproj'
 
@@ -70,7 +70,7 @@ jobs:
     displayName: 'Run infrastructure tests - $(buildConfiguration)'
     inputs:
       command: 'test'
-      arguments: '-c $(buildConfiguration) --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/'
+      arguments: '-c $(buildConfiguration) --no-build --verbosity normal /p:MergeWith="$(Build.SourcesDirectory)/TestResults/Coverage/coverageApp.json" /p:CollectCoverage=true /p:CoverletOutputFormat="cobertura,json" /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/'
       publishTestResults: true
       projects: '**/*.Infra.Tests.csproj'
 
