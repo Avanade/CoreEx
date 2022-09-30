@@ -754,4 +754,4 @@ docker-compose.local.override.yml
 __azurite_db_*
 
 # Pulumi
-Pulumi.*.yaml
+# Pulumi.*.yaml # comment out to store env information in git

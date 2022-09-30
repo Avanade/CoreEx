@@ -104,6 +104,9 @@ public static class CompanyAppNameStack
             ["FunctionHealthUrl"] = apps.FunctionHealthUrl,
             ["FunctionSwaggerUrl"] = apps.FunctionSwaggerUrl,
             ["AppSwaggerUrl"] = apps.AppSwaggerUrl,
+            ["ResourceGroupName"] = resourceGroup.Name,
+            ["AppServiceName"] = apps.AppServiceName,
+            ["FunctionName"] = apps.FunctionName
         };
     }
 }

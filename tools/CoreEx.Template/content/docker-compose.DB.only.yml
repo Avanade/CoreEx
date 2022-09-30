@@ -2,8 +2,6 @@ version: '3.4'
 
 services:
 
-  sqldata:
-
   app-api:
     entrypoint: ["echo", "Service api disabled"]
 

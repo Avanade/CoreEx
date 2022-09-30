@@ -22,6 +22,8 @@ public class Apps : ComponentResource
     public Output<string> AppPrincipalId { get; } = default!;
     public Output<string> FunctionOutboundIps { get; } = default!;
     public Output<string> AppOutboundIps { get; } = default!;
+    public Output<string> AppServiceName { get; } = default!;
+    public Output<string> FunctionName { get; } = default!;
 
     public Apps(string name, FunctionArgs args, AzureApiService azureApiService, ComponentResourceOptions? options = null)
         : base("Company:AppName:web:apps", name, options)
@@ -230,6 +232,8 @@ public class Apps : ComponentResource
         FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={functionKey}");
         FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={functionKey}");
         AppSwaggerUrl = Output.Format($"https://{app.DefaultHostName}/swagger/index.html");
+        AppServiceName = app.Name;
+        FunctionName = functionApp.Name;
 
         RegisterOutputs();
     }

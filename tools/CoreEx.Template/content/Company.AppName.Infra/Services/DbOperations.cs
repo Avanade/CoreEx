@@ -13,17 +13,17 @@ public class DbOperations : IDbOperations
             // skip in dry run
             return;
 
-        Log.Info($"Provisioning user {groupName} in SQL DB");
+        Log.Info($"Provisioning user group {groupName} in SQL DB");
         string commandText = @$"
         IF NOT EXISTS (SELECT [name]
                 FROM [sys].[database_principals]
                 WHERE [type] = N'X' AND [name] = N'{groupName}')
         BEGIN
-            CREATE USER {groupName} FROM EXTERNAL PROVIDER; 
+            CREATE USER [{groupName}] FROM EXTERNAL PROVIDER; 
         END
        
-        ALTER ROLE db_datareader ADD MEMBER {groupName}; 
-        ALTER ROLE db_datawriter ADD MEMBER {groupName};
+        ALTER ROLE db_datareader ADD MEMBER [{groupName}]; 
+        ALTER ROLE db_datawriter ADD MEMBER [{groupName}];
         ";
 
         connectionString.Apply(async cs =>
@@ -42,7 +42,7 @@ public class DbOperations : IDbOperations
             // skip in dry run
             return Task.FromResult(0);
 
-        Log.Info($"Deploying DB schema using {connectionString}");
+        Log.Info($"Deploying DB schema");
         return Database.Program.RunMigrator(connectionString, assembly: typeof(Company.AppName.Database.Program).Assembly, "DeployWithData");
     }
 }
