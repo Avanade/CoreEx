@@ -12,3 +12,6 @@ template:
     Company.AppName.Infra:isDBSchemaDeploymentEnabled:
       description: Whether Database schema should be deployed
       default: true
+    Company.AppName.Infra:developerEmails:
+      description: Comma separated list of developer team emails that will get access to created resources
+      default: 

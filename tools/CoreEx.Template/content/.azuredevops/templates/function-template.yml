@@ -25,7 +25,7 @@ jobs:
           inputs:
             targetType: 'inline'
             script: |
-              source $(Pipeline.Workspace)/Apple-Store-Infra/Apple-Store-Infra_Package-${{ parameters.env }}/setup-${{ parameters.env }}.sh 
+              source $(Pipeline.Workspace)/Company-AppName-Infra/Company-AppName-Infra_Package-${{ parameters.env }}/setup-${{ parameters.env }}.sh 
 
         - task: Bash@3
           displayName: 'Display variables'
@@ -44,12 +44,12 @@ jobs:
               appName: '$(FUNCTIONNAME)'
               resourceGroupName: '$(RESOURCEGROUPNAME)'
               #slotName: '$(DeploymentSlot)'
-              package: '$(Pipeline.Workspace)/**/Apple.Store.Functions.zip'
+              package: '$(Pipeline.Workspace)/**/Company.AppName.Functions.zip'
               deploymentMethod: 'auto'
               appSettings: '-Deployment_By "$(Build.RequestedForEmail)" 
-                            -Deployment_Build "$(resources.pipeline.Apple-Store-Apps.runName)" 
+                            -Deployment_Build "$(resources.pipeline.Company-AppName-Apps.runName)" 
                             -Deployment_Name "$(Build.BuildNumber)"
-                            -Deployment_Version "$(resources.pipeline.Apple-Store-Apps.sourceBranch)-$(resources.pipeline.Apple-Store-Apps.sourceCommit)" 
+                            -Deployment_Version "$(resources.pipeline.Company-AppName-Apps.sourceBranch)-$(resources.pipeline.Company-AppName-Apps.sourceCommit)" 
                             -Deployment_Date "$(global_buildDate)"
                             -ApplicationName "Company AppName Functions"
                             -AzureFunctionsJobHost__logging__logLevel__default "Warning"
@@ -63,7 +63,7 @@ jobs:
             scriptLocation: inlineScript
             inlineScript: |
                 id=$(az resource show --name $(FUNCTIONNAME) -g $(RESOURCEGROUPNAME) --resource-type "Microsoft.Web/sites" --query id --output tsv)
-                az tag update --resource-id $id --operation merge --tags 'Deployment.By="$(Build.RequestedForEmail)"' 'Deployment.Name="$(Build.BuildNumber)"' 'Deployment.Build="$(resources.pipeline.Apple-Store-Apps.runName)"' 'Deployment.Version="$(resources.pipeline.Apple-Store-Apps.sourceBranch)-$(resources.pipeline.Apple-Store-Apps.sourceCommit)"' 'Deployment.Date="$(global_buildDate)"'
+                az tag update --resource-id $id --operation merge --tags 'Deployment.By="$(Build.RequestedForEmail)"' 'Deployment.Name="$(Build.BuildNumber)"' 'Deployment.Build="$(resources.pipeline.Company-AppName-Apps.runName)"' 'Deployment.Version="$(resources.pipeline.Company-AppName-Apps.sourceBranch)-$(resources.pipeline.Company-AppName-Apps.sourceCommit)"' 'Deployment.Date="$(global_buildDate)"'
                 
         - task: Bash@3
           displayName: 'Smoke Test'
