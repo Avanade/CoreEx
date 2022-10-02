@@ -102,6 +102,7 @@ public static class CompanyAppNameStack
         {
             ["SqlDatabaseConnectionString"] = sql.SqlDatabaseConnectionString,
             ["FunctionHealthUrl"] = apps.FunctionHealthUrl,
+            ["AppHealthUrl"] = apps.AppHealthUrl,
             ["FunctionSwaggerUrl"] = apps.FunctionSwaggerUrl,
             ["AppSwaggerUrl"] = apps.AppSwaggerUrl,
             ["ResourceGroupName"] = resourceGroup.Name,

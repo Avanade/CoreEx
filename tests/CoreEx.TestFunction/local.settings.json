@@ -7,10 +7,10 @@
     "Test/BackendBaseAddress": "https://backend/",
     "BindingRedirects": "[ { \"ShortName\": \"System.Memory.Data\", \"RedirectToVersion\": \"6.0.0.0\", \"PublicKeyToken\": \"cc7b13ffcd2ddd51\" } ]",
 
-    "Deployment.By": "me",
-    "Deployment.Build": "build no",
-    "Deployment.Name": "my deployment",
-    "Deployment.Version": "1.0.0",
-    "Deployment.Date": "today"
+    "Deployment_By": "me",
+    "Deployment_Build": "build no",
+    "Deployment_Name": "my deployment",
+    "Deployment_Version": "1.0.0",
+    "Deployment_Date": "today"
   }
 }

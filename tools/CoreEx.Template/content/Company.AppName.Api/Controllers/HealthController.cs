@@ -18,6 +18,5 @@ public class HealthController : ControllerBase
     /// Health Endpoint
     /// </summary>
     [HttpGet()]
-    [Route("/health")]
     public async Task<IActionResult> Index() => await _health.RunAsync().ConfigureAwait(false);
 }

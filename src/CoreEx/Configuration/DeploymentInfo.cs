@@ -20,26 +20,26 @@ namespace CoreEx.Configuration
         /// <summary>
         /// Gets the username who performed the deployment.
         /// </summary>
-        public virtual string By => _configuration.GetValue<string>("Deployment.By");
+        public virtual string By => _configuration.GetValue<string>("Deployment_By");
 
         /// <summary>
         /// Gets the deployment build number.
         /// </summary>
-        public virtual string Build => _configuration.GetValue<string>("Deployment.Build");
+        public virtual string Build => _configuration.GetValue<string>("Deployment_Build");
 
         /// <summary>
         /// Gets the name of the deployment job that deployed the <see cref="Build"/>.
         /// </summary>
-        public virtual string Name => _configuration.GetValue<string>("Deployment.Name");
+        public virtual string Name => _configuration.GetValue<string>("Deployment_Name");
 
         /// <summary> 
         /// Gets the deployment build version, such as the Git information (branch and commit) of the deployed <see cref="Build"/>.
         /// </summary>
-        public virtual string Version => _configuration.GetValue<string>("Deployment.Version");
+        public virtual string Version => _configuration.GetValue<string>("Deployment_Version");
 
         /// <summary>
         /// Gets the date and time (UTC) when deployment <see cref="Name"/> was performed.
         /// </summary>
-        public virtual string DateUtc => _configuration.GetValue<string>("Deployment.Date");
+        public virtual string DateUtc => _configuration.GetValue<string>("Deployment_Date");
     }
 }

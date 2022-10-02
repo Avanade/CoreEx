@@ -16,6 +16,7 @@ public class Apps : ComponentResource
     private readonly FunctionArgs args;
 
     public Output<string> FunctionHealthUrl { get; } = default!;
+    public Output<string> AppHealthUrl { get; } = default!;
     public Output<string> FunctionSwaggerUrl { get; } = default!;
     public Output<string> AppSwaggerUrl { get; } = default!;
     public Output<string> FunctionPrincipalId { get; } = default!;
@@ -230,6 +231,7 @@ public class Apps : ComponentResource
         azureApiService.SyncFunctionAppTriggers(args.ResourceGroupName, functionApp.Name);
 
         FunctionHealthUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/health?code={functionKey}");
+        AppHealthUrl = Output.Format($"https://{app.DefaultHostName}/api/health");
         FunctionSwaggerUrl = Output.Format($"https://{functionApp.DefaultHostName}/api/swagger/ui?code={functionKey}");
         AppSwaggerUrl = Output.Format($"https://{app.DefaultHostName}/swagger/index.html");
         AppServiceName = app.Name;
