@@ -1,4 +1,4 @@
-name: D365-Apps-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+name: Apps-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 
 variables:
 - name: vmImageName
@@ -9,10 +9,10 @@ trigger: none
 
 resources:
   pipelines:
-  - pipeline: 'Apple-Store-Infra_Package'  # Name of the pipeline resource
-    source: 'Infra Deployment' # Name of the triggering pipeline
-  - pipeline: 'Apple-Store-Api_Package'  # Name of the pipeline resource
-    source: 'Application build' # Name of the triggering pipeline    
+  - pipeline: 'Company-AppName-Infra'  # Name of the pipeline resource (alias)
+    source: 'Infra Deployment' # Name of the triggering pipeline that created infrastructure
+  - pipeline: 'Company-AppName-Apps'  # Name of the pipeline resource (alias)
+    source: 'Application build' # Name of the triggering pipeline that created application packages
     trigger: 
       branches:
       - develop
@@ -25,7 +25,22 @@ resources:
 stages:
 - stage: Dev
   jobs:
-    - template: app-template.yml
+    - template: templates/app-template.yml
       parameters:
-        AzureSubscription: piotr-subscription
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
         env: dev
+    - template: templates/function-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: dev
+
+- stage: Test
+  jobs:
+    - template: templates/app-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: test
+    - template: templates/function-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: test

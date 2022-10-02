@@ -24,7 +24,7 @@ jobs:
   - name: global_buildDate
     value: $[format('{0:yyyy}-{0:MM}-{0:dd}T{0:HH}:{0:mm}:{0:ss}', pipeline.startTime)]
   - name: stack_name
-    value: Company-AppName-${{ parameters.env }} # can modify stack name here
+    value: ${{ parameters.env }} # can modify stack name here
   # - group: VG-Company-AppName-${{ parameters.env }} # uncomment to use variable groups in ADO
   pool:
     vmImage: ubuntu-latest
@@ -126,22 +126,17 @@ jobs:
               echo creating $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
               touch $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
               cat <<EOT >> $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
-              echo "##vso[task.setvariable variable=resourceGroupName;isOutput=true]$(pulumi stack output ResourceGroupName)"
-              echo "##vso[task.setvariable variable=appServiceName;isOutput=true]$(pulumi stack output AppServiceName)"
-              echo "##vso[task.setvariable variable=functionName;isOutput=true]$(pulumi stack output FunctionName)"
-              echo "##vso[task.setvariable variable=functionHealthUrl;isOutput=true]$(pulumi stack output --show-secrets FunctionHealthUrl)"
+              echo exporting variables
+              echo "##vso[task.setvariable variable=RESOURCEGROUPNAME;isOutput=false]$(pulumi stack output ResourceGroupName)"
+              echo "##vso[task.setvariable variable=APPSERVICENAME;isOutput=false]$(pulumi stack output AppServiceName)"
+              echo "##vso[task.setvariable variable=FUNCTIONNAME;isOutput=false]$(pulumi stack output FunctionName)"
+              echo "##vso[task.setvariable variable=FUNCTIONHEALTHURL;isOutput=false;issecret=true]$(pulumi stack output --show-secrets FunctionHealthUrl)"
+              echo "##vso[task.setvariable variable=APPHEALTHURL;isOutput=false;issecret=true]$(pulumi stack output AppHealthUrl)"
               EOT
 
-              cat $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh | sh
-
-        - task: ArchiveFiles@2
-          displayName: 'Zip infrastructure artifact'
-          inputs:
-            rootFolderOrFile: $(Build.ArtifactStagingDirectory)/output.sh
-            archiveFile: '$(Build.ArtifactStagingDirectory)/Infra-$(Build.BuildId).zip' 
-
         - task: PublishBuildArtifacts@1
+          condition: succeeded()
           displayName: 'Publish infrastructure artifact'
           inputs:
             pathToPublish: '$(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh'
-            artifactName: Company-AppName-Infra_Package
+            artifactName: Company-AppName-Infra_Package-${{ parameters.env }}

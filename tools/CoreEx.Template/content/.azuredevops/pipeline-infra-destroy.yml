@@ -1,7 +1,15 @@
 # requires following env variables:
 # * secret variable - PULUMI_CONFIG_PASSPHRASE - KeyVault can be used instead of pass phrase, see: https://www.pulumi.com/docs/intro/concepts/secrets/#azure-key-vault
 
-name: Infra-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+name: Infra-Destroy_$(Date:yyyyMMdd)$(Rev:.r)
+
+parameters:
+- name: stack_name
+  type: string
+  displayName: Name of the stack to delete
+- name: env
+  type: string
+  displayName: Name of the environment in ADO - env, dev, etc.
 
 variables:
 - name: buildConfiguration
@@ -11,10 +19,11 @@ trigger: none
 
 
 stages:
-- stage: Dev
+- stage: Delete
   jobs:
-    - template: infra-destroy-template.yml
+    - template: templates/infra-destroy-template.yml
       parameters:
-        AzureSubscription: piotr-subscription
-        env: dev
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: ${{ parameters.env }}
         storageAccountName: pulumistatestore112
+        stack_name: ${{ parameters.stack_name }}

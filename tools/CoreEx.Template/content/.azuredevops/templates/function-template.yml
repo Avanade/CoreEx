@@ -1,0 +1,86 @@
+parameters:
+- name: AzureSubscription
+  type: string
+- name: env
+  type: string
+  displayName: 'Environment shorthand - dev, test, etc.'
+
+jobs:
+- deployment: Deploy_Fun
+  displayName: "Deploy function app to ${{ parameters.env }}"
+  environment: ${{ parameters.env }}
+  variables:
+  - name: global_buildDate
+    value: $[format('{0:yyyy}-{0:MM}-{0:dd}T{0:HH}:{0:mm}:{0:ss}', pipeline.startTime)] 
+  # - group: VG-Company-AppName-${{ parameters.env }} # uncomment to use variable groups in ADO
+  pool: 
+    vmImage: ubuntu-latest
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+
+        - task: Bash@3
+          displayName: 'Setup variables'
+          inputs:
+            targetType: 'inline'
+            script: |
+              source $(Pipeline.Workspace)/Apple-Store-Infra/Apple-Store-Infra_Package-${{ parameters.env }}/setup-${{ parameters.env }}.sh 
+
+        - task: Bash@3
+          displayName: 'Display variables'
+          inputs:
+            targetType: 'inline'
+            script: |
+              echo resourceGroupName $(RESOURCEGROUPNAME)
+              echo appServiceName $(APPSERVICENAME)
+              echo functionName $(FUNCTIONNAME)
+
+        - task: AzureFunctionApp@1
+          displayName: 'Deployment az fun ${{ variables.FUNCTIONNAME }} to env: ${{ parameters.env }}'
+          inputs:
+              azureSubscription: '${{ parameters.AzureSubscription }}'
+              appType: 'functionApp'
+              appName: '$(FUNCTIONNAME)'
+              resourceGroupName: '$(RESOURCEGROUPNAME)'
+              #slotName: '$(DeploymentSlot)'
+              package: '$(Pipeline.Workspace)/**/Apple.Store.Functions.zip'
+              deploymentMethod: 'auto'
+              appSettings: '-Deployment_By "$(Build.RequestedForEmail)" 
+                            -Deployment_Build "$(resources.pipeline.Apple-Store-Apps.runName)" 
+                            -Deployment_Name "$(Build.BuildNumber)"
+                            -Deployment_Version "$(resources.pipeline.Apple-Store-Apps.sourceBranch)-$(resources.pipeline.Apple-Store-Apps.sourceCommit)" 
+                            -Deployment_Date "$(global_buildDate)"
+                            -ApplicationName "Company AppName Functions"
+                            -AzureFunctionsJobHost__logging__logLevel__default "Warning"
+                            -AzureFunctionsJobHost__logging__logLevel__CoreEx "Information"'
+
+        - task: AzureCLI@2
+          displayName: Tag Azure
+          inputs:
+            azureSubscription: '${{ parameters.AzureSubscription }}'
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+                id=$(az resource show --name $(FUNCTIONNAME) -g $(RESOURCEGROUPNAME) --resource-type "Microsoft.Web/sites" --query id --output tsv)
+                az tag update --resource-id $id --operation merge --tags 'Deployment.By="$(Build.RequestedForEmail)"' 'Deployment.Name="$(Build.BuildNumber)"' 'Deployment.Build="$(resources.pipeline.Apple-Store-Apps.runName)"' 'Deployment.Version="$(resources.pipeline.Apple-Store-Apps.sourceBranch)-$(resources.pipeline.Apple-Store-Apps.sourceCommit)"' 'Deployment.Date="$(global_buildDate)"'
+                
+        - task: Bash@3
+          displayName: 'Smoke Test'
+          env:
+            FUNCTIONHEALTHURL: $(FUNCTIONHEALTHURL)
+          inputs:
+            targetType: 'inline'
+            failOnStandardError: true
+            script: |
+              result=$(curl -s -o /dev/null -w "%{http_code}" $(FUNCTIONHEALTHURL))
+
+              if [ $result == "200" ]
+              then
+                echo "OK"
+              else
+                echo $result
+                exit 1
+              fi
+
+                

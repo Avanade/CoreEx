@@ -1,0 +1,62 @@
+parameters:
+- name: AzureSubscription
+  type: string
+- name: env
+  type: string
+  displayName: 'Environment shorthand - dev, test, etc.'
+
+jobs:
+- deployment: Deploy_App
+  displayName: "Deploy app service to ${{ parameters.env }}"
+  environment: ${{ parameters.env }}
+  variables:
+  - name: global_buildDate
+    value: $[format('{0:yyyy}-{0:MM}-{0:dd}T{0:HH}:{0:mm}:{0:ss}', pipeline.startTime)] 
+  # - group: VG-Company-AppName-${{ parameters.env }} # uncomment to use variable groups in ADO
+  pool: 
+    vmImage: ubuntu-latest
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+
+        - task: Bash@3
+          displayName: 'Setup variables'
+          inputs:
+            targetType: 'inline'
+            script: |
+              source $(Pipeline.Workspace)/Company-AppName-Infra/Company-AppName-Infra_Package-${{ parameters.env }}/setup-${{ parameters.env }}.sh 
+
+        - task: Bash@3
+          displayName: 'Display variables'
+          inputs:
+            targetType: 'inline'
+            script: |
+              echo resourceGroupName $(RESOURCEGROUPNAME)
+              echo appServiceName $(APPSERVICENAME)
+              echo functionName $(FUNCTIONNAME)
+
+        - task: AzureWebApp@1
+          displayName: 'Deployment app ${{ variables.APPSERVICENAME }} to env: ${{ parameters.env }}'
+          inputs:
+            azureSubscription: '${{ parameters.AzureSubscription }}'
+            appType: 'webApp'
+            appName: '$(APPSERVICENAME)'
+            deploymentMethod: zipDeploy
+            package: '$(Pipeline.Workspace)/**/Company.AppName.Api.zip'
+            appSettings: '-Deployment_By "$(Build.RequestedForEmail)" 
+                          -Deployment_Build "$(resources.pipeline.Company-AppName-Apps.runName)" 
+                          -Deployment_Name "$(Build.BuildNumber)"
+                          -Deployment_Version "$(resources.pipeline.Company-AppName-Apps.sourceBranch)-$(resources.pipeline.Company-AppName-Apps.sourceCommit)" 
+                          -Deployment_Date "$(global_buildDate)"
+                          -ApplicationName "Company AppName API"'
+ 
+        - task: AzureCLI@2
+          displayName: Tag Azure
+          inputs:
+            azureSubscription: '${{ parameters.AzureSubscription }}'
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+                id=$(az resource show --name $(APPSERVICENAME) -g $(RESOURCEGROUPNAME) --resource-type "Microsoft.Web/sites" --query id --output tsv)
+                az tag update --resource-id $id --operation merge --tags 'Deployment.By="$(Build.RequestedForEmail)"' 'Deployment.Name="$(Build.BuildNumber)"' 'Deployment.Build="$(resources.pipeline.Company-AppName-Apps.runName)"' 'Deployment.Version="$(resources.pipeline.Company-AppName-Apps.sourceBranch)-$(resources.pipeline.Company-AppName-Apps.sourceCommit)"' 'Deployment.Date="$(global_buildDate)"'                      
