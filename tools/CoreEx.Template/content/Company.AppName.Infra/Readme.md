@@ -17,6 +17,7 @@ Pulumi can be used without Pulumi Account, by using [Azure Storage as backend](h
 
 1. set the `AZURE_STORAGE_ACCOUNT` environment variable to specify the Azure storage account to use
 1. set the `AZURE_STORAGE_KEY` or the `AZURE_STORAGE_SAS_TOKEN` environment variables to let Pulumi access the storage
+1. create a container in the storage account
 1. execute the following command `pulumi login azblob://<container-path>` where container-path is the path to a blob container in the storage account
 
 ## Configuring Pulumi (optional)
@@ -81,3 +82,11 @@ Apps can also be deployed with Azure CLI, once published apps are zipped.
 az webapp deploy --resource-group coreEx-dev4011fb65 --name app17b7c4c8 --src-path app.zip
 az functionapp deployment source config-zip -g coreEx-dev4011fb65 -n fun17b7c4c8 --src fun.zip
 ```
+
+## Deploying from CI/CD with service principal
+
+When deploying using service principal, SP needs to be given appropriate permissions to be allowed to create resources:
+
+* Owner role on the subscription to be able to assign permissions to manage identities created (this can be achieved by creating/assigning custom role too).
+* Azure AD create user role in order to create SQL Admin user and SQL access group.
+* Microsoft Graph permissions according to [Terraform Docs](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/guides/service_principal_configuration) to be able to query domain, create/read users and create/read groups.

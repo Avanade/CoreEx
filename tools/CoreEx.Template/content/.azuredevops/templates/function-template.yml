@@ -73,14 +73,25 @@ jobs:
             targetType: 'inline'
             failOnStandardError: true
             script: |
-              result=$(curl -s -o /dev/null -w "%{http_code}" $(FUNCTIONHEALTHURL))
+              for attempt in 1 2 3
+              do
+                result=$(curl -s -o /dev/null -w "%{http_code}" $(FUNCTIONHEALTHURL))
 
-              if [ $result == "200" ]
-              then
-                echo "OK"
-              else
-                echo $result
-                exit 1
-              fi
+                if [ $result == "200" ]
+                then
+                  echo "OK"
+                  exit 0
+                else
+                  echo attempt $attempt failed with result $result sleeping 10
 
-                
+                  if [ "$attempt" -lt "3" ]
+                  then
+                      sleep 10
+                  else
+                      exit 1
+                  fi 
+                fi
+              done
+
+              exit 1
+
