@@ -5,12 +5,8 @@
 name: Infra-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 
 variables:
-- name: vmImageName
-  value: 'ubuntu-latest'
 - name: buildConfiguration
   value: 'Release'
-- name: System.Debug
-  value: true
 
 trigger: 
   branches: 

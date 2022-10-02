@@ -1,0 +1,31 @@
+name: D365-Apps-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+- name: vmImageName
+  value: 'ubuntu-latest'
+
+# Explicitly set none for repository trigger
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: 'Apple-Store-Infra_Package'  # Name of the pipeline resource
+    source: 'Infra Deployment' # Name of the triggering pipeline
+  - pipeline: 'Apple-Store-Api_Package'  # Name of the pipeline resource
+    source: 'Application build' # Name of the triggering pipeline    
+    trigger: 
+      branches:
+      - develop
+      - test
+      - preprod
+      - main
+
+# Note: Azure Service connection passed as param due to: https://developercommunity.visualstudio.com/t/using-a-variable-for-the-service-connection-result/676259
+
+stages:
+- stage: Dev
+  jobs:
+    - template: app-template.yml
+      parameters:
+        AzureSubscription: piotr-subscription
+        env: dev

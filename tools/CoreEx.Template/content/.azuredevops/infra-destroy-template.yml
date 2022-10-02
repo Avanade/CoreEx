@@ -17,7 +17,25 @@ parameters:
   displayName: 'Azure region to deploy to'  
 
 jobs:
+- job: manual_approval
+  displayName: "Manual Approval for ${{ variables.stack_name }} stack destroy"
+  pool: server
+  variables:
+  - name: stack_name
+    value: ${{ parameters.env }} # can modify stack name here  
+  steps:
+  - task: ManualValidation@0
+    displayName: "Approve ${{ variables.stack_name }} stack destroy"
+    timeoutInMinutes: 1440 # task times out in 1 day
+    inputs:
+      # notifyUsers: |
+      #   test@test.com
+      #   example@example.com
+      instructions: 'Please confirm pulumi stack ${{ variables.stack_name }} can be deleted'
+      onTimeout: 'reject'
+
 - deployment: Destroy
+  dependsOn: manual_approval
   displayName: "Destroy infrastructure ${{ parameters.env }}"
   environment: ${{ parameters.env }}
   variables:

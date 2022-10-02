@@ -1,0 +1,20 @@
+# requires following env variables:
+# * secret variable - PULUMI_CONFIG_PASSPHRASE - KeyVault can be used instead of pass phrase, see: https://www.pulumi.com/docs/intro/concepts/secrets/#azure-key-vault
+
+name: Infra-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+- name: buildConfiguration
+  value: 'Release'
+
+trigger: none
+
+
+stages:
+- stage: Dev
+  jobs:
+    - template: infra-destroy-template.yml
+      parameters:
+        AzureSubscription: piotr-subscription
+        env: dev
+        storageAccountName: pulumistatestore112

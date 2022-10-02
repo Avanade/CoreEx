@@ -101,7 +101,7 @@ jobs:
 
 
         - task: AzureCLI@2
-          condition: and(succeeded(), or(eq(variables['Build.Reason'], 'IndividualCI'), eq(variables['Build.Reason'], 'BatchedCI')))
+          condition: or(succeeded(), or(eq(variables['Build.Reason'], 'IndividualCI'), eq(variables['Build.Reason'], 'BatchedCI')))
           displayName: Pulumi Up
           env:
             AZURE_STORAGE_ACCOUNT: $(AZURE_STORAGE_ACCOUNT)
@@ -123,14 +123,16 @@ jobs:
               pulumi login --cloud-url azblob://state
               pulumi up -s '${{ variables.stack_name }}' --yes
 
-              touch $(Build.ArtifactStagingDirectory)/output.sh
-              cat <<EOT >> $(Build.ArtifactStagingDirectory)/output.sh
+              echo creating $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
+              touch $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
+              cat <<EOT >> $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
               echo "##vso[task.setvariable variable=resourceGroupName;isOutput=true]$(pulumi stack output ResourceGroupName)"
               echo "##vso[task.setvariable variable=appServiceName;isOutput=true]$(pulumi stack output AppServiceName)"
               echo "##vso[task.setvariable variable=functionName;isOutput=true]$(pulumi stack output FunctionName)"
+              echo "##vso[task.setvariable variable=functionHealthUrl;isOutput=true]$(pulumi stack output --show-secrets FunctionHealthUrl)"
               EOT
 
-              cat $(Build.ArtifactStagingDirectory)/output.sh | sh
+              cat $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh | sh
 
         - task: ArchiveFiles@2
           displayName: 'Zip infrastructure artifact'
@@ -141,5 +143,5 @@ jobs:
         - task: PublishBuildArtifacts@1
           displayName: 'Publish infrastructure artifact'
           inputs:
-            pathToPublish: '$(Build.ArtifactStagingDirectory)/Infra-$(Build.BuildId).zip'
+            pathToPublish: '$(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh'
             artifactName: Company-AppName-Infra_Package
