@@ -9,6 +9,7 @@ using CoreEx.Events;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using Asb = Azure.Messaging.ServiceBus;
+using Ace = Azure.Core.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -22,8 +23,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="connectionName">The connection <see cref="SettingsBase">configuration setting</see> name.</param>
+        /// <param name="configure">Adds a delegate to configure the client options.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddAzureServiceBusClient(this IServiceCollection services, string connectionName = "ServiceBusConnection")
+        public static IServiceCollection AddAzureServiceBusClient(this IServiceCollection services, string connectionName = "ServiceBusConnection", Action<Asb.ServiceBusClientOptions, IServiceProvider>? configure = null)
         {
             services.AddAzureClients(cb =>
             {
@@ -33,10 +35,14 @@ namespace Microsoft.Extensions.DependencyInjection
                 if (string.IsNullOrEmpty(sbcs))
                     throw new InvalidOperationException(@$"The Azure Service Bus connection string is not configured; the configuration setting '{connectionName}' is either not specified or does not have a value.");
 
+                Ace.IAzureClientBuilder<Asb.ServiceBusClient, Asb.ServiceBusClientOptions> acb;
                 if (sbcs.Contains("SharedAccessKey=", StringComparison.OrdinalIgnoreCase))
-                    cb.AddServiceBusClient(sbcs); // Connect to Azure Service Bus with secret.
+                    acb = cb.AddServiceBusClient(sbcs); // Connect to Azure Service Bus with secret.
                 else
-                    cb.AddServiceBusClientWithNamespace(sbcs).WithCredential(new DefaultAzureCredential()); // Connect to Azure Service Bus with managed identity.
+                    acb = cb.AddServiceBusClientWithNamespace(sbcs).WithCredential(new DefaultAzureCredential()); // Connect to Azure Service Bus with managed identity.
+
+                if (configure != null)
+                    acb.ConfigureOptions(configure);
             });
 
             return services;

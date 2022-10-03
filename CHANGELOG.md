@@ -8,8 +8,11 @@ Represents the **NuGet** versions.
 - *Enhancement:* **Breaking change**: Replaced `EfDbArgs.Paging` with `EfDbQuery.Paging` and `EfDbQuery.WithPaging`.
 - *Enhancement:* Added `JsonDataReader` to enable dynamic loading of either YAML or JSON formatted data for data migration/uploading.
 - *Enhancement:* Added `WebApiExceptionHandlerMiddleware` to manage any unhandled exceptions.
+- *Enhancement:* Added `TypedHttpClient` to enable basic support for instantiating a `TypedHttpClientCore` without having to explicitly inherit.
 - *Enhancement:* **Breaking change**: HealthChecks project deprecated with functionality moved to individual projects where applicable.
 - *Enhancement:* Added `EfDbEntity` to provide a typed entity wrapper over the `IEfDb` operations.
+- *Enhancement:* `AddAzureServiceBusClient` has had support to configure `ServiceBusClientOptions` added.
+- *Fixed:* The `ServiceBusMessage` cannot be sent due to local transactions not being supported with other resource managers/DTC resolved.
 - *Fixed:* The `AuthenticationException` and `AuthorizationException` HTTP status codes were incorrect; updated to `401` and `403` respectively.
 
 ## v1.0.8

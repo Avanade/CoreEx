@@ -27,7 +27,7 @@ public class Startup
             .AddEventPublisher()
             .AddAzureServiceBusSender()
             .AddAzureServiceBusPurger()
-            .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection))
+            .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection), configure: (o, sp) => o.RetryOptions.MaxRetries = 3)
             .AddJsonMergePatch()
             .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
             .AddReferenceDataContentWebApi()
@@ -40,9 +40,9 @@ public class Startup
             .AddFluentValidators<EmployeeService>();
 
         // Register the database and EF services, including required AutoMapper.
-        services.AddDatabase(sp => new HrDb(sp.GetRequiredService<HrSettings>()))
+        services.AddDatabase<HrDb>()
                 .AddDbContext<HrDbContext>((sp, o) => o.UseSqlServer(sp.GetRequiredService<IDatabase>().GetConnection()))
-                .AddScoped<IHrEfDb, HrEfDb>()
+                .AddEfDb<IHrEfDb, HrEfDb>()
                 .AddAutoMapper(typeof(HrEfDb).Assembly)
                 .AddAutoMapperWrapper();
 
