@@ -12,7 +12,7 @@
   },
   "defaultName": "CoreEx",
   "description": "CoreEx ",
-  "sourceName": "XXCompany.AppNameXX", // Not acutally used; template uses the below parameters exclusively.
+  "sourceName": "XXCompany.AppNameXX", // Not actually used; template uses the below parameters exclusively.
   "preferNameDirectory": true,
   "symbols": {
     "company": {
@@ -31,54 +31,6 @@
       "datatype": "text",
       "description": "The application (domain) name 'AppName' used to define the namespace etc; e.g. 'Company.AppName'."
     },
-    "datasource": {
-      "type": "parameter",
-      "datatype": "choice",
-      "choices": [
-        {
-          "choice": "Cosmos",
-          "description": "Indicates that the data source is Cosmos DB."
-        },
-        {
-          "choice": "Database",
-          "description": "Indicates that the data source is a SQL Database accessed via Stored Procedures."
-        },
-        {
-          "choice": "EntityFramework",
-          "description": "Indicates that the data source is a SQL Database accessed via Entity Framework Core."
-        },
-        {
-          "choice": "HttpAgent",
-          "description": "Indicates that the data source is to be accessed via an Http Agent."
-        },
-        {
-          "choice": "None",
-          "description": "Indicates that no data source is to be implemented."
-        }
-      ],
-      "defaultValue": "Database",
-      "description": "The data source implementation option."
-    },
-    "implement_cosmos": {
-      "type": "computed",
-      "value": "(datasource == \"Cosmos\")"
-    },
-    "implement_database": {
-      "type": "computed",
-      "value": "(datasource == \"Database\")"
-    },
-    "implement_entityframework": {
-      "type": "computed",
-      "value": "(datasource == \"EntityFramework\")"
-    },
-    "implement_httpagent": {
-      "type": "computed",
-      "value": "(datasource == \"HttpAgent\")"
-    },
-    "implement_none": {
-      "type": "computed",
-      "value": "(datasource == \"None\")"
-    },
     "created_date": {
       "type": "generated",
       "generator": "now",
@@ -90,36 +42,6 @@
   },
   "sources": [
     {
-    //   "modifiers": [
-    //     {
-    //       "condition": "(implement_none)",
-    //       "exclude": [ "Company.AppName.Business/Validation/**/*", "Company.AppName.Business/Data/PersonData.cs" ]
-    //     },
-    //     {
-    //       "condition": "(implement_cosmos || implement_httpagent || implement_none)",
-    //       "exclude": [ "Company.AppName.Database/**/*" ]
-    //     },
-    //     {
-    //       "condition": "(!implement_entityframework)",
-    //       "exclude": [ "Company.AppName.Business/Data/AppNameEfDb.cs", "Company.AppName.Business/Data/AppNameEfDbContext.cs" ]
-    //     },
-    //     {
-    //       "condition": "(!implement_cosmos)",
-    //       "exclude": [ "Company.AppName.Business/Data/AppNameCosmosDb.cs", "Company.AppName.Test/Cosmos/**/*" ]
-    //     },
-    //     {
-    //       "condition": "(!implement_httpagent)",
-    //       "exclude": [ "Company.AppName.Business/Data/XxxAgent.cs", "Company.AppName.Business/Data/ReferenceDataData.cs" ]
-    //     },
-    //     {
-    //       "condition": "(implement_httpagent)",
-    //       "exclude": [ "Company.AppName.Business/Data/PersonData.cs", "Company.AppName.Business/Validation/PersonArgsValidator.cs" ]
-    //     },
-    //     {
-    //       "condition": "(!implement_database && !implement_entityframework)",
-    //       "exclude": [ "Company.AppName.Business/Data/AppNameDb.cs", "Company.AppName.Test/Data/**/*" ]
-    //     }
-    //   ]
     }
   ],
   "primaryOutputs": [

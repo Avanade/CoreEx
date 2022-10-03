@@ -59,6 +59,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Cosmos", "src\CoreEx
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Cosmos.Test", "tests\CoreEx.Cosmos.Test\CoreEx.Cosmos.Test.csproj", "{C8021CF0-006F-427C-827F-B997F26E5FF6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{AD4128C1-A096-451B-BD61-705EC774ADEC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Template", "tools\CoreEx.Template\CoreEx.Template.csproj", "{16556C5C-E54F-48EA-A38F-CE612212EBCF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -137,6 +141,10 @@ Global
 		{C8021CF0-006F-427C-827F-B997F26E5FF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8021CF0-006F-427C-827F-B997F26E5FF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8021CF0-006F-427C-827F-B997F26E5FF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16556C5C-E54F-48EA-A38F-CE612212EBCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16556C5C-E54F-48EA-A38F-CE612212EBCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16556C5C-E54F-48EA-A38F-CE612212EBCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16556C5C-E54F-48EA-A38F-CE612212EBCF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -161,6 +169,7 @@ Global
 		{F3384ADC-1DA8-4538-B991-DBD2BC591AF1} = {4B6BC31E-93B1-42B0-AE09-AD85AC4DB657}
 		{8D0CC3FD-65C2-4302-99F4-A90AC7680E1B} = {4B6BC31E-93B1-42B0-AE09-AD85AC4DB657}
 		{C8021CF0-006F-427C-827F-B997F26E5FF6} = {3145DCB9-98FB-4519-BCC0-75A22A252EDC}
+		{16556C5C-E54F-48EA-A38F-CE612212EBCF} = {AD4128C1-A096-451B-BD61-705EC774ADEC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8B4566D2-9B22-4E27-9654-402BDBA6C744}

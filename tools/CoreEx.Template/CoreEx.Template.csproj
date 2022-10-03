@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <PackageType>Template</PackageType>
+        <PackageId>CoreEx.Template</PackageId>
+        <Product>CoreEx</Product>
+        <Title>CoreEx .NET Standard Extensions.</Title>
+        <Authors>Avanade</Authors>
+        <Description>CoreEx template solution for use with 'dotnet new'.</Description>
+        <PackageTags>coreex dotnet template solution</PackageTags>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <IncludeContentInPack>true</IncludeContentInPack>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <ContentTargetFolders>content</ContentTargetFolders>
+        <NoDefaultExcludes>true</NoDefaultExcludes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="content\**\*" />
+        <EmbeddedResource Remove="content\**\*" />
+        <None Include="content\**\*" />
+        <Content Include="content\**" Exclude="**\bin\**;**\obj\**">
+            <Pack>true</Pack>
+            <PackagePath>contentFiles\any\any\Schema\</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+        <Content Include="content\**\.dockerignore">
+            <Pack>true</Pack>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+        <Content Include="content\**\.gitignore">
+            <Pack>true</Pack>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+        <Content Include="content\**\.azuredevops\**\*">
+            <Pack>true</Pack>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+        <Content Include="content\**\.devcontainer\**\*">
+            <Pack>true</Pack>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="content\**\*" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\..\images\Logo256x256.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>
