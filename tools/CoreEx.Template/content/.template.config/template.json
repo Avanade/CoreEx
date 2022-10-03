@@ -42,6 +42,17 @@
   },
   "sources": [
     {
+      "modifiers": [
+        {
+          "rename": {
+            "_azuredevops": ".azuredevops",
+            "_gitignore": ".gitignore",
+            "_dockerignore": ".dockerignore",
+            "_devcontainer": ".devcontainer",
+            "_vscode": ".vscode"
+          }
+        }
+      ]
     }
   ],
   "primaryOutputs": [
