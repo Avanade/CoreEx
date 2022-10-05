@@ -106,7 +106,7 @@ namespace CoreEx.Cosmos
         /// <param name="id">The identifier.</param>
         /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="ICosmosDb.PartitionKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1061:Do not hide base class methods", Justification = "By design, to enable identifier flexibility.")]
         public Task<T?> GetAsync(object? id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => GetAsync(id, new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), cancellationToken);
 
@@ -116,7 +116,7 @@ namespace CoreEx.Cosmos
         /// <param name="id">The identifier.</param>
         /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1061:Do not hide base class methods", Justification = "By design, to enable identifier flexibility.")]
         public Task<T?> GetAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => GetInternalAsync(CosmosDb.FormatIdentifier(id), dbArgs, cancellationToken);
 
@@ -135,7 +135,7 @@ namespace CoreEx.Cosmos
                 // Check that the TypeName is the same.
                 if (val?.Resource == null || val.Resource.Type != _typeName)
                 {
-                    if (args.NullOnNotFoundResponse)
+                    if (args.NullOnNotFound)
                         return null;
                     else
                         throw new NotFoundException();
@@ -144,7 +144,7 @@ namespace CoreEx.Cosmos
                 CheckAuthorized(val);
                 return GetResponseValue(val);
             }
-            catch (CosmosException dcex) when (args.NullOnNotFoundResponse && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
+            catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
         }, cancellationToken);
 
         /// <inheritdoc/>

@@ -33,7 +33,13 @@ namespace CoreEx.Http
         private TypedHttpClientOptions? _sendOptions;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TypedHttpClientBase{TBase}"/>.
+        /// Gets or sets an action that is invoked during instance instantiation of the <see cref="TypedHttpClientBase{TSelf}"/> to enable additional runtime configuration of the <see cref="DefaultOptions"/> to be performed on the instance itself.
+        /// </summary>
+        /// <remarks>This is required as there is currently no means to configure prior to usage when using Dependency Injection (DI) leveraging the out-of-the-box <see href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.httpclientfactoryservicecollectionextensions.addhttpclient">AddHttpClient</see>.</remarks>
+        public static Action<TypedHttpClientOptions>? OnDefaultOptionsConfiguration { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TypedHttpClientBase{TSelf}"/>.
         /// </summary>
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
@@ -46,6 +52,7 @@ namespace CoreEx.Http
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             RequestLogger = HttpRequestLogger.Create(settings, logger);
+            OnDefaultOptionsConfiguration?.Invoke(DefaultOptions);
         }
 
         /// <summary>
@@ -219,6 +226,16 @@ namespace CoreEx.Http
         }
 
         /// <summary>
+        /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
+        /// </summary>
+        /// <remarks>Results in the corresponding <see cref="HttpResult"/> <see cref="HttpResult.NullOnNotFoundResponse"/> being set to get the desired outcome.</remarks>
+        public TSelf NullOnNotFound()
+        {
+            SendOptions.NullOnNotFound();
+            return (TSelf)this;
+        }
+
+        /// <summary>
         /// Resets the <see cref="TypedHttpClientBase{TSelf}"/> to its initial <see cref="DefaultOptions"/> state.
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
@@ -308,7 +325,7 @@ namespace CoreEx.Http
                 }
                 catch (HttpRequestException hrex)
                 {
-                    (bool isTransient, string error) = options.DetermineIsTransient(null, hrex);
+                    (bool isTransient, string error) = options.IsTransientPredicate(null, hrex);
                     if (options.ShouldThrowTransientException && isTransient)
                         throw new TransientException(error, hrex);
 
@@ -320,7 +337,7 @@ namespace CoreEx.Http
                 }
 
                 // This is the result of the final request after leaving the retry policy logic.
-                (bool wasTransient, string errorMsg) = options.DetermineIsTransient(response, null);
+                (bool wasTransient, string errorMsg) = options.IsTransientPredicate(response, null);
                 if (options.ShouldThrowTransientException && wasTransient)
                     throw new TransientException(errorMsg);
 
@@ -445,7 +462,12 @@ namespace CoreEx.Http
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
         protected async Task<HttpResult> GetAsync(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
-            => await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+        {
+            var nullOnNotFoundResponse = _sendOptions is not null && _sendOptions.ShouldNullOnNotFound;
+            var hr = await HttpResult.CreateAsync(await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            hr.NullOnNotFoundResponse = nullOnNotFoundResponse;
+            return hr;
+        }
 
         /// <summary>
         /// Send a <see cref="HttpMethod.Get"/> request to the specified Uri as an asynchronous operation and deserialize the JSON <see cref="HttpResponseMessage.Content"/> to the specified .NET object <see cref="Type"/>.
@@ -458,8 +480,11 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
         protected async Task<HttpResult<TResponse>> GetAsync<TResponse>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
         {
+            var nullOnNotFoundResponse = _sendOptions is not null && _sendOptions.ShouldNullOnNotFound;
             var response = await SendAsync(await CreateRequestAsync(HttpMethod.Get, requestUri, requestOptions, args?.ToArray()!, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            return await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
+            var hr = await HttpResult.CreateAsync<TResponse>(response, JsonSerializer, cancellationToken).ConfigureAwait(false);
+            hr.NullOnNotFoundResponse = nullOnNotFoundResponse;
+            return hr;
         }
 
         #endregion

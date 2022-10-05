@@ -31,7 +31,7 @@ namespace CoreEx.Http.Extended
         /// <param name="onBeforeRequest">The optional <see cref="TypedHttpClientBase{TSelf}.OnBeforeRequest(HttpRequestMessage, CancellationToken)"/> function. Defaults to <c>null</c>.</param>
         /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
         public TypedMappedHttpClient(HttpClient client, IMapper? mapper = null, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedMappedHttpClient>? logger = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) : base(client,
-            mapper ?? ExecutionContext.GetService<IMapper>() ?? throw new ArgumentNullException(nameof(mapper)),
+            mapper ?? ExecutionContext.GetRequiredService<IMapper>(),
             jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? Json.JsonSerializer.Default,
             executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext()),
             settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings(),

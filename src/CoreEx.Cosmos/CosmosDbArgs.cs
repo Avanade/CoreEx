@@ -25,7 +25,7 @@ namespace CoreEx.Cosmos
             PartitionKey = partitionKey ?? template.PartitionKey;
             ItemRequestOptions = template.ItemRequestOptions;
             QueryRequestOptions = template.QueryRequestOptions;
-            NullOnNotFoundResponse = template.NullOnNotFoundResponse;
+            NullOnNotFound = template.NullOnNotFound;
         }
 
         /// <summary>
@@ -68,6 +68,6 @@ namespace CoreEx.Cosmos
         /// <summary>
         /// Indicates that a <c>null</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> on <b>Get</b>. 
         /// </summary>
-        public bool NullOnNotFoundResponse { get; set; } = true;
+        public bool NullOnNotFound { get; set; } = true;
     }
 }

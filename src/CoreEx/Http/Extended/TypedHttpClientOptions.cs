@@ -17,7 +17,7 @@ namespace CoreEx.Http.Extended
     /// <summary>
     /// Represents the <see cref="TypedHttpClientBase{TSelf}"/> <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/> options.
     /// </summary>
-    public class TypedHttpClientOptions
+    public sealed class TypedHttpClientOptions
     {
         private readonly SettingsBase _settings;
         private readonly TypedHttpClientOptions? _defaultOptions;
@@ -75,9 +75,9 @@ namespace CoreEx.Http.Extended
         public bool ShouldThrowTransientException { get; private set; }
 
         /// <summary>
-        /// Gets the function that determines whether is transient; see <see cref="ThrowTransientException"/>.
+        /// Gets the predicate that determines whether is transient; see <see cref="ThrowTransientException"/>.
         /// </summary>
-        public Func<HttpResponseMessage?, Exception?, (bool result, string error)> DetermineIsTransient { get; private set; } = TypedHttpClientBase.IsTransient;
+        public Func<HttpResponseMessage?, Exception?, (bool result, string error)> IsTransientPredicate { get; private set; } = TypedHttpClientBase.IsTransient;
 
         /// <summary>
         /// Indicates whether a known exception is thrown; see <see cref="ThrowKnownException(bool)"/>.
@@ -103,6 +103,11 @@ namespace CoreEx.Http.Extended
         /// Gets the maximum retry delay; see <see cref="WithMaxRetryDelay(TimeSpan)"/>.
         /// </summary>
         public TimeSpan? MaxRetryDelay { get; private set; }
+
+        /// <summary>
+        /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
+        /// </summary>
+        public bool ShouldNullOnNotFound { get; private set; }
 
         /// <summary>
         /// Checks whether the default is being updated when in send mode which is not allowed.
@@ -136,7 +141,7 @@ namespace CoreEx.Http.Extended
         {
             CheckDefaultNotBeingUpdatedInSendMode();
             ShouldThrowTransientException = true;
-            DetermineIsTransient = predicate ?? TypedHttpClientBase.IsTransient;
+            IsTransientPredicate = predicate ?? TypedHttpClientBase.IsTransient;
             return this;
         }
 
@@ -268,6 +273,16 @@ namespace CoreEx.Http.Extended
         }
 
         /// <summary>
+        /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
+        /// </summary>
+        public TypedHttpClientOptions NullOnNotFound()
+        {
+            CheckDefaultNotBeingUpdatedInSendMode();
+            ShouldNullOnNotFound = true;
+            return this;
+        }
+
+        /// <summary>
         /// Resets the <see cref="TypedHttpClientOptions"/> to its default state.
         /// </summary>
         public void Reset()
@@ -279,13 +294,14 @@ namespace CoreEx.Http.Extended
                 RetryCount = null;
                 RetrySeconds = null;
                 ShouldThrowTransientException = false;
-                DetermineIsTransient = TypedHttpClientBase.IsTransient;
+                IsTransientPredicate = TypedHttpClientBase.IsTransient;
                 ShouldThrowKnownException = false;
                 ShouldThrowKnownUseContentAsMessage = false;
                 ShouldEnsureSuccess = false;
                 _ensureStatusCodes = null;
                 Timeout = null;
                 MaxRetryDelay = null;
+                ShouldNullOnNotFound = false;
             }
             else
             {
@@ -293,13 +309,14 @@ namespace CoreEx.Http.Extended
                 RetryCount = _defaultOptions.RetryCount;
                 RetrySeconds = _defaultOptions.RetrySeconds;
                 ShouldThrowTransientException = _defaultOptions.ShouldThrowTransientException;
-                DetermineIsTransient = _defaultOptions.DetermineIsTransient;
+                IsTransientPredicate = _defaultOptions.IsTransientPredicate;
                 ShouldThrowKnownException = _defaultOptions.ShouldThrowKnownException;
                 ShouldThrowKnownUseContentAsMessage = _defaultOptions.ShouldThrowKnownUseContentAsMessage;
                 ShouldEnsureSuccess = _defaultOptions.ShouldEnsureSuccess;
                 _ensureStatusCodes = _defaultOptions.ExpectedStatusCodes == null ? null : new(_defaultOptions.ExpectedStatusCodes);
                 Timeout = _defaultOptions.Timeout;
                 MaxRetryDelay = _defaultOptions.MaxRetryDelay;
+                ShouldNullOnNotFound = _defaultOptions.ShouldNullOnNotFound;
             }
         }
     }

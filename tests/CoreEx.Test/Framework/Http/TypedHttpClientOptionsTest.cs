@@ -27,7 +27,7 @@ namespace CoreEx.Test.Framework.Http
             Assert.IsFalse(o.ShouldThrowTransientException);
             Assert.IsFalse(o.ShouldThrowKnownException);
             Assert.IsFalse(o.ShouldThrowKnownUseContentAsMessage);
-            Assert.IsNotNull(o.DetermineIsTransient);
+            Assert.IsNotNull(o.IsTransientPredicate);
             Assert.IsFalse(o.ShouldEnsureSuccess);
             Assert.IsNull(o.ExpectedStatusCodes);
             Assert.IsNull(o.MaxRetryDelay);
@@ -67,11 +67,11 @@ namespace CoreEx.Test.Framework.Http
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.ThrowTransientException();
             Assert.IsTrue(o.ShouldThrowTransientException);
-            Assert.IsNotNull(o.DetermineIsTransient);
+            Assert.IsNotNull(o.IsTransientPredicate);
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
             Assert.IsTrue(o2.ShouldThrowTransientException);
-            Assert.IsNotNull(o2.DetermineIsTransient);
+            Assert.IsNotNull(o2.IsTransientPredicate);
 
             o.Reset();
             AssertIsInitial(o);

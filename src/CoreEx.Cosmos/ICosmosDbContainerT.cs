@@ -28,7 +28,7 @@ namespace CoreEx.Cosmos
         /// <param name="id">The identifier.</param>
         /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="ICosmosDb.PartitionKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         Task<T?> GetAsync(string id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace CoreEx.Cosmos
         /// <param name="id">The identifier.</param>
         /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="ICosmosDb.PartitionKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         Task DeleteAsync(string id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default);
     }
 }

@@ -119,7 +119,7 @@ namespace CoreEx.Cosmos
                 CheckAuthorized(val);
                 return GetResponseValue(val);
             }
-            catch (CosmosException dcex) when (args.NullOnNotFoundResponse && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
+            catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
         }, cancellationToken);
 
         /// <inheritdoc/>
