@@ -1,0 +1,46 @@
+name: Apps-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+- name: vmImageName
+  value: 'ubuntu-latest'
+
+# Explicitly set none for repository trigger
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: 'Company-AppName-Infra'  # Name of the pipeline resource (alias)
+    source: 'Infra Deployment' # Name of the triggering pipeline that created infrastructure
+  - pipeline: 'Company-AppName-Apps'  # Name of the pipeline resource (alias)
+    source: 'Application build' # Name of the triggering pipeline that created application packages
+    trigger: 
+      branches:
+      - develop
+      - test
+      - preprod
+      - main
+
+# Note: Azure Service connection passed as param due to: https://developercommunity.visualstudio.com/t/using-a-variable-for-the-service-connection-result/676259
+
+stages:
+- stage: Dev
+  jobs:
+    - template: templates/app-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: dev
+    - template: templates/function-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: dev
+
+- stage: Test
+  jobs:
+    - template: templates/app-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: test
+    - template: templates/function-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: test

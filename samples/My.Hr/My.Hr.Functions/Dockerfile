@@ -15,8 +15,6 @@ COPY "samples/My.Hr/My.Hr.Business/My.Hr.Business.csproj" "samples/My.Hr/My.Hr.B
 COPY "samples/My.Hr/My.Hr.Database/My.Hr.Database.csproj" "samples/My.Hr/My.Hr.Database/My.Hr.Database.csproj"
 COPY "samples/My.Hr/My.Hr.Functions/My.Hr.Functions.csproj" "samples/My.Hr/My.Hr.Functions/My.Hr.Functions.csproj"
 COPY "samples/My.Hr/My.Hr.UnitTest/My.Hr.UnitTest.csproj" "samples/My.Hr/My.Hr.UnitTest/My.Hr.UnitTest.csproj" 
-COPY "samples/My.Hr/My.Hr.Infra/My.Hr.Infra.csproj" "samples/My.Hr/My.Hr.Infra/My.Hr.Infra.csproj"
-COPY "samples/My.Hr/My.Hr.Infra.Tests/My.Hr.Infra.Tests.csproj" "samples/My.Hr/My.Hr.Infra.Tests/My.Hr.Infra.Tests.csproj"
 
 COPY "src/CoreEx/CoreEx.csproj" "src/CoreEx/CoreEx.csproj"
 COPY "src/CoreEx.AutoMapper/CoreEx.AutoMapper.csproj" "src/CoreEx.AutoMapper/CoreEx.AutoMapper.csproj"

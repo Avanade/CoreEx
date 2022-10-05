@@ -1,0 +1,64 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.140.1/containers/dotnetcore
+{
+  "name": "C# (.NET 6)",
+	// Update the 'dockerComposeFile' list if you have more compose files or use different names.
+	// The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.
+	"dockerComposeFile": "docker-compose.yml",
+
+	// The 'service' property is the name of the service for the container that VS Code should use.
+	"service": "dev",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "github-cli": "2",
+    "azure-cli": "2.38",
+    "dotnet": "6.0",
+    "docker-from-docker": "20.10"
+  },
+  "settings": {
+    "files.associations": {
+      "*.csproj": "msbuild",
+      "*.fsproj": "msbuild",
+      "*.globalconfig": "ini",
+      "*.manifest": "xml",
+      "*.nuspec": "xml",
+      "*.pkgdef": "ini",
+      "*.projitems": "msbuild",
+      "*.props": "msbuild",
+      "*.resx": "xml",
+      "*.rsp": "Powershell",
+      "*.shproj": "msbuild",
+      "*.slnf": "json",
+      "*.targets": "msbuild",
+      "*.vbproj": "msbuild",
+      "*.vsixmanifest": "xml",
+      "*.vstemplate": "xml"
+    },
+    // ms-dotnettools.csharp settings
+    "omnisharp.disableMSBuildDiagnosticWarning": true,
+    "omnisharp.enableEditorConfigSupport": true,
+    "omnisharp.enableImportCompletion": true,
+    "omnisharp.enableRoslynAnalyzers": true,
+    "omnisharp.useModernNet": true,
+    "omnisharp.enableAsyncCompletion": true
+  },
+  "extensions": [
+    "ms-dotnettools.csharp",
+    "EditorConfig.EditorConfig",
+    "tintoy.msbuild-project-tools",
+    "ms-dotnettools.csharp",
+    "VisualStudioExptTeam.vscodeintellicode",
+    "ms-mssql.mssql",
+    "ms-vscode.azure-account",
+    "ms-azuretools.vscode-azureappservice",
+    "ms-azuretools.vscode-azurefunctions",
+    "ms-azuretools.vscode-docker",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "MS-vsliveshare.vsliveshare-pack",
+    "Azurite.azurite",
+    "humao.rest-client"
+  ],
+  "postCreateCommand": "dotnet restore",
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [80, 1433, 7071, 7129]
+}

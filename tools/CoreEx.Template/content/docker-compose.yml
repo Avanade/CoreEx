@@ -1,0 +1,25 @@
+# To run: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+version: '3.4'
+
+services:
+
+  sqldata:
+    build:
+      context: .
+      dockerfile: Company.AppName.Database/Dockerfile
+
+  app-api:
+    build:
+      context: .
+      dockerfile: Company.AppName.Api/Dockerfile
+    depends_on:
+      - sqldata
+
+  app-functions:
+    build:
+      context: .
+      args:
+        LOCAL: "true"
+      dockerfile: Company.AppName.Functions/Dockerfile
+    depends_on:
+      - sqldata

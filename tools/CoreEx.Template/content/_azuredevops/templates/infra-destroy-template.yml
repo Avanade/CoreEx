@@ -1,0 +1,80 @@
+# requires following env variables:
+# * secret variable - PULUMI_CONFIG_PASSPHRASE - KeyVault can be used instead of pass phrase, see: https://www.pulumi.com/docs/intro/concepts/secrets/#azure-key-vault
+
+parameters:
+- name: AzureSubscription
+  type: string
+  displayName: 'Name of the Azure Service Connection'
+- name: storageAccountName
+  type: string
+  displayName: 'Name of the storage account used for pulumi state'
+- name: stack_name
+  type: string
+  displayName: 'Name of the stack to delete'
+- name: env
+  type: string
+  displayName: 'Environment name - dev, test, etc. Can be longer e.g. Company-AppName-dev'
+
+jobs:
+- job: manual_approval
+  displayName: "Manual Approval for ${{ parameters.stack_name }} stack in env ${{ parameters.env }} to destroy"
+  pool: server
+  steps:
+  - task: ManualValidation@0
+    displayName: "Approve ${{ parameters.stack_name }} stack destroy"
+    timeoutInMinutes: 1440 # task times out in 1 day
+    inputs:
+      # notifyUsers: |
+      #   test@test.com
+      #   example@example.com
+      instructions: 'Please confirm pulumi stack ${{ parameters.stack_name }} can be deleted'
+      onTimeout: 'reject'
+
+- deployment: Destroy
+  dependsOn: manual_approval
+  displayName: "Destroy infrastructure ${{ parameters.env }}"
+  environment: ${{ parameters.env }}
+  variables:
+  - name: global_buildDate
+    value: $[format('{0:yyyy}-{0:MM}-{0:dd}T{0:HH}:{0:mm}:{0:ss}', pipeline.startTime)]
+  # - group: VG-Company-AppName-${{ parameters.env }} # uncomment to use variable groups in ADO
+  pool:
+    vmImage: ubuntu-latest
+  timeoutInMinutes: 1500 # job times out in 1 day and 1h
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+
+        - task: Bash@3
+          displayName: 'Install Pulumi'
+          inputs:
+            targetType: 'inline'
+            script: |
+              curl -fsSL https://get.pulumi.com | sh
+             
+              echo "##vso[task.prependpath]$HOME/.pulumi/bin"
+              pulumi about
+
+        - task: AzureCLI@2
+          displayName: Destroy Pulumi stack ${{ parameters.stack_name }}
+          env:
+            PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+          inputs:
+            scriptType: bash
+            azureSubscription: '${{ parameters.AzureSubscription }}'
+            addSpnToEnvironment: true
+            scriptLocation: inlineScript
+            inlineScript: |
+              export AZURE_STORAGE_ACCOUNT="${{ parameters.storageAccountName }}"
+              export AZURE_STORAGE_KEY=$(az storage account keys list -n "$AZURE_STORAGE_ACCOUNT" --query "[0].value" -o tsv)
+              export ARM_CLIENT_ID=$servicePrincipalId
+              export ARM_CLIENT_SECRET=$servicePrincipalKey
+              export ARM_TENANT_ID=$tenantId
+              export ARM_SUBSCRIPTION_ID=$(az account show | jq '.id' --raw-output)
+
+              # init pulumi stack
+              pulumi login --cloud-url azblob://state
+
+              # select/create stack
+              pulumi destroy -y -s '${{ parameters.stack_name }}'

@@ -69,7 +69,7 @@ namespace CoreEx.Test.Framework.Json
         public void SystemTextJson_Serialize_Deserialize()
         {
             // Arrange
-            var json = "{\n  \"email\": \"piotr.karpala@avanade.com\",\n  \"FirstName\": \"Piotr\",\n  \"lastName\": \"Karpala\",\n  \"genderCode\": \"male\",\n  \"birthday\": \"1990-03-24T13:49:11.813Z\",\n  \"startDate\": \"2022-03-24T13:49:11.813Z\",\n  \"phoneNo\": \"985 657 9455\"\n}";
+            var json = "{\n  \"email\": \"john.doe@avanade.com\",\n  \"FirstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"genderCode\": \"male\",\n  \"birthday\": \"1990-03-24T13:49:11.813Z\",\n  \"startDate\": \"2022-03-24T13:49:11.813Z\",\n  \"phoneNo\": \"985 657 9455\"\n}";
             var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
 
             // Act
@@ -77,7 +77,7 @@ namespace CoreEx.Test.Framework.Json
 
             // Assert
             employee.Should().NotBeNull();
-            employee!.FirstName.Should().Be("Piotr");
+            employee!.FirstName.Should().Be("John");
         }
     }
 }

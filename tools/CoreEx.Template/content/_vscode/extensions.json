@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "ms-azuretools.vscode-azurefunctions",
+    "ms-dotnettools.csharp",
+    "VisualStudioExptTeam.vscodeintellicode",
+    "ms-mssql.mssql",
+    "ms-vscode.azure-account",
+    "ms-azuretools.vscode-azureappservice",
+    "ms-azuretools.vscode-docker",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "MS-vsliveshare.vsliveshare-pack",
+    "Azurite.azurite",
+    "humao.rest-client"
+  ]
+}

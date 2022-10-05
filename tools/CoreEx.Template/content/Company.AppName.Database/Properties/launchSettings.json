@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Company.AppName.Database": {
+      "commandName": "Project",
+      "commandLineArgs": "all"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+# requires following env variables:
+# * secret variable - PULUMI_CONFIG_PASSPHRASE - KeyVault can be used instead of pass phrase, see: https://www.pulumi.com/docs/intro/concepts/secrets/#azure-key-vault
+
+name: Infra-Deploy-$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+- name: buildConfiguration
+  value: 'Release'
+
+trigger: 
+  branches: 
+    include: 
+    - develop 
+    - main
+    - test
+    - preprod
+
+stages:
+- stage: Dev
+  jobs:
+    - template: templates/infra-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: dev
+        storageAccountName: pulumistatestore112 # set to your azure storage account name that contains "state" container
+
+- stage: Test
+  jobs:
+    - template: templates/infra-template.yml
+      parameters:
+        AzureSubscription: $(AzureSubscription) # replace with the name of service connection
+        env: test
+        storageAccountName: pulumistatestore112 # set to your azure storage account name that contains "state" container

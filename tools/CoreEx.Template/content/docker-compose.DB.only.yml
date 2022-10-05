@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+
+  app-api:
+    entrypoint: ["echo", "Service api disabled"]
+
+  app-functions:
+    entrypoint: ["echo", "Service functions disabled"]
+
+
+volumes:
+  app-sqldata:
+    external: false

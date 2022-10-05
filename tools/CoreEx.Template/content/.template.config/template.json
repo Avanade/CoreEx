@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "CoreEx (https://github.com/avanade/coreex)",
+  "classifications": [ "CoreEx", "Common", "Library", "Web", "WebAPI", "Console", "Test", "NUnit", "Solution" ],
+  "identity": "CoreEx.Solution",
+  "groupIdentity": "CoreEx",
+  "name": "CoreEx (Core Building blocks for enterprise) solutions",
+  "shortName": "coreex",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "defaultName": "CoreEx",
+  "description": "CoreEx ",
+  "sourceName": "XXCompany.AppNameXX", // Not actually used; template uses the below parameters exclusively.
+  "preferNameDirectory": true,
+  "symbols": {
+    "company": {
+      "type": "parameter",
+      "replaces": "Company",
+      "fileRename": "Company",
+      "isRequired": true,
+      "datatype": "text",
+      "description": "The company name 'Company' used to define the namespace etc; e.g. 'Company.AppName'."
+    },
+    "appname": {
+      "type": "parameter",
+      "replaces": "AppName",
+      "fileRename": "AppName",
+      "isRequired": true,
+      "datatype": "text",
+      "description": "The application (domain) name 'AppName' used to define the namespace etc; e.g. 'Company.AppName'."
+    },
+    "created_date": {
+      "type": "generated",
+      "generator": "now",
+      "parameters": {
+        "format": "yyyyMMdd"
+      },
+      "replaces": "20190101"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "rename": {
+            "_azuredevops": ".azuredevops",
+            "_gitignore": ".gitignore",
+            "_dockerignore": ".dockerignore",
+            "_devcontainer": ".devcontainer",
+            "_vscode": ".vscode"
+          }
+        }
+      ]
+    }
+  ],
+  "primaryOutputs": [
+    {
+      "path": "./Company.AppName.sln"        
+    }
+  ],
+  "postActions": [{
+    "condition": "(!skipRestore)",
+    "description": "Restore NuGet packages required by this project.",
+    "manualInstructions": [{
+      "text": "Run 'dotnet restore'"
+    }],
+    "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+    "continueOnError": true,
+    "args": {
+      "files": [ "Company.AppName.sln" ]
+    }
+  }]
+}

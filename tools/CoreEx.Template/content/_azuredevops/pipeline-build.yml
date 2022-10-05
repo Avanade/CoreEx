@@ -1,0 +1,120 @@
+name: $(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: 'Release'
+
+trigger: 
+  branches: 
+    include: 
+    - develop 
+    - main
+    - test
+    - preprod
+
+jobs:
+- job: BuildJob
+  displayName: Build, Test and Publish apps
+  workspace:
+    clean: outputs
+  steps:
+  - task: CopyFiles@2
+    displayName: Copy Files
+    inputs:
+      contents: $(Build.Repository.LocalPath)/**
+      targetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: NuGetAuthenticate@0
+
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs:
+      command: 'restore'
+      projects: '*.sln'
+      # vstsFeed: '5c1bf9a9-e22e-4f76-9993-1a6b447130f8/c1502c9b-c232-4f35-8045-b01575cce6bc' # uncomment when using ADO Artifacts feed
+
+  - task: DotNetCoreCLI@2
+    displayName: Build
+    inputs:
+      command: build
+      projects: '*.sln'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: Bash@3
+    displayName: 'Run SQL Server in docker container'
+    inputs:
+      targetType: 'inline'
+      script: |
+        docker pull mcr.microsoft.com/mssql/server:2022-latest
+        docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sAPWD23.^0" --name sqlserver -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+
+        # wait for DB to start
+        chmod +x ./Company.AppName.Database/wait-for-it.sh
+        ./Company.AppName.Database/wait-for-it.sh localhost:1433 -t 30 -- sleep 10 && echo "db is up" 
+
+        echo '##vso[task.setvariable variable=ConnectionStrings__Database]Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true'
+
+        mkdir -p $(Build.SourcesDirectory)/TestResults/Coverage/
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run unit tests - $(buildConfiguration)'
+    inputs:
+      command: 'test'
+      arguments: '-c $(buildConfiguration) --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/coverageApp.json'
+      publishTestResults: true
+      projects: '**/*.UnitTest.csproj'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run infrastructure tests - $(buildConfiguration)'
+    inputs:
+      command: 'test'
+      arguments: '-c $(buildConfiguration) --no-build --verbosity normal /p:MergeWith="$(Build.SourcesDirectory)/TestResults/Coverage/coverageApp.json" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura%2cjson /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/'
+      publishTestResults: true
+      projects: '**/*.Infra.Tests.csproj'
+
+  - task: Bash@3
+    displayName: 'display code coverage files'
+    inputs:
+      targetType: 'inline'
+      script: |
+        # Write your commands here
+        
+        ls -R $(Build.SourcesDirectory)/TestResults/Coverage/
+
+  - task: PublishCodeCoverageResults@1
+    displayName: 'Publish code coverage report'
+    inputs:
+      codeCoverageTool: 'Cobertura'
+      summaryFileLocation: '$(Build.SourcesDirectory)/TestResults/Coverage/**/*.cobertura.xml'
+      pathToSources: '$(Build.SourcesDirectory)'
+      reportDirectory: '$(Build.SourcesDirectory)/TestResults/Report'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Publish function app'
+    inputs:
+      command: 'publish'
+      projects: '**/Company.AppName.Functions.csproj'
+      publishWebProjects: false
+      arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish function app artifact'
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)/Company.AppName.Functions.zip'
+      artifactName: Company-AppName-Functions_Package
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Publish appservice app'
+    inputs:
+      command: 'publish'
+      projects: '**/Company.AppName.Api.csproj'
+      publishWebProjects: false
+      arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish appservice app artifact'
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)/Company.AppName.Api.zip'
+      artifactName: Company-AppName-Api_Package

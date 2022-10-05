@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Update 'VARIANT' to pick an NET VERSION
+        VARIANT: "6.0"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ConnectionStrings__Database=Data Source=sqldata,1433;Initial Catalog=Company.AppName;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
+      - PORT=80
+    volumes:
+      - ..:/workspace:cached
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
+    network_mode: service:sqldata
+
+    # Uncomment the next line to use a non-root user for all processes.
+    # user: node
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+  sqldata:
+    build:
+      context: ../
+      dockerfile: Company.AppName.Database/Dockerfile
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=sAPWD23.^0
+      - MSSQL_TCP_PORT=1433
+      - MSSQL_AGENT_ENABLED=true
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=Company.AppName;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true
+    volumes:
+      - app-sqldata:/var/opt/mssql
+
+    # Add "forwardPorts": ["1433"] to **devcontainer.json** to forward SQL locally.
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+volumes:
+  app-sqldata:

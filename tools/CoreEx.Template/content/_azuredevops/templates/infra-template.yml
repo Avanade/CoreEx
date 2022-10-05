@@ -1,0 +1,142 @@
+# requires following env variables:
+# * secret variable - PULUMI_CONFIG_PASSPHRASE - KeyVault can be used instead of pass phrase, see: https://www.pulumi.com/docs/intro/concepts/secrets/#azure-key-vault
+
+parameters:
+- name: AzureSubscription
+  type: string
+  displayName: 'Name of the Azure Service Connection'
+- name: storageAccountName
+  type: string
+  displayName: 'Name of the storage account used for pulumi state'
+- name: env
+  type: string
+  displayName: 'Environment name - dev, test, etc. Can be longer e.g. Company-AppName-dev'
+- name: region
+  type: string
+  default: eastus
+  displayName: 'Azure region to deploy to'  
+
+jobs:
+- deployment: Deploy
+  displayName: "Deploy infrastructure ${{ parameters.env }}"
+  environment: ${{ parameters.env }}
+  variables:
+  - name: global_buildDate
+    value: $[format('{0:yyyy}-{0:MM}-{0:dd}T{0:HH}:{0:mm}:{0:ss}', pipeline.startTime)]
+  - name: stack_name
+    value: ${{ parameters.env }} # can modify stack name here
+  # - group: VG-Company-AppName-${{ parameters.env }} # uncomment to use variable groups in ADO
+  pool:
+    vmImage: ubuntu-latest
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+
+        - checkout: self
+
+        - task: Bash@3
+          displayName: 'Install Pulumi'
+          inputs:
+            targetType: 'inline'
+            script: |
+              curl -fsSL https://get.pulumi.com | sh
+             
+              echo "##vso[task.prependpath]$HOME/.pulumi/bin"
+              pulumi about
+
+        - task: DotNetCoreCLI@2
+          displayName: Build Infra Project
+          inputs:
+            command: build
+            projects: '**/Company.AppName.Infra.csproj'
+            arguments: '--configuration $(buildConfiguration)'
+
+        - task: AzureCLI@2
+          displayName: Configure Pulumi
+          env:
+            PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+          inputs:
+            scriptType: bash
+            workingDirectory: Company.AppName.Infra
+            azureSubscription: '${{ parameters.AzureSubscription }}'
+            scriptLocation: inlineScript
+            inlineScript: |
+              export AZURE_STORAGE_ACCOUNT="${{ parameters.storageAccountName }}"
+              echo "##vso[task.setvariable variable=AZURE_STORAGE_ACCOUNT;isOutput=false]$AZURE_STORAGE_ACCOUNT"
+              export AZURE_STORAGE_KEY=$(az storage account keys list -n "$AZURE_STORAGE_ACCOUNT" --query "[0].value" -o tsv)
+              echo "##vso[task.setvariable variable=AZURE_STORAGE_KEY;isOutput=false;issecret=true]$AZURE_STORAGE_KEY"
+
+              # init pulumi stack
+              pulumi login --cloud-url azblob://state
+
+              # select/create stack
+              pulumi stack select -c '${{ variables.stack_name }}'
+              pulumi config set azure-native:location ${{ parameters.region }}
+              pulumi config set Company.AppName.Infra:isDBSchemaDeploymentEnabled true
+
+
+        - task: AzureCLI@2
+          displayName: Pulumi Preview
+          condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.Reason'], 'Manual')))
+          env:
+            AZURE_STORAGE_ACCOUNT: $(AZURE_STORAGE_ACCOUNT)
+            AZURE_STORAGE_KEY: $(AZURE_STORAGE_KEY)
+            PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+          inputs:
+            scriptType: bash
+            azureSubscription: '${{ parameters.AzureSubscription }}'
+            addSpnToEnvironment: true
+            workingDirectory: Company.AppName.Infra
+            scriptLocation: inlineScript
+            failOnStandardError: true
+            inlineScript: |
+              export ARM_CLIENT_ID=$servicePrincipalId
+              export ARM_CLIENT_SECRET=$servicePrincipalKey
+              export ARM_TENANT_ID=$tenantId
+              export ARM_SUBSCRIPTION_ID=$(az account show | jq '.id' --raw-output)
+
+              pulumi login --cloud-url azblob://state
+              pulumi preview -s '${{ variables.stack_name }}'
+
+
+        - task: AzureCLI@2
+          condition: or(succeeded(), or(eq(variables['Build.Reason'], 'IndividualCI'), eq(variables['Build.Reason'], 'BatchedCI')))
+          displayName: Pulumi Up
+          env:
+            AZURE_STORAGE_ACCOUNT: $(AZURE_STORAGE_ACCOUNT)
+            AZURE_STORAGE_KEY: $(AZURE_STORAGE_KEY)
+            PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+          inputs:
+            scriptType: bash
+            azureSubscription: ${{ parameters.AzureSubscription }}
+            addSpnToEnvironment: true
+            workingDirectory: Company.AppName.Infra
+            scriptLocation: inlineScript
+            failOnStandardError: true
+            inlineScript: |
+              export ARM_CLIENT_ID=$servicePrincipalId
+              export ARM_CLIENT_SECRET=$servicePrincipalKey
+              export ARM_TENANT_ID=$tenantId
+              export ARM_SUBSCRIPTION_ID=$(az account show | jq '.id' --raw-output)
+
+              pulumi login --cloud-url azblob://state
+              pulumi up -s '${{ variables.stack_name }}' --yes
+
+              echo creating $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
+              touch $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
+              cat <<EOT >> $(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh
+              echo exporting variables
+              echo "##vso[task.setvariable variable=RESOURCEGROUPNAME;isOutput=false]$(pulumi stack output ResourceGroupName)"
+              echo "##vso[task.setvariable variable=APPSERVICENAME;isOutput=false]$(pulumi stack output AppServiceName)"
+              echo "##vso[task.setvariable variable=FUNCTIONNAME;isOutput=false]$(pulumi stack output FunctionName)"
+              echo "##vso[task.setvariable variable=FUNCTIONHEALTHURL;isOutput=false;issecret=true]$(pulumi stack output --show-secrets FunctionHealthUrl)"
+              echo "##vso[task.setvariable variable=APPHEALTHURL;isOutput=false;issecret=true]$(pulumi stack output AppHealthUrl)"
+              EOT
+
+        - task: PublishBuildArtifacts@1
+          condition: succeeded()
+          displayName: 'Publish infrastructure artifact'
+          inputs:
+            pathToPublish: '$(Build.ArtifactStagingDirectory)/setup-${{ parameters.env }}.sh'
+            artifactName: Company-AppName-Infra_Package-${{ parameters.env }}
