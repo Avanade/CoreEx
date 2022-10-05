@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreEx.Http;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using FluentAssertions;
@@ -215,6 +216,31 @@ namespace CoreEx.Test.Framework.Http
 
             // Act
             var result = await dhc.ThrowTransientException().WithRetry(1, 0).PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m });
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public async Task Client_Should_Retry_When_Server_Returns_429_DefaultOptions()
+        {
+            // Arrange
+            var mcf = MockHttpClientFactory.Create();
+            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Post, "test").WithAnyBody().Respond.WithSequence(seq =>
+            {
+                seq.Respond().With(statusCode: HttpStatusCode.TooManyRequests, response => response.Headers.Add("Retry-After", "5"));
+                seq.Respond().WithJson("{ }", HttpStatusCode.OK);
+            });
+
+            using var test = FunctionTester.Create<Startup>();
+            var services = test.ConfigureServices(sc => mcf.Replace(sc)).Services;
+            var dhc = services.GetService<BackendHttpClient>()!;
+
+            dhc.DefaultOptions.ThrowTransientException().WithRetry(1, 0);
+
+            // Act
+            var result = await dhc.PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m });
 
             // Assert
             result.IsSuccess.Should().BeTrue();

@@ -16,7 +16,7 @@ namespace CoreEx.Entities.Extended
     [System.Diagnostics.DebuggerStepThrough]
     public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<TSelf>, ICollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom
         where TColl : EntityBaseCollection<TEntity, TColl>, new()
-        where TEntity : EntityBase<TEntity>, new()
+        where TEntity : EntityBase, new()
         where TSelf : EntityCollectionResult<TColl, TEntity, TSelf>, new()
     {
         private PagingResult? _paging;

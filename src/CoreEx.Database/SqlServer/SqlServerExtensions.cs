@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Database.Extended;
 using CoreEx.Database.Mapping;
 using Microsoft.Data.SqlClient;
 using System;
@@ -242,5 +243,164 @@ namespace CoreEx.Database.SqlServer
         /// <remarks>This specifically implies that the <see cref="SqlParameter"/> is being used; if not then an exception will be thrown.</remarks>
         public static TSelf TableValuedParamWith<TSelf>(this IDatabaseParameters<TSelf> parameters, object? with, IPropertyColumnMapper mapper, Func<TableValuedParameter> tvp)
             => TableValuedParamWith(parameters, with != null, mapper?.ParameterName!, tvp);
+
+        #region CreateTableValuedParameter
+
+        /// <summary>
+        /// Creates a <see cref="DatabaseColumns.TvpStringListTypeName"/> <see cref="TableValuedParameter"/> for the <see cref="string"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<string?> list) => CreateTableValuedParameter(database, database.DatabaseColumns.TvpStringListTypeName, list);
+
+        /// <summary>
+        /// Creates a <see cref="TableValuedParameter"/> for the <see cref="string"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="typeName">The SQL type name of the table-valued parameter.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<string?> list)
+        {
+            using var dt = new DataTable();
+            dt.Columns.Add(database.DatabaseColumns.TvpListValueColumnName, typeof(string));
+
+            if (list != null)
+            {
+                foreach (var item in list)
+                {
+                    dt.Rows.Add(item);
+                }
+            }
+
+            return new TableValuedParameter(typeName, dt);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="DatabaseColumns.TvpInt32ListTypeName"/> <see cref="TableValuedParameter"/> for the <see cref="int"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<int> list) => CreateTableValuedParameter(database, database.DatabaseColumns.TvpInt32ListTypeName, list);
+
+        /// <summary>
+        /// Creates a <see cref="TableValuedParameter"/> for the <see cref="int"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="typeName">The SQL type name of the table-valued parameter.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<int> list)
+        {
+            using var dt = new DataTable();
+            dt.Columns.Add(database.DatabaseColumns.TvpListValueColumnName, typeof(int));
+
+            if (list != null)
+            {
+                foreach (var item in list)
+                {
+                    dt.Rows.Add(item);
+                }
+            }
+
+            return new TableValuedParameter(typeName, dt);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="DatabaseColumns.TvpInt64ListTypeName"/> <see cref="TableValuedParameter"/> for the <see cref="long"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<long> list) => CreateTableValuedParameter(database, database.DatabaseColumns.TvpInt64ListTypeName, list);
+
+        /// <summary>
+        /// Creates a <see cref="TableValuedParameter"/> for the <see cref="long"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="typeName">The SQL type name of the table-valued parameter.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<long> list)
+        {
+            using var dt = new DataTable();
+            dt.Columns.Add(database.DatabaseColumns.TvpListValueColumnName, typeof(long));
+
+            if (list != null)
+            {
+                foreach (var item in list)
+                {
+                    dt.Rows.Add(item);
+                }
+            }
+
+            return new TableValuedParameter(typeName, dt);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="DatabaseColumns.TvpGuidListTypeName"/> <see cref="TableValuedParameter"/> for the <see cref="Guid"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<Guid> list) => CreateTableValuedParameter(database, database.DatabaseColumns.TvpGuidListTypeName, list);
+
+        /// <summary>
+        /// Creates a <see cref="TableValuedParameter"/> for the <see cref="Guid"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="typeName">The SQL type name of the table-valued parameter.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<Guid> list)
+        {
+            using var dt = new DataTable();
+            dt.Columns.Add(database.DatabaseColumns.TvpListValueColumnName, typeof(Guid));
+
+            if (list != null)
+            {
+                foreach (var item in list)
+                {
+                    dt.Rows.Add(item);
+                }
+            }
+
+            return new TableValuedParameter(typeName, dt);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="DatabaseColumns.TvpDateTimeListTypeName"/> <see cref="TableValuedParameter"/> for the <see cref="DateTime"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<DateTime> list) => CreateTableValuedParameter(database, database.DatabaseColumns.TvpGuidListTypeName, list);
+
+        /// <summary>
+        /// Creates a <see cref="TableValuedParameter"/> for the <see cref="DateTime"/> <paramref name="list"/>.
+        /// </summary>
+        /// <param name="database">The<see cref="IDatabase"/>.</param>
+        /// <param name="typeName">The SQL type name of the table-valued parameter.</param>
+        /// <param name="list">The list.</param>
+        /// <returns>The <see cref="TableValuedParameter"/>.</returns>
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<DateTime> list)
+        {
+            using var dt = new DataTable();
+            dt.Columns.Add(database.DatabaseColumns.TvpListValueColumnName, typeof(DateTime));
+
+            if (list != null)
+            {
+                foreach (var item in list)
+                {
+                    dt.Rows.Add(item);
+                }
+            }
+
+            return new TableValuedParameter(typeName, dt);
+        }
+
+        #endregion
     }
 }

@@ -29,19 +29,19 @@ namespace CoreEx.Database.Extended
             => new(command);
 
         /// <summary>
-        /// Creates a <see cref="RefDataLoader{TColl, TItem, TId}"/> (for <see cref="IReferenceDataCollection"/> loading) using a '<c>SELECT * FROM [<paramref name="tableName"/>]</c>' SQL statement.
+        /// Creates a <see cref="RefDataLoader{TColl, TItem, TId}"/> (for <see cref="IReferenceDataCollection"/> loading) using the specified <paramref name="storedProcedure"/>.
         /// </summary>
         /// <typeparam name="TColl">The <see cref="IReferenceDataCollection"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="TItem">The <see cref="IReferenceData"/> item <see cref="Type"/>.</typeparam>
         /// <typeparam name="TId">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
         /// <param name="database">The <see cref="IDatabase"/>.</param>
-        /// <param name="tableName">The database table name.</param>
+        /// <param name="storedProcedure">The stored procedure name.</param>
         /// <returns>The <see cref="RefDataLoader{TColl, TItem, TId}"/>.</returns>
-        public static RefDataLoader<TColl, TItem, TId> ReferenceData<TColl, TItem, TId>(this IDatabase database, string tableName)
+        public static RefDataLoader<TColl, TItem, TId> ReferenceData<TColl, TItem, TId>(this IDatabase database, string storedProcedure)
             where TColl : class, IReferenceDataCollection<TId, TItem>, new()
             where TItem : class, IReferenceData<TId>, new()
             where TId : IComparable<TId>, IEquatable<TId>
-            => ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database))).SqlStatement($"SELECT * FROM [{tableName ?? throw new ArgumentNullException(nameof(tableName))}]"));
+            => ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database))).StoredProcedure(storedProcedure));
 
         /// <summary>
         /// Creates a <see cref="RefDataLoader{TColl, TItem, TId}"/> (for <see cref="IReferenceDataCollection"/> loading) using a '<c>SELECT * FROM [<paramref name="schemaName"/>].[<paramref name="tableName"/>]</c>' SQL statement.
@@ -54,7 +54,7 @@ namespace CoreEx.Database.Extended
         /// <param name="tableName">The database table name.</param>
         /// <returns>The <see cref="RefDataLoader{TColl, TItem, TId}"/>.</returns>
         public static RefDataLoader<TColl, TItem, TId> ReferenceData<TColl, TItem, TId>(this IDatabase database, string schemaName, string tableName)
-           where TColl : class, IReferenceDataCollection<TId, TItem>, new()
+            where TColl : class, IReferenceDataCollection<TId, TItem>, new()
             where TItem : class, IReferenceData<TId>, new()
             where TId : IComparable<TId>, IEquatable<TId>
             => ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database))).SqlStatement($"SELECT * FROM [{schemaName ?? throw new ArgumentNullException(nameof(schemaName))}].[{tableName ?? throw new ArgumentNullException(nameof(tableName))}]"));
@@ -86,12 +86,9 @@ namespace CoreEx.Database.Extended
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
         /// <param name="keys">The key values.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T>(this DatabaseCommand command, DatabaseArgs args, IComparable[] keys, CancellationToken cancellationToken = default) where T : class, new()
-            => (command ?? throw new ArgumentNullException(nameof(command)))
-                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, keys))
-                .SelectFirstOrDefaultAsync((IDatabaseMapper<T>)args.Mapper, cancellationToken);
+        public static Task<T?> GetAsync<T>(this DatabaseCommand command, DatabaseArgs args, params object?[] keys) where T : class, new()
+            => GetAsync<T>(command, args, CompositeKey.Create(keys), CancellationToken.None);
 
         /// <summary>
         /// Gets the value for the specified <paramref name="keys"/> mapping to <typeparamref name="T"/>.
@@ -100,12 +97,35 @@ namespace CoreEx.Database.Extended
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="keys">The key values.</param>
+        /// <returns>The value where found; otherwise, <c>null</c>.</returns>
+        public static Task<T?> GetAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, params object?[] keys) where T : class, new()
+            => GetAsync<T>(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(keys), CancellationToken.None);
+
+        /// <summary>
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, IComparable[] keys, CancellationToken cancellationToken = default) where T : class, new()
+        public static Task<T?> GetAsync<T>(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
             => (command ?? throw new ArgumentNullException(nameof(command)))
-                .Params(p => mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, keys))
-                .SelectFirstOrDefaultAsync(mapper, cancellationToken);
+                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
+                .SelectFirstOrDefaultAsync((IDatabaseMapper<T>)args.Mapper, cancellationToken);
+
+        /// <summary>
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value where found; otherwise, <c>null</c>.</returns>
+        public static Task<T?> GetAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
+            => GetAsync<T>(command, new DatabaseArgs(command.Database.DbArgs, mapper), key, cancellationToken);
 
         /// <summary>
         /// Performs a create using the specified stored procedure and value (reselects where specified).
@@ -190,7 +210,7 @@ namespace CoreEx.Database.Extended
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
         /// <param name="keys">The key values.</param>
-        public static Task DeleteAsync(this DatabaseCommand command, DatabaseArgs args, IComparable[] keys)
+        public static Task DeleteAsync(this DatabaseCommand command, DatabaseArgs args, params object?[] keys)
             => DeleteAsync(command, args, CompositeKey.Create(keys), CancellationToken.None);
 
         /// <summary>
@@ -199,7 +219,7 @@ namespace CoreEx.Database.Extended
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="keys">The key values.</param>
-        public static Task DeleteAsync(this DatabaseCommand command, IDatabaseMapper mapper, IComparable[] keys)
+        public static Task DeleteAsync(this DatabaseCommand command, IDatabaseMapper mapper, params object?[] keys)
             => DeleteAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(keys), CancellationToken.None);
 
         /// <summary>

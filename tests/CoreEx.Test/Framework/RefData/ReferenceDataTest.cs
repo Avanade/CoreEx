@@ -1,5 +1,6 @@
 ﻿using CoreEx.Entities.Extended;
 using CoreEx.Http;
+using CoreEx.Mapping.Converters;
 using CoreEx.RefData;
 using CoreEx.TestFunction;
 using FluentAssertions;
@@ -434,6 +435,34 @@ namespace CoreEx.Test.Framework.RefData
             Assert.AreEqual(0, r2!.Id);
             Assert.AreEqual("C", r2.Code);
             Assert.IsFalse(r2.IsValid);
+        }
+
+        [Test]
+        public void RefenceDataIdConverter()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            var rd = (RefData)1;
+            new ReferenceDataIdConverter<RefData, int>().ToDestination.Convert(rd).Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int>().ToDestination.Convert(null).Should().Be(0);
+            new ReferenceDataIdConverter<RefData, int?>().ToDestination.Convert(rd).Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int?>().ToDestination.Convert(null).Should().BeNull();
+
+            new ReferenceDataIdConverter<RefData, int>().ToSource.Convert(1).Should().NotBeNull().And.BeOfType<RefData>().Which.Id.Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int>().ToSource.Convert(0).Should().NotBeNull().And.BeOfType<RefData>().Which.Id.Should().Be(0);
+            new ReferenceDataIdConverter<RefData, int?>().ToSource.Convert(1).Should().NotBeNull().And.BeOfType<RefData>().Which.Id.Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int?>().ToSource.Convert(null).Should().BeNull();
+
+            Assert.Throws<InvalidCastException>(() => new ReferenceDataIdConverter<RefData, Guid?>().ToSource.Convert(Guid.Empty));
         }
 
         [Test]

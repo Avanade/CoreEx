@@ -2,6 +2,17 @@
 
 Represents the **NuGet** versions.
 
+## v1.0.10
+- *Enhancement:* Loosened `EntityCollectionResult` `TEntity` constraint to `EntityBase` to enable inherited extended entitites.
+- *Enhancement:* Extended `TypedHttpClientBase<TSelf>` to support `DefaultOptions` and `SendOptions` to enable default configuration of new `TypedHttpClientOptions`; i.e. the likes of `WithRetry` can now default versus having to be set per invocation of `SendAsync`.
+- *Enhancement:* Added `TypedMappedHttpClientBase`, `TypedMappedHttpClientCore` and `TypedMappedHttpClient` with new `IMapper` property used to add extended support for request and response type mappings as part of the request. New methods are `GetMappedAsync`, `PostMappedAsync`, `PutMappedAsync` and `PatchMappedAsync` where applicable.
+- *Enhancement:* `IConverter<T>` usability improvements; including others that leverage.
+- *Enhancement:* AutoMapper converters added for common `IConverter<T>` implementations to enable.
+- *Enhancement:* `ReferenceDataOrchestrator.ConvertFromId(object? id)` overload added to enable usage when `Type` of `Id` is unknown.
+- *Enhancement:* Added `RefDataLoader` overload that supports stored procedure command usage.
+- *Enhancement:* Extended `TableValuedParameter` to support standard list types; including corresponding configurable `DatabaseColumn` names.
+- *Enhancement:* Add `DatabaseCommand.SelectMultiSetAsync` overloads to support paging. 
+
 ## v1.0.9
 - *Enhancement:* Ported and refactored CosmosDb components from _Beef_ repo.
 - *Enhancement:* **Breaking change**: Replaced `DatabaseArgs.Paging` with `DatabaseQuery.Paging` and `DatabaseQuery.WithPaging`.

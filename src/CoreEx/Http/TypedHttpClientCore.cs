@@ -109,7 +109,7 @@ namespace CoreEx.Http
             => base.PostAsync<TRequest>(requestUri, value, requestOptions, args, cancellationToken);
 
         /// <summary>
-        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation and deserializes the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
+        /// Send a <see cref="HttpMethod.Post"/> request to the specified Uri as an asynchronous operation and deserialize the response JSON <see cref="HttpResponseMessage.Content"/> to <typeparamref name="TResponse"/>.
         /// </summary>
         /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
         /// <param name="requestUri">The Uri the request is sent to.</param>

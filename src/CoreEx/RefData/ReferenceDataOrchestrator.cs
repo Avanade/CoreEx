@@ -531,6 +531,31 @@ namespace CoreEx.RefData
         }
 
         /// <summary>
+        /// Performs a conversion from an <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> to an instance of <typeparamref name="TRef"/>.
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <param name="id">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/>.</param>
+        /// <returns>The <typeparamref name="TRef"/> instance.</returns>
+        /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
+        [return: NotNullIfNotNull("id")]
+        public static TRef? ConvertFromId<TRef>(object? id) where TRef : IReferenceData, new()
+        {
+            if (id == null)
+                return default;
+
+            if (ExecutionContext.HasCurrent)
+            {
+                var rdc = Current.GetByType<TRef>();
+                if (rdc != null && rdc.TryGetById(id, out var rd))
+                    return (TRef)rd!;
+            }
+
+            var rdx = new TRef { Id = id };
+            ((IReferenceData)rdx).SetInvalid();
+            return rdx;
+        }
+
+        /// <summary>
         /// Performs a conversion from a mapping value to an instance of <typeparamref name="TRef"/>.
         /// </summary>
         /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>

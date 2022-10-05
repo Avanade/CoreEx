@@ -55,7 +55,7 @@ namespace CoreEx.Database.SqlServer
         /// <param name="database">The <see cref="IDatabase"/>.</param>
         /// <param name="mapper">The corresponding <see cref="IDatabaseMapper{TSource}"/>.</param>
         /// <param name="items">Zero or more items to add.</param>
-        public void AddRows<T>(IDatabase database, IDatabaseMapper<T> mapper, IEnumerable<T> items)
+        public void AddRows<T>(IDatabase database, IDatabaseMapper<T> mapper, IEnumerable<T>? items)
         {
             if (database == null) throw new ArgumentNullException(nameof(database));
             if (mapper == null) throw new ArgumentNullException(nameof(mapper));
