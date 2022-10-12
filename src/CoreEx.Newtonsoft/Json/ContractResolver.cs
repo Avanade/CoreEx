@@ -41,7 +41,8 @@ namespace CoreEx.Newtonsoft.Json
                     .AddType<PagingArgs>()
                     .AddType<PagingResult>()
                     .AddType<ExtendedContentResult>()
-                    .AddType<ExtendedStatusCodeResult>();
+                    .AddType<ExtendedStatusCodeResult>()
+                    .AddType<EventDataBase>();
         }
 
         /// <summary>

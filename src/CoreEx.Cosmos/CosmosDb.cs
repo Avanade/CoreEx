@@ -77,10 +77,10 @@ namespace CoreEx.Cosmos
         public Container GetCosmosContainer(string containerId) => Database.GetContainer(containerId);
 
         /// <inheritdoc/>
-        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId);
+        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId);
 
         /// <inheritdoc/>
-        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier, new() => new(this, containerId);
+        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() => new(this, containerId);
 
         /// <summary>
         /// Sets the filter for all operations performed on the <typeparamref name="TModel"/> for the specified <paramref name="containerId"/> to ensure authorisation is applied. Applies automatically 

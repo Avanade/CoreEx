@@ -137,21 +137,21 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_Item_Duplicates_PrimaryKey()
         {
-            var iv = Validator.Create<TestItem>().HasProperty(x => x.Id, p => p.Mandatory());
+            var iv = Validator.Create<TestItem2>().HasProperty(x => x.Part1, p => p.Mandatory()).HasProperty(x => x.Part2, p => p.Mandatory());
 
-            var v1 = await new TestItem[0].Validate().Collection(item: CollectionRuleItem.Create(iv).PrimaryKeyDuplicateCheck()).ValidateAsync();
+            var v1 = await new TestItem2[0].Validate().Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck()).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var tis = new TestItem[] { new TestItem { Id = "ABC", Text = "Abc" }, new TestItem { Id = "DEF", Text = "Def" }, new TestItem { Id = "GHI", Text = "Ghi" } };
+            var tis = new TestItem2[] { new TestItem2 { Part1 = "ABC", Part2 = 1, Text = "Abc" }, new TestItem2 { Part1 = "DEF", Part2 = 1, Text = "Def" }, new TestItem2 { Part1 = "GHI", Part2 = 1, Text = "Ghi" } };
 
-            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).PrimaryKeyDuplicateCheck()).ValidateAsync();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck()).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            tis[2].Id = "ABC";
-            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).PrimaryKeyDuplicateCheck()).ValidateAsync();
+            tis[2].Part1 = "ABC";
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck()).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value contains duplicates; Primary Key 'ABC' specified more than once.", v1.Messages[0].Text);
+            Assert.AreEqual("Value contains duplicates; Primary Key specified more than once.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
         }
@@ -161,16 +161,16 @@ namespace CoreEx.Test.Framework.Validation.Rules
         {
             var iv = Validator.Create<TestItem>().HasProperty(x => x.Id, p => p.Mandatory());
 
-            var v1 = await new TestItem[0].Validate().Collection(item: CollectionRuleItem.Create(iv).IdentifierDuplicateCheck(true)).ValidateAsync();
+            var v1 = await new TestItem[0].Validate().Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
             var tis = new TestItem[] { new TestItem { Id = "ABC", Text = "Abc" }, new TestItem { Id = "DEF", Text = "Def" }, new TestItem { Id = "GHI", Text = "Ghi" } };
 
-            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).IdentifierDuplicateCheck(true)).ValidateAsync();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
             tis[2].Id = "ABC";
-            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).IdentifierDuplicateCheck(true)).ValidateAsync();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck(true)).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains duplicates; Identifier 'ABC' specified more than once.", v1.Messages[0].Text);
@@ -181,16 +181,16 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_Item_Duplicates_Identifier2()
         {
-            var v1 = await new TestItem2[0].Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            var v1 = await new TestItem3[0].Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var tis = new TestItem2[] { new TestItem2 { Id = 1.ToGuid() }, new TestItem2 { Id = 2.ToGuid() }, new TestItem2 { Id = 3.ToGuid() } };
+            var tis = new TestItem3[] { new TestItem3 { Id = 1.ToGuid() }, new TestItem3 { Id = 2.ToGuid() }, new TestItem3 { Id = 3.ToGuid() } };
 
-            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
             tis[2].Id = 1.ToGuid();
-            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual($"Value contains duplicates; Identifier '{1.ToGuid()}' specified more than once.", v1.Messages[0].Text);
@@ -198,7 +198,31 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual("value", v1.Messages[0].Property);
 
             tis[2].Id = Guid.Empty;
-            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem2>().IdentifierDuplicateCheck(true)).ValidateAsync();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
+        }
+
+        [Test]
+        public async Task Validate_Item_Duplicates_IgnoreInitial()
+        {
+            var v1 = await new TestItem3[0].Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
+
+            var tis = new TestItem3[] { new TestItem3 { Id = Guid.Empty }, new TestItem3 { Id = 2.ToGuid() }, new TestItem3 { Id = Guid.Empty } };
+
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
+            Assert.IsFalse(v1.HasErrors);
+
+            tis[2].Id = 2.ToGuid();
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
+            Assert.IsTrue(v1.HasErrors);
+            Assert.AreEqual(1, v1.Messages!.Count);
+            Assert.AreEqual($"Value contains duplicates; Identifier '{2.ToGuid()}' specified more than once.", v1.Messages[0].Text);
+            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
+            Assert.AreEqual("value", v1.Messages[0].Property);
+
+            tis[2].Id = Guid.Empty;
+            v1 = await tis.Validate().Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
         }
 
@@ -216,7 +240,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual("Array", v1.Messages[0].Property);
         }
 
-        public class TestItem2 : IIdentifier<Guid>
+        public class TestItem3 : IIdentifier<Guid>
         {
             public Guid Id { get; set; }
         }

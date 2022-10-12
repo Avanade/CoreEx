@@ -14,7 +14,7 @@ namespace CoreEx.Validation
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class PropertyContext<TEntity, TProperty> : IPropertyContext where TEntity : class
+    public class PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TProperty> where TEntity : class
     {
         private readonly bool _doNotAppendName = false;
 

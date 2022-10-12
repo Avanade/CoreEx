@@ -5,9 +5,9 @@ using System.Collections;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Provides the <see cref="IPrimaryKey"/> collection capabilities.
+    /// Enables the <see cref="CompositeKey"/> collection capabilities.
     /// </summary>
-    public interface IKeyedCollection: ICollection, IList
+    public interface ICompositeKeyedCollection: ICollection, IList
     {
         /// <summary>
         /// Indicates whether an item with the specified <paramref name="key"/> exists.

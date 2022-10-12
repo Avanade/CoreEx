@@ -57,9 +57,14 @@ namespace CoreEx.Events
         CorrelationId = 128,
 
         /// <summary>
+        /// Selects the <see cref="EventDataBase.Key"/> property.
+        /// </summary>
+        Key = 256,
+
+        /// <summary>
         /// Selects the <see cref="EventDataBase.Attributes"/> property.
         /// </summary>
-        Attributes = 256,
+        Attributes = 512,
 
         /// <summary>
         /// Selects all of the properties.
@@ -69,6 +74,6 @@ namespace CoreEx.Events
         /// <summary>
         /// Selects all of the properties except <see cref="Attributes"/>.
         /// </summary>
-        AllExceptAttributes = Subject | Action | Type | Source | TenantId | PartitionKey | ETag | CorrelationId,
+        AllExceptAttributes = Subject | Action | Type | Source | TenantId | PartitionKey | ETag | CorrelationId | Key,
     }
 }

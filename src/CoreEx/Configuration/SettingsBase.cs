@@ -164,5 +164,10 @@ namespace CoreEx.Configuration
         /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> maximum retry delay. Defaults to <c>2</c> minutes.
         /// </summary>
         public TimeSpan MaxRetryDelay => TimeSpan.FromSeconds(GetValue(defaultValue: 120));
+
+        /// <summary>
+        /// Gets the <see cref="Entities.PagingArgs.DefaultTake"/>; i.e. page size.
+        /// </summary>
+        public long? PagingDefaultTake => GetValue<long?>(nameof(PagingDefaultTake), null);
     }
 }

@@ -12,6 +12,8 @@ Represents the **NuGet** versions.
 - *Enhancement:* Added `RefDataLoader` overload that supports stored procedure command usage.
 - *Enhancement:* Extended `TableValuedParameter` to support standard list types; including corresponding configurable `DatabaseColumn` names.
 - *Enhancement:* Add `DatabaseCommand.SelectMultiSetAsync` overloads to support paging. 
+- *Enhancement:* **Breaking change**: Added `IEntityKey` to enable key-based support in a consistent and standardized manner; refactored `IIdentifier` and `IPrimaryKey` to leverage; existing references within updated to leverage `IEntityKey` where applicable.
+- *Enhancement:* Improved validation handling of nullable vs non-nullable types when adding rules.
 
 ## v1.0.9
 - *Enhancement:* Ported and refactored CosmosDb components from _Beef_ repo.

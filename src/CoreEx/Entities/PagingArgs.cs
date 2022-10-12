@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Configuration;
 using System;
 using System.Text.Json.Serialization;
 
@@ -12,15 +13,16 @@ namespace CoreEx.Entities
     [System.Diagnostics.DebuggerStepThrough]
     public class PagingArgs
     {
-        private static long _defaultTake = 100;
+        private static long? _defaultTake;
         private static long _maxTake = 1000;
 
         /// <summary>
-        /// Gets or sets the default <see cref="Take"/> size (defaults to 100).
+        /// Gets or sets the default <see cref="Take"/> size.
         /// </summary>
+        /// <remarks>Defaults to <see cref="SettingsBase.PagingDefaultTake"/> where specified; otherwise, <c>100</c>.</remarks>
         public static long DefaultTake
         {
-            get => _defaultTake;
+            get => _defaultTake ??= ExecutionContext.GetService<SettingsBase>()?.PagingDefaultTake ?? 100;
 
             set
             {
@@ -32,6 +34,7 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets or sets the maximum <see cref="Take"/> size allowed (defaults to 1000).
         /// </summary>
+        /// <remarks>Defaults to <c>false</c>.</remarks>
         public static long MaxTake
         {
             get => _maxTake;
@@ -44,7 +47,7 @@ namespace CoreEx.Entities
         }
 
         /// <summary>
-        /// Gets or sets the default <see cref="IsGetCount"/> (defaults to <c>false</c>).
+        /// Gets or sets the default <see cref="IsGetCount"/>.
         /// </summary>
         public static bool DefaultIsGetCount { get; set; }
 

@@ -1,16 +1,18 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Http;
 using CoreEx.Localization;
 using CoreEx.RefData;
+using CoreEx.Validation.Clauses;
 using CoreEx.Validation.Rules;
-using CoreEx.Http;
+using CoreEx.Wildcards;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Threading;
-using CoreEx.Wildcards;
+using System.Threading.Tasks;
 
 namespace CoreEx.Validation
 {
@@ -27,18 +29,106 @@ namespace CoreEx.Validation
         #region Text
 
         /// <summary>
-        /// Updates the rule friendly name text used in validation messages (see <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/>.
+        /// Updates the rule friendly name text used in validation messages (see <see cref="IPropertyRule{TEntity, TProperty}.Text"/>.
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="text">The text for the rule.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Text<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, LText text) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Text<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText text) where TEntity : class
         {
             (rule ?? throw new ArgumentNullException(nameof(rule))).Text = text;
             return rule;
         }
+
+        #endregion
+
+        #region When
+
+        /// <summary>
+        /// Adds a <see cref="WhenClause{TEntity, TProperty}"/> to this <see cref="IPropertyRule{TEntity, TProperty}"/> where the <typeparamref name="TEntity"/> <paramref name="predicate"/> must be <c>true</c> for the rule to be validated.
+        /// </summary>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="predicate">A function to determine whether the preceeding rule is to be validated.</param>
+        /// <returns>The <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> When<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Predicate<TEntity> predicate) where TEntity : class
+        {
+            if (predicate == null)
+                return rule;
+
+            (rule ?? throw new ArgumentNullException(nameof(rule))).AddClause(new WhenClause<TEntity, TProperty>(predicate));
+            return rule;
+        }
+
+        /// <summary>
+        /// Adds a <see cref="WhenClause{TEntity, TProperty}"/> to this <see cref="IPropertyRule{TEntity, TProperty}"/> where the <typeparamref name="TProperty"/> <paramref name="predicate"/> must be <c>true</c> for the rule to be validated.
+        /// </summary>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="predicate">A function to determine whether the preceeding rule is to be validated.</param>
+        /// <returns>The <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> WhenValue<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Predicate<TProperty> predicate) where TEntity : class
+        {
+            if (predicate == null)
+                return rule;
+
+            (rule ?? throw new ArgumentNullException(nameof(rule))).AddClause(new WhenClause<TEntity, TProperty>(predicate));
+            return rule;
+        }
+
+        /// <summary>
+        /// Adds a <see cref="WhenClause{TEntity, TProperty}"/> to this <see cref="IPropertyRule{TEntity, TProperty}"/> where the <typeparamref name="TProperty"/> must have a value (i.e. not the default value for the Type) for the rule to be validated.
+        /// </summary>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <returns>The <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> WhenHasValue<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
+            => WhenValue(rule, (TProperty pv) => Comparer<TProperty>.Default.Compare(pv, default!) != 0);
+
+        /// <summary>
+        /// Adds a <see cref="WhenClause{TEntity, TProperty}"/> to this <see cref="IPropertyRule{TEntity, TProperty}"/> which must be <c>true</c> for the rule to be validated.
+        /// </summary>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="when">A function to determine whether the preceeding rule is to be validated.</param>
+        /// <returns>The <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> When<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<bool> when) where TEntity : class
+        {
+            if (when == null)
+                return rule;
+
+            (rule ?? throw new ArgumentNullException(nameof(rule))).AddClause(new WhenClause<TEntity, TProperty>(when));
+            return rule;
+        }
+
+        /// <summary>
+        /// Adds a <see cref="WhenClause{TEntity, TProperty}"/> to this <see cref="IPropertyRule{TEntity, TProperty}"/> which must be <c>true</c> for the rule to be validated.
+        /// </summary>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="when">A <see cref="bool"/> to determine whether the preceeding rule is to be validated.</param>
+        /// <returns>The <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> When<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, bool when) where TEntity : class
+            => When(rule, () => when);
+
+        /// <summary>
+        /// Adds a <see cref="WhenClause{TEntity, TProperty}"/> to this <see cref="IPropertyRule{TEntity, TProperty}"/> that states that the
+        /// <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> <see cref="ExecutionContext.OperationType"/> is equal to the specified
+        /// (<paramref name="operationType"/>).
+        /// </summary>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <returns>The <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> WhenOperation<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, OperationType operationType) where TEntity : class
+            => When(rule, x => ExecutionContext.Current.OperationType == operationType);
+
+        /// <summary>
+        /// Adds a <see cref="WhenClause{TEntity, TProperty}"/> to this <see cref="IPropertyRule{TEntity, TProperty}"/> that states that the
+        /// <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> <see cref="ExecutionContext.OperationType"/> is not equal to the specified
+        /// (<paramref name="operationType"/>).
+        /// </summary>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="operationType">The <see cref="OperationType"/>.</param>
+        /// <returns>The <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> WhenNotOperation<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, OperationType operationType) where TEntity : class
+            => When(rule, x => ExecutionContext.Current.OperationType != operationType);
 
         #endregion
 
@@ -49,10 +139,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Mandatory<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Mandatory<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MandatoryRule<TEntity, TProperty> { ErrorText = errorText });
 
         #endregion
@@ -64,11 +154,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="predicate">The must predicate.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Must<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Must<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(predicate) { ErrorText = errorText });
 
         /// <summary>
@@ -76,11 +166,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="must">The must function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Must<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<bool> must, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Must<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<bool> must, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(must) { ErrorText = errorText });
 
         /// <summary>
@@ -88,11 +178,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="must">The must value.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Must<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, bool must, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Must<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, bool must, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(() => must) { ErrorText = errorText });
 
         /// <summary>
@@ -100,11 +190,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="mustAsync">The must function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> MustAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> mustAsync, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> MustAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> mustAsync, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new MustRule<TEntity, TProperty>(mustAsync) { ErrorText = errorText });
 
         #endregion
@@ -116,11 +206,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="predicate">The exists predicate.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Exists<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(predicate) { ErrorText = errorText });
 
         /// <summary>
@@ -128,11 +218,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> ExistsAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<bool>> exists, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> ExistsAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<bool>> exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(exists) { ErrorText = errorText });
 
         /// <summary>
@@ -140,11 +230,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="exists">The exists value.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, bool exists, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Exists<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, bool exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>((_, __) => Task.FromResult(exists)) { ErrorText = errorText });
 
         /// <summary>
@@ -152,11 +242,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> ExistsAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object?>> exists, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> ExistsAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object?>> exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(exists) { ErrorText = errorText });
 
         /// <summary>
@@ -164,11 +254,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Exists<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, object? exists, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Exists<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, object? exists, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>((_, __) => Task.FromResult(exists != null)) { ErrorText = errorText });
 
         /// <summary>
@@ -176,11 +266,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="agentResult">The <see cref="HttpResult"/> function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> AgentExistsAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<HttpResult>> agentResult, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> AgentExistsAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<HttpResult>> agentResult, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(agentResult) { ErrorText = errorText });
 
         #endregion
@@ -192,11 +282,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="predicate">The must predicate.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Duplicate<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Duplicate<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DuplicateRule<TEntity, TProperty>(predicate) { ErrorText = errorText });
 
         /// <summary>
@@ -204,11 +294,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="duplicate">The duplicate function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Duplicate<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<bool> duplicate, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Duplicate<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<bool> duplicate, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DuplicateRule<TEntity, TProperty>(duplicate) { ErrorText = errorText });
 
         /// <summary>
@@ -216,11 +306,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="duplicate">The duplicate value.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Duplicate<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, bool duplicate, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Duplicate<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, bool duplicate, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DuplicateRule<TEntity, TProperty>(() => duplicate) { ErrorText = errorText });
 
         /// <summary>
@@ -228,10 +318,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Duplicate<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Duplicate<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DuplicateRule<TEntity, TProperty>(() => true) { ErrorText = errorText });
 
         #endregion
@@ -243,11 +333,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="predicate">The must predicate.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Immutable<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Predicate<TEntity> predicate, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(predicate) { ErrorText = errorText });
 
         /// <summary>
@@ -255,11 +345,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="immutable">The must function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<bool> immutable, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Immutable<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<bool> immutable, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(immutable) { ErrorText = errorText });
 
         /// <summary>
@@ -267,11 +357,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="immutableAsync">The must function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> ImmutableAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> immutableAsync, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> ImmutableAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<CancellationToken, Task<bool>> immutableAsync, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(immutableAsync) { ErrorText = errorText });
 
         /// <summary>
@@ -279,11 +369,11 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="immutable">The must value.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, bool immutable, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Immutable<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, bool immutable, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(() => immutable) { ErrorText = errorText });
 
         /// <summary>
@@ -291,10 +381,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Immutable<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Immutable<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ImmutableRule<TEntity, TProperty>(() => false) { ErrorText = errorText });
 
         #endregion
@@ -306,15 +396,15 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="compareFromValue">The compare from value.</param>
         /// <param name="compareToValue">The compare to value.</param>
         /// <param name="compareFromText">The compare from text to be passed for the error message (default is to use <paramref name="compareFromValue"/>).</param>
         /// <param name="compareToText">The compare to text to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
         /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Between<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, TProperty compareFromValue, TProperty compareToValue, LText? compareFromText = null, LText? compareToText = null, bool exclusiveBetween = false, LText ? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Between<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareFromValue, TProperty compareToValue, LText? compareFromText = null, LText? compareToText = null, bool exclusiveBetween = false, LText ? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValue, compareToValue, compareFromText, compareToText, exclusiveBetween) { ErrorText = errorText });
 
         /// <summary>
@@ -322,15 +412,15 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="compareFromValueFunction">The compare from value function.</param>
         /// <param name="compareToValueFunction">The compare to value function.</param>
         /// <param name="compareFromTextFunction">The compare from text function (default is to use the result of the <paramref name="compareFromValueFunction"/>).</param>
         /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
         /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Between<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, TProperty> compareFromValueFunction, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Between<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareFromValueFunction, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValueFunction, compareToValueFunction, compareFromTextFunction, compareToTextFunction, exclusiveBetween) { ErrorText = errorText });
 
         /// <summary>
@@ -338,15 +428,15 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="compareFromValueFunctionAsync">The compare from value function.</param>
         /// <param name="compareToValueFunctionAsync">The compare to value function.</param>
         /// <param name="compareFromTextFunction">The compare from text function (default is to use the result of the <paramref name="compareFromValueFunctionAsync"/>).</param>
         /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunctionAsync"/>).</param>
         /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> BetweenAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> compareFromValueFunctionAsync, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> BetweenAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> compareFromValueFunctionAsync, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValueFunctionAsync, compareToValueFunctionAsync, compareFromTextFunction, compareToTextFunction, exclusiveBetween) { ErrorText = errorText });
 
         #endregion
@@ -358,13 +448,13 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
         /// <param name="compareToValue">The compare to value.</param>
         /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> CompareValue<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, CompareOperator compareOperator, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> CompareValue<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValueRule<TEntity, TProperty>(compareOperator, compareToValue, compareToText) { ErrorText = errorText });
 
         /// <summary>
@@ -372,13 +462,13 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
         /// <param name="compareToValueFunction">The compare to function.</param>
         /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> CompareValue<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, CompareOperator compareOperator, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> CompareValue<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValueRule<TEntity, TProperty>(compareOperator, compareToValueFunction, compareToTextFunction) { ErrorText = errorText });
 
         /// <summary>
@@ -386,13 +476,13 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
         /// <param name="compareToValueFunctionAsync">The compare to function.</param>
         /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunctionAsync"/>).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> CompareValueAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, CompareOperator compareOperator, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> CompareValueAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValueRule<TEntity, TProperty>(compareOperator, compareToValueFunctionAsync, compareToTextFunction) { ErrorText = errorText });
 
         #endregion
@@ -405,13 +495,13 @@ namespace CoreEx.Validation
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <typeparam name="TCompareProperty">The compare to property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
         /// <param name="compareToPropertyExpression">The <see cref="Expression"/> to reference the compare to entity property.</param>
         /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToPropertyExpression"/>).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> CompareProperty<TEntity, TProperty, TCompareProperty>(this PropertyRuleBase<TEntity, TProperty> rule, CompareOperator compareOperator, Expression<Func<TEntity, TCompareProperty>> compareToPropertyExpression, LText? compareToText = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> CompareProperty<TEntity, TProperty, TCompareProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, Expression<Func<TEntity, TCompareProperty>> compareToPropertyExpression, LText? compareToText = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ComparePropertyRule<TEntity, TProperty, TCompareProperty>(compareOperator, compareToPropertyExpression, compareToText) { ErrorText = errorText });
 
         #endregion
@@ -419,40 +509,41 @@ namespace CoreEx.Validation
         #region String
 
 #pragma warning disable CA1720 // Identifier contains type name; by-design, best name.
+
         /// <summary>
         /// Adds a <see cref="string"/> validation with a maximum length (see <see cref="StringRule{TEntity}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
         /// <param name="maxLength">The maximum string length.</param>
         /// <param name="regex">The <see cref="Regex"/>.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, String}"/>.</returns>
-        public static PropertyRuleBase<TEntity, string?> String<TEntity>(this PropertyRuleBase<TEntity, string?> rule, int maxLength, Regex? regex = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, int maxLength, Regex? regex = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new StringRule<TEntity> { MaxLength = maxLength, Regex = regex, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="string"/> validation with a minimum and maximum length (see <see cref="StringRule{TEntity}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
         /// <param name="minLength">The minimum string length.</param>
         /// <param name="maxLength">The maximum string length.</param>
         /// <param name="regex">The <see cref="Regex"/>.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, String}"/>.</returns>
-        public static PropertyRuleBase<TEntity, string?> String<TEntity>(this PropertyRuleBase<TEntity, string?> rule, int minLength, int? maxLength, Regex? regex = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, int minLength, int? maxLength, Regex? regex = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new StringRule<TEntity> { MinLength = minLength, MaxLength = maxLength, Regex = regex, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="string"/> validation with a <paramref name="regex"/> (see <see cref="StringRule{TEntity}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
         /// <param name="regex">The <see cref="Regex"/>.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, String}"/>.</returns>
-        public static PropertyRuleBase<TEntity, string?> String<TEntity>(this PropertyRuleBase<TEntity, string?> rule, Regex? regex = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, Regex? regex = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new StringRule<TEntity> { Regex = regex, ErrorText = errorText });
 #pragma warning restore CA1720
 
@@ -464,13 +555,13 @@ namespace CoreEx.Validation
         /// Adds an e-mail validation (see <see cref="EmailRule{TEntity}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
         /// <param name="maxLength">The maximum string length for the e-mail address; defaults to 254.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, String}"/>.</returns>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
         /// <remarks>The maximum length for an email address is '<c>254</c>' as per this <see href="https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address#:~:text=%20The%20length%20limits%20are%20as%20follows%3A%20,i.e.%2C%20example.com%20--%20254%20characters%20maximum.%20More%20">article</see>,
         /// hence the default.</remarks>
-        public static PropertyRuleBase<TEntity, string?> Email<TEntity>(this PropertyRuleBase<TEntity, string?> rule, int? maxLength = 254, LText? errorText = null) where TEntity : class
+        public static IPropertyRule<TEntity, string> Email<TEntity>(this IPropertyRule<TEntity, string> rule, int? maxLength = 254, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new EmailRule<TEntity> { MaxLength = maxLength, ErrorText = errorText });
 
         #endregion
@@ -481,11 +572,11 @@ namespace CoreEx.Validation
         /// Adds a <see cref="string"/> <see cref="Wildcard"/> validation (see <see cref="WildcardRule{TEntity}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
         /// <param name="wildcard">The <see cref="Wildcard"/> configuration (defaults to <see cref="Wildcard.Default"/>).</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, String}"/>.</returns>
-        public static PropertyRuleBase<TEntity, string?> Wildcard<TEntity>(this PropertyRuleBase<TEntity, string?> rule, Wildcard? wildcard = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> Wildcard<TEntity>(this IPropertyRule<TEntity, string> rule, Wildcard? wildcard = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new WildcardRule<TEntity> { Wildcard = wildcard, ErrorText = errorText });
 
         #endregion
@@ -496,118 +587,118 @@ namespace CoreEx.Validation
         /// Adds a <see cref="Int32"/> validation (see <see cref="DecimalRule{TEntity, Int32}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Int32}"/> being extended.</param> 
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Int32}"/> being extended.</param> 
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Int32}"/>.</returns>
-        public static PropertyRuleBase<TEntity, int> Numeric<TEntity>(this PropertyRuleBase<TEntity, int> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Int32}"/>.</returns>
+        public static IPropertyRule<TEntity, int> Numeric<TEntity>(this IPropertyRule<TEntity, int> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, int> { AllowNegatives = allowNegatives, MaxDigits = maxDigits, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Nullable{Int32}"/> validation (see <see cref="DecimalRule{TEntity, Int32}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Int32}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Int32}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Int32}"/>.</returns>
-        public static PropertyRuleBase<TEntity, int?> Numeric<TEntity>(this PropertyRuleBase<TEntity, int?> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Int32}"/>.</returns>
+        public static IPropertyRule<TEntity, int?> Numeric<TEntity>(this IPropertyRule<TEntity, int?> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, int?> { AllowNegatives = allowNegatives, MaxDigits = maxDigits, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Int64"/> validation (see <see cref="DecimalRule{TEntity, Int64}"/>);
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Long}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Long}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Int64}"/>.</returns>
-        public static PropertyRuleBase<TEntity, long> Numeric<TEntity>(this PropertyRuleBase<TEntity, long> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Int64}"/>.</returns>
+        public static IPropertyRule<TEntity, long> Numeric<TEntity>(this IPropertyRule<TEntity, long> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, long> { AllowNegatives = allowNegatives, MaxDigits = maxDigits, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Nullable{Int64}"/> validation (see <see cref="DecimalRule{TEntity, Int64}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Int64}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Int64}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Int64}"/>.</returns>
-        public static PropertyRuleBase<TEntity, long?> Numeric<TEntity>(this PropertyRuleBase<TEntity, long?> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Int64}"/>.</returns>
+        public static IPropertyRule<TEntity, long?> Numeric<TEntity>(this IPropertyRule<TEntity, long?> rule, bool allowNegatives = false, int? maxDigits = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, long?> { AllowNegatives = allowNegatives, MaxDigits = maxDigits, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Decimal"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits (including decimal places).</param>
         /// <param name="decimalPlaces">The maximum number of decimal places.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Decimal}"/>.</returns>
-        public static PropertyRuleBase<TEntity, decimal> Numeric<TEntity>(this PropertyRuleBase<TEntity, decimal> rule, bool allowNegatives = false, int? maxDigits = null, int? decimalPlaces = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, decimal> Numeric<TEntity>(this IPropertyRule<TEntity, decimal> rule, bool allowNegatives = false, int? maxDigits = null, int? decimalPlaces = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, decimal> { AllowNegatives = allowNegatives, MaxDigits = maxDigits, DecimalPlaces = decimalPlaces, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Nullable{Decimal}"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits (including decimal places).</param>
         /// <param name="decimalPlaces">The maximum number of decimal places.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Decimal}"/>.</returns>
-        public static PropertyRuleBase<TEntity, decimal?> Numeric<TEntity>(this PropertyRuleBase<TEntity, decimal?> rule, bool allowNegatives = false, int? maxDigits = null, int? decimalPlaces = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, decimal?> Numeric<TEntity>(this IPropertyRule<TEntity, decimal?> rule, bool allowNegatives = false, int? maxDigits = null, int? decimalPlaces = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, decimal?> { AllowNegatives = allowNegatives, MaxDigits = maxDigits, DecimalPlaces = decimalPlaces, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Single"/> validation (see <see cref="NumericRule{TEntity, Single}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Single}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Single}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Single}"/>.</returns>
-        public static PropertyRuleBase<TEntity, float> Numeric<TEntity>(this PropertyRuleBase<TEntity, float> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Single}"/>.</returns>
+        public static IPropertyRule<TEntity, float> Numeric<TEntity>(this IPropertyRule<TEntity, float> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new NumericRule<TEntity, float> { AllowNegatives = allowNegatives, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Nullable{Single}"/> validation (see <see cref="NumericRule{TEntity, Single}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Single}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Single}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Single}"/>.</returns>
-        public static PropertyRuleBase<TEntity, float?> Numeric<TEntity>(this PropertyRuleBase<TEntity, float?> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Single}"/>.</returns>
+        public static IPropertyRule<TEntity, float?> Numeric<TEntity>(this IPropertyRule<TEntity, float?> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new NumericRule<TEntity, float?> { AllowNegatives = allowNegatives, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Double"/> validation (see <see cref="NumericRule{TEntity, Double}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Double}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Double}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Double}"/>.</returns>
-        public static PropertyRuleBase<TEntity, double> Numeric<TEntity>(this PropertyRuleBase<TEntity, double> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Double}"/>.</returns>
+        public static IPropertyRule<TEntity, double> Numeric<TEntity>(this IPropertyRule<TEntity, double> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new NumericRule<TEntity, double> { AllowNegatives = allowNegatives, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="Nullable{Double}"/> validation (see <see cref="NumericRule{TEntity, Double}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Double}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Double}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Double}"/>.</returns>
-        public static PropertyRuleBase<TEntity, double?> Numeric<TEntity>(this PropertyRuleBase<TEntity, double?> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Double}"/>.</returns>
+        public static IPropertyRule<TEntity, double?> Numeric<TEntity>(this IPropertyRule<TEntity, double?> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new NumericRule<TEntity, double?> { AllowNegatives = allowNegatives, ErrorText = errorText });
 
         #endregion
@@ -618,14 +709,14 @@ namespace CoreEx.Validation
         /// Adds a currency (<see cref="Decimal"/>) validation (see <see cref="DecimalRule{TEntity, Decimal}"/> for an <see cref="Decimal"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits (including decimal places).</param>
         /// <param name="currencyFormatInfo">The <see cref="NumberFormatInfo"/> that the <see cref="NumberFormatInfo.CurrencyDecimalDigits">decimal places</see> will be derived from;
         /// where <c>null</c> <see cref="NumberFormatInfo.CurrentInfo"/> will be used as a default.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Decimal}"/>.</returns>
-        public static PropertyRuleBase<TEntity, decimal> Currency<TEntity>(this PropertyRuleBase<TEntity, decimal> rule, bool allowNegatives = false, int? maxDigits = null, NumberFormatInfo? currencyFormatInfo = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, decimal> Currency<TEntity>(this IPropertyRule<TEntity, decimal> rule, bool allowNegatives = false, int? maxDigits = null, NumberFormatInfo? currencyFormatInfo = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, decimal>
             {
                 AllowNegatives = allowNegatives,
@@ -638,14 +729,14 @@ namespace CoreEx.Validation
         /// Adds a currency <see cref="Nullable{Decimal}"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
         /// <param name="allowNegatives">Indicates whether to allow negative values.</param>
         /// <param name="maxDigits">The maximum digits (including decimal places).</param>
         /// <param name="currencyFormatInfo">The <see cref="NumberFormatInfo"/> that the <see cref="NumberFormatInfo.CurrencyDecimalDigits">decimal places</see> will be derived from;
         /// where <c>null</c> <see cref="NumberFormatInfo.CurrentInfo"/> will be used as a default.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, Decimal}"/>.</returns>
-        public static PropertyRuleBase<TEntity, decimal?> Currency<TEntity>(this PropertyRuleBase<TEntity, decimal?> rule, bool allowNegatives = false, int? maxDigits = null, NumberFormatInfo? currencyFormatInfo = null, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, decimal?> Currency<TEntity>(this IPropertyRule<TEntity, decimal?> rule, bool allowNegatives = false, int? maxDigits = null, NumberFormatInfo? currencyFormatInfo = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new DecimalRule<TEntity, decimal?>
             {
                 AllowNegatives = allowNegatives,
@@ -663,10 +754,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/> (must inherit from <see cref="IReferenceData"/>).</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> IsValid<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class where TProperty : IReferenceData?
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> IsValid<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class where TProperty : IReferenceData?
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ReferenceDataRule<TEntity, TProperty> { ErrorText = errorText });
 
         /// <summary>
@@ -674,23 +765,23 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/> (must inherit from <see cref="IReferenceDataCodeList"/>).</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="allowDuplicates">Indicates whether duplicate values are allowed.</param>
         /// <param name="minCount">The minimum count.</param>
         /// <param name="maxCount">The maximum count.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty?> AreValid<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty?> rule, bool allowDuplicates = false, int minCount = 0, int? maxCount = null, LText? errorText = null) where TEntity : class where TProperty : IReferenceDataCodeList
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty?> AreValid<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, bool allowDuplicates = false, int minCount = 0, int? maxCount = null, LText? errorText = null) where TEntity : class where TProperty : IReferenceDataCodeList
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ReferenceDataSidListRule<TEntity, TProperty> { AllowDuplicates = allowDuplicates, MinCount = minCount, MaxCount = maxCount, ErrorText = errorText });
 
         /// <summary>
         /// Adds a <see cref="IReferenceData.Code"/> validation (see <see cref="ReferenceDataCodeRule{TEntity, TRefData}"/> to ensure the <c>Code</c> is valid.
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static ReferenceDataCodeRuleAs<TEntity> RefDataCode<TEntity>(this PropertyRuleBase<TEntity, string?> rule, LText? errorText = null) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static ReferenceDataCodeRuleAs<TEntity> RefDataCode<TEntity>(this IPropertyRule<TEntity, string> rule, LText? errorText = null) where TEntity : class
             => new(rule ?? throw new ArgumentNullException(nameof(rule)), errorText);
 
         #endregion
@@ -702,13 +793,13 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty"></typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="minCount">The minimum count.</param>
         /// <param name="maxCount">The maximum count.</param>
         /// <param name="item">The item <see cref="ICollectionRuleItem"/> configuration.</param>
         /// <param name="allowNullItems">Indicates whether the underlying collection item must not be null.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Collection<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, int minCount = 0, int? maxCount = null, ICollectionRuleItem? item = null, bool allowNullItems = false) where TEntity : class where TProperty : System.Collections.IEnumerable?
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Collection<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, int minCount = 0, int? maxCount = null, ICollectionRuleItem? item = null, bool allowNullItems = false) where TEntity : class where TProperty : System.Collections.IEnumerable?
         {
             var cr = new CollectionRule<TEntity, TProperty> { MinCount = minCount, MaxCount = maxCount, Item = item, AllowNullItems = allowNullItems };
             return (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(cr);
@@ -723,14 +814,14 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty"></typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="minCount">The minimum count.</param>
         /// <param name="maxCount">The maximum count.</param>
         /// <param name="item">The item <see cref="IDictionaryRuleItem"/> configuration.</param>
         /// <param name="allowNullKeys">Indicates whether the underlying dictionary keys must not be null.</param>
         /// <param name="allowNullValues">Indicates whether the underlying dictionary values must not be null.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Dictionary<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, int minCount = 0, int? maxCount = null, IDictionaryRuleItem? item = null, bool allowNullKeys = false, bool allowNullValues = false) where TEntity : class where TProperty : System.Collections.IDictionary?
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Dictionary<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, int minCount = 0, int? maxCount = null, IDictionaryRuleItem? item = null, bool allowNullKeys = false, bool allowNullValues = false) where TEntity : class where TProperty : System.Collections.IDictionary?
         {
             var cr = new DictionaryRule<TEntity, TProperty> { MinCount = minCount, MaxCount = maxCount, Item = item, AllowNullKeys = allowNullKeys, AllowNullValues = allowNullValues };
             return (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(cr);
@@ -746,10 +837,10 @@ namespace CoreEx.Validation
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <typeparam name="TValidator">The validator <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="validator">The validator.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Entity<TEntity, TProperty, TValidator>(this PropertyRuleBase<TEntity, TProperty> rule, TValidator validator) where TEntity : class where TProperty : class? where TValidator : IValidatorEx
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Entity<TEntity, TProperty, TValidator>(this IPropertyRule<TEntity, TProperty> rule, TValidator validator) where TEntity : class where TProperty : class? where TValidator : IValidatorEx
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new EntityRule<TEntity, TProperty, TValidator>(validator));
 
         /// <summary>
@@ -757,9 +848,9 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <returns>An <see cref="EntityRuleWith{TEntity, TProperty}"/>.</returns>
-        public static EntityRuleWith<TEntity, TProperty> Entity<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule) where TEntity : class where TProperty : class?
+        public static EntityRuleWith<TEntity, TProperty> Entity<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class where TProperty : class?
             => new(rule ?? throw new ArgumentNullException(nameof(rule)));
 
         #endregion
@@ -771,10 +862,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="custom">The custom action.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Custom<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Action<PropertyContext<TEntity, TProperty>> custom) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Custom<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Action<PropertyContext<TEntity, TProperty>> custom) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CustomRule<TEntity, TProperty>(custom));
 
         /// <summary>
@@ -782,10 +873,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="customAsync">The custom function.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> CustomAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task> customAsync) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> CustomAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task> customAsync) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CustomRule<TEntity, TProperty>(customAsync));
 
         #endregion
@@ -797,10 +888,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="validator">The <see cref="CommonValidator{T}"/>.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Common<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, CommonValidator<TProperty> validator) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Common<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, CommonValidator<TProperty> validator) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CommonRule<TEntity, TProperty>(validator));
 
         #endregion
@@ -812,10 +903,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="overrideFunc">The override function.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Override<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, TProperty> overrideFunc) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Override<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> overrideFunc) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(overrideFunc));
 
         /// <summary>
@@ -823,10 +914,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="overrideFuncAsync">The override function.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> OverrideAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> overrideFuncAsync) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> OverrideAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> overrideFuncAsync) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(overrideFuncAsync));
 
         /// <summary>
@@ -834,10 +925,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="overrideValue">The override value.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Override<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, TProperty overrideValue) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Override<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty overrideValue) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(overrideValue));
 
         /// <summary>
@@ -845,10 +936,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="defaultFunc">The override function.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Default<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, TProperty> defaultFunc) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Default<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> defaultFunc) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(defaultFunc) { OnlyOverrideDefault = true });
 
         /// <summary>
@@ -856,10 +947,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="defaultFuncAsync">The override function.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> DefaultAsync<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> defaultFuncAsync) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> DefaultAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> defaultFuncAsync) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(defaultFuncAsync) { OnlyOverrideDefault = true });
 
         /// <summary>
@@ -867,10 +958,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="PropertyRule{TEntity, TProperty}"/> being extended.</param> 
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param> 
         /// <param name="defaultValue">The override value.</param>
-        /// <returns>A <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public static PropertyRuleBase<TEntity, TProperty> Default<TEntity, TProperty>(this PropertyRuleBase<TEntity, TProperty> rule, TProperty defaultValue) where TEntity : class
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Default<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty defaultValue) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new OverrideRule<TEntity, TProperty>(defaultValue) { OnlyOverrideDefault = true });
 
         #endregion
@@ -892,7 +983,7 @@ namespace CoreEx.Validation
         #region MultiValidator
 
         /// <summary>
-        /// Adds a <see cref="ValueValidator{T}"/>. 
+        /// Adds a <see cref="ValueValidator{T}"/> to the <see cref="MultiValidator"/>. 
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="multiValidator">The <see cref="MultiValidator"/>.</param>
@@ -911,13 +1002,13 @@ namespace CoreEx.Validation
         }
 
         /// <summary>
-        /// Adds a <see cref="PropertyRuleBase{TEntity, TProperty}"/> <see cref="ValueValidator{T}"/>. 
+        /// Adds a <see cref="IPropertyRule{TEntity, TProperty}"/> to the <see cref="MultiValidator"/>. 
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="multiValidator">The <see cref="MultiValidator"/>.</param>
         /// <param name="validator">The <see cref="PropertyRuleBase{TEntity, TProperty}"/> <see cref="ValueValidator{T}"/>.</param>
         /// <returns>The (this) <see cref="MultiValidator"/>.</returns>
-        public static MultiValidator Add<T>(this MultiValidator multiValidator, PropertyRuleBase<ValidationValue<T>, T> validator)
+        public static MultiValidator Add<T>(this MultiValidator multiValidator, IPropertyRule<ValidationValue<T>, T> validator)
         {
             if (multiValidator == null)
                 throw new ArgumentNullException(nameof(multiValidator));
@@ -925,7 +1016,7 @@ namespace CoreEx.Validation
             if (validator == null)
                 throw new ArgumentNullException(nameof(validator));
 
-            (multiValidator ?? throw new ArgumentNullException(nameof(multiValidator))).Validators.Add(async ct => await validator.ValidateAsync(ct).ConfigureAwait(false));
+            (multiValidator ?? throw new ArgumentNullException(nameof(multiValidator))).Validators.Add(validator.ValidateAsync);
             return multiValidator;
         }
 

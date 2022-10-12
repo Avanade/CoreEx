@@ -8,13 +8,13 @@ namespace CoreEx.Validation
     /// Enables typed <see cref="Value"/> validation results.
     /// </summary>
     /// <typeparam name="T">The <see cref="Value"/> <see cref="Type"/>.</typeparam>
-    public interface IValidationResult<T> : IValidationResult
+    public interface IValidationResult<out T> : IValidationResult
     {
         /// <inheritdoc/>
         object? IValidationResult.Value => Value;
 
         /// <summary>
-        /// Gets the originating value being validated.
+        /// gets the originating value being validated.
         /// </summary>
         new T? Value { get; }
     }

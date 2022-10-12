@@ -798,7 +798,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             }
         }
 
-        public class PersonCollection : PrimaryKeyBaseCollection<Person, PersonCollection>
+        public class PersonCollection : EntityKeyBaseCollection<Person, PersonCollection>
         {
             public PersonCollection() { }
 

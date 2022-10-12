@@ -84,14 +84,8 @@ namespace CoreEx.Events
 
             foreach (var att in cloudEvent.ExtensionAttributes)
             {
-                if (!ReservedNames.Contains(att.Name))
-                {
-                    if (@event.Attributes == null)
-                        @event.Attributes = new Dictionary<string, string>();
-
-                    if (TryGetExtensionAttribute(cloudEvent, att.Name, out val))
-                        @event.Attributes.Add(att.Name, val);
-                }
+                if (!ReservedNames.Contains(att.Name) && TryGetExtensionAttribute(cloudEvent, att.Name, out val))
+                    @event.AddAttribute(att.Name, val);
             }
 
             OnDeserialize(cloudEvent, @event);

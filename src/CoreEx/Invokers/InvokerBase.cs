@@ -4,7 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CoreEx.Abstractions
+namespace CoreEx.Invokers
 {
     /// <summary>
     /// Wraps an <b>Invoke</b> enabling standard functionality to be added to all invocations. 

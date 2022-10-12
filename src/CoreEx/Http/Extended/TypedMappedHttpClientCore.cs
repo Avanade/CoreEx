@@ -16,7 +16,7 @@ namespace CoreEx.Http.Extended
     /// Represents a typed <see cref="HttpClient"/> base wrapper that supports <see cref="HttpMethod.Head"/>, <see cref="HttpMethod.Get"/>, <see cref="HttpMethod.Post"/>, <see cref="HttpMethod.Put"/>, <see cref="HttpMethod.Patch"/> and <see cref="HttpMethod.Delete"/>.
     /// </summary>
     /// <typeparam name="TSelf">The self <see cref="Type"/> for support fluent-style method-chaining.</typeparam>
-    public abstract class TypedMappedHttpClientCore<TSelf> : TypedHttpClientCore<TypedMappedHttpClientCore<TSelf>>, ITypedMappedHttpClient
+    public abstract class TypedMappedHttpClientCore<TSelf> : TypedHttpClientCore<TSelf>, ITypedMappedHttpClient where TSelf : TypedMappedHttpClientCore<TSelf>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TypedHttpClientCore{TBase}"/>.

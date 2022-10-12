@@ -12,8 +12,8 @@ namespace CoreEx.Test.Framework.Validation
         [OneTimeSetUp]
         public void OneTimeSetUp() => CoreEx.Localization.TextProvider.SetTextProvider(new ValidationTextProvider());
 
-        private static readonly CommonValidator<string?> _cv = Validator.CreateCommon<string?>(v => v.String(5).Must(x => x.Value != "XXXXX"));
-        private static readonly CommonValidator<int?> _cv2 = Validator.CreateCommon<int?>(v => v.CompareValue(CompareOperator.NotEqual, 1));
+        private static readonly CommonValidator<string> _cv = Validator.CreateCommon<string>(v => v.String(5).Must(x => x.Value != "XXXXX"));
+        private static readonly CommonValidator<int?> _cv2 = Validator.CreateCommon<int?>(v => v.Mandatory().CompareValue(CompareOperator.NotEqual, 1));
 
         [Test]
         public async Task Validate()

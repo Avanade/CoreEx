@@ -71,21 +71,27 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Adds a <see cref="TypedHttpClientBase"/>.
+        /// Adds a <see cref="TypedHttpClientBase"/> using the underlying <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient{TClient}(IServiceCollection, string, Action{IServiceProvider, HttpClient})"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="TypedHttpClientBase"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TClient">The client <see cref="TypedHttpClientBase"/> <see cref="Type"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
         /// <param name="configure">The delegate to configure the underlying <see cref="HttpClient"/>.</param>
-        public static IServiceCollection AddTypedHttpClient<T>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient>? configure = null) where T : TypedHttpClientBase
-        {
-            if (configure == null)
-                services.AddHttpClient<T>(name);
-            else
-                services.AddHttpClient<T>(name, configure);
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddTypedHttpClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient>? configure = null) where TClient : TypedHttpClientBase
+            => configure == null ? services.AddHttpClient<TClient>(name) : services.AddHttpClient<TClient>(name, configure);
 
-            return services;
-        }
+        /// <summary>
+        /// Adds a <see cref="TypedHttpClientBase"/> using the underlying <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient{TClient}(IServiceCollection, string, Action{IServiceProvider, HttpClient})"/>.
+        /// </summary>
+        /// <typeparam name="TClient">The client <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TImplementation">The client <see cref="TypedHttpClientBase"/> implementation <see cref="Type"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
+        /// <param name="configure">The delegate to configure the underlying <see cref="HttpClient"/>.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddTypedHttpClient<TClient, TImplementation>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient>? configure = null) where TClient : class where TImplementation : TypedHttpClientBase, TClient
+            => configure == null ? services.AddHttpClient<TClient, TImplementation>(name) : services.AddHttpClient<TClient, TImplementation>(name, configure);
 
         /// <summary>
         /// Adds the <see cref="DefaultSettings"/> as the <see cref="SettingsBase"/> singleton service.

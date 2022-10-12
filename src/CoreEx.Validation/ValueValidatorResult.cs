@@ -7,11 +7,18 @@ using System.Linq;
 namespace CoreEx.Validation
 {
     /// <summary>
+    /// Enables the result of a <see cref="ValueValidator{T}"/>.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+    public interface IValueValidatorResult<TEntity, out TProperty> : IValidationResult<TProperty> where TEntity : class { }
+
+    /// <summary>
     /// Represents the result of a <see cref="ValueValidator{T}"/>.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public sealed class ValueValidatorResult<TEntity, TProperty> : IValidationResult<TProperty> where TEntity : class
+    public sealed class ValueValidatorResult<TEntity, TProperty> : IValueValidatorResult<TEntity, TProperty> where TEntity : class
     {
         private readonly PropertyContext<TEntity, TProperty> _context;
 

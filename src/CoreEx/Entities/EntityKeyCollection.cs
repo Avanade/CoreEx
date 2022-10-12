@@ -7,29 +7,29 @@ using System;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents an <see cref="IPrimaryKey"/> collection class.
+    /// Represents an <see cref="IEntityKey"/> collection class.
     /// </summary>
-    /// <typeparam name="T">The item <see cref="System.Type"/>.</typeparam>
+    /// <typeparam name="T">The <see cref="IEntityKey"/> item <see cref="System.Type"/>.</typeparam>
     /// <remarks>This class is underpinned by a <see cref="List{T}"/> and does <i>not</i> manage/guarantee uniqueness.</remarks>
-    public class PrimaryKeyCollection<T> : List<T>, IPrimaryKeyCollection<T> where T : IPrimaryKey
+    public class EntityKeyCollection<T> : List<T>, IEntityKeyCollection<T> where T : IEntityKey
     {
         /// <inheritdoc/>
-        public bool ContainsKey(CompositeKey key) => this.Any(x => x is IPrimaryKey pk && key.Equals(pk.PrimaryKey));
+        public bool ContainsKey(CompositeKey key) => this.Any(x => key.Equals(x.EntityKey));
 
         /// <inheritdoc/>
         public bool ContainsKey(params object?[] args) => ContainsKey(new CompositeKey(args));
 
         /// <inheritdoc/>
-        public T? GetByKey(CompositeKey key) => this.Where(pk => key.Equals(pk.PrimaryKey)).FirstOrDefault();
+        public T? GetByKey(CompositeKey key) => this.Where(x => key.Equals(x.EntityKey)).FirstOrDefault();
 
         /// <inheritdoc/>
         public T? GetByKey(params object?[] args) => GetByKey(new CompositeKey(args));
 
         /// <inheritdoc/>
-        public bool IsAnyDuplicates() => Count != Math.Min(1, this.Count(pk => pk == null)) + this.Where(pk => pk != null).Select(pk => pk.PrimaryKey).Distinct(CompositeKeyComparer.Default).Count();
+        public bool IsAnyDuplicates() => Count != Math.Min(1, this.Count(x => x == null)) + this.Where(x => x != null).Select(x => x.EntityKey).Distinct(CompositeKeyComparer.Default).Count();
 
         /// <inheritdoc/>
-        public void RemoveByKey(CompositeKey key) => this.Where(pk => pk.PrimaryKey == key).ToList().ForEach(pk => Remove(pk));
+        public void RemoveByKey(CompositeKey key) => this.Where(x => x.EntityKey == key).ToList().ForEach(pk => Remove(pk));
 
         /// <inheritdoc/>
         public void RemoveByKey(params object?[] args) => RemoveByKey(new CompositeKey(args));

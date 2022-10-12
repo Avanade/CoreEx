@@ -60,7 +60,7 @@ namespace CoreEx.Entities
                     long l => l,
                     Guid g => g,
                     DateTime dt => dt,
-                    DateTimeOffset dto => dto.UtcDateTime,
+                    DateTimeOffset dto => dto,
                     ushort us => us,
                     uint ui => ui,
                     ulong ul => ul,
@@ -152,6 +152,7 @@ namespace CoreEx.Entities
         /// <summary>
         /// Returns the <see cref="CompositeKey"/> as a <see cref="string"/> with the <see cref="Args"/> separated by the <paramref name="separator"/>.
         /// </summary>
+        /// <param name="separator">The seperator character.</param>
         /// <returns>The composite key as a <see cref="string"/>.</returns>
         /// <remarks>Each <see cref="Args"/> value is JSON-formatted to ensure consistency and portability.</remarks>
         public string ToString(char separator)
@@ -164,6 +165,9 @@ namespace CoreEx.Entities
             var abw = new ArrayBufferWriter<byte>();
             using var ujw = new Utf8JsonWriter(abw);
 
+            string? ssep = null;
+            string? usep = null;
+
             foreach (var arg in Args)
             {
                 if (index > 0)
@@ -172,7 +176,12 @@ namespace CoreEx.Entities
                 bool isString = JsonWrite(ujw, false, arg);
                 ujw.Flush();
                 if (abw.WrittenMemory.Length > 0 && !(isString && abw.WrittenMemory.Length <= 2))
-                    sb.Append(new BinaryData(isString ? abw.WrittenMemory[1..^1] : abw.WrittenMemory).ToString());
+                {
+                    if (isString)
+                        sb.Append(new BinaryData(abw.WrittenMemory[1..^1]).ToString().Replace(ssep ??= new string(separator, 1), usep ??= $"\\u{(int)separator:x4}"));
+                    else
+                        sb.Append(new BinaryData(abw.WrittenMemory).ToString());
+                }
 
                 ujw.Reset();
                 abw.Clear();
@@ -219,6 +228,7 @@ namespace CoreEx.Entities
             long l => JsonWrite(ujw, includeName ? "long" : null, () => ujw.WriteNumberValue(l), false),
             Guid g => JsonWrite(ujw, includeName ? "guid" : null, () => ujw.WriteStringValue(g), true),
             DateTime d => JsonWrite(ujw, includeName ? "date" : null, () => ujw.WriteStringValue(d), true),
+            DateTimeOffset o => JsonWrite(ujw, includeName? "offset" : null, () => ujw.WriteStringValue(o), true),
             ushort us => JsonWrite(ujw, includeName ? "ushort" : null, () => ujw.WriteNumberValue(us), false),
             uint ui => JsonWrite(ujw, includeName ? "uint" : null, () => ujw.WriteNumberValue(ui), false),
             ulong ul => JsonWrite(ujw, includeName ? "ulong" : null, () => ujw.WriteNumberValue(ul), false),
@@ -287,6 +297,7 @@ namespace CoreEx.Entities
                             case "long": args[i] = jp.Value.GetInt64(); break;
                             case "guid": args[i] = jp.Value.GetGuid(); break;
                             case "date": args[i] = jp.Value.GetDateTime(); break;
+                            case "offset": args[i] = jp.Value.GetDateTimeOffset(); break;
                             case "ushort": args[i] = jp.Value.GetUInt16(); break;
                             case "uint": args[i] = jp.Value.GetUInt32(); break;
                             case "ulong": args[i] = jp.Value.GetUInt64(); break;
@@ -303,6 +314,101 @@ namespace CoreEx.Entities
             }
 
             return (new CompositeKey(args), null);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where the key is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <typeparam name="T">The key <see cref="Type"/>.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="separator">The seperator character.</param>
+        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static CompositeKey CreateFromString<T>(string key, char separator = ',') => CreateFromString(key, separator, new Type[] { typeof(T) });
+
+        /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
+        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="separator">The seperator character.</param>
+        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static CompositeKey CreateFromString<T1, T2>(string key, char separator = ',') => CreateFromString(key, separator, new Type[] { typeof(T1), typeof(T2) });
+
+        /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
+        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
+        /// <typeparam name="T3">The key <see cref="Type"/> for the third part.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="separator">The seperator character.</param>
+        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static CompositeKey CreateFromString<T1, T2, T3>(string key, char separator = ',') => CreateFromString(key, separator, new Type[] { typeof(T1), typeof(T2), typeof(T3) });
+
+        /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="types">The <see cref="Type"/> array.</param>
+        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static CompositeKey CreateFromString(string key, params Type[] types) => CreateFromString(key, ',', types);
+
+        /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="separator">The seperator character.</param>
+        /// <param name="types">The <see cref="Type"/> array.</param>
+        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static CompositeKey CreateFromString(string key, char separator, params Type[] types)
+        {
+            var parts = (key ?? throw new ArgumentNullException(nameof(key))).Split(separator, StringSplitOptions.None);
+            if (types.Length == 0 && parts.Length == 1 && string.IsNullOrEmpty(parts[0]))
+                return new CompositeKey();
+
+            if (parts.Length != types.Length)
+                throw new ArgumentException("The number of parts within the key must equal the number of types specified", nameof(types));
+
+            var args = new object?[parts.Length];
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var part = parts[i];
+                var type = Nullable.GetUnderlyingType(types[i]);
+                if (type is not null)
+                {
+                    if (string.IsNullOrEmpty(part))
+                    {
+                        args[i] = null;
+                        continue;
+                    }
+                }
+                else
+                    type = types[i];
+
+                args[i] = type switch
+                {
+                    Type t when t == typeof(string) => part.Length == 0 ? null : JsonSerializer.Deserialize<string>($"\"{part}\""),
+                    Type t when t == typeof(char) => part.Length == 0 ? ' ' : JsonSerializer.Deserialize<char>($"\"{part}\""),
+                    Type t when t == typeof(short) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<short>(part),
+                    Type t when t == typeof(int) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<int>(part),
+                    Type t when t == typeof(long) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<long>(part),
+                    Type t when t == typeof(Guid) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<Guid>($"\"{part}\""),
+                    Type t when t == typeof(DateTime) => part.Length == 0 ? DateTime.MinValue : JsonSerializer.Deserialize<DateTime>($"\"{part}\""),
+                    Type t when t == typeof(DateTimeOffset) => part.Length == 0 ? DateTimeOffset.MinValue : JsonSerializer.Deserialize<DateTimeOffset>($"\"{part}\""),
+                    Type t when t == typeof(ushort) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<ushort>(part),
+                    Type t when t == typeof(uint) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<uint>(part),
+                    Type t when t == typeof(ulong) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<ulong>(part),
+                    _ => throw new InvalidOperationException($"Type {types[i].Name} is not supported for a {nameof(CreateFromString)}.")
+                };
+            }
+
+            return new CompositeKey(args);
         }
     }
 }

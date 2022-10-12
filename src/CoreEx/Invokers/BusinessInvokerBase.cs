@@ -1,12 +1,11 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 
-namespace CoreEx.Business
+namespace CoreEx.Invokers
 {
     /// <summary>
     /// Adds capabilities (wraps) an <see cref="InvokerBase{TOwner, TParam}"/> enabling standard functionality to be added to all <b>business tier</b> invocations using a <see cref="BusinessInvokerArgs"/> to configure the supporting capabilities.

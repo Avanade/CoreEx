@@ -1,7 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using System;
-
 namespace CoreEx.Events
 {
     /// <summary>
@@ -9,27 +7,6 @@ namespace CoreEx.Events
     /// </summary>
     public class EventData : EventDataBase
     {
-        /// <summary>
-        /// Creates an <see cref="EventData"/>.
-        /// </summary>
-        /// <param name="source">The <see cref="EventDataBase.Source"/>.</param>
-        /// <param name="subject">The <see cref="EventDataBase.Subject"/>.</param>
-        /// <param name="action">The <see cref="EventDataBase.Action"/>.</param>
-        /// <returns>The <see cref="EventData"/>.</returns>
-        public static EventData Create(Uri source, string? subject = null, string? action = null)
-            => new() { Source = source ?? throw new ArgumentNullException(nameof(source)), Subject = subject, Action = action };
-
-        /// <summary>
-        /// Creates an <see cref="EventData{T}"/>.
-        /// </summary>
-        /// <param name="value">The <see cref="EventData{T}.Value"/>.</param>
-        /// <param name="source">The <see cref="EventDataBase.Source"/>.</param>
-        /// <param name="subject">The <see cref="EventDataBase.Subject"/>.</param>
-        /// <param name="action">The <see cref="EventDataBase.Action"/>.</param>
-        /// <returns>The <see cref="EventData{T}"/>.</returns>
-        public static EventData<T> Create<T>(T value, Uri source, string? subject = null, string? action = null)
-            => new() { Value = value ?? throw new ArgumentNullException(nameof(value)), Source = source ?? throw new ArgumentNullException(nameof(source)), Subject = subject, Action = action };
-
         /// <summary>
         /// Initializes a new instance of the <see cref="EventData"/> class.
         /// </summary>

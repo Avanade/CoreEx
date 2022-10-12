@@ -68,6 +68,18 @@ namespace CoreEx.Validation
         }
 
         /// <summary>
+        /// Runs the validations.
+        /// </summary>
+        /// <param name="throwOnError">Indicates whether to automatically throw a <see cref="ValidationException"/> where <see cref="IValidationResult.HasErrors"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="MultiValidatorResult"/>.</returns>
+        public async Task<MultiValidatorResult> ValidateAsync(bool throwOnError, CancellationToken cancellationToken = default)
+        {
+            var mvr = await ValidateAsync(cancellationToken).ConfigureAwait(false);
+            return throwOnError ? mvr.ThrowOnError() : mvr;
+        }
+
+        /// <summary>
         /// Defines an <paramref name="action"/> to enable additional validations to be added (see <see cref="Add"/>).
         /// </summary>
         /// <param name="action">The custom action.</param>

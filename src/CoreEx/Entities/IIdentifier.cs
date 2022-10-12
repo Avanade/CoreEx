@@ -7,7 +7,7 @@ namespace CoreEx.Entities
     /// <summary>
     /// Enables the <see cref="Id"/> capability.
     /// </summary>
-    public interface IIdentifier
+    public interface IIdentifier : IEntityKey
     {
         /// <summary>
         /// Gets or sets the identifier.
@@ -18,5 +18,8 @@ namespace CoreEx.Entities
         /// Gets the <see cref="Id"/> <see cref="Type"/>.
         /// </summary>
         Type IdType { get; }
+
+        /// <inheritdoc/>
+        CompositeKey IEntityKey.EntityKey => new(Id);
     }
 }

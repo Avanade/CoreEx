@@ -53,7 +53,7 @@ namespace CoreEx.Cosmos
         /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
         /// <param name="containerId">The <see cref="Container"/> identifier.</param>
         /// <returns>The <see cref="CosmosDbContainer{T, TModel}"/>.</returns>
-        CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier<string>, new();
+        CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new();
 
         /// <summary>
         /// Gets (creates) the <see cref="CosmosDbValueContainer{T, TModel}"/> for the specified <paramref name="containerId"/>.
@@ -62,7 +62,7 @@ namespace CoreEx.Cosmos
         /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
         /// <param name="containerId">The <see cref="Container"/> identifier.</param>
         /// <returns>The <see cref="CosmosDbValueContainer{T, TModel}"/>.</returns>
-        CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier, new();
+        CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new();
 
         /// <summary>
         /// Invoked where a <see cref="CosmosException"/> has been thrown.

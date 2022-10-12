@@ -12,7 +12,7 @@ namespace CoreEx.Validation.Rules
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     public class ReferenceDataCodeRuleAs<TEntity> where TEntity : class
     {
-        private readonly PropertyRuleBase<TEntity, string?> _parent;
+        private readonly IPropertyRule<TEntity, string> _parent;
         private readonly LText? _errorText;
 
         /// <summary>
@@ -20,7 +20,7 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <param name="parent">The parent <see cref="PropertyRuleBase{TEntity, TProperty}"/>.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        public ReferenceDataCodeRuleAs(PropertyRuleBase<TEntity, string?> parent, LText? errorText = null)
+        public ReferenceDataCodeRuleAs(IPropertyRule<TEntity, string> parent, LText? errorText = null)
         {
             _parent = parent ?? throw new ArgumentNullException(nameof(parent));
             _errorText = errorText;
@@ -31,7 +31,7 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
         /// <returns>A <see cref="ReferenceDataCodeRule{TEntity, TRefData}"/>.</returns>
-        public PropertyRuleBase<TEntity, string?> As<TRef>() where TRef : IReferenceData
+        public IPropertyRule<TEntity, string> As<TRef>() where TRef : IReferenceData
         {
             _parent.AddRule(new ReferenceDataCodeRule<TEntity, TRef>() { ErrorText = _errorText });
             return _parent;

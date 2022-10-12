@@ -4,7 +4,7 @@ using CoreEx.Events;
 using System;
 using System.Transactions;
 
-namespace CoreEx.Business
+namespace CoreEx.Invokers
 {
     /// <summary>
     /// Provides arguments for the <see cref="BusinessInvokerBase"/>.

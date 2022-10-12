@@ -10,10 +10,10 @@ namespace CoreEx.Validation.Rules
     /// <summary>
     /// Provides validation for a <see cref="IReferenceData.Code"/>; validates that the <see cref="IReferenceData.IsValid"/>.
     /// </summary>
-    public class ReferenceDataCodeRule<TEntity, TRef> : ValueRuleBase<TEntity, string?> where TEntity : class where TRef : IReferenceData?
+    public class ReferenceDataCodeRule<TEntity, TRef> : ValueRuleBase<TEntity, string> where TEntity : class where TRef : IReferenceData?
     {
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, string?> context, CancellationToken cancellationToken = default)
+        public override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));

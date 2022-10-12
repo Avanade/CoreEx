@@ -5,6 +5,7 @@ using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.Http.Extended;
+using CoreEx.Mapping;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;

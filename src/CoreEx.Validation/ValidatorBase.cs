@@ -30,7 +30,7 @@ namespace CoreEx.Validation
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the entity property.</param>
         /// <returns>The <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public virtual PropertyRule<TEntity, TProperty> Property<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression)
+        public virtual IPropertyRule<TEntity, TProperty> Property<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression)
         {
             PropertyRule<TEntity, TProperty> rule = new(propertyExpression);
             Rules.Add(rule);

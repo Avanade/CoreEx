@@ -144,6 +144,8 @@ namespace CoreEx.Entities.Extended
                 return $"{base.ToString()} Id={ii.Id}";
             else if (this is IPrimaryKey pk)
                 return $"{base.ToString()} PrimaryKey={pk.PrimaryKey}";
+            else if (this is IEntityKey ek)
+                return $"{base.ToString()} EntityKey={ek.EntityKey}";
             else
                 return base.ToString();
         }

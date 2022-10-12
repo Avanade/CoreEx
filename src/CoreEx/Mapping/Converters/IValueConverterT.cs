@@ -12,7 +12,7 @@ namespace CoreEx.Mapping.Converters
     public interface IValueConverter<TSource, TDestination> : IValueConverter
     {
         /// <inheritdoc/>
-        object? IValueConverter.Convert(object? source) => Convert((TSource)source!);
+        object? IValueConverter.Convert(object? source) => Convert(source == null ? default! : (TSource)source!);
 
         /// <summary>
         /// Convert <paramref name="source"/> value to destination equivalent.

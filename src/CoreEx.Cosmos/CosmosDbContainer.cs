@@ -16,7 +16,7 @@ namespace CoreEx.Cosmos
     /// </summary>
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-    public class CosmosDbContainer<T, TModel> : CosmosDbContainerBase<T, TModel, CosmosDbContainer<T, TModel>> where T : class, new() where TModel : class, IIdentifier<string>, new()
+    public class CosmosDbContainer<T, TModel> : CosmosDbContainerBase<T, TModel, CosmosDbContainer<T, TModel>> where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new()
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CosmosDbContainer{T, TModel}"/> class.
@@ -70,19 +70,14 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <returns>The <b>CosmosDb/DocumentDb</b> key.</returns>
-        public string? GetCosmosKey(CompositeKey key) => key.Args.Length == 1 && key.Args[0] is string k ? k : throw new NotSupportedException("Only a single key value that is a string is supported.");
+        public string? GetCosmosKey(CompositeKey key) => key.Args.Length == 1 && key.Args[0] is string k ? k : throw new NotSupportedException("Only an underlying single key value that is a string is supported.");
 
         /// <summary>
         ///  Gets the <b>CosmosDb/DocumentDb</b> key from the <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The entity value.</param>
         /// <returns>The <b>CosmosDb/DocumentDb</b> key.</returns>
-        public string? GetCosmosKey(T value) => value switch
-        {
-            IIdentifier<string> si => si.Id,
-            IPrimaryKey pk => pk.PrimaryKey.Args.Length == 1 && pk.PrimaryKey.Args[0] is string k ? k : throw new NotSupportedException("Only a single key value that is a string is supported."),
-            _ => throw new NotSupportedException("Only a value that implements IIdentifier<string> or IPrimaryKey is supported")
-        };
+        public string? GetCosmosKey(T value) => GetCosmosKey((value ?? throw new ArgumentNullException(nameof(value))).EntityKey);
 
         /// <summary>
         /// Gets (creates) a <see cref="CosmosDbQuery{T, TModel}"/> to enable LINQ-style queries.

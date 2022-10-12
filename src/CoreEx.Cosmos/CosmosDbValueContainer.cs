@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using YamlDotNet.Core.Tokens;
 
 namespace CoreEx.Cosmos
 {
@@ -17,7 +18,7 @@ namespace CoreEx.Cosmos
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <remarks>Represents a special-purpose <b>CosmosDb/DocumentDb</b> <see cref="Container"/> that houses an underlying <see cref="CosmosDbValue{TModel}.Value"/>, including <see cref="CosmosDbValue{TModel}.Type"/> name, and flexible <see cref="IIdentifier"/>, for persistence.</remarks>
-    public class CosmosDbValueContainer<T, TModel> : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>> where T : class, new() where TModel : class, IIdentifier, new()
+    public class CosmosDbValueContainer<T, TModel> : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>> where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
     {
         private readonly string _typeName = typeof(TModel).Name;
 
@@ -70,12 +71,11 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param name="value">The entity value.</param>
         /// <returns>The <b>CosmosDb/DocumentDb</b> key.</returns>
-        public string? GetCosmosKey(T value) => value switch
+        public string? GetCosmosKey(T value)
         {
-            IIdentifier si => CosmosDb.FormatIdentifier(si.Id),
-            IPrimaryKey pk => pk.PrimaryKey.Args.Length == 1 ? CosmosDb.FormatIdentifier(pk.PrimaryKey.Args[0]) : throw new NotSupportedException("Only a single key value is supported."),
-            _ => throw new NotSupportedException("Only a value that implements IIdentifier or IPrimaryKey is supported")
-        };
+            var key = (value ?? throw new ArgumentNullException(nameof(value))).EntityKey;
+            return key.Args.Length == 1 ? CosmosDb.FormatIdentifier(key.Args[0]) : throw new NotSupportedException("Only an underlying single key value is supported.");
+        }
 
         /// <summary>
         /// Gets (creates) a <see cref="CosmosDbValueQuery{T, TModel}"/> to enable LINQ-style queries.

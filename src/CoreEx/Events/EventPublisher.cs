@@ -62,7 +62,7 @@ namespace CoreEx.Events
         /// <param name="events">One or more <see cref="EventData"/> objects to be published.</param>
         /// <returns>The <see cref="IEventPublisher"/> to support fluent-style method-chaining.</returns>
         /// <remarks>The <paramref name="name"/> could represent a queue name or equivalent where appropriate.</remarks>
-        public IEventPublisher Publish(string name, params EventData[] events)
+        public IEventPublisher PublishNamed(string name, params EventData[] events)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentNullException(nameof(name));

@@ -16,7 +16,7 @@ namespace CoreEx.Http.Extended
     /// Represents a typed <see cref="HttpClient"/> base wrapper with request/response <see cref="Mapper"/> support.
     /// </summary>
     /// <typeparam name="TSelf">The self <see cref="Type"/> for support fluent-style method-chaining.</typeparam>
-    public abstract class TypedMappedHttpClientBase<TSelf> : TypedHttpClientBase<TypedMappedHttpClientBase<TSelf>>, ITypedMappedHttpClient
+    public abstract class TypedMappedHttpClientBase<TSelf> : TypedHttpClientBase<TSelf>, ITypedMappedHttpClient where TSelf : TypedMappedHttpClientBase<TSelf>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TypedHttpClientCore{TBase}"/>.
