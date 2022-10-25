@@ -32,7 +32,7 @@ public class Startup : FunctionsStartup
             // Register the core services.
             builder.Services
                 .AddSettings<HrSettings>()
-                .AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<ReferenceDataService>())
+                .AddReferenceDataOrchestrator<ReferenceDataService>()
                 .AddExecutionContext()
                 .AddJsonSerializer()
                 .AddEventDataSerializer()

@@ -34,7 +34,6 @@ namespace CoreEx.Newtonsoft.Json
         {
             _default.AddType(typeof(EntityCore))
                     .AddType(typeof(EntityBase))
-                    .AddType(typeof(EntityBase<>))
                     .AddType(typeof(ReferenceDataBase<,>))
                     .AddType(typeof(ReferenceDataBase<>))
                     .AddType<MessageItem>()

@@ -44,7 +44,7 @@ namespace CoreEx.Abstractions.Reflection
 
             foreach (var p in TypeReflector.GetProperties(typeof(TEntity)))
             {
-                var lex = Expression.Lambda(Expression.Property(pe, p.Name), pe);
+                var lex = Expression.Lambda(Expression.Property(pe, p), pe);
                 var pr = (IPropertyReflector)Activator.CreateInstance(typeof(PropertyReflector<,>).MakeGenericType(typeof(TEntity), p.PropertyType), Args, lex);
 
                 if (Args.PropertyBuilder != null && !Args.PropertyBuilder(pr))

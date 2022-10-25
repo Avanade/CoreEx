@@ -58,7 +58,7 @@ namespace CoreEx.Entities.Extended
         public object Clone()
         {
             var clone = new TSelf();
-            this.ForEach(item => clone.Add((TEntity)(item as ICloneable).Clone()));
+            this.ForEach(item => clone.Add(item.ForceClone()));
             return clone;
         }
 

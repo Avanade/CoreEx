@@ -23,7 +23,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -49,7 +49,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -74,7 +74,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();

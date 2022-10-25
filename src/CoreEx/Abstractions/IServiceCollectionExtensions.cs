@@ -11,6 +11,7 @@ using CoreEx.Json;
 using CoreEx.Json.Merge;
 using CoreEx.RefData;
 using CoreEx.WebApis;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
@@ -285,6 +286,23 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator)
             => CheckServices(services).AddSingleton(sp => createOrchestrator(sp));
+
+        /// <summary>
+        /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the <see cref="IReferenceDataProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services)
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register());
+
+        /// <summary>
+        /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the specified <typeparamref name="TProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
+        /// </summary>
+        /// <typeparam name="TProvider">The <see cref="IReferenceDataProvider"/> to register.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddReferenceDataOrchestrator<TProvider>(this IServiceCollection services) where TProvider : IReferenceDataProvider
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register<TProvider>());
 
         /// <summary>
         /// Adds the <see cref="RequestCache"/> as the <see cref="IRequestCache"/> scoped service.

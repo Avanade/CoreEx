@@ -61,7 +61,6 @@ namespace CoreEx.Test.Framework.Entities
             var ck1 = ck0;
 
             Assert.AreEqual(ck0, ck1);
-
         }
 
         [Test]

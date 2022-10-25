@@ -3,29 +3,11 @@ using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
 
-namespace CoreEx.Test.Framework.Abstractions
+namespace CoreEx.Test.Framework.Invokers
 {
     [TestFixture]
     public class InvokerBaseTest
     {
-        [Test]
-        public void Invoke_SyncNoResult()
-        {
-            var i = new TestInvoker();
-            i.Invoke(this, () => { Task.Delay(100).GetAwaiter().GetResult(); });
-            Assert.IsTrue(i.Before);
-            Assert.IsTrue(i.After);
-        }
-
-        [Test]
-        public void Invoke_SyncWithResult()
-        {
-            var i = new TestInvoker();
-            Assert.AreEqual(88, i.Invoke(this, () => { Task.Delay(100).GetAwaiter().GetResult(); return 88; }));
-            Assert.IsTrue(i.Before);
-            Assert.IsTrue(i.After);
-        }
-
         [Test]
         public async Task Invoke_AsyncNoResult()
         {
@@ -67,7 +49,7 @@ namespace CoreEx.Test.Framework.Abstractions
 
             public bool After { get; set; }
 
-            protected async override Task<TResult> OnInvokeAsync<TResult>(InvokerBaseTest invoker, Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>> func, object? param, System.Threading.CancellationToken ct)
+            protected async override Task<TResult> OnInvokeAsync<TResult>(InvokerBaseTest invoker, Func<System.Threading.CancellationToken, Task<TResult>> func, object? param, System.Threading.CancellationToken ct)
             {
                 Before = true;
                 var r = await base.OnInvokeAsync(invoker, func, param, ct).ConfigureAwait(false);

@@ -150,10 +150,31 @@ namespace CoreEx.Test.Framework.Entities.Extended
             p1.CopyFrom(p2);
 
             Assert.AreEqual("sarah", p1.Name);
-            Assert.AreEqual(29, p1.Age); Assert.AreEqual("username", p1.ChangeLog.CreatedBy);
+            Assert.AreEqual(29, p1.Age); 
+            Assert.AreEqual("username", p1.ChangeLog.CreatedBy);
             Assert.AreEqual(CreateDateTime(), p1.ChangeLog.CreatedDate);
             Assert.AreEqual("username2", p1.ChangeLog.UpdatedBy);
             Assert.AreEqual(CreateDateTime().AddDays(1), p1.ChangeLog.UpdatedDate);
+        }
+
+        [Test]
+        public void Person_CopyFrom_Hierarchy()
+        {
+            var p1 = new Person { Name = "dave", Age = 30 };
+            var p2 = new PersonEx { Name = "sarah", Age = 29, Salary = 100000 };
+
+            p1.CopyFrom(p2);
+
+            Assert.AreEqual("sarah", p1.Name);
+            Assert.AreEqual(29, p1.Age);
+
+            p1.Name = "ivan";
+            p1.Age = 55;
+
+            p2.CopyFrom(p1);
+            Assert.AreEqual("ivan", p2.Name);
+            Assert.AreEqual(55, p2.Age);
+            Assert.AreEqual(100000, p2.Salary);
         }
 
         [Test]
@@ -778,7 +799,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
         private DateTime CreateDateTime() => new DateTime(2000, 01, 01, 12, 45, 59);
 
-        public class Person : EntityBase<Person>, IPrimaryKey
+        public class Person : EntityBase, IPrimaryKey
         {
             private string? _name;
             private int _age;
@@ -792,9 +813,9 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             protected override IEnumerable<IPropertyValue> GetPropertyValues()
             {
-                yield return CreateProperty(Name, v => Name = v);
-                yield return CreateProperty(Age, v => Age = v);
-                yield return CreateProperty(ChangeLog, v => ChangeLog = v);
+                yield return CreateProperty(nameof(Name), Name, v => Name = v);
+                yield return CreateProperty(nameof(Age), Age, v => Age = v);
+                yield return CreateProperty(nameof(ChangeLog), ChangeLog, v => ChangeLog = v);
             }
         }
 
@@ -827,18 +848,8 @@ namespace CoreEx.Test.Framework.Entities.Extended
                 foreach (var pv in base.GetPropertyValues())
                     yield return pv;
 
-                yield return CreateProperty(Salary, v => Salary = v);
+                yield return CreateProperty(nameof(Salary), Salary, v => Salary = v);
             }
-
-            public override bool Equals(object? other) => base.Equals(other);
-
-            public static bool operator ==(PersonEx? a, PersonEx? b) => Equals(a, b);
-
-            public static bool operator !=(PersonEx? a, PersonEx? b) => !Equals(a, b);
-
-            public override int GetHashCode() => base.GetHashCode();
-
-            public override object Clone() => CreateClone(this);
         }
 
         public class PersonExCollection : EntityBaseCollection<PersonEx, PersonExCollection>

@@ -2,73 +2,31 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities.Extended
 {
     /// <summary>
-    /// Provides the base capabilities for the <see cref="EntityBase{TSelf}"/>.
+    /// Provides the base capabilities for an entended entity.
     /// </summary>
-    /// <remarks>Inherits from <see cref="EntityCore"/> and implements <see cref="ICleanUp"/>, <see cref="IInitial"/>, <see cref="ICopyFrom"/> and <see cref="ICloneable"/> (although last needs to be overridden as will throw 
-    /// <see cref="NotSupportedException"/>). The other capabilities are internally implemented by using the <see cref="GetPropertyValues"/> which must return a <see cref="PropertyValue{T}"/> for each and every updateable property. 
-    /// <para>Generally, it is expected that the <see cref="EntityBase{TSelf}"/> is used as the base as it encapsulates this and adds further equality checking, and overrides <see cref="Clone"/>.</para>
+    /// <remarks>Inherits from <see cref="EntityCore"/> and implements <see cref="ICleanUp"/>, <see cref="IInitial"/> and <see cref="ICopyFrom"/>. These additional capabilities are internally implemented by using the <see cref="GetPropertyValues"/>
+    /// which must return a <see cref="PropertyValue{T}"/> for each and every updateable property. 
     /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBase : EntityCore, ICleanUp, IInitial, ICloneable, ICopyFrom
+    public abstract class EntityBase : EntityCore, ICleanUp, IInitial, ICopyFrom
     {
-        /// <summary>
-        /// Copies (<see cref="ICopyFrom.CopyFrom(object?)"/>) or clones (<see cref="ICloneable.Clone"/>) the <paramref name="from"/> value.
-        /// </summary>
-        /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
-        /// <param name="from">The from value.</param>
-        /// <param name="to">The to value (required to support a <see cref="ICopyFrom.CopyFrom(object?)"/>).</param>
-        /// <returns>The resulting to value.</returns>
-        protected internal static T? CopyOrClone<T>(T? from, T? to)
-        {
-            if (from == null)
-                return default!;
-
-            if (to == null && from is ICloneable c)
-                return (T)c.Clone();
-            else if (to is ICopyFrom cf)
-            {
-                cf.CopyFrom(from);
-                return to;
-            }
-            else if (from is ICloneable c2)
-                return (T)c2.Clone();
-
-            return from;
-        }
-
-        /// <summary>
-        /// Creates a clone of <see cref="Type"/> <typeparamref name="T"/> by instantiating a new instance and performing a <see cref="ICopyFrom.CopyFrom(object?)"/> from the <paramref name="from"/> value.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/>.</typeparam>
-        /// <param name="from">The value to copy from.</param>
-        /// <returns>A new cloned instance.</returns>
-        protected static T CreateClone<T>(T from) where T : ICopyFrom, new()
-        {
-            var clone = new T();
-            clone.CopyFrom(from);
-            return clone;
-        }
-
         /// <summary>
         /// Creates a new <see cref="PropertyValue{T}"/>.
         /// </summary>
         /// <typeparam name="T">The property <see cref="Type"/>.</typeparam>
+        /// <param name="name">The property name.</param>
         /// <param name="value">The property value.</param>
         /// <param name="setValue">The action to set (override) the value with the specified value.</param>
         /// <param name="defaultValue">The optional default value.</param>
         /// <returns>The <see cref="PropertyValue{T}"/>.</returns>
-        protected static PropertyValue<T> CreateProperty<T>(T value, Action<T?> setValue, T? defaultValue = default) => new(value, setValue, defaultValue);
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EntityBase"/> class.
-        /// </summary>
-        internal EntityBase() { }
+        protected static PropertyValue<T> CreateProperty<T>(string name, T value, Action<T?> setValue, T? defaultValue = default) => new(name,value, setValue, defaultValue);
 
         /// <inheritdoc/>
         [JsonIgnore]
@@ -77,7 +35,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Gets all the property values (<see cref="IPropertyValue"/>) for the entity.
         /// </summary>
-        /// <returns>An <see cref="IEnumerable{T}"/> including all properties.</returns>
+        /// <returns>An <see cref="IEnumerable{T}"/> for all properties.</returns>
         /// <remarks>Used to enable additional capabilities such as <see cref="CleanUp"/>, <see cref="IsInitial"/>, <see cref="object.GetHashCode"/>, <see cref="object.Equals(object)"/>, <see cref="CopyFrom(object?)"/>,
         /// <see cref="OnAcceptChanges"/> and <see cref="OnMakeReadOnly"/>.</remarks>
         protected abstract IEnumerable<IPropertyValue> GetPropertyValues();
@@ -113,25 +71,71 @@ namespace CoreEx.Entities.Extended
         }
 
         /// <summary>
+        /// Compares two values for equality.
+        /// </summary>
+        /// <param name="a"><see cref="ChangeLog"/> A.</param>
+        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <returns><c>true</c> indicates equal; otherwise, <c>false</c> for not equal.</returns>
+        public static bool operator ==(EntityBase? a, EntityBase? b) => Equals(a, b);
+
+        /// <summary>
+        /// Compares two values for non-equality.
+        /// </summary>
+        /// <param name="a"><see cref="ChangeLog"/> A.</param>
+        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
+        public static bool operator !=(EntityBase? a, EntityBase? b) => !Equals(a, b);
+
+        /// <summary>
         /// Performs a deep copy from another object updating this instance.
         /// </summary>
         /// <param name="other">The object to copy from.</param>
         public virtual void CopyFrom(object? other)
         {
-            if (other is not EntityBase otherv)
-                throw new ArgumentException($"Other value must be the same type: {GetType().FullName}.", nameof(other));
-            else if (ReferenceEquals(this, other))
+            if (ReferenceEquals(this, other))
                 return;
-            else if (GetType() != other.GetType())
-                throw new ArgumentException($"Other value must be the same type: {GetType().FullName}.", nameof(other));
 
-            var el = GetPropertyValues().GetEnumerator();
-            var er = otherv.GetPropertyValues().GetEnumerator();
-            while (el.MoveNext())
+            if (other is EntityBase otherv)
             {
-                er.MoveNext();
-                el.Current.CopyFrom(er.Current);
+                var t = GetType();
+                var to = other.GetType();
+                if (t == other.GetType())
+                {
+                    var el = GetPropertyValues().GetEnumerator();
+                    var er = otherv.GetPropertyValues().GetEnumerator();
+                    while (el.MoveNext())
+                    {
+                        er.MoveNext();
+                        el.Current.CopyFrom(er.Current);
+                    }
+
+                    return;
+                }
+
+                if (t.IsAssignableFrom(to) || t.IsSubclassOf(to))
+                {
+                    var el = GetPropertyValues().GetEnumerator();
+                    var er = otherv.GetPropertyValues().GetEnumerator();
+
+                    var opvc = new PropertyValueCollection();
+                    while (er.MoveNext()) { opvc.Add(er.Current); }
+
+                    while (el.MoveNext())
+                    {
+                        if (opvc.TryGetValue(el.Current.Name, out var opv))
+                            el.Current.CopyFrom(opv);
+                    }
+
+                    return;
+                }
             }
+
+            throw new ArgumentException($"Other value must be the same type or is assignable/subclass from: {GetType().FullName}.", nameof(other));
+        }
+
+        private class PropertyValueCollection : KeyedCollection<string, IPropertyValue>
+        {
+            protected override string GetKeyForItem(IPropertyValue item) => item.Name;
         }
 
         /// <inheritdoc/>
@@ -169,8 +173,5 @@ namespace CoreEx.Entities.Extended
                     ec.MakeReadOnly();
             }
         }
-
-        /// <inheritdoc/>
-        public virtual object Clone() => throw new NotSupportedException();
     }
 }

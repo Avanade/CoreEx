@@ -10,6 +10,11 @@ namespace CoreEx.Entities.Extended
     public interface IPropertyValue
     {
         /// <summary>
+        /// Gets the property name.
+        /// </summary>
+        string Name { get; }
+
+        /// <summary>
         /// Gets the property value.
         /// </summary>
         object? Value { get; }

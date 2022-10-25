@@ -30,7 +30,7 @@ namespace CoreEx.Caching
         /// <inheritdoc/>
         public T? SetValue<T>(CompositeKey key, T? value)
         {
-            _caching.Value.AddOrUpdate(new(typeof(T), key), value, (x, y) => value);
+            _caching.Value.AddOrUpdate(new(typeof(T), key), value, (_, __) => value);
             return value;
         }
 

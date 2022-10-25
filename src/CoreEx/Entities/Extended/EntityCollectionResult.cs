@@ -14,7 +14,7 @@ namespace CoreEx.Entities.Extended
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
     /// <remarks>Generally an <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Collection"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase<TSelf>, ICollectionResult<TColl, TEntity>, IPagingResult, ICopyFrom
+    public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase, ICollectionResult<TColl, TEntity>, IPagingResult
         where TColl : EntityBaseCollection<TEntity, TColl>, new()
         where TEntity : EntityBase, new()
         where TSelf : EntityCollectionResult<TColl, TEntity, TSelf>, new()
@@ -56,8 +56,8 @@ namespace CoreEx.Entities.Extended
         /// <inheritdoc/>
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            yield return CreateProperty(Paging, v => Paging = v);
-            yield return CreateProperty(Collection, v => Collection = v!);
+            yield return CreateProperty(nameof(Paging), Paging, v => Paging = v);
+            yield return CreateProperty(nameof(Collection), Collection, v => Collection = v!);
         }
     }
 }

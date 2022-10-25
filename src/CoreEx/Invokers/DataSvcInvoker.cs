@@ -6,7 +6,7 @@ namespace CoreEx.Invokers
     /// Wraps a <b>Data Service invoke</b> enabling standard <b>business tier</b> functionality to be added to all invocations.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public class DataSvcInvoker : BusinessInvokerBase
+    public class DataSvcInvoker : InvokerBase
     {
         private static DataSvcInvoker? _default;
 

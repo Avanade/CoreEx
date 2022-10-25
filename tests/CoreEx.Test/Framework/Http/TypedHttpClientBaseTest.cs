@@ -97,15 +97,27 @@ namespace CoreEx.Test.Framework.Http
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUseProperties);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?id=88&name=gary&date=2020-01-01T11%3A59%3A58Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
+            Assert.AreEqual("/people?id=88&name=gary&date=2020-01-01T11%3A59%3A58.0000000Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "*gary*", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUseProperties);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?id=88&name=*gary*&date=2020-01-01T11%3A59%3A58Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
+            Assert.AreEqual("/people?id=88&name=*gary*&date=2020-01-01T11%3A59%3A58.0000000Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
 
-            arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUsePropertiesAndPrefix);
+            arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Unspecified), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUsePropertiesAndPrefix);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?person.id=88&person.name=gary&person.date=2020-01-01T11%3A59%3A58Z&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
+            Assert.AreEqual("/people?person.id=88&person.name=gary&person.date=2020-01-01T11%3A59%3A58.0000000&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
+        }
+
+        [Test]
+        public void UpdateRequestUri_QueryArg_With_IFormattable()
+        {
+            var arg = new HttpArg<Coordinates>("coordinates", new Coordinates());
+            var uri = new TestHttpClient().VerifyUri("map", null, arg);
+            Assert.AreEqual("/map?coordinates=1,2", uri);
+
+            var arg2 = new HttpArg<CoordinatesArgs>("ignored", new CoordinatesArgs(), HttpArgType.FromUriUseProperties);
+            var uri2 = new TestHttpClient().VerifyUri("map", null, arg2);
+            Assert.AreEqual("/map?coordinates=1,2", uri2);
         }
 
         public class Person
@@ -119,6 +131,19 @@ namespace CoreEx.Test.Framework.Http
         }
 
         public class Gender : ReferenceDataBase<int> { }
+
+        public class Coordinates : IFormattable
+        {
+            public int Long { get; set; } = 1;
+            public int Lat { get; set; } = 2;
+
+            public string ToString(string? format, IFormatProvider? formatProvider) => $"{Long},{Lat}";
+        }
+
+        public class CoordinatesArgs
+        {
+            public Coordinates? Coordinates { get; set; } = new Coordinates();
+        }
     }
 
     public class TestHttpClient : TypedHttpClientBase

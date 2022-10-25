@@ -80,26 +80,28 @@ namespace CoreEx.Database.Extended
         public static DatabaseQuery<T> Query<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, Action<DatabaseParameterCollection>? queryParams = null) where T : class, new() => new(command, new DatabaseArgs(command.Database.DbArgs, mapper), queryParams);
 
         /// <summary>
-        /// Gets the value for the specified <paramref name="keys"/> mapping to <typeparamref name="T"/>.
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
-        /// <param name="keys">The key values.</param>
+        /// <param name="key">The key value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T>(this DatabaseCommand command, DatabaseArgs args, params object?[] keys) where T : class, new()
-            => GetAsync<T>(command, args, CompositeKey.Create(keys), CancellationToken.None);
+        public static Task<T?> GetAsync<T>(this DatabaseCommand command, DatabaseArgs args, object[] key, CancellationToken cancellationToken = default) where T : class, new()
+            => GetAsync<T>(command, args, CompositeKey.Create(key), cancellationToken);
 
         /// <summary>
-        /// Gets the value for the specified <paramref name="keys"/> mapping to <typeparamref name="T"/>.
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
-        /// <param name="keys">The key values.</param>
+        /// <param name="key">The key value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, params object?[] keys) where T : class, new()
-            => GetAsync<T>(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(keys), CancellationToken.None);
+        public static Task<T?> GetAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, object? key, CancellationToken cancellationToken = default) where T : class, new()
+            => GetAsync<T>(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(key), cancellationToken);
 
         /// <summary>
         /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/>.
@@ -205,22 +207,24 @@ namespace CoreEx.Database.Extended
         }
 
         /// <summary>
-        /// Performs a delete for the specified <paramref name="keys"/>.
+        /// Performs a delete for the specified <paramref name="key"/>.
         /// </summary>
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
-        /// <param name="keys">The key values.</param>
-        public static Task DeleteAsync(this DatabaseCommand command, DatabaseArgs args, params object?[] keys)
-            => DeleteAsync(command, args, CompositeKey.Create(keys), CancellationToken.None);
+        /// <param name="key">The key value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public static Task DeleteAsync(this DatabaseCommand command, DatabaseArgs args, object? key, CancellationToken cancellationToken = default)
+            => DeleteAsync(command, args, CompositeKey.Create(key), cancellationToken);
 
         /// <summary>
-        /// Performs a delete for the specified <paramref name="keys"/>.
+        /// Performs a delete for the specified <paramref name="key"/>.
         /// </summary>
         /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
-        /// <param name="keys">The key values.</param>
-        public static Task DeleteAsync(this DatabaseCommand command, IDatabaseMapper mapper, params object?[] keys)
-            => DeleteAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(keys), CancellationToken.None);
+        /// <param name="key">The key values.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public static Task DeleteAsync(this DatabaseCommand command, IDatabaseMapper mapper, object? key, CancellationToken cancellationToken = default)
+            => DeleteAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(key), cancellationToken);
 
         /// <summary>
         /// Performs a delete for the specified <paramref name="key"/>.
@@ -233,9 +237,9 @@ namespace CoreEx.Database.Extended
         {
             var rowsAffected = await (command ?? throw new ArgumentNullException(nameof(command)))
                 .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
-                .NonQueryAsync(cancellationToken).ConfigureAwait(false);
+                .ScalarAsync<int>(cancellationToken).ConfigureAwait(false);
 
-            if (rowsAffected == 0)
+            if (rowsAffected < 1)
                 throw new NotFoundException();
         }
 

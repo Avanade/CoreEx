@@ -213,7 +213,7 @@ namespace CoreEx.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created, OperationType operationType = OperationType.Create,
+        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Create,
             bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<Uri>? locationUri = null)
             => PostAsync(request, (p, _) => function(p), statusCode, operationType, valueIsRequired, validator, locationUri, CancellationToken.None);
 
@@ -230,7 +230,7 @@ namespace CoreEx.WebApis
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, CancellationToken, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created, OperationType operationType = OperationType.Create,
+        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, Func<WebApiParam<TValue>, CancellationToken, Task> function, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Create,
             bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<Uri>? locationUri = null, CancellationToken cancellationToken = default)
             => PostInternalAsync(request, false, default!, function, statusCode, operationType, valueIsRequired, validator, locationUri, cancellationToken);
 
@@ -247,7 +247,7 @@ namespace CoreEx.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created, OperationType operationType = OperationType.Create,
+        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, Task> function, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Create,
             bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<Uri>? locationUri = null)
             => PostAsync(request, value, (p, _) => function(p), statusCode, operationType, valueIsRequired, validator, locationUri, CancellationToken.None);
 
@@ -265,14 +265,14 @@ namespace CoreEx.WebApis
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created,
+        public Task<IActionResult> PostAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<Uri>? locationUri = null, CancellationToken cancellationToken = default)
             => PostInternalAsync(request, true, value, function, statusCode, operationType, valueIsRequired, validator, locationUri, cancellationToken);
 
         /// <summary>
         /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> and no corresponding response value.
         /// </summary>
-        private async Task<IActionResult> PostInternalAsync<TValue>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task> function, HttpStatusCode statusCode = HttpStatusCode.Created,
+        private async Task<IActionResult> PostInternalAsync<TValue>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<Uri>? locationUri = null, CancellationToken cancellationToken = default)
         {
             if (request == null)
@@ -306,7 +306,7 @@ namespace CoreEx.WebApis
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created,
+        public Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, Func<TResult, Uri>? locationUri = null)
             => PostAsync(request, (p, _) => function(p), statusCode, alternateStatusCode, operationType, locationUri, CancellationToken.None);
 
@@ -322,7 +322,7 @@ namespace CoreEx.WebApis
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public async Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created,
+        public async Task<IActionResult> PostAsync<TResult>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, Func<TResult, Uri>? locationUri = null, CancellationToken cancellationToken = default)
         {
             if (request == null)
@@ -355,7 +355,7 @@ namespace CoreEx.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
+        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<TResult, Uri>? locationUri = null)
             => PostAsync(request, (p, _) => function(p), statusCode, alternateStatusCode, operationType, valueIsRequired, validator, locationUri, CancellationToken.None);
 
@@ -374,7 +374,7 @@ namespace CoreEx.WebApis
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
+        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, Func<WebApiParam<TValue>, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<TResult, Uri>? locationUri = null, CancellationToken cancellationToken = default)
             => PostInternalAsync(request, false, default!, function, statusCode, alternateStatusCode, operationType, valueIsRequired, validator, locationUri, cancellationToken);
 
@@ -393,7 +393,7 @@ namespace CoreEx.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
+        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<TResult, Uri>? locationUri = null)
             => PostAsync(request, value, (p, _) => function(p), statusCode, alternateStatusCode, operationType, valueIsRequired, validator, locationUri, CancellationToken.None);
 
@@ -413,14 +413,14 @@ namespace CoreEx.WebApis
         /// <param name="locationUri">The optional function to set the location <see cref="Uri"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IActionResult"/> (either <see cref="ValueContentResult"/> on non-<c>null</c> result; otherwise, a <see cref="StatusCodeResult"/>).</returns>
-        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
+        public Task<IActionResult> PostAsync<TValue, TResult>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<TResult, Uri>? locationUri = null, CancellationToken cancellationToken = default)
             => PostInternalAsync(request, true, value, function, statusCode, alternateStatusCode, operationType, valueIsRequired, validator, locationUri, cancellationToken);
 
         /// <summary>
         /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> and a response of <see cref="Type"/> <typeparamref name="TResult"/>.
         /// </summary>
-        private async Task<IActionResult> PostInternalAsync<TValue, TResult>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.Created, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
+        private async Task<IActionResult> PostInternalAsync<TValue, TResult>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<TResult>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<TResult, Uri>? locationUri = null, CancellationToken cancellationToken = default)
         {
             if (request == null)

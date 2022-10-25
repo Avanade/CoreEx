@@ -39,7 +39,8 @@ namespace CoreEx.Entities.Extended
     /// }
     /// </code></para></remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityBase<TSelf> : EntityBase, IEquatable<TSelf>, ICloneable where TSelf : EntityBase<TSelf>, new()
+    [Obsolete("No longer supported and will be deprecated. Please simply use EntityBase.", false)]
+    public abstract class EntityBase<TSelf> : EntityBase, IEquatable<TSelf>, ICloneable where TSelf : EntityBase, new()
     {
         /// <inheritdoc/>
         public override int GetHashCode() => base.GetHashCode();
@@ -67,7 +68,7 @@ namespace CoreEx.Entities.Extended
         public static bool operator !=(EntityBase<TSelf>? a, EntityBase<TSelf>? b) => !Equals(a, b);
 
         /// <inheritdoc/>
-        public override object Clone()
+        public virtual object Clone()
         {
             var clone = new TSelf();
             clone.CopyFrom(this);

@@ -9,7 +9,7 @@ namespace CoreEx.Entities
     /// <summary>
     /// Represents a change log audit.
     /// </summary>
-    public class ChangeLog : EntityBase<ChangeLog>
+    public class ChangeLog : EntityBase
     {
         private DateTime? _createdDate;
         private string? _createdBy;
@@ -39,10 +39,10 @@ namespace CoreEx.Entities
         /// <inheritdoc/>
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            yield return CreateProperty(CreatedDate, v => CreatedDate = v);
-            yield return CreateProperty(CreatedBy, v => CreatedBy = v);
-            yield return CreateProperty(UpdatedDate, v => UpdatedDate = v);
-            yield return CreateProperty(UpdatedBy, v => UpdatedBy = v);
+            yield return CreateProperty(nameof(CreatedDate), CreatedDate, v => CreatedDate = v);
+            yield return CreateProperty(nameof(CreatedBy), CreatedBy, v => CreatedBy = v);
+            yield return CreateProperty(nameof(UpdatedDate), UpdatedDate, v => UpdatedDate = v);
+            yield return CreateProperty(nameof(CreatedBy), UpdatedBy, v => UpdatedBy = v);
         }
 
         /// <summary>

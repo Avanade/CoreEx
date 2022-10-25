@@ -71,7 +71,7 @@ namespace CoreEx.Database
         public bool EnableChangeLogMapperToDb { get; }
 
         /// <inheritdoc/>
-        public DbConnection GetConnection() => GetConnectionAsync().GetAwaiter().GetResult();
+        public DbConnection GetConnection() => Invokers.Invoker.RunSync(() => GetConnectionAsync());
 
         /// <inheritdoc/>
         public async Task<TConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
@@ -145,7 +145,7 @@ namespace CoreEx.Database
             if (disposing && _dbConn != null)
             {
                 Logger?.LogDebug("Closing and disposing the database connection. DatabaseId: {DatabaseId}", DatabaseId);
-                OnConnectionCloseAsync(_dbConn).GetAwaiter().GetResult();
+                Invokers.Invoker.RunSync(() => OnConnectionCloseAsync(_dbConn));
                 _dbConn.Dispose();
                 _dbConn = null;
             }

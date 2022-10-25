@@ -37,20 +37,22 @@ namespace CoreEx.RefData
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
         private readonly IMemoryCache? _cache;
+        private readonly TimeSpan _absoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
+        private readonly TimeSpan _slidingExpiration = TimeSpan.FromMinutes(30);
         private readonly Lazy<ILogger> _logger;
 
         /// <summary>
         /// Gets the current <see cref="ReferenceDataOrchestrator"/> from the <see cref="IServiceProvider"/> within the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> scope (see <see cref="ExecutionContext.GetService(Type)"/>) and will throw an <see cref="InvalidOperationException"/> where not found.
         /// </summary>
         public static ReferenceDataOrchestrator Current => 
-            ExecutionContext.GetService<ReferenceDataOrchestrator>() ?? throw new InvalidOperationException($"To access {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} it must be added as a Dependency Injection service ({nameof(IServiceProvider)}) and the request must be mande within an {nameof(ExecutionContext)} scope.");
+            ExecutionContext.GetService<ReferenceDataOrchestrator>() ?? throw new InvalidOperationException($"To access {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} it must be added as a Dependency Injection service ({nameof(IServiceProvider)}) and the request must be made within an {nameof(ExecutionContext)} scope.");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
         /// </summary>
         /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
         /// <param name="cache">The optional <see cref="IMemoryCache"/> to be used where not specifically overridden by <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>.</param>
-        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache)
+        protected ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache)
         {
             ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
             _cache = cache;
@@ -58,11 +60,19 @@ namespace CoreEx.RefData
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
+        /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class defaulting to a new <see cref="MemoryCache"/>.
         /// </summary>
         /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
-        /// <param name="useDefaultMemoryCache">Indicates whether to use a default <see cref="MemoryCache"/>; otherwise, no <see cref="IMemoryCache"/> at all.</param>
-        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, bool useDefaultMemoryCache = true) : this(serivceProvider, useDefaultMemoryCache ? new MemoryCache(new MemoryCacheOptions()) : null) { }
+        /// <param name="absoluteExpirationRelativeToNow">The <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> value; defaults to two (2) hours.</param>
+        /// <param name="slidingExpiration">The <see cref="ICacheEntry.SlidingExpiration"/> value; defaults to thirty (30) minutes.</param>
+        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, TimeSpan? absoluteExpirationRelativeToNow = null, TimeSpan? slidingExpiration = null) : this(serivceProvider, new MemoryCache(new MemoryCacheOptions())) 
+        {
+            if (absoluteExpirationRelativeToNow.HasValue)
+                _absoluteExpirationRelativeToNow = absoluteExpirationRelativeToNow.Value;
+
+            if (slidingExpiration.HasValue)
+                _slidingExpiration = slidingExpiration.Value;
+        }
 
         /// <summary>
         /// Gets the <see cref="IServiceProvider"/>.
@@ -129,7 +139,7 @@ namespace CoreEx.RefData
         /// <summary>
         /// Determines whether the <see cref="ReferenceDataOrchestrator"/> contains the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">The reference data name.</param>
         /// <returns><c>true</c> indicates that it exists; otherwise, <c>false</c>.</returns>
         public bool ContainsName(string name) => _nameToType.ContainsKey(name);
 
@@ -138,14 +148,14 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? this[Type type] => GetByTypeAsync(type).GetAwaiter().GetResult();
+        public IReferenceDataCollection? this[Type type] => Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>) synchronously. 
         /// </summary>
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? this[string name] => GetByNameAsync(name).GetAwaiter().GetResult();
+        public IReferenceDataCollection? this[string name] => Invokers.Invoker.RunSync(() => GetByNameAsync(name));
 
         /// <summary>
         /// Gets a <see cref="Type"/> list for the registered <see cref="IReferenceData"/> types.
@@ -165,7 +175,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? GetByType(Type type) => GetByTypeAsync(type).GetAwaiter().GetResult();
+        public IReferenceDataCollection? GetByType(Type type) => Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
@@ -179,7 +189,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
-        public IReferenceDataCollection GetByTypeRequired(Type type) => GetByTypeRequiredAsync(type).GetAwaiter().GetResult();
+        public IReferenceDataCollection GetByTypeRequired(Type type) => Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
@@ -210,6 +220,7 @@ namespace CoreEx.RefData
                 coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
                 sw.Stop();
                 Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
+                scope.Dispose();
                 return coll;
             }, cancellationToken).ConfigureAwait(false);
 
@@ -259,12 +270,12 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="entry">The <see cref="ICacheEntry"/>.</param>
         /// <remarks>Note: the <see cref="ICacheEntry.Key"/> is the <see cref="IReferenceData"/> <see cref="Type"/>.
-        /// <para>The default behaviour sets the following: <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> = 2 hours, and <see cref="ICacheEntry.SlidingExpiration"/> = 30 minutes. This should be overridden where this default
-        /// behaviour needs to change.</para></remarks>
+        /// <para>The default behaviour sets the following: <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> = 2 hours, and <see cref="ICacheEntry.SlidingExpiration"/> = 30 minutes unless overidden during instantiation.
+        /// This should be overridden where more advanced behaviour is required.</para></remarks>
         protected virtual void OnCreateCacheEntry(ICacheEntry entry)
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
-            entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+            entry.AbsoluteExpirationRelativeToNow = _absoluteExpirationRelativeToNow;
+            entry.SlidingExpiration = _slidingExpiration;
         }
 
         /// <summary>
@@ -272,14 +283,14 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? GetByName(string name) => GetByNameAsync(name).GetAwaiter().GetResult();
+        public IReferenceDataCollection? GetByName(string name) => Invokers.Invoker.RunSync(() => GetByNameAsync(name));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
         /// </summary>
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection GetByNameRequired(string name) => GetByNameRequiredAsync(name).GetAwaiter().GetResult();
+        public IReferenceDataCollection GetByNameRequired(string name) => Invokers.Invoker.RunSync(() => GetByNameRequiredAsync(name));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 

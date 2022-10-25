@@ -14,6 +14,9 @@ Represents the **NuGet** versions.
 - *Enhancement:* Add `DatabaseCommand.SelectMultiSetAsync` overloads to support paging. 
 - *Enhancement:* **Breaking change**: Added `IEntityKey` to enable key-based support in a consistent and standardized manner; refactored `IIdentifier` and `IPrimaryKey` to leverage; existing references within updated to leverage `IEntityKey` where applicable.
 - *Enhancement:* Improved validation handling of nullable vs non-nullable types when adding rules.
+- *Enhancement:* `EntityBase` usage simplified especially where inheriting indirectly, i.e. from a base class that inherits `EntityBase`. As a result `EntityBase<>` will be deprecated next version. `ICloneable` support removed, now supported via `ExtendedExtensions.Clone<T>()`.
+- *Enhancement:* Improved the `HttpArg` query string output support.
+- *Fixed:* `SettingsBase` was not looking for keys containing `__` or `:` consistently.
 
 ## v1.0.9
 - *Enhancement:* Ported and refactored CosmosDb components from _Beef_ repo.

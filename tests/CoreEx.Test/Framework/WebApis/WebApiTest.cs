@@ -323,7 +323,7 @@ namespace CoreEx.Test.Framework.WebApis
             test.Type<WebApi>()
                 .Run(f => f.PostAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), r => Task.FromResult(new Product { Id = "A", Name = "B", Price = 1.99m })))
                 .ToActionResultAssertor()
-                .AssertCreated()
+                .AssertOK()
                 .Assert(new Product { Id = "A", Name = "B", Price = 1.99m });
         }
 
@@ -335,7 +335,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PostAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new { id = "A", name = "B", price = 1.99m }),
                         r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, r.Value); return Task.CompletedTask; }))
                 .ToActionResultAssertor()
-                .AssertCreated();
+                .AssertOK();
         }
 
         [Test]
@@ -346,7 +346,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PostAsync<Product, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new { id = "A", name = "B", price = 1.99m }),
                         r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, r.Value); return Task.FromResult(new Product { Id = "Y", Name = "Z", Price = 3.01m }); }))
                 .ToActionResultAssertor()
-                .AssertCreated()
+                .AssertOK()
                 .Assert(new Product { Id = "Y", Name = "Z", Price = 3.01m });
         }
 

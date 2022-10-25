@@ -527,7 +527,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -558,7 +558,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -624,7 +624,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -657,7 +657,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -677,7 +677,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -697,7 +697,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -761,7 +761,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -827,7 +827,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -942,7 +942,7 @@ namespace CoreEx.Test.Framework.RefData
         }
     }
 
-    public class TestData : CoreEx.Entities.Extended.EntityBase<TestData>
+    public class TestData : CoreEx.Entities.Extended.EntityBase
     {
         private int _id;
         private string? _name;
@@ -956,9 +956,9 @@ namespace CoreEx.Test.Framework.RefData
 
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            yield return CreateProperty(Id, v => Id = v);
-            yield return CreateProperty(Name, v => Name = v);
-            yield return CreateProperty(RefData, v => RefData = v);
+            yield return CreateProperty(nameof(Id), Id, v => Id = v);
+            yield return CreateProperty(nameof(Name), Name, v => Name = v);
+            yield return CreateProperty(nameof(RefData), RefData, v => RefData = v);
         }
     }
 }
