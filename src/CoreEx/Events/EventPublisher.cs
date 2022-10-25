@@ -123,12 +123,7 @@ namespace CoreEx.Events
         public void Dispose()
         {
             if (!_disposed)
-            {
-                if (!_queue.IsEmpty)
-                    throw new InvalidOperationException($"Attempting to dispose of an {GetType().Name} when there are '{_queue.Count}' unsent event(s); must be either explicity sent ({nameof(SendAsync)}) or cleared ({nameof(Reset)}).");
-
                 _disposed = true;
-            }
 
             Dispose(true);
             GC.SuppressFinalize(this);
