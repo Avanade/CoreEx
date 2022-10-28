@@ -7,12 +7,12 @@ using System.Linq;
 namespace CoreEx.Entities.Extended
 {
     /// <summary>
-    /// Represents an <see cref="EntityBase"/> <see cref="IEntityKeyCollection{T}"/> class.
+    /// Represents an <see cref="EntityBase"/> <see cref="ICompositeKeyCollection{T}"/> class.
     /// </summary>
     /// <typeparam name="TEntity">The <see cref="IEntityKey"/> <see cref="EntityBase"/> <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="EntityBase"/> collection <see cref="Type"/> itself.</typeparam>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class EntityKeyBaseCollection<TEntity, TSelf> : EntityBaseCollection<TEntity, TSelf>, IEntityKeyCollection<TEntity>
+    public abstract class EntityKeyBaseCollection<TEntity, TSelf> : EntityBaseCollection<TEntity, TSelf>, ICompositeKeyCollection<TEntity>
         where TEntity : EntityBase, IEntityKey
         where TSelf : EntityBaseCollection<TEntity, TSelf>, new()
     {
@@ -30,8 +30,12 @@ namespace CoreEx.Entities.Extended
         /// <inheritdoc/>
         public bool ContainsKey(CompositeKey key) => Items.Any(x => key.Equals(x.EntityKey));
 
-        /// <inheritdoc/>
-        public bool ContainsKey(params object?[] args) => ContainsKey(new CompositeKey(args));
+        /// <summary>
+        /// Indicates whether an item with the specified <paramref name="keys"/> exists.
+        /// </summary>
+        /// <param name="keys">The key values.</param>
+        /// <returns><c>true</c> where the item exists; otherwise, <c>false</c>.</returns>
+        public bool ContainsKey(params object?[] keys) => ContainsKey(new CompositeKey(keys));
 
         /// <summary>
         /// Gets the first item by the specified primary <paramref name="key"/>.
@@ -41,11 +45,11 @@ namespace CoreEx.Entities.Extended
         public TEntity? GetByKey(CompositeKey key) => Items.Where(x => key.Equals(x.EntityKey)).FirstOrDefault();
 
         /// <summary>
-        /// Gets the first item by the <paramref name="args"/> that represent the primary <see cref="CompositeKey"/>.
+        /// Gets the first item by the specified primary <paramref name="keys"/>.
         /// </summary>
-        /// <param name="args">The argument values for the key.</param>
+        /// <param name="keys">The key values.</param>
         /// <returns>The first item where found; otherwise, <c>default</c>.</returns>
-        public TEntity? GetByKey(params object?[] args) => GetByKey(new CompositeKey(args));
+        public TEntity? GetByKey(params object?[] keys) => GetByKey(new CompositeKey(keys));
 
         /// <inheritdoc/>
         public bool IsAnyDuplicates() => Count != Math.Min(1, this.Count(ek => ek == null)) + this.Where(ek => ek != null).Select(ek => ek.EntityKey).Distinct(CompositeKeyComparer.Default).Count();
@@ -53,8 +57,11 @@ namespace CoreEx.Entities.Extended
         /// <inheritdoc/>
         public void RemoveByKey(CompositeKey key) => this.Where(ek => ek.EntityKey == key).ToList().ForEach(ek => Remove(ek));
 
-        /// <inheritdoc/>
-        public void RemoveByKey(params object?[] args) => RemoveByKey(new CompositeKey(args));
+        /// <summary>
+        /// Removes all items with the specified primary <paramref name="keys"/>.
+        /// </summary>
+        /// <param name="keys">The key values.</param>
+        public void RemoveByKey(params object?[] keys) => RemoveByKey(new CompositeKey(keys));
 
         /// <inheritdoc/>
         public override bool Equals(object? obj) => base.Equals(obj);
