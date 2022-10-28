@@ -66,20 +66,6 @@ namespace CoreEx.Cosmos
         }
 
         /// <summary>
-        /// Gets the <b>CosmosDb/DocumentDb</b> key from the <paramref name="key"/>.
-        /// </summary>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <returns>The <b>CosmosDb/DocumentDb</b> key.</returns>
-        public string? GetCosmosKey(CompositeKey key) => key.Args.Length == 1 && key.Args[0] is string k ? k : throw new NotSupportedException("Only an underlying single key value that is a string is supported.");
-
-        /// <summary>
-        ///  Gets the <b>CosmosDb/DocumentDb</b> key from the <paramref name="value"/>.
-        /// </summary>
-        /// <param name="value">The entity value.</param>
-        /// <returns>The <b>CosmosDb/DocumentDb</b> key.</returns>
-        public string? GetCosmosKey(T value) => GetCosmosKey((value ?? throw new ArgumentNullException(nameof(value))).EntityKey);
-
-        /// <summary>
         /// Gets (creates) a <see cref="CosmosDbQuery{T, TModel}"/> to enable LINQ-style queries.
         /// </summary>
         /// <param name="query">The function to perform additional query execution.</param>
@@ -103,11 +89,8 @@ namespace CoreEx.Cosmos
         public CosmosDbQuery<T, TModel> Query(CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) => new(this, dbArgs, query);
 
         /// <inheritdoc/>
-        public override Task<T?> GetAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, id ?? throw new ArgumentNullException(nameof(id)), dbArgs, async (key, args, ct) =>
+        public override Task<T?> GetAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (key, args, ct) =>
         {
-            if (id == null)
-                throw new ArgumentNullException(nameof(id));
-
             try
             {
                 var val = await Container.ReadItemAsync<TModel>(key, args.PartitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
@@ -134,7 +117,7 @@ namespace CoreEx.Cosmos
         /// <inheritdoc/>
         public override Task<T> UpdateAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (v, args, ct) =>
         {
-            var key = GetCosmosKey(v);
+            var key = GetCosmosId(v);
             var pk = GetPartitionKey(v);
             
             // Where supporting etag then use IfMatch for concurreny.
@@ -162,7 +145,7 @@ namespace CoreEx.Cosmos
         }, cancellationToken);
 
         /// <inheritdoc/>
-        public override Task DeleteAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, id ?? throw new ArgumentNullException(nameof(id)), dbArgs, async (key, args, ct) =>
+        public override Task DeleteAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (key, args, ct) =>
         {
             try
             {

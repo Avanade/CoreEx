@@ -10,7 +10,7 @@ using System.Linq;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Provides extended <b>CosmosDb/DocumentDb</b> data access.
+    /// Provides extended <b>CosmosDb</b> data access.
     /// </summary>
     public class CosmosDb : ICosmosDb
     {

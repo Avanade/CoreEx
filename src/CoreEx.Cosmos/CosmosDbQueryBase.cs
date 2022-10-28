@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Enables the common <b>CosmosDb/DocumentDb</b> query capabilities.
+    /// Enables the common <b>CosmosDb</b> query capabilities.
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>

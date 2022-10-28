@@ -16,6 +16,8 @@ Represents the **NuGet** versions.
 - *Enhancement:* Improved validation handling of nullable vs non-nullable types when adding rules.
 - *Enhancement:* `EntityBase` usage simplified especially where inheriting indirectly, i.e. from a base class that inherits `EntityBase`. As a result `EntityBase<>` will be deprecated next version. `ICloneable` support removed, now supported via `ExtendedExtensions.Clone<T>()`.
 - *Enhancement:* Improved the `HttpArg` query string output support.
+- *Enhancement:* Added `Models.ChangeLog` (does not inherit from `EntityBase`) as alternative to `Entities.ChangeLog` (which does). Also, added corresponding `AutoMapper` mapping between the two.
+- *Enhancement:* `CosmosDbContainerBase` updated to further centralize functionality, inheriting classes updated accordingly.
 - *Fixed:* `SettingsBase` was not looking for keys containing `__` or `:` consistently.
 
 ## v1.0.9

@@ -9,7 +9,7 @@ using System.Linq;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Provides the <b>CosmosDb/DocumentDb</b> capabilities.
+    /// Provides the <b>CosmosDb</b> capabilities.
     /// </summary>
     public interface ICosmosDb
     {
@@ -36,7 +36,7 @@ namespace CoreEx.Cosmos
         /// <summary>
         /// Gets the default <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.
         /// </summary>
-        /// <remarks>Where <c>null</c> and the underlying <b>CosmosDb/DocumentDb</b> capability requires then <see cref="PartitionKey.None"/> will be used.</remarks>
+        /// <remarks>Where <c>null</c> and the underlying <b>CosmosDb</b> capability requires then <see cref="PartitionKey.None"/> will be used.</remarks>
         PartitionKey? PartitionKey { get; }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace CoreEx.Cosmos
         Func<IQueryable, IQueryable>? GetAuthorizeFilter<TModel>(string containerId);
 
         /// <summary>
-        /// Formats an identifier to a <see cref="string"/> representation based on its underlying <see cref="Type"/> (used by the <see cref="ICosmosDbValue.PrepareBefore"/>).
+        /// Formats an identifier to a <see cref="string"/> representation based on its underlying <see cref="Type"/> (used by <see cref="CosmosDbContainerBase{T, TModel, TSelf}.GetCosmosId(T)"/> and <see cref="ICosmosDbValue.PrepareBefore"/>).
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <returns>The identifier as a <see cref="string"/>.</returns>

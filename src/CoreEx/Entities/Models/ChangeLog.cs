@@ -2,48 +2,33 @@
 
 using CoreEx.Entities.Extended;
 using System;
-using System.Collections.Generic;
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Models
 {
     /// <summary>
-    /// Represents a change log audit.
+    /// Represents a change log audit model (without inheriting <see cref="EntityBase"/>).
     /// </summary>
-    public class ChangeLog : EntityBase
+    public class ChangeLog
     {
-        private DateTime? _createdDate;
-        private string? _createdBy;
-        private DateTime? _updatedDate;
-        private string? _updatedBy;
-
         /// <summary>
         /// Gets or sets the created <see cref="DateTime"/>.
         /// </summary>
-        public DateTime? CreatedDate { get => _createdDate; set => SetValue(ref _createdDate, value); }
+        public DateTime? CreatedDate { get; set; }
 
         /// <summary>
         /// Gets or sets the created by (username).
         /// </summary>
-        public string? CreatedBy { get => _createdBy; set => SetValue(ref _createdBy, value); }
+        public string? CreatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets the updated <see cref="DateTime"/>.
         /// </summary>
-        public DateTime? UpdatedDate { get => _updatedDate; set => SetValue(ref _updatedDate, value); }
+        public DateTime? UpdatedDate { get; set; }
 
         /// <summary>
         /// Gets or sets the updated by (username).
         /// </summary>
-        public string? UpdatedBy { get => _updatedBy; set => SetValue(ref _updatedBy, value); }
-
-        /// <inheritdoc/>
-        protected override IEnumerable<IPropertyValue> GetPropertyValues()
-        {
-            yield return CreateProperty(nameof(CreatedDate), CreatedDate, v => CreatedDate = v);
-            yield return CreateProperty(nameof(CreatedBy), CreatedBy, v => CreatedBy = v);
-            yield return CreateProperty(nameof(UpdatedDate), UpdatedDate, v => UpdatedDate = v);
-            yield return CreateProperty(nameof(CreatedBy), UpdatedBy, v => UpdatedBy = v);
-        }
+        public string? UpdatedBy { get; set; }
 
         /// <summary>
         /// Prepares the <see cref="ChangeLog"/> by setting the <c>Created</c> properties.
@@ -67,8 +52,8 @@ namespace CoreEx.Entities
         public static ChangeLog PrepareCreated(ChangeLog? changeLog, ExecutionContext? executionContext = null)
         {
             changeLog ??= new ChangeLog();
-            changeLog.CreatedBy = GetUsername(executionContext);
-            changeLog.CreatedDate = GetTimestamp(executionContext);
+            changeLog.CreatedBy = CoreEx.Entities.ChangeLog.GetUsername(executionContext);
+            changeLog.CreatedDate = CoreEx.Entities.ChangeLog.GetTimestamp(executionContext);
             return changeLog;
         }
 
@@ -94,19 +79,9 @@ namespace CoreEx.Entities
         public static ChangeLog PrepareUpdated(ChangeLog? changeLog, ExecutionContext? executionContext = null)
         {
             changeLog ??= new ChangeLog();
-            changeLog.UpdatedBy = GetUsername(executionContext);
-            changeLog.UpdatedDate = GetTimestamp(executionContext);
+            changeLog.UpdatedBy = CoreEx.Entities.ChangeLog.GetUsername(executionContext);
+            changeLog.UpdatedDate = CoreEx.Entities.ChangeLog.GetTimestamp(executionContext);
             return changeLog;
         }
-
-        /// <summary>
-        /// Gets the username.
-        /// </summary>
-        internal static string GetUsername(ExecutionContext? ec) => ec != null ? ec.UserName : (ExecutionContext.HasCurrent ? ExecutionContext.Current.UserName : ExecutionContext.EnvironmentUserName);
-
-        /// <summary>
-        /// Gets the timestamp.
-        /// </summary>
-        internal static DateTime GetTimestamp(ExecutionContext? ec) => ec != null ? ec.Timestamp : (ExecutionContext.HasCurrent ? ExecutionContext.Current.Timestamp : DateTime.UtcNow);
     }
 }

@@ -6,7 +6,7 @@ using System.Net;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Provides the <b>CosmosDb/DocumentDb Container</b> arguments.
+    /// Provides the <b>CosmosDb Container</b> arguments.
     /// </summary>
     public struct CosmosDbArgs
     {

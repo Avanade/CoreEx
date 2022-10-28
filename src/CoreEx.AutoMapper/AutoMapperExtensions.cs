@@ -3,8 +3,6 @@
 using AutoMapper;
 using AutoMapper.Configuration;
 using System;
-using System.Linq;
-using System.Linq.Expressions;
 
 namespace CoreEx.Mapping
 {
@@ -32,7 +30,7 @@ namespace CoreEx.Mapping
             if (mce == null)
                 throw new ArgumentNullException(nameof(mce));
 
-            mce.PreCondition((ResolutionContext rc) => !rc.Options.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
+            mce.PreCondition((ResolutionContext rc) => !rc.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
             return mce;
         }
 
@@ -50,44 +48,8 @@ namespace CoreEx.Mapping
             if (pce == null)
                 throw new ArgumentNullException(nameof(pce));
 
-            pce.Condition(cp => !cp.Context.Options.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
+            pce.Condition(cp => !cp.Context.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
             return pce;
-        }
-
-        /// <summary>
-        /// Flattens the complex typed source member into the same named destination members.
-        /// </summary>
-        /// <typeparam name="TDestination">The destination entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TSource">The source entity <see cref="Type"/>.</typeparam>
-        /// <param name="me">The <see cref="IMappingExpression{TSource, TDestination}"/>.</param>
-        /// <param name="memberExpressions">One or more members to flatten.</param>
-        /// <remarks>Uses the <see cref="IMappingExpression{TSource, TDestination}"/> <see cref="IProjectionExpression{TSource, TDestination, TMappingExpression}.IncludeMembers(Expression{Func{TSource, object}}[])"/>.</remarks>
-        public static IMappingExpression<TDestination, TSource> Flatten<TDestination, TSource>(this IMappingExpression<TDestination, TSource> me, params Expression<Func<TDestination, object>>[] memberExpressions)
-        {
-            if (me == null)
-                throw new ArgumentNullException(nameof(me));
-
-            me.IncludeMembers(memberExpressions);
-            return me;
-        }
-
-        /// <summary>
-        /// Flattens the complex typed source member from the same named destination members.
-        /// </summary>
-        /// <typeparam name="TDestination">The destination entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TSource">The source entity <see cref="Type"/>.</typeparam>
-        /// <param name="me">The <see cref="IMappingExpression{TSource, TDestination}"/>.</param>
-        /// <param name="memberExpressions">One or more members to flatten.</param>
-        /// <remarks>Executes similar to: <c>d2s.ForMember(expression, o => o.MapFrom(d => d))</c></remarks>
-        public static IMappingExpression<TDestination, TSource> Unflatten<TDestination, TSource>(this IMappingExpression<TDestination, TSource> me, params Expression<Func<TSource, object>>[] memberExpressions)
-        {
-            if (me == null)
-                throw new ArgumentNullException(nameof(me));
-
-            if (memberExpressions != null)
-                memberExpressions.ForEach(exp => me.ForMember(exp, o => o.MapFrom(d => d)));
-
-            return me;
         }
 
         /// <summary>

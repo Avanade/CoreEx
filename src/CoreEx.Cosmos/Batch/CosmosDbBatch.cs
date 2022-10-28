@@ -12,13 +12,13 @@ using System.Threading.Tasks;
 namespace CoreEx.Cosmos.Batch
 {
     /// <summary>
-    /// Provides <b>CosmosDb/DocumentDb</b>-related <i>batch</i> extension methods. The implementation is <b>bulk-ready</b> as per <see href="https://devblogs.microsoft.com/cosmosdb/introducing-bulk-support-in-the-net-sdk/"/>; to properly
+    /// Provides <b>CosmosDb</b>-related <i>batch</i> extension methods. The implementation is <b>bulk-ready</b> as per <see href="https://devblogs.microsoft.com/cosmosdb/introducing-bulk-support-in-the-net-sdk/"/>; to properly
     /// enable use <c>new CosmosClientOptions() { AllowBulkExecution = true }</c> as described.
     /// </summary>
     public static class CosmosDbBatch
     {
         /// <summary>
-        /// Inidicates whether the items in the batch are executed sequentially.
+        /// Indicates whether the items in the batch are executed sequentially.
         /// </summary>
         /// <remarks><c>true</c> results in sequenital (order-based and slower) execution; otherwise, <c>false</c> results in parallel (no order guarantees and faster) execution. Also, see 
         /// <see href="https://devblogs.microsoft.com/cosmosdb/introducing-bulk-support-in-the-net-sdk/"/> to further improve throughput.</remarks>

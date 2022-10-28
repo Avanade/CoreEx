@@ -30,7 +30,7 @@ namespace CoreEx.Json.Data
 
         private class YamlNodeTypeResolver : INodeTypeResolver
         {
-            private static readonly string[] boolValues = { "y", "Y", "yes", "Yes", "YES", "n", "N", "no", "No", "NO", "true", "True", "TRUE", "false", "False", "FALSE", "on", "On", "ON", "off", "Off", "OFF" };
+            private static readonly string[] boolValues = { "true", "false" };
 
             /// <inheritdoc/>
             bool INodeTypeResolver.Resolve(NodeEvent? nodeEvent, ref Type currentType)
@@ -187,6 +187,7 @@ namespace CoreEx.Json.Data
                             (items ??= new List<T>()).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
+                            Entities.Models.ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(typeof(T), item, jd, items.Count - 1);
                         }
                     }
@@ -220,6 +221,7 @@ namespace CoreEx.Json.Data
                             (items ??= new List<object>()).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
+                            Entities.Models.ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(type, item, jd, items.Count - 1);
                         }
                     }
