@@ -271,10 +271,10 @@ namespace CoreEx.Test.Framework.RefData
         public void Collection_Lists()
         {
             var rc = new RefDataCollection { new RefData { Id = 1, Code = "Z", Text = "A", SortOrder = 2 }, new RefData { Id = 2, Code = "A", Text = "B", IsActive = false, SortOrder = 4 }, new RefData { Id = 3, Code = "Y", Text = "D", SortOrder = 1 }, new RefData { Id = 4, Code = "B", Text = "C", SortOrder = 3 } };
-            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetList(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetList(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetList(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetList(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
 
             rc.SortOrder = ReferenceDataSortOrder.Id;
             Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.AllList.Select(x => x.Id).ToArray());
@@ -314,10 +314,10 @@ namespace CoreEx.Test.Framework.RefData
             rc.SortOrder = ReferenceDataSortOrder.SortOrder;
             Assert.AreEqual(new int[] { 3, 4 }, rc.ActiveList.Select(x => x.Id).ToArray());
 
-            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetList(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetList(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetList(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetList(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
         }
 
         [Test]

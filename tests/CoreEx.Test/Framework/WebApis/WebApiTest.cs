@@ -246,7 +246,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var r = test.Type<WebApi>()
-                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(new PersonCollectionResult { Collection = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
@@ -257,7 +257,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var r = test.Type<WebApi>()
-                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(new PersonCollectionResult { Paging = new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20), Collection = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(new PersonCollectionResult { Paging = new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20), Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
@@ -270,13 +270,13 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var r = test.Type<WebApi>()
-                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(new PersonCollectionResult { Collection = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
 
             var r2 = test.Type<WebApi>()
-                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=oranges"), r => Task.FromResult(new PersonCollectionResult { Collection = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=oranges"), r => Task.FromResult(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
@@ -289,7 +289,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var r = test.Type<WebApi>()
-                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples&$fields=name"), r => Task.FromResult(new PersonCollectionResult { Collection = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples&$fields=name"), r => Task.FromResult(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new PersonCollection { new Person { Name = "Simon" } });
@@ -300,7 +300,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var r = test.Type<WebApi>()
-                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples&$exclude=name"), r => Task.FromResult(new PersonCollectionResult { Collection = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples&$exclude=name"), r => Task.FromResult(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } }), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new PersonCollection { new Person { Id = 1 } });

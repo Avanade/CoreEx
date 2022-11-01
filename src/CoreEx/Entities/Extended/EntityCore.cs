@@ -15,16 +15,6 @@ namespace CoreEx.Entities.Extended
     [System.Diagnostics.DebuggerStepThrough]
     public abstract class EntityCore : INotifyPropertyChanged, IChangeTracking, IReadOnly
     {
-        /// <summary>
-        /// Gets the value is immutable message.
-        /// </summary>
-        public const string ValueIsImmutableMessage = "Value is immutable; cannot be changed once already set to a value.";
-
-        /// <summary>
-        /// Gets the entity is read only message.
-        /// </summary>
-        public const string EntityIsReadOnlyMessage = "Entity is read only; property cannot be changed.";
-
         private readonly object _lock = new();
         private Dictionary<string, PropertyChangedEventHandler>? _propertyEventHandlers;
 
@@ -59,7 +49,7 @@ namespace CoreEx.Entities.Extended
         /// Raises the <see cref="PropertyChanged"/> event only (<see cref="OnPropertyChanged"/>).
         /// </summary>
         /// <param name="propertyName">The property name.</param>
-        public void RaisePropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? throw new ArgumentNullException(nameof(propertyName))));
+        protected void RaisePropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? throw new ArgumentNullException(nameof(propertyName))));
 
         /// <summary>
         /// Gets a property value (automatically instantiating new where current value is null).
@@ -106,11 +96,11 @@ namespace CoreEx.Entities.Extended
 
                 // Test is read only.
                 if (IsReadOnly)
-                    throw new InvalidOperationException(EntityIsReadOnlyMessage);
+                    throw new InvalidOperationException(EntityConsts.EntityIsReadOnlyMessage);
 
                 // Test immutability.
                 if (immutable && Comparer<T>.Default.Compare(propertyValue, @default) != 0)
-                    throw new InvalidOperationException(ValueIsImmutableMessage);
+                    throw new InvalidOperationException(EntityConsts.ValueIsImmutableMessage);
 
                 // Unwire old value.
                 INotifyPropertyChanged? npc;
@@ -173,10 +163,10 @@ namespace CoreEx.Entities.Extended
                     return false;
 
                 if (IsReadOnly)
-                    throw new InvalidOperationException(EntityIsReadOnlyMessage);
+                    throw new InvalidOperationException(EntityConsts.EntityIsReadOnlyMessage);
 
                 if (immutable && propertyValue != null)
-                    throw new InvalidOperationException(ValueIsImmutableMessage);
+                    throw new InvalidOperationException(EntityConsts.ValueIsImmutableMessage);
 
                 propertyValue = val!;
                 TriggerPropertyChanged(propertyName);
@@ -206,10 +196,10 @@ namespace CoreEx.Entities.Extended
                     return false;
 
                 if (IsReadOnly)
-                    throw new InvalidOperationException(EntityIsReadOnlyMessage);
+                    throw new InvalidOperationException(EntityConsts.EntityIsReadOnlyMessage);
 
                 if (immutable && propertyValue != DateTime.MinValue)
-                    throw new InvalidOperationException(ValueIsImmutableMessage);
+                    throw new InvalidOperationException(EntityConsts.ValueIsImmutableMessage);
 
                 propertyValue = val;
                 TriggerPropertyChanged(propertyName);
@@ -238,10 +228,10 @@ namespace CoreEx.Entities.Extended
                     return false;
 
                 if (IsReadOnly)
-                    throw new InvalidOperationException(EntityIsReadOnlyMessage);
+                    throw new InvalidOperationException(EntityConsts.EntityIsReadOnlyMessage);
 
                 if (immutable && propertyValue != null)
-                    throw new InvalidOperationException(ValueIsImmutableMessage);
+                    throw new InvalidOperationException(EntityConsts.ValueIsImmutableMessage);
 
                 propertyValue = val;
                 TriggerPropertyChanged(propertyName);

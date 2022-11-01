@@ -43,9 +43,9 @@
             Assert.That(v[1].Name, Is.EqualTo("Mike"));
 
             var vr = await _db.Persons1.Query(q => q.OrderBy(x => x.Name).Where(x => !x.Locked)).WithPaging(Entities.PagingArgs.CreateSkipAndTake(1, 2, true)).SelectResultAsync<Person1CollectionResult, Person1Collection>();
-            Assert.That(vr.Collection, Has.Count.EqualTo(2));
-            Assert.That(vr.Collection[0].Name, Is.EqualTo("Mike"));
-            Assert.That(vr.Collection[1].Name, Is.EqualTo("Rebecca"));
+            Assert.That(vr.Items, Has.Count.EqualTo(2));
+            Assert.That(vr.Items[0].Name, Is.EqualTo("Mike"));
+            Assert.That(vr.Items[1].Name, Is.EqualTo("Rebecca"));
             Assert.That(vr.Paging, Is.Not.Null);
             Assert.That(vr.Paging.TotalCount, Is.EqualTo(3));
         }
@@ -103,9 +103,9 @@
             Assert.That(v[1].Name, Is.EqualTo("Mike"));
 
             var vr = await _db.Persons2.Query(q => q.OrderBy(x => x.Name).Where(x => !x.Locked)).WithPaging(Entities.PagingArgs.CreateSkipAndTake(1, 2, true)).SelectResultAsync<Person2CollectionResult, Person2Collection>();
-            Assert.That(vr.Collection, Has.Count.EqualTo(2));
-            Assert.That(vr.Collection[0].Name, Is.EqualTo("Mike"));
-            Assert.That(vr.Collection[1].Name, Is.EqualTo("Rebecca"));
+            Assert.That(vr.Items, Has.Count.EqualTo(2));
+            Assert.That(vr.Items[0].Name, Is.EqualTo("Mike"));
+            Assert.That(vr.Items[1].Name, Is.EqualTo("Rebecca"));
             Assert.That(vr.Paging, Is.Not.Null);
             Assert.That(vr.Paging.TotalCount, Is.EqualTo(3));
         }
@@ -163,9 +163,9 @@
             Assert.That(v[1].Name, Is.EqualTo("Mike"));
 
             var vr = await _db.Persons3.Query(q => q.OrderBy(x => x.Value.Name).Where(x => !x.Value.Locked)).WithPaging(Entities.PagingArgs.CreateSkipAndTake(1, 2, true)).SelectResultAsync<Person3CollectionResult, Person3Collection>();
-            Assert.That(vr.Collection, Has.Count.EqualTo(2));
-            Assert.That(vr.Collection[0].Name, Is.EqualTo("Mike"));
-            Assert.That(vr.Collection[1].Name, Is.EqualTo("Rebecca"));
+            Assert.That(vr.Items, Has.Count.EqualTo(2));
+            Assert.That(vr.Items[0].Name, Is.EqualTo("Mike"));
+            Assert.That(vr.Items[1].Name, Is.EqualTo("Rebecca"));
             Assert.That(vr.Paging, Is.Not.Null);
             Assert.That(vr.Paging.TotalCount, Is.EqualTo(3));
         }

@@ -7,12 +7,12 @@ using System.Collections.Generic;
 namespace CoreEx.Entities.Extended
 {
     /// <summary>
-    /// Represents an <see cref="EntityBaseCollection{TEntity, TSelf}"/> class with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.
+    /// Represents an <see cref="EntityBaseCollection{TEntity, TSelf}"/> class with a <see cref="PagingResult"/> and underlying <see cref="Items"/>.
     /// </summary>
     /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TEntity">The entity item <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
-    /// <remarks>Generally an <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Collection"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
+    /// <remarks>Generally an <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Items"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
     public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase, ICollectionResult<TColl, TEntity>, IPagingResult
         where TColl : EntityBaseCollection<TEntity, TColl>, new()
@@ -40,7 +40,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Gets or sets the underlying collection.
         /// </summary>
-        public TColl Collection { get => _collection ??= new TColl(); set => SetValue(ref _collection, value); }
+        public TColl Items { get => _collection ??= new TColl(); set => SetValue(ref _collection, value); }
 
         /// <summary>
         /// Gets or sets the <see cref="PagingResult"/>.
@@ -57,7 +57,7 @@ namespace CoreEx.Entities.Extended
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
             yield return CreateProperty(nameof(Paging), Paging, v => Paging = v);
-            yield return CreateProperty(nameof(Collection), Collection, v => Collection = v!);
+            yield return CreateProperty(nameof(Items), Items, v => Items = v!);
         }
     }
 }

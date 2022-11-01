@@ -107,7 +107,7 @@ namespace CoreEx.WebApis
             // Special case when ICollectionResult, as it is the Result only that is serialized and returned.
             if (value is ICollectionResult cr)
             {
-                val = cr.Collection ?? Array.Empty<object?>(); // Where there is an ICollectionResult, then there should always be a value, at least an empty array versus null.
+                val = cr.Items ?? Array.Empty<object?>(); // Where there is an ICollectionResult, then there should always be a value, at least an empty array versus null.
                 paging = cr.Paging;
             }
             else

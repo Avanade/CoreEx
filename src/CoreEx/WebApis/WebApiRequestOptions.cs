@@ -129,7 +129,7 @@ namespace CoreEx.WebApis
         /// </summary>
         private static string? GetNamedQueryString(IQueryCollection query, IEnumerable<string> names, string? defaultValue = null)
         {
-            var q = query.Where(x => names.Contains(x.Key, StringComparer.InvariantCultureIgnoreCase)).FirstOrDefault();
+            var q = query.Where(x => names.Contains(x.Key, StringComparer.OrdinalIgnoreCase)).FirstOrDefault();
             if (q.Key == null)
                 return null;
 

@@ -113,7 +113,7 @@ namespace CoreEx.Database.Extended
         public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
         {
             Paging = Paging,
-            Collection = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
+            Items = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
         };
 
         /// <summary>

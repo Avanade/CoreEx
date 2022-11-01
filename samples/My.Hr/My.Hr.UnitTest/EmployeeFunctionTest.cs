@@ -98,9 +98,9 @@ namespace My.Hr.UnitTest
                 .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees")))
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.IsNotNull(v?.Collection);
-            Assert.AreEqual(4, v!.Collection.Count);
-            Assert.AreEqual(new string[] { "Browne", "Jones", "Smith", "Smithers" }, v.Collection.Select(x => x.LastName).ToArray());
+            Assert.IsNotNull(v?.Items);
+            Assert.AreEqual(4, v!.Items.Count);
+            Assert.AreEqual(new string[] { "Browne", "Jones", "Smith", "Smithers" }, v.Items.Select(x => x.LastName).ToArray());
         }
 
         [Test]
@@ -113,9 +113,9 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.IsNotNull(v?.Collection);
-            Assert.AreEqual(2, v!.Collection.Count);
-            Assert.AreEqual(new string[] { "Jones", "Smith" }, v.Collection.Select(x => x.LastName).ToArray());
+            Assert.IsNotNull(v?.Items);
+            Assert.AreEqual(2, v!.Items.Count);
+            Assert.AreEqual(new string[] { "Jones", "Smith" }, v.Items.Select(x => x.LastName).ToArray());
             Assert.IsNotNull(v.Paging);
             Assert.AreEqual(4, v.Paging!.TotalCount);
         }

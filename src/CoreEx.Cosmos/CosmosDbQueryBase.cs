@@ -151,7 +151,7 @@ namespace CoreEx.Cosmos
         public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
         {
             Paging = Paging ?? new PagingResult(),
-            Collection = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
+            Items = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
         };
     }
 }

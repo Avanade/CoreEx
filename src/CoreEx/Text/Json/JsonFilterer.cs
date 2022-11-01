@@ -160,7 +160,7 @@ namespace CoreEx.Text.Json
                 foreach (var ji in ja)
                 {
                     if (ji != null)
-                        JsonFilter(ji, path, names, filter, depth + 1, maxDepth, ref filtered, comparison);
+                        JsonFilter(ji, path, names, filter, depth, maxDepth, ref filtered, comparison);
                 }
             }
         }

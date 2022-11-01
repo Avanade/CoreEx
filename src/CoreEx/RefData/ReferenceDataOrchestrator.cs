@@ -37,6 +37,8 @@ namespace CoreEx.RefData
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
         private readonly IMemoryCache? _cache;
+        private readonly SemaphoreSlim _primarySemaphore = new(1, 1);
+        private readonly ConcurrentDictionary<Type, SemaphoreSlim> _semaphores = new();
         private readonly TimeSpan _absoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
         private readonly TimeSpan _slidingExpiration = TimeSpan.FromMinutes(30);
         private readonly Lazy<ILogger> _logger;
@@ -252,17 +254,48 @@ namespace CoreEx.RefData
         /// <returns>The <see cref="IReferenceDataCollection"/>.</returns>
         /// <remarks>Invokes the <see cref="OnCreateCacheEntry(ICacheEntry)"/> prior to invoking <paramref name="getCollAsync"/> on <i>create</i>. This should be overridden where the default <see cref="IMemoryCache"/> capabilities are not
         /// sufficient. The <paramref name="getCollAsync"/> contains the logic to invoke the underlying <see cref="IReferenceDataProvider.GetAsync(Type, System.Threading.CancellationToken)"/>; this is executed in the context of a 
-        /// <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services.</remarks>
+        /// <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services. Additionally, semaphore locks are used to
+        /// manage concurrency to ensure cache loading is thread-safe.</remarks>
         protected async virtual Task<IReferenceDataCollection> OnGetOrCreateAsync(Type type, Func<Type, CancellationToken, Task<IReferenceDataCollection>> getCollAsync, CancellationToken cancellationToken = default)
         {
             if (_cache == null)
                 return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
             else
-                return await _cache.GetOrCreateAsync(type, async entry => 
-                { 
-                    OnCreateCacheEntry(entry); 
-                    return await getCollAsync(type, cancellationToken).ConfigureAwait(false); 
-                }).ConfigureAwait(false);
+            {
+                // Try and get as most likely already in the cache; where exists then exit fast.
+                if (_cache.TryGetValue(type, out IReferenceDataCollection coll))
+                    return coll;
+
+                // As the GetOrAdd is not thread-safe a primary semaphore is used to get the key-based semaphore.
+                SemaphoreSlim semaphore;
+                await _primarySemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    semaphore = _semaphores.GetOrAdd(type, _ => new SemaphoreSlim(1, 1));
+                }
+                finally
+                {
+                    _primarySemaphore.Release();
+                }
+
+                // Where not found use a semaphore for the key (type) to ensure only a single task is retrieving.
+                await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try 
+                {
+                    // Does a get or create as it may have been added as we went to lock.
+                    coll = await _cache.GetOrCreateAsync(type, async entry =>
+                    {
+                        OnCreateCacheEntry(entry);
+                        return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+
+                return coll;
+            }
         }
 
         /// <summary>
@@ -353,14 +386,14 @@ namespace CoreEx.RefData
         private static Task<IEnumerable<IReferenceData>> GetWithFilterAsync(IReferenceDataCollection coll, IEnumerable<string>? codes = null, string? text = null, bool includeInactive = false, CancellationToken cancellationToken = default)
         {
             if ((codes == null || !codes.Any()) && string.IsNullOrEmpty(text) && !includeInactive)
-                return Task.FromResult(coll.ActiveList);
+                return Task.FromResult(coll.ActiveItems);
 
             // Validate the arguments.
             if (text != null && !Wildcard.Default.Validate(text))
                 throw new ValidationException(TextWildcardErrorMessage);
 
             // Apply the filter.
-            var items = includeInactive ? coll.AllList : coll.ActiveList;
+            var items = includeInactive ? coll.AllItems : coll.ActiveItems;
             var result = items
                 .WhereWhen(x => codes.Contains(x.Code, StringComparer.OrdinalIgnoreCase), codes != null && codes.Distinct().FirstOrDefault() != null)
                 .WhereWildcard(x => x.Text, text);
@@ -379,7 +412,7 @@ namespace CoreEx.RefData
             var tasks = new List<Task>();
             if (names != null)
             {
-                foreach (var name in names.Distinct())
+                foreach (var name in names.Distinct(StringComparer.InvariantCultureIgnoreCase))
                 {
                     tasks.Add(GetByNameAsync(name, cancellationToken));
                 }
@@ -404,7 +437,7 @@ namespace CoreEx.RefData
             {
                 await PrefetchAsync(names, cancellationToken).ConfigureAwait(false);
 
-                foreach (var name in names.Where(x => ContainsName(x)).Distinct())
+                foreach (var name in names.Where(ContainsName).Distinct(StringComparer.InvariantCultureIgnoreCase))
                 {
                     mc.Add(new ReferenceDataMultiItem(_nameToType[name].Name, await GetWithFilterAsync(name, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false)));
                 }

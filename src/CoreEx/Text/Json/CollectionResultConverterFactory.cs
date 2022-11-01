@@ -35,7 +35,7 @@ namespace CoreEx.Text.Json
                     throw new JsonException();
 
                 var cr = new T();
-                cr.Collection = (ICollection?)System.Text.Json.JsonSerializer.Deserialize(ref reader, cr.CollectionType, options) ?? throw new InvalidOperationException();
+                cr.Items = (ICollection?)System.Text.Json.JsonSerializer.Deserialize(ref reader, cr.CollectionType, options) ?? throw new InvalidOperationException();
                 return cr;
             }
 
@@ -44,9 +44,9 @@ namespace CoreEx.Text.Json
             {
                 writer.WriteStartArray();
 
-                if (value.Collection != null)
+                if (value.Items != null)
                 {
-                    foreach (var item in value.Collection)
+                    foreach (var item in value.Items)
                     {
                         System.Text.Json.JsonSerializer.Serialize(writer, item, value.ItemType, options);
                     }

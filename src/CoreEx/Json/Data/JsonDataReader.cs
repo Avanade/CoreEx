@@ -450,8 +450,9 @@ namespace CoreEx.Json.Data
             var tr = TypeReflector.GetReflector(_typeReflectorArgs, type);
             foreach (var rp in _args.RefDataColumnDefaults)
             {
+                // Check json name and property name overrides.
                 var pr = tr.GetProperty(rp.Key);
-                if (pr.JsonName != null && !json.TryGetProperty(pr.JsonName, out _))
+                if ((pr.JsonName != null && !json.TryGetProperty(pr.JsonName, out _)) && !json.TryGetProperty(pr.Name, out _))
                 {
                     pr.PropertyExpression.SetValue(item, rp.Value(index));
                 }

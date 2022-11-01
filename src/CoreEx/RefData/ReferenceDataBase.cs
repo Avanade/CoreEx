@@ -120,10 +120,10 @@ namespace CoreEx.RefData
                 return;
 
             if ((_mappings ??= new()).ContainsKey(name))
-                throw new InvalidOperationException(ValueIsImmutableMessage);
+                throw new InvalidOperationException(EntityConsts.ValueIsImmutableMessage);
 
             if (IsReadOnly)
-                throw new InvalidOperationException(EntityIsReadOnlyMessage);
+                throw new InvalidOperationException(EntityConsts.EntityIsReadOnlyMessage);
 
             _mappings.Add(name, value);
         }

@@ -137,6 +137,28 @@ namespace CoreEx.Test.Framework.Json.Data
         }
 
         [Test]
+        public void Deserialize_RefData2()
+        {
+            var jdr = JsonDataReader.ParseJson("{\"data\":[{\"Gender\":[{\"F\":\"Female\"},{\"Code\":\"M\",\"Text\":\"Male\"},{\"Code\":\"O\",\"Text\":\"Other\",\"IsActive\":false,\"SortOrder\":99}]}]}", new JsonDataReaderArgs(new ReferenceDataContentJsonSerializer()));
+            Assert.IsTrue(jdr.TryDeserialize<Gender>("Gender", out var coll));
+            Assert.IsNotNull(coll);
+            Assert.AreEqual(3, coll!.Count);
+            Assert.IsNotNull(coll[0].Id);
+            Assert.AreEqual("F", coll[0].Code);
+            Assert.AreEqual("Female", coll[0].Text);
+            Assert.AreEqual(1, coll[0].SortOrder);
+            Assert.AreEqual(true, coll[0].IsActive);
+            Assert.AreEqual("M", coll[1].Code);
+            Assert.AreEqual("Male", coll[1].Text);
+            Assert.AreEqual(2, coll[1].SortOrder);
+            Assert.AreEqual(true, coll[1].IsActive);
+            Assert.AreEqual("O", coll[2].Code);
+            Assert.AreEqual("Other", coll[2].Text);
+            Assert.AreEqual(99, coll[2].SortOrder);
+            Assert.AreEqual(false, coll[2].IsActive);
+        }
+
+        [Test]
         public void Deserialize_NumberToStringIdentifier()
         {
             var jdr = JsonDataReader.ParseJson("{\"data\":[{\"Contact\":[{\"id\":123456}]}]}");

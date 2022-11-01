@@ -12,7 +12,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void ChangeLog_Clone()
         {
-            var cl = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl = new ChangeLog { CreatedBy = "username  ", CreatedDate = CreateDateTime() };
             var co = (ChangeLog)cl.Clone();
 
             Assert.IsNotNull(co);
@@ -719,7 +719,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             var pcr = new PersonCollectionResult(pc);
-            Assert.AreSame(pcr.Collection, pc);
+            Assert.AreSame(pcr.Items, pc);
 
             var pc2 = (PersonCollection)pcr;
             Assert.AreSame(pc, pc2);
@@ -825,7 +825,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             public PersonCollection(IEnumerable<Person> entities) : base(entities) { }
 
-            public static implicit operator PersonCollection(PersonCollectionResult result) => result?.Collection!;
+            public static implicit operator PersonCollection(PersonCollectionResult result) => result?.Items!;
         }
 
         public class PersonCollectionResult : EntityCollectionResult<PersonCollection, Person, PersonCollectionResult>
@@ -834,7 +834,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             public PersonCollectionResult(PagingArgs paging) : base(paging) { }
 
-            public PersonCollectionResult(PersonCollection collection, PagingArgs? paging = null) : base(paging) => Collection = collection;
+            public PersonCollectionResult(PersonCollection collection, PagingArgs? paging = null) : base(paging) => Items = collection;
         }
 
         public class PersonEx : Person

@@ -33,7 +33,7 @@ namespace CoreEx.RefData
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="ReferenceDataSortOrder"/> used by <see cref="GetList"/>.
+        /// Gets or sets the <see cref="ReferenceDataSortOrder"/> used by <see cref="GetItems"/>.
         /// </summary>
         public ReferenceDataSortOrder SortOrder { get; set; }
 
@@ -182,24 +182,24 @@ namespace CoreEx.RefData
         public TRef? GetByMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => TryGetByMapping(name, value, out var item) ? item : default;
 
         /// <inheritdoc/>
-        IEnumerable<IReferenceData> IReferenceDataCollection.AllList => AllList;
+        IEnumerable<IReferenceData> IReferenceDataCollection.AllItems => AllList;
 
         /// <inheritdoc/>
-        IEnumerable<IReferenceData> IReferenceDataCollection.ActiveList => ActiveList;
+        IEnumerable<IReferenceData> IReferenceDataCollection.ActiveItems => ActiveList;
 
         /// <summary>
         /// Gets a list of all items (excluding where <i>not</i> <see cref="IsItemValid(TRef)"/>) sorted by the <see cref="SortOrder"/> value.
         /// </summary>
         /// <value>An <see cref="IList{T}"/> containing the selected items.</value>
-        /// <remarks>This is provided as a property to more easily support binding; it encapsulates the following method invocation: <c><see cref="GetList"/>(SortOrder, null, null);</c></remarks>
-        public IList<TRef> AllList => GetList(SortOrder, null, true);
+        /// <remarks>This is provided as a property to more easily support binding; it encapsulates the following method invocation: <c><see cref="GetItems"/>(SortOrder, null, null);</c></remarks>
+        public IList<TRef> AllList => GetItems(SortOrder, null, true);
 
         /// <summary>
         /// Gets a list of all active (<see cref="IsItemActive(TRef)"/> and <see cref="IsItemValid(TRef)"/>) items sorted by the <see cref="SortOrder"/> value.
         /// </summary>
         /// <value>An <see cref="IList{TItem}"/> containing the selected items.</value>
-        /// <remarks>This is provided as a property to more easily support binding; it encapsulates the following method invocation: <c><see cref="GetList"/>(SortOrder, true, true);</c></remarks>
-        public IList<TRef> ActiveList => GetList(SortOrder, true, true);
+        /// <remarks>This is provided as a property to more easily support binding; it encapsulates the following method invocation: <c><see cref="GetItems"/>(SortOrder, true, true);</c></remarks>
+        public IList<TRef> ActiveList => GetItems(SortOrder, true, true);
 
         /// <summary>
         /// Gets a list of <typeparamref name="TRef"/> items from the collection using the specified criteria.
@@ -208,7 +208,7 @@ namespace CoreEx.RefData
         /// <param name="isActive">Indicates whether the list should include values with the same <see cref="IReferenceData.IsActive"/> value; otherwise, <c>null</c> indicates all.</param>
         /// <param name="isValid">Indicates whether the list should include values with the same <see cref="IsItemValid"/> value; otherwise, <c>null</c> indicates all.</param>
         /// <remakes>This is leveraged by <see cref="AllList"/> and <see cref="ActiveList"/>.</remakes>
-        public List<TRef> GetList(ReferenceDataSortOrder? sortOrder = null, bool? isActive = null, bool? isValid = null)
+        public List<TRef> GetItems(ReferenceDataSortOrder? sortOrder = null, bool? isActive = null, bool? isValid = null)
         {
             if (_rdcId.IsEmpty)
                 return new List<TRef>();
@@ -271,7 +271,7 @@ namespace CoreEx.RefData
         bool ICollection<TRef>.Remove(TRef item) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        /// <remarks>Only items that are <see cref="IsItemValid(TRef)"/> are enumerated. There is no implied sort order; use <see cref="GetList(ReferenceDataSortOrder?, bool?, bool?)"/> for sorted lists.</remarks>
+        /// <remarks>Only items that are <see cref="IsItemValid(TRef)"/> are enumerated. There is no implied sort order; use <see cref="GetItems(ReferenceDataSortOrder?, bool?, bool?)"/> for sorted lists.</remarks>
         public IEnumerator<TRef> GetEnumerator()
         {
             foreach (TRef item in _rdcId.Values)
@@ -282,7 +282,7 @@ namespace CoreEx.RefData
         }
 
         /// <inheritdoc/>
-        /// <remarks>Only items that are <see cref="IsItemValid(TRef)"/> are enumerated. There is no implied sort order; use <see cref="GetList(ReferenceDataSortOrder?, bool?, bool?)"/> for sorted lists.</remarks>
+        /// <remarks>Only items that are <see cref="IsItemValid(TRef)"/> are enumerated. There is no implied sort order; use <see cref="GetItems(ReferenceDataSortOrder?, bool?, bool?)"/> for sorted lists.</remarks>
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion
