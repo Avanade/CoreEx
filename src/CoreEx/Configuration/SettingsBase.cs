@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using CoreEx.Entities;
 using CoreEx.Http;
 using Microsoft.Extensions.Configuration;
 
@@ -39,8 +40,12 @@ namespace CoreEx.Configuration
                 _prefixes.Add(prefix.EndsWith('/') ? prefix : string.Concat(prefix, '/'));
             }
 
-            _allProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
-                .ToDictionary(p => p.Name, p => p);
+            _allProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy).ToDictionary(p => p.Name, p => p);
+
+            // Configure (override) any standard settings.
+            var take = PagingDefaultTake;
+            if (take != null)
+                PagingArgs.DefaultTake = take.Value;
         }
 
         /// <summary>

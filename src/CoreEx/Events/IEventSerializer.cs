@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Events
 {
     /// <summary>
-    /// Defines an <see cref="EventData"/> serializer.
+    /// Defines an <see cref="EventData"/> to/from <see cref="BinaryData"/> serializer.
     /// </summary>
     public interface IEventSerializer
     {
