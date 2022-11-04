@@ -42,6 +42,12 @@ namespace CoreEx.Abstractions.Reflection
         Dictionary<string, object?> Data { get; }
 
         /// <summary>
+        /// Gets all the properties for the <see cref="Type"/>.
+        /// </summary>
+        /// <returns>A read-only <see cref="IPropertyReflector"/> collection.</returns>
+        IReadOnlyCollection<IPropertyReflector> GetProperties();
+
+        /// <summary>
         /// Gets the <see cref="IPropertyReflector"/> for the specified property name.
         /// </summary>
         /// <param name="name">The property name.</param>

@@ -3,6 +3,8 @@
 using CoreEx.Entities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Events
 {
@@ -11,6 +13,8 @@ namespace CoreEx.Events
     /// </summary>
     public abstract class EventDataBase : IIdentifier<string>, ITenantId, IPartitionKey, IETag
     {
+        private IDictionary<string, object?>? _internal;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EventData"/> class.
         /// </summary>
@@ -32,15 +36,13 @@ namespace CoreEx.Events
             TenantId = @event.TenantId;
             PartitionKey = @event.PartitionKey;
             ETag = @event.ETag;
+            Key = @event.Key;
 
-            if (@event.Attributes != null)
-            {
-                Attributes = new Dictionary<string, string>();
-                foreach (var att in @event.Attributes)
-                {
-                    Attributes.Add(att.Key, att.Value);
-                }
-            }
+            if (@event.HasAttributes)
+                Attributes = new Dictionary<string, string>(@event.Attributes);
+
+            if (@event.HasInternal)
+                _internal = new Dictionary<string, object?>(@event.Internal);
         }
 
         /// <summary>
@@ -83,6 +85,11 @@ namespace CoreEx.Events
         public string? CorrelationId { get; set; }
 
         /// <summary>
+        /// Gets or sets the event key. 
+        /// </summary>
+        public string? Key { get; set; }
+
+        /// <summary>
         /// Gets or sets the tenant identifier.
         /// </summary>
         public string? TenantId { get; set; }
@@ -98,8 +105,60 @@ namespace CoreEx.Events
         public string? ETag { get; set; }
 
         /// <summary>
-        /// Gets or sets the list of extended attributes.
+        /// Gets or sets the list of extended/additional attributes to be published/sent.
         /// </summary>
+        /// <remarks>The key and value are both of <see cref="System.Type"/> <see cref="string"/> to ensure that the dictionary can be serialized/deserialized consistently where required.
+        /// <para>It is recommeded to use the <see cref="Internal"/> for data not intended for publishing/sending purposes.</para></remarks>
         public IDictionary<string, string>? Attributes { get; set; }
+
+        /// <summary>
+        /// Indicates whether there are any items within the <see cref="Attributes"/> dictionary.
+        /// </summary>
+        [JsonIgnore()]
+        public bool HasAttributes => Attributes != null && Attributes.Count > 0;
+
+        /// <summary>
+        /// Adds a new attribute to the <see cref="Attributes"/>.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        public void AddAttribute(string key, string value) => (Attributes ??= new Dictionary<string, string>()).Add(key, value ?? throw new ArgumentNullException(nameof(value)));
+
+        /// <summary>
+        /// Determines whether the <see cref="Attributes"/> contain an attribute with the specified <paramref name="key"/>. 
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns><c>true</c> indicates that the attribute exists; otherwise, <c>false</c>.</returns>
+        public bool HasAttribute(string key) => Attributes is not null && Attributes.ContainsKey(key);
+
+        /// <summary>
+        /// Gets the <see cref="Attributes"/> <paramref name="value"/> associated with the specified <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value where exists; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> indicates that the attribute exists; otherwise, <c>false</c>.</returns>
+        public bool TryGetAttribute(string key, [NotNullWhen(true)] out string? value)
+        {
+            if (Attributes is null)
+            {
+                value = null;
+                return false;
+            }
+
+            return Attributes.TryGetValue(key, out value);
+        }
+
+        /// <summary>
+        /// Gets the internal properties se; note that these are for internal storage pre-publishing and sending; and therefore are not automatically published.
+        /// </summary>
+        /// <remarks>It is recommened to use the <see cref="Attributes"/> for the purposes of publishing and sending of additional data.</remarks>
+        [JsonIgnore()]
+        public IDictionary<string, object?> Internal => _internal ??= new Dictionary<string, object?>();
+
+        /// <summary>
+        /// Indicates whether there are any items within the <see cref="Internal"/> dictionary.
+        /// </summary>
+        [JsonIgnore()]
+        public bool HasInternal => _internal != null && _internal.Count > 0;
     }
 }

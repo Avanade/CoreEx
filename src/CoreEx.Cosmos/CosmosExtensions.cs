@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Provides <b>CosmosDb/DocumentDb</b>-related extension methods.
+    /// Provides <b>CosmosDb</b>-related extension methods.
     /// </summary>
     public static class CosmosExtensions
     {

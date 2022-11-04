@@ -67,13 +67,13 @@ namespace CoreEx.Validation
         }
 
         /// <inheritdoc/>
+        void IValueRule<TEntity, TProperty>.AddClause(IPropertyRuleClause<TEntity> clause) => AddClause(clause);
+
+        /// <inheritdoc/>
         bool IValueRule<TEntity, TProperty>.Check(IPropertyContext context) => throw new NotSupportedException("A property value clauses check should not occur directly on a PropertyRule.");
 
         /// <inheritdoc/>
-        Task IValueRule<TEntity, TProperty>.ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken) => throw new NotSupportedException("A property value validation should not occur directly on a PropertyRule.");
-
-        /// <inheritdoc/>
-        void IValueRule<TEntity, TProperty>.AddClause(IPropertyRuleClause<TEntity> clause) => AddClause(clause);
+        Task IValueRule<TEntity, TProperty>.ValidateAsync(IPropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken) => throw new NotSupportedException("A property value validation should not occur directly on a PropertyRule.");
 
         /// <inheritdoc/>
         public override Task<ValueValidatorResult<TEntity, TProperty>> ValidateAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException("The ValidateAsync method is not supported for a PropertyRule<TEntity, TProperty>.");

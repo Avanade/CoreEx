@@ -1,23 +1,23 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 
-namespace CoreEx.Business
+namespace CoreEx.Invokers
 {
     /// <summary>
-    /// Adds capabilities (wraps) an <see cref="InvokerBase{TOwner, TParam}"/> enabling standard functionality to be added to all <b>business tier</b> invocations using a <see cref="BusinessInvokerArgs"/> to configure the supporting capabilities.
+    /// Adds capabilities (wraps) an <see cref="InvokerBase{TOwner, TParam}"/> enabling standard functionality to be added to all <b>business services tier</b> (backend) invocations using a <see cref="InvokerArgs"/> to configure the 
+    /// supporting capabilities (for example, <see cref="InvokerArgs.IncludeTransactionScope">transactions</see> and <see cref="InvokerArgs.EventPublisher">event publishing</see>).
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public abstract class BusinessInvokerBase : InvokerBase<object, BusinessInvokerArgs>
+    public abstract class InvokerBase : InvokerBase<object, InvokerArgs>
     {
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(object owner, Func<CancellationToken, Task<TResult>> func, BusinessInvokerArgs? param, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(object owner, Func<CancellationToken, Task<TResult>> func, InvokerArgs? param, CancellationToken cancellationToken)
         {
-            BusinessInvokerArgs bia = param ?? BusinessInvokerArgs.Default;
+            InvokerArgs bia = param ?? InvokerArgs.Default;
             TransactionScope? txn = null;
             var ot = CoreEx.ExecutionContext.Current.OperationType;
             if (bia.OperationType.HasValue)

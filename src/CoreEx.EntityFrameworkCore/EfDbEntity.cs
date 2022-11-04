@@ -9,7 +9,7 @@ namespace CoreEx.EntityFrameworkCore
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-    public struct EfDbEntity<T, TModel> : IEfDbEntity where T : class, new() where TModel : class, new()
+    public struct EfDbEntity<T, TModel> : IEfDbEntity where T : class, IEntityKey, new() where TModel : class, new()
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EfDbEntity{T, TModel}"/> class.

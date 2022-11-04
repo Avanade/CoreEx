@@ -16,7 +16,8 @@ namespace CoreEx.Azure.ServiceBus
     /// <summary>
     /// Represents an Azure <see cref="ServiceBusClient"/> <see cref="IEventSender"/>.
     /// </summary>
-    /// <remarks>See <see cref="OnServiceBusMessage(EventSendData, ServiceBusMessage)"/> for details of automatic <see cref="ServiceBusMessage.SessionId"/> allocation.</remarks>
+    /// <remarks>See <see cref="OnServiceBusMessage(EventSendData, ServiceBusMessage)"/> for details of automatic <see cref="ServiceBusMessage.SessionId"/> and <see cref="ServiceBusMessage.TimeToLive"/> allocation.
+    /// <para>Note, that any <see cref="EventDataBase.Attributes"/> where the <see cref="KeyValuePair{TKey, TValue}.Key"/> starts with an underscore character ('<c>_</c>') will <i>not</i> be included in the <see cref="ServiceBusMessage.ApplicationProperties"/>.</para></remarks>
     public class ServiceBusSender : IEventSender
     {
         private static ServiceBusSenderInvoker? _invoker;
@@ -135,6 +136,9 @@ namespace CoreEx.Azure.ServiceBus
                     if (@event.ETag != null && PropertySelection.HasFlag(EventDataProperty.ETag))
                         msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
 
+                    if (@event.Key != null && PropertySelection.HasFlag(EventDataProperty.Key))
+                        msg.ApplicationProperties.Add(nameof(EventData.Key), @event.Key);
+
                     if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
                     {
                         // Attrtibutes that start with an underscore are considered internal and will not be sent automatically; i.e. _SessionId and _TimeToLive.
@@ -218,8 +222,9 @@ namespace CoreEx.Azure.ServiceBus
         /// </summary>
         /// <param name="event">The <see cref="EventSendData"/>.</param>
         /// <param name="message">The <see cref="ServiceBusMessage"/>.</param>
-        /// <remarks>By default the <see cref="SessionIdAttributeName"/> will be used to update the <see cref="ServiceBusMessage.SessionId"/> from the <see cref="EventDataBase.Attributes"/>, followd by the
-        /// <see cref="UsePartitionKeyAsSessionId"/> option, until not <c>null</c>; otherwise, will be left as <c>null</c>./</remarks>
+        /// <remarks>By default the <see cref="SessionIdAttributeName"/> will be used to update the <see cref="ServiceBusMessage.SessionId"/> from the <see cref="EventDataBase.Attributes"/>, followed by the
+        /// <see cref="UsePartitionKeyAsSessionId"/> option, until not <c>null</c>; otherwise, will be left as <c>null</c>.
+        /// <para>Similarily, the <see cref="TimeToLiveAttributeName"/> will be used to update the <see cref="ServiceBusMessage.TimeToLive"/> from the <see cref="EventDataBase.Attributes"/>.</para></remarks>
         protected virtual void OnServiceBusMessage(EventSendData @event, ServiceBusMessage message)
         {
             if (message.SessionId == null)

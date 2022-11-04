@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using CoreEx.Entities;
 using CoreEx.Http;
 using Microsoft.Extensions.Configuration;
 
@@ -39,8 +40,12 @@ namespace CoreEx.Configuration
                 _prefixes.Add(prefix.EndsWith('/') ? prefix : string.Concat(prefix, '/'));
             }
 
-            _allProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
-                .ToDictionary(p => p.Name, p => p);
+            _allProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy).ToDictionary(p => p.Name, p => p);
+
+            // Configure (override) any standard settings.
+            var take = PagingDefaultTake;
+            if (take != null)
+                PagingArgs.DefaultTake = take.Value;
         }
 
         /// <summary>
@@ -79,19 +84,46 @@ namespace CoreEx.Configuration
                 }
             }
 
+            T kv;
             foreach (var prefix in _prefixes)
             {
-                var fullKey = string.Concat(prefix, key);
-                if (Configuration.GetSection(fullKey)?.Value != null)
-                    return Configuration.GetValue<T>(fullKey);
+                if (TryGetValue(string.Concat(prefix, key), out kv))
+                    return kv;
             }
 
-            // double underscore is read as ":" by Configuration
-            var keyWithoutUnderscore = key.Replace("__", ":");
-            if (Configuration.GetSection(keyWithoutUnderscore)?.Value != null)
-                return Configuration.GetValue<T>(keyWithoutUnderscore);
+            return TryGetValue(key, out kv) ? kv : defaultValue;
+        }
 
-            return Configuration.GetValue(key, defaultValue);
+        /// <summary>
+        /// Try get the value with key and alternate format alternatives.
+        /// </summary>
+        private bool TryGetValue<T>(string key, out T value)
+        {
+            // Try the key as specified.
+            if (Configuration!.GetSection(key)?.Value != null)
+            {
+                value = Configuration.GetValue<T>(key);
+                return true;
+            }
+
+            // Colon is read as double underscore by Configuration.
+            var alternateKey = key.Replace(":", "__");
+            if (alternateKey != key && Configuration.GetSection(alternateKey)?.Value != null)
+            {
+                value = Configuration.GetValue<T>(alternateKey);
+                return true;
+            }
+
+            // Double underscore is read as ":" by Configuration.
+            alternateKey = key.Replace("__", ":");
+            if (alternateKey != key && Configuration.GetSection(alternateKey)?.Value != null)
+            {
+                value = Configuration.GetValue<T>(alternateKey);
+                return true;
+            }
+
+            value = default!;
+            return false;
         }
 
         /// <summary>
@@ -112,17 +144,14 @@ namespace CoreEx.Configuration
             if (Configuration == null)
                 throw new InvalidOperationException("An IConfiguration instance is required where GetRequiredValue is used.");
 
+            T kv;
             foreach (var prefix in _prefixes)
             {
-                var fullKey = string.Concat(prefix, key);
-                if (Configuration.GetSection(fullKey)?.Value != null)
-                    return Configuration.GetValue<T>(fullKey);
+                if (TryGetValue(string.Concat(prefix, key), out kv))
+                    return kv;
             }
 
-            if (Configuration.GetSection(key)?.Value == null)
-                throw new ArgumentException($"Configuration key '{key}' has not been configured and the value is required.", nameof(key));
-
-            return Configuration.GetValue<T>(key);
+            return TryGetValue(key, out kv) ? kv : throw new ArgumentException($"Configuration key '{key}' has not been configured and the value is required.", nameof(key));
         }
 
         /// <summary>
@@ -164,5 +193,10 @@ namespace CoreEx.Configuration
         /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> maximum retry delay. Defaults to <c>2</c> minutes.
         /// </summary>
         public TimeSpan MaxRetryDelay => TimeSpan.FromSeconds(GetValue(defaultValue: 120));
+
+        /// <summary>
+        /// Gets the <see cref="Entities.PagingArgs.DefaultTake"/>; i.e. page size.
+        /// </summary>
+        public long? PagingDefaultTake => GetValue<long?>(nameof(PagingDefaultTake), null);
     }
 }

@@ -27,8 +27,8 @@ namespace CoreEx.RefData
         /// <inheritdoc/>
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            yield return CreateProperty(Codes, v => Codes = v);
-            yield return CreateProperty(Text, v => Text = v);
+            yield return CreateProperty(nameof(Codes), Codes, v => Codes = v);
+            yield return CreateProperty(nameof(Text), Text, v => Text = v);
         }
     }
 }

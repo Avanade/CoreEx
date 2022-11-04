@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Collections.Generic;
 
 namespace CoreEx.Entities.Extended
 {
@@ -14,15 +15,20 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyValue{T}"/> class.
         /// </summary>
+        /// <param name="name">The property name.</param>
         /// <param name="value">The property value.</param>
         /// <param name="setValue">The action to set (override) the value with the specified value.</param>
         /// <param name="defaultValue">The optional default value override.</param>
-        public PropertyValue(T value, Action<T?> setValue, T? defaultValue = default)
+        public PropertyValue(string name, T value, Action<T?> setValue, T? defaultValue = default)
         {
+            Name = string.IsNullOrEmpty(name) ? throw new ArgumentNullException(nameof(name)) : name;
             Value = value;
             _setValue = setValue;
             DefaultValue = defaultValue ?? default;
         }
+
+        /// <inheritdoc/>
+        public string Name { get; }
 
         /// <inheritdoc/>
         object? IPropertyValue.Value => Value;
@@ -76,6 +82,41 @@ namespace CoreEx.Entities.Extended
         void IPropertyValue.CopyFrom(IPropertyValue propertyValue) => CopyFrom((PropertyValue<T>)propertyValue);
 
         /// <inheritdoc/>
-        void CopyFrom(PropertyValue<T> propertyValue) => SetValue(propertyValue.Value is EntityBase ? EntityBase.CopyOrClone(propertyValue.Value, Value) : propertyValue.Value);
+        void CopyFrom(PropertyValue<T> propertyValue)
+        {
+            if (propertyValue.Value is null || Comparer<T>.Default.Compare(propertyValue.Value, default!) == 0)
+            {
+                SetValue(default);
+                return;
+            }
+
+            if (propertyValue.Value is string s)
+            {
+                SetValue((T)(object)s);
+                return;
+            }
+
+            if (propertyValue is ICloneable clone)
+            {
+                SetValue((T)clone);
+                return;
+            }
+
+            if (propertyValue.Value is EntityBase eb)
+            {
+                var v = Activator.CreateInstance<T>() as EntityBase;
+                v!.CopyFrom(eb);
+                SetValue((T)(object)v);
+                return;
+            }
+
+            if (propertyValue.Value is IEntityBaseCollection ebc)
+            {
+                SetValue((T)ebc.Clone());
+                return;
+            }
+
+            SetValue(propertyValue.Value);
+        }
     }
 }

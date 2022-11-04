@@ -11,7 +11,7 @@ namespace CoreEx.Validation.Rules
     /// Provides <see cref="string"/> validation including <see cref="MinLength"/>, <see cref="MaxLength"/>, and <see cref="Regex"/>.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
-    public class StringRule<TEntity> : ValueRuleBase<TEntity, string?> where TEntity : class
+    public class StringRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class
     {
         /// <summary>
         /// Gets or sets the minimum length;
@@ -29,7 +29,7 @@ namespace CoreEx.Validation.Rules
         public Regex? Regex { get; set; }
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, string?> context, CancellationToken cancellationToken = default)
+        public override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));

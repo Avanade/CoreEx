@@ -26,7 +26,11 @@ namespace CoreEx.Entities
         /// <returns><c>true</c> if the values are equal; otherwise, <c>false</c>.</returns>
         public bool Equals(CompositeKey x, CompositeKey y)
         {
-            if (x.Args!.Length != y.Args!.Length)
+            if (x.Args == null && y.Args == null)
+                return true;
+            else if (x.Args == null || y.Args == null)
+                return false;
+            else if (x.Args!.Length != y.Args!.Length)
                 return false;
 
             for (int i = 0; i < x.Args.Length; i++)

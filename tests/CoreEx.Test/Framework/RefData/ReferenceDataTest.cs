@@ -1,5 +1,6 @@
 ﻿using CoreEx.Entities.Extended;
 using CoreEx.Http;
+using CoreEx.Mapping.Converters;
 using CoreEx.RefData;
 using CoreEx.TestFunction;
 using FluentAssertions;
@@ -270,10 +271,10 @@ namespace CoreEx.Test.Framework.RefData
         public void Collection_Lists()
         {
             var rc = new RefDataCollection { new RefData { Id = 1, Code = "Z", Text = "A", SortOrder = 2 }, new RefData { Id = 2, Code = "A", Text = "B", IsActive = false, SortOrder = 4 }, new RefData { Id = 3, Code = "Y", Text = "D", SortOrder = 1 }, new RefData { Id = 4, Code = "B", Text = "C", SortOrder = 3 } };
-            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetList(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetList(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetList(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetList(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
 
             rc.SortOrder = ReferenceDataSortOrder.Id;
             Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.AllList.Select(x => x.Id).ToArray());
@@ -313,10 +314,10 @@ namespace CoreEx.Test.Framework.RefData
             rc.SortOrder = ReferenceDataSortOrder.SortOrder;
             Assert.AreEqual(new int[] { 3, 4 }, rc.ActiveList.Select(x => x.Id).ToArray());
 
-            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetList(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetList(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetList(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetList(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
         }
 
         [Test]
@@ -437,6 +438,34 @@ namespace CoreEx.Test.Framework.RefData
         }
 
         [Test]
+        public void RefenceDataIdConverter()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp).Register<RefDataProvider>());
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            var rd = (RefData)1;
+            new ReferenceDataIdConverter<RefData, int>().ToDestination.Convert(rd).Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int>().ToDestination.Convert(null).Should().Be(0);
+            new ReferenceDataIdConverter<RefData, int?>().ToDestination.Convert(rd).Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int?>().ToDestination.Convert(null).Should().BeNull();
+
+            new ReferenceDataIdConverter<RefData, int>().ToSource.Convert(1).Should().NotBeNull().And.BeOfType<RefData>().Which.Id.Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int>().ToSource.Convert(0).Should().NotBeNull().And.BeOfType<RefData>().Which.Id.Should().Be(0);
+            new ReferenceDataIdConverter<RefData, int?>().ToSource.Convert(1).Should().NotBeNull().And.BeOfType<RefData>().Which.Id.Should().Be(1);
+            new ReferenceDataIdConverter<RefData, int?>().ToSource.Convert(null).Should().BeNull();
+
+            Assert.Throws<InvalidCastException>(() => new ReferenceDataIdConverter<RefData, Guid?>().ToSource.Convert(Guid.Empty));
+        }
+
+        [Test]
         public void SidList()
         {
             var sl = new ReferenceDataCodeList<RefData>("A", "B");
@@ -498,7 +527,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -529,7 +558,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -595,7 +624,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -628,7 +657,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -648,7 +677,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -668,7 +697,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProviderSlow>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProviderSlow>());
+            sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -732,7 +761,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -798,7 +827,7 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddJsonSerializer();
             sc.AddExecutionContext();
             sc.AddScoped<RefDataProvider>();
-            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, new MemoryCache(new MemoryCacheOptions())).Register<RefDataProvider>());
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
             using var scope = sp.CreateScope();
@@ -913,7 +942,7 @@ namespace CoreEx.Test.Framework.RefData
         }
     }
 
-    public class TestData : CoreEx.Entities.Extended.EntityBase<TestData>
+    public class TestData : CoreEx.Entities.Extended.EntityBase
     {
         private int _id;
         private string? _name;
@@ -927,9 +956,9 @@ namespace CoreEx.Test.Framework.RefData
 
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            yield return CreateProperty(Id, v => Id = v);
-            yield return CreateProperty(Name, v => Name = v);
-            yield return CreateProperty(RefData, v => RefData = v);
+            yield return CreateProperty(nameof(Id), Id, v => Id = v);
+            yield return CreateProperty(nameof(Name), Name, v => Name = v);
+            yield return CreateProperty(nameof(RefData), RefData, v => RefData = v);
         }
     }
 }

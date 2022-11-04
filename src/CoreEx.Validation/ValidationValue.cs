@@ -27,7 +27,7 @@ namespace CoreEx.Validation
         public object? Entity { get; }
 
         /// <summary>
-        /// Gets or sets the entity property value.
+        /// Gets the entity property value.
         /// </summary>
         public T? Value { get; }
     }

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions.Reflection;
 using CoreEx.Json;
 using CoreEx.RefData;
 using Microsoft.AspNetCore.Http;
@@ -7,13 +8,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Stj = System.Text.Json;
 
 namespace CoreEx.Http
 {
@@ -81,8 +80,8 @@ namespace CoreEx.Http
             if (_isUsed || ArgType == HttpArgType.FromBody || Comparer<T>.Default.Compare(Value, default!) == 0)
                 return queryString;
 
-            (queryString, var isAdded) = AddNameValue(queryString, Name, Value);
-            if (isAdded)
+            (queryString, var wasAdded) = AddNameValue(queryString, Name, Value);
+            if (wasAdded)
                 return queryString;
 
             if (Value is IEnumerable enumerable)
@@ -91,9 +90,9 @@ namespace CoreEx.Http
                 {
                     if (v != null)
                     {
-                        (queryString, isAdded) = AddNameValue(queryString, Name, v);
-                        if (!isAdded && (ArgType == HttpArgType.FromUriUseProperties || ArgType == HttpArgType.FromUriUsePropertiesAndPrefix))
-                            queryString = AddNameSerializedValue(queryString, Name, v, jsonSerializer ??= new CoreEx.Text.Json.JsonSerializer());
+                        (queryString, wasAdded) = AddNameValue(queryString, Name, v);
+                        if (!wasAdded && (ArgType == HttpArgType.FromUriUseProperties || ArgType == HttpArgType.FromUriUsePropertiesAndPrefix))
+                            queryString = AddComplexType(queryString, Value, jsonSerializer);
                     }
                 }
 
@@ -101,7 +100,7 @@ namespace CoreEx.Http
             }
 
             if (ArgType == HttpArgType.FromUriUseProperties || ArgType == HttpArgType.FromUriUsePropertiesAndPrefix)
-                return AddNameSerializedValue(queryString, Name, Value, jsonSerializer ?? new CoreEx.Text.Json.JsonSerializer());
+                queryString = AddComplexType(queryString, Value, jsonSerializer);
 
             return queryString;
         }
@@ -109,7 +108,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Adds the named value.
         /// </summary>
-        private static (QueryString, bool) AddNameValue(QueryString queryString, string name, object? value)
+        private static (QueryString QueryString, bool WasAdded) AddNameValue(QueryString queryString, string name, object? value)
         {
             if (value == null)
                 return (queryString, true);
@@ -123,76 +122,51 @@ namespace CoreEx.Http
             if (value is DateTime dt)
                 return (queryString.Add(name, dt.ToString("o", CultureInfo.InvariantCulture)), true);
 
+            if (value is DateTimeOffset dto)
+                return (queryString.Add(name, dto.ToString("o", CultureInfo.InvariantCulture)), true);
+
             if (value is IReferenceData rd)
                 return (queryString.Add(name, rd.Code), true);
 
-            if (value is IFormattable fmt)
-                return (queryString.Add(name, fmt.ToString(null, CultureInfo.InvariantCulture)), true);
-
             if (value is Enum en)
                 return (queryString.Add(name, en.ToString()), true);
+
+            if (value is bool bo)
+                return (queryString.Add(name, bo.ToString().ToLowerInvariant()), true);
+
+            if (value is IFormattable fmt)
+                return (queryString.Add(name, fmt.ToString(null, CultureInfo.InvariantCulture)), true);
 
             return (queryString, false);
         }
 
         /// <summary>
-        /// Adds the named value.
+        /// Adds the complex type to the query string.
         /// </summary>
-        private QueryString AddNameSerializedValue(QueryString queryString, string name, object? value, IJsonSerializer jsonSerializer)
+        private QueryString AddComplexType(QueryString queryString, object? value, IJsonSerializer? jsonSerializer)
         {
-            // Use serializer to get a System.Text.Json.JsonDocument for the value and add the first level of properties to the query string.
-            if (jsonSerializer is Text.Json.JsonSerializer)
-                return AddJsonElement(queryString, Stj.JsonSerializer.SerializeToDocument(value, (Stj.JsonSerializerOptions)jsonSerializer.Options).RootElement, name);
+            if (value == null)
+                return queryString;
 
-            var binary = jsonSerializer!.SerializeToBinaryData(Value, JsonWriteFormat.None);
-            return AddJsonElement(queryString, Stj.JsonDocument.Parse(binary).RootElement, name);
-        }
-
-        /// <summary>
-        /// Adds the properties found within the JsonDocument.
-        /// </summary>
-        private QueryString AddJsonElement(QueryString queryString, Stj.JsonElement json, string name)
-        {
-            if (json.ValueKind == Stj.JsonValueKind.Object)
+            var tr = TypeReflector.GetReflector(new TypeReflectorArgs(jsonSerializer), value.GetType());
+            foreach (var pr in tr.GetProperties())
             {
-                foreach (var jp in json.EnumerateObject())
+                var pv = pr.PropertyInfo.GetValue(value, null);
+                var name = $"{(ArgType == HttpArgType.FromUriUsePropertiesAndPrefix ? $"{Name}." : "")}{pr.JsonName ?? pr.Name}";
+                if (pv is not string && pv is IEnumerable ie)
                 {
-                    var qn = ArgType == HttpArgType.FromUriUseProperties ? jp.Name : $"{name}.{jp.Name}";
-                    switch (jp.Value.ValueKind)
+                    foreach (var iv in ie)
                     {
-                        case Stj.JsonValueKind.String:
-                            queryString = queryString.Add(qn, jp.Value.GetString());
-                            break;
-
-                        case Stj.JsonValueKind.Number:
-                        case Stj.JsonValueKind.True:
-                        case Stj.JsonValueKind.False:
-                            queryString = queryString.Add(qn, jp.Value.GetRawText());
-                            break;
-
-                        case Stj.JsonValueKind.Null:
-                            break;
-
-                        case Stj.JsonValueKind.Array:
-                            foreach (var jae in jp.Value.EnumerateArray().Where(x => x.ValueKind == Stj.JsonValueKind.String || x.ValueKind == Stj.JsonValueKind.Number || x.ValueKind == Stj.JsonValueKind.True || x.ValueKind == Stj.JsonValueKind.False))
-                            {
-                                queryString = queryString.Add(qn, jae.ToString());
-                            }
-
-                            break;
-
-                        default: break;
+                        (queryString, var wasAdded) = AddNameValue(queryString, name, iv);
+                        if (!wasAdded)
+                            throw new InvalidOperationException($"Type '{tr.Type.Name}' cannot be serialized to a URI; Type should be passed using Request Body [FromBody] given complexity.");
                     }
                 }
-            }
-            else if (json.ValueKind == Stj.JsonValueKind.Array)
-            {
-                foreach (var jp in json.EnumerateArray())
+                else
                 {
-                    if (jp.ValueKind == Stj.JsonValueKind.String || jp.ValueKind == Stj.JsonValueKind.Number)
-                        queryString = queryString.Add(name, jp.GetRawText());
-                    else
-                        throw new InvalidOperationException($"Type '{Value?.GetType().Name}' cannot be serialized to a URI; Type should be passed using Request Body [FromBody] given complexity.");
+                    (queryString, var wasAdded) = AddNameValue(queryString, name, pv);
+                    if (!wasAdded)
+                        throw new InvalidOperationException($"Type '{tr.Type.Name}' cannot be serialized to a URI; Type should be passed using Request Body [FromBody] given complexity.");
                 }
             }
 
@@ -202,7 +176,7 @@ namespace CoreEx.Http
         /// <inheritdoc/>
         public Task ModifyHttpRequestAsync(HttpRequestMessage request, IJsonSerializer jsonSerializer, CancellationToken cancellationToken = default)
         {
-            if (request.Content == null || ArgType != HttpArgType.FromBody || Value == null)
+            if (request.Content != null || ArgType != HttpArgType.FromBody || Value == null)
                 return Task.CompletedTask;
 
             request.Content = new StringContent(jsonSerializer.Serialize(Value, JsonWriteFormat.None), Encoding.UTF8, MediaTypeNames.Application.Json);

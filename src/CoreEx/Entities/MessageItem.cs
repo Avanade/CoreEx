@@ -12,7 +12,7 @@ namespace CoreEx.Entities
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("Type = {Type}, Text = {Text}, Property = {Property}")]
     [System.Diagnostics.DebuggerStepThrough]
-    public class MessageItem : EntityBase<MessageItem>
+    public class MessageItem : EntityBase
     {
         private MessageType _type;
         private string? _text;
@@ -120,10 +120,10 @@ namespace CoreEx.Entities
         /// <inheritdoc/>
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            yield return CreateProperty(Type, v => Type = v);
-            yield return CreateProperty(Text, v => Text = v);
-            yield return CreateProperty(Property, v => Property = v);
-            yield return CreateProperty(Tag, v => Tag = v);
+            yield return CreateProperty(nameof(Type), Type, v => Type = v);
+            yield return CreateProperty(nameof(Text), Text, v => Text = v);
+            yield return CreateProperty(nameof(Property), Property, v => Property = v);
+            yield return CreateProperty(nameof(Tag), Tag, v => Tag = v);
         }
     }
 }

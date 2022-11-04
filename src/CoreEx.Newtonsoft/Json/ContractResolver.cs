@@ -34,14 +34,14 @@ namespace CoreEx.Newtonsoft.Json
         {
             _default.AddType(typeof(EntityCore))
                     .AddType(typeof(EntityBase))
-                    .AddType(typeof(EntityBase<>))
                     .AddType(typeof(ReferenceDataBase<,>))
                     .AddType(typeof(ReferenceDataBase<>))
                     .AddType<MessageItem>()
                     .AddType<PagingArgs>()
                     .AddType<PagingResult>()
                     .AddType<ExtendedContentResult>()
-                    .AddType<ExtendedStatusCodeResult>();
+                    .AddType<ExtendedStatusCodeResult>()
+                    .AddType<EventDataBase>();
         }
 
         /// <summary>

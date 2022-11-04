@@ -11,7 +11,7 @@ namespace CoreEx.Validation.Rules
     /// Provides <see cref="string"/> validation for an <b>e-mail</b>.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
-    public class EmailRule<TEntity> : ValueRuleBase<TEntity, string?> where TEntity : class
+    public class EmailRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class
     {
         private static readonly EmailAddressAttribute _emailChecker = new();
 
@@ -21,7 +21,7 @@ namespace CoreEx.Validation.Rules
         public int? MaxLength { get; set; }
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, string?> context, CancellationToken cancellation)
+        public override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellation)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));

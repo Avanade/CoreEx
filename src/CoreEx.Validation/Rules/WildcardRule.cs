@@ -11,7 +11,7 @@ namespace CoreEx.Validation.Rules
     /// Provides <see cref="string"/> <see cref="Wildcard"/> validation.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
-    public class WildcardRule<TEntity> : ValueRuleBase<TEntity, string?> where TEntity : class
+    public class WildcardRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class
     {
         /// <summary>
         /// Gets or sets the <see cref="Wildcard"/> configuration (uses <see cref="Wildcard.Default"/> where <c>null</c>).
@@ -19,7 +19,7 @@ namespace CoreEx.Validation.Rules
         public Wildcard? Wildcard { get; set; }
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, string?> context, CancellationToken cancellationToken = default)
+        public override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));

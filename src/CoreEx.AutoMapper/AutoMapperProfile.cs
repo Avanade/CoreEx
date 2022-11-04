@@ -27,6 +27,13 @@ namespace CoreEx.Mapping
                 .ForMember(d => d.CreatedDate, o => o.OperationTypes(OperationTypes.AnyExceptUpdate).MapFrom(s => s.CreatedDate))
                 .ForMember(d => d.UpdatedBy, o => o.OperationTypes(OperationTypes.AnyExceptCreate).MapFrom(s => s.UpdatedBy))
                 .ForMember(d => d.UpdatedDate, o => o.OperationTypes(OperationTypes.AnyExceptCreate).MapFrom(s => s.UpdatedDate));
+
+            CreateMap<ChangeLog, Entities.Models.ChangeLog>()
+                .ForMember(d => d.CreatedBy, o => o.OperationTypes(OperationTypes.AnyExceptUpdate).MapFrom(s => s.CreatedBy))
+                .ForMember(d => d.CreatedDate, o => o.OperationTypes(OperationTypes.AnyExceptUpdate).MapFrom(s => s.CreatedDate))
+                .ForMember(d => d.UpdatedBy, o => o.OperationTypes(OperationTypes.AnyExceptCreate).MapFrom(s => s.UpdatedBy))
+                .ForMember(d => d.UpdatedDate, o => o.OperationTypes(OperationTypes.AnyExceptCreate).MapFrom(s => s.UpdatedDate))
+                .ReverseMap();
         }
     }
 }

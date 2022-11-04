@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Http;
+using CoreEx.Http.Extended;
+using CoreEx.Mapping;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
@@ -171,7 +173,7 @@ namespace CoreEx.Test.Framework.Http
 
             Assert.IsTrue(r.Result.IsSuccess);
             Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            ObjectComparer.Assert(new ProductCollectionResult { Collection = pc }, r.Result.Value);
+            ObjectComparer.Assert(new ProductCollectionResult { Items = pc }, r.Result.Value);
 
             mcf.VerifyAll();
         }
@@ -198,7 +200,7 @@ namespace CoreEx.Test.Framework.Http
 
             Assert.IsTrue(r.Result.IsSuccess);
             Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            ObjectComparer.Assert(new ProductCollectionResult { Collection = pc, Paging = new PagingResult(PagingArgs.CreateSkipAndTake(100, 25), 1000) }, r.Result.Value);
+            ObjectComparer.Assert(new ProductCollectionResult { Items = pc, Paging = new PagingResult(PagingArgs.CreateSkipAndTake(100, 25), 1000) }, r.Result.Value);
 
             mcf.VerifyAll();
         }
@@ -478,8 +480,93 @@ namespace CoreEx.Test.Framework.Http
             Assert.That(res, Is.Not.Null);
             Assert.That(res.IsSuccess, Is.True);
             Assert.That(res.Content, Is.EqualTo("test-content"));
+            Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
 
             mcf.VerifyAll();
+        }
+
+        [Test]
+        public async Task TypedHttpClientInstance_OnConfiguration()
+        {
+            try
+            {
+                TypedMappedHttpClient.OnDefaultOptionsConfiguration = null;
+                TypedHttpClient.OnDefaultOptionsConfiguration = x => x.EnsureSuccess();
+
+                Assert.IsNotNull(TypedHttpClient.OnDefaultOptionsConfiguration);
+                Assert.IsNull(TypedMappedHttpClient.OnDefaultOptionsConfiguration);
+
+                var mcf = MockHttpClientFactory.Create();
+                var mc = mcf.CreateClient("Backend", "https://backend/");
+                mc.Request(HttpMethod.Get, "test").Respond.With("test-content");
+
+                var thc = mcf.GetHttpClient("Backend")!.CreateTypedClient(onBeforeRequest: (req, ct) => { req.Headers.MaxForwards = 88; return Task.CompletedTask; });
+
+                Assert.IsTrue(thc.SendOptions.ShouldEnsureSuccess);
+
+                var res = await thc.GetAsync("test");
+
+                Assert.That(res, Is.Not.Null);
+                Assert.That(res.IsSuccess, Is.True);
+                Assert.That(res.Content, Is.EqualTo("test-content"));
+                Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+
+                mcf.VerifyAll();
+            }
+            finally
+            {
+                TypedHttpClient.OnDefaultOptionsConfiguration = null;
+            }
+        }
+
+        [Test]
+        public async Task NullOnNotFound()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Get, "test").Respond.WithSequence(s =>
+            {
+                s.Respond().With(HttpStatusCode.NotFound);
+                s.Respond().With("1");
+                s.Respond().With("2");
+            });
+
+            var thc = mcf.GetHttpClient("Backend")!.CreateTypedClient();
+            var res = await thc.GetAsync<int>("test");
+
+            Assert.That(res, Is.Not.Null);
+            Assert.That(res.IsSuccess, Is.False);
+            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(res.ErrorType, Is.Null);
+            Assert.That(res.ErrorCode, Is.Null);
+            Assert.That(res.WillResultInNullAsNotFound, Is.False);
+            Assert.Throws<NotFoundException>(() => _ = res.Value);
+
+            res.NullOnNotFoundResponse = true;
+            Assert.That(res.IsSuccess, Is.True);
+            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(res.ErrorType, Is.Null);
+            Assert.That(res.ErrorCode, Is.Null);
+            Assert.That(res.WillResultInNullAsNotFound, Is.True);
+            Assert.That(res.Value, Is.EqualTo(0));
+
+            res = await thc.GetAsync<int>("test");
+            Assert.That(res.NullOnNotFoundResponse, Is.False);
+            Assert.That(res.IsSuccess, Is.True);
+            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(res.ErrorType, Is.Null);
+            Assert.That(res.ErrorCode, Is.Null);
+            Assert.That(res.WillResultInNullAsNotFound, Is.False);
+            Assert.That(res.Value, Is.EqualTo(1));
+
+            res = await thc.NullOnNotFound().GetAsync<int>("test");
+            Assert.That(res.NullOnNotFoundResponse, Is.True);
+            Assert.That(res.IsSuccess, Is.True);
+            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(res.ErrorType, Is.Null);
+            Assert.That(res.ErrorCode, Is.Null);
+            Assert.That(res.WillResultInNullAsNotFound, Is.False);
+            Assert.That(res.Value, Is.EqualTo(2));
         }
     }
 }

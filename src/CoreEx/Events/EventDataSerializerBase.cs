@@ -10,7 +10,7 @@ namespace CoreEx.Events
     /// <summary>
     /// Provides the base <see cref="EventData"/> <see cref="IEventSerializer"/> capabilities.
     /// </summary>
-    /// <remarks>The <see cref="SerializeValueOnly"/> indicates whether the <see cref="EventData.Value"/> is serialized only; or alternatively, the complete <see cref="EventData"/> (default).</remarks>
+    /// <remarks>The <see cref="SerializeValueOnly"/> indicates whether the <see cref="EventData.Value"/> is serialized only (default); or alternatively, the complete <see cref="EventData"/>.</remarks>
     public abstract class EventDataSerializerBase : IEventSerializer
     {
         /// <summary>

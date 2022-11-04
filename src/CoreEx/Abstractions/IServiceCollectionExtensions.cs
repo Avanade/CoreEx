@@ -11,6 +11,7 @@ using CoreEx.Json;
 using CoreEx.Json.Merge;
 using CoreEx.RefData;
 using CoreEx.WebApis;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
@@ -71,21 +72,27 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Adds a <see cref="TypedHttpClientBase"/>.
+        /// Adds a <see cref="TypedHttpClientBase"/> using the underlying <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient{TClient}(IServiceCollection, string, Action{IServiceProvider, HttpClient})"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="TypedHttpClientBase"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TClient">The client <see cref="TypedHttpClientBase"/> <see cref="Type"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
         /// <param name="configure">The delegate to configure the underlying <see cref="HttpClient"/>.</param>
-        public static IServiceCollection AddTypedHttpClient<T>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient>? configure = null) where T : TypedHttpClientBase
-        {
-            if (configure == null)
-                services.AddHttpClient<T>(name);
-            else
-                services.AddHttpClient<T>(name, configure);
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddTypedHttpClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient>? configure = null) where TClient : TypedHttpClientBase
+            => configure == null ? services.AddHttpClient<TClient>(name) : services.AddHttpClient<TClient>(name, configure);
 
-            return services;
-        }
+        /// <summary>
+        /// Adds a <see cref="TypedHttpClientBase"/> using the underlying <see cref="HttpClientFactoryServiceCollectionExtensions.AddHttpClient{TClient}(IServiceCollection, string, Action{IServiceProvider, HttpClient})"/>.
+        /// </summary>
+        /// <typeparam name="TClient">The client <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TImplementation">The client <see cref="TypedHttpClientBase"/> implementation <see cref="Type"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
+        /// <param name="configure">The delegate to configure the underlying <see cref="HttpClient"/>.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddTypedHttpClient<TClient, TImplementation>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient>? configure = null) where TClient : class where TImplementation : TypedHttpClientBase, TClient
+            => configure == null ? services.AddHttpClient<TClient, TImplementation>(name) : services.AddHttpClient<TClient, TImplementation>(name, configure);
 
         /// <summary>
         /// Adds the <see cref="DefaultSettings"/> as the <see cref="SettingsBase"/> singleton service.
@@ -279,6 +286,23 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator)
             => CheckServices(services).AddSingleton(sp => createOrchestrator(sp));
+
+        /// <summary>
+        /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the <see cref="IReferenceDataProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services)
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register());
+
+        /// <summary>
+        /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the specified <typeparamref name="TProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
+        /// </summary>
+        /// <typeparam name="TProvider">The <see cref="IReferenceDataProvider"/> to register.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddReferenceDataOrchestrator<TProvider>(this IServiceCollection services) where TProvider : IReferenceDataProvider
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register<TProvider>());
 
         /// <summary>
         /// Adds the <see cref="RequestCache"/> as the <see cref="IRequestCache"/> scoped service.

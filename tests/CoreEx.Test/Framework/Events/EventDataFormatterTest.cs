@@ -65,7 +65,7 @@ namespace CoreEx.Test.Framework.Events
         public void TypeAppendIdOrPrimaryKey()
         {
             var ed = new EventData { Type = "product", Value = new Product { Id = "abc" } };
-            var ef = new EventDataFormatter { TypeAppendIdOrPrimaryKey = true };
+            var ef = new EventDataFormatter { TypeAppendEntityKey = true };
             ef.Format(ed);
             Assert.AreEqual("product.abc", ed.Type);
 
@@ -119,7 +119,7 @@ namespace CoreEx.Test.Framework.Events
         public void SubjectAppendIdOrPrimaryKey()
         {
             var ed = new EventData { Subject = "product", Value = new Product { Id = "abc" } };
-            var ef = new EventDataFormatter { SubjectAppendIdOrPrimaryKey = true };
+            var ef = new EventDataFormatter { SubjectAppendEntityKey = true };
             ef.Format(ed);
             Assert.AreEqual("product.abc", ed.Subject);
 

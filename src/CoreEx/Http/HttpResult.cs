@@ -23,6 +23,7 @@ namespace CoreEx.Http
         private readonly Lazy<string?> _errorType;
         private readonly Lazy<int?> _errorCode;
         private readonly Lazy<MessageItemCollection?> _messages;
+        private string? _content;
 
         /// <summary>
         /// Creates a new <see cref="HttpResult"/> with no value.
@@ -131,7 +132,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets the <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).
         /// </summary>
-        public string? Content { get; }
+        public string? Content { get => WillResultInNullAsNotFound ? null : _content; private set => _content = value; }
 
         /// <summary>
         /// Gets the underlying <see cref="HttpRequestMessage"/>.
@@ -141,12 +142,12 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets the <see cref="HttpStatusCode"/>.
         /// </summary>
-        public HttpStatusCode StatusCode => Response.StatusCode;
+        public HttpStatusCode StatusCode => WillResultInNullAsNotFound ? HttpStatusCode.NoContent : Response.StatusCode;
 
         /// <summary>
         /// Indicates whether the request was successful.
         /// </summary>
-        public bool IsSuccess => Response.IsSuccessStatusCode;
+        public bool IsSuccess => WillResultInNullAsNotFound || Response.IsSuccessStatusCode;
 
         /// <summary>
         /// Gets the <see cref="MessageItemCollection"/>.
@@ -156,12 +157,24 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets the error type using the <see cref="HttpConsts.ErrorTypeHeaderName"/>.
         /// </summary>
-        public string? ErrorType => _errorType.Value;
+        public string? ErrorType => WillResultInNullAsNotFound ? null : _errorType.Value;
 
         /// <summary>
         /// Gets the error code using the <see cref="HttpConsts.ErrorCodeHeaderName"/>
         /// </summary>
-        public int? ErrorCode => _errorCode.Value;
+        public int? ErrorCode => WillResultInNullAsNotFound ? null : _errorCode.Value;
+
+        /// <summary>
+        /// Indicates whether a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/>; i.e. it acts as <see cref="HttpStatusCode.NoContent"/>.
+        /// </summary>
+        /// <remarks>When set to <c>true</c> and the corresponding <see cref="Response"/> has a <see cref="StatusCode"/> is <see cref="HttpStatusCode.NotFound"/>, then <see cref="IsSuccess"/> will return <c>true</c> and <see cref="Content"/> will return <c>null</c>.</remarks>
+        public bool NullOnNotFoundResponse { get; set; }
+
+        /// <summary>
+        /// Indicates whether the <see cref="HttpResult"/> will result in a <c>null</c> response where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/>
+        /// </summary>
+        /// <remarks>See <see cref="NullOnNotFoundResponse"/>.</remarks>
+        public bool WillResultInNullAsNotFound => NullOnNotFoundResponse && Response.StatusCode == HttpStatusCode.NotFound;
 
         /// <summary>
         /// Throws an exception if the request was not successful (see <see cref="IsSuccess"/>).

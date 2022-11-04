@@ -35,9 +35,16 @@ namespace CoreEx.Events
         public TextInfoCasing TypeCasing = TextInfoCasing.Lower;
 
         /// <summary>
-        /// Indicates whether to append the <see cref="IIdentifier.Id"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Type"/> value.
+        /// Indicates whether to append the <see cref="EventDataBase.Key"/> to the <see cref="EventDataBase.Type"/> value.
         /// </summary>
-        public bool TypeAppendIdOrPrimaryKey { get; set; } = false;
+        /// <remarks>This is applied before <see cref="TypeAppendEntityKey"/>.</remarks>
+        public bool TypeAppendKey { get; set; } = false;
+
+        /// <summary>
+        /// Indicates whether to append the <see cref="IEntityKey.EntityKey"/> to the <see cref="EventDataBase.Type"/> value.
+        /// </summary>
+        /// <remarks>This is applied after <see cref="TypeAppendKey"/>.</remarks>
+        public bool TypeAppendEntityKey { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the <see cref="EventDataBase.Type"/> separator character.
@@ -57,9 +64,16 @@ namespace CoreEx.Events
         public TextInfoCasing SubjectCasing = TextInfoCasing.Lower;
 
         /// <summary>
-        /// Indicates whether to append the <see cref="IIdentifier.Id"/> or <see cref="IPrimaryKey.PrimaryKey"/> to the <see cref="EventDataBase.Subject"/> value.
+        /// Indicates whether to append the <see cref="EventDataBase.Key"/> to the <see cref="EventDataBase.Subject"/> value.
         /// </summary>
-        public bool SubjectAppendIdOrPrimaryKey { get; set; } = false;
+        /// <remarks>This is applied before <see cref="SubjectAppendEntityKey"/>.</remarks>
+        public bool SubjectAppendKey { get; set; } = false;
+
+        /// <summary>
+        /// Indicates whether to append the <see cref="IEntityKey.EntityKey"/> to the <see cref="EventDataBase.Subject"/> value.
+        /// </summary>
+        /// <remarks>This is applied after <see cref="SubjectAppendKey"/>.</remarks>
+        public bool SubjectAppendEntityKey { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the <see cref="EventDataBase.Subject"/> separator character.
@@ -83,6 +97,12 @@ namespace CoreEx.Events
         /// </summary>
         /// <remarks>Defaults to <c>null</c>.</remarks>
         public Func<EventData, Uri?>? SourceDefault { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="EventDataBase.Key"/> separator character.
+        /// </summary>
+        /// <remarks>Defaults to '<c>,</c>'.</remarks>
+        public char KeySeparatorCharacter { get; set; } = ',';
 
         /// <summary>
         /// Indicates whether to default the <see cref="EventDataBase.ETag"/> to the <see cref="EventData.Value"/> value where it implements <see cref="IETag"/>.
@@ -110,14 +130,8 @@ namespace CoreEx.Events
         {
             var value = @event.Value;
 
-            if (@event.Id == null)
-                @event.Id = Guid.NewGuid().ToString();
-
-            if (@event.Timestamp == null)
-                @event.Timestamp = DateTimeOffset.UtcNow;
-
-            if (@event.CorrelationId == null)
-                @event.CorrelationId = ExecutionContext.Current.CorrelationId;
+            @event.Id ??= Guid.NewGuid().ToString();
+            @event.Timestamp ??= DateTimeOffset.UtcNow;
 
             if (PropertySelection.HasFlag(EventDataProperty.Subject))
             {
@@ -126,13 +140,10 @@ namespace CoreEx.Events
                 else if (@event.Subject != null && SubjectCasing != TextInfoCasing.None)
                     @event.Subject = TextInfo.ToCasing(@event.Subject, SubjectCasing);
 
-                if (SubjectAppendIdOrPrimaryKey && value != null)
-                {
-                    if (value is IIdentifier ii)
-                        @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, new CompositeKey(ii.Id).ToString());
-                    else if (value is IPrimaryKey pk)
-                        @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, pk.PrimaryKey.ToString());
-                }
+                if (SubjectAppendKey && @event.Key != null)
+                    @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, @event.Key);
+                else if (SubjectAppendEntityKey && value is IEntityKey ek)
+                    @event.Subject = Concatenate(@event.Subject, SubjectSeparatorCharacter, ek.EntityKey.ToString(KeySeparatorCharacter));
             }
             else
                 @event.Subject = null;
@@ -152,18 +163,17 @@ namespace CoreEx.Events
                 else if (@event.Type != null && TypeCasing != TextInfoCasing.None)
                     @event.Type = TextInfo.ToCasing(@event.Type, TypeCasing);
 
-                if (TypeAppendIdOrPrimaryKey && @event.Value != null)
-                {
-                    if (value is IIdentifier ii)
-                        @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, new CompositeKey(ii.Id).ToString());
-                    else if (value is IPrimaryKey pk)
-                        @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, pk.PrimaryKey.ToString());
-                }
+                if (TypeAppendKey && @event.Key != null)
+                    @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, @event.Key);
+                else if (TypeAppendEntityKey && value is IEntityKey ek)
+                    @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, ek.EntityKey.ToString(KeySeparatorCharacter));
             }
             else
                 @event.Type = null;
 
-            if (!PropertySelection.HasFlag(EventDataProperty.CorrelationId))
+            if (PropertySelection.HasFlag(EventDataProperty.CorrelationId))
+                @event.CorrelationId ??= ExecutionContext.HasCurrent ? ExecutionContext.Current.CorrelationId : @event.Id;
+            else
                 @event.CorrelationId = null;
 
             if (!PropertySelection.HasFlag(EventDataProperty.TenantId))
@@ -186,16 +196,16 @@ namespace CoreEx.Events
             else
                 @event.ETag = null;
 
-            if (!PropertySelection.HasFlag(EventDataProperty.Attributes))
+            if (!PropertySelection.HasFlag(EventDataProperty.Attributes) && @event.HasAttributes)
                 @event.Attributes = null;
 
             if (PropertySelection.HasFlag(EventDataProperty.Source))
-            {
-                if (@event.Source == null)
-                    @event.Source = SourceDefault?.Invoke(@event);
-            }
+                @event.Source ??= SourceDefault?.Invoke(@event);
             else
                 @event.Source = null;
+
+            if (!PropertySelection.HasFlag(EventDataProperty.Key))
+                @event.Key = null;
         }
 
         /// <summary>

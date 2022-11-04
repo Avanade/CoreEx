@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Provides the base <b>CosmosDb/DocumentDb</b> <b>model</b> capabilities.
+    /// Provides the base <b>CosmosDb</b> <b>model</b> capabilities.
     /// </summary>
     public abstract class CosmosDbModelBase : IIdentifier<string>, IETag
     {

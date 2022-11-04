@@ -107,15 +107,15 @@ namespace CoreEx.RefData
         IReferenceData? GetByMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T>;
 
         /// <summary>
-        /// Gets a list of all items (excluding invalid only) sorted by the <see cref="IReferenceData.SortOrder"/> value.
+        /// Gets all items (excluding invalid only) sorted by the <see cref="IReferenceData.SortOrder"/> value.
         /// </summary>
         /// <value>An <see cref="IEnumerable{T}"/> containing the selected <see cref="IReferenceData"/> items.</value>
-        IEnumerable<IReferenceData> AllList { get; }
+        IEnumerable<IReferenceData> AllItems { get; }
 
         /// <summary>
-        /// Gets a list of all active (excluding invalid and not <see cref="IReferenceData.IsActive"/>) items sorted by the <see cref="IReferenceData.SortOrder"/> value.
+        /// Gets all active (excluding invalid and not <see cref="IReferenceData.IsActive"/>) items sorted by the <see cref="IReferenceData.SortOrder"/> value.
         /// </summary>
         /// <value>An <see cref="IEnumerable{T}"/> containing the selected <see cref="IReferenceData"/> items.</value>
-        IEnumerable<IReferenceData> ActiveList { get; }
+        IEnumerable<IReferenceData> ActiveItems { get; }
     }
 }

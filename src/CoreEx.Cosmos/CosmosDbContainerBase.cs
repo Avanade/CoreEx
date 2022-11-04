@@ -14,7 +14,7 @@ namespace CoreEx.Cosmos
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="Type"/> itself.</typeparam>
-    public abstract class CosmosDbContainerBase<T, TModel, TSelf> : ICosmosDbContainer<T, TModel> where T : class, new() where TModel : class, IIdentifier, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
+    public abstract class CosmosDbContainerBase<T, TModel, TSelf> : ICosmosDbContainer<T, TModel> where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
     {
         private Func<T, PartitionKey>? _partitionKey;
 
@@ -63,13 +63,44 @@ namespace CoreEx.Cosmos
         }
 
         /// <summary>
+        /// Gets the <b>CosmosDb</b> identifier from the <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <returns>The <b>CosmosDb</b> identifier.</returns>
+        /// <remarks>Only supports a single key value; therefore, the <see cref="CompositeKey.Args"/> length must be one (1) otherwise throws a <see cref="NotSupportedException"/>.</remarks>
+        public string GetCosmosId(CompositeKey key) => key.Args.Length == 1 ? GetCosmosId(key.Args[0]) : throw new NotSupportedException("Only an underlying single key value that is a string is supported.");
+
+        /// <summary>
+        /// Gets the <b>CosmosDb</b> identifier from the external <paramref name="id"/>.
+        /// </summary>
+        /// <param name="id">The external identifier.</param>
+        /// <returns>The <b>CosmosDb</b> identifier.</returns>
+        /// <remarks>Uses the <see cref="CosmosDb.FormatIdentifier(object?)"/> to format the <paramref name="id"/> as a string (as required).</remarks>
+        public virtual string GetCosmosId(object? id) => CosmosDb.FormatIdentifier(id);
+
+        /// <summary>
+        ///  Gets the <b>CosmosDb</b> representation key from the <paramref name="value"/>.
+        /// </summary>
+        /// <param name="value">The entity value.</param>
+        /// <returns>The <b>CosmosDb</b> identifier.</returns>
+        public string GetCosmosId(T value) => GetCosmosId((value ?? throw new ArgumentNullException(nameof(value))).EntityKey);
+
+        /// <summary>
+        /// Gets the entity for the specified <paramref name="id"/>.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        public Task<T?> GetAsync(object? id, CancellationToken cancellationToken = default) => GetAsync(id, new CosmosDbArgs(CosmosDb.DbArgs), cancellationToken);
+
+        /// <summary>
         /// Gets the entity for the specified <paramref name="id"/>.
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="ICosmosDb.PartitionKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
-        public Task<T?> GetAsync(string id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => GetAsync(id, new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), cancellationToken);
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        public Task<T?> GetAsync(object? id, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => GetAsync(id, new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), cancellationToken);
 
         /// <summary>
         /// Gets the entity for the specified <paramref name="id"/>.
@@ -77,8 +108,8 @@ namespace CoreEx.Cosmos
         /// <param name="id">The identifier.</param>
         /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
-        public abstract Task<T?> GetAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        public abstract Task<T?> GetAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Creates the entity.
@@ -118,10 +149,18 @@ namespace CoreEx.Cosmos
         /// Deletes the entity for the specified <paramref name="id"/>.
         /// </summary>
         /// <param name="id">The identifier.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        public Task DeleteAsync(object? id, CancellationToken cancellationToken = default) => DeleteAsync(id, new CosmosDbArgs(CosmosDb.DbArgs), cancellationToken);
+
+        /// <summary>
+        /// Deletes the entity for the specified <paramref name="id"/>.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
         /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="ICosmosDb.PartitionKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
-        public Task DeleteAsync(string id, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteAsync(id, new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), cancellationToken);
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        public Task DeleteAsync(object? id, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => DeleteAsync(id, new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), cancellationToken);
 
         /// <summary>
         /// Deletes the entity for the specified <paramref name="id"/>.
@@ -129,7 +168,7 @@ namespace CoreEx.Cosmos
         /// <param name="id">The identifier.</param>
         /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFoundResponse"/>).</returns>
-        public abstract Task DeleteAsync(string id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        public abstract Task DeleteAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
     }
 }

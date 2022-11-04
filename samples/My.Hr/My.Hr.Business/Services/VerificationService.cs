@@ -61,7 +61,7 @@ public class VerificationService
             response.VerificationMessages.Add($"Employee gender ({request.Gender}) doesn't match predicted gender: {response.Gender}");
         }
 
-        _publisher.Publish(_settings.VerificationResultsQueueName, new EventData { Value = response });
+        _publisher.PublishNamed(_settings.VerificationResultsQueueName, new EventData { Value = response });
         await _publisher.SendAsync();
     }
 

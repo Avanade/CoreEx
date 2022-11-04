@@ -7,9 +7,9 @@ using System.Collections;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Provides the <see cref="Paging"/> and <see cref="Collection"/> for a collection result.
+    /// Provides the <see cref="Paging"/> and <see cref="Items"/> for a collection result.
     /// </summary>
-    /// <remarks>Generally an <see cref="ICollectionResult"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Collection"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
+    /// <remarks>Generally an <see cref="ICollectionResult"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Items"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
     public interface ICollectionResult
     {
         /// <summary>
@@ -18,7 +18,7 @@ namespace CoreEx.Entities
         Type ItemType { get; }
 
         /// <summary>
-        /// Gets the <see cref="Collection"/> <see cref="Type"/>.
+        /// Gets the <see cref="Items"/> <see cref="Type"/>.
         /// </summary>
         Type CollectionType { get;  }
 
@@ -30,6 +30,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the underlying <see cref="ICollection"/>.
         /// </summary>
-        ICollection Collection { get; set; }
+        ICollection Items { get; set; }
     }
 }

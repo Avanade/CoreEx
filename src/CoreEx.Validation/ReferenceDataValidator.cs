@@ -2,7 +2,6 @@
 
 using CoreEx.RefData;
 using System;
-using System.Threading.Tasks;
 
 namespace CoreEx.Validation
 {
@@ -17,7 +16,7 @@ namespace CoreEx.Validation
         /// </summary>
         public ReferenceDataValidator()
         {
-            Property(x => x.Id).Mandatory().Custom(ValidateIdAsync);
+            Property(x => x.Id).Mandatory().Custom(ValidateId);
             Property(x => x.Code).Mandatory().String(ReferenceDataValidation.MaxCodeLength);
             Property(x => x.Text).Mandatory().String(ReferenceDataValidation.MaxTextLength);
             Property(x => x.Description).String(ReferenceDataValidation.MaxDescriptionLength);
@@ -27,7 +26,7 @@ namespace CoreEx.Validation
         /// <summary>
         /// Perform more complex mandatory check based on the ReferenceData base ID type.
         /// </summary>
-        private void ValidateIdAsync(PropertyContext<TEntity, object?> context)
+        private void ValidateId(PropertyContext<TEntity, object?> context)
         {
             if (context.Value != null)
             {

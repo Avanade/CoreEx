@@ -11,7 +11,7 @@ namespace CoreEx.Validation.Rules
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TProperty">The value <see cref="System.Type"/>.</typeparam>
-    public interface IValueRule<TEntity, TProperty> where TEntity : class
+    public interface IValueRule<TEntity, out TProperty> where TEntity : class
     {
         /// <summary>
         /// Adds a <see cref="IPropertyRuleClause{TEntity}"/>.
@@ -31,6 +31,6 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken);
+        Task ValidateAsync(IPropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken);
     }
 }

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions;
 using CoreEx.Database;
+using CoreEx.Invokers;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Common;
 using System.Reflection;

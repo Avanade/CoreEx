@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Business
+namespace CoreEx.Invokers
 {
     /// <summary>
     /// Wraps a <b>Data Service invoke</b> enabling standard <b>business tier</b> functionality to be added to all invocations.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public class DataSvcInvoker : BusinessInvokerBase
+    public class DataSvcInvoker : InvokerBase
     {
         private static DataSvcInvoker? _default;
 

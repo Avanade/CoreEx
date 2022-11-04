@@ -31,11 +31,11 @@ public class ReferenceDataController : ControllerBase
     /// <param name="text">The reference data text (including wildcards).</param>
     /// <returns>A <see cref="GenderCollection"/>.</returns>
     [HttpGet("genders")]
-    [ProducesResponseType(typeof(ReferenceDataMultiCollection), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(IEnumerable<Gender>), (int)HttpStatusCode.OK)]
     public Task<IActionResult> GenderGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
         _webApi.GetAsync(Request, x => _orchestrator.GetWithFilterAsync<Gender>(codes, text, x.RequestOptions.IncludeInactive));
 
     [HttpGet()]
-    [ProducesResponseType(typeof(ReferenceDataMultiCollection), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(IEnumerable<CoreEx.RefData.Models.ReferenceDataMultiItem>), (int)HttpStatusCode.OK)]
     public Task<IActionResult> GetNamed() => _webApi.GetAsync(Request, p => _orchestrator.GetNamedAsync(p.RequestOptions));
 }

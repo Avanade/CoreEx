@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Encapsulates a <b>CosmosDb/DocumentDb</b> query enabling all select-like capabilities.
+    /// Encapsulates a <b>CosmosDb</b> query enabling all select-like capabilities.
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="CosmosDbValue{T}"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-    public class CosmosDbValueQuery<T, TModel> : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>> where T : class, new() where TModel : class, IIdentifier, new()
+    public class CosmosDbValueQuery<T, TModel> : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>> where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
     {
         private readonly Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? _query;
 

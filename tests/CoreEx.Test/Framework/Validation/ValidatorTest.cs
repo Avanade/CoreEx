@@ -193,6 +193,20 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual(2, r.Messages!.Count);
         }
 
+        [Test]
+        public async Task NonNullableString()
+        {
+            var v = Validator.Create<TestDataString>().HasProperty(x => x.Name, p => p.Mandatory().String(10));
+            var r = await v.ValidateAsync(new TestDataString("a"));
+            Assert.IsNotNull(r);
+            Assert.IsFalse(r.HasErrors);
+
+            r = await v.ValidateAsync(new TestDataString(null!));
+            Assert.IsTrue(r.HasErrors);
+            Assert.AreEqual(1, r.Messages!.Count);
+            Assert.AreEqual("Name is required.", r.Messages[0].Text);
+        }
+
         public class TestItemValidator : Validator<TestItem>
         {
             public TestItemValidator()
@@ -236,15 +250,34 @@ namespace CoreEx.Test.Framework.Validation
             public Dictionary<string, TestItem>? Dict2 { get; set; }
         }
 
-        public class TestItem : IIdentifier<string>, IPrimaryKey
+        public class TestItem : IIdentifier<string>
         {
             public string? Id { get; set; }
 
             [JsonPropertyName("Text")]
             [System.ComponentModel.DataAnnotations.Display(Name = "Description")]
             public string? Text { get; set; }
+        }
 
-            public CompositeKey PrimaryKey => new CompositeKey(Id);
+        public class TestItem2 : IPrimaryKey
+        {
+            public string? Part1 { get; set; }
+
+            public int Part2 { get; set; }
+
+            [JsonPropertyName("Text")]
+            [System.ComponentModel.DataAnnotations.Display(Name = "Description")]
+            public string? Text { get; set; }
+
+            public CompositeKey PrimaryKey => new CompositeKey(Part1, Part2);
+
+        }
+
+        public class TestDataString
+        {
+            public TestDataString(string name) => Name = name;
+
+            public string Name { get; set; }
         }
 
         [Test]

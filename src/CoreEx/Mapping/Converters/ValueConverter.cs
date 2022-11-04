@@ -11,15 +11,15 @@ namespace CoreEx.Mapping.Converters
     /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
     public struct ValueConverter<TSource, TDestination> : IValueConverter<TSource, TDestination>
     {
-        private readonly Func<TSource?, TDestination?> _converter;
+        private readonly Func<TSource, TDestination> _converter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValueConverter{TSource, TDestination}"/>.
         /// </summary>
         /// <param name="converter">The function to convert a <typeparamref name="TSource"/> to a <typeparamref name="TDestination"/>.</param>
-        public ValueConverter(Func<TSource?, TDestination?> converter) => _converter = converter ?? throw new ArgumentNullException(nameof(converter));
+        public ValueConverter(Func<TSource, TDestination> converter) => _converter = converter ?? throw new ArgumentNullException(nameof(converter));
 
         /// <inheritdoc/>
-        public TDestination? Convert(TSource? source) => _converter(source);
+        public TDestination Convert(TSource source) => _converter(source);
     }
 }

@@ -4,7 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CoreEx.Abstractions
+namespace CoreEx.Invokers
 {
     /// <summary>
     /// Wraps an <b>Invoke</b> enabling standard functionality to be added to all invocations. 
@@ -36,7 +36,7 @@ namespace CoreEx.Abstractions
         /// <param name="action">The action to invoke.</param>
         /// <param name="args">The arguments passed to the invoke.</param>
         public void Invoke(TInvoker invoker, Action action, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(); return Task.FromResult<object?>(null!); }, args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(); return Task.FromResult<object?>(null!); }, args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -46,7 +46,7 @@ namespace CoreEx.Abstractions
         /// <param name="action">The action to invoke.</param>
         /// <param name="args">The arguments passed to the invoke.</param>
         public void Invoke<T1>(TInvoker invoker, T1 p1, Action<T1> action, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1); return Task.FromResult<object?>(null!); }, args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1); return Task.FromResult<object?>(null!); }, args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -57,7 +57,7 @@ namespace CoreEx.Abstractions
         /// <param name="action">The action to invoke.</param>
         /// <param name="args">The arguments passed to the invoke.</param>
         public void Invoke<T1, T2>(TInvoker invoker, T1 p1, T2 p2, Action<T1, T2> action, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1, p2); return Task.FromResult<object?>(null!); }, args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1, p2); return Task.FromResult<object?>(null!); }, args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -69,7 +69,7 @@ namespace CoreEx.Abstractions
         /// <param name="action">The action to invoke.</param>
         /// <param name="args">The arguments passed to the invoke.</param>
         public void Invoke<T1, T2, T3>(TInvoker invoker, T1 p1, T2 p2, T3 p3, Action<T1, T2, T3> action, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1, p2, p3); return Task.FromResult<object?>(null!); }, args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1, p2, p3); return Task.FromResult<object?>(null!); }, args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -82,7 +82,7 @@ namespace CoreEx.Abstractions
         /// <param name="action">The action to invoke.</param>
         /// <param name="args">The arguments passed to the invoke.</param>
         public void Invoke<T1, T2, T3, T4>(TInvoker invoker, T1 p1, T2 p2, T3 p3, T4 p4, Action<T1, T2, T3, T4> action, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1, p2, p3, p4); return Task.FromResult<object?>(null!); }, args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(p1, p2, p3, p4); return Task.FromResult<object?>(null!); }, args, CancellationToken.None));
 
         #endregion
 
@@ -96,7 +96,7 @@ namespace CoreEx.Abstractions
         /// <param name="args">The <typeparamref name="TArgs"/> value.</param>
         /// <returns>The result.</returns>
         public TResult Invoke<TResult>(TInvoker invoker, Func<TResult> func, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func()), args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func()), args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -107,7 +107,7 @@ namespace CoreEx.Abstractions
         /// <param name="args">The <typeparamref name="TArgs"/> value.</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, TResult>(TInvoker invoker, T1 p1, Func<T1, TResult> func, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1)), args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1)), args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -119,7 +119,7 @@ namespace CoreEx.Abstractions
         /// <param name="args">The <typeparamref name="TArgs"/> value.</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, T2, TResult>(TInvoker invoker, T1 p1, T2 p2, Func<T1, T2, TResult> func, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1, p2)), args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1, p2)), args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -132,7 +132,7 @@ namespace CoreEx.Abstractions
         /// <param name="args">The <typeparamref name="TArgs"/> value.</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, T2, T3, TResult>(TInvoker invoker, T1 p1, T2 p2, T3 p3, Func<T1, T2, T3, TResult> func, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1, p2, p3)), args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1, p2, p3)), args, CancellationToken.None));
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -146,7 +146,7 @@ namespace CoreEx.Abstractions
         /// <param name="args">The <typeparamref name="TArgs"/> value.</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, T2, T3, T4, TResult>(TInvoker invoker, T1 p1, T2 p2, T3 p3, T4 p4, Func<T1, T2, T3, T4, TResult> func, TArgs? args = default)
-            => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1, p2, p3, p4)), args, CancellationToken.None).GetAwaiter().GetResult();
+            => Invoker.RunSync(() => OnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), _ => Task.FromResult(func(p1, p2, p3, p4)), args, CancellationToken.None));
 
         #endregion
 

@@ -8,10 +8,10 @@ using System;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Represents a special-purpose <b>CosmosDb/DocumentDb</b> object that houses an underlying model-<see cref="Value"/>, including <see cref="Type"/> name, and flexible <see cref="IIdentifier"/>, for persistence.
+    /// Represents a special-purpose <b>CosmosDb</b> object that houses an underlying model-<see cref="Value"/>, including <see cref="Type"/> name, and flexible <see cref="IIdentifier"/>, for persistence.
     /// </summary>
     /// <typeparam name="TModel">The model <see cref="Value"/> <see cref="Type"/>.</typeparam>
-    /// <remarks>The <see cref="CosmosDbModelBase.Id"/>, <see cref="Type"/> and <see cref="CosmosDbModelBase.ETag"/> are updated internally when interacting directly with <b>CosmosDB/DocumentDb</b>.</remarks>
+    /// <remarks>The <see cref="CosmosDbModelBase.Id"/>, <see cref="Type"/> and <see cref="CosmosDbModelBase.ETag"/> are updated internally when interacting directly with <b>CosmosDB</b>.</remarks>
     public sealed class CosmosDbValue<TModel> : CosmosDbModelBase, ICosmosDbValue where TModel : class, IIdentifier, new()
     {
         private TModel _value;

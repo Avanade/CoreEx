@@ -5,7 +5,7 @@ using CoreEx.Entities;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Defines the core capabilities for the special-purpose <b>CosmosDb/DocumentDb</b> object that houses an underlying model-<see cref="Value"/>.
+    /// Defines the core capabilities for the special-purpose <b>CosmosDb</b> object that houses an underlying model-<see cref="Value"/>.
     /// </summary>
     public interface ICosmosDbValue : IIdentifier<string>
     {

@@ -9,7 +9,7 @@ using System.Linq;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Provides the <b>CosmosDb/DocumentDb</b> capabilities.
+    /// Provides the <b>CosmosDb</b> capabilities.
     /// </summary>
     public interface ICosmosDb
     {
@@ -36,7 +36,7 @@ namespace CoreEx.Cosmos
         /// <summary>
         /// Gets the default <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.
         /// </summary>
-        /// <remarks>Where <c>null</c> and the underlying <b>CosmosDb/DocumentDb</b> capability requires then <see cref="PartitionKey.None"/> will be used.</remarks>
+        /// <remarks>Where <c>null</c> and the underlying <b>CosmosDb</b> capability requires then <see cref="PartitionKey.None"/> will be used.</remarks>
         PartitionKey? PartitionKey { get; }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace CoreEx.Cosmos
         /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
         /// <param name="containerId">The <see cref="Container"/> identifier.</param>
         /// <returns>The <see cref="CosmosDbContainer{T, TModel}"/>.</returns>
-        CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier<string>, new();
+        CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new();
 
         /// <summary>
         /// Gets (creates) the <see cref="CosmosDbValueContainer{T, TModel}"/> for the specified <paramref name="containerId"/>.
@@ -62,7 +62,7 @@ namespace CoreEx.Cosmos
         /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
         /// <param name="containerId">The <see cref="Container"/> identifier.</param>
         /// <returns>The <see cref="CosmosDbValueContainer{T, TModel}"/>.</returns>
-        CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, new() where TModel : class, IIdentifier, new();
+        CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new();
 
         /// <summary>
         /// Invoked where a <see cref="CosmosException"/> has been thrown.
@@ -98,7 +98,7 @@ namespace CoreEx.Cosmos
         Func<IQueryable, IQueryable>? GetAuthorizeFilter<TModel>(string containerId);
 
         /// <summary>
-        /// Formats an identifier to a <see cref="string"/> representation based on its underlying <see cref="Type"/> (used by the <see cref="ICosmosDbValue.PrepareBefore"/>).
+        /// Formats an identifier to a <see cref="string"/> representation based on its underlying <see cref="Type"/> (used by <see cref="CosmosDbContainerBase{T, TModel, TSelf}.GetCosmosId(T)"/> and <see cref="ICosmosDbValue.PrepareBefore"/>).
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <returns>The identifier as a <see cref="string"/>.</returns>

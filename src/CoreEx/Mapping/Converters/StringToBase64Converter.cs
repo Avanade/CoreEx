@@ -13,6 +13,11 @@ namespace CoreEx.Mapping.Converters
         private static readonly ValueConverter<byte[], string?> _convertToSource = new(d => d == null ? null : Convert.ToBase64String(d));
 
         /// <summary>
+        /// Gets or sets the default (singleton) instance.
+        /// </summary>
+        public static StringToBase64Converter Default { get; set; } = new();
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="StringToBase64Converter"/> struct.
         /// </summary>
         public StringToBase64Converter() { }

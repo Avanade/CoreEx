@@ -15,11 +15,11 @@ namespace CoreEx.Json.Merge
     /// Provides a JSON Merge Patch (<c>application/merge-patch+json</c>) whereby the contents of a JSON document are merged into an existing object value as per <see href="https://tools.ietf.org/html/rfc7396"/>.
     /// </summary>
     /// <remarks><para>This object should be reused where possible as it caches the JSON serialization semantics internally to improve performance. It is also thread-safe.</para>
-    /// <para>Additional logic has been added to the merge patch enabled by <see cref="JsonMergePatchOptions.DictionaryMergeApproach"/> and <see cref="JsonMergePatchOptions.PrimaryKeyCollectionMergeApproach"/>. Note: these capabilities are
+    /// <para>Additional logic has been added to the merge patch enabled by <see cref="JsonMergePatchOptions.DictionaryMergeApproach"/> and <see cref="JsonMergePatchOptions.EntityKeyCollectionMergeApproach"/>. Note: these capabilities are
     /// unique to <i>CoreEx</i> and not part of the formal specification <see href="https://tools.ietf.org/html/rfc7396"/>.</para></remarks>
     public class JsonMergePatch : IJsonMergePatch
     {
-        private const string PKCollectionName = "PKColl";
+        private const string EKCollectionName = "EKColl";
         private readonly TypeReflectorArgs _trArgs;
 
         /// <summary>
@@ -37,9 +37,9 @@ namespace CoreEx.Json.Merge
                 NameComparer = Options.NameComparer,
                 TypeBuilder = tr =>
                 {
-                    // Determine if type implements IPrimaryKeyCollection.
-                    if (tr.Type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPrimaryKeyCollection<>)))
-                        tr.Data.Add(PKCollectionName, true);
+                    // Determine if type implements IEntityKeyCollection.
+                    if (tr.Type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICompositeKeyCollection<>)))
+                        tr.Data.Add(EKCollectionName, true);
                 },
                 PropertyBuilder = pr => pr.PropertyExpression.IsJsonSerializable // Only interested in properties that are considered serializable.
             };
@@ -133,8 +133,8 @@ namespace CoreEx.Json.Merge
 
                 case JsonValueKind.Array:
                     // Unless explicitly requested an array is a full replacement only (source copy); otherwise, perform key collection item merge.
-                    if (Options.PrimaryKeyCollectionMergeApproach != PrimaryKeyCollectionMergeApproach.Replace && tr.Data.ContainsKey(PKCollectionName))
-                        dest = (T)MergeKeyedCollection(tr, "$", json, (IKeyedCollection)srce!, (IKeyedCollection)dest!, ref hasChanged);
+                    if (Options.EntityKeyCollectionMergeApproach != EntityKeyCollectionMergeApproach.Replace && tr.Data.ContainsKey(EKCollectionName))
+                        dest = (T)MergeKeyedCollection(tr, "$", json, (ICompositeKeyCollection)srce!, (ICompositeKeyCollection)dest!, ref hasChanged);
                     else
                     {
                         hasChanged = !tr.Compare(dest, srce);
@@ -232,9 +232,9 @@ namespace CoreEx.Json.Merge
                 case JsonValueKind.Array:
                     // Unless explicitly requested an array is a full replacement only (source copy); otherwise, perform key collection item merge.
                     var tr = pr.GetTypeReflector()!;
-                    if (Options.PrimaryKeyCollectionMergeApproach != PrimaryKeyCollectionMergeApproach.Replace && tr.Data.ContainsKey(PKCollectionName))
+                    if (Options.EntityKeyCollectionMergeApproach != EntityKeyCollectionMergeApproach.Replace && tr.Data.ContainsKey(EKCollectionName))
                     {
-                        var coll = MergeKeyedCollection(tr, path, json.Value, (IKeyedCollection)pr.PropertyExpression.GetValue(srce)!, (IKeyedCollection)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
+                        var coll = MergeKeyedCollection(tr, path, json.Value, (ICompositeKeyCollection)pr.PropertyExpression.GetValue(srce)!, (ICompositeKeyCollection)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
                         SetPropertyValue(pr, coll, dest, ref hasChanged);
                     }
                     else
@@ -319,18 +319,18 @@ namespace CoreEx.Json.Merge
         }
 
         /// <summary>
-        /// Merge a <see cref="IKeyedCollection"/>.
+        /// Merge a <see cref="ICompositeKeyCollection"/>.
         /// </summary>
-        private IKeyedCollection MergeKeyedCollection(ITypeReflector tr, string root, JsonElement json, IKeyedCollection srce, IKeyedCollection? dest, ref bool hasChanged)
+        private ICompositeKeyCollection MergeKeyedCollection(ITypeReflector tr, string root, JsonElement json, ICompositeKeyCollection srce, ICompositeKeyCollection? dest, ref bool hasChanged)
         {
             if (srce!.IsAnyDuplicates())
-                throw new JsonMergePatchException($"The JSON array must not contain items with duplicate '{nameof(IPrimaryKey)}' keys. Path: {root}");
+                throw new JsonMergePatchException($"The JSON array must not contain items with duplicate '{nameof(IEntityKey)}' keys. Path: {root}");
 
             if (dest != null && dest.IsAnyDuplicates())
-                throw new JsonMergePatchException($"The JSON array destination collection must not contain items with duplicate '{nameof(IPrimaryKey)}' keys prior to merge. Path: {root}");
+                throw new JsonMergePatchException($"The JSON array destination collection must not contain items with duplicate '{nameof(IEntityKey)}' keys prior to merge. Path: {root}");
 
             // Create new destination collection; add each to maintain sent order as this may be important to the consuming application.
-            var coll = (IKeyedCollection)tr.CreateInstance();
+            var coll = (ICompositeKeyCollection)tr.CreateInstance();
 
             // Iterate through the items and add to the new collection.
             var i = 0;
@@ -342,10 +342,10 @@ namespace CoreEx.Json.Merge
                 if (ji.ValueKind != JsonValueKind.Object && ji.ValueKind != JsonValueKind.Null)
                     throw new JsonMergePatchException($"The JSON array item must be an Object where the destination collection supports keys. Path: {path}");
 
-                var srceitem = (IPrimaryKey)srce[i++];
+                var srceitem = (IEntityKey)srce[i++];
 
                 // Find the existing and merge; otherwise, add as-is.
-                var destitem = srceitem == null ? null : dest?.GetByKey(srceitem.PrimaryKey);
+                var destitem = srceitem == null ? null : dest?.GetByKey(srceitem.EntityKey);
                 if (destitem != null)
                 {
                     MergeObject(ier, path, ji, srceitem, destitem, ref hasChanged);

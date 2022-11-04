@@ -333,31 +333,31 @@ namespace CoreEx.Database
 
         #endregion
 
-        #region ParamWildcard
+        #region ParamWithWildcard
 
         /// <summary>
-        /// Adds a named parameter with a <see cref="Wildcards.Wildcard"/> value.
+        /// Adds a named parameter when invoked with a non-default <paramref name="wildcard"/> (converted for the database).
         /// </summary>
         /// <typeparam name="TSelf">The owning <see cref="Type"/>.</typeparam>
         /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
-        /// <param name="wildcard">The wildcard value.</param>
+        /// <param name="wildcard">The wildcard <b>with</b> which to verify is non-default and apply.</param>
         /// <param name="name">The parameter name.</param>
         /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
-        public static TSelf ParamWithWildcard<TSelf>(this IDatabaseParameters<TSelf> parameters, string name, string? wildcard, ParameterDirection direction = ParameterDirection.Input)
-            => Param(parameters, name, parameters.Database.Wildcard.Replace(wildcard), direction);
+        public static TSelf ParamWithWildcard<TSelf>(this IDatabaseParameters<TSelf> parameters, string? wildcard, string name, ParameterDirection direction = ParameterDirection.Input)
+            => ParamWith(parameters, wildcard, name, () => parameters.Database.Wildcard.Replace(wildcard), direction);
 
         /// <summary>
-        /// Adds a named parameter with a <see cref="Wildcards.Wildcard"/> value.
+        /// Adds a named parameter when invoked with a non-default <paramref name="wildcard"/> (converted for the database).
         /// </summary>
         /// <typeparam name="TSelf">The owning <see cref="Type"/>.</typeparam>
         /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
-        /// <param name="wildcard">The wildcard value.</param>
+        /// <param name="wildcard">The wildcard <b>with</b> which to verify is non-default and apply.</param>
         /// <param name="mapper">The <see cref="IPropertyColumnMapper"/>.</param>
         /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
-        public static TSelf ParamWithWildcard<TSelf>(this IDatabaseParameters<TSelf> parameters, IPropertyColumnMapper mapper, string? wildcard, ParameterDirection direction = ParameterDirection.Input)
-            => ParamWithWildcard(parameters, mapper?.ParameterName!, parameters.Database.Wildcard.Replace(wildcard), direction);
+        public static TSelf ParamWithWildcard<TSelf>(this IDatabaseParameters<TSelf> parameters, string? wildcard, IPropertyColumnMapper mapper, ParameterDirection direction = ParameterDirection.Input)
+            => ParamWithWildcard(parameters, wildcard, mapper?.ParameterName!, direction);
 
         #endregion
 
@@ -433,7 +433,7 @@ namespace CoreEx.Database
 
         #endregion
 
-        #region PagingParam
+        #region PagingParams
 
         /// <summary>
         /// Adds the <see cref="PagingArgs"/> as parameters.
@@ -442,7 +442,7 @@ namespace CoreEx.Database
         /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
         /// <param name="paging">The <see cref="PagingArgs"/>.</param>
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
-        public static TSelf PagingParam<TSelf>(this IDatabaseParameters<TSelf> parameters, PagingArgs? paging)
+        public static TSelf PagingParams<TSelf>(this IDatabaseParameters<TSelf> parameters, PagingArgs? paging)
         {
             if (paging != null)
             {

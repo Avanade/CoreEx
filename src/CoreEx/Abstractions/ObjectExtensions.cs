@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions.Reflection;
 using System;
 
 namespace CoreEx
@@ -24,5 +25,14 @@ namespace CoreEx
 
             return value!;
         }
+
+        /// <summary>
+        /// Converts a <see cref="string"/> into sentence case.
+        /// </summary>
+        /// <param name="text">The text to convert.</param>
+        /// <returns>The <see cref="string"/> as sentence case.</returns>
+        /// <remarks>For example a value of '<c>VarNameDB</c>' would return '<c>Var Name DB</c>'.
+        /// <para>Uses the <see cref="PropertyExpression.SentenceCaseConverter"/> function to perform the conversion.</para></remarks>
+        public static string? ToSentenceCase(this string? text) => PropertyExpression.ToSentenceCase(text);
     }
 }

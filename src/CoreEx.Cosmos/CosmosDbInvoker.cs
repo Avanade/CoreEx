@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions;
+using CoreEx.Invokers;
 using Microsoft.Azure.Cosmos;
 using System;
 using System.Threading;

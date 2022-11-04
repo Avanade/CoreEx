@@ -30,7 +30,7 @@ namespace CoreEx.Json.Data
 
         private class YamlNodeTypeResolver : INodeTypeResolver
         {
-            private static readonly string[] boolValues = { "y", "Y", "yes", "Yes", "YES", "n", "N", "no", "No", "NO", "true", "True", "TRUE", "false", "False", "FALSE", "on", "On", "ON", "off", "Off", "OFF" };
+            private static readonly string[] boolValues = { "true", "false" };
 
             /// <inheritdoc/>
             bool INodeTypeResolver.Resolve(NodeEvent? nodeEvent, ref Type currentType)
@@ -187,6 +187,7 @@ namespace CoreEx.Json.Data
                             (items ??= new List<T>()).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
+                            Entities.Models.ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(typeof(T), item, jd, items.Count - 1);
                         }
                     }
@@ -220,6 +221,7 @@ namespace CoreEx.Json.Data
                             (items ??= new List<object>()).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
+                            Entities.Models.ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(type, item, jd, items.Count - 1);
                         }
                     }
@@ -448,8 +450,9 @@ namespace CoreEx.Json.Data
             var tr = TypeReflector.GetReflector(_typeReflectorArgs, type);
             foreach (var rp in _args.RefDataColumnDefaults)
             {
+                // Check json name and property name overrides.
                 var pr = tr.GetProperty(rp.Key);
-                if (pr.JsonName != null && !json.TryGetProperty(pr.JsonName, out _))
+                if ((pr.JsonName != null && !json.TryGetProperty(pr.JsonName, out _)) && !json.TryGetProperty(pr.Name, out _))
                 {
                     pr.PropertyExpression.SetValue(item, rp.Value(index));
                 }

@@ -16,13 +16,13 @@ namespace CoreEx.Events
         public EventSendData() { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventSendData"/> class copying from another <paramref name="event"/> excluding the underlying <see cref="Data"/> or <see cref="EventData{T}.Value"/>.
+        /// Initializes a new instance of the <see cref="EventSendData"/> class copying from another <paramref name="event"/> excluding the underlying <see cref="Data"/> and <see cref="EventData{T}.Value"/>.
         /// </summary>
         /// <param name="event">The <see cref="EventDataBase"/>.</param>
         public EventSendData(EventDataBase @event) : base(@event) { }
 
         /// <summary>
-        /// Get or sets the optional <see cref="IEventPublisher.Publish(string, EventData[])"/> destination name (i.e. queue or topic).
+        /// Get or sets the optional <see cref="IEventPublisher.PublishNamed(string, EventData[])"/> destination name (i.e. queue or topic).
         /// </summary>
         public string? Destination { get; set; }
 

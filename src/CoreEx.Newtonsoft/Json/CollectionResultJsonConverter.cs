@@ -25,7 +25,7 @@ namespace CoreEx.Newtonsoft.Json
             var coll = (ICollection?)serializer.Deserialize(reader, cr.CollectionType);
 
             if (coll != null)
-                cr.Collection = coll;
+                cr.Items = coll;
 
             return cr;
         }
@@ -38,9 +38,9 @@ namespace CoreEx.Newtonsoft.Json
 
             writer.WriteStartArray();
 
-            if (cr.Collection != null)
+            if (cr.Items != null)
             {
-                foreach (var item in cr.Collection)
+                foreach (var item in cr.Items)
                 {
                     serializer.Serialize(writer, item);
                 }

@@ -58,7 +58,7 @@ namespace CoreEx.Validation
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the entity property.</param>
         /// <returns>The <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
-        public override PropertyRule<TEntity, TProperty> Property<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression)
+        public override IPropertyRule<TEntity, TProperty> Property<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression)
         {
             // Depending on the the state update either the ruleset rules or the underlying rules.
             if (_currentRuleSet == null)
@@ -74,7 +74,7 @@ namespace CoreEx.Validation
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the entity property.</param>
         /// <param name="property">The action to act on the created <see cref="PropertyRule{TEntity, TProperty}"/>.</param>
         /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
-        public Validator<TEntity> HasProperty<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, Action<PropertyRule<TEntity, TProperty>>? property = null)
+        public Validator<TEntity> HasProperty<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, Action<IPropertyRule<TEntity, TProperty>>? property = null)
         {
             var p = Property(propertyExpression);
             property?.Invoke(p);

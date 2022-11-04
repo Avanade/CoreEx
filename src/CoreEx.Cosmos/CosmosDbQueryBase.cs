@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Enables the common <b>CosmosDb/DocumentDb</b> query capabilities.
+    /// Enables the common <b>CosmosDb</b> query capabilities.
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
@@ -151,7 +151,7 @@ namespace CoreEx.Cosmos
         public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
         {
             Paging = Paging ?? new PagingResult(),
-            Collection = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
+            Items = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
         };
     }
 }

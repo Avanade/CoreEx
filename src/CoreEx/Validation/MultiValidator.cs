@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Validation
 {
     /// <summary>
-    /// Enables multiple validations to be performed (<see cref="ValidateAsync"/>) resulting in a single consolidated <see cref="MultiValidatorResult"/>.
+    /// Enables multiple validations to be performed (<see cref="ValidateAsync(CancellationToken)"/>) resulting in a single consolidated <see cref="MultiValidatorResult"/>.
     /// </summary>
     public class MultiValidator
     {
@@ -65,6 +65,18 @@ namespace CoreEx.Validation
             }
 
             return res;
+        }
+
+        /// <summary>
+        /// Runs the validations.
+        /// </summary>
+        /// <param name="throwOnError">Indicates whether to automatically throw a <see cref="ValidationException"/> where <see cref="IValidationResult.HasErrors"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="MultiValidatorResult"/>.</returns>
+        public async Task<MultiValidatorResult> ValidateAsync(bool throwOnError, CancellationToken cancellationToken = default)
+        {
+            var mvr = await ValidateAsync(cancellationToken).ConfigureAwait(false);
+            return throwOnError ? mvr.ThrowOnError() : mvr;
         }
 
         /// <summary>

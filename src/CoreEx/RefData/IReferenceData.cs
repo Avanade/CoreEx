@@ -4,6 +4,7 @@ using CoreEx.Entities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.RefData
 {
@@ -51,6 +52,7 @@ namespace CoreEx.RefData
         /// <summary>
         /// Indicates whether the <see cref="IReferenceData"/> is known and in a valid state.
         /// </summary>
+        [JsonIgnore]
         public bool IsValid => true;
 
         /// <summary>
@@ -64,11 +66,13 @@ namespace CoreEx.RefData
         /// </summary>
         /// <remarks>The mapping dictionary property is intended for internal use only; generally speaking use <see cref="SetMapping{T}(string, T)"/>, <see cref="GetMapping{T}(string)"/> and <see cref="TryGetMapping{T}(string, out T)"/> 
         /// to access.</remarks>
+        [JsonIgnore]
         Dictionary<string, object?>? Mappings => null!;
 
         /// <summary>
         /// Indicates whether any mapping values have been configured.
         /// </summary>
+        [JsonIgnore]
         public bool HasMappings => false;
 
         /// <summary>

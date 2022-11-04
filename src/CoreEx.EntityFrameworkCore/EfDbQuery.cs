@@ -73,7 +73,7 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken) => EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
         {
-            var dbSet = efdb.DbContext.Set<TModel>();
+            var dbSet = efdb.DbContext.Set<TModel>().AsNoTracking();
             return executeAsync((query == null) ? dbSet : query(dbSet), ct);
         }, cancellationToken);
 
@@ -139,7 +139,7 @@ namespace CoreEx.EntityFrameworkCore
         public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
         {
             Paging = Paging,
-            Collection = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
+            Items = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
         };
 
         /// <summary>

@@ -113,7 +113,7 @@ namespace CoreEx.Database.Extended
         public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
         {
             Paging = Paging,
-            Collection = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
+            Items = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
         };
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace CoreEx.Database.Extended
         private async Task<TResult> SelectWrapperAsync<TResult>(Func<DatabaseCommand, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             var rvp = Paging != null && Paging.IsGetCount ? Parameters.AddReturnValueParameter() : null;
-            var cmd = Command.Params(Parameters).PagingParam(Paging);
+            var cmd = Command.Params(Parameters).PagingParams(Paging);
 
             var res = await func(cmd, cancellationToken).ConfigureAwait(false);
 

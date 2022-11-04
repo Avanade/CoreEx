@@ -31,8 +31,8 @@ namespace CoreEx.Json.Merge
         public DictionaryMergeApproach DictionaryMergeApproach { get; set; } = DictionaryMergeApproach.Merge;
 
         /// <summary>
-        /// Gets or sets the <see cref="Merge.PrimaryKeyCollectionMergeApproach"/>. Defaults to <see cref="DictionaryMergeApproach.Replace"/>.
+        /// Gets or sets the <see cref="Merge.EntityKeyCollectionMergeApproach"/>. Defaults to <see cref="DictionaryMergeApproach.Replace"/>.
         /// </summary>
-        public PrimaryKeyCollectionMergeApproach PrimaryKeyCollectionMergeApproach { get; set; } = PrimaryKeyCollectionMergeApproach.Replace;
+        public EntityKeyCollectionMergeApproach EntityKeyCollectionMergeApproach { get; set; } = EntityKeyCollectionMergeApproach.Replace;
     }
 }

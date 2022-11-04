@@ -27,7 +27,7 @@ namespace Microsoft.EntityFrameworkCore
 
             await foreach (var item in query.WithPaging(paging).AsAsyncEnumerable().WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                result.Collection.Add(item);
+                result.Items.Add(item);
             }
 
             if (result.Paging.IsGetCount)

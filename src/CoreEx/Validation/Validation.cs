@@ -56,7 +56,7 @@ namespace CoreEx.Validation
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>The value where non-default.</returns>
         /// <exception cref="ValidationException">Thrown where the value is default.</exception>
-        public static T? EnsureValue<T>(this T? value, string? name = "value", LText? text = null) 
+        public static T? EnsureValue<T>(this T? value, string? name = null, LText? text = null) 
             => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? ((name == null || name == ValueNameDefault) ? ValueTextDefault : name.ToSentenceCase()!))) : value;
     }
 }

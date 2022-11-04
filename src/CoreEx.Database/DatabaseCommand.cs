@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -124,6 +125,52 @@ namespace CoreEx.Database
                 if (index < multiSetList.Count && !multiSetList[index].StopOnNull)
                     throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)}  has returned less ({index}) record sets than expected ({multiSetList.Count}).");
             }, cancellationToken);
+        }
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/> that supports <paramref name="paging"/>.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/> or <see cref="PagingResult"/> to add to the <see cref="Parameters"/>.</param>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public Task SelectMultiSetAsync(PagingArgs? paging, params IMultiSetArgs[] multiSetArgs) => SelectMultiSetAsync(paging, multiSetArgs, default);
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/> that supports <paramref name="paging"/>.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/> or <see cref="PagingResult"/> to add to the <see cref="Parameters"/>.</param>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public async Task SelectMultiSetAsync(PagingArgs? paging, IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
+        {
+            Parameters.PagingParams(paging);
+
+            var rv = await SelectMultiSetWithValueAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
+            if (paging is PagingResult pr && pr.IsGetCount && rv >= 0)
+                pr.TotalCount = rv;
+        }
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>; whilst also outputing the resulting <see cref="int"/> <see cref="ParameterDirection.ReturnValue"/>.
+        /// </summary>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <returns>The resultant return value.</returns>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public Task<int> SelectMultiSetWithValueAsync(params IMultiSetArgs[] multiSetArgs) => SelectMultiSetWithValueAsync(multiSetArgs, default);
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>; whilst also outputing the resulting <see cref="int"/> <see cref="ParameterDirection.ReturnValue"/>.
+        /// </summary>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resultant return value.</returns>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public async Task<int> SelectMultiSetWithValueAsync(IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
+        {
+            var rvp = Parameters.AddReturnValueParameter();
+            await SelectMultiSetAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
+            return rvp.Value == null ? -1 : (int)rvp.Value;
         }
 
         /// <summary>

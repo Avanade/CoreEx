@@ -103,7 +103,7 @@ namespace CoreEx.WebApis
                 if (eventName == null)
                     EventPublisher.Publish(@event);
                 else
-                    EventPublisher.Publish(eventName, @event);
+                    EventPublisher.PublishNamed(eventName, @event);
 
                 await EventPublisher.SendAsync(cancellationToken).ConfigureAwait(false);
 
@@ -191,7 +191,7 @@ namespace CoreEx.WebApis
                     if (eventName == null)
                         EventPublisher.Publish(ed);
                     else
-                        EventPublisher.Publish(eventName, ed);
+                        EventPublisher.PublishNamed(eventName, ed);
                 }
 
                 await EventPublisher.SendAsync(ct).ConfigureAwait(false);

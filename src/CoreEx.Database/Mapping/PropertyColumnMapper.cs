@@ -219,7 +219,7 @@ namespace CoreEx.Database.Mapping
                     if (Converter == null)
                         pval = record.GetValue<TSourceProperty>(ordinal);
                     else
-                        pval = (TSourceProperty)Converter.ConvertToSource(Convert.ChangeType(record.DataReader.GetValue(ordinal), Converter.DestinationType, System.Globalization.CultureInfo.InvariantCulture))!;
+                        pval = (TSourceProperty)Converter.ConvertToSource(record.DataReader.GetValue(ordinal))!;
                 }
             }
 

@@ -64,5 +64,8 @@ namespace CoreEx.Validation.Rules
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="Task"/>.</returns>
         public abstract Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default);
+
+        /// <inheritdoc/>
+        Task IValueRule<TEntity, TProperty>.ValidateAsync(IPropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken) => ValidateAsync((PropertyContext<TEntity, TProperty>)context, cancellationToken);
     }
 }

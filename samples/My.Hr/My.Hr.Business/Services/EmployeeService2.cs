@@ -42,7 +42,7 @@ public class EmployeeService2 : IEmployeeService
             Gender = employee.Gender?.Code
         };
 
-        _publisher.Publish(_settings.VerificationQueueName, new EventData { Value = verification });
+        _publisher.PublishNamed(_settings.VerificationQueueName, new EventData { Value = verification });
         await _publisher.SendAsync();
     }
 }

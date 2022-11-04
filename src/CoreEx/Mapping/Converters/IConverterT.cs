@@ -18,10 +18,10 @@ namespace CoreEx.Mapping.Converters
         Type IConverter.DestinationType => typeof(TDestination);
 
         /// <inheritdoc/>
-        object? IConverter.ConvertToDestination(object? source) => ToDestination.Convert((TSource?)source);
+        object? IConverter.ConvertToDestination(object? source) => ToDestination.Convert((TSource)source!);
 
         /// <inheritdoc/>
-        object? IConverter.ConvertToSource(object? destination) => ToSource.Convert((TDestination?)destination);
+        object? IConverter.ConvertToSource(object? destination) => ToSource.Convert((TDestination)destination!);
 
         /// <summary>
         /// Gets the source to destination <see cref="IValueConverter{TSource, TDestination}"/>.

@@ -9,7 +9,7 @@ namespace CoreEx.Database.Mapping
     /// <summary>
     /// Represents a <see cref="ChangeLog"/> <see cref="IDatabaseMapper"/>.
     /// </summary>
-    public class ChangeLogDatabaseMapper : IDatabaseMapper<ChangeLog>
+    public struct ChangeLogDatabaseMapper : IDatabaseMapper<ChangeLog>
     {
         private static readonly Lazy<ChangeLogDatabaseMapper> _default = new(() => new(), true);
 

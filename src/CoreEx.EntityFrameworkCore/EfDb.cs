@@ -15,8 +15,7 @@ namespace CoreEx.EntityFrameworkCore
     /// underlying data source (and minimise the <see href="https://en.wikipedia.org/wiki/Object%E2%80%93relational_impedance_mismatch">object-relational impedence mismatch</see>.
     /// <para>Additionally, extended functionality is performed where the entity implements any of the following:
     ///   <list type="bullet">
-    ///     <item><see cref="IIdentifier"/> - Will use the <see cref="IIdentifier.Id"/> as the underlying primary key.</item>
-    ///     <item><see cref="IPrimaryKey"/> - Will use the <see cref="IPrimaryKey.PrimaryKey"/> as the underlying primary key.</item>
+    ///     <item><see cref="IEntityKey"/> - Will use the <see cref="IEntityKey.EntityKey"/> as the underlying entity key.</item>
     ///     <item><see cref="IChangeLog"/> - Will automatically update the corresponding properties depending on where performing a <see cref="CreateAsync{T, TModel}(EfDbArgs, T, CancellationToken)">Create</see> or an <see cref="UpdateAsync{T, TModel}(EfDbArgs, T, CancellationToken)">Update</see>.</item>
     ///     <item><see cref="ITenantId"/>Will automatically update the <see cref="ITenantId.TenantId"/> from the <see cref="ExecutionContext.TenantId"/> to ensure not overridden.</item>
     ///     </list>
@@ -63,10 +62,10 @@ namespace CoreEx.EntityFrameworkCore
         public EfDbArgs DbArgs { get; set; } = new EfDbArgs();
 
         /// <inheritdoc/>
-        public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, new() where TModel : class, new() => new(this, args, query);
+        public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, IEntityKey, new() where TModel : class, new() => new(this, args, query);
 
         /// <inheritdoc/>
-        public async Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
+        public async Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
         {
             var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), cancellationToken).ConfigureAwait(false);
             if (model == default || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
@@ -76,7 +75,7 @@ namespace CoreEx.EntityFrameworkCore
         }, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
-        public async Task<T> CreateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new()
+        public async Task<T> CreateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
             if (value == null)
@@ -100,7 +99,7 @@ namespace CoreEx.EntityFrameworkCore
         }
 
         /// <inheritdoc/>
-        public async Task<T> UpdateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, new() where TModel : class, new()
+        public async Task<T> UpdateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
             if (value == null)
@@ -132,7 +131,7 @@ namespace CoreEx.EntityFrameworkCore
         }
 
         /// <inheritdoc/>
-        public async Task DeleteAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class where TModel : class, new()
+        public async Task DeleteAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
         {
             CheckSaveArgs(args);
 
@@ -165,13 +164,7 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         /// <param name="value">The entity value.</param>
         /// <returns>The key values.</returns>
-        /// <remarks>The <paramref name="value"/> must implement either <see cref="IIdentifier"/> or <see cref="IPrimaryKey"/>.</remarks>
-        public virtual object?[] GetEfKeys(object value) => value switch
-        {
-            IIdentifier ii => new object?[] { ii.Id! },
-            IPrimaryKey pk => pk.PrimaryKey.Args.ToArray(),
-            _ => throw new NotSupportedException($"Value Type must implement either {nameof(IIdentifier)} or {nameof(IPrimaryKey)}."),
-        };
+        public virtual object?[] GetEfKeys<T>(T value) where T : IEntityKey => value.EntityKey.Args.ToArray();
 
         /// <summary>
         /// Check the consistency of the save arguments.

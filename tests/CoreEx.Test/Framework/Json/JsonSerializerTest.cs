@@ -217,24 +217,24 @@ namespace CoreEx.Test.Framework.Json
 
             pcr = js.Deserialize<PersonCollectionResult>(json);
             Assert.IsNotNull(pcr);
-            Assert.IsNotNull(pcr!.Collection);
-            Assert.AreEqual(0, pcr.Collection.Count);
+            Assert.IsNotNull(pcr!.Items);
+            Assert.AreEqual(0, pcr.Items.Count);
             Assert.IsNull(pcr.Paging);
 
             // Items in collection.
-            pcr.Collection.Add(new Person { FirstName = "Jane" });
-            pcr.Collection.Add(new Person { FirstName = "John" });
+            pcr.Items.Add(new Person { FirstName = "Jane" });
+            pcr.Items.Add(new Person { FirstName = "John" });
 
             json = js.Serialize(pcr);
             Assert.AreEqual("[{\"firstName\":\"Jane\"},{\"firstName\":\"John\"}]", json);
 
             pcr = js.Deserialize<PersonCollectionResult>(json);
             Assert.IsNotNull(pcr);
-            Assert.IsNotNull(pcr!.Collection);
-            Assert.AreEqual(2, pcr.Collection.Count);
+            Assert.IsNotNull(pcr!.Items);
+            Assert.AreEqual(2, pcr.Items.Count);
             Assert.IsNull(pcr.Paging);
-            Assert.AreEqual("Jane", pcr.Collection[0].FirstName);
-            Assert.AreEqual("John", pcr.Collection[1].FirstName);
+            Assert.AreEqual("Jane", pcr.Items[0].FirstName);
+            Assert.AreEqual("John", pcr.Items[1].FirstName);
         }
 
         #endregion
@@ -462,24 +462,24 @@ namespace CoreEx.Test.Framework.Json
 
             pcr = js.Deserialize<PersonCollectionResult>(json);
             Assert.IsNotNull(pcr);
-            Assert.IsNotNull(pcr!.Collection);
-            Assert.AreEqual(0, pcr.Collection.Count);
+            Assert.IsNotNull(pcr!.Items);
+            Assert.AreEqual(0, pcr.Items.Count);
             Assert.IsNull(pcr.Paging);
 
             // Items in collection.
-            pcr.Collection.Add(new Person { FirstName = "Jane" });
-            pcr.Collection.Add(new Person { FirstName = "John" });
+            pcr.Items.Add(new Person { FirstName = "Jane" });
+            pcr.Items.Add(new Person { FirstName = "John" });
 
             json = js.Serialize(pcr);
             Assert.AreEqual("[{\"firstName\":\"Jane\"},{\"firstName\":\"John\"}]", json);
 
             pcr = js.Deserialize<PersonCollectionResult>(json);
             Assert.IsNotNull(pcr);
-            Assert.IsNotNull(pcr!.Collection);
-            Assert.AreEqual(2, pcr.Collection.Count);
+            Assert.IsNotNull(pcr!.Items);
+            Assert.AreEqual(2, pcr.Items.Count);
             Assert.IsNull(pcr.Paging);
-            Assert.AreEqual("Jane", pcr.Collection[0].FirstName);
-            Assert.AreEqual("John", pcr.Collection[1].FirstName);
+            Assert.AreEqual("Jane", pcr.Items[0].FirstName);
+            Assert.AreEqual("John", pcr.Items[1].FirstName);
         }
 
         #endregion

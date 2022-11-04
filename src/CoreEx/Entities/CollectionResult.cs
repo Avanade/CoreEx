@@ -7,12 +7,12 @@ using System.Collections.Generic;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class with a <see cref="PagingResult"/> and underlying <see cref="Collection"/>.
+    /// Represents a basic <see cref="ICollectionResult{TEntity}"/> class with a <see cref="PagingResult"/> and underlying <see cref="Items"/>.
     /// </summary>
     /// <typeparam name="TColl">The result collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The underlying entity <see cref="Type"/>.</typeparam>
-    /// <remarks>Generally an <see cref="CollectionResult{TColl, TItem}"/> is not intended to be (de)serialized. For an <see cref="HttpResponse"/> the underlying <see cref="Collection"/> is (de)serialized only, with the <see cref="Paging"/> 
-    /// included within the corresponding <see cref="HttpResponse.Headers"/>. The <see cref="Json.IJsonSerializer"/> implementations have specific functionality included to (de)serialize the <see cref="Collection"/> only, dropping the
+    /// <remarks>Generally an <see cref="CollectionResult{TColl, TItem}"/> is not intended to be (de)serialized. For an <see cref="HttpResponse"/> the underlying <see cref="Items"/> is (de)serialized only, with the <see cref="Paging"/> 
+    /// included within the corresponding <see cref="HttpResponse.Headers"/>. The <see cref="Json.IJsonSerializer"/> implementations have specific functionality included to (de)serialize the <see cref="Items"/> only, dropping the
     /// <see cref="Paging"/>; see <see cref="Text.Json.CollectionResultConverterFactory"/> as an example.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
     public abstract class CollectionResult<TColl, TItem> : ICollectionResult<TColl, TItem>, IPagingResult
@@ -37,7 +37,7 @@ namespace CoreEx.Entities
         }
 
         /// <inheritdoc/>
-        public TColl Collection
+        public TColl Items
         {
             get => _collection ??= new TColl();
             set => _collection = value ?? throw new ArgumentNullException(nameof(value));

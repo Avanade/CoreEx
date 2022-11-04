@@ -16,7 +16,7 @@ namespace CoreEx.RefData
     /// </summary>
     /// <remarks>The <see cref="Id"/> can only be of type <see cref="int"/>, <see cref="long"/>, <see cref="string"/> and <see cref="Guid"/>.</remarks>
     [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActive = {IsActive}")]
-    public class ReferenceDataBase<TId, TSelf> : EntityBase<TSelf>, IReferenceData<TId> where TId : IComparable<TId>, IEquatable<TId> where TSelf : ReferenceDataBase<TId, TSelf>, new()
+    public class ReferenceDataBase<TId, TSelf> : EntityBase, IReferenceData<TId> where TId : IComparable<TId>, IEquatable<TId> where TSelf : ReferenceDataBase<TId, TSelf>, new()
     {
         private TId? _id;
         private string? _code;
@@ -104,6 +104,7 @@ namespace CoreEx.RefData
         void IReferenceData.SetInvalid() => _isInvalid = true;
 
         /// <inheritdoc/>
+        [JsonIgnore]
         public bool HasMappings { get => _mappings != null && _mappings.Count > 0; }
 
         /// <inheritdoc/>
@@ -119,10 +120,10 @@ namespace CoreEx.RefData
                 return;
 
             if ((_mappings ??= new()).ContainsKey(name))
-                throw new InvalidOperationException(ValueIsImmutableMessage);
+                throw new InvalidOperationException(EntityConsts.ValueIsImmutableMessage);
 
             if (IsReadOnly)
-                throw new InvalidOperationException(EntityIsReadOnlyMessage);
+                throw new InvalidOperationException(EntityConsts.EntityIsReadOnlyMessage);
 
             _mappings.Add(name, value);
         }
@@ -150,15 +151,15 @@ namespace CoreEx.RefData
         /// <inheritdoc/>
         protected override IEnumerable<IPropertyValue> GetPropertyValues()
         {
-            yield return CreateProperty(Id, v => Id = v);
-            yield return CreateProperty(Code, v => Code = v);
-            yield return CreateProperty(Text, v => Text = v);
-            yield return CreateProperty(Description, v => Description = v);
-            yield return CreateProperty(SortOrder, v => SortOrder = v);
-            yield return CreateProperty(IsActive, v => IsActive = v, true);
-            yield return CreateProperty(StartDate, v => StartDate = v);
-            yield return CreateProperty(EndDate, v => EndDate = v);
-            yield return CreateProperty(_mappings, v => _mappings = v);
+            yield return CreateProperty(nameof(Id), Id, v => Id = v);
+            yield return CreateProperty(nameof(Code), Code, v => Code = v);
+            yield return CreateProperty(nameof(Text), Text, v => Text = v);
+            yield return CreateProperty(nameof(Description), Description, v => Description = v);
+            yield return CreateProperty(nameof(SortOrder), SortOrder, v => SortOrder = v);
+            yield return CreateProperty(nameof(IsActive), IsActive, v => IsActive = v, true);
+            yield return CreateProperty(nameof(StartDate), StartDate, v => StartDate = v);
+            yield return CreateProperty(nameof(EndDate), EndDate, v => EndDate = v);
+            yield return CreateProperty(nameof(_mappings), _mappings, v => _mappings = v);
         }
 
         /// <summary>
