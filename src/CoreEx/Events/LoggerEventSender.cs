@@ -29,16 +29,19 @@ namespace CoreEx.Events
             var i = 0;
             foreach (var @event in events)
             {
+                string data;
+
                 try
                 {
                     var jo = JsonNode.Parse(@event.Data);
-                    _logger.LogInformation("Event[{index}].Data = {Data}", i, jo == null ? "<null>" : $"{Environment.NewLine}{jo.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true })}");
+                    data = jo == null ? "<null>" : jo.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 }
                 catch
                 {
-                    _logger.LogInformation("Event[{index}].Data = {Data}", i, @event.Data == null ? "<null>" : $"{Environment.NewLine}{@event.Data}");
+                    data = @event.Data == null ? "<null>" : @event.Data.ToString();
                 }
 
+                _logger.LogInformation("{Event}", $"Event[{i}].Metadata = {Json.JsonSerializer.Default.Serialize(new EventData(@event), Json.JsonWriteFormat.Indented)}{Environment.NewLine}Event[{i}].Data = {data}");
                 i++;
             }
 
