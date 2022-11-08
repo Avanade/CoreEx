@@ -149,6 +149,7 @@ namespace CoreEx.Database.SqlServer
             dt.Columns.Add(nameof(EventSendData.Source), typeof(string));
             dt.Columns.Add(nameof(EventSendData.Timestamp), typeof(DateTimeOffset));
             dt.Columns.Add(nameof(EventSendData.CorrelationId), typeof(string));
+            dt.Columns.Add(nameof(EventSendData.Key), typeof(string));
             dt.Columns.Add(nameof(EventSendData.TenantId), typeof(string));
             dt.Columns.Add(nameof(EventSendData.PartitionKey), typeof(string));
             dt.Columns.Add(nameof(EventSendData.ETag), typeof(string));
@@ -162,7 +163,7 @@ namespace CoreEx.Database.SqlServer
 
                 tvp.AddRow(item.Id, !unsentList.Contains(item),
                     item.Destination ?? DefaultDestination ?? throw new InvalidOperationException($"The {nameof(DefaultDestination)} must have a non-null value."),
-                    item.Subject, item.Action, item.Type, item.Source, item.Timestamp, item.CorrelationId, item.TenantId,
+                    item.Subject, item.Action, item.Type, item.Source, item.Timestamp, item.CorrelationId, item.Key, item.TenantId,
                     item.PartitionKey ?? DefaultPartitionKey ?? throw new InvalidOperationException($"The {nameof(DefaultPartitionKey)} must have a non-null value."),
                     item.ETag, attributes.ToArray(), item.Data?.ToArray());
             }

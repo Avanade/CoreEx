@@ -149,6 +149,7 @@ namespace CoreEx.Database.SqlServer
                 Source = string.IsNullOrEmpty(source) ? null : new Uri(source, UriKind.RelativeOrAbsolute),
                 Timestamp = record.GetValue<DateTimeOffset>(nameof(EventSendData.Timestamp)),
                 CorrelationId = record.GetValue<string?>(nameof(EventSendData.CorrelationId)),
+                Key = record.GetValue<string?>(nameof(EventSendData.Key)),
                 TenantId = record.GetValue<string?>(nameof(EventSendData.TenantId)),
                 PartitionKey = partitionKey == DefaultPartitionKey ? null : partitionKey,
                 ETag = record.GetValue<string?>(nameof(EventSendData.ETag)),
