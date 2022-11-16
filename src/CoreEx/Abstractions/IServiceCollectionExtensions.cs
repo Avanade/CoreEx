@@ -9,6 +9,7 @@ using CoreEx.Hosting;
 using CoreEx.Http;
 using CoreEx.Json;
 using CoreEx.Json.Merge;
+using CoreEx.Mapping;
 using CoreEx.RefData;
 using CoreEx.WebApis;
 using Microsoft.Extensions.Caching.Memory;
@@ -310,5 +311,33 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddRequestCache(this IServiceCollection services) => CheckServices(services).AddScoped<IRequestCache>(_ => new RequestCache());
+
+        /// <summary>
+        /// Registers all the <see cref="IMapper{TSource, TDestination}"/>(s) from the specified <typeparamref name="TAssembly"/> into a new <see cref="Mapper"/> and registers as a singleton service.
+        /// </summary>
+        /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="includeInternalTypes">Indicates whether to include internally defined types.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddMappers<TAssembly>(this IServiceCollection services, bool includeInternalTypes = false)
+        {
+            var mapper = new Mapper();
+            var mi = typeof(Mapper).GetMethod(nameof(Mapper.Register), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+
+            foreach (var match in from type in includeInternalTypes ? typeof(TAssembly).Assembly.GetTypes() : typeof(TAssembly).Assembly.GetExportedTypes()
+                                  where !type.IsAbstract && !type.IsGenericTypeDefinition
+                                  let interfaces = type.GetInterfaces()
+                                  let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMapper<,>))
+                                  let @interface = genericInterfaces.FirstOrDefault()
+                                  let sourceType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[0] : null
+                                  let destinationType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[1] : null
+                                  where @interface != null
+                                  select new { type, sourceType, destinationType })
+            {
+                mi.MakeGenericMethod(match.sourceType, match.destinationType).Invoke(mapper, new object[] { Activator.CreateInstance(match.type) });
+            }
+
+            return services.AddSingleton<IMapper>(mapper);
+        }
     }
 }

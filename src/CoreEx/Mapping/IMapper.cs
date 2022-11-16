@@ -5,7 +5,7 @@ using System;
 namespace CoreEx.Mapping
 {
     /// <summary>
-    /// Provides value mapping.
+    /// Provides mapping between source and destination values.
     /// </summary>
     /// <remarks>Decouples <i>CoreEx</i> from any specific implementation.</remarks>
     public interface IMapper

@@ -55,8 +55,8 @@ namespace CoreEx.Abstractions.Reflection
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <param name="args">The <see cref="TypeReflectorArgs"/>.</param>
         /// <returns>The <see cref="TypeReflector{TEntity}"/>.</returns>
-        public static TypeReflector<TEntity> GetReflector<TEntity>(TypeReflectorArgs args)
-            => (args ?? throw new ArgumentNullException(nameof(args))).Cache.GetOrCreate(typeof(TEntity), ce =>
+        public static TypeReflector<TEntity> GetReflector<TEntity>(TypeReflectorArgs? args = null)
+            => (args ??= TypeReflectorArgs.Default).Cache.GetOrCreate(typeof(TEntity), ce =>
             {
                 var tr = new TypeReflector<TEntity>(args);
                 args.TypeBuilder?.Invoke(tr);
@@ -69,8 +69,8 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="args">The <see cref="TypeReflectorArgs"/>.</param>
         /// <param name="type">The entity <see cref="Type"/>.</param>
         /// <returns>The <see cref="ITypeReflector"/>.</returns>
-        public static ITypeReflector GetReflector(TypeReflectorArgs args, Type type) 
-            => (args ?? throw new ArgumentNullException(nameof(args))).Cache.GetOrCreate(type ?? throw new ArgumentNullException(nameof(args)), ce =>
+        public static ITypeReflector GetReflector(TypeReflectorArgs? args, Type type) 
+            => (args ??= TypeReflectorArgs.Default).Cache.GetOrCreate(type ?? throw new ArgumentNullException(nameof(args)), ce =>
             {
                 var ec = typeof(TypeReflector<>).MakeGenericType(type).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(TypeReflectorArgs) }, null);
                 var tr = (ITypeReflector)ec.Invoke(new object[] { args });
