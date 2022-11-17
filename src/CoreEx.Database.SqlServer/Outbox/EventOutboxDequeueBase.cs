@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 
-namespace CoreEx.Database.SqlServer
+namespace CoreEx.Database.SqlServer.Outbox
 {
     /// <summary>
     /// Provides the base <see cref="EventSendData"/> <see cref="IDatabase">database</see> <i>outbox dequeue</i> and corresponding <see cref="IEventSender.SendAsync(IEnumerable{EventSendData}, CancellationToken)"/>.
@@ -123,7 +123,7 @@ namespace CoreEx.Database.SqlServer
         /// <summary>
         /// Dequeues the <see cref="EventSendData"/> list.
         /// </summary>
-        private Task<IEnumerable<EventSendData>> DequeueAsync(int maxDequeueSize, string? partitionKey, string? destination, CancellationToken cancellationToken) 
+        private Task<IEnumerable<EventSendData>> DequeueAsync(int maxDequeueSize, string? partitionKey, string? destination, CancellationToken cancellationToken)
             => Database.StoredProcedure(DequeueStoredProcedure)
                        .Param("@MaxDequeueSize", maxDequeueSize)
                        .Param("@PartitionKey", partitionKey)

@@ -6,14 +6,12 @@
     <Product>CoreEx</Product>
     <Title>CoreEx .NET Relational Database extras.</Title>
     <Description>CoreEx .NET Relational Database extras.</Description>
-    <PackageTags>coreex db database sql sqlserver ado.net relational</PackageTags>
+    <PackageTags>coreex db database sql ado.net relational</PackageTags>
   </PropertyGroup>
 
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="6.0.2" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
     <PackageReference Include="StrongNamer" Version="0.2.5" />
   </ItemGroup>
 

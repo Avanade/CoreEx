@@ -137,7 +137,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="CollectionValidator{TColl, TItem}"/>.</returns>
-        public CollectionValidator<TColl, TItem> Additional(Func<ValidationContext<TColl>, Task> additionalAsync)
+        public CollectionValidator<TColl, TItem> AdditionalAsync(Func<ValidationContext<TColl>, Task> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a CollectionValidator.");

@@ -21,12 +21,12 @@ namespace CoreEx.Mapping
         public AutoMapper.IMapper Mapper { get; }
 
         /// <inheritdoc/>
-        public TDestination Map<TDestination>(object source, OperationTypes operationType = OperationTypes.Unspecified) => Mapper.Map<TDestination>(source, operationType);
+        public TDestination? Map<TDestination>(object? source, OperationTypes operationType = OperationTypes.Unspecified) => Mapper.Map<TDestination>(source!, operationType);
 
         /// <inheritdoc/>
-        public TDestination Map<TSource, TDestination>(TSource source, OperationTypes operationType = OperationTypes.Unspecified) => Mapper.Map<TSource, TDestination>(source, operationType);
+        public TDestination? Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified) => Mapper.Map<TSource, TDestination>(source!, operationType);
 
         /// <inheritdoc/>
-        public TDestination Map<TSource, TDestination>(TSource source, TDestination destination, OperationTypes operationType = OperationTypes.Unspecified) => Mapper.Map(source, destination, operationType);
+        public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified) => Mapper.Map(source, destination, operationType);
     }
 }

@@ -52,6 +52,7 @@ param(
         "src\CoreEx.AutoMapper",
         "src\CoreEx.Azure",
         "src\CoreEx.Database",
+        "src\CoreEx.Database.SqlServer",
         "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.Cosmos",
         "src\CoreEx.FluentValidation",

@@ -115,7 +115,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
-        public Validator<TEntity> Additional(Func<ValidationContext<TEntity>, CancellationToken, Task> additionalAsync)
+        public Validator<TEntity> AdditionalAsync(Func<ValidationContext<TEntity>, CancellationToken, Task> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a Validator.");

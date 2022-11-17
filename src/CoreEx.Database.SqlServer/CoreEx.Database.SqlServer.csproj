@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>CoreEx.Database.SqlServer</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx .NET SQL Server Database extras.</Title>
+    <Description>CoreEx .NET SQL Server Database extras.</Description>
+    <PackageTags>coreex db database sql sqlserver ado.net relational</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="6.0.2" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
+    <PackageReference Include="StrongNamer" Version="0.2.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
+  </ItemGroup>
+
+</Project>

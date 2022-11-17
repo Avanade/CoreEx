@@ -1,8 +1,6 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Http;
-using CoreEx.WebApis;
-using DbEx.Migration;
-using DbEx.Migration.Data;
+using DbEx;
 using Microsoft.Extensions.Configuration;
 using My.Hr.Business.Models;
 using My.Hr.Functions;

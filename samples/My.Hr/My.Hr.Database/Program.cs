@@ -1,4 +1,4 @@
-﻿using DbEx.Console;
+﻿using DbEx.SqlServer.Console;
 using System.Reflection;
 
 namespace My.Hr.Database
@@ -16,15 +16,15 @@ namespace My.Hr.Database
         internal static Task<int> Main(string[] args) => RunMigrator("Data Source=.;Initial Catalog=My.HrDb;Integrated Security=True;TrustServerCertificate=true", null, args);
 
         public static Task<int> RunMigrator(string connectionString, Assembly? assembly = null, params string[] args)
-            => SqlServerMigratorConsole
+            => SqlServerMigrationConsole
                 .Create<Program>(connectionString)
-                .ConsoleArgs(a =>
+                .Configure(c =>
                 {
-                    a.ConnectionStringEnvironmentVariableName = "My_HrDb";
-                    a.DataParserArgs.RefDataColumnDefaults.TryAdd("IsActive", _ => true);
-                    a.DataParserArgs.RefDataColumnDefaults.TryAdd("SortOrder", i => i);
+                    c.Args.ConnectionStringEnvironmentVariableName = "My_HrDb";
+                    c.Args.DataParserArgs.RefDataColumnDefaults.TryAdd("IsActive", _ => true);
+                    c.Args.DataParserArgs.RefDataColumnDefaults.TryAdd("SortOrder", i => i);
                     if (assembly != null)
-                        a.AddAssembly(assembly);
+                        c.Args.AddAssembly(assembly);
                 })
                 .RunAsync(args);
     }

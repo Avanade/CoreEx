@@ -24,10 +24,10 @@ namespace CoreEx.Abstractions.Reflection
         /// <summary>
         /// Initializes a new instance of the <see cref="TypeReflector{TEntity}"/> class.
         /// </summary>
-        /// <param name="args">The <see cref="TypeReflectorArgs"/>.</param>
+        /// <param name="args">The optional <see cref="TypeReflectorArgs"/>. Defaults to <see cref="TypeReflectorArgs.Default"/>.</param>
         internal TypeReflector(TypeReflectorArgs? args = null)
         {
-            Args = args ?? new TypeReflectorArgs();
+            Args = args ?? TypeReflectorArgs.Default;
             _properties = new Dictionary<string, IPropertyReflector>(StringComparer.Ordinal);
             _jsonProperties = new Dictionary<string, IPropertyReflector>(Args.NameComparer ?? StringComparer.OrdinalIgnoreCase);
 
