@@ -1,8 +1,6 @@
 using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.Http;
-using DbEx.Migration;
-using DbEx.Migration.Data;
 using Microsoft.Extensions.Configuration;
 using My.Hr.Api;
 using My.Hr.Api.Controllers;
@@ -15,6 +13,7 @@ using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.Expectations;
 using UnitTestEx.NUnit;
+using DbEx;
 
 namespace My.Hr.UnitTest
 {
