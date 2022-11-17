@@ -70,7 +70,6 @@ namespace CoreEx.Mapping
         public Mapper<TSource, TDestination> Flatten<T>(Func<TSource, T?> source, OperationTypes operationTypes = OperationTypes.Any) where T : class, new()
             => Map((o, s, d) => o.Map<T, TDestination>(source(s) ?? new(), d), operationTypes);
 
-
         /// <summary>
         /// Adds an expand-mapping to a nested property.
         /// </summary>
@@ -126,10 +125,9 @@ namespace CoreEx.Mapping
         }
 
         /// <summary>
-        /// 
+        /// Adds a base mapping.
         /// </summary>
-        /// <typeparam name="TMapper"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="TMapper">The <see cref="IMapperBase"/> <see cref="Type"/>.</typeparam>
         public Mapper<TSource, TDestination> Base<TMapper>() where TMapper : IMapperBase, new()
         {
             var mapper = new TMapper();
@@ -177,29 +175,42 @@ namespace CoreEx.Mapping
         TDestination? IMapper<TSource, TDestination>.Map(TSource? source, TDestination? destination, OperationTypes operationType) => Map(source, destination, operationType);
 
         /// <summary>
-        /// Performs the mapping but iterating over the configuration.
+        /// Performs the mapping by iterating over the configuration.
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="destination">The destination.</param>
         /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        internal TDestination? Map(TSource? source, TDestination? destination, OperationTypes operationType)
+        internal virtual TDestination? Map(TSource? source, TDestination? destination, OperationTypes operationType)
         {
             if (source is null && destination is null)
-                return destination;
+                return OnMap(source, destination, operationType);
 
             if (source is null && destination is not null)
             {
                 destination = default;
-                return destination;
+                return OnMap(source, destination, operationType);
             }
 
             if (destination is not null)
                 source ??= new();
 
             destination ??= new();
-            _mappings.Where(m => m.types.HasFlag(operationType)).ForEach(m => m.action(new MapperOptions(Owner, operationType), source!, destination));
-            return destination;
+            foreach (var (action, _) in _mappings.Where(m => m.types.HasFlag(operationType)))
+            {
+                action(new MapperOptions(Owner, operationType), source!, destination);
+            }
+
+            return OnMap(source, destination, operationType);
         }
+
+        /// <summary>
+        /// Invoked after the internal mapping is completed (where configured).
+        /// </summary>
+        /// <param name="source">The source value.</param>
+        /// <param name="destination">The destination value.</param>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <returns>The destination value.</returns>
+        protected virtual TDestination? OnMap(TSource? source, TDestination? destination, OperationTypes operationType) => destination;
 
         /// <summary>
         /// Invoked when the mapper is registered.

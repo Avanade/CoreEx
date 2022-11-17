@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CoreEx.Database.SqlServer
+namespace CoreEx.Database.SqlServer.Outbox
 {
     /// <summary>
     /// Provides the base <see cref="EventSendData"/> <see cref="IDatabase">database</see> <i>outbox enqueue</i> <see cref="IEventSender.SendAsync(IEnumerable{EventSendData}, CancellationToken)"/>. 
@@ -29,7 +29,7 @@ namespace CoreEx.Database.SqlServer
         /// <param name="database">The <see cref="IDatabase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         public EventOutboxEnqueueBase(IDatabase database, ILogger<EventOutboxEnqueueBase> logger)
-        { 
+        {
             Database = database ?? throw new ArgumentNullException(nameof(database));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -131,7 +131,7 @@ namespace CoreEx.Database.SqlServer
 
             sw.Stop();
             Logger.LogDebug("{EventCount} event(s) were enqueued; {SuccessCount} as sent, {ErrorCount} to be sent. [Sender={Sender}, Elapsed={Elapsed}ms]",
-                events.Count(), events.Count() - unsentEvents.Count, unsentEvents.Count,  GetType().Name, sw.Elapsed.TotalMilliseconds);
+                events.Count(), events.Count() - unsentEvents.Count, unsentEvents.Count, GetType().Name, sw.Elapsed.TotalMilliseconds);
         }
 
         /// <summary>

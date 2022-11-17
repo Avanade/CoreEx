@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CoreEx.Mapping
 {
@@ -17,7 +18,8 @@ namespace CoreEx.Mapping
         /// <param name="source">The source value.</param>
         /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.</param>
         /// <returns>The destination value.</returns>
-        TDestination Map<TDestination>(object source, OperationTypes operationType = OperationTypes.Unspecified);
+        [return: NotNullIfNotNull(nameof(source))]
+        TDestination? Map<TDestination>(object? source, OperationTypes operationType = OperationTypes.Unspecified);
 
         /// <summary>
         /// Maps the <paramref name="source"/> value to a new <typeparamref name="TDestination"/> value.
@@ -27,7 +29,8 @@ namespace CoreEx.Mapping
         /// <param name="source">The source value.</param>
         /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.</param>
         /// <returns>The destination value.</returns>
-        TDestination Map<TSource, TDestination>(TSource source, OperationTypes operationType = OperationTypes.Unspecified);
+        [return: NotNullIfNotNull(nameof(source))]
+        TDestination? Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified);
 
         /// <summary>
         /// Maps the <paramref name="source"/> value into the existing <paramref name="destination"/> value.
@@ -38,6 +41,7 @@ namespace CoreEx.Mapping
         /// <param name="destination">The destination value.</param>
         /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.</param>
         /// <returns>The <paramref name="destination"/> value.</returns>
-        TDestination Map<TSource, TDestination>(TSource source, TDestination destination, OperationTypes operationType = OperationTypes.Unspecified);
+        [return: NotNullIfNotNull(nameof(source))]
+        TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified);
     }
 }

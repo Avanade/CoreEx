@@ -113,7 +113,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="CommonValidator{T}"/>.</returns>
-        public CommonValidator<T> Additional(Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task> additionalAsync)
+        public CommonValidator<T> AdditionalAsync(Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a Validator.");

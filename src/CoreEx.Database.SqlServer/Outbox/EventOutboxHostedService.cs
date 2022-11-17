@@ -2,14 +2,13 @@
 
 using CoreEx.Configuration;
 using CoreEx.Hosting;
-using CoreEx.Database.SqlServer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CoreEd.Database.Services
+namespace CoreEx.Database.SqlServer.Outbox
 {
     /// <summary>
     /// Provides the <see cref="EventOutboxDequeueBase"/> dequeue and publish (<see cref="SynchronizedTimerHostedServiceBase{TSync}"/>) capabilities.
@@ -45,7 +44,7 @@ namespace CoreEd.Database.Services
         /// <param name="synchronizer">The <see cref="IServiceSynchronizer"/>.</param>
         /// <param name="partitionKey">The optional partition key.</param>
         /// <param name="destination">The optional destination name (i.e. queue or topic).</param>
-        public EventOutboxHostedService(IServiceProvider serviceProvider, ILogger<EventOutboxHostedService> logger, SettingsBase settings, IServiceSynchronizer synchronizer, string? partitionKey = null, string? destination = null) 
+        public EventOutboxHostedService(IServiceProvider serviceProvider, ILogger<EventOutboxHostedService> logger, SettingsBase settings, IServiceSynchronizer synchronizer, string? partitionKey = null, string? destination = null)
             : base(serviceProvider, logger, settings, synchronizer)
         {
             PartitionKey = partitionKey;

@@ -36,7 +36,7 @@ namespace CoreEx.Mapping
         /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
         /// <param name="source">The source value.</param>
         /// <returns>The destination value.</returns>
-        public TDestination Map<TDestination>(object source)
+        public TDestination? Map<TDestination>(object? source)
             => Owner.Map<TDestination>(source, OperationType);
 
         /// <summary>

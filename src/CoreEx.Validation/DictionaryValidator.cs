@@ -157,7 +157,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="DictionaryValidator{TColl, TKey, TValue}"/>.</returns>
-        public DictionaryValidator<TDict, TKey, TValue> Additional(Func<ValidationContext<TDict>, CancellationToken, Task> additionalAsync)
+        public DictionaryValidator<TDict, TKey, TValue> AdditionalAsync(Func<ValidationContext<TDict>, CancellationToken, Task> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a DictionaryValidator.");

@@ -53,7 +53,7 @@ public class Startup : FunctionsStartup
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<AgifyApiClient>>("Agify API")
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<NationalizeApiClient>>("Nationalize API")
                 .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
-                .AddTypeActivatedCheck<SqlHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default, timeout: System.TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
+                .AddTypeActivatedCheck<SqlServerHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default, timeout: System.TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
 
             // Register the business services.
             builder.Services

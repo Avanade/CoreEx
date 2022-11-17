@@ -2,7 +2,6 @@
 using CoreEx.Mapping;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 
 namespace CoreEx.Test.Framework.Mapping
@@ -78,7 +77,7 @@ namespace CoreEx.Test.Framework.Mapping
                 .Map((s, d) => d.Id = s.Id)
                 .Map((s, d) => d.Name = s.Name)
                 .Flatten(s => s.Address);
-            
+
             var ma = new Mapper<Address, Model>()
                 .Map((s, d) => d.Street = s.Street)
                 .Map((s, d) => d.City = s.City);
@@ -150,6 +149,34 @@ namespace CoreEx.Test.Framework.Mapping
         }
 
         [Test]
+        public void Mapping_Flatten_DoubleNest_Perf()
+        {
+            var mc = new Mapper<Contact, Model>()
+                .Map((s, d) => d.Id = s.Id)
+                .Map((s, d) => d.Name = s.Name)
+                .Flatten(s => s.Address);
+
+            var ma = new Mapper<Address, Model>()
+                .Map((s, d) => d.Street = s.Street)
+                .Map((s, d) => d.City = s.City)
+                .Flatten(s => s.Other);
+
+            var mo = new Mapper<Other, Model>()
+                .Map((s, d) => d.Other = s.Value);
+
+            var m = new Mapper();
+            m.Register(mc);
+            m.Register(ma);
+            m.Register(mo);
+
+            var c = new Contact { Id = 88, Name = "Brian", Address = new Address { Street = "Main", City = "Wellington" } };
+            for (int i = 0; i < 10000; i++)
+            {
+                _ = m.Map<Model>(c);
+            }
+        }
+
+        [Test]
         public void Mapping_Expand()
         {
             var mc = new Mapper<Model, Contact>()
@@ -187,7 +214,7 @@ namespace CoreEx.Test.Framework.Mapping
         }
 
         [Test]
-        public void Mapping_Expand_DoubleNext()
+        public void Mapping_Expand_DoubleNest()
         {
             var mc = new Mapper<Model, Contact>()
                 .Map((s, d) => d.Id = s.Id)
@@ -239,6 +266,35 @@ namespace CoreEx.Test.Framework.Mapping
             Assert.That(c.Id, Is.EqualTo(88));
             Assert.That(c.Name, Is.EqualTo("Brian"));
             Assert.That(c.Address, Is.Null);
+        }
+
+        [Test]
+        public void Mapping_Expand_DoubleNest_Perf()
+        {
+            var mc = new Mapper<Model, Contact>()
+                .Map((s, d) => d.Id = s.Id)
+                .Map((s, d) => d.Name = s.Name)
+                .Expand<Address>((d, v) => d.Address = v, (s, d) => d.Address != null || !(s.Street is null && s.City is null));
+
+            var ma = new Mapper<Model, Address>()
+                .Map((s, d) => d.Street = s.Street)
+                .Map((s, d) => d.City = s.City)
+                .Expand<Other>((d, v) => d.Other = v, (s, d) => !(s.Other == default));
+
+            var mo = new Mapper<Model, Other>()
+                .Map((s, d) => d.Value = s.Other);
+
+            var m = new Mapper();
+            m.Register(mc);
+            m.Register(ma);
+            m.Register(mo);
+
+            // Other won't expand as no value specified.
+            var r = new Model { Id = 88, Name = "Brian", Street = "Main", City = "Wellington" };
+            for (int i = 0; i < 10000; i++)
+            {
+                _ = m.Map<Contact>(r);
+            }
         }
 
         [Test]

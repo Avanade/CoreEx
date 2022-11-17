@@ -150,7 +150,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Inline_OnValidate_WithWhen()
         {
             var r = await Validator.Create<TestItem>()
-                .Additional((context, _) =>
+                .AdditionalAsync((context, _) =>
                 {
                     context.Check(x => x.Text, true, ValidatorStrings.MaxCountFormat, 10);
                     context.Check(x => x.Text, true, ValidatorStrings.MaxCountFormat, 10);

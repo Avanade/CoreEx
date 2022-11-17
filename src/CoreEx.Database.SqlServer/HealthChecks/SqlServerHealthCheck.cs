@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CoreEx.Configuration;
-using HealthChecks.SqlServer;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace CoreEx.DataBase.HealthChecks
 {
-
-    /// <summary> Sql Server Health Check. </summary>
-    public class SqlHealthCheck : IHealthCheck
+    /// <summary>
+    /// Provides the <b>SQL Server</b> <see cref="IHealthCheck"/> implementation.
+    /// </summary>
+    public class SqlServerHealthCheck : IHealthCheck
     {
         private const string HEALTH_QUERY = "SELECT 1;";
         private readonly string _sqlConnectionString;
@@ -19,17 +19,21 @@ namespace CoreEx.DataBase.HealthChecks
         private IHealthCheck? _innerHealthCheck;
         private IReadOnlyDictionary<string, object>? _data;
 
-        /// <summary> constructor. </summary>
-        /// <remarks> Note that constructor takes setting NAMES not values, values are looked up from <paramref name="settings"/>. </remarks>
-        public SqlHealthCheck(SettingsBase settings, string connectionName)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlServerHealthCheck"/> class.
+        /// </summary>
+        /// <remarks>Note that the constructor takes setting NAMES not values; values are looked up from <paramref name="settings"/>.</remarks>
+        public SqlServerHealthCheck(SettingsBase settings, string connectionName)
         {
             _sqlConnectionString = settings.GetValue<string>(connectionName);
             _connectionName = connectionName;
         }
 
-        /// <summary> constructor. </summary>
-        /// <remarks> Note that constructor takes setting NAMES not values, values are looked up from <paramref name="settings"/>. </remarks>
-        public SqlHealthCheck(SettingsBase settings, string connectionName, IHealthCheck sqlCheck)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlServerHealthCheck"/> class.
+        /// </summary>
+        /// <remarks>Note that the constructor takes setting NAMES not values; values are looked up from <paramref name="settings"/>.</remarks>
+        public SqlServerHealthCheck(SettingsBase settings, string connectionName, IHealthCheck sqlCheck)
         {
             _sqlConnectionString = settings.GetValue<string>(connectionName);
             _connectionName = connectionName;
@@ -63,7 +67,7 @@ namespace CoreEx.DataBase.HealthChecks
                 }
             }
 
-            _innerHealthCheck ??= new SqlServerHealthCheck(_sqlConnectionString, HEALTH_QUERY);
+            _innerHealthCheck ??= new global::HealthChecks.SqlServer.SqlServerHealthCheck(_sqlConnectionString, HEALTH_QUERY);
 
             try
             {

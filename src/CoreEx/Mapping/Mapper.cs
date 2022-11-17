@@ -3,6 +3,7 @@
 using CoreEx.Abstractions.Reflection;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CoreEx.Mapping
 {
@@ -55,7 +56,8 @@ namespace CoreEx.Mapping
             => _mappers.TryAdd(((mapper ?? throw new ArgumentNullException(nameof(mapper))).SourceType, mapper.DestinationType), mapper.Adjust(x => x.Owner = this));
 
         /// <inheritdoc/>
-        public TDestination Map<TDestination>(object source, OperationTypes operationType = OperationTypes.Unspecified)
+        [return: NotNullIfNotNull(nameof(source))]
+        public TDestination? Map<TDestination>(object? source, OperationTypes operationType = OperationTypes.Unspecified)
         {
             if (source is null)
                 return default!;
@@ -100,11 +102,13 @@ namespace CoreEx.Mapping
             => (IMapper<TSource, TDestination>)GetMapper(typeof(TSource), typeof(TDestination));
 
         /// <inheritdoc/>
-        public TDestination Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified)
+        [return: NotNullIfNotNull(nameof(source))]
+        public TDestination? Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified)
             => source is null ? default! : GetMapper<TSource, TDestination>().Map(source, operationType)!;
 
         /// <inheritdoc/>
-        public TDestination Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified)
+        [return: NotNullIfNotNull(nameof(source))]
+        public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified)
             => source is null ? default! : GetMapper<TSource, TDestination>().Map(source, destination, operationType)!;
     }
 }
