@@ -12,12 +12,12 @@ using System.Threading.Tasks;
 namespace CoreEx.Database.SqlServer
 {
     /// <summary>
-    /// Provides SQL Server database access functionality.
+    /// Provides <see href="https://learn.microsoft.com/en-us/sql/?view=sql-server-ver16">SQL Server</see> database access functionality.
     /// </summary>
     public class SqlServerDatabase : Database<SqlConnection>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Database{TConn}"/> class.
+        /// Initializes a new instance of the <see cref="SqlServerDatabase"/> class.
         /// </summary>
         /// <param name="create">The function to create the <see cref="SqlConnection"/>.</param>
         /// <param name="logger">The optional <see cref="ILogger"/>.</param>

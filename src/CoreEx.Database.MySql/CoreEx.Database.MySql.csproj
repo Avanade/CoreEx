@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>CoreEx.Database.MySql</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx .NET MySQL Database extras.</Title>
+    <Description>CoreEx .NET MySQL Database extras.</Description>
+    <PackageTags>coreex db database sql mysql ado.net relational</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="MySql.Data" Version="8.0.31" />
+    <PackageReference Include="StrongNamer" Version="0.2.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
+  </ItemGroup>
+
+</Project>
