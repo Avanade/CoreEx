@@ -2,6 +2,7 @@
 using CoreEx.Http;
 using CoreEx.Mapping.Converters;
 using CoreEx.RefData;
+using CoreEx.RefData.Extended;
 using CoreEx.TestFunction;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -857,7 +858,7 @@ namespace CoreEx.Test.Framework.RefData
         }
     }
 
-    public class RefData : ReferenceDataBase<int, RefData> 
+    public class RefData : ReferenceDataBaseEx<int, RefData> 
     {
         public static implicit operator RefData(int id) => ConvertFromId(id);
 
@@ -867,7 +868,7 @@ namespace CoreEx.Test.Framework.RefData
 
     public class RefDataCollection : ReferenceDataCollection<int, RefData> { }
 
-    public class RefDataEx : ReferenceDataBase<string, RefDataEx>
+    public class RefDataEx : ReferenceDataBaseEx<string, RefDataEx>
     {
         [return: NotNullIfNotNull("code")]
         public static implicit operator RefDataEx?(string? code) => ConvertFromCode(code);
@@ -875,11 +876,11 @@ namespace CoreEx.Test.Framework.RefData
 
     public class RefDataExCollection : ReferenceDataCollection<string, RefDataEx> { }
 
-    public class State : ReferenceDataBase<int, State> { }
+    public class State : ReferenceDataBaseEx<int, State> { }
 
     public class StateCollection : ReferenceDataCollection<int, State> { }
 
-    public class Suburb : ReferenceDataBase<string, Suburb> { }
+    public class Suburb : ReferenceDataBaseEx<string, Suburb> { }
 
     public class SuburbCollection : ReferenceDataCollection<string, Suburb> { }
 

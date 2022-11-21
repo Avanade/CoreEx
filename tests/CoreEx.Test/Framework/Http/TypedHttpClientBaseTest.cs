@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CoreEx.Http;
-using CoreEx.RefData.Models;
+using CoreEx.RefData;
 using NUnit.Framework;
 
 namespace CoreEx.Test.Framework.Http

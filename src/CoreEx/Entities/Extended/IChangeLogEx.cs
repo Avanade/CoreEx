@@ -1,25 +1,25 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Entities
+namespace CoreEx.Entities.Extended
 {
     /// <summary>
-    /// Provides the <see cref="ChangeLog"/>.
+    /// Provides an extended <see cref="EntityBase"/> <see cref="ChangeLog"/>.
     /// </summary>
-    public interface IChangeLog : IChangeLogAuditLog
+    public interface IChangeLogEx : IChangeLogAuditLog
     {
         /// <inheritdoc/>
         IChangeLogAudit? IChangeLogAuditLog.ChangeLogAudit
-        { 
+        {
             get => ChangeLog;
             set
             {
                 if (value is null)
                     ChangeLog = null;
-                else if (value is ChangeLog cl)
+                else if (value is ChangeLogEx cl)
                     ChangeLog = cl;
                 else
                 {
-                    ChangeLog = new ChangeLog
+                    ChangeLog = new ChangeLogEx
                     {
                         CreatedBy = value.CreatedBy,
                         CreatedDate = value.CreatedDate,
@@ -33,6 +33,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets or set the <see cref="ChangeLog"/>.
         /// </summary>
-        ChangeLog? ChangeLog { get; set; }
+        ChangeLogEx? ChangeLog { get; set; }
     }
 }

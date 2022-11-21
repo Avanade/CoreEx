@@ -4,7 +4,7 @@ using CoreEx.Entities;
 using System;
 using System.Diagnostics;
 
-namespace CoreEx.RefData.Models
+namespace CoreEx.RefData
 {
     /// <summary>
     /// Represents the <see cref="IReferenceData{TId}"/> implementation.

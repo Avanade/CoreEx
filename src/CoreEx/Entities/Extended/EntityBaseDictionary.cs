@@ -75,8 +75,8 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Compares two values for non-equality.
         /// </summary>
-        /// <param name="a"><see cref="ChangeLog"/> A.</param>
-        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <param name="a"><see cref="ChangeLogEx"/> A.</param>
+        /// <param name="b"><see cref="ChangeLogEx"/> B.</param>
         /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
         public static bool operator !=(EntityBaseDictionary<TEntity, TSelf>? a, EntityBaseDictionary<TEntity, TSelf>? b) => !Equals(a, b);
 

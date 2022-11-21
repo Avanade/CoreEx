@@ -396,8 +396,8 @@ namespace CoreEx.Test.Framework.Mapping
         {
             var m = new Mapper();
             var cl = new ChangeLog();
-            ChangeLog.PrepareCreated(cl);
-            ChangeLog.PrepareUpdated(cl);
+            ChangeLog.PrepareCreated((IChangeLogAudit)cl);
+            ChangeLog.PrepareUpdated((IChangeLogAudit)cl);
 
             var cl2 = m.Map<ChangeLog>(cl, OperationTypes.Create);
             Assert.That(cl2, Is.Not.Null);
@@ -426,8 +426,8 @@ namespace CoreEx.Test.Framework.Mapping
             m.Register(mc);
 
             var cl = new ChangeLog();
-            ChangeLog.PrepareCreated(cl);
-            ChangeLog.PrepareUpdated(cl);
+            ChangeLog.PrepareCreated((IChangeLogAudit)cl);
+            ChangeLog.PrepareUpdated((IChangeLogAudit)cl);
 
             var c = new Contact { Id = 88, Name = "Dave", ChangeLog = cl };
             var c2 = m.Map<Contact>(c, OperationTypes.Create);

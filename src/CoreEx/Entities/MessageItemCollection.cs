@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities.Extended;
 using CoreEx.Localization;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
@@ -12,7 +12,7 @@ namespace CoreEx.Entities
     /// Represents a <see cref="MessageItem"/> collection.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public class MessageItemCollection : EntityBaseCollection<MessageItem, MessageItemCollection>
+    public class MessageItemCollection : ObservableCollection<MessageItem>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="MessageItemCollection" /> class.
@@ -24,6 +24,12 @@ namespace CoreEx.Entities
         /// </summary>
         /// <param name="messages">Initial messages to add.</param>
         public MessageItemCollection(IEnumerable<MessageItem> messages) : base(messages) { }
+
+        /// <summary>
+        /// Adds zero or more <paramref name="messages"/> to the collection.
+        /// </summary>
+        /// <param name="messages">The messages.</param>
+        public void AddRange(IEnumerable<MessageItem> messages) => messages.ForEach(Add);
 
         /// <summary>
         /// Adds a new <see cref="MessageItem"/> for a specified <see cref="MessageType"/> and text.

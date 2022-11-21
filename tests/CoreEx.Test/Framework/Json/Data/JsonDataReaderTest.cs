@@ -1,6 +1,6 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Json.Data;
-using CoreEx.RefData.Models;
+using CoreEx.RefData;
 using CoreEx.Text.Json;
 using NUnit.Framework;
 using System;

@@ -12,8 +12,8 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void ChangeLog_Clone()
         {
-            var cl = new ChangeLog { CreatedBy = "username  ", CreatedDate = CreateDateTime() };
-            var co = (ChangeLog)cl.Clone();
+            var cl = new ChangeLogEx { CreatedBy = "username  ", CreatedDate = CreateDateTime() };
+            var co = cl.Clone();
 
             Assert.IsNotNull(co);
             Assert.AreEqual("username", co.CreatedBy);
@@ -25,8 +25,8 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void ChangeLog_CopyFrom()
         {
-            var cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            var cl2 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) };
+            var cl1 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl2 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) };
             cl1.CopyFrom(cl2);
 
             Assert.AreEqual("username", cl1.CreatedBy);
@@ -38,47 +38,47 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void ChangeLog_Equals()
         {
-            ChangeLog? cl2 = null;
+            ChangeLogEx? cl2 = null;
 
-            var cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl1 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(cl1.Equals(cl2));
 
-            cl2 = (ChangeLog)cl1.Clone();
+            cl2 = (ChangeLogEx)cl1.Clone();
             Assert.IsTrue(cl1.Equals(cl2));
 
             cl2.CreatedBy = "username2";
             Assert.IsFalse(cl1.Equals(cl2));
 
-            ChangeLog cl3 = cl1;
+            ChangeLogEx cl3 = cl1;
             Assert.IsTrue(cl3.Equals(cl1));
         }
 
         [Test]
         public void ChangeLog_Equals2()
         {
-            ChangeLog? cl1 = null;
-            ChangeLog? cl2 = null;
+            ChangeLogEx? cl1 = null;
+            ChangeLogEx? cl2 = null;
 
             Assert.IsTrue(cl1 == cl2);
 
-            cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            cl1 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(cl1 == cl2);
 
-            cl2 = (ChangeLog)cl1.Clone();
+            cl2 = (ChangeLogEx)cl1.Clone();
             Assert.IsTrue(cl1 == cl2);
 
             cl2.CreatedBy = "username2";
             Assert.IsFalse(cl1 == cl2);
 
-            ChangeLog cl3 = cl1;
+            ChangeLogEx cl3 = cl1;
             Assert.IsTrue(cl3 == cl1);
         }
 
         [Test]
         public void ChangeLog_HashCode()
         {
-            var cl1 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            var cl2 = (ChangeLog)cl1.Clone();
+            var cl1 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl2 = (ChangeLogEx)cl1.Clone();
             Assert.AreEqual(cl1.GetHashCode(), cl2.GetHashCode());
 
             cl2.CreatedBy = "username2";
@@ -88,7 +88,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void ChangeLog_IsInitial()
         {
-            var cl = new ChangeLog();
+            var cl = new ChangeLogEx();
             Assert.IsTrue(cl.IsInitial);
 
             cl.UpdatedBy = "username";
@@ -104,7 +104,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void ChangleLog_AcceptChanges()
         {
-            var cl = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsTrue(cl.IsChanged);
 
             cl.AcceptChanges();
@@ -117,7 +117,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void ChangeLog_MakeReadonly()
         {
-            var cl = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(cl.IsReadOnly);
 
             cl.MakeReadOnly();
@@ -129,7 +129,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Person_Clone()
         {
-            var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var po = (Person)p.Clone();
 
             Assert.IsNotNull(po);
@@ -144,8 +144,8 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Person_CopyFrom()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            var p2 = new Person { Name = "sarah", Age = 29, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new Person { Name = "sarah", Age = 29, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) } };
 
             p1.CopyFrom(p2);
 
@@ -182,7 +182,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             Person? p2 = null;
 
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1.Equals(p2));
 
             p2 = (Person)p1.Clone();
@@ -206,7 +206,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             Person? p2 = null;
 
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1 == p2);
 
             p2 = (Person)p1.Clone();
@@ -228,7 +228,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Person_HashCode()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = (Person)p1.Clone();
             Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
 
@@ -254,7 +254,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             p.Name = null;
             Assert.IsTrue(p.IsInitial);
 
-            p.ChangeLog = new ChangeLog { UpdatedDate = CreateDateTime() };
+            p.ChangeLog = new ChangeLogEx { UpdatedDate = CreateDateTime() };
             Assert.IsFalse(p.IsInitial);
 
             p.ChangeLog.UpdatedDate = null;
@@ -267,7 +267,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Person_AcceptChanges()
         {
-            var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsTrue(p.IsChanged);
             Assert.IsTrue(p.ChangeLog.IsChanged);
 
@@ -290,10 +290,10 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Person_Bubbling()
         {
-            var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             p.AcceptChanges();
             var cl1 = p.ChangeLog;
-            var cl2 = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl2 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(p.IsChanged);
             Assert.IsFalse(p.ChangeLog.IsChanged);
             Assert.IsFalse(cl1.IsChanged);
@@ -327,7 +327,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Person_MakeReadonly()
         {
-            var cl = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() };
+            var cl = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
             Assert.IsFalse(cl.IsReadOnly);
 
             cl.MakeReadOnly();
@@ -341,8 +341,8 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             for (int i = 0; i < 1000; i++)
             {
-                var p1 = new Person { Name = "dave", Age = i, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-                var p2 = new Person { Name = "dave", Age = i, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+                var p1 = new Person { Name = "dave", Age = i, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+                var p2 = new Person { Name = "dave", Age = i, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
 
                 p1.CleanUp();
                 p1.Clone();
@@ -361,7 +361,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void PersonEx_Clone()
         {
-            var p = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var po = (PersonEx)p.Clone();
 
             Assert.IsNotNull(po);
@@ -377,8 +377,8 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void PersonEx_CopyFrom()
         {
-            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            var p2 = new PersonEx { Name = "sarah", Age = 29, Salary = 2m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) } };
+            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p2 = new PersonEx { Name = "sarah", Age = 29, Salary = 2m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) } };
 
             p1.CopyFrom(p2);
 
@@ -396,7 +396,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             PersonEx? p2 = null;
 
-            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1.Equals(p2));
 
             p2 = (PersonEx)p1.Clone();
@@ -426,7 +426,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             PersonEx? p2 = null;
 
-            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             Assert.IsFalse(p1 == p2);
 
             p2 = (PersonEx)p1.Clone();
@@ -454,7 +454,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void PersonEx_HashCode()
         {
-            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = (PersonEx)p1.Clone();
             Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
 
@@ -492,7 +492,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             p.Name = null;
             Assert.IsTrue(p.IsInitial);
 
-            p.ChangeLog = new ChangeLog { UpdatedDate = CreateDateTime() };
+            p.ChangeLog = new ChangeLogEx { UpdatedDate = CreateDateTime() };
             Assert.IsFalse(p.IsInitial);
 
             p.ChangeLog.UpdatedDate = null;
@@ -505,7 +505,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_Clone()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
 
@@ -521,7 +521,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_Equals()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
 
@@ -542,7 +542,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_Equals2()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             var pc2 = pc;
@@ -564,7 +564,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_HashCode()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             var pc2 = (PersonCollection)pc.Clone();
@@ -577,7 +577,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_AcceptChanges()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1 };
             Assert.IsTrue(pc.IsChanged);
@@ -611,7 +611,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collect_Person_Clear()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             Assert.IsTrue(pc.IsChanged);
@@ -626,7 +626,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_MakeReadOnly()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1 };
             pc.MakeReadOnly();
@@ -652,7 +652,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_GetByPrimaryKey()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
 
@@ -675,7 +675,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_DeleteByPrimaryKey()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var p3 = new Person { Name = "dave", Age = 40 };
             var pc = new PersonCollection { p1, p2, p3 };
@@ -695,7 +695,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Collection_Person_ItemsAreAllUnique()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var p3 = new Person { Name = "dave", Age = 40 };
             var pc = new PersonCollection { p1, p2, p3 };
@@ -715,7 +715,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void CollectionResult_Person()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             var pcr = new PersonCollectionResult(pc);
@@ -733,7 +733,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Dictionary_Person_IsChanged()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
             Assert.IsTrue(pd.IsChanged);
@@ -766,7 +766,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Dictionary_Person_ReadOnly()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
             pd.MakeReadOnly();
@@ -781,11 +781,11 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void Dictionary_Person_Equals()
         {
-            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
 
-            var px1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLog { CreatedBy = "username", CreatedDate = CreateDateTime() } };
+            var px1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var px2 = new Person { Name = "mary", Age = 25 };
             var pxd = new PersonDictionary { { "dave", px1 }, { "mary", px2 } };
 
@@ -799,17 +799,17 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
         private DateTime CreateDateTime() => new DateTime(2000, 01, 01, 12, 45, 59);
 
-        public class Person : EntityBase, IPrimaryKey
+        public class Person : EntityBase, CoreEx.Entities.IPrimaryKey
         {
             private string? _name;
             private int _age;
-            private ChangeLog? _changeLog;
+            private ChangeLogEx? _changeLog;
 
             public string? Name { get => _name; set => SetValue(ref _name, value); }
             public int Age { get => _age; set => SetValue(ref _age, value); }
-            public ChangeLog? ChangeLog { get => _changeLog; set => SetValue(ref _changeLog, value); }
+            public ChangeLogEx? ChangeLog { get => _changeLog; set => SetValue(ref _changeLog, value); }
 
-            public CompositeKey PrimaryKey => new CompositeKey(Name);
+            public CoreEx.Entities.CompositeKey PrimaryKey => new CoreEx.Entities.CompositeKey(Name);
 
             protected override IEnumerable<IPropertyValue> GetPropertyValues()
             {

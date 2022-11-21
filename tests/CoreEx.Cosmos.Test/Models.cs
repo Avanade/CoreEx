@@ -1,5 +1,5 @@
 ﻿using CoreEx.Entities;
-using CoreEx.RefData.Models;
+using CoreEx.RefData;
 using Newtonsoft.Json;
 
 namespace CoreEx.Cosmos.Test

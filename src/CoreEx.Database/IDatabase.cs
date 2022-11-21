@@ -56,7 +56,8 @@ namespace CoreEx.Database
         DatabaseWildcard Wildcard { get; set; }
 
         /// <summary>
-        /// Indicates whether the <see cref="Mapping.ChangeLogDatabaseMapper.MapToDb(ChangeLog?, DatabaseParameterCollection, CoreEx.Mapping.OperationTypes)"/> passes values via parameters.
+        /// Indicates whether the <see cref="Mapping.ChangeLogDatabaseMapper.MapToDb(ChangeLog?, DatabaseParameterCollection, CoreEx.Mapping.OperationTypes)"/> and 
+        /// <see cref="Mapping.ChangeLogExDatabaseMapper.MapToDb(Entities.Extended.ChangeLogEx?, DatabaseParameterCollection, CoreEx.Mapping.OperationTypes)"/> pass values via parameters.
         /// </summary>
         bool EnableChangeLogMapperToDb { get; }
 

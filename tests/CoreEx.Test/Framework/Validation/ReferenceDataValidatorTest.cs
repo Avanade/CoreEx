@@ -1,5 +1,5 @@
 ﻿using CoreEx.Entities;
-using CoreEx.RefData;
+using CoreEx.RefData.Extended;
 using CoreEx.Validation;
 using NUnit.Framework;
 using System;
@@ -13,7 +13,7 @@ namespace CoreEx.Test.Framework.Validation
         [OneTimeSetUp]
         public void OneTimeSetUp() => CoreEx.Localization.TextProvider.SetTextProvider(new ValidationTextProvider());
 
-        public class Gender : ReferenceDataBase<int, Gender> { }
+        public class Gender : ReferenceDataBaseEx<int, Gender> { }
 
         public class GenderValidator : ReferenceDataValidatorBase<Gender, GenderValidator> { }
 

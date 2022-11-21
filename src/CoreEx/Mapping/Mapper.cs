@@ -17,7 +17,7 @@ namespace CoreEx.Mapping
         /// <summary>
         /// Initializes a new instance of the <see cref="Mapper"/> class.
         /// </summary>
-        /// <remarks>Also, automatically registers the mapping Cartesian product between <see cref="Entities.ChangeLog"/> and <see cref="Entities.Models.ChangeLog"/>.</remarks>
+        /// <remarks>Also, automatically registers the mapping Cartesian product between <see cref="Entities.ChangeLog"/> and <see cref="Entities.Extended.ChangeLogEx"/> (i.e. all combinations thereof).</remarks>
         public Mapper()
         {
             Register(new Mapper<Entities.ChangeLog, Entities.ChangeLog>()
@@ -26,19 +26,19 @@ namespace CoreEx.Mapping
                 .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
                 .Map((s, d) => d.UpdatedDate = s.UpdatedDate, OperationTypes.AnyExceptCreate));
 
-            Register(new Mapper<Entities.Models.ChangeLog, Entities.Models.ChangeLog>()
+            Register(new Mapper<Entities.Extended.ChangeLogEx, Entities.Extended.ChangeLogEx>()
                 .Map((s, d) => d.CreatedBy = s.CreatedBy, OperationTypes.AnyExceptUpdate)
                 .Map((s, d) => d.CreatedDate = s.CreatedDate, OperationTypes.AnyExceptUpdate)
                 .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
                 .Map((s, d) => d.UpdatedDate = s.UpdatedDate, OperationTypes.AnyExceptCreate));
 
-            Register(new Mapper<Entities.ChangeLog, Entities.Models.ChangeLog>()
+            Register(new Mapper<Entities.ChangeLog, Entities.Extended.ChangeLogEx>()
                 .Map((s, d) => d.CreatedBy = s.CreatedBy, OperationTypes.AnyExceptUpdate)
                 .Map((s, d) => d.CreatedDate = s.CreatedDate, OperationTypes.AnyExceptUpdate)
                 .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
                 .Map((s, d) => d.UpdatedDate = s.UpdatedDate, OperationTypes.AnyExceptCreate));
 
-            Register(new Mapper<Entities.Models.ChangeLog, Entities.ChangeLog>()
+            Register(new Mapper<Entities.Extended.ChangeLogEx, Entities.ChangeLog>()
                 .Map((s, d) => d.CreatedBy = s.CreatedBy, OperationTypes.AnyExceptUpdate)
                 .Map((s, d) => d.CreatedDate = s.CreatedDate, OperationTypes.AnyExceptUpdate)
                 .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
