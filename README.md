@@ -25,6 +25,7 @@ Package | Status | Source & documentation
 `CoreEx.Azure` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.svg)](https://badge.fury.io/nu/CoreEx.Azure) | [Link](./src/CoreEx.Azure)
 `CoreEx.Database` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.svg)](https://badge.fury.io/nu/CoreEx.Database) | [Link](./src/CoreEx.Database)
 `CoreEx.Database.SqlServer` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.SqlServer.svg)](https://badge.fury.io/nu/CoreEx.Database.SqlServer) | [Link](./src/CoreEx.Database.SqlServer)
+`CoreEx.Database.MySql` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.MySql.svg)](https://badge.fury.io/nu/CoreEx.Database.MySql) | [Link](./src/CoreEx.Database.MySql)
 `CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx.EntityFrameworkCore)
 `CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [Link](./src/CoreEx.FluentValidation)
 `CoreEx.Newtonsoft` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
@@ -50,8 +51,9 @@ These other _Avanade_ repositories leverage _CoreEx_:
 
 Repo | Description
 -|-
+[Beef](https://github.com/Avanade/beef) | Code-generation capabilities to support the industrialization of API development leveraging `CoreEx` as the primary runtime framework (_Beef_ version `v5+`).
+[DbEx](https://github.com/Avanade/dbex) | DbEx provides database extensions for DbUp-inspired database migrations.
 [UnitTestEx](https://github.com/Avanade/unittestex) | Provides .NET testing extensions to the most popular testing frameworks (MSTest, NUnit and Xunit).
-[DbEx](https://github.com/Avanade/dbex) | Provides database extensions for both, DbUp-based database migrations, and ADO.NET database access.
 [NTangle](https://github.com/Avanade/ntangle) | Change Data Capture (CDC) code generation tool and runtime.
 
 <br/>
