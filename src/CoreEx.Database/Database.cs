@@ -71,7 +71,7 @@ namespace CoreEx.Database
         public bool EnableChangeLogMapperToDb { get; }
 
         /// <inheritdoc/>
-        public DbConnection GetConnection() => Invokers.Invoker.RunSync(() => GetConnectionAsync());
+        public DbConnection GetConnection() => _dbConn is not null ? _dbConn : Invokers.Invoker.RunSync(() => GetConnectionAsync());
 
         /// <inheritdoc/>
         public async Task<TConnection> GetConnectionAsync(CancellationToken cancellationToken = default)

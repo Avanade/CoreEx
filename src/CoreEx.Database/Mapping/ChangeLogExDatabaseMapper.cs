@@ -1,29 +1,29 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities;
+using CoreEx.Entities.Extended;
 using CoreEx.Mapping;
 using System;
 
 namespace CoreEx.Database.Mapping
 {
     /// <summary>
-    /// Represents a <see cref="ChangeLog"/> <see cref="IDatabaseMapper"/>.
+    /// Represents a <see cref="ChangeLogEx"/> <see cref="IDatabaseMapper"/>.
     /// </summary>
-    public struct ChangeLogDatabaseMapper : IDatabaseMapper<ChangeLog>
+    public struct ChangeLogExDatabaseMapper : IDatabaseMapper<ChangeLogEx>
     {
-        private static readonly Lazy<ChangeLogDatabaseMapper> _default = new(() => new(), true);
+        private static readonly Lazy<ChangeLogExDatabaseMapper> _default = new(() => new(), true);
 
         /// <summary>
         /// Gets the default (singleton) instance.
         /// </summary>
-        public static ChangeLogDatabaseMapper Default => _default.Value;
+        public static ChangeLogExDatabaseMapper Default => _default.Value;
 
         /// <inheritdoc/>
-        public ChangeLog? MapFromDb(DatabaseRecord record, OperationTypes operationType = OperationTypes.Unspecified)
+        public ChangeLogEx? MapFromDb(DatabaseRecord record, OperationTypes operationType = OperationTypes.Unspecified)
         {
             if (OperationTypes.AnyExceptGet.HasFlag(operationType))
             {
-                var changeLog = new ChangeLog
+                var ChangeLogEx = new ChangeLogEx
                 {
                     CreatedBy = record.GetValue<string?>(record.Database.DatabaseColumns.CreatedByName),
                     CreatedDate = record.GetValue<DateTime?>(record.Database.DatabaseColumns.CreatedDateName),
@@ -31,14 +31,14 @@ namespace CoreEx.Database.Mapping
                     UpdatedDate = record.GetValue<DateTime?>(record.Database.DatabaseColumns.UpdatedDateName)
                 };
 
-                return ((IChangeLogAudit)changeLog).IsInitial ? null : changeLog;
+                return ((Entities.IChangeLogAudit)ChangeLogEx).IsInitial ? null : ChangeLogEx;
             }
 
             return null;
         }
 
         /// <inheritdoc/>
-        public void MapToDb(ChangeLog? value, DatabaseParameterCollection parameters, OperationTypes operationType = OperationTypes.Unspecified)
+        public void MapToDb(ChangeLogEx? value, DatabaseParameterCollection parameters, OperationTypes operationType = OperationTypes.Unspecified)
         {
             if (value == null || !parameters.Database.EnableChangeLogMapperToDb)
                 return;

@@ -53,6 +53,7 @@ param(
         "src\CoreEx.Azure",
         "src\CoreEx.Database",
         "src\CoreEx.Database.SqlServer",
+        "src\CoreEx.Database.MySql",
         "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.Cosmos",
         "src\CoreEx.FluentValidation",

@@ -1,49 +1,33 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities.Extended;
 using System;
-using System.Collections.Generic;
 
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents a change log audit.
+    /// Provides a <see cref="IChangeLogAudit"/>.
     /// </summary>
-    public class ChangeLog : EntityBase
+    public class ChangeLog : IChangeLogAudit
     {
-        private DateTime? _createdDate;
-        private string? _createdBy;
-        private DateTime? _updatedDate;
-        private string? _updatedBy;
-
         /// <summary>
         /// Gets or sets the created <see cref="DateTime"/>.
         /// </summary>
-        public DateTime? CreatedDate { get => _createdDate; set => SetValue(ref _createdDate, value); }
+        public DateTime? CreatedDate { get; set; }
 
         /// <summary>
         /// Gets or sets the created by (username).
         /// </summary>
-        public string? CreatedBy { get => _createdBy; set => SetValue(ref _createdBy, value); }
+        public string? CreatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets the updated <see cref="DateTime"/>.
         /// </summary>
-        public DateTime? UpdatedDate { get => _updatedDate; set => SetValue(ref _updatedDate, value); }
+        public DateTime? UpdatedDate { get; set; }
 
         /// <summary>
         /// Gets or sets the updated by (username).
         /// </summary>
-        public string? UpdatedBy { get => _updatedBy; set => SetValue(ref _updatedBy, value); }
-
-        /// <inheritdoc/>
-        protected override IEnumerable<IPropertyValue> GetPropertyValues()
-        {
-            yield return CreateProperty(nameof(CreatedDate), CreatedDate, v => CreatedDate = v);
-            yield return CreateProperty(nameof(CreatedBy), CreatedBy, v => CreatedBy = v);
-            yield return CreateProperty(nameof(UpdatedDate), UpdatedDate, v => UpdatedDate = v);
-            yield return CreateProperty(nameof(CreatedBy), UpdatedBy, v => UpdatedBy = v);
-        }
+        public string? UpdatedBy { get; set; }
 
         /// <summary>
         /// Prepares the <see cref="ChangeLog"/> by setting the <c>Created</c> properties.
@@ -54,19 +38,21 @@ namespace CoreEx.Entities
         /// <remarks>Creates or updates the <see cref="ChangeLog"/> where <paramref name="value"/> implements <see cref="IChangeLog"/>.</remarks>
         public static void PrepareCreated<T>(T value, ExecutionContext? executionContext = null)
         {
-            if (value != null && value is IChangeLog cl)
-                cl.ChangeLog = PrepareCreated(cl.ChangeLog, executionContext);
+            if (value != null && value is IChangeLogAuditLog cl)
+                cl.ChangeLogAudit = PrepareCreated(cl.ChangeLogAudit ?? new ChangeLog(), executionContext);
         }
 
         /// <summary>
         /// Prepares the <paramref name="changeLog"/> by setting the <c>Created</c> properties.
         /// </summary>
-        /// <param name="changeLog">The <see cref="ChangeLog"/>.</param>
+        /// <param name="changeLog">The <see cref="IChangeLogAudit"/>.</param>
         /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
         /// <returns>A new or updated <see cref="ChangeLog"/> with <c>Created</c> properties set.</returns>
-        public static ChangeLog PrepareCreated(ChangeLog? changeLog, ExecutionContext? executionContext = null)
+        public static IChangeLogAudit PrepareCreated(IChangeLogAudit changeLog, ExecutionContext? executionContext = null)
         {
-            changeLog ??= new ChangeLog();
+            if (changeLog is null)
+                throw new ArgumentNullException(nameof(changeLog));
+
             changeLog.CreatedBy = GetUsername(executionContext);
             changeLog.CreatedDate = GetTimestamp(executionContext);
             return changeLog;
@@ -81,8 +67,8 @@ namespace CoreEx.Entities
         /// <remarks>Creates or updates the <see cref="ChangeLog"/> where <paramref name="value"/> implements <see cref="IChangeLog"/>.</remarks>
         public static void PrepareUpdated<T>(T value, ExecutionContext? executionContext = null)
         {
-            if (value != null && value is IChangeLog cl)
-                cl.ChangeLog = PrepareUpdated(cl.ChangeLog, executionContext);
+            if (value != null && value is IChangeLogAuditLog cl)
+                cl.ChangeLogAudit = PrepareUpdated(cl.ChangeLogAudit ?? new ChangeLog(), executionContext);
         }
 
         /// <summary>
@@ -91,9 +77,11 @@ namespace CoreEx.Entities
         /// <param name="changeLog">The <see cref="ChangeLog"/>.</param>
         /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
         /// <returns>A new or updated <see cref="ChangeLog"/> with <c>Updated</c> properties set.</returns>
-        public static ChangeLog PrepareUpdated(ChangeLog? changeLog, ExecutionContext? executionContext = null)
+        public static IChangeLogAudit PrepareUpdated(IChangeLogAudit changeLog, ExecutionContext? executionContext = null)
         {
-            changeLog ??= new ChangeLog();
+            if (changeLog is null)
+                throw new ArgumentNullException(nameof(changeLog));
+
             changeLog.UpdatedBy = GetUsername(executionContext);
             changeLog.UpdatedDate = GetTimestamp(executionContext);
             return changeLog;
@@ -102,11 +90,11 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the username.
         /// </summary>
-        internal static string GetUsername(ExecutionContext? ec) => ec != null ? ec.UserName : (ExecutionContext.HasCurrent ? ExecutionContext.Current.UserName : ExecutionContext.EnvironmentUserName);
+        private static string GetUsername(ExecutionContext? ec) => ec != null ? ec.UserName : (ExecutionContext.HasCurrent ? ExecutionContext.Current.UserName : ExecutionContext.EnvironmentUserName);
 
         /// <summary>
         /// Gets the timestamp.
         /// </summary>
-        internal static DateTime GetTimestamp(ExecutionContext? ec) => ec != null ? ec.Timestamp : (ExecutionContext.HasCurrent ? ExecutionContext.Current.Timestamp : DateTime.UtcNow);
+        private static DateTime GetTimestamp(ExecutionContext? ec) => ec != null ? ec.Timestamp : (ExecutionContext.HasCurrent ? ExecutionContext.Current.Timestamp : DateTime.UtcNow);
     }
 }

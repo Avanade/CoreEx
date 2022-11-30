@@ -72,16 +72,16 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Compares two values for equality.
         /// </summary>
-        /// <param name="a"><see cref="ChangeLog"/> A.</param>
-        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <param name="a"><see cref="ChangeLogEx"/> A.</param>
+        /// <param name="b"><see cref="ChangeLogEx"/> B.</param>
         /// <returns><c>true</c> indicates equal; otherwise, <c>false</c> for not equal.</returns>
         public static bool operator ==(EntityKeyBaseCollection<TEntity, TSelf>? a, EntityKeyBaseCollection<TEntity, TSelf>? b) => Equals(a, b);
 
         /// <summary>
         /// Compares two values for non-equality.
         /// </summary>
-        /// <param name="a"><see cref="ChangeLog"/> A.</param>
-        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <param name="a"><see cref="ChangeLogEx"/> A.</param>
+        /// <param name="b"><see cref="ChangeLogEx"/> B.</param>
         /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
         public static bool operator !=(EntityKeyBaseCollection<TEntity, TSelf>? a, EntityKeyBaseCollection<TEntity, TSelf>? b) => !Equals(a, b);
     }

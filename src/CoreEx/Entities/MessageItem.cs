@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities.Extended;
 using CoreEx.Localization;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
@@ -12,13 +10,8 @@ namespace CoreEx.Entities
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("Type = {Type}, Text = {Text}, Property = {Property}")]
     [System.Diagnostics.DebuggerStepThrough]
-    public class MessageItem : EntityBase
+    public class MessageItem
     {
-        private MessageType _type;
-        private string? _text;
-        private string? _property;
-        private object? _tag;
-
         #region Static
 
         /// <summary>
@@ -81,24 +74,24 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the message severity validatorType.
         /// </summary>
-        public MessageType Type { get => _type; set => SetValue(ref _type, value); }
+        public MessageType Type { get; set; }
 
         /// <summary>
         /// Gets or sets the message text.
         /// </summary>
-        public string? Text { get => _text; set => SetValue(ref _text, value); }
+        public string? Text { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the property that the message relates to.
         /// </summary>
-        public string? Property { get => _property; set => SetValue(ref _property, value); }
+        public string? Property { get; set; }
 
         /// <summary>
         /// Gets or sets an optional user tag associated with the message.
         /// </summary>
         /// <remarks>Note: This property is not serialized/deserialized.</remarks>
         [JsonIgnore]
-        public object? Tag { get => _tag; set => SetValue(ref _tag, value); }
+        public object? Tag { get; set; }
 
         /// <summary>
         /// Returns the message <see cref="Text"/>.
@@ -115,15 +108,6 @@ namespace CoreEx.Entities
         {
             Property = property;
             return this;
-        }
-
-        /// <inheritdoc/>
-        protected override IEnumerable<IPropertyValue> GetPropertyValues()
-        {
-            yield return CreateProperty(nameof(Type), Type, v => Type = v);
-            yield return CreateProperty(nameof(Text), Text, v => Text = v);
-            yield return CreateProperty(nameof(Property), Property, v => Property = v);
-            yield return CreateProperty(nameof(Tag), Tag, v => Tag = v);
         }
     }
 }

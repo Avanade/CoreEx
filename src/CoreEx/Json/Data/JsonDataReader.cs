@@ -187,7 +187,6 @@ namespace CoreEx.Json.Data
                             (items ??= new List<T>()).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
-                            Entities.Models.ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(typeof(T), item, jd, items.Count - 1);
                         }
                     }
@@ -221,7 +220,6 @@ namespace CoreEx.Json.Data
                             (items ??= new List<object>()).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
-                            Entities.Models.ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(type, item, jd, items.Count - 1);
                         }
                     }

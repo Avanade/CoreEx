@@ -36,6 +36,6 @@ public class ReferenceDataController : ControllerBase
         _webApi.GetAsync(Request, x => _orchestrator.GetWithFilterAsync<Gender>(codes, text, x.RequestOptions.IncludeInactive));
 
     [HttpGet()]
-    [ProducesResponseType(typeof(IEnumerable<CoreEx.RefData.Models.ReferenceDataMultiItem>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(IEnumerable<CoreEx.RefData.ReferenceDataMultiItem>), (int)HttpStatusCode.OK)]
     public Task<IActionResult> GetNamed() => _webApi.GetAsync(Request, p => _orchestrator.GetNamedAsync(p.RequestOptions));
 }

@@ -150,14 +150,14 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? this[Type type] => Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
+        public IReferenceDataCollection? this[Type type] => GetByType(type);
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>) synchronously. 
         /// </summary>
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? this[string name] => Invokers.Invoker.RunSync(() => GetByNameAsync(name));
+        public IReferenceDataCollection? this[string name] => GetByName(name);
 
         /// <summary>
         /// Gets a <see cref="Type"/> list for the registered <see cref="IReferenceData"/> types.
@@ -177,7 +177,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? GetByType(Type type) => Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
+        public IReferenceDataCollection? GetByType(Type type) => _cache.TryGetValue(type, out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
@@ -191,7 +191,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
-        public IReferenceDataCollection GetByTypeRequired(Type type) => Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
+        public IReferenceDataCollection GetByTypeRequired(Type type) => _cache.TryGetValue(type, out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
@@ -316,14 +316,16 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? GetByName(string name) => Invokers.Invoker.RunSync(() => GetByNameAsync(name));
+        public IReferenceDataCollection? GetByName(string name)
+            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByType(type) : null;
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
         /// </summary>
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection GetByNameRequired(string name) => Invokers.Invoker.RunSync(() => GetByNameRequiredAsync(name));
+        public IReferenceDataCollection GetByNameRequired(string name)
+             => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeRequired(type) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 

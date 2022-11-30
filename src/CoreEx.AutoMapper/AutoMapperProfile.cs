@@ -7,12 +7,13 @@ using System.Reflection;
 namespace CoreEx.Mapping
 {
     /// <summary>
-    /// Represents the core <c>AutoMapper</c> <see cref="Profile"/> for <i>Beef</i>.
+    /// Represents the core <c>AutoMapper</c> <see cref="Profile"/> for <i>CoreEx</i>.
     /// </summary>
+    /// <remarks>Automatically sets the mapping between <see cref="ChangeLog"/> and <see cref="Entities.Extended.ChangeLogEx"/>.</remarks>
     public class AutoMapperProfile : Profile
     {
         /// <summary>
-        /// Gets the <i>Beef</i> <see cref="AutoMapperProfile"/> <see cref="System.Reflection.Assembly"/>.
+        /// Gets the <i>CoreEx</i> <see cref="AutoMapperProfile"/> <see cref="System.Reflection.Assembly"/>.
         /// </summary>
         public static Assembly Assembly => typeof(AutoMapperProfile).Assembly;
 
@@ -28,7 +29,7 @@ namespace CoreEx.Mapping
                 .ForMember(d => d.UpdatedBy, o => o.OperationTypes(OperationTypes.AnyExceptCreate).MapFrom(s => s.UpdatedBy))
                 .ForMember(d => d.UpdatedDate, o => o.OperationTypes(OperationTypes.AnyExceptCreate).MapFrom(s => s.UpdatedDate));
 
-            CreateMap<ChangeLog, Entities.Models.ChangeLog>()
+            CreateMap<ChangeLog, Entities.Extended.ChangeLogEx>()
                 .ForMember(d => d.CreatedBy, o => o.OperationTypes(OperationTypes.AnyExceptUpdate).MapFrom(s => s.CreatedBy))
                 .ForMember(d => d.CreatedDate, o => o.OperationTypes(OperationTypes.AnyExceptUpdate).MapFrom(s => s.CreatedDate))
                 .ForMember(d => d.UpdatedBy, o => o.OperationTypes(OperationTypes.AnyExceptCreate).MapFrom(s => s.UpdatedBy))

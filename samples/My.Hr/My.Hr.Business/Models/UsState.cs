@@ -1,6 +1,8 @@
+using CoreEx.RefData.Extended;
+
 namespace My.Hr.Business.Models;
 
-public class USState : ReferenceDataBase<Guid, USState>
+public class USState : ReferenceDataBaseEx<Guid, USState>
 {
     public static implicit operator USState?(string? code) => ConvertFromCode(code);
 }

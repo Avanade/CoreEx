@@ -4,7 +4,7 @@ using CoreEx.Entities;
 using CoreEx.Entities.Extended;
 using CoreEx.Events;
 using CoreEx.RefData;
-using CoreEx.RefData.Models;
+using CoreEx.RefData.Extended;
 using CoreEx.WebApis;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -34,7 +34,7 @@ namespace CoreEx.Newtonsoft.Json
         {
             _default.AddType(typeof(EntityCore))
                     .AddType(typeof(EntityBase))
-                    .AddType(typeof(ReferenceDataBase<,>))
+                    .AddType(typeof(ReferenceDataBaseEx<,>))
                     .AddType(typeof(ReferenceDataBase<>))
                     .AddType<MessageItem>()
                     .AddType<PagingArgs>()

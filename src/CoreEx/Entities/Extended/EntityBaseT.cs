@@ -11,7 +11,7 @@ namespace CoreEx.Entities.Extended
     /// <remarks>To leverage this base class correctly the <see cref="EntityBase.GetPropertyValues"/> <b>must</b> be overridden for all updateable properties. For an example, see the underlying 
     /// <see href="https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Entities/ChangeLog.cs">ChangeLog</see> implementation.
     /// <para>Note, that there is additional implementation work required where inheriting from a class that has inherited from <see cref="EntityBase{TSelf}"/> to enable correct equality functionality. For example, if inheriting from
-    /// <see cref="ChangeLog"/> then the following needs to be overridden to enable the expected functionality.
+    /// <see cref="ChangeLogEx"/> then the following needs to be overridden to enable the expected functionality.
     /// <code>
     /// public class ChangeLogEx : ChangeLog
     /// {
@@ -54,16 +54,16 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Compares two values for equality.
         /// </summary>
-        /// <param name="a"><see cref="ChangeLog"/> A.</param>
-        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <param name="a"><see cref="ChangeLogEx"/> A.</param>
+        /// <param name="b"><see cref="ChangeLogEx"/> B.</param>
         /// <returns><c>true</c> indicates equal; otherwise, <c>false</c> for not equal.</returns>
         public static bool operator ==(EntityBase<TSelf>? a, EntityBase<TSelf>? b) => Equals(a, b);
 
         /// <summary>
         /// Compares two values for non-equality.
         /// </summary>
-        /// <param name="a"><see cref="ChangeLog"/> A.</param>
-        /// <param name="b"><see cref="ChangeLog"/> B.</param>
+        /// <param name="a"><see cref="ChangeLogEx"/> A.</param>
+        /// <param name="b"><see cref="ChangeLogEx"/> B.</param>
         /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
         public static bool operator !=(EntityBase<TSelf>? a, EntityBase<TSelf>? b) => !Equals(a, b);
 
