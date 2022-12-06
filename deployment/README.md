@@ -1,6 +1,6 @@
 ## Introduction
 
-IaC uses [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/) to provision CoreEx (myHr) app. 
+CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/) to provision resources in Azure. 
 
 ## Prequisites
 
@@ -10,7 +10,7 @@ IaC uses [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/
 
 
 ## Deploy the Azure resources and App.
- - Open the source code in VSCode. Start a terminal and navigate to the 'deployment' folder.
+ - Open the source code in VSCode. Start a terminal and navigate to the ***deployment*** folder.
 
  - Sign in to your Azure account from the Visual Studio Code terminal.
 ~~~script
@@ -25,15 +25,15 @@ IaC uses [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/
 ~~~script
  az group create --name {resource-group-name} --location {location-name}
 ~~~
- - Set Default Resource group
+ - Set default resource group
 ~~~script
  az configure --defaults group={resource-group-name}
 ~~~
- - Deploy the bicep template
+ - Deploy bicep template
 ~~~script
 az deployment group create --template-file main.bicep 
 ~~~
 
 Verify that deployment succeeds!
 
-***NOTE: You will be prompted for SQL Admin Login and complex Password. If you run into any error, delete the resource-group and start again.***
+***NOTE:*** You will be prompted for SQL Admin Login and **complex** Password. If you run into any error, delete the resource-group and start again.
