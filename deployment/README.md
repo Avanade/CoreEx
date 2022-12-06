@@ -9,7 +9,7 @@ CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-
  - [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/install)
 
 
-## Deploy the Azure resources and App.
+## Deploy Azure resources
  - Open the source code in VSCode. Start a terminal and navigate to the ***deployment*** folder.
 
  - Sign in to your Azure account from the Visual Studio Code terminal.
