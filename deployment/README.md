@@ -1,5 +1,6 @@
 ## Introduction
 
+
 CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/) to provision resources in Azure. 
 
 ## Prequisites
@@ -7,6 +8,8 @@ CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-
  - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli)
   
  - [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/install)
+
+ - [.NET CLI](https://learn.microsoft.com/en-us/dotnet/core/tools/)
 
 
 ## Deploy Azure resources
@@ -33,7 +36,21 @@ CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-
 ~~~script
 az deployment group create --template-file main.bicep 
 ~~~
-
-Verify that deployment succeeds!
+ - Verify deployment
+~~~script
+az deployment group list --output table
+~~~
 
 ***NOTE:*** You will be prompted for SQL Admin Login and **complex** Password. If you run into any error, delete the resource-group and start again.
+
+## Deploy App Code
+
+ - Create Publish artifacts
+~~~script
+dotnet publish "..\samples\My.Hr\My.Hr.Api\My.Hr.Api.csproj" -c Release  /p:WebPublishMethod=Package /p:PackageLocation="c:\deploy"
+~~~
+
+ - Publish Web API
+~~~acript
+az webapp deploy --name myHrApppilpojomhtve6 --src-path c:\deploy\My.Hr.Api.zip  --type=zip     
+~~~
