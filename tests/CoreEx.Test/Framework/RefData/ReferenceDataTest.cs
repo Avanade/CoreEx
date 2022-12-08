@@ -726,6 +726,40 @@ namespace CoreEx.Test.Framework.RefData
         }
 
         [Test]
+        public async Task Caching_Concurrency()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataConcurrencyProvider>();
+            sc.AddReferenceDataOrchestrator<RefDataConcurrencyProvider>();
+            var sp = sc.BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            var colls = new IReferenceDataCollection?[5];
+
+            var tasks = new Task[5];
+            tasks[0] = Task.Run(() => colls[0] = ReferenceDataOrchestrator.Current.GetByType<RefData>());
+            tasks[1] = Task.Run(() => colls[1] = ReferenceDataOrchestrator.Current.GetByType<RefData>());
+            tasks[2] = Task.Run(() => colls[2] = ReferenceDataOrchestrator.Current.GetByType<RefData>());
+            tasks[3] = Task.Run(() => colls[3] = ReferenceDataOrchestrator.Current.GetByType<RefData>());
+            tasks[4] = Task.Run(() => colls[4] = ReferenceDataOrchestrator.Current.GetByType<RefData>());
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            for (int i = 0; i < colls.Length; i++)
+            {
+                Assert.IsNotNull(colls[i]);
+                Assert.AreEqual(2, colls[i]!.Count);
+            }
+
+            Assert.AreSame(colls[0], colls[4]); // First and last should be same object ref.
+        }
+
+        [Test]
         public void Serialization_STJ_NoOrchestrator()
         {
             // Serialize.
@@ -939,6 +973,27 @@ namespace CoreEx.Test.Framework.RefData
 
             await Task.Delay(500).ConfigureAwait(false);
 
+            return coll;
+        }
+    }
+
+    public class RefDataConcurrencyProvider : IReferenceDataProvider
+    {
+        private int _count;
+
+        public Type[] Types => new Type[] { typeof(RefData) };
+
+        public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetAsync=>Enter({_count})");
+            Interlocked.Increment(ref _count);
+            if (_count > 1)
+                //throw new InvalidOperationException("ReferenceData has loaded already; this should not occur as the ReferenceDataOrchestrator should ensure multi-load under concurrency does not occur.");
+                Assert.Fail("ReferenceData has loaded already; this should not occur as the ReferenceDataOrchestrator should ensure multi-load under concurrency does not occur.");
+
+            var coll = new RefDataCollection() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
+            await Task.Delay(100).ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"GetAsync=>Exit({_count})");
             return coll;
         }
     }
