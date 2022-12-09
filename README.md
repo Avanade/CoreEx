@@ -23,6 +23,7 @@ Package | Status | Source & documentation
 `CoreEx` | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [Link](./src/CoreEx)
 `CoreEx.AutoMapper` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AutoMapper.svg)](https://badge.fury.io/nu/CoreEx.AutoMapper) | [Link](./src/CoreEx.AutoMapper)
 `CoreEx.Azure` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.svg)](https://badge.fury.io/nu/CoreEx.Azure) | [Link](./src/CoreEx.Azure)
+`CoreEx.Cosmos` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Cosmos.svg)](https://badge.fury.io/nu/CoreEx.Cosmos) | [Link](./src/CoreEx.Cosmos)
 `CoreEx.Database` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.svg)](https://badge.fury.io/nu/CoreEx.Database) | [Link](./src/CoreEx.Database)
 `CoreEx.Database.SqlServer` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.SqlServer.svg)](https://badge.fury.io/nu/CoreEx.Database.SqlServer) | [Link](./src/CoreEx.Database.SqlServer)
 `CoreEx.Database.MySql` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.MySql.svg)](https://badge.fury.io/nu/CoreEx.Database.MySql) | [Link](./src/CoreEx.Database.MySql)
