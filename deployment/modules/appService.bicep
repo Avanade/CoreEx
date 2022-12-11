@@ -16,7 +16,7 @@ param location string = resourceGroup().location
   'P3'
   'P4'
 ])
-param skuName string = 'F1'
+param skuName string = 'S1'
 
 @description('Describes plan\'s instance count')
 @minValue(1)
@@ -36,9 +36,21 @@ param sqlServerFullyQualifiedDomainName string
 @description('The database name for the app')
 param sqlServerDatabaseName string
 
-
 var hostingPlanName = 'myHrPlan-${uniqueString(resourceGroup().id)}'
 var websiteName = 'myHrApp${uniqueString(resourceGroup().id)}'
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2021-02-01' = {
+  name: 'plan-myapplication'
+  location: location
+  sku: {
+    name: 'S1'
+  }
+  properties:{
+    reserved: true
+  }
+  kind: 'Linux'
+  // tags:tags
+}
 
 resource hostingPlan 'Microsoft.Web/serverfarms@2020-12-01' = {
   name: hostingPlanName
@@ -50,6 +62,10 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2020-12-01' = {
     name: skuName
     capacity: skuCapacity
   }
+  kind: 'Linux'
+  properties: {
+    reserved: true
+  }  
 }
 
 resource website 'Microsoft.Web/sites@2020-12-01' = {
@@ -61,7 +77,16 @@ resource website 'Microsoft.Web/sites@2020-12-01' = {
   }
   properties: {
     serverFarmId: hostingPlan.id
-  }
+    reserved: true
+    siteConfig:{
+      alwaysOn: true
+      ftpsState: 'Disabled'
+      // appSettings: appSettings
+      linuxFxVersion: 'DOTNETCORE|6.0'
+      http20Enabled: true
+    }
+    httpsOnly: true  
+  }  
 }
 
 resource webSiteConnectionStrings 'Microsoft.Web/sites/config@2020-12-01' = {

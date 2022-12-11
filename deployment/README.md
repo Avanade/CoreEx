@@ -1,7 +1,7 @@
 ## Introduction
 
 
-CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/) to provision resources in Azure. 
+CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/) to provision resources in Azure. Following are the steps to be performed when deploying CoreEx sample app to Azure.
 
 ## Prequisites
 
@@ -22,7 +22,7 @@ CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-
 
  - Set the default subscription
 ~~~script
- az account set --subscription {your subscription ID}
+ az account set --subscription {your-subscription-ID}
 ~~~
  - Create resource group
 ~~~script
@@ -47,10 +47,12 @@ az deployment group list --output table
 
  - Create Publish artifacts
 ~~~script
-dotnet publish "..\samples\My.Hr\My.Hr.Api\My.Hr.Api.csproj" -c Release  /p:WebPublishMethod=Package /p:PackageLocation="c:\deploy"
+dotnet publish "..\samples\My.Hr\My.Hr.Api\My.Hr.Api.csproj" -c Release --output "\artifacts"
+
+compress-Archive -Path "\artifacts\*" -DestinationPath "MyHrApp.zip" -Force
 ~~~
 
  - Publish Web API
 ~~~acript
-az webapp deploy --name myHrApppilpojomhtve6 --src-path c:\deploy\My.Hr.Api.zip  --type=zip     
+az webapp deploy --name {App-Service-Name} --src-path MyHrApp.zip  --type=zip   
 ~~~
