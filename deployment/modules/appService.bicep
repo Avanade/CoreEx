@@ -36,8 +36,45 @@ param sqlServerFullyQualifiedDomainName string
 @description('The database name for the app')
 param sqlServerDatabaseName string
 
+@description('Service bus resource name')
+param servicebusName string
+
 var hostingPlanName = 'myHrPlan-${uniqueString(resourceGroup().id)}'
 var websiteName = 'myHrApp${uniqueString(resourceGroup().id)}'
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: 'AppInsights${websiteName}'
+  location: location
+  tags: {
+    'hidden-link:${websiteName}': 'Resource'
+    displayName: 'AppInsightsComponent'
+  }
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+  }
+}
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08-01' = {
+  name: 'LogAnalytics${websiteName}'  
+  location: location
+  tags: {
+    displayName: 'Log Analytics'
+    ProjectName: websiteName
+  }
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 120
+    features: {
+      searchVersion: 1
+      legacy: 0
+      enableLogAccessUsingOnlyResourcePermissions: true
+    }
+  }
+}
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2021-02-01' = {
   name: 'plan-myapplication'
@@ -84,6 +121,20 @@ resource website 'Microsoft.Web/sites@2020-12-01' = {
       // appSettings: appSettings
       linuxFxVersion: 'DOTNETCORE|6.0'
       http20Enabled: true
+      appSettings: [
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: 'InstrumentationKey=${appInsights.properties.InstrumentationKey}'
+        }
+        {
+          name: 'ServiceBusConnection__fullyQualifiedNamespace'
+          value: '${servicebusName}.servicebus.windows.net"'
+        }
+      ]
     }
     httpsOnly: true  
   }  
@@ -100,36 +151,4 @@ resource webSiteConnectionStrings 'Microsoft.Web/sites/config@2020-12-01' = {
   }
 }
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: 'AppInsights${website.name}'
-  location: location
-  tags: {
-    'hidden-link:${website.id}': 'Resource'
-    displayName: 'AppInsightsComponent'
-  }
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalyticsWorkspace.id
-  }
-}
 
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08-01' = {
-  name: 'LogAnalytics${website.name}'  
-  location: location
-  tags: {
-    displayName: 'Log Analytics'
-    ProjectName: websiteName
-  }
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-    retentionInDays: 120
-    features: {
-      searchVersion: 1
-      legacy: 0
-      enableLogAccessUsingOnlyResourcePermissions: true
-    }
-  }
-}
