@@ -34,4 +34,4 @@ resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-01-01-prev
   }
 }
 
-output serviceBusName
+output serviceBusName string = serviceBusNamespace.name

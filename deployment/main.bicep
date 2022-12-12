@@ -17,6 +17,15 @@ module sql  'modules/sqlServer.bicep' = {
   }
 }
 
+module bus  'modules/serviceBus.bicep' = {
+  name: 'serviceBus'
+  params: {
+    serviceBusQueueName: 'myHr'
+    location: location
+
+  }
+}
+
 module webApp 'modules/appService.bicep' = {
   name: 'webApp'
   params: {
@@ -25,5 +34,6 @@ module webApp 'modules/appService.bicep' = {
     sqlServerDatabaseName: sql.outputs.sqlServerDatabaseName
     sqlServerFullyQualifiedDomainName: sql.outputs.sqlServerFullyQualifiedName
     location: location
+    servicebusName: bus.name
   }
 }
