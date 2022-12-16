@@ -68,10 +68,13 @@ namespace CoreEx.EntityFrameworkCore
         public async Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
         {
             var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), cancellationToken).ConfigureAwait(false);
+            if (args.ClearChangeTrackerAfterGet)
+                DbContext.ChangeTracker.Clear();
+
             if (model == default || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
                 return default!;
 
-            return Mapper.Map<T>(model) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value.");
+            return Mapper.Map<T>(model, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value.");
         }, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
@@ -94,7 +97,7 @@ namespace CoreEx.EntityFrameworkCore
                 if (args.SaveChanges)
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
-                return args.Refresh ? Mapper.Map<TModel, T>(model, Mapping.OperationTypes.Get)! : value;
+                return args.Refresh ? Mapper.Map<TModel, T>(model, OperationTypes.Get)! : value;
             }, cancellationToken).ConfigureAwait(false);
         }
 
@@ -115,11 +118,13 @@ namespace CoreEx.EntityFrameworkCore
                 if (model == null || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
                     throw new NotFoundException();
 
-                // Remove the entity from the tracker before we attempt to update; otherwise, will use existing rowversion and concurrency will not work as expected.
-                DbContext.Remove(model);
-                DbContext.ChangeTracker.AcceptAllChanges();
+                // Check optimistic concurrency of etag/rowversion to ensure valid. This is needed as underlying EF uses the row version from the find above ignoring the value.ETag where overridden; this is needed to achieve.
+                if (value is IETag etag && Mapper.Map<TModel, T>(model, OperationTypes.Get) is IETag etag2 && etag.ETag != etag2.ETag)
+                    throw new ConcurrencyException();
 
-                model = Mapper.Map(value, model, Mapping.OperationTypes.Update);
+                // Update (map) the model from the entity then perform a dbcontext update which will discover/track changes.
+                model = Mapper.Map(value, model, OperationTypes.Update);
+                Cleaner.ResetTenantId(model);
 
                 DbContext.Update(model);
 

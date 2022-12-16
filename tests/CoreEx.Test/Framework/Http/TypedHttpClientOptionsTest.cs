@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -31,6 +32,7 @@ namespace CoreEx.Test.Framework.Http
             Assert.IsFalse(o.ShouldEnsureSuccess);
             Assert.IsNull(o.ExpectedStatusCodes);
             Assert.IsNull(o.MaxRetryDelay);
+            Assert.IsNull(o.BeforeRequest);
         }
 
         [Test]
@@ -154,6 +156,20 @@ namespace CoreEx.Test.Framework.Http
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
             Assert.AreEqual(System.TimeSpan.FromMinutes(2), o2.MaxRetryDelay);
+
+            o.Reset();
+            AssertIsInitial(o);
+        }
+
+        [Test]
+        public void OnBeforeRequest()
+        {
+            var o = new TypedHttpClientOptions(new DefaultSettings());
+            o.OnBeforeRequest((r, ct) => Task.CompletedTask);
+            Assert.NotNull(o.BeforeRequest);
+
+            var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
+            Assert.NotNull(o2.BeforeRequest);
 
             o.Reset();
             AssertIsInitial(o);

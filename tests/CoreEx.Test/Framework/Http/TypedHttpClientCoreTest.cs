@@ -486,6 +486,28 @@ namespace CoreEx.Test.Framework.Http
         }
 
         [Test]
+        public void OnBeforeRequest_Option()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Get, "test").Respond.With("test-content");
+
+            using var test = FunctionTester.Create<Startup>();
+            var res = test.ConfigureServices(sc => mcf.Replace(sc))
+                .Type<BackendHttpClient>()
+                .Run(f => f.OnBeforeRequest((req, ct) => { req.Headers.MaxForwards = 88; return Task.CompletedTask; }).GetAsync("test"))
+                .AssertSuccess()
+                .Result;
+
+            Assert.That(res, Is.Not.Null);
+            Assert.That(res.IsSuccess, Is.True);
+            Assert.That(res.Content, Is.EqualTo("test-content"));
+            Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
         public async Task TypedHttpClientInstance_OnConfiguration()
         {
             try

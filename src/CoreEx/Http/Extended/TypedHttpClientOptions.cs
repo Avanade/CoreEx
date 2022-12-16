@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreEx.Http.Extended
 {
@@ -110,6 +111,11 @@ namespace CoreEx.Http.Extended
         public bool ShouldNullOnNotFound { get; private set; }
 
         /// <summary>
+        /// Gets the function to update the <see cref="HttpRequestMessage"/> before the request is sent; see <see cref="OnBeforeRequest(Func{HttpRequestMessage, CancellationToken, Task}?)"/>.
+        /// </summary>
+        public Func<HttpRequestMessage, CancellationToken, Task>? BeforeRequest { get; private set; }
+
+        /// <summary>
         /// Checks whether the default is being updated when in send mode which is not allowed.
         /// </summary>
         private void CheckDefaultNotBeingUpdatedInSendMode()
@@ -123,7 +129,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <param name="retryPolicy">The custom retry policy.</param>
         /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/> with additional handling of <see cref="SocketException"/> and <see cref="TimeoutException"/>.
-        /// <para>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        /// <para>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
         public TypedHttpClientOptions WithCustomRetryPolicy(PolicyBuilder<HttpResponseMessage> retryPolicy)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -136,7 +142,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <param name="predicate">An optional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
         public TypedHttpClientOptions ThrowTransientException(Func<HttpResponseMessage?, Exception?, (bool result, string error)>? predicate = null)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -150,7 +156,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
         public TypedHttpClientOptions ThrowKnownException(bool useContentAsErrorMessage = false)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -164,7 +170,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
         /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry.</param>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TypedHttpClientOptions WithRetry(int? count = null, double? seconds = null)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -186,7 +192,7 @@ namespace CoreEx.Http.Extended
         /// Indicates whether to automatically perform an <see cref="HttpResponseMessage.EnsureSuccessStatusCode"/>.
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TypedHttpClientOptions EnsureSuccess()
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -198,7 +204,7 @@ namespace CoreEx.Http.Extended
         /// Adds the <see cref="HttpStatusCode.OK"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
         /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
         public TypedHttpClientOptions EnsureOK() => Ensure(HttpStatusCode.OK);
 
@@ -206,7 +212,7 @@ namespace CoreEx.Http.Extended
         /// Adds the <see cref="HttpStatusCode.NoContent"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
         /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
         public TypedHttpClientOptions EnsureNoContent() => Ensure(HttpStatusCode.NoContent);
 
@@ -214,7 +220,7 @@ namespace CoreEx.Http.Extended
         /// Adds the <see cref="HttpStatusCode.Accepted"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
         /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
         public TypedHttpClientOptions EnsureAccepted() => Ensure(HttpStatusCode.Accepted);
 
@@ -222,7 +228,7 @@ namespace CoreEx.Http.Extended
         /// Adds the <see cref="HttpStatusCode.Created"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
         /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
         public TypedHttpClientOptions EnsureCreated() => Ensure(HttpStatusCode.Created);
 
@@ -231,7 +237,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <param name="statusCodes">One or more <see cref="HttpStatusCode">status codes</see> to be verified.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
         /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
         public TypedHttpClientOptions Ensure(params HttpStatusCode[] statusCodes)
         {
@@ -251,7 +257,7 @@ namespace CoreEx.Http.Extended
         /// Sets timeout for given request
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TypedHttpClientOptions WithTimeout(TimeSpan timeout)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -264,7 +270,7 @@ namespace CoreEx.Http.Extended
         /// Default is 30s but it can be overridden for async calls (e.g. when using service bus trigger).
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>There is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TypedHttpClientOptions WithMaxRetryDelay(TimeSpan maxRetryDelay)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -275,10 +281,25 @@ namespace CoreEx.Http.Extended
         /// <summary>
         /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
         /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TypedHttpClientOptions NullOnNotFound()
         {
             CheckDefaultNotBeingUpdatedInSendMode();
             ShouldNullOnNotFound = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the function to update the <see cref="HttpRequestMessage"/> before the request is sent.
+        /// </summary>
+        /// <param name="beforeRequest">The function to update the <see cref="HttpRequestMessage"/>.</param>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        public TypedHttpClientOptions OnBeforeRequest(Func<HttpRequestMessage, CancellationToken, Task>? beforeRequest)
+        {
+            CheckDefaultNotBeingUpdatedInSendMode();
+            BeforeRequest = beforeRequest;
             return this;
         }
 
@@ -302,6 +323,7 @@ namespace CoreEx.Http.Extended
                 Timeout = null;
                 MaxRetryDelay = null;
                 ShouldNullOnNotFound = false;
+                BeforeRequest = null;
             }
             else
             {
@@ -317,6 +339,7 @@ namespace CoreEx.Http.Extended
                 Timeout = _defaultOptions.Timeout;
                 MaxRetryDelay = _defaultOptions.MaxRetryDelay;
                 ShouldNullOnNotFound = _defaultOptions.ShouldNullOnNotFound;
+                BeforeRequest = _defaultOptions.BeforeRequest;
             }
         }
     }

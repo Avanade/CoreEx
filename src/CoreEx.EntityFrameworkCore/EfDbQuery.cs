@@ -11,6 +11,8 @@ namespace CoreEx.EntityFrameworkCore
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
+    /// <remarks>Queried entities by default are <see cref="EntityFrameworkQueryableExtensions.AsNoTracking{TEntity}(IQueryable{TEntity})">not tracked</see>; this behavior can be overridden using <see cref="EfDbArgs.QueryNoTracking"/>.
+    /// <para>Reminder: leverage <see cref="EntityFrameworkQueryableExtensions.IgnoreAutoIncludes{TEntity}(IQueryable{TEntity})"/> and then explictly include to improve performance where applicable.</para></remarks>
     public struct EfDbQuery<T, TModel> where T : class, new() where TModel : class, new()
     {
         private readonly Func<IQueryable<TModel>, IQueryable<TModel>>? _query;
@@ -73,7 +75,7 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken) => EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
         {
-            var dbSet = efdb.DbContext.Set<TModel>().AsNoTracking();
+            var dbSet = args.QueryNoTracking ? efdb.DbContext.Set<TModel>().AsNoTracking() : efdb.DbContext.Set<TModel>();
             return executeAsync((query == null) ? dbSet : query(dbSet), ct);
         }, cancellationToken);
 

@@ -228,10 +228,24 @@ namespace CoreEx.Http
         /// <summary>
         /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
         /// </summary>
-        /// <remarks>Results in the corresponding <see cref="HttpResult"/> <see cref="HttpResult.NullOnNotFoundResponse"/> being set to get the desired outcome.</remarks>
+        /// <remarks>
+        /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Results in the corresponding <see cref="HttpResult"/> <see cref="HttpResult.NullOnNotFoundResponse"/> being set to get the desired outcome.</para></remarks>
         public TSelf NullOnNotFound()
         {
             SendOptions.NullOnNotFound();
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Sets the function to update the <see cref="HttpRequestMessage"/> before the request is sent.
+        /// </summary>
+        /// <param name="beforeRequest">The function to update the <see cref="HttpRequestMessage"/>.</param>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        public TSelf OnBeforeRequest(Func<HttpRequestMessage, CancellationToken, Task>? beforeRequest)
+        {
+            SendOptions.OnBeforeRequest(beforeRequest);
             return (TSelf)this;
         }
 
@@ -265,6 +279,9 @@ namespace CoreEx.Http
                 {
                     var sw = Stopwatch.StartNew();
                     CorrelationHeaderNames.ForEach(n => request.Headers.TryAddWithoutValidation(n, ExecutionContext.CorrelationId));
+
+                    if (options.BeforeRequest != null)
+                        await options.BeforeRequest(request, cancellationToken).ConfigureAwait(false);
 
                     await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
                     await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
