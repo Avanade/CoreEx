@@ -34,6 +34,6 @@ namespace CoreEx.Http.Extended
             executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext()),
             settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings(),
             logger ?? ExecutionContext.GetService<ILogger<TypedMappedHttpClient>>() ?? NullLoggerFactory.Instance.CreateLogger<TypedMappedHttpClient>()) 
-            => OnBeforeRequest(onBeforeRequest);
+            => DefaultOptions.OnBeforeRequest(onBeforeRequest);
     }
 }

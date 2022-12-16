@@ -208,15 +208,14 @@ namespace CoreEx.Test.Framework.Http
             var thc = new TypedHttpClient(new System.Net.Http.HttpClient());
             thc.WithRetry(5, 7);
 
-            Assert.Throws<InvalidOperationException>(() => _ = thc.DefaultOptions);
+            Assert.Throws<InvalidOperationException>(() => thc.DefaultOptions.WithRetry(3, 6));
             thc.Reset();
-            _ = thc.DefaultOptions;
+            thc.DefaultOptions.WithRetry(2, 8);
 
             thc = new TypedHttpClient(new System.Net.Http.HttpClient());
             thc.DefaultOptions.WithRetry(2, 4);
             thc.WithRetry(5, 7);
 
-            _ = thc.DefaultOptions;
             Assert.Throws<InvalidOperationException>(() => thc.DefaultOptions.ThrowTransientException());
             thc.Reset();
             thc.DefaultOptions.ThrowTransientException();
