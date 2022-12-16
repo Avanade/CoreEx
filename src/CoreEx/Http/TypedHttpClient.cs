@@ -16,8 +16,6 @@ namespace CoreEx.Http
     /// </summary>
     public sealed class TypedHttpClient : TypedHttpClientCore<TypedHttpClient>
     {
-        private readonly Func<HttpRequestMessage, CancellationToken, Task>? _onBeforeRequest;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="TypedHttpClientCore{TBase}"/>.
         /// </summary>
@@ -33,15 +31,6 @@ namespace CoreEx.Http
             executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext()),
             settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings(),
             logger ?? ExecutionContext.GetService<ILogger<TypedHttpClient>>() ?? NullLoggerFactory.Instance.CreateLogger<TypedHttpClient>()) 
-            => _onBeforeRequest = onBeforeRequest;
-
-        /// <inheritdoc/>
-        protected async override Task OnBeforeRequest(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            if (_onBeforeRequest != null)
-                await _onBeforeRequest(request, cancellationToken).ConfigureAwait(false);
-
-            await base.OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
-        }
+            => DefaultOptions.OnBeforeRequest(onBeforeRequest);
     }
 }

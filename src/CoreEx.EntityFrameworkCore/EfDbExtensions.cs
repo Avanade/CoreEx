@@ -16,9 +16,16 @@ namespace CoreEx.EntityFrameworkCore
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
         /// <param name="efDb">The <see cref="IEfDb"/>.</param>
         /// <param name="query">The function to further define the query.</param>
+        /// <param name="noTracking">Optionally override the specified/default <see cref="EfDbArgs.QueryNoTracking"/>.</param>
         /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
-        public static EfDbQuery<T, TModel> Query<T, TModel>(this IEfDb efDb, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, IEntityKey, new() where TModel : class, new() 
-            => efDb.Query<T, TModel>(new EfDbArgs(efDb.DbArgs), query);
+        public static EfDbQuery<T, TModel> Query<T, TModel>(this IEfDb efDb, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null, bool? noTracking = null) where T : class, IEntityKey, new() where TModel : class, new()
+        {
+            var ea = new EfDbArgs(efDb.DbArgs);
+            if (noTracking.HasValue)
+                ea.QueryNoTracking = noTracking.Value;
+
+            return efDb.Query<T, TModel>(ea, query);
+        }
 
         /// <summary>
         /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/>.
