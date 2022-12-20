@@ -1,11 +1,15 @@
 ﻿global using CoreEx;
 global using CoreEx.Configuration;
+global using CoreEx.Database;
+global using CoreEx.Database.SqlServer;
 global using CoreEx.Entities;
 global using CoreEx.EntityFrameworkCore;
 global using CoreEx.Events;
 global using CoreEx.Http;
 global using CoreEx.Json;
+global using CoreEx.Mapping;
 global using CoreEx.RefData;
+global using Microsoft.Data.SqlClient;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.Metadata.Builders;
 global using Microsoft.Extensions.Configuration;

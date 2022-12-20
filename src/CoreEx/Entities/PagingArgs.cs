@@ -14,7 +14,7 @@ namespace CoreEx.Entities
     public class PagingArgs
     {
         private static long? _defaultTake;
-        private static long _maxTake = 1000;
+        private static long? _maxTake;
 
         /// <summary>
         /// Gets or sets the default <see cref="Take"/> size.
@@ -22,7 +22,7 @@ namespace CoreEx.Entities
         /// <remarks>Defaults to <see cref="SettingsBase.PagingDefaultTake"/> where specified; otherwise, <c>100</c>.</remarks>
         public static long DefaultTake
         {
-            get => _defaultTake ??= ExecutionContext.GetService<SettingsBase>()?.PagingDefaultTake ?? 100;
+            get => _defaultTake ?? ExecutionContext.GetService<SettingsBase>()?.PagingDefaultTake ?? 100;
 
             set
             {
@@ -32,12 +32,12 @@ namespace CoreEx.Entities
         }
 
         /// <summary>
-        /// Gets or sets the maximum <see cref="Take"/> size allowed (defaults to 1000).
+        /// Gets or sets the absolute maximum <see cref="Take"/> size allowed.
         /// </summary>
-        /// <remarks>Defaults to <c>false</c>.</remarks>
+        /// <remarks>Defaults to <see cref="SettingsBase.PagingMaxTake"/> where specified; otherwise, <c>1000</c>.</remarks>
         public static long MaxTake
         {
-            get => _maxTake;
+            get => _maxTake ?? ExecutionContext.GetService<SettingsBase>()?.PagingMaxTake ?? 1000;
 
             set
             {

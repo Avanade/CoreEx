@@ -1,6 +1,4 @@
-﻿using CoreEx.Mapping;
-
-namespace My.Hr.Business.Data
+﻿namespace My.Hr.Business.Data
 {
     /// <summary>
     /// Enables the <b>My.Hr</b> database using Entity Framework.

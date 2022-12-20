@@ -64,6 +64,29 @@ Each `IReferenceDataProvider` (typically only one) instance is registered via th
 
 <br/>
 
+### Cache policy configuration
+
+The default implementation for the `IMemoryCache` is that each _reference data_ type's collection [`ICacheEntry`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.memory.icacheentry) is set in a standardized manner; being `AbsoluteExpirationRelativeToNow` and `SlidingExpiration` properties defaulted to `02:00:00` (2 hours) and `00:30:00` (30 minutes) respectively.
+
+These defaults can be overridden within the configuration [settings](../Configuration/SettingsBase.cs); as can specific _reference data_ types. The following is an example of setting the defaults and then specifically overridding the `Gender` policy (the `Type.Name` is used as the property name).
+
+``` json
+{
+  "RefDataCache": {
+    "AbsoluteExpirationRelativeToNow": "01:45:00",
+    "SlidingExpiration": "00:15:00",
+    "Gender": {
+      "AbsoluteExpirationRelativeToNow": "03:00:00",
+      "SlidingExpiration": "00:45:00"
+    }
+  }
+}
+```
+
+Where the above is not sufficient then the virtual `OnCreateCacheEntry` method can be overridden to fully customize (override) the default behaviour.
+
+<br/>
+
 ## Reference data properties and serialization
 
 It is recommended that the rich _reference data_ types themselves where included within an entity are not JSON serialized/deserialized over the wire from the likes of an API; in these instances only the `Code` is generally used. This is to minimize the resulting payload size of the owning entity. 

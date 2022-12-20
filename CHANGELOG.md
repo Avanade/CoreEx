@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v2.3.0
+- *Enhancement:* `PagingArgs.MaxTake` default set by `SettingsBase.PagingMaxTake`.
+- *Enhancement:* Reference data `ICacheEntry` policy configuration can now be defined in settings.
+
 ## v2.2.0
 - *Fixed:* Entity Framework `EfDb.UpdateAsync` resolved error where the instance of entity type cannot be tracked because another instance with the same key value is already being tracked.
 - *Fixed:* The `CollectionMapper` was incorrectly appending items to an existing collection, versus performing a replacement operation.
