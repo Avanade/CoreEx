@@ -75,7 +75,7 @@ The inserted **model** is then re-mapped to the **entity** and returned where [`
 
 Updates the **entity** by firstly mapping to the **model**. Uses the [`DbContext.Update`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be updated within the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
 
-First will check existence of the **model** by performing a `DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
+First will check existence of the **model** by performing a [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
 
 Where the entity implements [`IETag`](../CoreEx/Entities/IETag.cs) this will be checked against the just read version, and where not matched a  [`ConcurrencyException`](../CoreEx/ConcurrencyException.cs) will be thrown. Also, any [`DbUpdateConcurrencyException`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbupdateconcurrencyexception) thrown will be converted to a corresponding `ConcurrencyException` for consistency.
 
@@ -91,9 +91,9 @@ The updated **model** is then re-mapped to the **entity** and returned where [`E
 
 ### Delete
 
-Deletes the **entity** either physically or logically,
+Deletes the **entity** either physically or logically.
 
-First will check existence of the **model** by performing a `DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
+First will check existence of the **model** by performing a [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
 
 Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) then an update will occur after setting `IsDeleted` to `true`. Uses the [`DbContext.Update`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be updated within the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
 
