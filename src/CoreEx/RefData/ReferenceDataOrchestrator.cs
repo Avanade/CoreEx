@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Json;
 using CoreEx.WebApis;
@@ -41,6 +42,7 @@ namespace CoreEx.RefData
         private readonly TimeSpan _absoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
         private readonly TimeSpan _slidingExpiration = TimeSpan.FromMinutes(30);
         private readonly Lazy<ILogger> _logger;
+        private readonly Lazy<SettingsBase?> _settings;
 
         /// <summary>
         /// Gets the current <see cref="ReferenceDataOrchestrator"/> from the <see cref="IServiceProvider"/> within the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> scope (see <see cref="ExecutionContext.GetService(Type)"/>) and will throw an <see cref="InvalidOperationException"/> where not found.
@@ -58,6 +60,7 @@ namespace CoreEx.RefData
             ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
             Cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _logger = new Lazy<ILogger>(ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>);
+            _settings = new Lazy<SettingsBase?>(ServiceProvider.GetService<SettingsBase>);
         }
 
         /// <summary>
@@ -90,6 +93,12 @@ namespace CoreEx.RefData
         /// </summary>
         [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
         public ILogger Logger => _logger.Value;
+
+        /// <summary>
+        /// Gets the <see cref="SettingsBase"/>.
+        /// </summary>
+        [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
+        public SettingsBase Settings => _settings.Value;
 
         /// <summary>
         /// Registers the <see cref="IReferenceDataProvider"/> <see cref="Type"/>.
@@ -256,7 +265,7 @@ namespace CoreEx.RefData
         /// <param name="getCollAsync">The underlying function to invoke to get the <see cref="IReferenceDataCollection"/> when (re-)creating cache collection.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IReferenceDataCollection"/>.</returns>
-        /// <remarks>Invokes the <see cref="OnCreateCacheEntry(ICacheEntry)"/> prior to invoking <paramref name="getCollAsync"/> on <i>create</i>. This should be overridden where the default <see cref="IMemoryCache"/> capabilities are not
+        /// <remarks>Invokes the <see cref="OnCreateCacheEntry(Type, ICacheEntry)"/> prior to invoking <paramref name="getCollAsync"/> on <i>create</i>. This should be overridden where the default <see cref="IMemoryCache"/> capabilities are not
         /// sufficient. The <paramref name="getCollAsync"/> contains the logic to invoke the underlying <see cref="IReferenceDataProvider.GetAsync(Type, System.Threading.CancellationToken)"/>; this is executed in the context of a 
         /// <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services. Additionally, semaphore locks are used to
         /// manage concurrency to ensure cache loading is thread-safe.</remarks>
@@ -277,7 +286,7 @@ namespace CoreEx.RefData
                 // Does a get or create as it may have been added as we went to lock.
                 return await Cache.GetOrCreateAsync(key, async entry =>
                 {
-                    OnCreateCacheEntry(entry);
+                    OnCreateCacheEntry(type, entry);
                     return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
                 }).ConfigureAwait(false);
             }
@@ -298,14 +307,15 @@ namespace CoreEx.RefData
         /// <summary>
         /// Provides an opportunity to the maintain the <see cref="ICacheEntry"/> data prior to the cache <i>create</i> function being invoked (as a result of <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>).
         /// </summary>
+        /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <param name="entry">The <see cref="ICacheEntry"/>.</param>
         /// <remarks>Note: the <see cref="ICacheEntry.Key"/> is the <see cref="IReferenceData"/> <see cref="Type"/>.
         /// <para>The default behaviour sets the following: <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> = 2 hours, and <see cref="ICacheEntry.SlidingExpiration"/> = 30 minutes unless overidden during instantiation.
         /// This should be overridden where more advanced behaviour is required.</para></remarks>
-        protected virtual void OnCreateCacheEntry(ICacheEntry entry)
+        protected virtual void OnCreateCacheEntry(Type type, ICacheEntry entry)
         {
-            entry.AbsoluteExpirationRelativeToNow = _absoluteExpirationRelativeToNow;
-            entry.SlidingExpiration = _slidingExpiration;
+            entry.AbsoluteExpirationRelativeToNow = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", Settings.RefDataCacheAbsoluteExpirationRelativeToNow) ?? TimeSpan.FromHours(2);
+            entry.SlidingExpiration = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.SlidingExpiration)}", Settings.RefDataCacheSlidingExpiration) ?? TimeSpan.FromMinutes(30);
         }
 
         /// <summary>

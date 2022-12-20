@@ -1,8 +1,4 @@
-﻿using CoreEx.Database;
-using CoreEx.Database.SqlServer;
-using Microsoft.Data.SqlClient;
-
-namespace My.Hr.Business.Data
+﻿namespace My.Hr.Business.Data
 {
     public class HrDb : SqlServerDatabase
     {
