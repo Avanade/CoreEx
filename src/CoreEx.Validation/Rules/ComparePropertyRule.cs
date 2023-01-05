@@ -33,11 +33,8 @@ namespace CoreEx.Validation.Rules
         }
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             // Do not validate where the compare to property has an error.
             if (context.Parent.HasError(_compareTo))
                 return Task.CompletedTask;

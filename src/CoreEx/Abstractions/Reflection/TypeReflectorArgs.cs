@@ -42,9 +42,9 @@ namespace CoreEx.Abstractions.Reflection
         public IMemoryCache Cache { get; }
 
         /// <summary>
-        /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>4</c> hours.
+        /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>24</c> hours.
         /// </summary>
-        public TimeSpan AbsoluteExpirationTimespan { get; set; } = TimeSpan.FromHours(4);
+        public TimeSpan AbsoluteExpirationTimespan { get; set; } = TimeSpan.FromHours(24);
 
         /// <summary>
         /// Gets or sets the <see cref="IMemoryCache"/> sliding expiration <see cref="TimeSpan"/>. Default to <c>30</c> minutes.

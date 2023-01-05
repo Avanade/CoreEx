@@ -23,6 +23,12 @@ namespace CoreEx.Validation.Rules
         public LText? ErrorText { get; set; }
 
         /// <summary>
+        /// Indicates that the <see cref="ValidateAsync(PropertyContext{TEntity, TProperty}, CancellationToken)"/> is also invoked when the property value <i>equals</i> the default value for the <typeparamref name="TProperty"/>.
+        /// </summary>
+        /// <remarks>Defaults to <c>true</c>; this indicates that the property <i>is</i> validated where default.</remarks>
+        protected bool ValidateWhenDefault { get; set; } = true;
+
+        /// <summary>
         /// Adds a clause (<see cref="IPropertyRuleClause{TEntity, TProperty}"/>) to the rule.
         /// </summary>
         /// <param name="clause">The <see cref="IPropertyRuleClause{TEntity, TProperty}"/>.</param>
@@ -39,7 +45,7 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        public virtual bool Check(PropertyContext<TEntity, TProperty> context)
+        protected virtual bool Check(PropertyContext<TEntity, TProperty> context)
         {
             foreach (var clause in _clauses)
             {
@@ -63,9 +69,16 @@ namespace CoreEx.Validation.Rules
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="Task"/>.</returns>
-        public abstract Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default);
+        protected abstract Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default);
 
         /// <inheritdoc/>
-        Task IValueRule<TEntity, TProperty>.ValidateAsync(IPropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken) => ValidateAsync((PropertyContext<TEntity, TProperty>)context, cancellationToken);
+        Task IValueRule<TEntity, TProperty>.ValidateAsync(IPropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
+        {
+            var pc = (PropertyContext<TEntity, TProperty>)context;
+            if (ValidateWhenDefault || Comparer<TProperty?>.Default.Compare(pc.Value, default!) != 0)
+                return ValidateAsync(pc, cancellationToken);
+
+            return Task.CompletedTask;
+        }
     }
 }

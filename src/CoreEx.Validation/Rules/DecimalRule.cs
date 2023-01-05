@@ -20,6 +20,11 @@ namespace CoreEx.Validation.Rules
         private int? _decimalPlaces;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DecimalRule{TEntity, TProperty}"/> class.
+        /// </summary>
+        public DecimalRule() => ValidateWhenDefault = false;
+
+        /// <summary>
         /// Gets or sets the maximum digits being the sum of the integer-part and fractional-part (<see cref="DecimalPlaces"/>) lengths.
         /// </summary>
         /// <remarks>For example, to validate a number with the pattern '999.99', then <see cref="MaxDigits"/> would be 5 and <see cref="DecimalPlaces"/> would be 2. Minimum specified value is 1.</remarks>
@@ -54,15 +59,8 @@ namespace CoreEx.Validation.Rules
         }
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            // Where the value is null, do nothing; i.e. Nullable<Type>.
-            if (Comparer<object?>.Default.Compare(context.Value!, null) == 0)
-                return Task.CompletedTask;
-
             // Convert numeric to a decimal value.
             decimal value = Convert.ToDecimal(context.Value, System.Globalization.CultureInfo.CurrentCulture);
 

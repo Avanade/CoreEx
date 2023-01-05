@@ -59,7 +59,7 @@ namespace CoreEx.Validation.Rules
         }
 
         /// <inheritdoc/>
-        public override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));

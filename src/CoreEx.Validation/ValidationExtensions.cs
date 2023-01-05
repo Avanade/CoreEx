@@ -485,6 +485,43 @@ namespace CoreEx.Validation
         public static IPropertyRule<TEntity, TProperty> CompareValueAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValueRule<TEntity, TProperty>(compareOperator, compareToValueFunctionAsync, compareToTextFunction) { ErrorText = errorText });
 
+        /// <summary>
+        /// Adds a comparision validation against one or more specified values (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValues">The compare to values.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> CompareValues<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, IEnumerable<TProperty> compareToValues, LText? errorText = null) where TEntity : class
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValuesRule<TEntity, TProperty>(compareToValues) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision validation against one or more specified values (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValuesFunctionAsync">The compare to values function.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> CompareValues<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<IEnumerable<TProperty>>> compareToValuesFunctionAsync, LText? errorText = null) where TEntity : class
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValuesRule<TEntity, TProperty>(compareToValuesFunctionAsync) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision validation against one or more specified values (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValues">The compare to values.</param>
+        /// <param name="ignoreCase">Indicates whether to ignore the casing of the value when comparing.</param>
+        /// <param name="overrideValue">Indicates whether to override the underlying property value with the corresponding matched value.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, string> CompareValues<TEntity>(this IPropertyRule<TEntity, string> rule, IEnumerable<string> compareToValues, bool ignoreCase, bool overrideValue = false, LText? errorText = null) where TEntity : class
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CompareValuesRule<TEntity, string>(compareToValues) { EqualityComparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal, OverrideValue = overrideValue, ErrorText = errorText });
+
         #endregion
 
         #region CompareProperty
@@ -563,6 +600,41 @@ namespace CoreEx.Validation
         /// hence the default.</remarks>
         public static IPropertyRule<TEntity, string> Email<TEntity>(this IPropertyRule<TEntity, string> rule, int? maxLength = 254, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new EmailRule<TEntity> { MaxLength = maxLength, ErrorText = errorText });
+
+        #endregion
+
+        #region Enum
+
+        /// <summary>
+        /// Adds an <see cref="System.Enum"/> validation to ensure that the value has been defined (see <see cref="EnumRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Enum<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class where TProperty : struct, Enum
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new EnumRule<TEntity, TProperty> { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds an <see cref="System.Enum"/> validation to ensure that the value has been defined (see <see cref="NullableEnumRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty?> Enum<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, LText? errorText = null) where TEntity : class where TProperty : struct, Enum
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new NullableEnumRule<TEntity, TProperty> { ErrorText = errorText });
+
+        /// <summary>
+        /// Enables the addition of an <see cref="EnumValueRule{TEntity, TEnum}"/> using an <see cref="EnumValueRuleAs{TEntity}.As{TEnum}"/> to validate against a specified <see cref="System.Enum"/> <see cref="Type"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static EnumValueRuleAs<TEntity> Enum<TEntity>(this IPropertyRule<TEntity, string> rule) where TEntity : class
+            => new(rule ?? throw new ArgumentNullException(nameof(rule))) { };
 
         #endregion
 

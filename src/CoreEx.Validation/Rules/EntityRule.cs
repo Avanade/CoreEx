@@ -30,7 +30,7 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        public override bool Check(PropertyContext<TEntity, TProperty> context)
+        protected override bool Check(PropertyContext<TEntity, TProperty> context)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
@@ -39,11 +39,8 @@ namespace CoreEx.Validation.Rules
         }
 
         /// <inheritdoc/>
-        public override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             // Exit where nothing to validate.
             if (context.Value == null)
                 return;

@@ -98,7 +98,7 @@ namespace CoreEx.RefData
         /// Gets the <see cref="SettingsBase"/>.
         /// </summary>
         [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
-        public SettingsBase Settings => _settings.Value;
+        public SettingsBase Settings => _settings.Value!;
 
         /// <summary>
         /// Registers the <see cref="IReferenceDataProvider"/> <see cref="Type"/>.

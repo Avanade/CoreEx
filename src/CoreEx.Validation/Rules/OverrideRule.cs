@@ -42,11 +42,8 @@ namespace CoreEx.Validation.Rules
         public bool OnlyOverrideDefault { get; set; } = false;
 
         /// <inheritdoc/>
-        public override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             // Compare the value against override to see if there is a difference.
             if (OnlyOverrideDefault && Comparer<TProperty?>.Default.Compare(context.Value, default!) != 0)
                 return;

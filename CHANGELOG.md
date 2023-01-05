@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v2.4.0
+- *Enhancement:* Added `CompareValuesRule`, `EnumRule` and `EnumValueRule` as additional validation rules.
+
 ## v2.3.0
 - *Enhancement:* `PagingArgs.MaxTake` default set by `SettingsBase.PagingMaxTake`.
 - *Enhancement:* Reference data `ICacheEntry` policy configuration can now be defined in settings.
