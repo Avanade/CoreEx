@@ -21,11 +21,6 @@ namespace CoreEx.Validation
     /// </summary>
     public static class ValidationExtensions
     {
-        /// <summary>
-        /// The <see cref="Regex"/> expression pattern for splitting strings into words.
-        /// </summary>
-        public const string WordSplitPattern = "([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))";
-
         #region Text
 
         /// <summary>
