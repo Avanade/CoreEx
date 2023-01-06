@@ -162,12 +162,6 @@ namespace CoreEx
         public string UserName { get; set; } = EnvironmentUserName;
 
         /// <summary>
-        /// Gets the corresponding user name.
-        /// </summary>
-        [Obsolete("Please use UserName property instead.")]
-        public string Username { get => UserName; set => UserName = value; }
-
-        /// <summary>
         /// Gets or sets the corresponding user identifier.
         /// </summary>
         public string? UserId { get; set; }
@@ -202,7 +196,7 @@ namespace CoreEx
         #region Security
 
         /// <summary>
-        /// Gets the list of roles for the <see cref="Username"/> (as previously <see cref="SetRoles(IEnumerable{string})">set</see>).
+        /// Gets the list of roles for the <see cref="UserName"/> (as previously <see cref="SetRoles(IEnumerable{string})">set</see>).
         /// </summary>
         public IEnumerable<string> GetRoles() => _roles == null ? Array.Empty<string>() : _roles;
 

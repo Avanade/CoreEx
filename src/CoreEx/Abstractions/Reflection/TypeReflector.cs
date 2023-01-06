@@ -78,6 +78,9 @@ namespace CoreEx.Abstractions.Reflection
                 return ConfigureCacheEntry(ce, tr);
             });
 
+        /// <summary>
+        /// Configure the cache entry setting expirations.
+        /// </summary>
         private static ITypeReflector ConfigureCacheEntry(ICacheEntry ce, ITypeReflector tr)
         {
             ce.SetAbsoluteExpiration(tr.Args.AbsoluteExpirationTimespan);

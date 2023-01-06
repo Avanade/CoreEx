@@ -49,11 +49,8 @@ namespace CoreEx.Validation.Rules
         public ExistsRule(Func<TEntity, CancellationToken, Task<HttpResult>> httpResult) => _httpResult = httpResult ?? throw new ArgumentNullException(nameof(httpResult));
 
         /// <inheritdoc/>
-        public override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             if (_predicate != null)
             {
                 if (!_predicate(context.Parent.Value!))

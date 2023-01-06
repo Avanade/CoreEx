@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,18 +14,20 @@ namespace CoreEx.Validation.Rules
     public class NumericRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="NumericRule{TEntity, TProperty}"/> class.
+        /// </summary>
+        public NumericRule() => ValidateWhenDefault = false;
+
+        /// <summary>
         /// Indicates whether to allow negative values.
         /// </summary>
         public bool AllowNegatives { get; set; }
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            // Where allowing negatives or the value is null, do nothing; i.e. Nullable<Type>.
-            if (AllowNegatives || Comparer<object>.Default.Compare(context.Value!, null!) == 0)
+            // Where allowing negatives do nothing.
+            if (AllowNegatives)
                 return Task.CompletedTask;
 
             // Convert numeric to a double value.

@@ -39,11 +39,14 @@ Rule | Description
 `CommonRule` | Provides for integrating a common validation against a specified property.
 `ComparePropertyRule` | Provides a comparision validation against another property within the same entity; also confirms other property has no errors prior to comparison.
 `CompareValueRule` | Provides a comparision validation against a specified value. 
+`CompareValuesRule` | Provides a comparision validation against one or more specified values. 
 `CustomRule` | Provides a custom validation against a specified property.
 `DecimalRule` | Represents a numeric rule that validates `DecimalPlaces` (fractional-part length) and `MaxDigits` (being the sum of the integer-part and fractional-part lengths). 
 `DictionaryRule` | Provides dictionary (`IDictionary`) validation including `MinCount`, `MaxCount` and per item validation `DictionaryRuleItem`. 
 `DuplicateRule` | Provides validation where the rule predicate must return `false` to not be considered a duplicate. 
-`EntityRule` | Provides entity validation. 
+`EntityRule` | Provides entity validation.
+`EnumRule` | Provides [`Enum`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum) validation to ensure that the value has been defined.
+`EnumValueRule` | Provides `string` validation against an [`Enum`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum) value.
 `ExistsRule` | Provides validation where the rule predicate must return `true` or a value to verify it exists.
 `ImmutableRule` | Provides validation where the rule predicate must return `true` to be considered valid (has not been modified).
 `MandatoryRule` | Provides mandatory validation; determined as mandatory when it contains its default value.
@@ -82,13 +85,17 @@ Extension method | Description | Underlying rule
 `Collection()` | Adds a *collection* validation. | `CollectionRule`
 `CompareProperty()` | Adds a *property comparison* validation. | `ComparePropertyRule`
 `CompareValue()` | Adds a *value comparison* validation. | `CompareValueRule`
+`CompareValues()` | Adds a *values comparison* validation. | `CompareValuesRule`
 `Currency()` | Adds a *currency* validation for a `decimal` using a `NumberFormatInfo`. | `DecimalRule`
 `Custom()` | Adds a *custom* validation. | `CustomRule`
 `Default()` | Adds a property value override where the current value is the default for the `Type`. | `OverrideRule`
 `Dictionary()` | Adds a *dictionary* validation. | `DictionaryRule`
 `Duplicate()` | Adds a *duplicate* validation. | `DuplicateRule`
 `Entity()` | Adds an *entity* validation. | `EntityValidationRule`
+`Entity().With<TValidator>()` | Adds an *entity* validation. | `EntityValidationRule`
 `EntityCollection()` | Adds an *entity collection* validation. | `EntityCollectionValidationRule`
+`Enum()` | Adds an *enum* validation for an `Enum` `Type`. | `EnumRule`
+`Enum().As<TEnum>()` | Adds an *enum* validation for a `string` `Type`. | `EnumValueRule`
 `Exists()` | Adds an *exists* validation. | `ExistsRule`
 `Immutable()` | Adds an *immutable* validation. | `ImmutableRule`
 `IsValid()` | Adds a *reference data* validation. | `ReferenceDataRule`
@@ -96,6 +103,7 @@ Extension method | Description | Underlying rule
 `Must()` | Adds a *must* validation. | `MustRule`
 `Numeric()` | Adds a *numeric* validation. | `NumericRule` or `DecimalRule`
 `Override` | Adds a property value override. | `OverrideRule`
+`RefData().As<TRef>()` | Adds a *reference data* validation for a `string` `Type`. | `ReferenceDataCodeRule`
 `RefDataCode` | Adds a *reference data code* validation. | `ReferenceDataCodeRule`
 `String()` | Adds a `string` validation. | `StringRule`
 `Wildcard()` | Adds a `string` *wildcard* validation. | `WildcardRule`

@@ -29,11 +29,8 @@ namespace CoreEx.Validation.Rules
         public Regex? Regex { get; set; }
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             if (string.IsNullOrEmpty(context.Value))
                 return Task.CompletedTask;
 

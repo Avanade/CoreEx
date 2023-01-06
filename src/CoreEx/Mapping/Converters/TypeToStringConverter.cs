@@ -21,7 +21,7 @@ namespace CoreEx.Mapping.Converters
         public static TypeToStringConverter<T> Default { get; set; } = new();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="StringToBase64Converter"/> struct.
+        /// Initializes a new instance of the <see cref="TypeToStringConverter{T}"/> struct.
         /// </summary>
         public TypeToStringConverter() { }
 

@@ -25,26 +25,26 @@ namespace CoreEx.Validation.Rules
         public CompareOperator Operator { get; private set; }
 
         /// <summary>
+        /// Gets or sets the comparer.
+        /// </summary>
+        public Comparer<TProperty?> Comparer { get; set; } = Comparer<TProperty?>.Default;
+
+        /// <summary>
         /// Compare two values using the default comparer for the type.
         /// </summary>
         /// <param name="lValue">The left value.</param>
         /// <param name="rValue">The right value.</param>
         /// <returns><c>true</c> where valid; otherwise, <c>false</c>.</returns>
-        protected bool Compare(TProperty? lValue, TProperty? rValue)
+        protected bool Compare(TProperty? lValue, TProperty? rValue) => Operator switch
         {
-            var comparer = Comparer<TProperty?>.Default;
-
-            return Operator switch
-            {
-                CompareOperator.Equal => comparer.Compare(lValue, rValue) == 0,
-                CompareOperator.NotEqual => comparer.Compare(lValue, rValue) != 0,
-                CompareOperator.LessThan => comparer.Compare(lValue, rValue) < 0,
-                CompareOperator.LessThanEqual => comparer.Compare(lValue, rValue) <= 0,
-                CompareOperator.GreaterThan => comparer.Compare(lValue, rValue) > 0,
-                CompareOperator.GreaterThanEqual => comparer.Compare(lValue, rValue) >= 0,
-                _ => throw new InvalidOperationException("An invalid Operator value was encountered.")
-            };
-        }
+            CompareOperator.Equal => Comparer.Compare(lValue, rValue) == 0,
+            CompareOperator.NotEqual => Comparer.Compare(lValue, rValue) != 0,
+            CompareOperator.LessThan => Comparer.Compare(lValue, rValue) < 0,
+            CompareOperator.LessThanEqual => Comparer.Compare(lValue, rValue) <= 0,
+            CompareOperator.GreaterThan => Comparer.Compare(lValue, rValue) > 0,
+            CompareOperator.GreaterThanEqual => Comparer.Compare(lValue, rValue) >= 0,
+            _ => throw new InvalidOperationException("An invalid Operator value was encountered.")
+        };
 
         /// <summary>
         /// Creates the error message passing the <paramref name="compareToText"/> text as the third format parameter (i.e. String.Format("{2}")).

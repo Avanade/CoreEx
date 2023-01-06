@@ -36,11 +36,8 @@ namespace CoreEx.Validation.Rules
         public MustRule(Func<CancellationToken, Task<bool>> mustAsync) => _mustAsync = mustAsync ?? throw new ArgumentNullException(nameof(mustAsync));
 
         /// <inheritdoc/>
-        public override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             if (_predicate != null)
             {
                 if (!_predicate.Invoke(context.Parent.Value!))

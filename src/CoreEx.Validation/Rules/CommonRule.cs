@@ -22,6 +22,6 @@ namespace CoreEx.Validation.Rules
         public CommonRule(CommonValidator<TProperty> commonValidator) => _commonValidator = commonValidator ?? throw new ArgumentNullException(nameof(commonValidator));
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default) => _commonValidator.ValidateAsync(context, cancellationToken);
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default) => _commonValidator.ValidateAsync(context, cancellationToken);
     }
 }

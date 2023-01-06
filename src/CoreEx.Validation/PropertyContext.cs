@@ -134,7 +134,7 @@ namespace CoreEx.Validation
 
                     try
                     {
-                        pr.PropertyInfo.SetValue(vv.Entity, value);
+                        pr.PropertyExpression.SetValue(vv.Entity, value);
                     }
                     catch (Exception ex)
                     {
@@ -150,7 +150,7 @@ namespace CoreEx.Validation
 
                 try
                 {
-                    pr.PropertyInfo.SetValue(Parent.Value, value);
+                    pr.PropertyExpression.SetValue(Parent.Value, value);
                 }
                 catch (Exception ex)
                 {
