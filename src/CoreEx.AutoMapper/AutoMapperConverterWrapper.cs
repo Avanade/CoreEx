@@ -41,7 +41,7 @@ namespace CoreEx.Mapping.Converters
         /// <summary>
         /// Represents the source to destination <see cref="AutoMapper.IValueConverter{TSource, TDestination}"/> struct.
         /// </summary>
-        public struct ToDestinationMapper : AutoMapper.IValueConverter<TSource, TDestination>
+        public readonly struct ToDestinationMapper : AutoMapper.IValueConverter<TSource, TDestination>
         {
             private readonly IValueConverter<TSource, TDestination> _valueConverter;
 
@@ -54,7 +54,7 @@ namespace CoreEx.Mapping.Converters
         /// <summary>
         /// Represents the destination to source <see cref="AutoMapper.IValueConverter{TDestination, TSource}"/> struct.
         /// </summary>
-        public struct ToSourceMapper : AutoMapper.IValueConverter<TDestination, TSource>
+        public readonly struct ToSourceMapper : AutoMapper.IValueConverter<TDestination, TSource>
         {
             private readonly IValueConverter<TDestination, TSource> _valueConverter;
 

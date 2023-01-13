@@ -15,5 +15,8 @@ namespace CoreEx.Test.Framework.Globalization
 
         [Test]
         public void ToCasing_Upper() => Assert.AreEqual("ABCD", CultureInfo.InvariantCulture.TextInfo.ToCasing("AbCd", TextInfoCasing.Upper));
+
+        [Test]
+        public void ToCasing_Title() => Assert.AreEqual("The Quick BROWN Fox.", CultureInfo.InvariantCulture.TextInfo.ToCasing("the qUick BROWN fox.", TextInfoCasing.Title));
     }
 }

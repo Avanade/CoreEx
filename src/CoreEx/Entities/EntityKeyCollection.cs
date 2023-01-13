@@ -43,6 +43,6 @@ namespace CoreEx.Entities
         /// Removes all items with the specified primary <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The key values.</param>
-        void RemoveByKey(params object?[] keys) => RemoveByKey(new CompositeKey(keys));
+        public void RemoveByKey(params object?[] keys) => RemoveByKey(new CompositeKey(keys));
     }
 }

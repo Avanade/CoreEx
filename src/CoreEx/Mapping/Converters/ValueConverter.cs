@@ -9,7 +9,7 @@ namespace CoreEx.Mapping.Converters
     /// </summary>
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
     /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
-    public struct ValueConverter<TSource, TDestination> : IValueConverter<TSource, TDestination>
+    public readonly struct ValueConverter<TSource, TDestination> : IValueConverter<TSource, TDestination>
     {
         private readonly Func<TSource, TDestination> _converter;
 

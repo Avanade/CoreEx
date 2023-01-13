@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v2.5.0
+- *Enhancement:* Added string casing support to `Cleaner` and `EntityCore` using new `StringCase`; being `None` (as-is default), `Upper`, `Lower` and `Title`. Leverages standard .NET  `TextInfo` to implement underlying case conversion. 
+- *Fixed:* Applied all changes identified by Code Analysis.
+
 ## v2.4.0
 - *Enhancement:* Added `CompareValuesRule`, `EnumRule` and `EnumValueRule` as additional validation rules.
 

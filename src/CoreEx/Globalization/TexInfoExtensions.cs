@@ -20,6 +20,7 @@ namespace CoreEx.Globalization
         {
             TextInfoCasing.Lower => text == null ? null : textInfo.ToLower(text),
             TextInfoCasing.Upper => text == null ? null : textInfo.ToUpper(text),
+            TextInfoCasing.Title => text == null ? null : textInfo.ToTitleCase(text),
             _ => text
         };
     }

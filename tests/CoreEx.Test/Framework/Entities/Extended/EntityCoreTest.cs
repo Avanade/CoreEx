@@ -11,13 +11,14 @@ namespace CoreEx.Test.Framework.Entities.Extended
         [Test]
         public void SettingAndGetting()
         {
-            var ta = new TestA { Id = 88, Code = " A ", Text = " B ", DateOnly = new DateTime(2000, 01, 01, 12, 59, 59), DateTime = new DateTime(2000, 01, 01, 12, 59, 59) };
+            var ta = new TestA { Id = 88, Code = " A ", Text = " B ", DateOnly = new DateTime(2000, 01, 01, 12, 59, 59), DateTime = new DateTime(2000, 01, 01, 12, 59, 59), Description = "the AB code." };
             Assert.AreEqual(88, ta.Id);
-            Assert.AreEqual("A", ta.Code);
+            Assert.AreEqual("a", ta.Code);
             Assert.AreEqual(" B", ta.Text);
             Assert.AreEqual(new DateTime(2000, 01, 01), ta.DateOnly);
             Assert.AreEqual(new DateTime(2000, 01, 01, 12, 59, 59, DateTimeKind.Utc), ta.DateTime);
             Assert.IsTrue(ta.IsChanged);
+            Assert.AreEqual("The AB Code.", ta.Description);
 
             ta.AcceptChanges();
             Assert.IsFalse(ta.IsChanged);
@@ -25,10 +26,12 @@ namespace CoreEx.Test.Framework.Entities.Extended
             ta.Code = null;
             ta.Text = null;
             ta.DateTime = null;
+            ta.Description = null;
             Assert.IsEmpty(ta.Code);
             Assert.IsNull(ta.Text);
             Assert.IsNull(ta.DateTime);
             Assert.IsTrue(ta.IsChanged);
+            Assert.IsNull(ta.Description);
         }
 
         private class TestA : EntityCore
@@ -38,6 +41,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             private string? _text;
             private DateTime _dateOnly;
             private DateTime? _dateTime;
+            private string? _desc;
 
             public long Id
             {
@@ -48,7 +52,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             public string? Code
             {
                 get { return _code; }
-                set { SetValue(ref _code, value, StringTrim.Both, StringTransform.NullToEmpty); }
+                set { SetValue(ref _code, value, StringTrim.Both, StringTransform.NullToEmpty, StringCase.Lower); }
             }
 
             public string? Text
@@ -67,6 +71,12 @@ namespace CoreEx.Test.Framework.Entities.Extended
             {
                 get { return _dateTime; }
                 set { SetValue(ref _dateTime, value); }
+            }
+
+            public string? Description
+            {
+                get { return _desc; }
+                set { SetValue(ref _desc, value, casing: StringCase.Title); }
             }
         }
     }
