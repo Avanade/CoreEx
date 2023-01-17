@@ -46,8 +46,10 @@ namespace CoreEx.Database.Extended
                 throw new ArgumentNullException(nameof(dr));
 
             var rdi = _refDataMapper.MapFromDb(dr);
+            _additionalProperties?.Invoke(dr, rdi);
             if (_confirmItemIsToBeAdded == null || _confirmItemIsToBeAdded(dr, rdi))
                 _item(rdi);
+
         }
     }
 }

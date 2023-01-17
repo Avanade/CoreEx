@@ -190,6 +190,14 @@ namespace CoreEx.Http
         public TSelf EnsureCreated() => Ensure(HttpStatusCode.Created);
 
         /// <summary>
+        /// Adds the <see cref="HttpStatusCode.NotFound"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TSelf EnsureNotFound() => Ensure(HttpStatusCode.NotFound);
+
+        /// <summary>
         /// Adds the <paramref name="statusCodes"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
         /// </summary>
         /// <param name="statusCodes">One or more <see cref="HttpStatusCode">status codes</see> to be verified.</param>
@@ -326,8 +334,7 @@ namespace CoreEx.Http
                             {
                                 return await Client.SendAsync(req, SetCancellationBasedOnTimeout(cancellationToken, out cts)).ConfigureAwait(false);
                             }
-                            catch (OperationCanceledException)
-                                      when (!cancellationToken.IsCancellationRequested)
+                            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                             {
                                 throw new TimeoutException();
                             }
@@ -337,7 +344,7 @@ namespace CoreEx.Http
                 }
                 catch (Exception ex) when (ex is TimeoutException || ex is SocketException)
                 {
-                    // both TimeoutException and SocketException are transient and indicate a connection was terminated
+                    // Both TimeoutException and SocketException are transient and indicate a connection was terminated.
                     throw new TransientException("Timeout when calling service", ex);
                 }
                 catch (HttpRequestException hrex)

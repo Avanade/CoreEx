@@ -63,9 +63,7 @@ namespace CoreEx.Mapping
             }
 
             // Clear/empty destination as collection mapping is "replacement" only.
-            if (destination is not null)
-                destination.Clear();
-
+            destination?.Clear();
             if (source is null)
                 return destination;
 

@@ -216,9 +216,7 @@ namespace CoreEx.Validation
             // Copy the configuration values; do not allow the higher-level dictionaries (stack) to be extended by lower-level validators.
             if (Parent?.Config != null)
             {
-                if (args.Config == null)
-                    args.Config = new Dictionary<string, object?>();
-
+                args.Config ??= new Dictionary<string, object?>();
                 foreach (var cfg in Parent.Config)
                 {
                     args.Config.Add(cfg.Key, cfg.Value);
