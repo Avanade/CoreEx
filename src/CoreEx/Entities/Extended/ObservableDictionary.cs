@@ -18,6 +18,7 @@ namespace CoreEx.Entities.Extended
     public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>, INotifyCollectionChanged, INotifyPropertyChanged where TKey : notnull
     {
         private readonly Dictionary<TKey, TValue> _dict;
+        private Func<TKey, TKey>? _keyModifier;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableDictionary{TKey, TValue}"/> with the default <see cref="IEqualityComparer{T}"/> for the type of the key.
@@ -42,6 +43,23 @@ namespace CoreEx.Entities.Extended
         /// <param name="comparer">The <see cref="IEqualityComparer{T}"/> implementation to use when comparing keys, or null to use the default <see cref="IEqualityComparer{T}"/> for the type of the key.</param>
         /// <param name="collection">The items to add.</param>
         public ObservableDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection, IEqualityComparer<TKey> comparer) => _dict = new(collection, comparer);
+
+        /// <summary>
+        /// Gets or sets the function that enabled modification of the key before usage.
+        /// </summary>
+        /// <remarks>Enables an opportunity to modify the key before used internally; for example, to modify so that the key value is always uppercase.
+        /// <para>The <see cref="OnModifyKey"/> by default leverages this function; however, the <see cref="OnModifyKey"/> when overridden may chose to ignore.</para></remarks>
+        public Func<TKey, TKey>? KeyModifier 
+        {
+            get => _keyModifier;
+            set
+            {
+                if (_dict.Count > 0)
+                    throw new InvalidOperationException($"{nameof(KeyModifier)} can only be updated when there are no items contained already within the dictionary; i.e. {nameof(Count)} must be zero.");
+
+                _keyModifier = value;
+            }
+        }
 
         /// <inheritdoc/>
         public int Count => _dict.Count;
@@ -88,7 +106,7 @@ namespace CoreEx.Entities.Extended
         /// <inheritdoc/>
         public TValue this[TKey key]
         {
-            get => _dict[key];
+            get => _dict[OnModifyKey(key)];
 
             set
             {
@@ -138,10 +156,10 @@ namespace CoreEx.Entities.Extended
         bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) => ((ICollection<KeyValuePair<TKey, TValue>>)_dict).Contains(item);
 
         /// <inheritdoc/>
-        public bool ContainsKey(TKey key) => _dict.ContainsKey(key);
+        public bool ContainsKey(TKey key) => _dict.ContainsKey(OnModifyKey(key));
 
         /// <inheritdoc/>
-        public bool TryGetValue(TKey key, [NotNullWhen(true)] out TValue value) => _dict.TryGetValue(key, out value);
+        public bool TryGetValue(TKey key, [NotNullWhen(true)] out TValue value) => _dict.TryGetValue(OnModifyKey(key), out value);
 
         /// <inheritdoc/>
         public bool Remove(TKey key) => TryGetValue(key, out var value) && RemoveItem(new KeyValuePair<TKey, TValue>(key, value));
@@ -174,6 +192,9 @@ namespace CoreEx.Entities.Extended
         /// <param name="newItem">The new replacement item.</param>
         protected virtual void ReplaceItem(KeyValuePair<TKey, TValue> oldItem, KeyValuePair<TKey, TValue> newItem)
         {
+            oldItem = new KeyValuePair<TKey, TValue>(OnModifyKey(oldItem.Key), oldItem.Value);
+            newItem = new KeyValuePair<TKey, TValue>(OnModifyKey(newItem.Key), newItem.Value);
+
             _dict[newItem.Key] = newItem.Value;
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, newItem, oldItem));
             RaisePropertyChanged();
@@ -185,6 +206,8 @@ namespace CoreEx.Entities.Extended
         /// <param name="item">The <see cref="KeyValuePair{TKey, TValue}"/> that was added.</param>
         protected virtual void AddItem(KeyValuePair<TKey, TValue> item)
         {
+            item = new KeyValuePair<TKey, TValue>(OnModifyKey(item.Key), item.Value);
+
             _dict.Add(item.Key, item.Value);
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item));
             RaisePropertyChanged();
@@ -197,6 +220,7 @@ namespace CoreEx.Entities.Extended
         /// <returns><c>true</c> if the item was successfully removed from the <see cref="ObservableDictionary{TKey, TValue}"/>; otherwise, <c>false</c>.</returns>
         protected virtual bool RemoveItem(KeyValuePair<TKey, TValue> item)
         {
+            item = new KeyValuePair<TKey, TValue>(OnModifyKey(item.Key), item.Value);
             if (!_dict.Remove(item.Key))
                 return false;
 
@@ -231,5 +255,13 @@ namespace CoreEx.Entities.Extended
         /// Occurs when a property changes, either within the dictionary or to an item within.
         /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        /// <summary>
+        /// Modifies the key before usage; by default uses the <see cref="KeyModifier"/>.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>The modified key.</returns>
+        /// <remarks>Enables an opportunity to modify the key before used internally; for example, to modify so that it is always uppercase.</remarks>
+        protected virtual TKey OnModifyKey(TKey key) => KeyModifier is null ? key : KeyModifier(key);
     }
 }

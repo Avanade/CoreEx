@@ -19,6 +19,17 @@ namespace CoreEx.Entities.Extended
         private Dictionary<string, PropertyChangedEventHandler>? _propertyEventHandlers;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="EntityCore"/> class.
+        /// </summary>
+        protected EntityCore() => OnInitialization();
+
+        /// <summary>
+        /// Provides an opportunity to extend initialization when the object is constructed.
+        /// </summary>
+        /// <remarks>Added to support scenarios whether the class is defined using the likes of partial classes to provide a means to easily add functionality during the constructor process.</remarks>
+        protected virtual void OnInitialization() { }
+
+        /// <summary>
         /// Occurs when a property value changes.
         /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged;

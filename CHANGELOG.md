@@ -5,6 +5,9 @@ Represents the **NuGet** versions.
 ## v2.5.0
 - *Enhancement:* Added string casing support to `Cleaner` and `EntityCore` using new `StringCase`; being `None` (as-is default), `Upper`, `Lower` and `Title`. Leverages standard .NET  `TextInfo` to implement underlying case conversion. 
 - *Fixed:* Applied all changes identified by Code Analysis.
+- *Fixed:* `NullReferenceException` in `EntityBaseDictionary` where item value is `null` corrected.
+- *Enhancement:* Added `KeyModifier` function to `ObservableCollection` to allow key manipulation to ensure consistency, i.e. all uppercase.
+- *Fixed:* Potential SQL Injection opportunity within `DatabaseExtendedExtensions.ReferenceData` corrected when schema and table names were being specified explicitly; now quoted using `DbCommandBuilder.QuoteIdentifier`.
 
 ## v2.4.0
 - *Enhancement:* Added `CompareValuesRule`, `EnumRule` and `EnumValueRule` as additional validation rules.

@@ -21,13 +21,19 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityBaseDictionary{TEntity, TSelf}" /> class using the <see cref="StringComparer.OrdinalIgnoreCase"/> for the comparer.
         /// </summary>
-        protected EntityBaseDictionary() : base(StringComparer.OrdinalIgnoreCase) { }
+        protected EntityBaseDictionary() : base(StringComparer.OrdinalIgnoreCase) => OnInitialization();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityBaseDictionary{TEntity, TSelf}" /> class using the <see cref="StringComparer.OrdinalIgnoreCase"/> for the comparer adding the passed <paramref name="collection"/>.
         /// </summary>
         /// <param name="collection">The items to add.</param>
-        protected EntityBaseDictionary(IEnumerable<KeyValuePair<string, TEntity>> collection) : base(collection, StringComparer.OrdinalIgnoreCase) { }
+        protected EntityBaseDictionary(IEnumerable<KeyValuePair<string, TEntity>> collection) : base(collection, StringComparer.OrdinalIgnoreCase) => OnInitialization();
+
+        /// <summary>
+        /// Provides an opportunity to extend initialization when the object is constructed.
+        /// </summary>
+        /// <remarks>Added to support scenarios whether the class is defined using the likes of partial classes to provide a means to easily add functionality during the constructor process.</remarks>
+        protected virtual void OnInitialization() { }
 
         /// <summary>
         /// Creates a deep copy of the entity dictionary (all items will also be cloned).
@@ -36,7 +42,7 @@ namespace CoreEx.Entities.Extended
         public object Clone()
         {
             var clone = new TSelf();
-            this.ForEach(item => clone.Add(item.Key, (TEntity)item.Value.Clone()));
+            this.ForEach(item => clone.Add(item.Key, item.Value == null ? default! : item.Value.Clone()));
             return clone;
         }
 
@@ -90,7 +96,7 @@ namespace CoreEx.Entities.Extended
             foreach (var item in this)
             {
                 hash.Add(item.Key.GetHashCode());
-                hash.Add(item.Value.GetHashCode());
+                hash.Add(item.Value?.GetHashCode() ?? 0);
             }
 
             return hash.ToHashCode();
@@ -99,7 +105,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Performs a clean-up of the <see cref="EntityBaseCollection{TEntity, TSelf}"/> resetting item values as appropriate to ensure a basic level of data consistency.
         /// </summary>
-        public void CleanUp() => this.ForEach(item => item.Value.CleanUp());
+        public void CleanUp() => this.ForEach(item => item.Value?.CleanUp());
 
         /// <summary>
         /// Collections do not support an initial state; will always be <c>false</c>.
@@ -168,7 +174,7 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger an <see cref="EntityCore.AcceptChanges"/> for each item.</remarks>
         public virtual void AcceptChanges()
         {
-            this.ForEach(item => item.Value.AcceptChanges());
+            this.ForEach(item => item.Value?.AcceptChanges());
             IsChanged = false;
         }
 
@@ -186,7 +192,7 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger a <see cref="EntityCore.MakeReadOnly"/> for each item.</remarks>
         public void MakeReadOnly()
         {
-            this.ForEach(item => item.Value.MakeReadOnly());
+            this.ForEach(item => item.Value?.MakeReadOnly());
             IsChanged = false;
             IsReadOnly = true;
         }

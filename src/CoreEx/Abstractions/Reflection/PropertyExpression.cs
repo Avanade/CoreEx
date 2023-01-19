@@ -19,7 +19,7 @@ namespace CoreEx.Abstractions.Reflection
         private static IMemoryCache? _fallbackCache;
 
         /// <summary>
-        /// The <see cref="Regex"/> pattern for splitting sentence strings into words.
+        /// The <see cref="Regex"/> pattern for splitting strings into a sentence of words.
         /// </summary>
         public const string SentenceCaseWordSplitPattern = "([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))";
 

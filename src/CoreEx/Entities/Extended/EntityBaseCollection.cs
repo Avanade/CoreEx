@@ -22,13 +22,19 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityBaseCollection{TEntity, TSelf}" /> class.
         /// </summary>
-        protected EntityBaseCollection() : base() { }
+        protected EntityBaseCollection() : base() => OnInitialization();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityBaseCollection{TEntity, TSelf}" /> class.
         /// </summary>
         /// <param name="collection">The collection to add.</param>
-        protected EntityBaseCollection(IEnumerable<TEntity> collection) : base(collection) { }
+        protected EntityBaseCollection(IEnumerable<TEntity> collection) : base(collection) => OnInitialization();
+
+        /// <summary>
+        /// Provides an opportunity to extend initialization when the object is constructed.
+        /// </summary>
+        /// <remarks>Added to support scenarios whether the class is defined using the likes of partial classes to provide a means to easily add functionality during the constructor process.</remarks>
+        protected virtual void OnInitialization() { }
 
         /// <summary>
         /// Adds the items of the specified collection to the end of the <see cref="EntityBaseCollection{TEntity, TSelf}"/>.

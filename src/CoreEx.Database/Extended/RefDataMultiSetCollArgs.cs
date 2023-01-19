@@ -19,7 +19,6 @@ namespace CoreEx.Database.Extended
     {
         private readonly Action<TItem> _item;
         private readonly RefDataMapper<TItem, TId> _refDataMapper;
-        private readonly Action<DatabaseRecord, TItem>? _additionalProperties;
         private readonly Func<DatabaseRecord, TItem, bool>? _confirmItemIsToBeAdded;
 
         /// <summary>
@@ -35,7 +34,6 @@ namespace CoreEx.Database.Extended
         {
             _item = item;
             _refDataMapper = new RefDataMapper<TItem, TId>(database, idColumnName, additionalProperties);
-            _additionalProperties = additionalProperties;
             _confirmItemIsToBeAdded = confirmItemIsToBeAdded;
         }
 
@@ -46,10 +44,8 @@ namespace CoreEx.Database.Extended
                 throw new ArgumentNullException(nameof(dr));
 
             var rdi = _refDataMapper.MapFromDb(dr);
-            _additionalProperties?.Invoke(dr, rdi);
             if (_confirmItemIsToBeAdded == null || _confirmItemIsToBeAdded(dr, rdi))
                 _item(rdi);
-
         }
     }
 }
