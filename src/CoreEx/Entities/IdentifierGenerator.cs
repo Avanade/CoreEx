@@ -25,10 +25,7 @@ namespace CoreEx.Entities
                 return;
 
             if (value is IIdentifier<string> iis)
-            {
-                if (iis.Id == null)
-                    iis.Id = await ((IIdentifierGenerator<string>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false);
-            }
+                iis.Id ??= await ((IIdentifierGenerator<string>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false);
             else if (value is IIdentifier<Guid> iig)
             {
                 if (iig.Id == Guid.Empty)

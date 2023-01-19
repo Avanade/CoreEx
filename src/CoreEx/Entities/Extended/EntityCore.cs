@@ -11,12 +11,23 @@ namespace CoreEx.Entities.Extended
     /// <summary>
     /// Represents the core <b>Entity</b> capabilities including <see cref="INotifyPropertyChanged"/> <see cref="IChangeTracking"/> support.
     /// </summary>
-    /// <remarks>The <see cref="EntityCore"/> is not thread-safe; it does however, place a lock around all <b>set</b> operations to minimise concurrency challenges.</remarks>
+    /// <remarks>The <see cref="EntityCore"/> class is not thread-safe; it does however, place a lock around all <b>set</b> operations to minimise concurrency challenges.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
     public abstract class EntityCore : INotifyPropertyChanged, IChangeTracking, IReadOnly
     {
         private readonly object _lock = new();
         private Dictionary<string, PropertyChangedEventHandler>? _propertyEventHandlers;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EntityCore"/> class.
+        /// </summary>
+        protected EntityCore() => OnInitialization();
+
+        /// <summary>
+        /// Provides an opportunity to extend initialization when the object is constructed.
+        /// </summary>
+        /// <remarks>Added to support scenarios whether the class is defined using the likes of partial classes to provide a means to easily add functionality during the constructor process.</remarks>
+        protected virtual void OnInitialization() { }
 
         /// <summary>
         /// Occurs when a property value changes.
@@ -56,13 +67,7 @@ namespace CoreEx.Entities.Extended
         /// </summary>
         /// <typeparam name="T">The property <see cref="Type"/>.</typeparam>
         /// <param name="propertyValue">The property value to get.</param>
-        static protected T GetAutoValue<T>(ref T propertyValue) where T : class, new()
-        {
-            if (propertyValue == null)
-                propertyValue = new T();
-
-            return propertyValue;
-        }
+        static protected T GetAutoValue<T>(ref T propertyValue) where T : class, new() => propertyValue ??= new T();
 
         /// <summary>
         /// Sets a property value and raises the <see cref="PropertyChanged"/> event where applicable.
@@ -132,8 +137,7 @@ namespace CoreEx.Entities.Extended
         /// </summary>
         private PropertyChangedEventHandler GetValue_PropertyChanged(string propertyName)
         {
-            if (_propertyEventHandlers == null)
-                _propertyEventHandlers = new Dictionary<string, PropertyChangedEventHandler>();
+            _propertyEventHandlers ??= new Dictionary<string, PropertyChangedEventHandler>();
 
             if (!_propertyEventHandlers.ContainsKey(propertyName))
                 _propertyEventHandlers.Add(propertyName, (sender, e) => TriggerPropertyChanged(propertyName));
@@ -148,17 +152,18 @@ namespace CoreEx.Entities.Extended
         /// <param name="setValue">The value to set.</param>
         /// <param name="trim">The <see cref="StringTrim"/>.</param>
         /// <param name="transform">The <see cref="StringTransform"/> (defaults to <see cref="StringTransform.UseDefault"/>).</param>
+        /// <param name="casing">The <see cref="StringCase"/> (defaults to <see cref="StringCase.UseDefault"/>).</param>
         /// <param name="immutable">Indicates whether the value is immutable; can not be changed once set.</param>
         /// <param name="propertyName">The name of the primary property that changed.</param>
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
-        protected bool SetValue(ref string? propertyValue, string? setValue, StringTrim trim, StringTransform transform = StringTransform.UseDefault, bool immutable = false, [CallerMemberName] string? propertyName = null)
+        protected bool SetValue(ref string? propertyValue, string? setValue, StringTrim trim, StringTransform transform = StringTransform.UseDefault, StringCase casing = StringCase.UseDefault, bool immutable = false, [CallerMemberName] string? propertyName = null)
         {
             if (string.IsNullOrEmpty(propertyName))
                 throw new ArgumentNullException(nameof(propertyName));
 
             lock (_lock)
             {
-                string? val = Cleaner.Clean(setValue, trim, transform);
+                string? val = Cleaner.Clean(setValue, trim, transform, casing);
                 if (val == propertyValue)
                     return false;
 
@@ -174,6 +179,34 @@ namespace CoreEx.Entities.Extended
                 return true;
             }
         }
+
+        /// <summary>
+        /// Sets a <see cref="string"/> property value and raises the <see cref="PropertyChanged"/> event where applicable.
+        /// </summary>
+        /// <param name="propertyValue">The property value to set.</param>
+        /// <param name="setValue">The value to set.</param>
+        /// <param name="trim">The <see cref="StringTrim"/>.</param>
+        /// <param name="transform">The <see cref="StringTransform"/> (defaults to <see cref="StringTransform.UseDefault"/>).</param>
+        /// <param name="casing">The <see cref="StringCase"/> (defaults to <see cref="StringCase.UseDefault"/>).</param>
+        /// <param name="immutable">Indicates whether the value is immutable; can not be changed once set.</param>
+        /// <param name="propertyName">The name of the primary property that changed.</param>
+        /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
+        protected bool SetValue(ref string? propertyValue, string? setValue, StringTransform transform, StringTrim trim = StringTrim.UseDefault, StringCase casing = StringCase.UseDefault, bool immutable = false, [CallerMemberName] string? propertyName = null)
+            => SetValue(ref propertyValue, setValue, trim, transform, casing, immutable, propertyName);
+
+        /// <summary>
+        /// Sets a <see cref="string"/> property value and raises the <see cref="PropertyChanged"/> event where applicable.
+        /// </summary>
+        /// <param name="propertyValue">The property value to set.</param>
+        /// <param name="setValue">The value to set.</param>
+        /// <param name="trim">The <see cref="StringTrim"/>.</param>
+        /// <param name="transform">The <see cref="StringTransform"/> (defaults to <see cref="StringTransform.UseDefault"/>).</param>
+        /// <param name="casing">The <see cref="StringCase"/> (defaults to <see cref="StringCase.UseDefault"/>).</param>
+        /// <param name="immutable">Indicates whether the value is immutable; can not be changed once set.</param>
+        /// <param name="propertyName">The name of the primary property that changed.</param>
+        /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
+        protected bool SetValue(ref string? propertyValue, string? setValue, StringCase casing, StringTransform transform = StringTransform.UseDefault, StringTrim trim = StringTrim.UseDefault, bool immutable = false, [CallerMemberName] string? propertyName = null)
+            => SetValue(ref propertyValue, setValue, trim, transform, casing, immutable, propertyName);
 
         /// <summary>
         /// Sets a <see cref="DateTime"/> property value and raises the <see cref="PropertyChanged"/> event where applicable.
@@ -245,8 +278,11 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger the <see cref="OnAcceptChanges"/> to perform the operation for all properties.</remarks>
         public void AcceptChanges()
         {
-            OnAcceptChanges();
-            IsChanged = false;
+            lock (_lock)
+            {
+                OnAcceptChanges();
+                IsChanged = false;
+            }
         }
 
         /// <summary>
@@ -268,9 +304,12 @@ namespace CoreEx.Entities.Extended
         /// <remarks>This will trigger the <see cref="OnMakeReadOnly"/> to perform the operation for all properties.</remarks>
         public void MakeReadOnly()
         {
-            OnMakeReadOnly();
-            IsChanged = false;
-            IsReadOnly = true;
+            lock (_lock)
+            {
+                OnMakeReadOnly();
+                IsChanged = false;
+                IsReadOnly = true;
+            }
         }
 
         /// <summary>

@@ -9,7 +9,7 @@ namespace CoreEx.Database.Extended
     /// </summary>
     public struct DatabaseArgs
     {
-        private IDatabaseMapper? _mapper = null;
+        private readonly IDatabaseMapper? _mapper = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseArgs"/> struct.

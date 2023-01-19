@@ -1,19 +1,16 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions.Reflection;
 using CoreEx.Localization;
 using CoreEx.Validation.Clauses;
 using CoreEx.Validation.Rules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Validation
 {
-
     /// <summary>
     /// Represents a base validation rule for an entity property.
     /// </summary>

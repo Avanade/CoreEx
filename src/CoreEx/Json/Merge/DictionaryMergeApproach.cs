@@ -20,7 +20,7 @@ namespace CoreEx.Json.Merge
         Merge,
 
         /// <summary>
-        /// Indicates that the dictionary (see <see cref="IDictionary"/>) merge will be treated the same as any <see cref="System.Text.Json.JsonValueKind.Array"/> where the result is a replacement (overwrie) operation.
+        /// Indicates that the dictionary (see <see cref="IDictionary"/>) merge will be treated the same as any <see cref="System.Text.Json.JsonValueKind.Array"/> where the result is a replacement (overwrite) operation.
         /// </summary>
         Replace
     }

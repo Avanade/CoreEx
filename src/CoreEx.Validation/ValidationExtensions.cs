@@ -540,8 +540,6 @@ namespace CoreEx.Validation
 
         #region String
 
-#pragma warning disable CA1720 // Identifier contains type name; by-design, best name.
-
         /// <summary>
         /// Adds a <see cref="string"/> validation with a maximum length (see <see cref="StringRule{TEntity}"/>).
         /// </summary>
@@ -577,7 +575,6 @@ namespace CoreEx.Validation
         /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
         public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, Regex? regex = null, LText? errorText = null) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new StringRule<TEntity> { Regex = regex, ErrorText = errorText });
-#pragma warning restore CA1720
 
         #endregion
 

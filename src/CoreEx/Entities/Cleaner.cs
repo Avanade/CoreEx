@@ -1,5 +1,6 @@
 // Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Globalization;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -15,6 +16,7 @@ namespace CoreEx.Entities
         private static DateTimeTransform _dateTimeTransform = DateTimeTransform.DateTimeUtc;
         private static StringTransform _stringTransform = StringTransform.EmptyToNull;
         private static StringTrim _stringTrim = StringTrim.End;
+        private static StringCase _stringCase = StringCase.None;
 
         /// <summary>
         /// Gets or sets the default <see cref="Entities.DateTimeTransform"/> for all entities unless explicitly overridden. Defaults to <see cref="DateTimeTransform.DateTimeUtc"/>.
@@ -26,7 +28,7 @@ namespace CoreEx.Entities
         }
 
         /// <summary>
-        /// Gets or sets the default <see cref="Entities.DateTimeTransform"/> for all entities unless explicitly overridden. Defaults to <see cref="StringTransform.EmptyToNull"/>.
+        /// Gets or sets the default <see cref="Entities.StringTransform"/> for all entities unless explicitly overridden. Defaults to <see cref="StringTransform.EmptyToNull"/>.
         /// </summary>
         public static StringTransform DefaultStringTransform
         {
@@ -35,7 +37,7 @@ namespace CoreEx.Entities
         }
 
         /// <summary>
-        /// Gets or sets the default <see cref="Entities.DateTimeTransform"/> for all entities unless explicitly overridden. Defaults to <see cref="StringTransform.EmptyToNull"/>.
+        /// Gets or sets the default <see cref="Entities.StringTrim"/> for all entities unless explicitly overridden. Defaults to <see cref="StringTrim.End"/>.
         /// </summary>
         public static StringTrim DefaultStringTrim
         {
@@ -44,12 +46,21 @@ namespace CoreEx.Entities
         }
 
         /// <summary>
+        /// Gets or sets the default <see cref="Entities.StringCase"/> for all entities unless explicitly overridden. Defaults to <see cref="StringCase.None"/>.
+        /// </summary>
+        public static StringCase DefaultStringCase
+        {
+            get => _stringCase;
+            set => _stringCase = value == StringCase.UseDefault ? throw new ArgumentException("The default cannot be set to UseDefault.", nameof(DefaultStringCase)) : value;
+        }
+
+        /// <summary>
         /// Cleans a <see cref="string"/>.
         /// </summary>
         /// <param name="value">The value to clean.</param>
         /// <returns>The cleaned value.</returns>
         /// <remarks>The <paramref name="value"/> will be trimmed and transformed using the respective <see cref="DefaultStringTrim"/> and <see cref="DefaultStringTransform"/> values.</remarks>
-        public static string? Clean(string? value) => Clean(value, StringTrim.UseDefault, StringTransform.UseDefault);
+        public static string? Clean(string? value) => Clean(value, StringTrim.UseDefault, StringTransform.UseDefault, StringCase.UseDefault);
 
         /// <summary>
         /// Cleans a <see cref="string"/> using the specified <paramref name="trim"/> and <paramref name="transform"/>.
@@ -57,14 +68,18 @@ namespace CoreEx.Entities
         /// <param name="value">The value to clean.</param>
         /// <param name="trim">The <see cref="StringTrim"/> (defaults to <see cref="DefaultStringTrim"/>).</param>
         /// <param name="transform">The <see cref="StringTransform"/> (defaults to <see cref="DefaultStringTransform"/>).</param>
+        /// <param name="casing">The <see cref="StringCase"/> (defaults to <see cref="DefaultStringCase"/>).</param>
         /// <returns>The cleaned value.</returns>
-        public static string? Clean(string? value, StringTrim trim = StringTrim.UseDefault, StringTransform transform = StringTransform.UseDefault)
+        public static string? Clean(string? value, StringTrim trim = StringTrim.UseDefault, StringTransform transform = StringTransform.UseDefault, StringCase casing = StringCase.UseDefault)
         {
             if (trim == StringTrim.UseDefault)
                 trim = DefaultStringTrim;
 
             if (transform == StringTransform.UseDefault)
                 transform = DefaultStringTransform;
+
+            if (casing == StringCase.UseDefault)
+                casing = DefaultStringCase;
 
             // Handle a null string.
             if (value == null)
@@ -85,10 +100,22 @@ namespace CoreEx.Entities
             };
 
             // Transform the string.
-            return transform switch
+            tmp = transform switch
             {
                 StringTransform.EmptyToNull => (tmp.Length == 0) ? null : tmp,
                 StringTransform.NullToEmpty => tmp ?? string.Empty,
+                _ => tmp,
+            };
+
+            if (string.IsNullOrEmpty(tmp))
+                return tmp;
+
+            // Apply casing to the string.
+            return casing switch
+            {
+                StringCase.Lower => CultureInfo.CurrentCulture.TextInfo.ToCasing(tmp, TextInfoCasing.Lower),
+                StringCase.Upper => CultureInfo.CurrentCulture.TextInfo.ToCasing(tmp, TextInfoCasing.Upper),
+                StringCase.Title => CultureInfo.CurrentCulture.TextInfo.ToCasing(tmp, TextInfoCasing.Title),
                 _ => tmp,
             };
         }
@@ -193,7 +220,7 @@ namespace CoreEx.Entities
         public static T Clean<T>(T value, bool overrideWithDefaultWhenIsInitial)
         {
             if (value is string str)
-                return (T)Convert.ChangeType(Clean(str, StringTrim.UseDefault, StringTransform.UseDefault), typeof(string), CultureInfo.CurrentCulture)!;
+                return (T)Convert.ChangeType(Clean(str, StringTrim.UseDefault, StringTransform.UseDefault, StringCase.UseDefault), typeof(string), CultureInfo.CurrentCulture)!;
             else if (value is DateTime dte)
                 return (T)Convert.ChangeType(Clean(dte, DateTimeTransform.UseDefault), typeof(DateTime), CultureInfo.CurrentCulture);
 
