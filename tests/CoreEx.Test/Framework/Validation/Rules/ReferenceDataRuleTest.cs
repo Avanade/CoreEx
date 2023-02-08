@@ -26,6 +26,8 @@ namespace CoreEx.Test.Framework.Validation.Rules
             sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
+
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
@@ -52,6 +54,8 @@ namespace CoreEx.Test.Framework.Validation.Rules
             sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
 
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
+
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
@@ -76,6 +80,8 @@ namespace CoreEx.Test.Framework.Validation.Rules
             sc.AddScoped<RefDataProvider>();
             sc.AddReferenceDataOrchestrator<RefDataProvider>();
             var sp = sc.BuildServiceProvider();
+
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
 
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();

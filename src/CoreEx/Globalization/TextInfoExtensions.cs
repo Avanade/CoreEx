@@ -7,7 +7,7 @@ namespace CoreEx.Globalization
     /// <summary>
     /// Provides <see cref="TextInfo"/> extension methods.
     /// </summary>
-    public static class TexInfoExtensions
+    public static class TextInfoExtensions
     {
         /// <summary>
         /// Converts the specified <paramref name="text"/> to the selected <see cref="TextInfoCasing"/>.

@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v2.5.1
+- *Fixed:* `System.ObjectDisposedException: Cannot access a disposed object` for the `IServiceProvider` has been resolved where reference data loading, that in turn loaded child reference data. A new start up `UseReferenceDataOrchestrator` method simplifies set up.
+
 ## v2.5.0
 - *Enhancement:* Added string casing support to `Cleaner` and `EntityCore` using new `StringCase`; being `None` (as-is default), `Upper`, `Lower` and `Title`. Leverages standard .NET  `TextInfo` to implement underlying case conversion. 
 - *Fixed:* Applied all changes identified by Code Analysis.
