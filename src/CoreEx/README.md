@@ -12,13 +12,13 @@ The motivation for _CoreEx_ is to primarily identify key back-end business servi
 
 ## Namespaces
 
-The following key namespaces are provided; additional documentation is generally provided for each:
+The following key namespaces are provided; additional documentation is provided for each via their respective links:
 
 Namespace | Description
 -|-
-`Abstractions` | Provides key abstractions or other largely internal capabilities.
-`Configuration` | Extends [`IConfiguration`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.iconfiguration) via [`SettingsBase`](./Configuration/SettingsBase.cs) to enable a more flexible means to get and override configuration values, especially within a microservices environment, where some settings may be shared.
-`Entities` | Provides standardized and enriched capabilities for declaring entities, collections, identifiers, primary and composite keys, [`ETag`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag), paging, partitioning, tenancy, etc.
+[`Abstractions`](./Abstractions) | Provides key abstractions or other largely internal capabilities.
+[`Configuration`](./Configuration) | Extends [`IConfiguration`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.iconfiguration) to enable a more flexible means to get and override configuration values.
+[`Entities`](./Entities) | Provides standardized and enriched capabilities for entities and data models.
 [`Events`](./Events) | Provides standardized and enriched capabilities for event (message) declaration, publishing and subscribing.
 `Hosting` | Provides extended [`IHostedService`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostedservice) capabilities such as [`TimerHostedServiceBase`](./Hosting/TimerHostedServiceBase.cs) and [`SynchronizedTimerHostedServiceBase`](./Hosting/SynchronizedTimerHostedServiceBase.cs) ([`IServiceSynchronizer`](./Hosting/IServiceSynchronizer.cs)).
 `Http` | Provides capabilities to enable extended [typed](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests) [`HttpClient`](./Http/TypedHttpClientBaseT.cs) functionality providing a fluent-style method-chaining to enable the likes of `WithRetry`, `EnsureSuccess`, `Timeout`, and `ThrowTransientException`, etc. to improve the per invocation experience. Additionally, [`HttpRequestOptions`](./Http/HttpRequestOptions.cs) enable additional standardized options to be specified per request where applicable.

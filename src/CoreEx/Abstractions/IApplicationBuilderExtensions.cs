@@ -1,8 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx;
+using CoreEx.RefData;
 using CoreEx.WebApis;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
 
@@ -28,5 +30,16 @@ namespace Microsoft.AspNetCore.Builder
         /// <param name="builder">The <see cref="IApplicationBuilder"/>.</param>
         /// <returns>The <see cref="IApplicationBuilder"/>.</returns>
         public static IApplicationBuilder UseWebApiExceptionHandler(this IApplicationBuilder builder) => builder.UseMiddleware<WebApiExceptionHandlerMiddleware>();
+
+        /// <summary>
+        /// Registers the <see cref="ReferenceDataOrchestrator"/> instance (using <see cref="ReferenceDataOrchestrator.SetCurrent(ReferenceDataOrchestrator)"/>) so that it can be universally referenced.
+        /// </summary>
+        /// <param name="builder">The <see cref="IApplicationBuilder"/>.</param>
+        /// <returns>The <see cref="IApplicationBuilder"/>.</returns>
+        public static IApplicationBuilder UseReferenceDataOrchestrator(this IApplicationBuilder builder)
+        {
+            ReferenceDataOrchestrator.SetCurrent(builder.ApplicationServices.GetRequiredService<ReferenceDataOrchestrator>());
+            return builder;
+        }
     }
 }

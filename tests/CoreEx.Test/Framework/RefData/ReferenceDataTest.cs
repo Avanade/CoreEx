@@ -631,6 +631,8 @@ namespace CoreEx.Test.Framework.RefData
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
+
             // 1st time should take time and get cached.
             var sw = Stopwatch.StartNew();
             IReferenceDataCollection?  c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
@@ -661,6 +663,8 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
+
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
@@ -681,6 +685,8 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
 
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
+
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
@@ -700,6 +706,8 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddScoped<RefDataProviderSlow>();
             sc.AddReferenceDataOrchestrator<RefDataProviderSlow>();
             var sp = sc.BuildServiceProvider();
+
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
 
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
@@ -735,6 +743,8 @@ namespace CoreEx.Test.Framework.RefData
             sc.AddScoped<RefDataConcurrencyProvider>();
             sc.AddReferenceDataOrchestrator<RefDataConcurrencyProvider>();
             var sp = sc.BuildServiceProvider();
+
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
 
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();

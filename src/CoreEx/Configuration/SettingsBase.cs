@@ -26,7 +26,7 @@ namespace CoreEx.Configuration
         /// Initializes a new instance of the <see cref="SettingsBase"/> class.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
-        /// <param name="prefixes">The key prefixes to use in order of precedence, first through to last. At least one prefix must be specified.</param>
+        /// <param name="prefixes">The key prefixes to use in order of precedence, first through to last.</param>
         public SettingsBase(IConfiguration? configuration, params string[] prefixes)
         {
             Configuration = configuration;

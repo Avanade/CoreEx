@@ -21,8 +21,8 @@ namespace CoreEx
         private static readonly AsyncLocal<ExecutionContext?> _asyncLocal = new();
 
         private DateTime? _timestamp;
-        private readonly Lazy<MessageItemCollection> _messages = new(true);
-        private readonly Lazy<ConcurrentDictionary<string, object?>> _properties = new(true);
+        private Lazy<MessageItemCollection> _messages = new(true);
+        private Lazy<ConcurrentDictionary<string, object?>> _properties = new(true);
         private IReferenceDataContext? _referenceDataContext;
         private HashSet<string>? _roles;
 
@@ -192,6 +192,30 @@ namespace CoreEx
         /// </summary>
         /// <remarks>Where not configured will instantiate a <see cref="ReferenceDataContext"/>.</remarks>
         public IReferenceDataContext ReferenceDataContext => _referenceDataContext ??= (GetService<IReferenceDataContext>() ?? new ReferenceDataContext());
+
+        /// <summary>
+        /// Creates a copy of the <see cref="ExecutionContext"/> using the <see cref="Create"/> function to instantiate before copying all underlying properties.
+        /// </summary>
+        /// <returns>The new <see cref="ExecutionContext"/> instance.</returns>
+        /// <remarks><i>Note:</i> the <see cref="Messages"/>, <see cref="Properties"/> and <see cref="GetRoles">Roles</see> share same instance, i.e. are not copied.</remarks>
+        public virtual ExecutionContext CreateCopy()
+        {
+            var ec = Create == null ? throw new InvalidOperationException($"The {nameof(Create)} function must not be null to create a copy.") : Create();
+            ec._timestamp = _timestamp;
+            ec._referenceDataContext = _referenceDataContext;
+            ec._messages = _messages;
+            ec._properties = _properties;
+            ec._roles = _roles;
+            ec.ServiceProvider = ServiceProvider;
+            ec.CorrelationId = CorrelationId;
+            ec.OperationType = OperationType;
+            ec.IsTextSerializationEnabled = IsTextSerializationEnabled;
+            ec.ETag = ETag;
+            ec.UserName = UserName;
+            ec.UserId = UserId;
+            ec.TenantId = TenantId;
+            return ec;
+        }
 
         #region Security
 

@@ -34,6 +34,8 @@ namespace CoreEx.RefData
         /// </summary>
         public const string TextWildcardErrorMessage = "Text contains invalid or unsupported wildcard selection.";
 
+        private static ReferenceDataOrchestrator? _current;
+
         private readonly object _lock = new();
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
@@ -45,10 +47,20 @@ namespace CoreEx.RefData
         private readonly Lazy<SettingsBase?> _settings;
 
         /// <summary>
-        /// Gets the current <see cref="ReferenceDataOrchestrator"/> from the <see cref="IServiceProvider"/> within the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> scope (see <see cref="ExecutionContext.GetService(Type)"/>) and will throw an <see cref="InvalidOperationException"/> where not found.
+        /// Gets or sets the current <see cref="ReferenceDataOrchestrator"/>.
         /// </summary>
-        public static ReferenceDataOrchestrator Current => 
-            ExecutionContext.GetService<ReferenceDataOrchestrator>() ?? throw new InvalidOperationException($"To access {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} it must be added as a Dependency Injection service ({nameof(IServiceProvider)}) and the request must be made within an {nameof(ExecutionContext)} scope.");
+        public static ReferenceDataOrchestrator Current => _current ?? throw new InvalidOperationException($"The {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} must have been set prior using {nameof(SetCurrent)}. This should be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.");
+
+        /// <summary>
+        /// Indicates whether the <see cref="ReferenceDataOrchestrator"/> <see cref="Current"/> has a value.
+        /// </summary>
+        public static bool HasCurrent => _current != null;
+
+        /// <summary>
+        /// Sets the <see cref="Current"/> instance.
+        /// </summary>
+        /// <param name="orchestrator">The <see cref="ReferenceDataOrchestrator"/>.</param>
+        public static void SetCurrent(ReferenceDataOrchestrator orchestrator) => _current = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
@@ -225,21 +237,37 @@ namespace CoreEx.RefData
             if (!_typeToProvider.TryGetValue(type ?? throw new ArgumentNullException(nameof(type)), out var providerType))
                 return null;
 
-            var coll = await OnGetOrCreateAsync(type, async (t, ct) =>
+            var coll = await OnGetOrCreateAsync(type, (t, ct) =>
             {
-                Logger.LogDebug("Reference data type {RefDataType} cache load start: Creating new ServiceProvider Scope to support underlying cache data get.", type.FullName);
-                var sw = Stopwatch.StartNew();
+                Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
+                var ec = ExecutionContext.Current.CreateCopy();
+
                 using var scope = ServiceProvider.CreateScope();
-                var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
-                var coll = await provider.GetAsync(t, ct).ConfigureAwait(false);
-                coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
-                sw.Stop();
-                Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
-                scope.Dispose();
-                return coll;
+                using (System.Threading.ExecutionContext.SuppressFlow())
+                {
+                    return Task.FromResult(Task.Run(() => GetByTypeInternalAsync(ec, scope, t, providerType, ct)).GetAwaiter().GetResult());
+                }
             }, cancellationToken).ConfigureAwait(false);
 
             return coll ?? throw new InvalidOperationException($"The {nameof(IReferenceDataCollection)} returned for Type '{type.FullName}' from Provider '{providerType.FullName}' must not be null.");
+        }
+
+        /// <summary>
+        /// Performs the actual reference data load in a new thread context / scope.
+        /// </summary>
+        private async Task<IReferenceDataCollection> GetByTypeInternalAsync(ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, CancellationToken cancellationToken)
+        {
+            executionContext.ServiceProvider = scope.ServiceProvider;
+            ExecutionContext.SetCurrent(executionContext);
+
+            var sw = Stopwatch.StartNew();
+            var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
+            var coll = await provider.GetAsync(type, cancellationToken).ConfigureAwait(false);
+            coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
+            sw.Stop();
+
+            Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
+            return coll;
         }
 
         /// <summary>
