@@ -20,6 +20,7 @@ namespace My.Hr.Database
                 .Create<Program>(connectionString)
                 .Configure(c =>
                 {
+                    c.Args.AcceptPrompts = true;
                     c.Args.ConnectionStringEnvironmentVariableName = "My_HrDb";
                     c.Args.DataParserArgs.RefDataColumnDefaults.TryAdd("IsActive", _ => true);
                     c.Args.DataParserArgs.RefDataColumnDefaults.TryAdd("SortOrder", i => i);
