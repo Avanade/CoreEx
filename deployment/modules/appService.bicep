@@ -76,19 +76,6 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08
   }
 }
 
-resource appServicePlan 'Microsoft.Web/serverfarms@2021-02-01' = {
-  name: 'plan-myapplication'
-  location: location
-  sku: {
-    name: 'S1'
-  }
-  properties:{
-    reserved: true
-  }
-  kind: 'Linux'
-  // tags:tags
-}
-
 resource hostingPlan 'Microsoft.Web/serverfarms@2020-12-01' = {
   name: hostingPlanName
   location: location
@@ -105,22 +92,58 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2020-12-01' = {
   }  
 }
 
-resource website 'Microsoft.Web/sites@2020-12-01' = {
+resource website 'Microsoft.Web/sites@2022-03-01' = {
   name: websiteName
   location: location
+  kind: 'app,linux' 
+  identity: {
+    type: 'SystemAssigned'
+  } 
   tags: {
     'hidden-related:${hostingPlan.id}': 'empty'
     displayName: 'Website'
   }
   properties: {
+    enabled: true
+    hostNameSslStates: [
+      {
+        name: '${websiteName}.azurewebsites.net'
+        sslState: 'Disabled'
+        hostType: 'Standard'
+      }
+      {
+        name: '${websiteName}.scm.azurewebsites.net'
+        sslState: 'Disabled'
+        hostType: 'Repository'
+      }
+    ]
     serverFarmId: hostingPlan.id
     reserved: true
+    isXenon: false
+    hyperV: false
+    vnetRouteAllEnabled: false
+    vnetImagePullEnabled: false
+    vnetContentShareEnabled: false    
+    scmSiteAlsoStopped: false
+    clientAffinityEnabled: true
+    clientCertEnabled: false
+    clientCertMode: 'Required'
+    hostNamesDisabled: false
+    customDomainVerificationId: '4C8CB3E0A6C623305A3DFAA9AE1EB0D67EC65588273F58DD2912DF02E3BE774B'
+    containerSize: 0
+    dailyMemoryTimeQuota: 0
+    httpsOnly: true
+    redundancyMode: 'None'
+    storageAccountRequired: false
+    keyVaultReferenceIdentity: 'SystemAssigned'  
     siteConfig:{
-      alwaysOn: true
-      ftpsState: 'Disabled'
-      // appSettings: appSettings
+      numberOfWorkers: 1
       linuxFxVersion: 'DOTNETCORE|6.0'
+      acrUseManagedIdentityCreds: false
+      alwaysOn: true
       http20Enabled: true
+      functionAppScaleLimit: 0
+      minimumElasticInstanceCount: 0 
       appSettings: [
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -135,9 +158,118 @@ resource website 'Microsoft.Web/sites@2020-12-01' = {
           value: '${servicebusName}.servicebus.windows.net"'
         }
       ]
-    }
-    httpsOnly: true  
+    }   
   }  
+}
+
+resource webSiteFtp'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2022-03-01' = {
+  parent: website
+  name: 'ftp'
+  location: location
+  properties: {
+    allow: true
+  }
+  tags: {
+    displayName: 'Website'
+    'hidden-related:/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Web/serverfarms/${hostingPlan.name}': 'empty'
+  }
+}
+
+resource webSiteScm 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2022-03-01' = {
+  parent: website
+  name: 'scm'
+  location: location
+  properties: {
+    allow: true
+  }
+  tags: {
+    displayName: 'Website'
+    'hidden-related:/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Web/serverfarms/${hostingPlan.name}': 'empty'
+  }
+}
+
+resource websiteConfig 'Microsoft.Web/sites/config@2022-03-01' = {
+  parent : website
+  name: 'web'
+  location: location
+  tags: {
+    displayName: 'Website'
+    'hidden-related:/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Web/serverfarms/${hostingPlan.name}': 'empty'
+  }
+  properties: {
+    numberOfWorkers: 1
+    defaultDocuments: [
+      'Default.htm'
+      'Default.html'
+      'Default.asp'
+      'index.htm'
+      'index.html'
+      'iisstart.htm'
+      'default.aspx'
+      'index.php'
+      'hostingstart.html'
+    ]
+    netFrameworkVersion: 'v4.0'
+    linuxFxVersion: 'DOTNETCORE|6.0'
+    requestTracingEnabled: false
+    remoteDebuggingEnabled: false
+    httpLoggingEnabled: false
+    acrUseManagedIdentityCreds: false
+    logsDirectorySizeLimit: 35
+    detailedErrorLoggingEnabled: false
+    appCommandLine: 'dotnet My.Hr.Api.dll'
+    // publishingUsername: '$defaultPublisher'
+    scmType: 'None'
+    use32BitWorkerProcess: true
+    webSocketsEnabled: false
+    alwaysOn: true
+    managedPipelineMode: 'Integrated'
+    virtualApplications: [
+      {
+        virtualPath: '/'
+        physicalPath: 'site\\wwwroot'
+        preloadEnabled: true
+      }
+    ]
+    loadBalancing: 'LeastRequests'
+    experiments: {
+      rampUpRules: []
+    }
+    autoHealEnabled: false
+    vnetRouteAllEnabled: false
+    vnetPrivatePortsCount: 0
+    publicNetworkAccess: 'Enabled'
+    localMySqlEnabled: false
+    // managedServiceIdentityId: 12607
+    ipSecurityRestrictions: [
+      {
+        ipAddress: 'Any'
+        action: 'Allow'
+        priority: 2147483647
+        name: 'Allow all'
+        description: 'Allow all access'
+      }
+    ]
+    scmIpSecurityRestrictions: [
+      {
+        ipAddress: 'Any'
+        action: 'Allow'
+        priority: 2147483647
+        name: 'Allow all'
+        description: 'Allow all access'
+      }
+    ]
+    scmIpSecurityRestrictionsUseMain: false
+    http20Enabled: true
+    minTlsVersion: '1.2'
+    scmMinTlsVersion: '1.2'
+    ftpsState: 'AllAllowed'
+    preWarmedInstanceCount: 0
+    functionsRuntimeScaleMonitoringEnabled: false
+    minimumElasticInstanceCount: 0
+    azureStorageAccounts: {
+    }
+  }
 }
 
 resource webSiteConnectionStrings 'Microsoft.Web/sites/config@2020-12-01' = {
@@ -150,5 +282,3 @@ resource webSiteConnectionStrings 'Microsoft.Web/sites/config@2020-12-01' = {
     }
   }
 }
-
-

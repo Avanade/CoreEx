@@ -11,6 +11,7 @@ CoreEx leverages [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-
 
  - [.NET CLI](https://learn.microsoft.com/en-us/dotnet/core/tools/)
 
+ - [Powershell](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/powershell) 
 
 ## Deploy Azure resources
  - Open the source code in VSCode. Start a terminal and navigate to the ***deployment*** folder.
@@ -47,12 +48,14 @@ az deployment group list --output table
 
  - Create Publish artifacts
 ~~~script
+Remove-Item -Recurse -Force "\artifacts"
+
 dotnet publish "..\samples\My.Hr\My.Hr.Api\My.Hr.Api.csproj" -c Release --output "\artifacts"
 
 compress-Archive -Path "\artifacts\*" -DestinationPath "MyHrApp.zip" -Force
 ~~~
 
  - Publish Web API
-~~~acript
-az webapp deploy --name {App-Service-Name} --src-path MyHrApp.zip  --type=zip   
+~~~script
+az webapp deploy --name {App-Service-Name} --src-path "MyHrApp.zip"  --type=zip   
 ~~~
