@@ -48,7 +48,7 @@ az deployment group list --output table
 
  - Create Publish artifacts
 ~~~script
-Remove-Item -Recurse -Force "\artifacts"
+Remove-Item -Recurse -Force "\artifacts" -ErrorAction SilentlyContinue
 
 dotnet publish "..\samples\My.Hr\My.Hr.Api\My.Hr.Api.csproj" -c Release --output "\artifacts"
 

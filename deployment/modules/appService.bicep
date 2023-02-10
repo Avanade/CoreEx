@@ -218,7 +218,6 @@ resource websiteConfig 'Microsoft.Web/sites/config@2022-03-01' = {
     logsDirectorySizeLimit: 35
     detailedErrorLoggingEnabled: false
     appCommandLine: 'dotnet My.Hr.Api.dll'
-    // publishingUsername: '$defaultPublisher'
     scmType: 'None'
     use32BitWorkerProcess: true
     webSocketsEnabled: false
@@ -240,7 +239,6 @@ resource websiteConfig 'Microsoft.Web/sites/config@2022-03-01' = {
     vnetPrivatePortsCount: 0
     publicNetworkAccess: 'Enabled'
     localMySqlEnabled: false
-    // managedServiceIdentityId: 12607
     ipSecurityRestrictions: [
       {
         ipAddress: 'Any'
