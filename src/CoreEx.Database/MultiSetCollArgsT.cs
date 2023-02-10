@@ -45,8 +45,7 @@ namespace CoreEx.Database
             if (dr == null)
                 throw new ArgumentNullException(nameof(dr));
 
-            if (_coll == null)
-                _coll = new TColl();
+            _coll ??= new TColl();
 
             var item = Mapper.MapFromDb(dr);
             if (item != null)

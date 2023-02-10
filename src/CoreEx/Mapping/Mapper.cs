@@ -46,6 +46,11 @@ namespace CoreEx.Mapping
         }
 
         /// <summary>
+        /// Indicates whether to convert empty collections to <c>null</c> where supported. Defaults to <c>true</c>.
+        /// </summary>
+        public bool ConvertEmptyCollectionsToNull { get; set; } = true;
+
+        /// <summary>
         /// Registers (adds) an individual <see cref="IMapper{TSource, TDestination}"/>.
         /// </summary>
         /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
@@ -104,11 +109,11 @@ namespace CoreEx.Mapping
         /// <inheritdoc/>
         [return: NotNullIfNotNull(nameof(source))]
         public TDestination? Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified)
-            => source is null ? default! : GetMapper<TSource, TDestination>().Map(source, operationType)!;
+            => GetMapper<TSource, TDestination>().Map(source, operationType)!;
 
         /// <inheritdoc/>
         [return: NotNullIfNotNull(nameof(source))]
         public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified)
-            => source is null ? default! : GetMapper<TSource, TDestination>().Map(source, destination, operationType)!;
+            => GetMapper<TSource, TDestination>().Map(source, destination, operationType)!;
     }
 }

@@ -20,7 +20,10 @@ namespace CoreEx.Cosmos
         private readonly ConcurrentDictionary<Key, Func<IQueryable, IQueryable>> _filters = new();
         private PartitionKey? _partitionKey;
 
-        private struct Key
+        /// <summary>
+        /// Provides key as combination of model type and container identifier.
+        /// </summary>
+        private readonly struct Key
         {
             public Key(Type modelType, string containerId)
             {

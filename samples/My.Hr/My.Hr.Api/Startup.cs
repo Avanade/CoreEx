@@ -78,5 +78,6 @@ public class Startup
            .UseRouting()
            .UseAuthorization()
            .UseExecutionContext()
+           .UseReferenceDataOrchestrator()
            .UseEndpoints(endpoints => endpoints.MapControllers());
 }

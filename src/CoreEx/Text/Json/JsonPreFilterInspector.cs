@@ -8,7 +8,7 @@ namespace CoreEx.Text.Json
     /// <summary>
     /// Provides pre (prior) to filtering JSON inspection.
     /// </summary>
-    public struct JsonPreFilterInspector : IJsonPreFilterInspector
+    public readonly struct JsonPreFilterInspector : IJsonPreFilterInspector
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonPreFilterInspector"/> struct. 

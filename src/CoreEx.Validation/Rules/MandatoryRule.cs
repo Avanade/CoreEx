@@ -17,11 +17,8 @@ namespace CoreEx.Validation.Rules
     public class MandatoryRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class
     {
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             // Compare the value against its default.
             if (Comparer<TProperty?>.Default.Compare(context.Value, default!) == 0)
             {

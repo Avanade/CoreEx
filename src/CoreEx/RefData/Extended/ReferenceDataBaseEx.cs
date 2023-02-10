@@ -239,6 +239,14 @@ namespace CoreEx.RefData.Extended
         /// <remarks>This is intended to be consumed by classes that wish to provide an opt-in serialization of corresponding <see cref="IReferenceData.Text"/>.</remarks>
         public static string? GetRefDataText(string? code) => code != null && ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled ? ConvertFromCode(code)?.Text : null;
 
+        /// <summary>
+        /// Gets the corresponding <see cref="IReferenceData.Text"/> for the specified <paramref name="id"/> where <see cref="ExecutionContext.IsTextSerializationEnabled"/> is <c>true</c>.
+        /// </summary>
+        /// <param name="id">The <see cref="IReferenceData"/> <see cref="IIdentifier{TId}.Id"/>.</param>
+        /// <returns>The <see cref="IReferenceData.Text"/>.</returns>
+        /// <remarks>This is intended to be consumed by classes that wish to provide an opt-in serialization of corresponding <see cref="IReferenceData.Text"/>.</remarks>
+        public static string? GetRefDataText(object? id) => id != null && ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled ? ConvertFromId((TId)id)?.Text : null;
+
         #region MappingsDictionary
 
         /// <summary>

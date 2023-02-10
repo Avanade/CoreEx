@@ -15,7 +15,7 @@ namespace CoreEx.Entities
     /// are supported: <see cref="string"/>, <see cref="char"/>, <see cref="short"/>, <see cref="int"/>, <see cref="long"/>, <see cref="ushort"/>, <see cref="uint"/>, <see cref="ulong"/>, <see cref="Guid"/>, <see cref="DateTimeOffset"/> (converted to a <see cref="DateTime"/>) and <see cref="DateTime"/>.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Diagnostics.DebuggerDisplay("Key = {ToString()}")]
-    public struct CompositeKey : IEquatable<CompositeKey>
+    public readonly struct CompositeKey : IEquatable<CompositeKey>
     {
         private readonly ImmutableArray<object?> _args;
 

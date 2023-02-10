@@ -7,7 +7,7 @@ namespace CoreEx.Globalization
     /// <summary>
     /// Provides <see cref="TextInfo"/> extension methods.
     /// </summary>
-    public static class TexInfoExtensions
+    public static class TextInfoExtensions
     {
         /// <summary>
         /// Converts the specified <paramref name="text"/> to the selected <see cref="TextInfoCasing"/>.
@@ -20,6 +20,7 @@ namespace CoreEx.Globalization
         {
             TextInfoCasing.Lower => text == null ? null : textInfo.ToLower(text),
             TextInfoCasing.Upper => text == null ? null : textInfo.ToUpper(text),
+            TextInfoCasing.Title => text == null ? null : textInfo.ToTitleCase(text),
             _ => text
         };
     }

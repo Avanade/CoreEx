@@ -50,14 +50,26 @@ namespace CoreEx.Database.Extended
         /// <typeparam name="TItem">The <see cref="IReferenceData"/> item <see cref="Type"/>.</typeparam>
         /// <typeparam name="TId">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
         /// <param name="database">The <see cref="IDatabase"/>.</param>
-        /// <param name="schemaName">The database schema name.</param>
+        /// <param name="schemaName">The database schema name (optional).</param>
         /// <param name="tableName">The database table name.</param>
         /// <returns>The <see cref="RefDataLoader{TColl, TItem, TId}"/>.</returns>
-        public static RefDataLoader<TColl, TItem, TId> ReferenceData<TColl, TItem, TId>(this IDatabase database, string schemaName, string tableName)
+        /// <remarks>The <paramref name="schemaName"/> and <paramref name="tableName"/> should not be escaped/quoted as this is performed internally to minimize SQL injection opportunity.</remarks>
+        public static RefDataLoader<TColl, TItem, TId> ReferenceData<TColl, TItem, TId>(this IDatabase database, string? schemaName, string tableName)
             where TColl : class, IReferenceDataCollection<TId, TItem>, new()
             where TItem : class, IReferenceData<TId>, new()
             where TId : IComparable<TId>, IEquatable<TId>
-            => ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database))).SqlStatement($"SELECT * FROM [{schemaName ?? throw new ArgumentNullException(nameof(schemaName))}].[{tableName ?? throw new ArgumentNullException(nameof(tableName))}]"));
+        {
+            if (!database.Provider.CanCreateCommandBuilder)
+                throw new NotSupportedException("Database Provider can not CreateCommandBuilder which is required to quote the identifiers to minimize SQL inject possibility.");
+
+            var cb = database.Provider.CreateCommandBuilder();
+            if (string.IsNullOrEmpty(schemaName))
+                return ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database)))
+                    .SqlStatement($"SELECT * FROM {cb.QuoteIdentifier(tableName ?? throw new ArgumentNullException(nameof(tableName)))}"));
+            else
+                return ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database)))
+                    .SqlStatement($"SELECT * FROM {cb.QuoteIdentifier(schemaName ?? throw new ArgumentNullException(nameof(schemaName)))}.{cb.QuoteIdentifier(tableName ?? throw new ArgumentNullException(nameof(tableName)))}"));
+        }
 
         /// <summary>
         /// Creates a <see cref="DatabaseQuery{T}"/> to enable select-like capabilities.

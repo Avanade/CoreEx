@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -31,6 +32,7 @@ namespace CoreEx.Test.Framework.Http
             Assert.IsFalse(o.ShouldEnsureSuccess);
             Assert.IsNull(o.ExpectedStatusCodes);
             Assert.IsNull(o.MaxRetryDelay);
+            Assert.IsNull(o.BeforeRequest);
         }
 
         [Test]
@@ -160,6 +162,20 @@ namespace CoreEx.Test.Framework.Http
         }
 
         [Test]
+        public void OnBeforeRequest()
+        {
+            var o = new TypedHttpClientOptions(new DefaultSettings());
+            o.OnBeforeRequest((r, ct) => Task.CompletedTask);
+            Assert.NotNull(o.BeforeRequest);
+
+            var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
+            Assert.NotNull(o2.BeforeRequest);
+
+            o.Reset();
+            AssertIsInitial(o);
+        }
+
+        [Test]
         public void TypedHttpClient_Default_And_SendOptions()
         {
             var thc = new TypedHttpClient(new System.Net.Http.HttpClient());
@@ -192,15 +208,14 @@ namespace CoreEx.Test.Framework.Http
             var thc = new TypedHttpClient(new System.Net.Http.HttpClient());
             thc.WithRetry(5, 7);
 
-            Assert.Throws<InvalidOperationException>(() => _ = thc.DefaultOptions);
+            Assert.Throws<InvalidOperationException>(() => thc.DefaultOptions.WithRetry(3, 6));
             thc.Reset();
-            _ = thc.DefaultOptions;
+            thc.DefaultOptions.WithRetry(2, 8);
 
             thc = new TypedHttpClient(new System.Net.Http.HttpClient());
             thc.DefaultOptions.WithRetry(2, 4);
             thc.WithRetry(5, 7);
 
-            _ = thc.DefaultOptions;
             Assert.Throws<InvalidOperationException>(() => thc.DefaultOptions.ThrowTransientException());
             thc.Reset();
             thc.DefaultOptions.ThrowTransientException();

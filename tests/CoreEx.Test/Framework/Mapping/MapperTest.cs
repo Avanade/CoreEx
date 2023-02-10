@@ -64,6 +64,46 @@ namespace CoreEx.Test.Framework.Mapping
         }
 
         [Test]
+        public void Mapping_Collection_Auto_Into_Existing()
+        {
+            var pm = new Mapper<PersonA, PersonB>()
+                .Map((s, d) => d.ID = s.Id)
+                .Map((s, d) => d.Text = s.Name);
+
+            var m = new Mapper();
+            m.Register(pm);
+
+            var pac = new PersonACollection() { new PersonA { Id = 1, Name = "Bob" } };
+            var pbc = new PersonBCollection() { new PersonB { ID = 2, Text = "Carly" } };
+            var pbc2 = m.Map(pac, pbc);
+
+            Assert.That(pbc, Has.Count.EqualTo(1));
+            Assert.That(pbc[0].ID, Is.EqualTo(1));
+            Assert.That(pbc[0].Text, Is.EqualTo("Bob"));
+
+            Assert.That(pbc2, Has.Count.EqualTo(1));
+            Assert.That(pbc2[0].ID, Is.EqualTo(1));
+            Assert.That(pbc2[0].Text, Is.EqualTo("Bob"));
+        }
+
+        [Test]
+        public void Mapping_Collection_Auto_Empty_To_Null()
+        {
+            var pm = new Mapper<PersonA, PersonB>()
+                .Map((s, d) => d.ID = s.Id)
+                .Map((s, d) => d.Text = s.Name);
+
+            var m = new Mapper();
+            m.Register(pm);
+
+            var pac = new PersonACollection();
+            var pbc = new PersonBCollection() { new PersonB { ID = 2, Text = "Carly" } };
+            var pbc2 = m.Map(pac, pbc);
+
+            Assert.That(pbc2, Is.Null);
+        }
+
+        [Test]
         public void ServicesMapper()
         {
             var sc = new ServiceCollection();

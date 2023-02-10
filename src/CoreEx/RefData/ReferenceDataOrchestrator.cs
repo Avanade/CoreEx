@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Json;
 using CoreEx.WebApis;
@@ -23,9 +24,9 @@ namespace CoreEx.RefData
     /// Provides the centralized reference data orchestration. Primarily responsible for the management of one or more <see cref="IReferenceDataProvider"/> instances.  
     /// </summary>
     /// <remarks>Provides <i>cached</i> access to the underlying reference data collections via the likes of <see cref="GetByTypeAsync{TRef}"/>, <see cref="GetByTypeAsync(Type, CancellationToken)"/> or <see cref="GetByNameAsync(string, CancellationToken)"/>.
-    /// <para>To improve performance the reference data should be cached where possible. The <see cref="ReferenceDataOrchestrator"/> supports a default <see cref="IMemoryCache"/> implementation; however, this can be overridden and/or extended by
-    /// overriding the <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/> method. The <i>create</i> is executed in the context of a <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/>
-    /// to limit/minimize any impact on the processing of the current request by isolating all scoped services.</para></remarks>
+    /// By default, will include <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/> as part of the cache keu
+    /// <para>To improve performance the reference data is cached. The <see cref="ReferenceDataOrchestrator"/> enables this via an <see cref="IMemoryCache"/> implementation; default is <see cref="MemoryCache"/> where not explicitly specified.
+    /// The underlying reference data loading is executed in the context of a <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services.</para></remarks>
     public class ReferenceDataOrchestrator
     {
         /// <summary>
@@ -33,32 +34,45 @@ namespace CoreEx.RefData
         /// </summary>
         public const string TextWildcardErrorMessage = "Text contains invalid or unsupported wildcard selection.";
 
+        private static ReferenceDataOrchestrator? _current;
+
         private readonly object _lock = new();
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
-        private readonly IMemoryCache? _cache;
         private readonly SemaphoreSlim _primarySemaphore = new(1, 1);
-        private readonly ConcurrentDictionary<Type, SemaphoreSlim> _semaphores = new();
+        private readonly ConcurrentDictionary<object, SemaphoreSlim> _semaphores = new();
         private readonly TimeSpan _absoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
         private readonly TimeSpan _slidingExpiration = TimeSpan.FromMinutes(30);
         private readonly Lazy<ILogger> _logger;
+        private readonly Lazy<SettingsBase?> _settings;
 
         /// <summary>
-        /// Gets the current <see cref="ReferenceDataOrchestrator"/> from the <see cref="IServiceProvider"/> within the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext"/> scope (see <see cref="ExecutionContext.GetService(Type)"/>) and will throw an <see cref="InvalidOperationException"/> where not found.
+        /// Gets or sets the current <see cref="ReferenceDataOrchestrator"/>.
         /// </summary>
-        public static ReferenceDataOrchestrator Current => 
-            ExecutionContext.GetService<ReferenceDataOrchestrator>() ?? throw new InvalidOperationException($"To access {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} it must be added as a Dependency Injection service ({nameof(IServiceProvider)}) and the request must be made within an {nameof(ExecutionContext)} scope.");
+        public static ReferenceDataOrchestrator Current => _current ?? throw new InvalidOperationException($"The {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} must have been set prior using {nameof(SetCurrent)}. This should be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.");
+
+        /// <summary>
+        /// Indicates whether the <see cref="ReferenceDataOrchestrator"/> <see cref="Current"/> has a value.
+        /// </summary>
+        public static bool HasCurrent => _current != null;
+
+        /// <summary>
+        /// Sets the <see cref="Current"/> instance.
+        /// </summary>
+        /// <param name="orchestrator">The <see cref="ReferenceDataOrchestrator"/>.</param>
+        public static void SetCurrent(ReferenceDataOrchestrator orchestrator) => _current = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
         /// </summary>
         /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
-        /// <param name="cache">The optional <see cref="IMemoryCache"/> to be used where not specifically overridden by <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>.</param>
-        protected ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache)
+        /// <param name="cache">The <see cref="IMemoryCache"/>.</param>
+        protected ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache cache)
         {
             ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
-            _cache = cache;
+            Cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _logger = new Lazy<ILogger>(ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>);
+            _settings = new Lazy<SettingsBase?>(ServiceProvider.GetService<SettingsBase>);
         }
 
         /// <summary>
@@ -82,10 +96,21 @@ namespace CoreEx.RefData
         public IServiceProvider ServiceProvider { get; }
 
         /// <summary>
+        /// Gets the underlying <see cref="IMemoryCache"/>.
+        /// </summary>
+        protected IMemoryCache Cache { get; }
+
+        /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
         [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
         public ILogger Logger => _logger.Value;
+
+        /// <summary>
+        /// Gets the <see cref="SettingsBase"/>.
+        /// </summary>
+        [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
+        public SettingsBase Settings => _settings.Value!;
 
         /// <summary>
         /// Registers the <see cref="IReferenceDataProvider"/> <see cref="Type"/>.
@@ -177,7 +202,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? GetByType(Type type) => _cache.TryGetValue(type, out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
+        public IReferenceDataCollection? GetByType(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
@@ -191,7 +216,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
-        public IReferenceDataCollection GetByTypeRequired(Type type) => _cache.TryGetValue(type, out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
+        public IReferenceDataCollection GetByTypeRequired(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
@@ -212,21 +237,37 @@ namespace CoreEx.RefData
             if (!_typeToProvider.TryGetValue(type ?? throw new ArgumentNullException(nameof(type)), out var providerType))
                 return null;
 
-            var coll = await OnGetOrCreateAsync(type, async (t, ct) =>
+            var coll = await OnGetOrCreateAsync(type, (t, ct) =>
             {
-                Logger.LogDebug("Reference data type {RefDataType} cache load start: Creating new ServiceProvider Scope to support underlying cache data get.", type.FullName);
-                var sw = Stopwatch.StartNew();
+                Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
+                var ec = ExecutionContext.Current.CreateCopy();
+
                 using var scope = ServiceProvider.CreateScope();
-                var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
-                var coll = await provider.GetAsync(t, ct).ConfigureAwait(false);
-                coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
-                sw.Stop();
-                Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
-                scope.Dispose();
-                return coll;
+                using (System.Threading.ExecutionContext.SuppressFlow())
+                {
+                    return Task.FromResult(Task.Run(() => GetByTypeInternalAsync(ec, scope, t, providerType, ct)).GetAwaiter().GetResult());
+                }
             }, cancellationToken).ConfigureAwait(false);
 
             return coll ?? throw new InvalidOperationException($"The {nameof(IReferenceDataCollection)} returned for Type '{type.FullName}' from Provider '{providerType.FullName}' must not be null.");
+        }
+
+        /// <summary>
+        /// Performs the actual reference data load in a new thread context / scope.
+        /// </summary>
+        private async Task<IReferenceDataCollection> GetByTypeInternalAsync(ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, CancellationToken cancellationToken)
+        {
+            executionContext.ServiceProvider = scope.ServiceProvider;
+            ExecutionContext.SetCurrent(executionContext);
+
+            var sw = Stopwatch.StartNew();
+            var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
+            var coll = await provider.GetAsync(type, cancellationToken).ConfigureAwait(false);
+            coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
+            sw.Stop();
+
+            Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
+            return coll;
         }
 
         /// <summary>
@@ -252,63 +293,57 @@ namespace CoreEx.RefData
         /// <param name="getCollAsync">The underlying function to invoke to get the <see cref="IReferenceDataCollection"/> when (re-)creating cache collection.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IReferenceDataCollection"/>.</returns>
-        /// <remarks>Invokes the <see cref="OnCreateCacheEntry(ICacheEntry)"/> prior to invoking <paramref name="getCollAsync"/> on <i>create</i>. This should be overridden where the default <see cref="IMemoryCache"/> capabilities are not
+        /// <remarks>Invokes the <see cref="OnCreateCacheEntry(Type, ICacheEntry)"/> prior to invoking <paramref name="getCollAsync"/> on <i>create</i>. This should be overridden where the default <see cref="IMemoryCache"/> capabilities are not
         /// sufficient. The <paramref name="getCollAsync"/> contains the logic to invoke the underlying <see cref="IReferenceDataProvider.GetAsync(Type, System.Threading.CancellationToken)"/>; this is executed in the context of a 
         /// <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services. Additionally, semaphore locks are used to
         /// manage concurrency to ensure cache loading is thread-safe.</remarks>
-        protected async virtual Task<IReferenceDataCollection> OnGetOrCreateAsync(Type type, Func<Type, CancellationToken, Task<IReferenceDataCollection>> getCollAsync, CancellationToken cancellationToken = default)
+        private async Task<IReferenceDataCollection> OnGetOrCreateAsync(Type type, Func<Type, CancellationToken, Task<IReferenceDataCollection>> getCollAsync, CancellationToken cancellationToken = default)
         {
-            if (_cache == null)
-                return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
-            else
-            {
-                // Try and get as most likely already in the cache; where exists then exit fast.
-                if (_cache.TryGetValue(type, out IReferenceDataCollection coll))
-                    return coll;
-
-                // As the GetOrAdd is not thread-safe a primary semaphore is used to get the key-based semaphore.
-                SemaphoreSlim semaphore;
-                await _primarySemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    semaphore = _semaphores.GetOrAdd(type, _ => new SemaphoreSlim(1, 1));
-                }
-                finally
-                {
-                    _primarySemaphore.Release();
-                }
-
-                // Where not found use a semaphore for the key (type) to ensure only a single task is retrieving.
-                await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try 
-                {
-                    // Does a get or create as it may have been added as we went to lock.
-                    coll = await _cache.GetOrCreateAsync(type, async entry =>
-                    {
-                        OnCreateCacheEntry(entry);
-                        return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
-                    }).ConfigureAwait(false);
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-
+            // Try and get as most likely already in the cache; where exists then exit fast.
+            var key = OnGetCacheKey(type);
+            if (Cache.TryGetValue(key, out IReferenceDataCollection coll))
                 return coll;
+
+            // Get or add a new semaphore for the cache key so we can manage single concurrency for that key only.
+            SemaphoreSlim semaphore = _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+
+            // Use the semaphore to manage a single thread to perform the "expensive" get operation.
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                // Does a get or create as it may have been added as we went to lock.
+                return await Cache.GetOrCreateAsync(key, async entry =>
+                {
+                    OnCreateCacheEntry(type, entry);
+                    return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
+            }
+            finally
+            {
+                semaphore.Release();
             }
         }
 
         /// <summary>
+        /// Gets the cache key to be used (defaults to <paramref name="type"/>).
+        /// </summary>
+        /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+        /// <returns>The cache key.</returns>
+        /// <remarks>To support the likes of multi-tenancy caching then the resulting cache key should be overridden to include the both the <see cref="ITenantId.TenantId"/> and <paramref name="type"/>.</remarks>
+        protected virtual object OnGetCacheKey(Type type) => type;
+
+        /// <summary>
         /// Provides an opportunity to the maintain the <see cref="ICacheEntry"/> data prior to the cache <i>create</i> function being invoked (as a result of <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>).
         /// </summary>
+        /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <param name="entry">The <see cref="ICacheEntry"/>.</param>
         /// <remarks>Note: the <see cref="ICacheEntry.Key"/> is the <see cref="IReferenceData"/> <see cref="Type"/>.
         /// <para>The default behaviour sets the following: <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> = 2 hours, and <see cref="ICacheEntry.SlidingExpiration"/> = 30 minutes unless overidden during instantiation.
         /// This should be overridden where more advanced behaviour is required.</para></remarks>
-        protected virtual void OnCreateCacheEntry(ICacheEntry entry)
+        protected virtual void OnCreateCacheEntry(Type type, ICacheEntry entry)
         {
-            entry.AbsoluteExpirationRelativeToNow = _absoluteExpirationRelativeToNow;
-            entry.SlidingExpiration = _slidingExpiration;
+            entry.AbsoluteExpirationRelativeToNow = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", Settings.RefDataCacheAbsoluteExpirationRelativeToNow) ?? TimeSpan.FromHours(2);
+            entry.SlidingExpiration = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.SlidingExpiration)}", Settings.RefDataCacheSlidingExpiration) ?? TimeSpan.FromMinutes(30);
         }
 
         /// <summary>

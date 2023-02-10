@@ -30,7 +30,14 @@ namespace CoreEx.RefData
         {
             SortOrder = sortOrder;
             _rdcCode = new ConcurrentDictionary<string, TRef>(codeComparer ?? StringComparer.OrdinalIgnoreCase);
+            OnInitialization();
         }
+
+        /// <summary>
+        /// Provides an opportunity to extend initialization when the object is constructed.
+        /// </summary>
+        /// <remarks>Added to support scenarios whether the class is defined using the likes of partial classes to provide a means to easily add functionality during the constructor process.</remarks>
+        protected virtual void OnInitialization() { }
 
         /// <summary>
         /// Gets or sets the <see cref="ReferenceDataSortOrder"/> used by <see cref="GetItems"/>.

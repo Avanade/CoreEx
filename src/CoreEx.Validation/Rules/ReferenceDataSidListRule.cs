@@ -15,6 +15,11 @@ namespace CoreEx.Validation.Rules
     public class ReferenceDataSidListRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty?> where TEntity : class where TProperty : IReferenceDataCodeList
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceDataSidListRule{TEntity, TProperty}"/> class.
+        /// </summary>
+        public ReferenceDataSidListRule() => ValidateWhenDefault = false;
+
+        /// <summary>
         /// Gets or sets the minimum count;
         /// </summary>
         public int MinCount { get; set; }
@@ -30,15 +35,9 @@ namespace CoreEx.Validation.Rules
         public bool AllowDuplicates { get; set; } = false;
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, TProperty?> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty?> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            if (context.Value == null)
-                return Task.CompletedTask;
-
-            if (context.Value.HasInvalidItems)
+            if (context.Value!.HasInvalidItems)
             {
                 context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidItemsFormat);
                 return Task.CompletedTask;

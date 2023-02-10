@@ -13,6 +13,7 @@ namespace CoreEx.Mapping
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
     /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
     /// <typeparam name="TDestinationColl">The destination collection <see cref="Type"/>.</typeparam>
+    /// <remarks>Note that collection mapping results in a replacement; there is no merging of content.</remarks>
     public class CollectionMapper<TSourceColl, TSource, TDestinationColl, TDestination> : IMapper<TSourceColl, TDestinationColl>
         where TSourceColl : class, ICollection<TSource>, new() where TSource : class, new()
         where TDestinationColl : class, ICollection<TDestination>, new() where TDestination : class, new()
@@ -43,21 +44,29 @@ namespace CoreEx.Mapping
         /// <inheritdoc/>
         TDestinationColl? IMapper<TSourceColl, TDestinationColl>.Map(TSourceColl? source, TDestinationColl? destination, OperationTypes operationType) => Map(source, destination, operationType);
 
+        /// <summary>
+        /// Performs the mapping.
+        /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="destination">The destination.</param>
         /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <returns>The destination.</returns>
         internal TDestinationColl? Map(TSourceColl? source, TDestinationColl? destination, OperationTypes operationType = OperationTypes.Unspecified)
         {
             if (source is null && destination is null)
                 return destination;
 
-            if (source is null && destination is not null)
+            if ((source == null || source.Count == 0) && Owner.ConvertEmptyCollectionsToNull)
             {
                 destination = default;
                 return destination;
             }
 
-            source ??= new();
+            // Clear/empty destination as collection mapping is "replacement" only.
+            destination?.Clear();
+            if (source is null)
+                return destination;
+
             destination ??= new();
             var itemMapper = Owner.GetMapper<TSource, TDestination>();
             source.ForEach(x => destination.Add(itemMapper.Map(x, operationType)!));

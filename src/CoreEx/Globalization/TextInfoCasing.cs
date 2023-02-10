@@ -10,7 +10,7 @@ namespace CoreEx.Globalization
     public enum TextInfoCasing
     {
         /// <summary>
-        /// No text casing is to be applied.
+        /// No text casing is to be applied; leave as-is.
         /// </summary>
         None,
 
@@ -22,6 +22,11 @@ namespace CoreEx.Globalization
         /// <summary>
         /// Use <see cref="TextInfo.ToUpper(string)"/>.
         /// </summary>
-        Upper
+        Upper,
+
+        /// <summary>
+        /// Use <see cref="TextInfo.ToTitleCase(string)"/>.
+        /// </summary>
+        Title
     }
 }

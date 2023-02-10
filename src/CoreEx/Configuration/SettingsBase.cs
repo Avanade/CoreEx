@@ -7,8 +7,8 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using CoreEx.Entities;
 using CoreEx.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 
 namespace CoreEx.Configuration
@@ -26,7 +26,7 @@ namespace CoreEx.Configuration
         /// Initializes a new instance of the <see cref="SettingsBase"/> class.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
-        /// <param name="prefixes">The key prefixes to use in order of precedence, first through to last. At least one prefix must be specified.</param>
+        /// <param name="prefixes">The key prefixes to use in order of precedence, first through to last.</param>
         public SettingsBase(IConfiguration? configuration, params string[] prefixes)
         {
             Configuration = configuration;
@@ -41,11 +41,6 @@ namespace CoreEx.Configuration
             }
 
             _allProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy).ToDictionary(p => p.Name, p => p);
-
-            // Configure (override) any standard settings.
-            var take = PagingDefaultTake;
-            if (take != null)
-                PagingArgs.DefaultTake = take.Value;
         }
 
         /// <summary>
@@ -197,6 +192,21 @@ namespace CoreEx.Configuration
         /// <summary>
         /// Gets the <see cref="Entities.PagingArgs.DefaultTake"/>; i.e. page size.
         /// </summary>
-        public long? PagingDefaultTake => GetValue<long?>(nameof(PagingDefaultTake), null);
+        public long PagingDefaultTake => GetValue<long>(nameof(PagingDefaultTake), 100);
+
+        /// <summary>
+        /// Gets the <see cref="Entities.PagingArgs.MaxTake"/>; i.e. absolute maximum page size.
+        /// </summary>
+        public long PagingMaxTake => GetValue<long>(nameof(PagingMaxTake), 1000);
+
+        /// <summary>
+        /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/>. Defaults to <c>2</c> hours.
+        /// </summary>
+        public TimeSpan? RefDataCacheAbsoluteExpirationRelativeToNow => GetValue($"RefDataCache__{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", TimeSpan.FromHours(2));
+
+        /// <summary>
+        /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.SlidingExpiration"/>. Defaults to <c>30</c> minutes.
+        /// </summary>
+        public TimeSpan? RefDataCacheSlidingExpiration => GetValue($"RefDataCache__{nameof(ICacheEntry.SlidingExpiration)}", TimeSpan.FromMinutes(30));
     }
 }

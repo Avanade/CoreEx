@@ -1,6 +1,3 @@
-using CoreEx.Database;
-using CoreEx.EntityFrameworkCore;
-
 namespace My.Hr.Business.Data;
 
 public class HrDbContext : DbContext, IEfDbContext

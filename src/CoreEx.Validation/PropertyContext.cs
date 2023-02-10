@@ -134,7 +134,7 @@ namespace CoreEx.Validation
 
                     try
                     {
-                        pr.PropertyInfo.SetValue(vv.Entity, value);
+                        pr.PropertyExpression.SetValue(vv.Entity, value);
                     }
                     catch (Exception ex)
                     {
@@ -150,7 +150,7 @@ namespace CoreEx.Validation
 
                 try
                 {
-                    pr.PropertyInfo.SetValue(Parent.Value, value);
+                    pr.PropertyExpression.SetValue(Parent.Value, value);
                 }
                 catch (Exception ex)
                 {
@@ -216,9 +216,7 @@ namespace CoreEx.Validation
             // Copy the configuration values; do not allow the higher-level dictionaries (stack) to be extended by lower-level validators.
             if (Parent?.Config != null)
             {
-                if (args.Config == null)
-                    args.Config = new Dictionary<string, object?>();
-
+                args.Config ??= new Dictionary<string, object?>();
                 foreach (var cfg in Parent.Config)
                 {
                     args.Config.Add(cfg.Key, cfg.Value);

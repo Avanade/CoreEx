@@ -29,11 +29,8 @@ namespace CoreEx.Validation.Rules
         public DuplicateRule(Func<bool> duplicate) => _duplicate = duplicate ?? throw new ArgumentNullException(nameof(duplicate));
 
         /// <inheritdoc/>
-        public override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             if (_predicate != null)
             {
                 if (_predicate(context.Parent.Value!))

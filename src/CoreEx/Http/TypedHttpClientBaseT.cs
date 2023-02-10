@@ -190,6 +190,14 @@ namespace CoreEx.Http
         public TSelf EnsureCreated() => Ensure(HttpStatusCode.Created);
 
         /// <summary>
+        /// Adds the <see cref="HttpStatusCode.NotFound"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TSelf EnsureNotFound() => Ensure(HttpStatusCode.NotFound);
+
+        /// <summary>
         /// Adds the <paramref name="statusCodes"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
         /// </summary>
         /// <param name="statusCodes">One or more <see cref="HttpStatusCode">status codes</see> to be verified.</param>
@@ -228,10 +236,24 @@ namespace CoreEx.Http
         /// <summary>
         /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
         /// </summary>
-        /// <remarks>Results in the corresponding <see cref="HttpResult"/> <see cref="HttpResult.NullOnNotFoundResponse"/> being set to get the desired outcome.</remarks>
+        /// <remarks>
+        /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Results in the corresponding <see cref="HttpResult"/> <see cref="HttpResult.NullOnNotFoundResponse"/> being set to get the desired outcome.</para></remarks>
         public TSelf NullOnNotFound()
         {
             SendOptions.NullOnNotFound();
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Sets the function to update the <see cref="HttpRequestMessage"/> before the request is sent.
+        /// </summary>
+        /// <param name="beforeRequest">The function to update the <see cref="HttpRequestMessage"/>.</param>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        public TSelf OnBeforeRequest(Func<HttpRequestMessage, CancellationToken, Task>? beforeRequest)
+        {
+            SendOptions.OnBeforeRequest(beforeRequest);
             return (TSelf)this;
         }
 
@@ -265,6 +287,9 @@ namespace CoreEx.Http
                 {
                     var sw = Stopwatch.StartNew();
                     CorrelationHeaderNames.ForEach(n => request.Headers.TryAddWithoutValidation(n, ExecutionContext.CorrelationId));
+
+                    if (options.BeforeRequest != null)
+                        await options.BeforeRequest(request, cancellationToken).ConfigureAwait(false);
 
                     await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
                     await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
@@ -309,8 +334,7 @@ namespace CoreEx.Http
                             {
                                 return await Client.SendAsync(req, SetCancellationBasedOnTimeout(cancellationToken, out cts)).ConfigureAwait(false);
                             }
-                            catch (OperationCanceledException)
-                                      when (!cancellationToken.IsCancellationRequested)
+                            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                             {
                                 throw new TimeoutException();
                             }
@@ -320,7 +344,7 @@ namespace CoreEx.Http
                 }
                 catch (Exception ex) when (ex is TimeoutException || ex is SocketException)
                 {
-                    // both TimeoutException and SocketException are transient and indicate a connection was terminated
+                    // Both TimeoutException and SocketException are transient and indicate a connection was terminated.
                     throw new TransientException("Timeout when calling service", ex);
                 }
                 catch (HttpRequestException hrex)
