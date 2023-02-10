@@ -24,7 +24,7 @@ namespace CoreEx.RefData
     /// Provides the centralized reference data orchestration. Primarily responsible for the management of one or more <see cref="IReferenceDataProvider"/> instances.  
     /// </summary>
     /// <remarks>Provides <i>cached</i> access to the underlying reference data collections via the likes of <see cref="GetByTypeAsync{TRef}"/>, <see cref="GetByTypeAsync(Type, CancellationToken)"/> or <see cref="GetByNameAsync(string, CancellationToken)"/>.
-    /// By default, will include <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/> as part of the cache keu
+    /// By default, will include <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/> as part of the cache key.
     /// <para>To improve performance the reference data is cached. The <see cref="ReferenceDataOrchestrator"/> enables this via an <see cref="IMemoryCache"/> implementation; default is <see cref="MemoryCache"/> where not explicitly specified.
     /// The underlying reference data loading is executed in the context of a <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services.</para></remarks>
     public class ReferenceDataOrchestrator
@@ -34,7 +34,7 @@ namespace CoreEx.RefData
         /// </summary>
         public const string TextWildcardErrorMessage = "Text contains invalid or unsupported wildcard selection.";
 
-        private static ReferenceDataOrchestrator? _current;
+        private static readonly AsyncLocal<ReferenceDataOrchestrator?> _asyncLocal = new();
 
         private readonly object _lock = new();
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
@@ -47,20 +47,43 @@ namespace CoreEx.RefData
         private readonly Lazy<SettingsBase?> _settings;
 
         /// <summary>
-        /// Gets or sets the current <see cref="ReferenceDataOrchestrator"/>.
+        /// Gets or sets the current <see cref="ReferenceDataOrchestrator"/> for the executing thread graph (see <see cref="AsyncLocal{T}"/>)
         /// </summary>
-        public static ReferenceDataOrchestrator Current => _current ?? throw new InvalidOperationException($"The {nameof(ReferenceDataOrchestrator)}.{nameof(Current)} must have been set prior using {nameof(SetCurrent)}. This should be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.");
+        public static ReferenceDataOrchestrator Current
+        {
+            get
+            {
+                if (_asyncLocal.Value is not null)
+                    return _asyncLocal.Value;
+
+                if (ExecutionContext.HasCurrent)
+                {
+                    try
+                    {
+                        var rdo = ExecutionContext.GetService<ReferenceDataOrchestrator>();
+                        if (rdo is not null)
+                            return rdo;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"Unable to get an instance of the {nameof(ReferenceDataOrchestrator)} from the {nameof(ExecutionContext)}. It is recommended that the {nameof(ReferenceDataOrchestrator)}.{nameof(ReferenceDataOrchestrator.SetCurrent)} is used to set globally; this can be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.", ex);
+                    }
+                }
+
+                throw new InvalidOperationException($"Unable to get an instance of the {nameof(ReferenceDataOrchestrator)} from the {nameof(ExecutionContext)}. It is recommended that the {nameof(ReferenceDataOrchestrator)}.{nameof(ReferenceDataOrchestrator.SetCurrent)} is used to set globally; this can be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.");
+            }
+        }
 
         /// <summary>
         /// Indicates whether the <see cref="ReferenceDataOrchestrator"/> <see cref="Current"/> has a value.
         /// </summary>
-        public static bool HasCurrent => _current != null;
+        public static bool HasCurrent => _asyncLocal != null;
 
         /// <summary>
-        /// Sets the <see cref="Current"/> instance.
+        /// Sets (or overriddes) the <see cref="Current"/> instance.
         /// </summary>
         /// <param name="orchestrator">The <see cref="ReferenceDataOrchestrator"/>.</param>
-        public static void SetCurrent(ReferenceDataOrchestrator orchestrator) => _current = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+        public static void SetCurrent(ReferenceDataOrchestrator? orchestrator = null) => _asyncLocal.Value = orchestrator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
@@ -241,11 +264,12 @@ namespace CoreEx.RefData
             {
                 Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
                 var ec = ExecutionContext.Current.CreateCopy();
+                var rdo = _asyncLocal.Value;
 
                 using var scope = ServiceProvider.CreateScope();
                 using (System.Threading.ExecutionContext.SuppressFlow())
                 {
-                    return Task.FromResult(Task.Run(() => GetByTypeInternalAsync(ec, scope, t, providerType, ct)).GetAwaiter().GetResult());
+                    return Task.FromResult(Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ct)).GetAwaiter().GetResult());
                 }
             }, cancellationToken).ConfigureAwait(false);
 
@@ -255,8 +279,10 @@ namespace CoreEx.RefData
         /// <summary>
         /// Performs the actual reference data load in a new thread context / scope.
         /// </summary>
-        private async Task<IReferenceDataCollection> GetByTypeInternalAsync(ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, CancellationToken cancellationToken)
+        private async Task<IReferenceDataCollection> GetByTypeInternalAsync(ReferenceDataOrchestrator? rdo, ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, CancellationToken cancellationToken)
         {
+            _asyncLocal.Value = rdo;
+
             executionContext.ServiceProvider = scope.ServiceProvider;
             ExecutionContext.SetCurrent(executionContext);
 
