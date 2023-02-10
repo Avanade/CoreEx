@@ -57,5 +57,5 @@ compress-Archive -Path "\artifacts\*" -DestinationPath "MyHrApp.zip" -Force
 
  - Publish Web API
 ~~~script
-az webapp deploy --name {App-Service-Name} --src-path "MyHrApp.zip"  --type=zip   
+az webapp deployment source config-zip --name {App-Service-Name} --src "MyHrApp.zip"
 ~~~
