@@ -1,6 +1,6 @@
 ﻿# CoreEx.Globalization
 
-The `CoreEx.Globalization` namespace provides additional globalization. capabilities.
+The `CoreEx.Globalization` namespace provides additional globalization capabilities.
 
 <br/>
 

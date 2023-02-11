@@ -1,10 +1,22 @@
 # Health checks
 
-CoreEx library supports building health check endpoints, that validate all function dependencies in a safe way, that is safe to execute on any environment.
+The `CoreEx.HealthChecks` namespace provides standardized health check capabilities.
+
+<br/>
+
+## Motivation
+
+To enable, and provide a standardized pattern, for the production of health checks for an underlying application.
+ 
+<br/>
+
+## Usage
+
+The _CoreEx_ framework supports building health check endpoints, that validate all function dependencies in a safe way, that is safe to execute within any environment.
 
 Feature utilizes built-in health check capabilities provided by Microsoft in `Microsoft.Extensions.Diagnostics.HealthChecks`.
 
-To add a health check add following implementation of HTTP triggered function:
+To add a health check, add following implementation of HTTP triggered function:
 
 ```csharp
 public class HttpHealthFunction
@@ -32,11 +44,19 @@ builder.Services
     .AddSqlServerHealthCheck($"SQL Health check for Azure SQL Server", "SqlConnection");
 ```
 
-In order for health checks to be reliable, it's recommended for checks and functions to use SAME configuration entries. This can be enforced by avoiding so-called magic strings in trigger definitions and using references to settings instead, e.g. `[ServiceBusTrigger("%" + nameof(SampleSettings.QueueName) + "%", Connection = "ServiceBusConnection")]` and `_executor.RunBatchPublishAsync<List<Product>, Product, ProductsValidator>(req, _settings.QueueName, _publisher, (m, _) => m.Subject = "TEST", maxBatchSize: 5);`
+In order for health checks to be reliable, it is recommended for checks and functions to use the _same_ configuration entries. This can be enforced by avoiding so-called magic strings in trigger definitions and using references to settings instead, e.g.
+
+``` csharp
+[ServiceBusTrigger("%" + nameof(SampleSettings.QueueName) + "%", Connection = "ServiceBusConnection")]` 
+
+...
+
+_executor.RunBatchPublishAsync<List<Product>, Product, ProductsValidator>(req, _settings.QueueName, _publisher, (m, _) => m.Subject = "TEST", maxBatchSize: 5);
+```
 
 It's important to note, that both common-provided registrations and native `IHealthCheck` implementations are equally supported.
 
-Once health checks are added, following information can be read from `/api/health` endpoint:
+Once health checks are added, the following information can be read from `/api/health` endpoint:
 
 ```json
 {
@@ -96,13 +116,17 @@ Once health checks are added, following information can be read from `/api/healt
 }
 ```
 
+<br/>
+
 ## Open Source Health Check implementations
 
-There are open sourced implementations for popular health checks - [AspNetCore.Diagnostics.HealthChecks](https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks) which can be utilized in CoreEx projects.
+There are open-source implementations for popular health checks; for example, [AspNetCore.Diagnostics.HealthChecks](https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks) which can be utilized in CoreEx projects.
 
-## Health Checks for http clients
+<br/>
 
-By default HttpClient will use **HEAD** request for health checks. It's important that HTTP call doesn't affect state, hence `Task<HttpResult> HealthCheckAsync()` can be overridden and customized for specific scenarios (different HTTP methods, parameters).
+## HttpClient considerations
+
+By default `HttpClient` will use **`HEAD`** request for health checks. It is important that the HTTP call does not affect state; hence, `Task<HttpResult> HealthCheckAsync()` can be overridden and customized for specific scenarios (different HTTP methods, parameters, etc.).
 
 ```csharp
 public override Task<HttpResult> HealthCheckAsync()
