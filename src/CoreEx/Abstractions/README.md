@@ -12,7 +12,7 @@ To enable other capabilities generally leveraged internally within _CoreEx_.
 
 ## Reflection
 
-There is a further `Reflection` namespace that is used internally whenever [reflection](https://learn.microsoft.com/en-us/dotnet/framework/reflection-and-codedom/reflection) is used, that provides extended capabilities, and caching thereof to improve performance overall perform. The key classes are as follows: [`TypeReflector`](./Reflection/TypeReflector.cs) [`PropertyReflector`](./Reflection/PropertyReflector.cs), [`PropertyExpression`](./Reflection/PropertyExpression.cs). 
+The `Reflection` namespace is used internally whenever [reflection](https://learn.microsoft.com/en-us/dotnet/framework/reflection-and-codedom/reflection) is needed; this provides extended reusable capabilities, and caching thereof to improve overall performance. The key classes are as follows: [`TypeReflector`](./Reflection/TypeReflector.cs) [`PropertyReflector`](./Reflection/PropertyReflector.cs), and [`PropertyExpression`](./Reflection/PropertyExpression.cs). 
 
 <br/>
 
@@ -26,4 +26,4 @@ _Note:_ This convention is used in other namespaces as required to house additio
 
 ## ETag generation
 
-The [`ETagGenerator`](./ETagGenerator.cs) is used, primary within the [`WebApis`](../WebApis/README.md) capabilities, to generate an [ETag](https://en.wikipedia.org/wiki/HTTP_ETag) value where not provided by the underlying data source. Essentially this is implemented by serializing the payload and hashing with [SHA256]() to get a mostly unique value to be used for caching and/or concurrency.
+The [`ETagGenerator`](./ETagGenerator.cs) is used, primary within the [`WebApis`](../WebApis/README.md) capabilities, to generate an [ETag](https://en.wikipedia.org/wiki/HTTP_ETag) value where not provided by the underlying data source. Essentially this is implemented by serializing the payload and hashing with [SHA256](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha256) to get a mostly unique value to be used for caching and/or concurrency.
