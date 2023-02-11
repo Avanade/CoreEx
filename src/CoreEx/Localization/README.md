@@ -1,18 +1,18 @@
 ﻿# CoreEx.Localization
 
-The `CoreEx.Localization` namespace provides additional globalization. capabilities.
+The `CoreEx.Localization` namespace provides additional localization capabilities.
 
 <br/>
 
 ## Motivation
 
-To enable extended additional localization capabilities.
+To enable extended (additional) localization capabilities.
 
 <br/>
 
 ## Text localization
 
-To simplify the localization of strings a localized text class, [`LText`](./LText.cs), has been introduced.
+To simplify the localization of strings a localized text struct, [`LText`](./LText.cs), has been introduced.
 
 The `LText` supports a constructor that takes a `keyAndOrText` being the key and/or text used to lookup the localized value, and an optional `fallbackText` to be used where the lookup fails. Where no text is found, then the originating `keyAndOrText` will be used.
 
