@@ -33,7 +33,7 @@ Type | Description
 -|-
 [`IIdentifierGenerator<TId>`](./IIdentifierGeneratorT.cs) | Provides the logic to generate a new identifier for a specified `Id` type.
 [`IIdentifierGenerator`](./IIdentifierGenerator.cs) | Provides the logic to generate an identifier for an entity value.
-[`IdentifierGenerator`](./IdentifierGenerator.cs) | Provides the default logic to generate a `string` or `Guid` idenfifier (from a new `Guid`).
+[`IdentifierGenerator`](./IdentifierGenerator.cs) | Provides the default logic to generate a `string` or `Guid` identifier (from a new `Guid`).
 
 Where an alternate identifier generation is required, for example [nanoid](https://github.com/codeyu/nanoid-net), then a new [`IIdentifierGenerator`](./IIdentifierGenerator.cs) implementation will be required.
 
@@ -54,7 +54,7 @@ An entity and its properties, generatlly where represented as a POCO, may contai
 The [`Cleaner`](./Cleaner.cs) class enables the cleansing logic. Provides `Clean` methods to cleanse the following .NET types as follows:
 
 Type | Description
-- | -
+-|-
 `string` | Cleans using following: <br/>&#8226; [`StringTrim`](./StringTrim.cs): `None`, `Both`, `Start` or `End` (default). <br/>&#8226;  [`StringTransform`](./StringTransform.cs): `None`, `NullToEmpty` or `EmptyToNull` (default). <br/>&#8226;  [`StringCase`](./StringCase.cs): `None` (default), `Lower`, `Upper` or `Title`.
 `DateTime` | Cleans using [`DateTimeTransform`](./DateTimeTransform.cs): `None`, `DateOnly`, `DateTimeLocal`, `DateTimeUtc (default)`, or `DateTimeUnspecified`.
 [`IInitial`](./IInitial.cs) | Provides a means to determine if the value is in its initial/default (`IsInitial`) state and therefore the reference to this should be set to `null`. This is essentially the equivalent of the `StringTransform.EmptyToNull`, but for an object.
