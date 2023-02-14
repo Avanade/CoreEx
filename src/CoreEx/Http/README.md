@@ -1,4 +1,4 @@
-﻿# CoreEx.Globalization
+﻿# CoreEx.Http
 
 The `CoreEx.Http` namespace provides additional HTTP capabilities.
 
@@ -61,6 +61,31 @@ The [`HttpRequestOptions`](./HttpRequestOptions.cs) enable additional standardiz
 ### Result
 
 The [`HttpResult`](./HttpResult.cs) and [`HttpResult<T>`](./HttpResultT.cs) provide a standardized result that encapsulates the underlying [`HttpResponseMessage`](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage); including the underlying JSON deserialization of underlying value.
+
+<br/>
+
+### Example
+
+The following demonstrates usage.
+
+``` csharp
+public class XxxAgent : TypedHttpClientCore<XxxAgent>
+{
+    public XxxwAgent(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, SettingsBase settings, ILogger<XxxAgent> logger)
+        : base(client, jsonSerializer, executionContext, settings, logger)
+    {
+        DefaultOptions.WithRetry();
+    }
+}
+
+...
+
+var hr = await _xxxAgent.EnsureOK().Ensure(HttpStatusCode.NotFound).PostAsync<dynamic, int>("foo/bar", new { trackerId = id }).ConfigureAwait(false);
+if (hr.StatusCode == HttpStatusCode.NotFound)
+    return -1;
+
+return hr.Value;
+```
 
 <br/>
 
