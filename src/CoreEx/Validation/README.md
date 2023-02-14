@@ -1,4 +1,4 @@
-﻿# CoreEx.Validation
+# CoreEx.Validation
 
 The `CoreEx.Validation` namespace provides extended validation capabilities.
 
@@ -6,7 +6,7 @@ The `CoreEx.Validation` namespace provides extended validation capabilities.
 
 ## Motivation
 
-To support a generic, implementation agnostic, means to support validation that can be leveraged (integrated) in a consistent manner within _CoreEx_. Whereby enabling a developer to leverage their respective framework of choice; for example [AutoMapper](#AutoMapper).
+To support a generic, implementation agnostic, means to support validation that can be leveraged (integrated) in a consistent manner within _CoreEx_. Whereby enabling a developer to leverage their respective framework of choice; for example [FluentValidation](#FluentValidation-implementation).
 
 <br/>
 
