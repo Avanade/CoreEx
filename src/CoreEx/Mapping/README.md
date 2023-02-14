@@ -43,4 +43,4 @@ The [`IConverter`](./Converters/IConverter.cs) interface provides a standardized
 
 ## AutoMapper implementation
 
-[AutoMapper](https://github.com/AutoMapper/AutoMapper) is a popular .NET mapper; as such [CoreEx.AutoMapper](../../CoreEx.AutoMapper) is provided to implemenent, the underlying [AutoMapperWrapper](../../CoreEx.AutoMapper/AutoMapperWrapper.cs) enables.
+[AutoMapper](https://github.com/AutoMapper/AutoMapper) is a popular .NET mapper; as such [CoreEx.AutoMapper](../../CoreEx.AutoMapper) is provided to implemenent, the underlying [`AutoMapperWrapper`](../../CoreEx.AutoMapper/AutoMapperWrapper.cs) enables.
