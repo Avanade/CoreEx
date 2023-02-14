@@ -20,7 +20,7 @@ The [`IMapper`](./IMapper.cs) interface provides the standard implementation agn
 
 The [`Mapper`](./Mapper.cs) class provides a simple (explicit) mapping implementation of the `IMapper`. It for the most part does _not_ employ reflection and/or run-time compilation; therefore, it is very simple and fast.
 
-The source and destintaion types and corresponding property mappings are configured using the [`Mapper<TSource, TDestination>`](./MapperT.cs) class which are registered with the owning `Mapper` using the `Register` method. Collection mappings are automatically enabled.
+The source and destination types and corresponding property mappings are configured using the [`Mapper<TSource, TDestination>`](./MapperT.cs) class which are registered with the owning `Mapper` using the `Register` method. Collection mappings are automatically enabled.
 
 Mappings are configured using the following methods.
 
@@ -44,5 +44,3 @@ The [`IConverter`](./Converters/IConverter.cs) interface provides a standardized
 ## AutoMapper implementation
 
 [AutoMapper](https://github.com/AutoMapper/AutoMapper) is a popular .NET mapper; as such [CoreEx.AutoMapper](../../CoreEx.AutoMapper) is provided to implemenent, the underlying [AutoMapperWrapper](../../CoreEx.AutoMapper/AutoMapperWrapper.cs) enables.
-
-
