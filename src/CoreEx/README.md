@@ -26,12 +26,12 @@ Namespace | Description
 [`Hosting`](./Hosting) | Provides extended [hosted service (worker)](https://learn.microsoft.com/en-us/dotnet/core/extensions/workers) capabilities. 
 [`Http`](./Http) | Provides extended [`HttpClient`](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpclient) capabilities.
 [`Invokers`](./Invokers) | Provides extended invocation capabilities.
-[`Json`](./Json) | Provides extended [JSON](https://en.wikipedia.org/wiki/JSON)-related capabilities.
+[`Json`](./Json) | Provides implementation agnostic [JSON](https://en.wikipedia.org/wiki/JSON)-related capabilities.
 [`Localization`](./Locacalization) | Provided extended localization capabilities.
-[`Mapping`](./Mapping) | Provides extended mapping capabilities.
+[`Mapping`](./Mapping) | Provides implementation agnostic mapping capabilities.
 [`RefData`](./RefData) | Provides standardized and enriched capabilities for reference data.
 [`Text.Json`](./Text/Json) | Provides [`System.Text.Json`](https://docs.microsoft.com/en-us/dotnet/api/system.text.json) implementation of the [`IJsonSerializer`](./Json/IJsonSerializer.cs).
-[`Validation`](./Validation) | Provides for implementation agnostic [`IValidator<T>`](./Validation/IValidatorT.cs).
+[`Validation`](./Validation) | Provides implementation agnostic validation capabilities.
 [`WebApis`](./WebApis) | Provides extended capabilities to build Web APIs.
 [`Wildcards`](./Wildcards) | Provides standardized approach to parsing and validating [`Wildcard`](./Wildcards/Wildcard.cs) text. 
 
