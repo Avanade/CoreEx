@@ -373,7 +373,7 @@ namespace My.Hr.UnitTest
             Assert.AreEqual(1, imp.GetNames().Length);
             var e = imp.GetEvents("pendingVerifications");
             Assert.AreEqual(1, e.Length);
-            ObjectComparer.Assert(new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" }, e[0].Value);
+            ObjectComparer.Assert(new EmployeeVerificationRequest { Name = "Wendy", Age = 38, Gender = "F" }, e[0].Value);
         }
 
         [Test]
@@ -382,7 +382,7 @@ namespace My.Hr.UnitTest
             using var test = ApiTester.Create<Startup>().ConfigureServices(sc => sc.ReplaceScoped<IEmployeeService, EmployeeService2>());
             test.UseExpectedEvents()
                 .Controller<EmployeeController>()
-                .ExpectDestinationEvent("pendingVerifications", new EventData<EmployeeVerificationRequest> { Value = new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" } })
+                .ExpectDestinationEvent("pendingVerifications", new EventData<EmployeeVerificationRequest> { Value = new EmployeeVerificationRequest { Name = "Wendy", Age = 38, Gender = "F" } })
                 .ExpectStatusCode(System.Net.HttpStatusCode.Accepted)
                 .Run(c => c.VerifyAsync(1.ToGuid()));
         }
