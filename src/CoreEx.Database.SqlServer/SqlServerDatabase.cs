@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Database.Extended;
+using CoreEx.Mapping.Converters;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System;
@@ -16,6 +16,8 @@ namespace CoreEx.Database.SqlServer
     /// </summary>
     public class SqlServerDatabase : Database<SqlConnection>
     {
+        private static readonly SqlServerDatabaseColumns _defaultColumns = new();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlServerDatabase"/> class.
         /// </summary>
@@ -24,6 +26,15 @@ namespace CoreEx.Database.SqlServer
         /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
         public SqlServerDatabase(Func<SqlConnection> create, ILogger<SqlServerDatabase>? logger = null, DatabaseInvoker? invoker = null)
             : base(create, SqlClientFactory.Instance, logger, invoker) { }
+
+        /// <summary>
+        /// Gets or sets the names of the pre-configured <see cref="SqlServerDatabaseColumns"/>.
+        /// </summary>
+        /// <remarks>Do not update the default properties directly as a shared static instance is used (unless this is the desired behaviour); create a new <see cref="Extended.DatabaseColumns"/> instance for overridding.</remarks>
+        public new SqlServerDatabaseColumns DatabaseColumns { get; set; } = _defaultColumns;
+
+        /// <inheritdoc/>
+        public override IConverter RowVersionConverter => StringToBase64Converter.Default;
 
         /// <summary>
         /// Gets or sets the stored procedure name used by <see cref="SetSqlSessionContextAsync(string, DateTime?, string?, string?, CancellationToken)"/>.
@@ -50,8 +61,8 @@ namespace CoreEx.Database.SqlServer
         public List<int> SqlDuplicateErrorNumbers { get; set; } = new List<int>(new int[] { 2601, 2627 });
 
         /// <summary>
-        /// Sets the SQL session context using the specified values by invoking the <see cref="SessionContextStoredProcedure"/> using parameters named <see cref="DatabaseColumns.SessionContextUsernameName"/>, 
-        /// <see cref="DatabaseColumns.SessionContextTimestampName"/>, <see cref="DatabaseColumns.SessionContextTenantIdName"/> and <see cref="DatabaseColumns.SessionContextUserIdName"/>.
+        /// Sets the SQL session context using the specified values by invoking the <see cref="SessionContextStoredProcedure"/> using parameters named <see cref="SqlServerDatabaseColumns.SessionContextUsernameName"/>, 
+        /// <see cref="SqlServerDatabaseColumns.SessionContextTimestampName"/>, <see cref="SqlServerDatabaseColumns.SessionContextTenantIdName"/> and <see cref="SqlServerDatabaseColumns.SessionContextUserIdName"/>.
         /// </summary>
         /// <param name="username">The username.</param>
         /// <param name="timestamp">The timestamp <see cref="DateTime"/> (where <c>null</c> the value will default to <see cref="DateTime.UtcNow"/>).</param>

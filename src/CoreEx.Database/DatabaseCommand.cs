@@ -354,10 +354,7 @@ namespace CoreEx.Database
                             return;
                     }
 
-                    var val = mapper.MapFromDb(new DatabaseRecord(Database, dr));
-                    if (val == null)
-                        throw new InvalidOperationException("A null must not be returned from the mapper.");
-
+                    var val = mapper.MapFromDb(new DatabaseRecord(Database, dr)) ?? throw new InvalidOperationException("A null must not be returned from the mapper.");
                     coll.Add(val);
                     if (!throwWhereMulti && stopAfterOneRow)
                         return;

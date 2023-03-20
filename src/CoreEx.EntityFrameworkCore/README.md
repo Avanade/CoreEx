@@ -43,8 +43,8 @@ Method | Description
 `SelectSingleAsync` | Selects a single item.
 `SelectSingleOrDefaultAsync` | Selects a single item or default.
 `SelectFirstAsync` | Selects first item.
-`SelectSingleOrDefaultAsync` | Selects first item or default.
-`SelectQuery` | Select items into or creating a resultant collection.
+`SelectFirstOrDefaultAsync` | Selects first item or default.
+`SelectQueryAsync` | Select items into or creating a resultant collection.
 `SelectResultAsync` | Select items creating a [`ICollectionResult`](../CoreEx/Entities/ICollectionResultT2.cs) which also contains corresponding [`PagingResult`](../CoreEx/Entities/PagingResult.cs).
 
 <br/>

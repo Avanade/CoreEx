@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v2.5.3
+- *Fixed:* Database `RowVersion` conversion fixed to correctly enable per database provider.
+
 ## v2.5.2
 - *Fixed:* `ReferenceDataOrchestrator` further updated to attempt to use `ExecutionContext` where possible when `Current` has not  previously been set; this is similar to previous behaviour (< `2.5.1`).
 - *Fixed:* `ReferenceDataOrchestrator` updated to leverage `AsyncLocal` for `Current` to remove `static` value leakage; lifetime within the context of the request.

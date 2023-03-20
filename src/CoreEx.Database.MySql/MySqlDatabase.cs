@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Mapping.Converters;
 using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
 using System;
@@ -21,6 +22,9 @@ namespace CoreEx.Database.MySql
         /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
         public MySqlDatabase(Func<MySqlConnection> create, ILogger<MySqlDatabase>? logger = null, DatabaseInvoker? invoker = null)
             : base(create, MySqlClientFactory.Instance, logger, invoker) { }
+
+        /// <inheritdoc/>
+        public override IConverter RowVersionConverter => EncodedStringToDateTimeConverter.Default;
 
         /// <summary>
         /// Indicates whether to transform the <see cref="MySqlException"/> into an <see cref="Abstractions.IExtendedException"/> equivalent based on the <see cref="MySqlException.Number"/>.

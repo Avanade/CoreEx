@@ -72,11 +72,11 @@ namespace CoreEx.Database
         /// </summary>
         /// <param name="columnName">The name of the column.</param>
         /// <returns>The resultant value.</returns>
-        /// <remarks>The <b>RowVersion</b> <see cref="byte"/> array will be converted to an <see cref="Convert.ToBase64String(byte[])">encoded</see> <see cref="string"/> value.</remarks>
+        /// <remarks>The <b>RowVersion</b> column will be converted to a <see cref="string"/> using the <see cref="IDatabase.RowVersionConverter"/>.</remarks>
         public string GetRowVersion(string columnName)
         {
             var i = DataReader.GetOrdinal(columnName ?? throw new ArgumentNullException(nameof(columnName)));
-            return Convert.ToBase64String(DataReader.GetFieldValue<byte[]>(i));
+            return (string)(Database.RowVersionConverter.ConvertToSource(DataReader.GetFieldValue<byte[]>(i)) ?? string.Empty);
         }
     }
 }

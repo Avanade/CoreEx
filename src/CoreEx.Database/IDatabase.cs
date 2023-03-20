@@ -2,6 +2,7 @@
 
 using CoreEx.Database.Extended;
 using CoreEx.Entities;
+using CoreEx.Mapping.Converters;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Data.Common;
@@ -60,6 +61,11 @@ namespace CoreEx.Database
         /// <see cref="Mapping.ChangeLogExDatabaseMapper.MapToDb(Entities.Extended.ChangeLogEx?, DatabaseParameterCollection, CoreEx.Mapping.OperationTypes)"/> pass values via parameters.
         /// </summary>
         bool EnableChangeLogMapperToDb { get; }
+
+        /// <summary>
+        /// Gets the <see cref="DatabaseColumns.RowVersionName"/> converter.
+        /// </summary>
+        IConverter RowVersionConverter { get; }
 
         /// <summary>
         /// Gets the <see cref="DbConnection"/>.
