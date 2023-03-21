@@ -373,7 +373,7 @@ namespace CoreEx.Database
         /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
         public static TSelf RowVersionParam<TSelf>(this IDatabaseParameters<TSelf> parameters, string name, string? value, ParameterDirection direction = ParameterDirection.Input)
-            => Param(parameters, name ?? parameters.Database.DatabaseColumns.RowVersionName, new StringToBase64Converter().ToDestination.Convert(value), direction);
+            => Param(parameters, name ?? parameters.Database.DatabaseColumns.RowVersionName, parameters.Database.RowVersionConverter.ConvertToDestination(value), direction);
 
         /// <summary>
         /// Adds a named parameter with a <b>RowVersion</b> value.

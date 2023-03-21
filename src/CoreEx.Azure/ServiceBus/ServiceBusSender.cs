@@ -206,7 +206,7 @@ namespace CoreEx.Azure.ServiceBus
                         }
 
                         // Begin next batch after confirming sent events; continue ^ where any left.
-                        unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id));
+                        unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id ?? string.Empty));
                     }
                 }
             }, cancellationToken);

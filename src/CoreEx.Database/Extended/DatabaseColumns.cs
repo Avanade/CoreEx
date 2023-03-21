@@ -2,8 +2,6 @@
 
 using CoreEx.Entities;
 using CoreEx.RefData;
-using System.Collections.Generic;
-using System.Data;
 
 namespace CoreEx.Database.Extended
 {
@@ -69,26 +67,6 @@ namespace CoreEx.Database.Extended
         public string ReturnValueName { get; set; } = "ReturnValue";
 
         /// <summary>
-        /// Gets or sets the session context '<c>Username</c>' column name.
-        /// </summary>
-        public string SessionContextUsernameName { get; set; } = "Username";
-
-        /// <summary>
-        /// Gets or sets the session context '<c>Timestamp</c>' column name.
-        /// </summary>
-        public string SessionContextTimestampName { get; set; } = "Timestamp";
-
-        /// <summary>
-        /// Gets or sets the <see cref="ITenantId.TenantId"/> column name.
-        /// </summary>
-        public string SessionContextTenantIdName { get; set; } = "TenantId";
-
-        /// <summary>
-        /// Gets or sets the session context '<c>UserId</c>' column name.
-        /// </summary>
-        public string SessionContextUserIdName { get; set; } = "UserId";
-
-        /// <summary>
         /// Gets or sets the <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> database column name (defaults to <see cref="IIdentifier.Id"/>).
         /// </summary>
         public string RefDataIdName { get; set; } = nameof(IReferenceData.Id);
@@ -127,35 +105,5 @@ namespace CoreEx.Database.Extended
         /// Gets or sets the <see cref="IReferenceData.EndDate"/> database column name (defaults to <see cref="IReferenceData.EndDate"/>).
         /// </summary>
         public string RefDataEndDateName { get; set; } = nameof(IReferenceData.EndDate);
-
-        /// <summary>
-        /// Gets or sets the table-value parameter type name for an <see cref="IEnumerable{String}"/>.
-        /// </summary>
-        public string TvpStringListTypeName { get; set; } = "[dbo].[udtNVarCharList]";
-
-        /// <summary>
-        /// Gets or sets the table-value parameter type name for an <see cref="IEnumerable{Int32}"/>.
-        /// </summary>
-        public string TvpInt32ListTypeName { get; set; } = "[dbo].[udtIntList]";
-
-        /// <summary>
-        /// Gets or sets the table-value parameter type name for an <see cref="IEnumerable{Int64}"/>.
-        /// </summary>
-        public string TvpInt64ListTypeName { get; set; } = "[dbo].[udtBigIntList]";
-
-        /// <summary>
-        /// Gets or sets the table-value parameter type name for an <see cref="IEnumerable{Guid}"/>.
-        /// </summary>
-        public string TvpGuidListTypeName { get; set; } = "[dbo].[udtUniqueIdentifierList]";
-
-        /// <summary>
-        /// Gets or sets the table-value parameter type name for an <see cref="IEnumerable{DateTime}"/>.
-        /// </summary>
-        public string TvpDateTimeListTypeName { get; set; } = "[dbo].[udtDateTime2]";
-
-        /// <summary>
-        /// Gets or sets the table-value parameter <see cref="DataTable"/> column name for list values.
-        /// </summary>
-        public string TvpListValueColumnName { get; set; } = "Value";
     }
 }

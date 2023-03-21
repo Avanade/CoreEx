@@ -2,6 +2,7 @@
 
 using CoreEx.Database.Extended;
 using CoreEx.Entities;
+using CoreEx.Mapping.Converters;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Data;
@@ -69,6 +70,9 @@ namespace CoreEx.Database
 
         /// <inheritdoc/>
         public bool EnableChangeLogMapperToDb { get; }
+
+        /// <inheritdoc/>
+        public virtual IConverter RowVersionConverter => throw new NotImplementedException();
 
         /// <inheritdoc/>
         public DbConnection GetConnection() => _dbConn is not null ? _dbConn : Invokers.Invoker.RunSync(() => GetConnectionAsync());
