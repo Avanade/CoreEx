@@ -85,7 +85,8 @@ namespace CoreEx.EntityFrameworkCore
         private async Task<T?> ExecuteQueryAndMapAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken)
         {
             var model = await ExecuteQueryAsync(executeAsync, cancellationToken).ConfigureAwait(false);
-            return model == null ? default! : Mapper.Map<T>(model, Mapping.OperationTypes.Get);
+            var val = model == null ? default! : Mapper.Map<T>(model, Mapping.OperationTypes.Get);
+            return Args.CleanUpResult ? Cleaner.Clean(val) : val;
         }
 
         /// <summary>
@@ -170,6 +171,7 @@ namespace CoreEx.EntityFrameworkCore
 
             var paging = Paging;
             var mapper = Mapper;
+            var args = Args;
 
             var coll = await ExecuteQueryAsync(async (query, ct) =>
             {
@@ -177,7 +179,8 @@ namespace CoreEx.EntityFrameworkCore
 
                 await foreach (var item in q.AsAsyncEnumerable().WithCancellation(ct))
                 {
-                    collection.Add(mapper.Map<TModel, T>(item, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value."));
+                    var val = mapper.Map<TModel, T>(item, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value.");
+                    collection.Add(args.CleanUpResult ? Cleaner.Clean(val) : val);
                 }
 
                 if (paging != null && paging.IsGetCount)

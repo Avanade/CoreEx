@@ -2,6 +2,12 @@
 
 Represents the **NuGet** versions.
 
+## v2.6.0
+- *Enhancement:* `ReferenceDataOrchestrator` supports `IConfigureCacheEntry` to enable flexibility of configuration; no changes to current behaviour.
+- *Fixed:* `ReferenceDataBase` was not correctly managing the `Id` and `IdType` throughout the inheritence hierarchy.
+- *Enhancement:* Database, Entity Framework, and Cosmos capabilities can be configured within their respective `*Args` to perform a `Cleaner.Clean` automatically on the response. Defaults to `false` to maintain current functionality.
+- *Fixed:* `Mapper<T>` was not correctly initializing nullable destination properties during a `Flatten`; for example, a destination `DateTime?` was being set with a `DateTime.MinValue` where source property was not nullable. A new `InitializeDestination` can be optionally specified (or overridden) to perform; otherwise, current initialization behavior will continue.
+
 ## v2.5.3
 - *Fixed:* Database `RowVersion` conversion fixed to correctly enable per database provider.
 

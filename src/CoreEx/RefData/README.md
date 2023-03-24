@@ -38,10 +38,11 @@ Property | Description
 `SortOrder` | Defines the sort order (integer) within the underlying reference data collection.
 `IsActive` | Indicates whether the value is active or not. It is up to the application what to do when a value is not considered active.
 
-Additional _secondary_ properties are as follows.
+Additional _secondary_ (largely optional) properties are as follows.
 
 Property | Description
 -|-
+`Description` | A further more detailed textual `string` used for display within an application; e.g. help-style text.
 `StartDate` | The `IsValid` validity start date (`null` indicates not defined) where [`IReferenceDataContext`](./IReferenceDataContext.cs)
 `EndDate` | The `IsValid` validity end date (`null` indicates not defined).
 `ETag` | The entity tag ([`IETag`](../Entities/IETag.cs)) for optimistic concurrency and [`IF-MATCH`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Match) checking.
@@ -66,7 +67,7 @@ Each `IReferenceDataProvider` (typically only one) instance is registered via th
 
 ### Cache policy configuration
 
-The default implementation for the `IMemoryCache` is that each _reference data_ type's collection [`ICacheEntry`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.memory.icacheentry) is set in a standardized manner; being `AbsoluteExpirationRelativeToNow` and `SlidingExpiration` properties defaulted to `02:00:00` (2 hours) and `00:30:00` (30 minutes) respectively.
+The default implementation for the `IMemoryCache` is that each _reference data_ type's collection [`ICacheEntry`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.memory.icacheentry) is set in a standardized manner; being `AbsoluteExpirationRelativeToNow` and `SlidingExpiration` properties defaulted to `02:00:00` (2 hours) and `00:30:00` (30 minutes) respectively. 
 
 These defaults can be overridden within the configuration [settings](../Configuration/SettingsBase.cs); as can specific _reference data_ types. The following is an example of setting the defaults and then specifically overridding the `Gender` policy (the `Type.Name` is used as the property name).
 
@@ -83,7 +84,13 @@ These defaults can be overridden within the configuration [settings](../Configur
 }
 ```
 
-Where the above is not sufficient then the virtual `OnCreateCacheEntry` method can be overridden to fully customize (override) the default behaviour.
+This is enabled by the default [`SettingsBasedCacheEntry`](./Caching/SettingsBasedCacheEntry.cs) class. Where the above is not sufficient then a custom [`ICacheEntryConfig`](./Caching/ICacheEntryConfig.cs) can be leveraged, or the virtual `ReferencedDataOrchestrator.OnCreateCacheEntry` method can be overridden to fully customize (override) the behaviour.
+
+<br/>
+
+### Distributed cache
+
+There may be times that a [distributed cache](https://learn.microsoft.com/en-us/dotnet/core/extensions/caching#distributed-caching) may be required to support higher scale-out and/or consistent multiple app server refreshing. In this scenario it is still recommended that an `IMemoryCache` is used, albeit with a nominal (small) expiration to ensure optimal performance given potential frequency of access, then implement the likes of an [`IDistribuedCache`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.idistributedcache) within the corresponding [`IReferenceDataProvider`](./IReferenceDataProvider.cs) implementation.
 
 <br/>
 
@@ -104,7 +111,7 @@ public class Person
 The resulting serialized JSON should be as follows. By default the [`JsonSerializer`](../Text/Json/JsonSerializer.cs) will automatically detect a property of `IReferenceData` and serialize the `Code` only, whereby ensuring the minimized serialization. Where full serialization is required use the alternate [`ReferenceDataContentJsonSerializer`](../Text/Json/ReferenceDataContentJsonSerializer.cs).
 
 ``` json
-{ "name": "sarah", "gender": "F" }
+{ "name": "Sarah", "gender": "F" }
 ```
 
 <br/>
@@ -141,7 +148,7 @@ Additionally, a root `/ref`-style endpoint can be used to return multiple refere
 
 The parameter is either just the named reference data entity which will result in all corresponding entries being returned (e.g: `?gender` or `?gender&country`). Otherwise, specific codes can be specified (e.g" `?gender=m,f`, `?gender=m&gender=f`, `?gender=m,f&country=au,nz`). The options can be mixed and matched (e.g: `?gender&country=au,nz`).
 
-To expose, [code similar to](../../../samples/My.Hr/My.Hr.Api/Controllers/ReferenceDataController.cs) the following should be adopted. The [orchestrator](#Orchestration-and-caching) encapsulates all the requisite functionality to function.
+To expose, [code similar to](../../../samples/My.Hr/My.Hr.Api/Controllers/ReferenceDataController.cs) the following should be adopted. The [orchestrator](#Orchestration-and-caching) encapsulates all the requisite functionality to perform in a consistent manner.
 
 ``` csharp
 [HttpGet()]

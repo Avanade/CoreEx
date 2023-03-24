@@ -18,17 +18,16 @@ namespace CoreEx.RefData
         /// <remarks>The <see cref="Id"/> can only be of type <see cref="int"/>, <see cref="long"/>, <see cref="string"/> and <see cref="Guid"/>.</remarks>
         public ReferenceDataBase()
         {
+            SetIdType(typeof(TId));
+            base.Id = default(TId);
             if (Id != null && Id is not int && Id is not long && Id is not string && Id is not Guid)
                 throw new InvalidOperationException($"A Reference Data {nameof(Id)} can only be of type {nameof(Int32)}, {nameof(Int64)}, {nameof(String)} or {nameof(Guid)}.");
         }
 
         /// <inheritdoc/>
-        Type IIdentifier.IdType { get => typeof(TId); }
+        object? IIdentifier.Id { get => base.Id; set => base.Id = (TId)value!; }
 
         /// <inheritdoc/>
-        object? IIdentifier.Id { get => Id; set => Id = (TId)value!; }
-
-        /// <inheritdoc/>
-        public new TId? Id { get; set; } = default!;
+        public new TId? Id { get => (TId?)base.Id; set => base.Id = value; }
     }
 }

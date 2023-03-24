@@ -27,7 +27,7 @@ Namespace | Description
 [`Http`](./Http) | Provides extended [`HttpClient`](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpclient) capabilities.
 [`Invokers`](./Invokers) | Provides extended invocation capabilities.
 [`Json`](./Json) | Provides implementation agnostic [JSON](https://en.wikipedia.org/wiki/JSON)-related capabilities.
-[`Localization`](./Locacalization) | Provided extended localization capabilities.
+[`Localization`](./Localization) | Provided extended localization capabilities.
 [`Mapping`](./Mapping) | Provides implementation agnostic mapping capabilities.
 [`RefData`](./RefData) | Provides standardized and enriched capabilities for reference data.
 [`Text.Json`](./Text/Json) | Provides [`System.Text.Json`](https://docs.microsoft.com/en-us/dotnet/api/system.text.json) implementation of the [`IJsonSerializer`](./Json/IJsonSerializer.cs).

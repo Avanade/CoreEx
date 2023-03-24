@@ -17,7 +17,7 @@ To be JSON serializer agnostic, _CoreEX_ introduces [`IJsonSerializer`](./IJsonS
 The following implementations are provided.
 
  - [`CoreEx.Text.Json.JsonSerializer`](../Text/Json/JsonSerializer.cs) - leverages [`System.Text.Json`](https://docs.microsoft.com/en-us/dotnet/api/system.text.json) (see [`CoreEx.Text.Json`](../Text/Json)).
- - [`CoreEx.Newtonsoft.Json.JsonSerializer`](../../CoreEx.Newtonsoft/Json/JsonSerializer.cs) - leverages [`Newtonsoft.Json`](https://www.newtonsoft.com/json) (see [`CoreEx.Text.Json`](../../CoreEx.Newtonsoft/Json)).
+ - [`CoreEx.Newtonsoft.Json.JsonSerializer`](../../CoreEx.Newtonsoft/Json/JsonSerializer.cs) - leverages [`Newtonsoft.Json`](https://www.newtonsoft.com/json) (see [`CoreEx.Newtonsoft.Json`](../../CoreEx.Newtonsoft/Json)).
 
 <br/>
 

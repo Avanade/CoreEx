@@ -39,6 +39,7 @@ Method | Description
 `EnsureAccepted` | Adds the [`HttpStatusCode.Accepted`](https://learn.microsoft.com/en-us/dotnet/api/system.net.httpstatuscode#system-net-httpstatuscode-accepted) to the accepted list to be verified against the resulting [`StatusCode`](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage.statuscode).
 `EnsureCreated` | Adds the [`HttpStatusCode.Created`](https://learn.microsoft.com/en-us/dotnet/api/system.net.httpstatuscode#system-net-httpstatuscode-created) to the accepted list to be verified against the resulting [`StatusCode`](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage.statuscode).
 `EnsureNoContent` | Adds the [`HttpStatusCode.NoContent`](https://learn.microsoft.com/en-us/dotnet/api/system.net.httpstatuscode#system-net-httpstatuscode-nocontent) to the accepted list to be verified against the resulting [`StatusCode`](https://learn.microsoft.com/noconetnten-us/dotnet/api/system.net.http.httpresponsemessage.statuscode).
+`EnsureNotFound` | Adds the [`HttpStatusCode.NotFound`](https://learn.microsoft.com/en-us/dotnet/api/system.net.httpstatuscode#system-net-httpstatuscode-notfound) to the accepted list to be verified against the resulting [`StatusCode`](https://learn.microsoft.com/noconetnten-us/dotnet/api/system.net.http.httpresponsemessage.statuscode).
 `EnsureOK` | Adds the [`HttpStatusCode.OK`](https://learn.microsoft.com/en-us/dotnet/api/system.net.httpstatuscode#system-net-httpstatuscode-ok) to the accepted list to be verified against the resulting [`StatusCode`](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage.statuscode).
 `EnsureSuccess` | Specifies whether to automatically perform a [`HttpResponseMessage.EnsureSuccessStatusCode`](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage.ensuresuccessstatuscode).
 `NullOnNotFound` | Specifies that a `null`/`default` value is returned where the _response_ has a `HttpStatusCode.NotFound` (applicable to an HTTP `GET` only).
@@ -80,7 +81,7 @@ public class XxxAgent : TypedHttpClientCore<XxxAgent>
 
 ...
 
-var hr = await _xxxAgent.EnsureOK().Ensure(HttpStatusCode.NotFound).PostAsync<dynamic, int>("foo/bar", new { trackerId = id }).ConfigureAwait(false);
+var hr = await _xxxAgent.EnsureOK().EnsureNotFound().PostAsync<dynamic, int>("foo/bar", new { trackerId = id }).ConfigureAwait(false);
 if (hr.StatusCode == HttpStatusCode.NotFound)
     return -1;
 

@@ -30,7 +30,10 @@ namespace CoreEx.Mapping
         public TDestinationColl CreateDestination() => new();
 
         /// <inheritdoc/>
-        public virtual bool IsSourceInitial(TSourceColl source) => false;
+        bool IMapper<TSourceColl, TDestinationColl>.IsSourceInitial(TSourceColl source) => false;
+
+        /// <inheritdoc/>
+        bool IMapper<TSourceColl, TDestinationColl>.InitializeDestination(TDestinationColl destination) => false;
 
         /// <inheritdoc/>
         object? IMapperBase.Map(object? source, OperationTypes operationType) => Map((TSourceColl?)source, null, operationType);

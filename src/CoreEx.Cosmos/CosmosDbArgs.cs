@@ -69,5 +69,10 @@ namespace CoreEx.Cosmos
         /// Indicates that a <c>null</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> on <b>Get</b>. 
         /// </summary>
         public bool NullOnNotFound { get; set; } = true;
+
+        /// <summary>
+        /// Indicates whether the result should be <see cref="Entities.Cleaner.Clean{T}(T)">cleaned up</see>.
+        /// </summary>
+        public bool CleanUpResult { get; set; } = false;
     }
 }

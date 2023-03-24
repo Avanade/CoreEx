@@ -2,6 +2,7 @@
 using CoreEx.Mapping;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 
 namespace CoreEx.Test.Framework.Mapping
@@ -217,7 +218,101 @@ namespace CoreEx.Test.Framework.Mapping
         }
 
         [Test]
-        public void Mapping_Expand()
+        public void Mapping_Flatten_Nullable_NonNullable_Inherit()
+        {
+            var m = new Mapper();
+            m.Register(new EmployeeMapper());
+            m.Register(new TerminationMapper());
+
+            var e = new Employee { Name = "Tim" };
+            var em = m.Map<EmployeeModel>(e);
+
+            Assert.That(em, Is.Not.Null);
+            Assert.That(em.Name, Is.EqualTo("Tim"));
+            Assert.That(em.Reason, Is.Null);
+            Assert.That(em.Date, Is.Null);
+
+            em = new EmployeeModel { Name = "Tom", Reason = "Because", Date = DateTime.UtcNow };
+            em = m.Map(e, em);
+
+            Assert.That(em, Is.Not.Null);
+            Assert.That(em.Name, Is.EqualTo("Tim"));
+            Assert.That(em.Reason, Is.Null);
+            Assert.That(em.Date, Is.Null);
+        }
+
+        [Test]
+        public void Mapping_Flatten_Nullable_NonNullable_Fluent()
+        {
+            var me = new Mapper<Employee, EmployeeModel>()
+                .Map((s, d) => d.Name = s.Name)
+                .Flatten(s => s.Termination);
+
+            var mt = new Mapper<Termination, EmployeeModel>()
+                .Map((s, d) => d.Reason = s.Reason)
+                .Map((s, d) => d.Date = s.Date)
+                .InitializeDestination(d =>
+                {
+                    d.Reason = null;
+                    d.Date = null;
+                    return true;
+                });
+
+            var m = new Mapper();
+            m.Register(me);
+            m.Register(mt);
+
+            var e = new Employee { Name = "Tim" };
+            var em = m.Map<EmployeeModel>(e);
+
+            Assert.That(em, Is.Not.Null);
+            Assert.That(em.Name, Is.EqualTo("Tim"));
+            Assert.That(em.Reason, Is.Null);
+            Assert.That(em.Date, Is.Null);
+
+            em = new EmployeeModel { Name = "Tom", Reason = "Because", Date = DateTime.UtcNow };
+            em = m.Map(e, em);
+
+            Assert.That(em, Is.Not.Null);
+            Assert.That(em.Name, Is.EqualTo("Tim"));
+            Assert.That(em.Reason, Is.Null);
+            Assert.That(em.Date, Is.Null);
+        }
+
+        [Test]
+        public void Mapping_Flatten_Nullable_NonNullable_InLine()
+        {
+            var me = new Mapper<Employee, EmployeeModel>()
+                .Map((s, d) => d.Name = s.Name, isSourceInitial: s => s.Name == default, initializeDestination: d => d.Name = default)
+                .Flatten(s => s.Termination, isSourceInitial: s => s.Termination == default);
+
+            var mt = new Mapper<Termination, EmployeeModel>()
+                .Map((s, d) => d.Reason = s.Reason, isSourceInitial: s => s.Reason == default, initializeDestination: d => d.Reason = default)
+                .Map((s, d) => d.Date = s.Date, isSourceInitial: s => s.Date == default, initializeDestination: d => d.Date = default);
+
+            var m = new Mapper();
+            m.Register(me);
+            m.Register(mt);
+
+            var e = new Employee { Name = "Tim" };
+            var em = m.Map<EmployeeModel>(e);
+
+            Assert.That(em, Is.Not.Null);
+            Assert.That(em.Name, Is.EqualTo("Tim"));
+            Assert.That(em.Reason, Is.Null);
+            Assert.That(em.Date, Is.Null);
+
+            em = new EmployeeModel { Name = "Tom", Reason = "Because", Date = DateTime.UtcNow };
+            em = m.Map(e, em);
+
+            Assert.That(em, Is.Not.Null);
+            Assert.That(em.Name, Is.EqualTo("Tim"));
+            Assert.That(em.Reason, Is.Null);
+            Assert.That(em.Date, Is.Null);
+        }
+
+        [Test]
+        public void Mapping_Expand_Condition()
         {
             var mc = new Mapper<Model, Contact>()
                 .Map((s, d) => d.Id = s.Id)
@@ -243,6 +338,82 @@ namespace CoreEx.Test.Framework.Mapping
             Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
 
             // Try with all properties of Address are default - should not touch as condition not true.
+            r.Street = null;
+            r.City = null;
+            c = m.Map<Contact>(r);
+
+            Assert.That(c, Is.Not.Null);
+            Assert.That(c.Id, Is.EqualTo(88));
+            Assert.That(c.Name, Is.EqualTo("Brian"));
+            Assert.That(c.Address, Is.Null);
+        }
+
+        [Test]
+        public void Mapping_Expand_No_Condition()
+        {
+            var mc = new Mapper<Model, Contact>()
+                .Map((s, d) => d.Id = s.Id)
+                .Map((s, d) => d.Name = s.Name)
+                .Expand<Address>((d, v) => d.Address = v);
+
+            var ma = new Mapper<Model, Address>()
+                .Map((s, d) => d.Street = s.Street)
+                .Map((s, d) => d.City = s.City);
+
+            var m = new Mapper();
+            m.Register(mc);
+            m.Register(ma);
+
+            var r = new Model { Id = 88, Name = "Brian", Street = "Main", City = "Wellington" };
+            var c = m.Map<Contact>(r);
+
+            Assert.That(c, Is.Not.Null);
+            Assert.That(c.Id, Is.EqualTo(88));
+            Assert.That(c.Name, Is.EqualTo("Brian"));
+            Assert.That(c.Address, Is.Not.Null);
+            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+
+            // Try with all properties of Address are default - should not touch as condition not true.
+            r.Street = null;
+            r.City = null;
+            c = m.Map<Contact>(r);
+
+            Assert.That(c, Is.Not.Null);
+            Assert.That(c.Id, Is.EqualTo(88));
+            Assert.That(c.Name, Is.EqualTo("Brian"));
+            Assert.That(c.Address, Is.Not.Null);
+            Assert.That(c.Address!.Street, Is.Null);
+            Assert.That(c.Address!.City, Is.Null);
+        }
+
+        [Test]
+        public void Mapping_Expand_No_Condition_IsInitializedCheck()
+        {
+            var mc = new Mapper<Model, Contact>()
+                .Map((s, d) => d.Id = s.Id)
+                .Map((s, d) => d.Name = s.Name)
+                .Expand<Address>((d, v) => d.Address = v, initializeDestination: d => d.Address = null);
+
+            var ma = new Mapper<Model, Address>()
+                .Map((s, d) => d.Street = s.Street, isSourceInitial: s => s.Street == default)
+                .Map((s, d) => d.City = s.City, isSourceInitial: s => s.City == default);
+
+            var m = new Mapper();
+            m.Register(mc);
+            m.Register(ma);
+
+            var r = new Model { Id = 88, Name = "Brian", Street = "Main", City = "Wellington" };
+            var c = m.Map<Contact>(r);
+
+            Assert.That(c, Is.Not.Null);
+            Assert.That(c.Id, Is.EqualTo(88));
+            Assert.That(c.Name, Is.EqualTo("Brian"));
+            Assert.That(c.Address, Is.Not.Null);
+            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+
+            // Try with all properties of Address are default - should nullify as all are initial.
             r.Street = null;
             r.City = null;
             c = m.Map<Contact>(r);
@@ -621,6 +792,50 @@ namespace CoreEx.Test.Framework.Mapping
             public string? Street { get; set; }
             public string? City { get; set; }
             public string? Other { get; set; }
+        }
+
+        public class Employee
+        {
+            public string? Name { get; set; }
+            public Termination? Termination { get; set; }
+        }
+
+        public class Termination
+        {
+            public string? Reason { get; set; }
+            public DateTime Date { get; set; }
+        }
+
+        public class EmployeeModel
+        {
+            public string? Name { get; set; }
+            public string? Reason { get; set; }
+            public DateTime? Date { get; set; }
+        }
+
+        public class EmployeeMapper : Mapper<Employee, EmployeeModel>
+        { 
+            public EmployeeMapper()
+            {
+                Map((s, d) => d.Name = s.Name);
+                Flatten(s => s.Termination);
+            }
+        }
+
+        public class TerminationMapper : Mapper<Termination, EmployeeModel>
+        { 
+            public TerminationMapper()
+            {
+                Map((s, d) => d.Reason = s.Reason);
+                Map((s, d) => d.Date = s.Date);
+            }
+
+            public override bool InitializeDestination(EmployeeModel d)
+            {
+                d.Reason = null;
+                d.Date = null;
+                return true;
+            }
         }
     }
 }

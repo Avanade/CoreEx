@@ -160,7 +160,7 @@ namespace CoreEx.Database.Extended
             if (rvp != null && rvp.Value != null)
                 Paging!.TotalCount = (long)rvp.Value;
 
-            return res;
+            return QueryArgs.CleanUpResult ? Cleaner.Clean(res) : res;
         }
     }
 }

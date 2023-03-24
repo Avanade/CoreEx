@@ -46,5 +46,10 @@ namespace CoreEx.EntityFrameworkCore
         /// <remarks>The <see cref="EfDb{TDbContext}.GetAsync{T, TModel}(EfDbArgs, Entities.CompositeKey, CancellationToken)"/> implementation performs a <see cref="Microsoft.EntityFrameworkCore.DbContext.FindAsync{TEntity}(object?[], CancellationToken)"/> 
         /// internally which automatically attaches and tracks the retrieved entity.</remarks>
         public bool ClearChangeTrackerAfterGet { get; set; } = false;
+
+        /// <summary>
+        /// Indicates whether the result should be <see cref="Entities.Cleaner.Clean{T}(T)">cleaned up</see>.
+        /// </summary>
+        public bool CleanUpResult { get; set; } = false;
     }
 }

@@ -18,8 +18,8 @@ However, in practice one of the following two interfaces should be used to enabl
 
 Interface | Description
 -|-
-`IIdentifier<TId>` | Enables a single `Id` property. This is the most common means to name and represent a single identifier value; the underlying type can be a `string`, `int`, `Guid`, etc.
-`IPrimaryKey` | Enables a primary key that can consist of one or more values, represented as a `CompositeKey`. The values that represent the composite key must in turn be represented as properties for the entity as the underlying composite`IPrimaryKey.PrimaryKey` property is read-only.
+[`IIdentifier<TId>`](./IIdentifierT.cs) | Enables a single `Id` property. This is the most common means to name and represent a single identifier value; the underlying type can be a `string`, `int`, `Guid`, etc.
+[`IPrimaryKey`](./IPrimaryKey.cs) | Enables a primary key that can consist of one or more values, represented as a `CompositeKey`. The values that represent the composite key must in turn be represented as properties for the entity as the underlying composite`IPrimaryKey.PrimaryKey` property is read-only.
 
 Additionally, there is an [`EntityKeyCollection`](./EntityKeyCollection.cs) that supports objects that implement `IEntityKey`. This collection does _not_ manage/guarantee uniqueness by design, instead provides an `IsAnyDuplicates` to identify. Where uniqueness is required, then some form of `IDictionary` should be leveraged instead.
 
@@ -108,7 +108,7 @@ Within an implementation the [`ILogicallyDeleted`](./ILogicallyDeleted.cs) inter
 
 ## Extended capabilities
 
-The `CoreEx.Entities.Extended` namespace contains extended, more advanced, capabiltiies as follows.
+The `CoreEx.Entities.Extended` namespace contains extended, more advanced, capabilties as follows.
 
 <br/>
 
@@ -118,8 +118,8 @@ To support more advanced entity capabilities there are two key base classes depe
 
 Class | Description
 -|-
-[`EntityCore`](./Extended/EntityCore.cs) | Provides the core [`INotifyPropertyChanged`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.inotifypropertychanged), [`IChangeTracking`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.ichangetracking), and [`IReadOnly`](./IReadonly.cs) support. The `SetValue` method must be used for all property value updates to enable.
-[`EntityBase`](./Extended/EntityBase.cs) | Extends the above `EntityCore`, adding [`ICleanUp`](./ICleanUp.cs), [`IInitial`](./IInitial.cs) and [`ICopyFrom`](./ICopyFrom.cs) support. To function correctly, the `GetPropertyValues` method must be overridden with each property yielded as a [`PropertyValue`](./Extended/PropertyValue.cs) to enable. See [`ChangeLogEx`](./Extended/ChangeLogEx.cs) as an example implementation. There is an `EntityBase` extension method to support deep `Clone` operations (note that the `ICloneable` interface is _not_ explicitly supported by default).
+[`EntityCore`](./Extended/EntityCore.cs) | Provides the core [`INotifyPropertyChanged`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.inotifypropertychanged), [`IChangeTracking`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.ichangetracking), and [`IReadOnly`](./IReadonly.cs) support. The underlying `SetValue` method must be used for all property value updates to enable.
+[`EntityBase`](./Extended/EntityBase.cs) | Extends the above `EntityCore`, adding [`ICleanUp`](./ICleanUp.cs), [`IInitial`](./IInitial.cs) and [`ICopyFrom`](./ICopyFrom.cs) support. To function correctly, the underlying `GetPropertyValues` method must be overridden with each property [yielded](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/yield) as a [`PropertyValue`](./Extended/PropertyValue.cs) to enable. See [`ChangeLogEx`](./Extended/ChangeLogEx.cs) as an example implementation. There is an `EntityBase` extension method to support deep `Clone` operations (note that the `ICloneable` interface is _not_ explicitly supported by default).
 
 There is a corresponding [`EntityBaseCollection`](./Extended/EntityBaseCollection.cs) and [`EntityCollectionResult`](./Extended/EntityCollectionResult.cs) to support an `EntityBase` collection and paging result equivalence.
 
@@ -129,4 +129,4 @@ Additionally, there is an [`EntityBaseDictionary`](./Extended/EntityBaseDictiona
 
 ### Extended change audit
 
-The [`ChangeLogEx`](./Extended/ChangeLogEx.cs) is an extended (inherits `EntityBase`) implementation of the [`ChangeLog`](./ChangeLog.cs) that overs equivalent audit properties; however, supports all extended features where applicable. 
+The [`ChangeLogEx`](./Extended/ChangeLogEx.cs) is an extended (inherits `EntityBase`) implementation of the [`ChangeLog`](./ChangeLog.cs) that offers equivalent audit properties; however, supports all extended features where applicable. 

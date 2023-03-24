@@ -4,6 +4,7 @@ using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Json;
+using CoreEx.RefData.Caching;
 using CoreEx.WebApis;
 using CoreEx.Wildcards;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,7 +25,6 @@ namespace CoreEx.RefData
     /// Provides the centralized reference data orchestration. Primarily responsible for the management of one or more <see cref="IReferenceDataProvider"/> instances.  
     /// </summary>
     /// <remarks>Provides <i>cached</i> access to the underlying reference data collections via the likes of <see cref="GetByTypeAsync{TRef}"/>, <see cref="GetByTypeAsync(Type, CancellationToken)"/> or <see cref="GetByNameAsync(string, CancellationToken)"/>.
-    /// By default, will include <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/> as part of the cache key.
     /// <para>To improve performance the reference data is cached. The <see cref="ReferenceDataOrchestrator"/> enables this via an <see cref="IMemoryCache"/> implementation; default is <see cref="MemoryCache"/> where not explicitly specified.
     /// The underlying reference data loading is executed in the context of a <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/> to limit/minimize any impact on the processing of the current request by isolating all scoped services.</para></remarks>
     public class ReferenceDataOrchestrator
@@ -41,8 +41,6 @@ namespace CoreEx.RefData
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
         private readonly SemaphoreSlim _primarySemaphore = new(1, 1);
         private readonly ConcurrentDictionary<object, SemaphoreSlim> _semaphores = new();
-        private readonly TimeSpan _absoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
-        private readonly TimeSpan _slidingExpiration = TimeSpan.FromMinutes(30);
         private readonly Lazy<ILogger> _logger;
         private readonly Lazy<SettingsBase?> _settings;
 
@@ -88,29 +86,16 @@ namespace CoreEx.RefData
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class.
         /// </summary>
-        /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
-        /// <param name="cache">The <see cref="IMemoryCache"/>.</param>
-        protected ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache cache)
+        /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers, etc.</param>
+        /// <param name="cache">The <see cref="IMemoryCache"/>. Defaults to new <see cref="MemoryCache"/> instance.</param>
+        /// <param name="cacheEntryConfig">The <see cref="ICacheEntryConfig"/>. Defaults to new <see cref="SettingsBasedCacheEntry"/> instance.</param>
+        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache = null, ICacheEntryConfig? cacheEntryConfig = null)
         {
             ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
-            Cache = cache ?? throw new ArgumentNullException(nameof(cache));
+            Cache = cache ?? new MemoryCache(new MemoryCacheOptions());
+            CacheEntryConfig = cacheEntryConfig ?? new SettingsBasedCacheEntry(ServiceProvider.GetService<SettingsBase>());
             _logger = new Lazy<ILogger>(ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>);
             _settings = new Lazy<SettingsBase?>(ServiceProvider.GetService<SettingsBase>);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataOrchestrator"/> class defaulting to a new <see cref="MemoryCache"/>.
-        /// </summary>
-        /// <param name="serivceProvider">The <see cref="IServiceProvider"/> needed to instantiated the registered providers.</param>
-        /// <param name="absoluteExpirationRelativeToNow">The <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> value; defaults to two (2) hours.</param>
-        /// <param name="slidingExpiration">The <see cref="ICacheEntry.SlidingExpiration"/> value; defaults to thirty (30) minutes.</param>
-        public ReferenceDataOrchestrator(IServiceProvider serivceProvider, TimeSpan? absoluteExpirationRelativeToNow = null, TimeSpan? slidingExpiration = null) : this(serivceProvider, new MemoryCache(new MemoryCacheOptions())) 
-        {
-            if (absoluteExpirationRelativeToNow.HasValue)
-                _absoluteExpirationRelativeToNow = absoluteExpirationRelativeToNow.Value;
-
-            if (slidingExpiration.HasValue)
-                _slidingExpiration = slidingExpiration.Value;
         }
 
         /// <summary>
@@ -121,7 +106,12 @@ namespace CoreEx.RefData
         /// <summary>
         /// Gets the underlying <see cref="IMemoryCache"/>.
         /// </summary>
-        protected IMemoryCache Cache { get; }
+        public IMemoryCache Cache { get; }
+
+        /// <summary>
+        /// Gets the underlying <see cref="ICacheEntryConfig"/>.
+        /// </summary>
+        public ICacheEntryConfig CacheEntryConfig { get; }
 
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
@@ -355,22 +345,17 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The cache key.</returns>
-        /// <remarks>To support the likes of multi-tenancy caching then the resulting cache key should be overridden to include the both the <see cref="ITenantId.TenantId"/> and <paramref name="type"/>.</remarks>
-        protected virtual object OnGetCacheKey(Type type) => type;
+        /// <remarks>Leverages the <see cref="ICacheEntryConfig.GetCacheKey(Type)"/>.
+        /// <para>To support the likes of multi-tenancy caching then the resulting cache key should be overridden to include the both the <see cref="ExecutionContext.TenantId"/> and <paramref name="type"/>.</para></remarks>
+        protected virtual object OnGetCacheKey(Type type) => CacheEntryConfig.GetCacheKey(type);
 
         /// <summary>
         /// Provides an opportunity to the maintain the <see cref="ICacheEntry"/> data prior to the cache <i>create</i> function being invoked (as a result of <see cref="OnGetOrCreateAsync(Type, Func{Type, CancellationToken, Task{IReferenceDataCollection}}, CancellationToken)"/>).
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <param name="entry">The <see cref="ICacheEntry"/>.</param>
-        /// <remarks>Note: the <see cref="ICacheEntry.Key"/> is the <see cref="IReferenceData"/> <see cref="Type"/>.
-        /// <para>The default behaviour sets the following: <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> = 2 hours, and <see cref="ICacheEntry.SlidingExpiration"/> = 30 minutes unless overidden during instantiation.
-        /// This should be overridden where more advanced behaviour is required.</para></remarks>
-        protected virtual void OnCreateCacheEntry(Type type, ICacheEntry entry)
-        {
-            entry.AbsoluteExpirationRelativeToNow = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", Settings.RefDataCacheAbsoluteExpirationRelativeToNow) ?? TimeSpan.FromHours(2);
-            entry.SlidingExpiration = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.SlidingExpiration)}", Settings.RefDataCacheSlidingExpiration) ?? TimeSpan.FromMinutes(30);
-        }
+        /// <remarks>Leverages the <see cref="ICacheEntryConfig.CreateCacheEntry(Type, ICacheEntry)"/>.</remarks>
+        protected virtual void OnCreateCacheEntry(Type type, ICacheEntry entry) => CacheEntryConfig.CreateCacheEntry(type, entry);
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
@@ -593,7 +578,7 @@ namespace CoreEx.RefData
         /// <param name="code">The <see cref="IReferenceData.Code"/>.</param>
         /// <returns>The <typeparamref name="TRef"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        [return: NotNullIfNotNull("code")]
+        [return: NotNullIfNotNull(nameof(code))]
         public static TRef? ConvertFromCode<TRef>(string? code) where TRef : IReferenceData, new()
         {
             if (code == null)
@@ -619,7 +604,7 @@ namespace CoreEx.RefData
         /// <param name="id">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/>.</param>
         /// <returns>The <typeparamref name="TRef"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        [return: NotNullIfNotNull("id")]
+        [return: NotNullIfNotNull(nameof(id))]
         public static TRef? ConvertFromId<TRef, TId>(TId? id) where TRef : IReferenceData<TId>, new() where TId : IComparable<TId>, IEquatable<TId>
         {
             if (id == null)
@@ -644,7 +629,7 @@ namespace CoreEx.RefData
         /// <param name="id">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/>.</param>
         /// <returns>The <typeparamref name="TRef"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        [return: NotNullIfNotNull("id")]
+        [return: NotNullIfNotNull(nameof(id))]
         public static TRef? ConvertFromId<TRef>(object? id) where TRef : IReferenceData, new()
         {
             if (id == null)
