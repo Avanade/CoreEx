@@ -233,6 +233,14 @@ namespace CoreEx.Http.Extended
         public TypedHttpClientOptions EnsureCreated() => Ensure(HttpStatusCode.Created);
 
         /// <summary>
+        /// Adds the <see cref="HttpStatusCode.NotFound"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
+        /// </summary>
+        /// <returns>This instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>Will result in a <see cref="HttpRequestException"/> where condition is not met.</para></remarks>
+        public TypedHttpClientOptions EnsureNotFound() => Ensure(HttpStatusCode.NotFound);
+
+        /// <summary>
         /// Adds the <paramref name="statusCodes"/> to the accepted list to be verified against the resulting <see cref="HttpResponseMessage.StatusCode"/>.
         /// </summary>
         /// <param name="statusCodes">One or more <see cref="HttpStatusCode">status codes</see> to be verified.</param>

@@ -40,7 +40,7 @@ namespace CoreEx.Database.Extended
         /// <param name="multiSetArgs">The additional <see cref="IMultiSetArgs"/> where additional datasets are returned.</param>
         /// <param name="confirmItemIsToBeAdded">The action to confirm whether the item is to be added (defaults to <c>true</c>).</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task LoadAsync(TColl coll, string? idColumnName = null, Action<DatabaseRecord, TItem>? additionalProperties = null, IEnumerable<IMultiSetArgs>? multiSetArgs = null,
+        public async Task LoadAsync(TColl coll, string? idColumnName = null, Action<DatabaseRecord, TItem>? additionalProperties = null, IEnumerable<IMultiSetArgs>? multiSetArgs = null,
             Func<DatabaseRecord, TItem, bool>? confirmItemIsToBeAdded = null, CancellationToken cancellationToken = default)
         {
             if (coll == null)
@@ -50,7 +50,8 @@ namespace CoreEx.Database.Extended
             if (multiSetArgs != null)
                 list.AddRange(multiSetArgs);
 
-            return Command.SelectMultiSetAsync(list, cancellationToken);
+            await Command.SelectMultiSetAsync(list, cancellationToken).ConfigureAwait(false);
+            Cleaner.Clean(coll);
         }
 
         /// <summary>

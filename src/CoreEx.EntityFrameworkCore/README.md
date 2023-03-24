@@ -33,7 +33,7 @@ A query is actioned using the [`EfDbQuery`](./EfDbQuery.cs) which is obstensibly
 
 Queried entities are not tracked by default; internally uses [`AsNoTracking`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.asnotracking); this behaviour can be overridden using [`EfDbArgs.QueryNoTracking`](./EfDbArgs.cs).
 
-Note: a consumer should also consider using [`IgnoreAutoIncludes`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.ignoreautoincludes) to exclude related data, where not required, to improved query performance.
+Note: a consumer should also consider using [`IgnoreAutoIncludes`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.ignoreautoincludes) to exclude related data, where not required, to improve query performance.
 
 The following methods provide additional capabilities.
 
@@ -110,3 +110,5 @@ To use `EfDB` relationships to the EF Core [`DbContext`](https://learn.microsoft
 - [`Database`](../CoreEx.Database/Database.cs) must be defined; see [example](../../samples/My.Hr/My.Hr.Business/Data/HrDb.cs).
 - `DbContext` and [`Database`](../CoreEx.Database/Database.cs) relationship must be defined; see [example](../../samples/My.Hr/My.Hr.Business/Data/HrDbContext.cs).
 - [`EfDb`](./EfDb.cs) and `DbContext` relationship must be defined; see [example](../../samples/My.Hr/My.Hr.Business/Data/HrEfDb.cs).
+
+Alternatively, review the _Beef_ [MyEf.Hr data](https://github.com/Avanade/Beef/tree/master/samples/MyEf.Hr/MyEf.Hr.Business/Data) sample implementation.

@@ -210,7 +210,7 @@ namespace CoreEx.RefData.Extended
         /// <param name="id">The <see cref="Id"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        [return: NotNullIfNotNull("id")]
+        [return: NotNullIfNotNull(nameof(id))]
         public static TSelf? ConvertFromId(TId? id) => ReferenceDataOrchestrator.ConvertFromId<TSelf, TId>(id);
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace CoreEx.RefData.Extended
         /// <param name="code">The <see cref="Code"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> instance.</returns>
         /// <remarks>Where the item (<see cref="IReferenceData"/>) is not found it will be created and <see cref="IReferenceData.SetInvalid"/> will be invoked.</remarks>
-        [return: NotNullIfNotNull("code")]
+        [return: NotNullIfNotNull(nameof(code))]
         public static TSelf? ConvertFromCode(string? code) => ReferenceDataOrchestrator.ConvertFromCode<TSelf>(code);
 
         /// <summary>

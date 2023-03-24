@@ -1,7 +1,9 @@
-﻿using CoreEx.Entities.Extended;
+﻿using CoreEx.Entities;
+using CoreEx.Entities.Extended;
 using CoreEx.Http;
 using CoreEx.Mapping.Converters;
 using CoreEx.RefData;
+using CoreEx.RefData.Caching;
 using CoreEx.RefData.Extended;
 using CoreEx.TestFunction;
 using FluentAssertions;
@@ -26,6 +28,25 @@ namespace CoreEx.Test.Framework.RefData
     public class ReferenceDataTest
     {
         [Test]
+        public void RefDataSimple()
+        {
+            var r = new RefDataSimple { Id = 1, Code = "X", Text = "XX" };
+            r.Id = 1;
+            r.Code = "X";
+            r.Text = "XX";
+
+            Assert.AreEqual(1, r.Id);
+            Assert.AreEqual(1, ((ReferenceDataBase<int>)r).Id);
+            Assert.AreEqual(1, ((ReferenceDataBase)r).Id);
+            Assert.AreEqual(1, ((IReferenceData)r).Id);
+            Assert.AreEqual(1, ((IIdentifier)r).Id);
+            Assert.AreEqual("X", r.Code);
+            Assert.AreEqual("XX", r.Text);
+
+            Assert.AreEqual(typeof(int), ((IIdentifier)r).IdType);
+        }
+
+        [Test]
         public void Exercise_RefData()
         {
             var r = new RefData { Id = 1, Code = "X", Text = "XX" };
@@ -34,6 +55,11 @@ namespace CoreEx.Test.Framework.RefData
             r.Text = "XX";
 
             Assert.AreEqual(1, r.Id);
+            Assert.AreEqual(1, ((IReferenceData)r).Id);
+            Assert.AreEqual(1, ((ReferenceDataBaseEx<int, RefData>)r).Id);
+            Assert.AreEqual(1, ((IIdentifier)r).Id);
+
+            Assert.AreEqual(typeof(int), ((IIdentifier)r).IdType);
 
             // Immutable.
             Assert.Throws<InvalidOperationException>(() => r.Id = 2);
@@ -675,6 +701,55 @@ namespace CoreEx.Test.Framework.RefData
         }
 
         [Test]
+        public async Task Caching_Refresh()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProviderSlow>();
+            sc.AddReferenceDataOrchestrator(sp => new ReferenceDataOrchestrator(sp, cacheEntryConfig: new FixedExpirationCacheEntry(TimeSpan.FromMilliseconds(250))).Register<RefDataProviderSlow>());
+            var sp = sc.BuildServiceProvider();
+
+            var rdo = sp.GetRequiredService<ReferenceDataOrchestrator>();
+            ReferenceDataOrchestrator.SetCurrent(rdo);
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            // 1st time should take time and get cached.
+            var sw = Stopwatch.StartNew();
+            IReferenceDataCollection? c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
+            sw.Stop();
+            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
+            Assert.NotNull(c);
+            Assert.IsTrue(c!.ContainsCode("A"));
+
+            // 2nd time should be fast-as from cache.
+            sw = Stopwatch.StartNew();
+            c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
+            sw.Stop();
+            Assert.Less(sw.ElapsedMilliseconds, 500);
+
+            // Await longer than cache time.
+            await Task.Delay(500).ConfigureAwait(false);
+
+            // 3rd time should take some time to cache again.
+            sw = Stopwatch.StartNew();
+            c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
+            sw.Stop();
+            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
+            Assert.NotNull(c);
+            Assert.IsTrue(c!.ContainsCode("A"));
+
+            // 4th time should be fast-as from cache.
+            sw = Stopwatch.StartNew();
+            c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
+            sw.Stop();
+            Assert.Less(sw.ElapsedMilliseconds, 500);
+        }
+
+        [Test]
         public void Caching_LoadB()
         {
             IServiceCollection sc = new ServiceCollection();
@@ -909,6 +984,8 @@ namespace CoreEx.Test.Framework.RefData
         [return: NotNullIfNotNull("code")]
         public static implicit operator RefData?(string? code) => ConvertFromCode(code);
     }
+
+    public class RefDataSimple : ReferenceDataBase<int> { }
 
     public class RefDataCollection : ReferenceDataCollection<int, RefData> { }
 

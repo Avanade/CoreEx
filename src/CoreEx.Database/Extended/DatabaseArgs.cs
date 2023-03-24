@@ -47,5 +47,10 @@ namespace CoreEx.Database.Extended
         /// Indicates whether the data should be refreshed (reselected where applicable) after a <b>save</b> operation (defaults to <c>true</c>).
         /// </summary>
         public bool Refresh { get; set; } = true;
+
+        /// <summary>
+        /// Indicates whether the result should be <see cref="Entities.Cleaner.Clean{T}(T)">cleaned up</see>.
+        /// </summary>
+        public bool CleanUpResult { get; set; } = false;
     }
 }

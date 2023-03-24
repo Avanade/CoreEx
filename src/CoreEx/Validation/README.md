@@ -26,4 +26,4 @@ The [`CoreEx.Validation`](../../CoreEx.Validation) project (assembly) provides a
 
 ## FluentValidation implementation
 
-[FluentValidation](https://github.com/FluentValidation/FluentValidation) is a popular .NET validator; as such [CoreEx.FluentValidation](../../CoreEx.FluentValidation) is provided to implement, the underlying [ValidatorWrapper](../../CoreEx.FluentValidation/ValidatorWrapper.cs) enables.
+[FluentValidation](https://github.com/FluentValidation/FluentValidation) is a popular .NET validator; as such [CoreEx.FluentValidation](../../CoreEx.FluentValidation) is provided to implement, the underlying [`ValidatorWrapper`](../../CoreEx.FluentValidation/ValidatorWrapper.cs) enables.

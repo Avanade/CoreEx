@@ -49,7 +49,7 @@ namespace CoreEx.Cosmos
             if (val is IETag et && et.ETag != null)
                 et.ETag = ETagGenerator.ParseETag(et.ETag);
 
-            return val;
+            return CosmosDb.DbArgs.CleanUpResult ? Cleaner.Clean(val) : val;
         }
 
         /// <summary>

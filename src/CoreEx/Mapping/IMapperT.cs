@@ -33,8 +33,15 @@ namespace CoreEx.Mapping
         /// Indicates whether the <paramref name="source"/> is considered initial; i.e. all mapped property values are their default.
         /// </summary>
         /// <param name="source">The source value.</param>
-        /// <returns><c>true</c> where initial; otherwise, <c>false</c>.</returns>
+        /// <returns><c>true</c> where considered initial; otherwise, <c>false</c>.</returns>
         bool IsSourceInitial(TSource source);
+
+        /// <summary>
+        /// Initializes the destination properties to their default values during a <i>Flatten</i> where the source value is <c>null</c>.
+        /// </summary>
+        /// <param name="destination">The destination value.</param>
+        /// <returns><c>true</c> where initialization occured; otherwise, <c>false</c>.</returns>
+        bool InitializeDestination(TDestination destination);
 
         /// <summary>
         /// Maps the <paramref name="source"/> value to a new <typeparamref name="TDestination"/> value.

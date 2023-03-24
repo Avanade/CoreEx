@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Database.Extended;
 using CoreEx.Database.Mapping;
 using Microsoft.Data.SqlClient;
 using System;
@@ -252,7 +251,7 @@ namespace CoreEx.Database.SqlServer
         /// <param name="database">The<see cref="IDatabase"/>.</param>
         /// <param name="list">The list.</param>
         /// <returns>The <see cref="TableValuedParameter"/>.</returns>
-        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<string?> list) => CreateTableValuedParameter(database, ((SqlServerDatabaseColumns)database.DatabaseColumns).TvpStringListTypeName, list);
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<string?> list) => CreateTableValuedParameter(database, ((SqlServerDatabase)database).DatabaseColumns.TvpStringListTypeName, list);
 
         /// <summary>
         /// Creates a <see cref="TableValuedParameter"/> for the <see cref="string"/> <paramref name="list"/>.
@@ -264,7 +263,7 @@ namespace CoreEx.Database.SqlServer
         public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<string?> list)
         {
             using var dt = new DataTable();
-            dt.Columns.Add(((SqlServerDatabaseColumns)database.DatabaseColumns).TvpListValueColumnName, typeof(string));
+            dt.Columns.Add(((SqlServerDatabase)database).DatabaseColumns.TvpListValueColumnName, typeof(string));
 
             if (list != null)
             {
@@ -283,7 +282,7 @@ namespace CoreEx.Database.SqlServer
         /// <param name="database">The<see cref="IDatabase"/>.</param>
         /// <param name="list">The list.</param>
         /// <returns>The <see cref="TableValuedParameter"/>.</returns>
-        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<int> list) => CreateTableValuedParameter(database, ((SqlServerDatabaseColumns)database.DatabaseColumns).TvpInt32ListTypeName, list);
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<int> list) => CreateTableValuedParameter(database, ((SqlServerDatabase)database).DatabaseColumns.TvpInt32ListTypeName, list);
 
         /// <summary>
         /// Creates a <see cref="TableValuedParameter"/> for the <see cref="int"/> <paramref name="list"/>.
@@ -295,7 +294,7 @@ namespace CoreEx.Database.SqlServer
         public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<int> list)
         {
             using var dt = new DataTable();
-            dt.Columns.Add(((SqlServerDatabaseColumns)database.DatabaseColumns).TvpListValueColumnName, typeof(int));
+            dt.Columns.Add(((SqlServerDatabase)database).DatabaseColumns.TvpListValueColumnName, typeof(int));
 
             if (list != null)
             {
@@ -314,7 +313,7 @@ namespace CoreEx.Database.SqlServer
         /// <param name="database">The<see cref="IDatabase"/>.</param>
         /// <param name="list">The list.</param>
         /// <returns>The <see cref="TableValuedParameter"/>.</returns>
-        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<long> list) => CreateTableValuedParameter(database, ((SqlServerDatabaseColumns)database.DatabaseColumns).TvpInt64ListTypeName, list);
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<long> list) => CreateTableValuedParameter(database, ((SqlServerDatabase)database).DatabaseColumns.TvpInt64ListTypeName, list);
 
         /// <summary>
         /// Creates a <see cref="TableValuedParameter"/> for the <see cref="long"/> <paramref name="list"/>.
@@ -326,7 +325,7 @@ namespace CoreEx.Database.SqlServer
         public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<long> list)
         {
             using var dt = new DataTable();
-            dt.Columns.Add(((SqlServerDatabaseColumns)database.DatabaseColumns).TvpListValueColumnName, typeof(long));
+            dt.Columns.Add(((SqlServerDatabase)database).DatabaseColumns.TvpListValueColumnName, typeof(long));
 
             if (list != null)
             {
@@ -345,7 +344,7 @@ namespace CoreEx.Database.SqlServer
         /// <param name="database">The<see cref="IDatabase"/>.</param>
         /// <param name="list">The list.</param>
         /// <returns>The <see cref="TableValuedParameter"/>.</returns>
-        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<Guid> list) => CreateTableValuedParameter(database, ((SqlServerDatabaseColumns)database.DatabaseColumns).TvpGuidListTypeName, list);
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<Guid> list) => CreateTableValuedParameter(database, ((SqlServerDatabase)database).DatabaseColumns.TvpGuidListTypeName, list);
 
         /// <summary>
         /// Creates a <see cref="TableValuedParameter"/> for the <see cref="Guid"/> <paramref name="list"/>.
@@ -357,7 +356,7 @@ namespace CoreEx.Database.SqlServer
         public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<Guid> list)
         {
             using var dt = new DataTable();
-            dt.Columns.Add(((SqlServerDatabaseColumns)database.DatabaseColumns).TvpListValueColumnName, typeof(Guid));
+            dt.Columns.Add(((SqlServerDatabase)database).DatabaseColumns.TvpListValueColumnName, typeof(Guid));
 
             if (list != null)
             {
@@ -376,7 +375,7 @@ namespace CoreEx.Database.SqlServer
         /// <param name="database">The<see cref="IDatabase"/>.</param>
         /// <param name="list">The list.</param>
         /// <returns>The <see cref="TableValuedParameter"/>.</returns>
-        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<DateTime> list) => CreateTableValuedParameter(database, ((SqlServerDatabaseColumns)database.DatabaseColumns).TvpGuidListTypeName, list);
+        public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, IEnumerable<DateTime> list) => CreateTableValuedParameter(database, ((SqlServerDatabase)database).DatabaseColumns.TvpGuidListTypeName, list);
 
         /// <summary>
         /// Creates a <see cref="TableValuedParameter"/> for the <see cref="DateTime"/> <paramref name="list"/>.
@@ -388,7 +387,7 @@ namespace CoreEx.Database.SqlServer
         public static TableValuedParameter CreateTableValuedParameter(this IDatabase database, string typeName, IEnumerable<DateTime> list)
         {
             using var dt = new DataTable();
-            dt.Columns.Add(((SqlServerDatabaseColumns)database.DatabaseColumns).TvpListValueColumnName, typeof(DateTime));
+            dt.Columns.Add(((SqlServerDatabase)database).DatabaseColumns.TvpListValueColumnName, typeof(DateTime));
 
             if (list != null)
             {

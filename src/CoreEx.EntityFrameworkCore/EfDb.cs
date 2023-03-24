@@ -74,7 +74,7 @@ namespace CoreEx.EntityFrameworkCore
             if (model == default || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
                 return default!;
 
-            return Mapper.Map<T>(model, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value.");
+            return CleanUpResult(Mapper.Map<T>(model, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value."));
         }, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
@@ -97,7 +97,7 @@ namespace CoreEx.EntityFrameworkCore
                 if (args.SaveChanges)
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
-                return args.Refresh ? Mapper.Map<TModel, T>(model, OperationTypes.Get)! : value;
+                return CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, OperationTypes.Get)! : value);
             }, cancellationToken).ConfigureAwait(false);
         }
 
@@ -131,7 +131,7 @@ namespace CoreEx.EntityFrameworkCore
                 if (args.SaveChanges)
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
-                return args.Refresh ? Mapper.Map<TModel, T>(model, Mapping.OperationTypes.Get)! : value;
+                return CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, Mapping.OperationTypes.Get)! : value);
             }, cancellationToken).ConfigureAwait(false);
         }
 
@@ -179,6 +179,11 @@ namespace CoreEx.EntityFrameworkCore
             if (args.Refresh && !args.SaveChanges)
                 throw new ArgumentException($"The {nameof(EfDbArgs.Refresh)} property cannot be set to true without the {nameof(EfDbArgs.SaveChanges)} also being set to true (given the save will occur after this method call).", nameof(args));
         }
+
+        /// <summary>
+        /// Cleans up the result where specified within the args.
+        /// </summary>
+        private T CleanUpResult<T>(T value) => DbArgs.CleanUpResult ? Cleaner.Clean(value) : value;
 
         /// <inheritdoc/>
         public void WithWildcard(string? with, Action<string> action)

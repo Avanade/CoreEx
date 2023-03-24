@@ -50,7 +50,8 @@ namespace CoreEx.Cosmos
         internal T GetValue(CosmosDbValue<TModel> model)
         {
             ((ICosmosDbValue)model).PrepareAfter(CosmosDb);
-            return CosmosDb.Mapper.Map<TModel, T>(model.Value, OperationTypes.Get)!;
+            var val = CosmosDb.Mapper.Map<TModel, T>(model.Value, OperationTypes.Get)!;
+            return CosmosDb.DbArgs.CleanUpResult ? Cleaner.Clean(val) : val;
         }
 
         /// <summary>

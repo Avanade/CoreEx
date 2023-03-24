@@ -12,8 +12,10 @@ namespace CoreEx.RefData
     [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActive = {IsActive}")]
     public abstract class ReferenceDataBase : IReferenceData
     {
+        private Type _idType = null!;
+
         /// <inheritdoc/>
-        Type IIdentifier.IdType { get => throw new NotImplementedException(); }
+        Type IIdentifier.IdType => _idType;
         
         /// <inheritdoc/>
         public object? Id { get; set; }
@@ -44,5 +46,11 @@ namespace CoreEx.RefData
 
         /// <inheritdoc/>
         public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString();
+
+        /// <summary>
+        /// Sets the underlying <see cref="IIdentifier.IdType"/>.
+        /// </summary>
+        /// <param name="type">The <see cref="IIdentifier.IdType"/>.</param>
+        protected void SetIdType(Type type) => _idType = type;
     }
 }
