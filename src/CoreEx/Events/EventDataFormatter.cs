@@ -18,6 +18,11 @@ namespace CoreEx.Events
     public class EventDataFormatter
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="EventDataFormatter"/> class.
+        /// </summary>
+        public EventDataFormatter() => TypeDefault = _ => TypeDefaultToValueTypeName ? "None" : null;
+
+        /// <summary>
         /// Gets or sets the <see cref="EventData"/> property selection; where a property is not selected its value will be reset to <c>null</c>.
         /// </summary>
         /// <remarks>Defaults to <see cref="EventDataProperty.All"/>.</remarks>
@@ -99,6 +104,12 @@ namespace CoreEx.Events
         public Func<EventData, Uri?>? SourceDefault { get; set; }
 
         /// <summary>
+        /// Gets or sets the <see cref="EventDataBase.Type"/> default delegate to be used where not specified.
+        /// </summary>
+        /// <remarks>Defaults to a function that returns '<c>None</c>' when <see cref="TypeDefaultToValueTypeName"/> is <c>true</c>.</remarks>
+        public Func<EventData, string?>? TypeDefault { get; set; }
+
+        /// <summary>
         /// Gets or sets the <see cref="EventDataBase.Key"/> separator character.
         /// </summary>
         /// <remarks>Defaults to '<c>,</c>'.</remarks>
@@ -167,6 +178,8 @@ namespace CoreEx.Events
                     @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, @event.Key);
                 else if (TypeAppendEntityKey && value is IEntityKey ek)
                     @event.Type = Concatenate(@event.Type, TypeSeparatorCharacter, ek.EntityKey.ToString(KeySeparatorCharacter));
+
+                @event.Type ??= TextInfo.ToCasing(TypeDefault?.Invoke(@event), TypeCasing);
             }
             else
                 @event.Type = null;

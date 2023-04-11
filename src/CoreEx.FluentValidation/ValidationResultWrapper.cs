@@ -9,7 +9,7 @@ using System;
 namespace CoreEx.FluentValidation
 {
     /// <summary>
-    /// Represents a <see cref="ValidationResult"/> wrapper to enable <i>CoreEx</i> <see cref="IValidationResult"/>.
+    /// Represents a <see cref="ValidationResult"/> wrapper to enable <i>CoreEx</i> <see cref="IValidationResult"/> interoperability.
     /// </summary>
     public class ValidationResultWrapper<T> : IValidationResult<T>
     {

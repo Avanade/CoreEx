@@ -20,53 +20,71 @@ Capability | Description
 [`EventDataFormatter`](./EventDataFormatter.cs) | Formats an `EventData` instance, setting additional properties, etc. to meet the requirements of the application. There are a number of options within this class to support a rich level of formatting, and this class can be inherited to support more advanced scenarios as necessary.
 [`IEventSerializer`](./IEventSerializer.cs) | Provides the capbilities to serialize the `EventData` into a corresponding [`BinaryData`](https://docs.microsoft.com/en-us/dotnet/api/system.binarydata) (i.e. `byte[]`) format ready for sending. An [`EventDataSerializerBase`](./EventDataSerializerBase.cs) and [`CloudEventSerializerBase`](./CloudEventSerializerBase.cs) provide the base implementation to perform basic JSON serialization or CloudEvents JSON serialization respectively, using either `System.Text.Json` or `Newtonsoft.Json` as required.
 [`IEventSender`](./IEventSender.cs) | Performs the event sending via the actual messaging platform/protocol. For example, an Azure [`ServiceBusSender`](../../CoreEx.Azure/ServiceBus/ServiceBusSender.cs) implementation is provided.
-[`IEventPublisher`](./IEventPublisher.cs) | Enables the publishing via the `Publish` method to internally queue the messages, and when ready perform a `SendAsync` to send the one or more published events in an atomic operation. The `IEventPublisher` is responsible for __orchestrating__ the `EventDataFormatter`, `IEventSerializer` and `IEventSender`. The [`EventPublisher`](./EventPublisher.cs) provides the default implementation.<br/><br/>To enable the likes of unit testing, the [`InMemoryPublisher`](./InMemoryPublisher.cs) provides an in-memory implementation that enables the logically sent events to be inspected to verify content, etc.
+[`IEventPublisher`](./IEventPublisher.cs) | Enables the publishing via the `Publish` method to internally queue the messages, and when ready perform a `SendAsync` to send the one or more published events in an atomic operation. The `IEventPublisher` is responsible for __orchestrating__ the `EventDataFormatter`, `IEventSerializer` and `IEventSender`. The [`EventPublisher`](./EventPublisher.cs) provides the default implementation.<br/><br/>To enable the likes of unit testing, the [`InMemoryPublisher`](./InMemoryPublisher.cs) provides an in-memory implementation that enables the logically sent events to be inspected to verify content, etc. <br/><br/>The [`NullEventPublisher`](./NullEventPublisher.cs) represents an event publisher whereby the events are simply swallowed/discarded on send.<br/><br/>The [`LoggerEventPublisher`](./LoggerEventPublisher.cs) represents an event publisher whereby the events are logged (`ILogger.LogInformation`) on send.
+
+<br/>
+
+### ServiceBusSender
+
+The [`ServiceBusSender`](../../CoreEx.Azure/ServiceBus/ServiceBusSender.cs) is an [Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview) `IEventSender` implementation; this is designed to _batch_ publish one or more messages to one or more queues/topics. See the corresponding [documentation](../../CoreEx.Azure/ServiceBus/README.md) for more information.
+
+<br/>
+
+### EventOutboxEnqueueBase
+
+The [`EventOutboxEnqueueBase`](../../CoreEx.Database.SqlServer/Outbox/EventOutboxEnqueueBase.cs) provides a Microsoft SQL Server `IEventSender` to support the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html); i.e. persists the events within the database within a [transactional](https://learn.microsoft.com/en-us/dotnet/api/system.transactions.transactionscope) context.
+
+[_DbEx_](https://github.com/Avanade/DbEx/blob/main/docs/SqlServerEventOutbox.md) provides the capabilities to generate the required Microsoft SQL Server and C# artefacts to support. The [`MyEf.Hr`](https://github.com/Avanade/Beef/tree/master/samples/MyEf.Hr) sample within [_Beef_](https://github.com/Avanade/Beef) demonstrates end-to-end usage.
 
 <br/>
 
 ## Subscribing
 
-Event subscribing is more tightly coupled, in that the implementation is going to be more aligned to the capabilities of the messaging platform.
+Event subscribing is more tightly coupled, in that the implementation is going to be more aligned to the capabilities of the underlying messaging platform. However, the intent is to still decouple the messaging platform from the underlying processing by deserializing the message back into the originating (formatted) [`EventData`](./EventData.cs) or [`EventData<T>`](./EventDataT.cs) where required using the previously discussed [`IEventSerializer`](./IEventSerializer.cs). This has the added advantage that the underlying messaging platform can evolve over time within minimal change, whilst the underlying processing logic can remain largely constant.
 
-The previously discussed [`IEventSerializer`](./IEventSerializer.cs) provides the corresponding deserialization back into the originating (formatted) [`EventData`](./EventDataT.cs) where required.
+The [`EventSubscriberBase`](./EventSubscriberBase.cs) provides the messaging platform host agnostic base functionality that should be inherited. This provides the base [`IErrorHandling`](./Subscribing/IErrorHandling.cs) configuration, being the corresponding [`ErrorHandling`](./Subscribing/ErrorHandling.cs) action per error type.
 
-The [`EventSubscriberBase`](./EventSubscriberBase.cs) can be used to provide the underlying `DeserializeEventAsync` capability.
+The `EventSubscriberBase.DeserializeEventAsync` methods manage the deserialization of the originating message using an [`IEventDataConverter`](./IEventDataConverter.cs) that encapsulates the `IEventSerializer` functionality (including handling exceptions) to perform the message conversion into the corresponding [`EventData`](./EventDataT.cs) or [`EventData<T>`](./EventDataT.cs). 
 
-<br/>
-
-## Azure ServiceBus Subscriber
-
-An Azure [`ServiceBusSubscriber`](../../CoreEx.Azure/ServiceBus/ServiceBusSubscriber.cs) implementation is provided.
-
-The `ReceiveAsync` which requires the [`ServiceBusReceivedMessage`](https://docs.microsoft.com/en-us/dotnet/api/azure.messaging.servicebus.servicebusreceivedmessage) and [`ServiceBusMessageActions`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.webjobs.servicebus.servicebusmessageactions) performs the following steps:
-- Begins a logging scope to include the correlation identifier from the message.
-- Deserializes the `ServiceBusReceivedMessage` into the corresponding [`EventData`](../tree/main/src/CoreEx/Events/EventDataT.cs).
-- Invokes the processing logic for the event and where successful calls `ServiceBusMessageActions.CompleteMessageAsync`.
-- Handle all exceptions:
-  - Where the exception implements [`IExtendedException`](../tree/main/src/CoreEx/Abstractions/IExtendedException.cs) and `IsTransient` then log a warning and bubble the exception for the host process to manage a retry.
-  - Finally, log the error and invoke `ServiceBusMessageActions.DeadLetterMessageAsync`.
+The [`EventSubscriberInvoker`](./Subscribing/EventSubscriberInvoker.cs) via the `EventSubscriberBase.EventSubscriberInvoker` property **must** be used to invoke the underlying processing as this includes the [`IErrorHandling`](./Subscribing/IErrorHandling.cs) logic; converting any errors into an [`EventSubscriberException`](./EventSubscriberException.cs). The `EventSubscriberException.IsTransient` property allows for the inheriting host to _retry_ where applicable and/or supported (versus possible [dead letter](https://en.wikipedia.org/wiki/Dead_letter_queue) where supported).
 
 <br/>
 
-### Azure ServiceBus-triggered Function example
+### ServiceBusSubscriber
 
-The following demonstrates usage when using the [`ServiceBusTrigger`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.webjobs.servicebustriggerattribute) within an Azure Function:
+The [`ServiceBusSubscriber`](../../CoreEx.Azure/ServiceBus/ServiceBusSubscriber.cs) is an [Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview) implementation; this is designed to process messages from a queue/topic that has a singlular [`EventData`](./EventData.cs) or [`EventData<T>`](./EventDataT.cs) type. See the corresponding [documentation](../../CoreEx.Azure/ServiceBus/README.md) for more information.
+
+<br/>
+
+## Orchestrated subscribing
+
+Within an [event-driven architecture](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/event-driven) multiple events (message types) may be published/produced to the same underlying messaging platform. Therefore, there may be the need to subscribe/consume to one or more events (message types) in the published order (sequence). 
+
+To enable the [`EventSubscriberOrchestrator`](./subscribing/EventSubscriberOrchestrator.cs) enables none or more subscribers ([`IEventSubscriber`](./subscribing/IEventSubscriber.cs)) to be added (`EventSubscriberOrchestrator.AddSubscribers`). To simplify the implementation of an `IEventSubscriber` the [`SubscriberBase`](./subscribing/SubscriberBase.cs) and [`SubscriberBase<T>`](./subscribing/SubscriberBaseT.cs) enable. These also include [`IErrorHandling`](./Subscribing/IErrorHandling.cs) configuration, being the corresponding [`ErrorHandling`](./Subscribing/ErrorHandling.cs) action per error type to enable _subscriber_-specific handling where applicable.
+
+The `IEventSubscriber` implementation provides the corresponding `ReceiveAsync` method that must be overridden to implement the specific processing functionality. Additionally, the [`SubscriberBase<T>`](./subscribing/SubscriberBaseT.cs) supports the specification of an [`IValidator<T>`](../Validation/IValidatorT.cs) to pre-validate the `EventData<T>.Value` before invoking the `ReceiveAsync`.
+
+One or more [`EventSubscriberAttribute`](./subscribing/EventSubscriberAttribute.cs) must be specified for the `IEventSubscriber` to configure the subscription matching criteria (includes wildcard support). The `EventSubscriberOrchestrator` for each event invocation will iterate through the subscribers (`IEventSubscriber`) and use the `EventSubscriberAttribute` to match; where there is a single match that matched `IEventSubscriber` will be invoked.
+
+The underlying `IEventSubscriber` must also be registered as services (see `IServiceCollection.AddEventSubscribers`) so that they can be instantiated using the underlying `IServivceProvider` from the host (enables dependency injection).
+
+The following demonstrates an `IEventSubscriber` implementation.
 
 ``` csharp
-public class ServiceBusExecuteVerificationFunction
+[EventSubscriber("my.hr.employee", "created", "updated")]
+public class EmployeeeSubscriber : SubscriberBase<Employee>
 {
-    private readonly ServiceBusSubscriber _subscriber;
-    private readonly VerificationService _service;
-
-    public ServiceBusExecuteVerificationFunction(ServiceBusSubscriber subscriber, VerificationService service)
+    public override Task ReceiveAsync(EventData<Employee> @event, CancellationToken cancellationToken)
     {
-        _subscriber = subscriber;
-        _service = service;
+        // Perform requisite business logic.
+        return Task.CompletedTask;
     }
-
-    [FunctionName(nameof(ServiceBusExecuteVerificationFunction))]
-    [ExponentialBackoffRetry(3, "00:02:00", "00:30:00")]
-    public Task RunAsync([ServiceBusTrigger("%" + nameof(HrSettings.VerificationQueueName) + "%", Connection = nameof(HrSettings.ServiceBusConnection))] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
-        => _subscriber.ReceiveAsync<EmployeeVerificationRequest>(message, messageActions, ed => _service.VerifyAndPublish(ed.Validate<EmployeeVerificationRequest, EmployeeVerificationValidator>()));
-}
 ```
+
+<br/>
+
+### ServiceBusOrchestratedSubscriber
+
+The [`ServiceBusOrchestratedSubscriber`](../../CoreEx.Azure/ServiceBus/ServiceBusOrchestratedSubscriber.cs) is an [Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview) implementation that inherits from ``EventSubscriberBase`` and supports `EventSubscriberOrchestrator` functionality. See the corresponding [documentation](../../CoreEx.Azure/ServiceBus/README.md) for more information.
+
+The [`MyEf.Hr`](https://github.com/Avanade/Beef/tree/master/samples/MyEf.Hr) sample within [_Beef_](https://github.com/Avanade/Beef) demonstrates end-to-end usage.

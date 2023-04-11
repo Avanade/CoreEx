@@ -1,5 +1,6 @@
 ﻿using CoreEx.Abstractions;
 using CoreEx.Azure.ServiceBus;
+using CoreEx.Events;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using Microsoft.Azure.WebJobs.ServiceBus;
@@ -38,7 +39,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
 
             test.Type<ServiceBusSubscriber>()
                 .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, ed => throw new TransientException()))
-                .AssertException<TransientException>();
+                .AssertException<EventSubscriberException>("A transient error has occurred; please try again.");
 
             actionsMock.VerifyNoOtherCalls();
         }

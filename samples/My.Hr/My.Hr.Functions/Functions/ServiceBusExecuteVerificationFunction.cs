@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
-using FluentValidation;
+using CoreEx.FluentValidation;
 using CoreEx.Azure.ServiceBus;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.ServiceBus;

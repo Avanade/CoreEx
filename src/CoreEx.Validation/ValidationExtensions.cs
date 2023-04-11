@@ -919,6 +919,36 @@ namespace CoreEx.Validation
 
         #endregion
 
+        #region Interop
+
+        /// <summary>
+        /// Adds an interop validation (see <see cref="InteropRule{TEntity, TProperty, TValidator}"/>) (intended for non-<c>CoreEx.Validation</c>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TValidator">The validator <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="validator">The validator.</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        /// <remarks>This is only intended to be leveraged for the root entity value being validated as no <see cref="ValidationArgs"/> are passed meaning advanced capabilities will be ignored.</remarks>
+        public static IPropertyRule<TEntity, TProperty> Interop<TEntity, TProperty, TValidator>(this IPropertyRule<TEntity, TProperty> rule, TValidator validator) where TEntity : class where TProperty : class? where TValidator : IValidator
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new InteropRule<TEntity, TProperty, TValidator>(() => validator ?? throw new ArgumentNullException(nameof(validator))));
+
+        /// <summary>
+        /// Adds an interop validation (see <see cref="InteropRule{TEntity, TProperty, TValidator}"/>) (intended for non-<c>CoreEx.Validation</c>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TValidator">The validator <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="validatorFunc">The function to return the <see cref="IValidator"/>.</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        /// <remarks>This is only intended to be leveraged for the root entity value being validated as no <see cref="ValidationArgs"/> are passed meaning advanced capabilities will be ignored.</remarks>
+        public static IPropertyRule<TEntity, TProperty> Interop<TEntity, TProperty, TValidator>(this IPropertyRule<TEntity, TProperty> rule, Func<TValidator> validatorFunc) where TEntity : class where TProperty : class? where TValidator : IValidator
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new InteropRule<TEntity, TProperty, TValidator>(validatorFunc));
+
+        #endregion
+
         #region Custom
 
         /// <summary>

@@ -24,11 +24,11 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="TypedHttpClientBase{TBase}"/>.
         /// </summary>
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        public TypedHttpClientBase(HttpClient client, IJsonSerializer jsonSerializer)
+        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>..</param>
+        public TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null)
         {
             Client = client ?? throw new ArgumentNullException(nameof(client));
-            JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            JsonSerializer = jsonSerializer ?? CoreEx.Json.JsonSerializer.Default;
         }
 
         /// <summary>

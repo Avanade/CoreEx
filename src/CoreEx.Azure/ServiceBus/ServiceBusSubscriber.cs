@@ -4,12 +4,12 @@ using Azure.Messaging.ServiceBus;
 using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
-using CoreEx.Http;
+using CoreEx.Events.Subscribing;
 using CoreEx.Validation;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Azure.ServiceBus
@@ -21,17 +21,68 @@ namespace CoreEx.Azure.ServiceBus
     /// default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic logging with the correlation and
     /// message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically deadletter; otherwise, it will be
     /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
-    public class ServiceBusSubscriber : EventSubscriberBase
+    public class ServiceBusSubscriber : Events.EventSubscriberBase
     {
+        internal static ServiceBusSubscriberInvoker? _invoker;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceBusSubscriber"/> class.
         /// </summary>
-        /// <param name="eventSerializer">The <see cref="IEventSerializer"/>.</param>
         /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public ServiceBusSubscriber(IEventSerializer eventSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSubscriber> logger)
-            : base(eventSerializer, executionContext, settings, logger) { }
+        /// <param name="eventSubscriberInvoker">The optional <see cref="EventSubscriberInvoker"/>.</param>
+        /// <param name="serviceBusSubscriberInvoker">The optional <see cref="ServiceBus.ServiceBusSubscriberInvoker"/>.</param>
+        /// <param name="eventDataConverter">The optional <see cref="IEventDataConverter{ServiceBusReceivedMessage}"/>.</param>
+        /// <param name="eventSerializer">The optional <see cref="IEventSerializer"/>.</param>
+        public ServiceBusSubscriber(ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSubscriber> logger, EventSubscriberInvoker? eventSubscriberInvoker = null, ServiceBusSubscriberInvoker? serviceBusSubscriberInvoker = null, IEventDataConverter<ServiceBusReceivedMessage>? eventDataConverter = null, IEventSerializer? eventSerializer = null)
+            : base(eventDataConverter ?? new ServiceBusReceivedMessageEventDataConverter(eventSerializer ?? new CoreEx.Text.Json.EventDataSerializer()), executionContext, settings, logger, eventSubscriberInvoker)
+            => ServiceBusSubscriberInvoker = serviceBusSubscriberInvoker ?? (_invoker ??= new ServiceBusSubscriberInvoker());
+
+        /// <summary>
+        /// Gets the <see cref="ServiceBus.ServiceBusSubscriberInvoker"/>.
+        /// </summary>
+        protected ServiceBusSubscriberInvoker ServiceBusSubscriberInvoker { get; }
+
+        /// <summary>
+        /// Gets the <see cref="IEventDataConverter{ServiceBusReceivedMessage}"/>.
+        /// </summary>
+        protected new IEventDataConverter<ServiceBusReceivedMessage> EventDataConverter => (IEventDataConverter<ServiceBusReceivedMessage>)base.EventDataConverter;
+
+        /// <summary>
+        /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData"/> (with no value) for processing.
+        /// </summary>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
+        /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
+        /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, Task> function, Func<EventData, Task>? afterReceive = null, CancellationToken cancellationToken = default)
+        {
+            if (message == null)
+                throw new ArgumentNullException(nameof(message));
+
+            if (messageActions == null)
+                throw new ArgumentNullException(nameof(messageActions));
+
+            if (function == null)
+                throw new ArgumentNullException(nameof(function));
+
+            return ServiceBusSubscriberInvoker.InvokeAsync(this, async ct =>
+            {
+                // Deserialize the JSON into the selected type.
+                var @event = await DeserializeEventAsync(message, cancellationToken).ConfigureAwait(false);
+                if (@event is null)
+                    return;
+
+                if (afterReceive != null)
+                    await afterReceive(@event!).ConfigureAwait(false);
+
+                // Invoke the actual function logic.
+                await function(@event!).ConfigureAwait(false);
+
+            }, (message, messageActions), cancellationToken);
+        }
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData{T}"/> for processing.
@@ -43,8 +94,9 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
-        public async Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, Task> function, bool valueIsRequired = true, IValidator<TValue>? validator = null,
-            Func<EventData<TValue>, Task>? afterReceive = null)
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, Task> function, bool valueIsRequired = true, IValidator<TValue>? validator = null,
+            Func<EventData<TValue>, Task>? afterReceive = null, CancellationToken cancellationToken = default)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
@@ -55,26 +107,12 @@ namespace CoreEx.Azure.ServiceBus
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
-            if (!string.IsNullOrEmpty(message.CorrelationId))
-                ExecutionContext.CorrelationId = message.CorrelationId;
-
-            var scope = Logger.BeginScope(new Dictionary<string, object>()
+            return ServiceBusSubscriberInvoker.InvokeAsync(this, async ct =>
             {
-                { HttpConsts.CorrelationIdHeaderName, ExecutionContext.CorrelationId },
-                { "MessageId", message.MessageId }
-            });
-
-            try
-            {
-                Logger.LogDebug("Received Service Bus message '{Message}'.", message.MessageId);
-
                 // Deserialize the JSON into the selected type.
-                (var @event, var vex) = await DeserializeEventAsync<TValue>(message.Body, valueIsRequired, validator).ConfigureAwait(false);
-                if (vex != null)
-                {
-                    await DeadLetterExceptionAsync(message, messageActions, vex.ErrorType, vex).ConfigureAwait(false);
+                var @event = await DeserializeEventAsync(message, valueIsRequired, validator, cancellationToken).ConfigureAwait(false);
+                if (@event is null)
                     return;
-                }
 
                 if (afterReceive != null)
                     await afterReceive(@event!).ConfigureAwait(false);
@@ -82,44 +120,7 @@ namespace CoreEx.Azure.ServiceBus
                 // Invoke the actual function logic.
                 await function(@event!).ConfigureAwait(false);
 
-                // Everything is good, so complete the message.
-                await messageActions.CompleteMessageAsync(message).ConfigureAwait(false);
-                Logger.LogDebug("Completed Service Bus message '{Message}'.", message.MessageId);
-            }
-            catch (Exception ex)
-            {
-                if (ex is IExtendedException eex)
-                {
-                    if (eex.IsTransient)
-                    {
-                        // Do not abandon the message when transient, as there may be a Function Retry Policy configured; otherwise, it will eventaully be dead-lettered by the Azure Function runtime/fabric.
-                        Logger.LogWarning("{Reason} while processing message '{Message}'. Processing attempt {Count}", eex.ErrorType, message.MessageId, message.DeliveryCount);
-                        throw;
-                    }
-
-                    await DeadLetterExceptionAsync(message, messageActions, eex.ErrorType, ex).ConfigureAwait(false);
-                }
-                else
-                    await DeadLetterExceptionAsync(message, messageActions, ErrorType.UnhandledError.ToString(), ex).ConfigureAwait(false);
-            }
-            finally
-            {
-                scope.Dispose();
-            }
+            }, (message, messageActions), cancellationToken);
         }
-
-        /// <summary>
-        /// Performs the dead-lettering.
-        /// </summary>
-        private async Task DeadLetterExceptionAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, string errorReason, Exception ex)
-        {
-            Logger.LogError(ex, "{Reason} for Service Bus message '{Message}': {Error}", errorReason, message.MessageId, ex.Message);
-            await messageActions.DeadLetterMessageAsync(message, errorReason, ToDeadLetterReason(ex.ToString())).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Shortens the reason text to 4096 characters, which is the maximum allowed length for a dead letter reason.
-        /// </summary>
-        private static string? ToDeadLetterReason(string? reason) => reason?[..Math.Min(reason.Length, 4096)];
     }
 }

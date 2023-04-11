@@ -2,6 +2,7 @@
 
 using CoreEx.FluentValidation;
 using CoreEx.RefData;
+using FluentValidation.Validators;
 using System;
 
 namespace FluentValidation
@@ -52,6 +53,16 @@ namespace FluentValidation
 			=> ruleBuilder.SetValidator(new ReferenceDataValidator<T, TRef>());
 
         /// <summary>
+        /// Defines a mandatory (see <see cref="NotEmptyValidator{T, TProperty}"/>) validator to ensure that the value is not equal to its default value.
+        /// </summary>
+        /// <typeparam name="T">The owning object <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="ruleBuilder">The <paramref name="ruleBuilder"/> to enable the extension method.</param>
+        /// <returns>The <see cref="IRuleBuilderOptions{T, TProperty}"/> to support fluent-style method-chaining.</returns>
+        public static IRuleBuilderOptions<T, TProperty> Mandatory<T, TProperty>(this IRuleBuilder<T, TProperty> ruleBuilder)
+			=> ruleBuilder.SetValidator(new NotEmptyValidator<T,TProperty>());
+
+        /// <summary>
         /// Associates a validator provider with the current property rule where the property is nullable (and therefore optional).
         /// </summary>
         /// <typeparam name="T">The owning object <see cref="Type"/>.</typeparam>
@@ -63,13 +74,5 @@ namespace FluentValidation
         /// <remarks>Added as advised: <see href="https://github.com/FluentValidation/FluentValidation/issues/1320"/>.</remarks>
         public static IRuleBuilderOptions<T, TProperty> SetOptionalValidator<T, TProperty>(this IRuleBuilder<T, TProperty?> ruleBuilder, IValidator<TProperty> validator, params string[] ruleSets) where TProperty : class
             => ruleBuilder.SetValidator(validator!, ruleSets)!;
-
-        /// <summary>
-        /// Wraps the <i>FluentValidation</i> <see cref="IValidator{T}"/> to a <see cref="CoreEx.Validation.IValidator{T}"/> using a <see cref="ValidatorWrapper{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-        /// <param name="validator">The <i>FluentValidation</i> <see cref="IValidator{T}"/>.</param>
-        /// <returns>The <see cref="CoreEx.Validation.IValidator{T}"/>.</returns>
-        public static CoreEx.Validation.IValidator<T> Wrap<T>(this IValidator<T> validator) => new ValidatorWrapper<T>(validator);
     }
 }
