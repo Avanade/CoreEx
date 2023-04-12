@@ -19,7 +19,8 @@ namespace CoreEx.Azure.ServiceBus
     /// <remarks>The <c>ReceiveAsync</c> enables the standardized logic. The correlation identifier is set using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a <see cref="Guid.NewGuid"/> will be used as the 
     /// default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic logging with the correlation and
     /// message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically deadletter; otherwise, it will be
-    /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
+    /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.
+    /// <para>The <see cref="ServiceBusSubscriber.UpdateEventDataWithServiceBusMessage(EventData, ServiceBusReceivedMessage, ServiceBusMessageActions)"/> is invoked after each <see cref="EventData"/> deserialization.</para></remarks>
     public class ServiceBusOrchestratedSubscriber : EventSubscriberBase
     {
         /// <summary>
@@ -76,6 +77,8 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
+                ServiceBusSubscriber.UpdateEventDataWithServiceBusMessage(@event, message, messageActions);
+
                 // Match subscriber to metadata.
                 if (!Orchestrator.TryMatchSubscriber(this, @event, out var subscriber, out var valueType))
                     return;
@@ -86,6 +89,8 @@ namespace CoreEx.Azure.ServiceBus
                     @event = await DeserializeEventAsync(message, valueType, cancellationToken).ConfigureAwait(false);
                     if (@event is null)
                         return;
+
+                    ServiceBusSubscriber.UpdateEventDataWithServiceBusMessage(@event, message, messageActions);
                 }
 
                 // Execute subscriber receive with the event.

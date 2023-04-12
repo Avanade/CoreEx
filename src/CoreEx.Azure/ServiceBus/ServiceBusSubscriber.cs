@@ -20,9 +20,20 @@ namespace CoreEx.Azure.ServiceBus
     /// <remarks>The <c>ReceiveAsync</c> enables the standardized logic. The correlation identifier is set using the <see cref="ServiceBusReceivedMessage.CorrelationId"/>; where <c>null</c> a <see cref="Guid.NewGuid"/> will be used as the 
     /// default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic logging with the correlation and
     /// message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically deadletter; otherwise, it will be
-    /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.</remarks>
+    /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.
+    /// <para>The <see cref="UpdateEventDataWithServiceBusMessage(EventData, ServiceBusReceivedMessage, ServiceBusMessageActions)"/> is invoked after each <see cref="EventData"/> deserialization.</para></remarks>
     public class ServiceBusSubscriber : Events.EventSubscriberBase
     {
+        /// <summary>
+        /// Gets the <see cref="EventDataBase.Internal"/> name to access the <see cref="ServiceBusMessage"/>.
+        /// </summary>
+        public const string ServiceBusReceivedMessageName = "_ServiceBusReceivedMessage";
+
+        /// <summary>
+        /// Gets the <see cref="EventDataBase.Internal"/> name to access the <see cref="ServiceBusMessageActions"/>.
+        /// </summary>
+        public const string ServiceBusMessageActionsName = "ServiceBusMessageActions";
+
         internal static ServiceBusSubscriberInvoker? _invoker;
 
         /// <summary>
@@ -75,6 +86,7 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
+                UpdateEventDataWithServiceBusMessage(@event, message, messageActions);
                 if (afterReceive != null)
                     await afterReceive(@event!).ConfigureAwait(false);
 
@@ -114,6 +126,7 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
+                UpdateEventDataWithServiceBusMessage(@event, message, messageActions);
                 if (afterReceive != null)
                     await afterReceive(@event!).ConfigureAwait(false);
 
@@ -121,6 +134,20 @@ namespace CoreEx.Azure.ServiceBus
                 await function(@event!).ConfigureAwait(false);
 
             }, (message, messageActions), cancellationToken);
+        }
+
+        /// <summary>
+        /// Updates the <paramref name="event"/> <see cref="EventDataBase.Internal"/> dictionary with the corresponding <paramref name="message"/> and <paramref name="messageActions"/>.
+        /// </summary>
+        /// <param name="event">The <see cref="EventData"/>.</param>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
+        /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <remarks>This will allow access to these valyes from within the event processing logic and is intended for advanced scenarios only; care should be taken to not perform an action that would result in the underlying host to fail
+        /// unexpectantly.</remarks>
+        public static void UpdateEventDataWithServiceBusMessage(EventData @event, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
+        {
+            (@event ?? throw new ArgumentNullException(nameof(@event))).Internal.Add(ServiceBusReceivedMessageName, message ?? throw new ArgumentNullException(nameof(message)));
+            @event.Internal.Add(ServiceBusMessageActionsName, messageActions ?? throw new ArgumentNullException(nameof(messageActions)));
         }
     }
 }
