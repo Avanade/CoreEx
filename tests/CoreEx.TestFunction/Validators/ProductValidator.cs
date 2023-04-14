@@ -10,7 +10,7 @@ namespace CoreEx.TestFunction.Validators
         {
             RuleFor(x => x.Id).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().Length(0, 100);
-            RuleFor(x => x.Price).NotEmpty().ScalePrecision(2, 10).GreaterThan(0).Custom((v, ctx) =>
+            RuleFor(x => x.Price).NotEmpty().PrecisionScale(10, 2, true).GreaterThan(0).Custom((v, ctx) =>
             {
                 if (ctx.InstanceToValidate.Name == "Widget" && v >= 100)
                     ctx.AddFailure($"'{ctx.DisplayName}' must be less than $100.00 for a 'Widget'.");
