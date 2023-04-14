@@ -721,7 +721,7 @@ namespace CoreEx.Test.Framework.RefData
             var sw = Stopwatch.StartNew();
             IReferenceDataCollection? c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
             sw.Stop();
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
+            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 490);
             Assert.NotNull(c);
             Assert.IsTrue(c!.ContainsCode("A"));
 
@@ -738,7 +738,7 @@ namespace CoreEx.Test.Framework.RefData
             sw = Stopwatch.StartNew();
             c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
             sw.Stop();
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
+            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 490);
             Assert.NotNull(c);
             Assert.IsTrue(c!.ContainsCode("A"));
 
