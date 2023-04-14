@@ -26,11 +26,8 @@ namespace CoreEx.Http
         /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
         /// <param name="onBeforeRequest">The optional <see cref="TypedHttpClientBase{TSelf}.OnBeforeRequest(HttpRequestMessage, CancellationToken)"/> function. Defaults to <c>null</c>.</param>
         /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
-        public TypedHttpClient(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClient>? logger = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) : base(client,
-            jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? Json.JsonSerializer.Default,
-            executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext()),
-            settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings(),
-            logger ?? ExecutionContext.GetService<ILogger<TypedHttpClient>>() ?? NullLoggerFactory.Instance.CreateLogger<TypedHttpClient>()) 
+        public TypedHttpClient(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClient>? logger = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) 
+            : base(client, jsonSerializer, executionContext, settings, logger) 
             => DefaultOptions.OnBeforeRequest(onBeforeRequest);
     }
 }

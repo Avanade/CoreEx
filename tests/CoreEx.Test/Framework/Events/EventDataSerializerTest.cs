@@ -53,6 +53,9 @@ namespace CoreEx.Test.Framework.Events
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
 
+            ed2 = (EventData<Product>)await es.DeserializeAsync(bd, typeof(Product)).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2);
+
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
             Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());

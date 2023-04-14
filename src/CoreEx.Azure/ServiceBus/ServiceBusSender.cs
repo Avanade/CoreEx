@@ -3,23 +3,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using CoreEx.Configuration;
 using CoreEx.Events;
+using CoreEx.Mapping.Converters;
 using Microsoft.Extensions.Logging;
 
 namespace CoreEx.Azure.ServiceBus
 {
     /// <summary>
-    /// Represents an Azure <see cref="ServiceBusClient"/> <see cref="IEventSender"/>.
+    /// Represents an Azure <see cref="ServiceBusClient"/> <see cref="IServiceBusSender"/> (see also <seealso cref="IEventSender"/>).
     /// </summary>
-    /// <remarks>See <see cref="OnServiceBusMessage(EventSendData, ServiceBusMessage)"/> for details of automatic <see cref="ServiceBusMessage.SessionId"/> and <see cref="ServiceBusMessage.TimeToLive"/> allocation.
+    /// <remarks>See <see cref="EventSendDataToServiceBusConverter"/> for details of automatic <see cref="ServiceBusMessage.SessionId"/> and <see cref="ServiceBusMessage.TimeToLive"/> allocation.
     /// <para>Note, that any <see cref="EventDataBase.Attributes"/> where the <see cref="KeyValuePair{TKey, TValue}.Key"/> starts with an underscore character ('<c>_</c>') will <i>not</i> be included in the <see cref="ServiceBusMessage.ApplicationProperties"/>.</para></remarks>
-    public class ServiceBusSender : IEventSender
+    public class ServiceBusSender : IServiceBusSender
     {
+        private const string _unspecifiedQueueOrTopicName = "$default";
         private static ServiceBusSenderInvoker? _invoker;
         private readonly ServiceBusClient _client;
 
@@ -31,13 +32,15 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <param name="invoker">The optional <see cref="ServiceBusSenderInvoker"/>.</param>
-        public ServiceBusSender(ServiceBusClient client, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSender> logger, ServiceBusSenderInvoker? invoker = null)
+        /// <param name="converter">The optional <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.</param>
+        public ServiceBusSender(ServiceBusClient client, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSender> logger, ServiceBusSenderInvoker? invoker = null, IValueConverter<EventSendData, ServiceBusMessage>? converter = null)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client), "Verify dependency injection configuration and if service bus connection string for publisher was correctly defined.");
             ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Invoker = invoker ?? (_invoker ??= new ServiceBusSenderInvoker());
+            Converter = converter ?? new EventSendDataToServiceBusConverter();
         }
 
         /// <summary>
@@ -61,32 +64,14 @@ namespace CoreEx.Azure.ServiceBus
         protected ExecutionContext ExecutionContext { get; }
 
         /// <summary>
+        /// Gets the <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.
+        /// </summary>
+        protected IValueConverter<EventSendData, ServiceBusMessage> Converter { get; }
+
+        /// <summary>
         /// Gets or sets the default queue or topic name used by <see cref="SendAsync(IEnumerable{EventSendData}, CancellationToken)"/> where <see cref="EventSendData.Destination"/> is <c>null</c>.
         /// </summary>
         public string? DefaultQueueOrTopicName { get; set; }
-
-        /// <summary>
-        /// Gets or sets the <see cref="EventSendData"/> property selection; where a property is selected it will be sent as one of the <see cref="ServiceBusMessage.ApplicationProperties"/>.
-        /// </summary>
-        /// <remarks>Defaults to <see cref="EventDataProperty.All"/>.</remarks>
-        public EventDataProperty PropertySelection { get; set; } = EventDataProperty.All;
-
-        /// <summary>
-        /// Gets or sets the <see cref="EventDataBase.Attributes"/> name for the <see cref="ServiceBusMessage.SessionId"/>.
-        /// </summary>
-        /// <remarks>Defaults to '<c>_SessionId</c>'.</remarks>
-        public string SessionIdAttributeName { get; set; } = $"_{nameof(ServiceBusMessage.SessionId)}";
-
-        /// <summary>
-        /// Gets or sets the <see cref="EventDataBase.Attributes"/> name for the <see cref="ServiceBusMessage.TimeToLive"/>.
-        /// </summary>
-        /// <remarks>Defaults to '<c>_TimeToLive</c>'.</remarks>
-        public string TimeToLiveAttributeName { get; set; } = $"_{nameof(ServiceBusMessage.TimeToLive)}";
-
-        /// <summary>
-        /// Indicates whether to use the <see cref="EventDataBase.PartitionKey"/> as the <see cref="ServiceBusMessage.SessionId"/>.
-        /// </summary>
-        public bool UsePartitionKeyAsSessionId { get; set; } = true;
 
         /// <inheritdoc/>
         public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
@@ -110,53 +95,15 @@ namespace CoreEx.Azure.ServiceBus
                 var index = 0;
                 foreach (var @event in events)
                 {
-                    var msg = new ServiceBusMessage(@event.Data)
-                    {
-                        MessageId = @event.Id,
-                        ContentType = MediaTypeNames.Application.Json,
-                        CorrelationId = @event.CorrelationId ?? ExecutionContext.CorrelationId,
-                        Subject = @event.Subject
-                    };
+                    var message = Converter.Convert(@event) ?? throw new EventSendException($"The {nameof(Converter)} must return a {nameof(ServiceBusMessage)} instance.");
+                    var name = @event.Destination ?? DefaultQueueOrTopicName ?? _unspecifiedQueueOrTopicName;
 
-                    if (@event.Action != null && PropertySelection.HasFlag(EventDataProperty.Action))
-                        msg.ApplicationProperties.Add(nameof(EventData.Action), @event.Action);
-
-                    if (@event.Source != null && PropertySelection.HasFlag(EventDataProperty.Source))
-                        msg.ApplicationProperties.Add(nameof(EventData.Source), @event.Source.ToString());
-
-                    if (@event.Type != null && PropertySelection.HasFlag(EventDataProperty.Type))
-                        msg.ApplicationProperties.Add(nameof(EventData.Type), @event.Type);
-
-                    if (@event.TenantId != null && PropertySelection.HasFlag(EventDataProperty.TenantId))
-                        msg.ApplicationProperties.Add(nameof(EventData.TenantId), @event.TenantId);
-
-                    if (@event.PartitionKey != null && PropertySelection.HasFlag(EventDataProperty.PartitionKey))
-                        msg.ApplicationProperties.Add(nameof(EventData.PartitionKey), @event.PartitionKey);
-
-                    if (@event.ETag != null && PropertySelection.HasFlag(EventDataProperty.ETag))
-                        msg.ApplicationProperties.Add(nameof(EventData.ETag), @event.ETag);
-
-                    if (@event.Key != null && PropertySelection.HasFlag(EventDataProperty.Key))
-                        msg.ApplicationProperties.Add(nameof(EventData.Key), @event.Key);
-
-                    if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
-                    {
-                        // Attrtibutes that start with an underscore are considered internal and will not be sent automatically; i.e. _SessionId and _TimeToLive.
-                        foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith("_")))
-                        {
-                            msg.ApplicationProperties.Add(attribute.Key, attribute.Value);
-                        }
-                    }
-
-                    OnServiceBusMessage(@event, msg);
-
-                    var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new EventSendException(PrependStats($"{nameof(DefaultQueueOrTopicName)} must have a non null value.", totalCount, unsentEvents.Count), unsentEvents);
                     if (queueDict.TryGetValue(name, out var queue))
-                        queue.Enqueue((msg, index++));
+                        queue.Enqueue((message, index++));
                     else
                     {
                         queue = new Queue<(ServiceBusMessage, int)>();
-                        queue.Enqueue((msg, index++));
+                        queue.Enqueue((message, index++));
                         queueDict.Add(name, queue);
                     }
                 }
@@ -166,7 +113,9 @@ namespace CoreEx.Azure.ServiceBus
                 // Get queue name by checking configuration override.
                 foreach (var qitem in queueDict)
                 {
-                    var qn = Settings.GetValue($"Publisher_ServiceBusName_{qitem.Key}", defaultValue: qitem.Key);
+                    var n = qitem.Key == _unspecifiedQueueOrTopicName ? null : qitem.Key;
+                    var key = $"{GetType().Name}_QueueOrTopicName{(n is null ? "" : $"_{n}")}";
+                    var qn = Settings.GetValue($"{GetType().Name}:QueueOrTopicName{(n is null ? "" : $"_{n}")}", defaultValue: n) ?? throw new EventSendException(PrependStats("'{key}' configuration setting must have a non-null value.", totalCount, unsentEvents.Count), unsentEvents);
                     var queue = qitem.Value;
                     var sentIds = new List<string>();
 
@@ -216,27 +165,5 @@ namespace CoreEx.Azure.ServiceBus
         /// Prepend the sent stats to the message.
         /// </summary>
         private static string PrependStats(string message, int totalCount, int unsentCount) => $"{unsentCount} of the total {totalCount} events were not successfully sent. {message}";
-
-        /// <summary>
-        /// Invoked to modify the <see cref="ServiceBusMessage"/> configuration prior to send.
-        /// </summary>
-        /// <param name="event">The <see cref="EventSendData"/>.</param>
-        /// <param name="message">The <see cref="ServiceBusMessage"/>.</param>
-        /// <remarks>By default the <see cref="SessionIdAttributeName"/> will be used to update the <see cref="ServiceBusMessage.SessionId"/> from the <see cref="EventDataBase.Attributes"/>, followed by the
-        /// <see cref="UsePartitionKeyAsSessionId"/> option, until not <c>null</c>; otherwise, will be left as <c>null</c>.
-        /// <para>Similarily, the <see cref="TimeToLiveAttributeName"/> will be used to update the <see cref="ServiceBusMessage.TimeToLive"/> from the <see cref="EventDataBase.Attributes"/>.</para></remarks>
-        protected virtual void OnServiceBusMessage(EventSendData @event, ServiceBusMessage message)
-        {
-            if (message.SessionId == null)
-            {
-                if (@event.Attributes != null && @event.Attributes.TryGetValue(SessionIdAttributeName, out var sessionId))
-                    message.SessionId = sessionId;
-                else
-                    message.SessionId = UsePartitionKeyAsSessionId ? @event.PartitionKey : null;
-            }
-
-            if (@event.Attributes != null && @event.Attributes.TryGetValue(TimeToLiveAttributeName, out var ttl) && TimeSpan.TryParse(ttl, out var timeToLive))
-                message.TimeToLive = timeToLive;
-        }
     }
 }

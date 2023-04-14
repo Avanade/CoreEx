@@ -45,17 +45,18 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData();
             var ef = new EventDataFormatter { TypeDefaultToValueTypeName = false };
             ef.Format(ed);
-            Assert.IsNull(ed.Type);
+            Assert.AreEqual(null, ed.Type);
 
+            ed = new EventData();
             ef.TypeDefaultToValueTypeName = true;
             ef.Format(ed);
-            Assert.IsNull(ed.Type);
+            Assert.AreEqual("none", ed.Type);
 
-            ed.Value = new Product();
+            ed = new EventData { Value = new Product() };
             ef.Format(ed);
             Assert.AreEqual("coreex.testfunction.models.product", ed.Type);
 
-            ed.Type = null;
+            ed = new EventData { Value = new Product() };
             ef.TypeSeparatorCharacter = '/';
             ef.Format(ed);
             Assert.AreEqual("coreex/testfunction/models/product", ed.Type);

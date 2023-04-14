@@ -4,6 +4,8 @@ using CoreEx.TestFunction.Services;
 using CoreEx.WebApis;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using CoreEx.Events.Subscribing;
+using CoreEx.TestFunction.Subscribers;
 
 [assembly: FunctionsStartup(typeof(CoreEx.TestFunction.Startup))]
 
@@ -34,6 +36,12 @@ namespace CoreEx.TestFunction
                 .AddJsonMergePatch()
                 .AddScoped<WebApiPublisher, WebApiPublisher>()
                 .AddScoped<ServiceBusSubscriber>();
+
+            // Register orchestrated.
+            builder.Services
+                .AddEventSubscribers<NoValueSubscriber>()
+                .AddEventSubscriberOrchestrator((_, eso) => eso.AddSubscribers(EventSubscriberOrchestrator.GetSubscribers<NoValueSubscriber>()))
+                .AddAzureServiceBusOrchestratedSubscriber();
 
             // Register the health checks.
             builder.Services

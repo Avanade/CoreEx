@@ -81,15 +81,17 @@ namespace CoreEx.Abstractions.Reflection
         /// <summary>
         /// Gets or sets the underlying logic to perform the sentence case conversion.
         /// </summary>
-        /// <remarks>Defaults to the following: Initial word splitting is performed using the <see cref="SentenceCaseWordSplitPattern"/> <see cref="Regex"/>. First letter is always capitalized, initial full text is tested (and replaced where matched) 
-        /// against <see cref="SentenceCaseSubstitutions"/>, then each word is tested (and replaced where matched) against <see cref="SentenceCaseSubstitutions"/>. Finally, the last word in the initial text is tested against
-        /// <see cref="SentenceCaseLastWordRemovals"/> and where matched the final word will be removed.</remarks>
+        /// <remarks>Defaults to <see cref="SentenceCaseConversion(string?)"/>.</remarks>
         public static Func<string?, string?>? SentenceCaseConverter { get; set; } = SentenceCaseConversion;
 
         /// <summary>
-        /// Performs the sentence case conversion.
+        /// Performs the out-of-the-box sentence case conversion.
         /// </summary>
-        private static string? SentenceCaseConversion(string? text)
+        /// <param name="text">The text.</param>
+        /// <remarks>Defaults to the following: Initial word splitting is performed using the <see cref="SentenceCaseWordSplitPattern"/> <see cref="Regex"/>. First letter is always capitalized, initial full text is tested (and replaced where matched) 
+        /// against <see cref="SentenceCaseSubstitutions"/>, then each word is tested (and replaced where matched) against <see cref="SentenceCaseSubstitutions"/>. Finally, the last word in the initial text is tested against
+        /// <see cref="SentenceCaseLastWordRemovals"/> and where matched the final word will be removed.</remarks>
+        public static string? SentenceCaseConversion(string? text)
         {
             if (string.IsNullOrEmpty(text))
                 return text;

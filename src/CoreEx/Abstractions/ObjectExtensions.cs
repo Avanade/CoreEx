@@ -34,7 +34,7 @@ namespace CoreEx
         /// <returns>The <see cref="string"/> as sentence case.</returns>
         /// <remarks>For example a value of '<c>VarNameDB</c>' would return '<c>Var Name DB</c>'.
         /// <para>Uses the <see cref="PropertyExpression.SentenceCaseConverter"/> function to perform the conversion.</para></remarks>
-        [return: NotNullIfNotNull("text")]
+        [return: NotNullIfNotNull(nameof(text))]
         public static string? ToSentenceCase(this string? text) => PropertyExpression.ToSentenceCase(text);
     }
 }

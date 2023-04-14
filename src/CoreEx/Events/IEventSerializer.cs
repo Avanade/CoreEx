@@ -12,6 +12,11 @@ namespace CoreEx.Events
     public interface IEventSerializer
     {
         /// <summary>
+        /// Gets the <see cref="Events.EventDataFormatter"/>.
+        /// </summary>
+        EventDataFormatter EventDataFormatter { get; }
+
+        /// <summary>
         /// Serializes the <see cref="EventData"/> to a <see cref="BinaryData"/>.
         /// </summary>
         /// <param name="event">The <see cref="EventData"/>.</param>
@@ -44,5 +49,14 @@ namespace CoreEx.Events
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="EventData{T}"/>.</returns>
         Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deserializes the <see cref="BinaryData"/> to a specified <see cref="EventData"/> <see cref="Type"/>.
+        /// </summary>
+        /// <param name="eventData">The event <see cref="BinaryData"/>.</param>
+        /// <param name="valueType">The <see cref="EventData.Value"/> <see cref="Type"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="EventData"/>.</returns>
+        Task<EventData> DeserializeAsync(BinaryData eventData, Type valueType, CancellationToken cancellationToken = default);
     }
 }

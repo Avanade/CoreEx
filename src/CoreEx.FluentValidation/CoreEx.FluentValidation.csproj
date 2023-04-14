@@ -10,13 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="10.4.0" />
+    <PackageReference Include="FluentValidation" Version="11.5.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 
-  <Import Project="..\..\Common.targets"/>
+  <Import Project="..\..\Common.targets" />
 
 </Project>

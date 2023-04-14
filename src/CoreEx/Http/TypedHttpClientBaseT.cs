@@ -16,6 +16,7 @@ using CoreEx.Configuration;
 using CoreEx.Http.Extended;
 using CoreEx.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Polly;
 using Polly.Extensions.Http;
 
@@ -42,16 +43,16 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="TypedHttpClientBase{TSelf}"/>.
         /// </summary>
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public TypedHttpClientBase(HttpClient client, IJsonSerializer jsonSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<TypedHttpClientBase<TSelf>> logger) : base(client, jsonSerializer)
+        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
+        /// <param name="executionContext">The optional <see cref="CoreEx.ExecutionContext"/>. Defaults to a new instance.</param>
+        /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
+        /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
+        public TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClientBase<TSelf>>? logger = null) : base(client, jsonSerializer)
         {
-            ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
-            Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            RequestLogger = HttpRequestLogger.Create(settings, logger);
+            ExecutionContext = executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext());
+            Settings = settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings();
+            Logger = logger ?? ExecutionContext.GetService<ILogger<TypedHttpClientBase<TSelf>>>() ?? NullLoggerFactory.Instance.CreateLogger<TypedHttpClientBase<TSelf>>();
+            RequestLogger = HttpRequestLogger.Create(Settings, Logger);
             OnDefaultOptionsConfiguration?.Invoke(DefaultOptions);
         }
 

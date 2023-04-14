@@ -17,6 +17,9 @@ namespace CoreEx.Database.SqlServer.Outbox
     /// <summary>
     /// Provides the base <see cref="EventSendData"/> <see cref="IDatabase">database</see> <i>outbox dequeue</i> and corresponding <see cref="IEventSender.SendAsync(IEnumerable{EventSendData}, CancellationToken)"/>.
     /// </summary>
+    /// <remarks>The <see cref="EventDataBase.Id"/> (being the unique event identifier) can be leveraged by the underlying messaging platform to perform duplicate checking. There is no guarantee that a dequeued event is <i>on</i> published more
+    /// than once, the guarantee is at best <i>at-least</i> once semantics based on the implementation of the final <see cref="IEventSender"/>.
+    /// </remarks>
     public abstract class EventOutboxDequeueBase : IDatabaseMapper<EventSendData>
     {
         /// <summary>
@@ -83,16 +86,15 @@ namespace CoreEx.Database.SqlServer.Outbox
             Stopwatch sw;
             maxDequeueSize = maxDequeueSize > 0 ? maxDequeueSize : 1;
 
-            // Keep executing until unsuccessful or reached end of event outbox stream.
-            while (true)
+            // Where a cancel has been requested then this is a convenient time to do it.
+            if (cancellationToken.IsCancellationRequested)
+                return 0;
+
+            // Manage a transaction to ensure that the dequeue only commits after successful publish.
+            var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+
+            try
             {
-                // Where a cancel has been requested then this is a convenient time to do it.
-                if (cancellationToken.IsCancellationRequested)
-                    return 0;
-
-                // Manage a transaction to ensure that the dequeue only commits after successful publish.
-                using var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
-
                 // Dequeue the events; where there are none to send, then simply exit and try again later.
                 Logger.LogTrace("Dequeue events. [MaxDequeueSize={MaxDequeueSize}, PartitionKey={PartitionKey}, Destination={Destination}]", maxDequeueSize, partitionKey, destination);
 
@@ -117,6 +119,10 @@ namespace CoreEx.Database.SqlServer.Outbox
                 // Commit the transaction.
                 txn.Complete();
                 return events.Count();
+            }
+            finally
+            {
+                txn?.Dispose();
             }
         }
 

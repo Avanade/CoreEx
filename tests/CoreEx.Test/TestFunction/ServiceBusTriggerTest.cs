@@ -1,16 +1,16 @@
-﻿using NUnit.Framework;
-using UnitTestEx.NUnit;
+﻿using CoreEx.Abstractions;
+using CoreEx.Events;
+using CoreEx.Events.Subscribing;
+using CoreEx.Json;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Functions;
-using Moq;
-using Microsoft.Azure.WebJobs.ServiceBus;
-using CoreEx.Abstractions;
 using CoreEx.TestFunction.Models;
-using System.Net.Http;
+using Microsoft.Azure.WebJobs.ServiceBus;
+using Moq;
+using NUnit.Framework;
 using System.Net;
-using UnitTestEx;
-using CoreEx.Json;
-using CoreEx.Events;
+using System.Net.Http;
+using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.TestFunction
 {
@@ -43,7 +43,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, EventSubscriberExceptionSource.EventDataDeserialization.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -61,7 +61,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, EventSubscriberExceptionSource.EventDataDeserialization.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -112,7 +112,7 @@ namespace CoreEx.Test.TestFunction
             test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
-                .AssertException<TransientException>();
+                .AssertException<EventSubscriberException>("Response status code was InternalServerError >= 500.");
 
             mc.Verify();
             actionsMock.VerifyNoOtherCalls();

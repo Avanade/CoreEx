@@ -9,7 +9,7 @@ using FV = FluentValidation;
 namespace CoreEx.FluentValidation
 {
     /// <summary>
-    /// Represents an <see cref="FV.IValidator{T}"/> wrapper to enable <i>CoreEx</i> <see cref="IValidator{T}"/>.
+    /// Represents an <see cref="FV.IValidator{T}"/> wrapper to enable <i>CoreEx</i> <see cref="IValidator{T}"/> interoperability.
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
     public sealed class ValidatorWrapper<T> : IValidator<T>

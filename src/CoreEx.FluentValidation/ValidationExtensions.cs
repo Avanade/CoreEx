@@ -44,7 +44,7 @@ namespace CoreEx.FluentValidation
         }
 
         /// <summary>
-        /// Wraps the <i>FluentValidation</i> <see cref="FV.IValidator{T}"/> to a <see cref="CoreEx.Validation.IValidator{T}"/> using a <see cref="ValidatorWrapper{T}"/>.
+        /// Wraps the <i>FluentValidation</i> <see cref="FV.IValidator{T}"/> to a <see cref="CoreEx.Validation.IValidator{T}"/> using a <see cref="ValidatorWrapper{T}"/> to enable interoperability.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="validator">The <i>FluentValidation</i> <see cref="FV.IValidator{T}"/>.</param>

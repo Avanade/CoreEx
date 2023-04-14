@@ -5,6 +5,7 @@ using CoreEx.Caching;
 using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Events;
+using CoreEx.Events.Subscribing;
 using CoreEx.Hosting;
 using CoreEx.Http;
 using CoreEx.Json;
@@ -13,6 +14,7 @@ using CoreEx.Mapping;
 using CoreEx.RefData;
 using CoreEx.WebApis;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
@@ -183,6 +185,36 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddEventSender<TEventSender>(this IServiceCollection services) where TEventSender : class, IEventSender => CheckServices(services).AddScoped<IEventSender, TEventSender>();
+
+        /// <summary>
+        /// Adds the <see cref="EventSubscriberOrchestrator"/> as a singleton service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="EventSubscriberOrchestrator"/> to be further configured.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddEventSubscriberOrchestrator(this IServiceCollection services, Action<IServiceProvider, EventSubscriberOrchestrator>? configure = null) => CheckServices(services).AddSingleton(sp =>
+        {
+            var eso = new EventSubscriberOrchestrator(sp);
+            configure?.Invoke(sp, eso);
+            return eso;
+        });
+
+        /// <summary>
+        /// Adds all the <see cref="SubscriberBase"/> types for a given <typeparamref name="TAssembly"/> that have at least one <see cref="EventSubscriberAttribute"/> (see also <seealso cref="EventSubscriberOrchestrator.GetSubscribers{TAssembly}(bool)"/>) as scoped services.
+        /// </summary>
+        /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="includeInternalTypes">Indicates whether to include internally defined types.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddEventSubscribers<TAssembly>(this IServiceCollection services, bool includeInternalTypes = false)
+        {
+            foreach (var type in EventSubscriberOrchestrator.GetSubscribers<TAssembly>(includeInternalTypes))
+            {
+                CheckServices(services).TryAddScoped(type);
+            }
+
+            return services;
+        }
 
         /// <summary>
         /// Adds the <see cref="CoreEx.Text.Json.JsonSerializer"/> as the <see cref="IJsonSerializer"/> and <see cref="CoreEx.Text.Json.ReferenceDataContentJsonSerializer"/> as the <see cref="IReferenceDataContentJsonSerializer"/> singleton services.

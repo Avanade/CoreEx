@@ -149,7 +149,7 @@ namespace CoreEx.Events
         }
 
         /// <summary>
-        /// Gets the internal properties se; note that these are for internal storage pre-publishing and sending; and therefore are not automatically published.
+        /// Gets the internal properties; note that these are for internal storage pre-publishing and sending; and therefore are not automatically published.
         /// </summary>
         /// <remarks>It is recommened to use the <see cref="Attributes"/> for the purposes of publishing and sending of additional data.</remarks>
         [JsonIgnore()]

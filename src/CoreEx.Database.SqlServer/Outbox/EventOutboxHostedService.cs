@@ -5,6 +5,7 @@ using CoreEx.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,21 +15,21 @@ namespace CoreEx.Database.SqlServer.Outbox
     /// Provides the <see cref="EventOutboxDequeueBase"/> dequeue and publish (<see cref="SynchronizedTimerHostedServiceBase{TSync}"/>) capabilities.
     /// </summary>
     /// <remarks>This will instantiate an <see cref="EventOutboxDequeueBase"/> using the underlying <see cref="ServiceProvider"/> and invoke <see cref="EventOutboxDequeueBase.DequeueAndSendAsync(int, string?, string?, CancellationToken)"/>.</remarks>
-    public sealed class EventOutboxHostedService : SynchronizedTimerHostedServiceBase<EventOutboxHostedService>
+    public class EventOutboxHostedService : SynchronizedTimerHostedServiceBase<EventOutboxHostedService>
     {
         private TimeSpan? _interval;
         private int? _maxQuerySize;
         private string? _name;
 
         /// <summary>
-        /// Get or sets the configuration name for <see cref="Interval"/>. Defaults to '<c>OutboxInterval</c>'.
+        /// Get or sets the configuration name for <see cref="Interval"/>. Defaults to '<c>Interval</c>'.
         /// </summary>
-        public string IntervalName { get; set; } = "OutboxInterval";
+        public string IntervalName { get; set; } = "Interval";
 
         /// <summary>
-        /// Gets or sets the configuration name for <see cref="MaxDequeueSize"/>. Defaults to '<c>OutboxMaxDequeueSize</c>'.
+        /// Gets or sets the configuration name for <see cref="MaxDequeueSize"/>. Defaults to '<c>MaxDequeueSize</c>'.
         /// </summary>
-        public string MaxDequeueSizeName { get; set; } = "OutboxMaxDequeueSize";
+        public string MaxDequeueSizeName { get; set; } = "MaxDequeueSize";
 
         /// <summary>
         /// Gets or sets the default interval seconds used where the specified <see cref="Interval"/> is not configured/specified. Defaults to <b>thirty</b> seconds.
@@ -50,8 +51,20 @@ namespace CoreEx.Database.SqlServer.Outbox
             PartitionKey = partitionKey;
             Destination = destination;
 
-            if (partitionKey != null || destination != null)
-                SynchronizationName = $"PartitionKey-{partitionKey ?? string.Empty}-Destination-{destination ?? string.Empty}";
+            // Build the synchronization name.
+            var sb = new StringBuilder();
+            if (partitionKey != null)
+                sb.Append($"PartitionKey-{partitionKey}");
+
+            if (destination != null)
+            {
+                if (sb.Length > 0)
+                    sb.Append('-');
+
+                SynchronizationName = $"Destination-{destination}";
+            }
+
+            SynchronizationName = sb.Length > 0 ? sb.ToString() : null;
         }
 
         /// <summary>
@@ -75,7 +88,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <remarks>Will default to <see cref="SettingsBase"/> configuration, a) <see cref="TimerHostedServiceBase.ServiceName"/> : <see cref="IntervalName"/>, then b) <see cref="IntervalName"/>, where specified; otherwise, <see cref="DefaultInterval"/>.</remarks>
         public override TimeSpan Interval
         {
-            get => _interval ?? Settings.GetValue<TimeSpan?>($"{ServiceName}:{IntervalName}") ?? Settings.GetValue<TimeSpan?>(IntervalName) ?? DefaultInterval;
+            get => _interval ?? Settings.GetValue<TimeSpan?>($"{ServiceName}:{IntervalName}".Replace(".", "_")) ?? Settings.GetValue<TimeSpan?>(IntervalName.Replace(".", "_")) ?? DefaultInterval;
             set => _interval = value;
         }
 
@@ -85,7 +98,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <remarks>Will default to <see cref="SettingsBase"/> configuration, a) <see cref="TimerHostedServiceBase.ServiceName"/> : <see cref="MaxDequeueSizeName"/>, then b) <see cref="MaxDequeueSizeName"/>, where specified; otherwise, 10.</remarks>
         public int MaxDequeueSize
         {
-            get => _maxQuerySize ?? Settings.GetValue<int?>($"{ServiceName}:{MaxDequeueSizeName}") ?? Settings.GetValue<int?>(MaxDequeueSizeName) ?? 10;
+            get => _maxQuerySize ?? Settings.GetValue<int?>($"{ServiceName}:{MaxDequeueSizeName}".Replace(".", "_")) ?? Settings.GetValue<int?>(MaxDequeueSizeName.Replace(".", "_")) ?? 10;
             set => _maxQuerySize = value;
         }
 
@@ -104,11 +117,18 @@ namespace CoreEx.Database.SqlServer.Outbox
             if (EventOutboxDequeueFactory == null)
                 throw new NotImplementedException($"The {nameof(EventOutboxDequeueFactory)} property must be configured to create an instance of the {nameof(EventOutboxDequeueBase)}.");
 
-            var eod = EventOutboxDequeueFactory(scopedServiceProvider) ?? throw new InvalidOperationException($"The {nameof(EventOutboxDequeueFactory)} function must return an instance of {nameof(EventOutboxDequeueBase)}.");
-
             try
             {
-                while (await eod.DequeueAndSendAsync(MaxDequeueSize, PartitionKey, Destination, cancellationToken).ConfigureAwait(false) > 0) ;
+                int sent;
+
+                do
+                {
+                    // As we want to tight loop the execution where there mey be more in the queue, a new 'Scope' is used to ensure new instances of dependencies are used otherwise a disposed error may occur for the underlying transaction.
+                    using var scope = scopedServiceProvider.CreateScope();
+                    var eod = EventOutboxDequeueFactory(scope.ServiceProvider) ?? throw new InvalidOperationException($"The {nameof(EventOutboxDequeueFactory)} function must return an instance of {nameof(EventOutboxDequeueBase)}.");
+                    sent = await eod.DequeueAndSendAsync(MaxDequeueSize, PartitionKey, Destination, cancellationToken).ConfigureAwait(false);
+                }
+                while (sent > 0) ;
             }
             catch (Exception ex)
             {

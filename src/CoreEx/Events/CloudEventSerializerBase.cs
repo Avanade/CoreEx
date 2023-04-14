@@ -52,6 +52,17 @@ namespace CoreEx.Events
             return @event;
         }
 
+        /// <inheritdoc/>
+        public async Task<EventData> DeserializeAsync(BinaryData eventData, Type valueType, CancellationToken cancellationToken = default)
+        {
+            if (valueType == null)
+                throw new ArgumentNullException(nameof(valueType));
+
+            var mi = GetType().GetMethod(nameof(DeserializeAsync), 1, new Type[] { typeof(BinaryData), typeof(CancellationToken) });
+            dynamic task = mi.MakeGenericMethod(valueType).Invoke(this, new object[] { eventData, cancellationToken });
+            return await task.ConfigureAwait(false);
+        }
+
         /// <summary>
         /// Deserializes from the <paramref name="cloudEvent"/> into the <paramref name="event"/>.
         /// </summary>
@@ -141,7 +152,7 @@ namespace CoreEx.Events
             {
                 Id = @event.Id,
                 Time = @event.Timestamp,
-                Type = @event.Type,
+                Type = @event.Type ?? throw new InvalidOperationException("CloudEvents must have a Type; the EventDataFormatter should be updated to set."),
                 Source = @event.Source ?? throw new InvalidOperationException("CloudEvents must have a Source; the EventDataFormatter should be updated to set.")
             };
 
@@ -162,8 +173,11 @@ namespace CoreEx.Events
 
             OnSerialize(@event, ce);
 
-            ce.DataContentType = MediaTypeNames.Application.Json;
-            ce.Data = @event.Value;
+            if (@event.Value is not null)
+            {
+                ce.DataContentType = MediaTypeNames.Application.Json;
+                ce.Data = @event.Value;
+            }
 
             return await EncodeAsync(ce, cancellationToken).ConfigureAwait(false);
         }

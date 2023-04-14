@@ -53,9 +53,27 @@ namespace CoreEx.Events
         public Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData, CancellationToken cancellationToken = default)
         {
             if (SerializeValueOnly)
-                return Task.FromResult(new EventData<T> { Id = null, Timestamp = null, CorrelationId = null, Value = JsonSerializer.Deserialize<T>(eventData)! });
+                return Task.FromResult(new EventData<T> { Value = JsonSerializer.Deserialize<T>(eventData)! });
             else
                 return Task.FromResult(JsonSerializer.Deserialize<EventData<T>>(eventData))!;
+        }
+
+        /// <inheritdoc/>
+        public Task<EventData> DeserializeAsync(BinaryData eventData, Type valueType, CancellationToken cancellationToken = default)
+        {
+            if (valueType == null)
+                throw new ArgumentNullException(nameof(valueType));
+
+            var edvt = typeof(EventData<>).MakeGenericType(valueType);
+
+            if (SerializeValueOnly)
+            {
+                var ed = (EventData)Activator.CreateInstance(edvt);
+                ed.Value = JsonSerializer.Deserialize(eventData, valueType);
+                return Task.FromResult(ed);
+            }
+            else
+                return Task.FromResult((EventData)JsonSerializer.Deserialize(eventData, typeof(EventData<>).MakeGenericType(valueType))!);
         }
 
         /// <inheritdoc/>

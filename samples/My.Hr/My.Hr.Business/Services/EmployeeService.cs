@@ -50,9 +50,7 @@ public class EmployeeService : IEmployeeService
     public async Task VerifyEmployeeAsync(Guid id)
     {
         // Get the employee.
-        var employee = await GetEmployeeAsync(id);
-        if (employee == null)
-            throw new NotFoundException();
+        var employee = await GetEmployeeAsync(id) ?? throw new NotFoundException();
 
         // Publish message to service bus for employee verification.
         var verification = new EmployeeVerificationRequest
