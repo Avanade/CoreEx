@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Hosting
 {
     /// <summary>
-    /// Extends the <see cref="TimerHostedServiceBase"/> and adds <see cref="IServiceSynchronizer"/> to the <see cref="ExecuteAsync(IServiceProvider, CancellationToken)"/> to manage concurreny of execution.
+    /// Extends the <see cref="TimerHostedServiceBase"/> and adds <see cref="IServiceSynchronizer"/> to the <see cref="ExecuteAsync(IServiceProvider, CancellationToken)"/> to manage concurrency of execution.
     /// </summary>
     /// <typeparam name="TSync">The <see cref="Type"/> in which to perform the <see cref="Synchronizer"/> <see cref="IServiceSynchronizer.Enter{T}(string?)"/> for.</typeparam>
     public abstract class SynchronizedTimerHostedServiceBase<TSync> : TimerHostedServiceBase
@@ -51,7 +51,7 @@ namespace CoreEx.Hosting
 
             try
             {
-                await SynchronizedExecuteAsync(scopedServiceProvider, cancellationToken);
+                await SynchronizedExecuteAsync(scopedServiceProvider, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

@@ -4,6 +4,7 @@ using CoreEx.Events;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using System;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using Az = Azure.Messaging.ServiceBus;
 
@@ -101,6 +102,40 @@ namespace CoreEx.Test.Framework.Azure.ServiceBus
         }
 
         [Test]
+        public async Task Convert_As_PlainText()
+        {
+            var es = new CoreEx.Text.Json.CloudEventSerializer();
+
+            var c = new EventDataToServiceBusConverter(es);
+            var m = c.Convert(new EventData { Id = "123", Subject = "XXX", Source = new Uri("xxx", UriKind.Relative), Action = "YYY" });
+            AssertServiceBusMessage(m);
+
+            var rm = CreateServiceBusReceivedMessageFromAmqp(m.GetRawAmqpMessage(), c => { c.Properties.ContentType = MediaTypeNames.Text.Plain; c.Body = new AmqpMessageBody(new ReadOnlyMemory<byte>[] { new BinaryData("Blah").ToMemory()[..] }); });
+
+            var edc = new ServiceBusReceivedMessageEventDataConverter(es);
+            var e = await edc.ConvertFromAsync(rm, null, default);
+            Assert.That(e.Value, Is.Not.Null.And.EqualTo("Blah"));
+            Assert.That(m.Subject, Is.EqualTo("xxx"));
+        }
+
+        [Test]
+        public async Task Convert_Value_As_PlainText()
+        {
+            var es = new CoreEx.Text.Json.CloudEventSerializer();
+
+            var c = new EventDataToServiceBusConverter(es);
+            var m = c.Convert(new EventData { Id = "123", Subject = "XXX", Source = new Uri("xxx", UriKind.Relative), Action = "YYY" });
+            AssertServiceBusMessage(m);
+
+            var rm = CreateServiceBusReceivedMessageFromAmqp(m.GetRawAmqpMessage(), c => { c.Properties.ContentType = MediaTypeNames.Text.Plain; c.Body = new AmqpMessageBody(new ReadOnlyMemory<byte>[] { new BinaryData("Blah").ToMemory()[..] }); });
+
+            var edc = new ServiceBusReceivedMessageEventDataConverter(es);
+            var e = await edc.ConvertFromAsync(rm, typeof(string), default);
+            Assert.That(e.Value, Is.Not.Null.And.EqualTo("Blah"));
+            Assert.That(m.Subject, Is.EqualTo("xxx"));
+        }
+
+        [Test]
         public async Task Convert_WithValue_Using_TextJsonCloudEventSerialization_All_ToAndFrom()
         {
             var es = new CoreEx.Text.Json.CloudEventSerializer();
@@ -122,9 +157,11 @@ namespace CoreEx.Test.Framework.Azure.ServiceBus
             AssertEventData(ep);
         }
 
-        private static Az.ServiceBusReceivedMessage CreateServiceBusReceivedMessageFromAmqp(AmqpAnnotatedMessage message)
+        private static Az.ServiceBusReceivedMessage CreateServiceBusReceivedMessageFromAmqp(AmqpAnnotatedMessage message, Action<AmqpAnnotatedMessage>? config = null)
         {
             if (message == null) throw new ArgumentNullException("message");
+
+            config?.Invoke(message);
 
             message.Header.DeliveryCount = 1;
             message.Header.Durable = true;

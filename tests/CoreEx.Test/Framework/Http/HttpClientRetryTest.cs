@@ -277,7 +277,7 @@ namespace CoreEx.Test.Framework.Http
         [Test]
         public async Task Client_Call_Should_Retry_When_Server_Returns_429_With_Date()
         {
-            // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
+            // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/TransientRetry-After
             // Arrange
             var mcf = MockHttpClientFactory.Create();
             mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Post, "test").WithAnyBody().Respond.WithSequence(seq =>

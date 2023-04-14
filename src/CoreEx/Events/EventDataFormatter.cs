@@ -119,13 +119,13 @@ namespace CoreEx.Events
         /// Indicates whether to default the <see cref="EventDataBase.ETag"/> to the <see cref="EventData.Value"/> value where it implements <see cref="IETag"/>.
         /// </summary>
         /// <remarks>This is applied before <see cref="ETagDefaultGenerated"/>.</remarks>
-        public bool ETagDefaultFromValue { get; set; }
+        public bool ETagDefaultFromValue { get; set; } = true;
 
         /// <summary>
         /// Indicates whether to default the <see cref="EventDataBase.ETag"/> to the <see cref="EventData.Value"/> value by using the <see cref="ETagGenerator"/>.
         /// </summary>
         /// <remarks>This is applied after <see cref="ETagDefaultFromValue"/>.</remarks>
-        public bool ETagDefaultGenerated { get; set; }
+        public bool ETagDefaultGenerated { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the <see cref="IJsonSerializer"/>.

@@ -7,6 +7,8 @@ Represents the **NuGet** versions.
 - *Enhancement:* `IServiceCollection` extension methods for `CoreEx.Validation` and `CoreEx.FluentValidation` support option to include/exclude underlying interfaces where performing register using `AddValidator` and `AddValidators`.
 - *Enhancement:* Enable interoperability between `CoreEx.Validation` and a non-`CoreEx.Validation` mapped `IValidator`; see `Interop` validation extension method.
 - *Enhancement:* `ServiceBusOrchestratedSubscriber` added to support orchestrated (`EventSubscriberOrchestrator`) event subscribers (`IEventSubscriber`, `SubscriberBase` and `SubscriberBase<T>`) based on matching metadata (`EventSubscriberAttribute`) to determine which registered subscriber to execute for the current `ServiceBusReceivedMessage`.
+- *Enhancement:* `BlobLockSynchronizer` added to perform `IServiceSynchronizer` using Azure Blob storage.
+- *Fixed:* Resolved transaction already diposed exception for the `EventOutboxHostedService` by creating a new `IServiceProvider` scope and instantiating a `EventOutboxDequeueBase` per execution to ensure all dependencies are reinstantiated where applicable.
 
 ## v2.6.0
 - *Enhancement:* `ReferenceDataOrchestrator` supports `IConfigureCacheEntry` to enable flexibility of configuration; no changes to current behaviour.

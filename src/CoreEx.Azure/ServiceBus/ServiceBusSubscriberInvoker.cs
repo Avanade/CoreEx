@@ -60,7 +60,7 @@ namespace CoreEx.Azure.ServiceBus
                 {
                     if (eex.IsTransient)
                     {
-                        // Do not abandon the message when transient, as there may be a Function Retry Policy configured; otherwise, it will eventaully be dead-lettered by the Azure Function runtime/fabric.
+                        // Do not abandon the message when transient, as there may be a Retry Policy configured; otherwise, it will eventaully be dead-lettered by the host/runtime/fabric.
                         invoker.Logger.LogWarning("{Reason} while processing message '{Message}'. Processing attempt {Count}", eex.ErrorType, args.Message.MessageId, args.Message.DeliveryCount);
                         throw;
                     }

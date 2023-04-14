@@ -20,7 +20,7 @@ namespace CoreEx.TestFunction.Subscribers
         public ProductSubscriber(ILogger<NoValueSubscriber> logger)
         {
             _logger = logger;
-            Validator = new ProductValidator().Wrap();
+            ValueValidator = new ProductValidator().Wrap();
         }
 
         public override Task ReceiveAsync(EventData<Product> @event, CancellationToken cancellationToken)

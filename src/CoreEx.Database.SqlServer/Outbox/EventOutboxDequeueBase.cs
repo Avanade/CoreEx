@@ -86,16 +86,15 @@ namespace CoreEx.Database.SqlServer.Outbox
             Stopwatch sw;
             maxDequeueSize = maxDequeueSize > 0 ? maxDequeueSize : 1;
 
-            // Keep executing until unsuccessful or reached end of event outbox stream.
-            while (true)
+            // Where a cancel has been requested then this is a convenient time to do it.
+            if (cancellationToken.IsCancellationRequested)
+                return 0;
+
+            // Manage a transaction to ensure that the dequeue only commits after successful publish.
+            var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+
+            try
             {
-                // Where a cancel has been requested then this is a convenient time to do it.
-                if (cancellationToken.IsCancellationRequested)
-                    return 0;
-
-                // Manage a transaction to ensure that the dequeue only commits after successful publish.
-                using var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
-
                 // Dequeue the events; where there are none to send, then simply exit and try again later.
                 Logger.LogTrace("Dequeue events. [MaxDequeueSize={MaxDequeueSize}, PartitionKey={PartitionKey}, Destination={Destination}]", maxDequeueSize, partitionKey, destination);
 
@@ -120,6 +119,10 @@ namespace CoreEx.Database.SqlServer.Outbox
                 // Commit the transaction.
                 txn.Complete();
                 return events.Count();
+            }
+            finally
+            {
+                txn?.Dispose();
             }
         }
 

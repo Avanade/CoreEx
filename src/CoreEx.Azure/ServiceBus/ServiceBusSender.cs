@@ -14,12 +14,13 @@ using Microsoft.Extensions.Logging;
 namespace CoreEx.Azure.ServiceBus
 {
     /// <summary>
-    /// Represents an Azure <see cref="ServiceBusClient"/> <see cref="IEventSender"/>.
+    /// Represents an Azure <see cref="ServiceBusClient"/> <see cref="IServiceBusSender"/> (see also <seealso cref="IEventSender"/>).
     /// </summary>
     /// <remarks>See <see cref="EventSendDataToServiceBusConverter"/> for details of automatic <see cref="ServiceBusMessage.SessionId"/> and <see cref="ServiceBusMessage.TimeToLive"/> allocation.
     /// <para>Note, that any <see cref="EventDataBase.Attributes"/> where the <see cref="KeyValuePair{TKey, TValue}.Key"/> starts with an underscore character ('<c>_</c>') will <i>not</i> be included in the <see cref="ServiceBusMessage.ApplicationProperties"/>.</para></remarks>
-    public class ServiceBusSender : IEventSender
+    public class ServiceBusSender : IServiceBusSender
     {
+        private const string _unspecifiedQueueOrTopicName = "$default";
         private static ServiceBusSenderInvoker? _invoker;
         private readonly ServiceBusClient _client;
 
@@ -95,7 +96,7 @@ namespace CoreEx.Azure.ServiceBus
                 foreach (var @event in events)
                 {
                     var message = Converter.Convert(@event) ?? throw new EventSendException($"The {nameof(Converter)} must return a {nameof(ServiceBusMessage)} instance.");
-                    var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new EventSendException(PrependStats($"{nameof(DefaultQueueOrTopicName)} must have a non null value.", totalCount, unsentEvents.Count), unsentEvents);
+                    var name = @event.Destination ?? DefaultQueueOrTopicName ?? _unspecifiedQueueOrTopicName;
 
                     if (queueDict.TryGetValue(name, out var queue))
                         queue.Enqueue((message, index++));
@@ -112,7 +113,9 @@ namespace CoreEx.Azure.ServiceBus
                 // Get queue name by checking configuration override.
                 foreach (var qitem in queueDict)
                 {
-                    var qn = Settings.GetValue($"Publisher_ServiceBusName_{qitem.Key}", defaultValue: qitem.Key);
+                    var n = qitem.Key == _unspecifiedQueueOrTopicName ? null : qitem.Key;
+                    var key = $"{GetType().Name}_QueueOrTopicName{(n is null ? "" : $"_{n}")}";
+                    var qn = Settings.GetValue($"{GetType().Name}:QueueOrTopicName{(n is null ? "" : $"_{n}")}", defaultValue: n) ?? throw new EventSendException(PrependStats("'{key}' configuration setting must have a non-null value.", totalCount, unsentEvents.Count), unsentEvents);
                     var queue = qitem.Value;
                     var sentIds = new List<string>();
 

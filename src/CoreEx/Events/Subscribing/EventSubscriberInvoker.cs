@@ -15,6 +15,8 @@ namespace CoreEx.Events.Subscribing
     /// <remarks>Note that an <see cref="EventSubscriberException"/> is not directly handled; it is simply bubbled out (this is how an exception is managed as previously handled).</remarks>
     public class EventSubscriberInvoker : InvokerBase<IErrorHandling, ILogger>
     {
+        private const string LogFormat = "{Message} [Source: {Source}, Handling: {Handling}]";
+
         /// <summary>
         /// Invokes the <paramref name="func"/> providing consistent <paramref name="errorHandling"/>.
         /// </summary>
@@ -69,41 +71,41 @@ namespace CoreEx.Events.Subscribing
         /// <param name="errorHandling">The <see cref="ErrorHandling"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <remarks>Where the <paramref name="eventSubscriberException"/> is not thrown from within or the existing exception is bubbled, then subsequent processing should be <i>assumed</i> to complete gracefully without continuing.
-        /// <para>An <paramref name="errorHandling"/> value of <see cref="ErrorHandling.None"/> will be treated as <see cref="ErrorHandling.Exception"/>; <see cref="ErrorHandling.None"/> should generally be handled prior to invocation.</para></remarks>
+        /// <para>An <paramref name="errorHandling"/> value of <see cref="ErrorHandling.None"/> will be treated as <see cref="ErrorHandling.ThrowSubscriberException"/>; <see cref="ErrorHandling.None"/> should generally be handled prior to invocation.</para></remarks>
         public virtual void HandleError(EventSubscriberException eventSubscriberException, ErrorHandling errorHandling, ILogger logger)
         {
             switch (errorHandling)
             {
-                case ErrorHandling.Retry:
+                case ErrorHandling.TransientRetry:
                     eventSubscriberException.IsTransient = true;
                     throw eventSubscriberException;
 
-                case ErrorHandling.FailFast:
-                    logger.LogCritical(eventSubscriberException, "FAIL_FAST {Message}", eventSubscriberException.Message);
+                case ErrorHandling.CriticalFailFast:
+                    logger.LogCritical(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     FailFast(eventSubscriberException);
-                    goto case ErrorHandling.Exception; // A backup in case FailFast does not function as expected.
+                    goto case ErrorHandling.ThrowSubscriberException; // A backup in case FailFast does not function as expected.
 
                 case ErrorHandling.None:
-                case ErrorHandling.Exception:
+                case ErrorHandling.ThrowSubscriberException:
                     eventSubscriberException.IsTransient = false;
                     throw eventSubscriberException;
 
-                case ErrorHandling.CompleteInformation:
-                    logger.LogInformation(eventSubscriberException, "{Message}", eventSubscriberException.Message);
+                case ErrorHandling.CompleteWithInformation:
+                    logger.LogInformation(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     break;
 
-                case ErrorHandling.CompleteWarning:
-                    logger.LogWarning(eventSubscriberException, "{Message}", eventSubscriberException.Message);
+                case ErrorHandling.CompleteWithWarning:
+                    logger.LogWarning(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     break;
 
-                case ErrorHandling.CompleteError:
-                    logger.LogError(eventSubscriberException, "{Message}", eventSubscriberException.Message);
+                case ErrorHandling.CompleteWithError:
+                    logger.LogError(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     break;
             }
         }
 
         /// <summary>
-        /// Handles the <see cref="ErrorHandling.FailFast"/>.
+        /// Handles the <see cref="ErrorHandling.CriticalFailFast"/>.
         /// </summary>
         /// <param name="eventSubscriberException">The <see cref="EventSubscriberException"/>.</param>
         /// <remarks>By default invokes <see cref="Environment.FailFast(string, Exception)"/>. This method should be overridden where a different behaviour is required.</remarks>

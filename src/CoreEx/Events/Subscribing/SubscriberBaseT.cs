@@ -12,7 +12,7 @@ namespace CoreEx.Events.Subscribing
     /// </summary>
     /// <typeparam name="TValue">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</typeparam>
     /// <remarks>This is for use when the <see cref="EventData{T}"/> has to be deserialized.
-    /// <para>Additionally, <see cref="ValueIsRequired"/> and <see cref="Validator"/> enable a consistent validation approach prior to the underlying <see cref="ReceiveAsync(EventData{TValue}, CancellationToken)"/> being invoked.</para></remarks>
+    /// <para>Additionally, <see cref="ValueIsRequired"/> and <see cref="ValueValidator"/> enable a consistent validation approach prior to the underlying <see cref="ReceiveAsync(EventData{TValue}, CancellationToken)"/> being invoked.</para></remarks>
     public abstract class SubscriberBase<TValue> : SubscriberBase
     {
         /// <inheritdoc/>
@@ -27,9 +27,9 @@ namespace CoreEx.Events.Subscribing
         protected bool ValueIsRequired { get; set; } = true;
 
         /// <summary>
-        /// Gets or sets the optional <see cref="IValidator{T}"/>.
+        /// Gets or sets the optional <see cref="IValidator{T}"/> for the value.
         /// </summary>
-        protected IValidator<TValue>? Validator { get; set; }
+        protected IValidator<TValue>? ValueValidator { get; set; }
 
         /// <inheritdoc/>
         /// <remarks>Caution where overridding this method as it contains the underlying functionality to invoke <see cref="ReceiveAsync(EventData{TValue}, CancellationToken)"/> that is the <i>required</i> method to be overridden.</remarks>
@@ -43,8 +43,8 @@ namespace CoreEx.Events.Subscribing
 
             var edv = @event is EventData<TValue> edvx ? edvx : new EventData<TValue>(@event).Adjust(e => e.Value = (TValue)@event.Value!);
 
-            if (Validator != null)
-                (await Validator.ValidateAsync(edv.Value, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+            if (ValueValidator != null)
+                (await ValueValidator.ValidateAsync(edv.Value, cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
             await ReceiveAsync(edv, cancellationToken).ConfigureAwait(false);
         }
@@ -54,7 +54,7 @@ namespace CoreEx.Events.Subscribing
         /// </summary>
         /// <param name="event">The <see cref="EventData{T}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks>Where <see cref="ValueIsRequired"/> and/or <see cref="Validator"/> are specified then this method will only be invoked where the aforementioned validation has occured and the underlying <see cref="EventData{T}.Value"/>
+        /// <remarks>Where <see cref="ValueIsRequired"/> and/or <see cref="ValueValidator"/> are specified then this method will only be invoked where the aforementioned validation has occured and the underlying <see cref="EventData{T}.Value"/>
         /// is considered valid.</remarks>
         public abstract Task ReceiveAsync(EventData<TValue> @event, CancellationToken cancellationToken);
     }

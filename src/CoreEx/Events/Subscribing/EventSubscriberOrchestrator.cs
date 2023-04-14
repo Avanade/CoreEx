@@ -51,14 +51,14 @@ namespace CoreEx.Events.Subscribing
         public EventDataFormatter? EventDataFormatter { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to. Defaults to <see cref="ErrorHandling.Exception"/>.
+        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to. Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.
         /// </summary>
-        public ErrorHandling NotSubscribedHandling { get; set; } = ErrorHandling.Exception;
+        public ErrorHandling NotSubscribedHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
 
         /// <summary>
-        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has more than one <see cref="AddSubscribers">subscriber</see> (is ambiguous). Defaults to <see cref="ErrorHandling.Exception"/>.
+        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has more than one <see cref="AddSubscribers">subscriber</see> (is ambiguous). Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.
         /// </summary>
-        public ErrorHandling AmbiquousSubscriberHandling { get; set; } = ErrorHandling.Exception;
+        public ErrorHandling AmbiquousSubscriberHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
 
         /// <summary>
         /// Use (set) the <see cref="NotSubscribedHandling"/> <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to.

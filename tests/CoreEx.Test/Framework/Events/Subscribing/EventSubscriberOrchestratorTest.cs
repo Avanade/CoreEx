@@ -23,7 +23,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, out var subscriber, out var valueType));
             Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
 
-            eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteSilent };
+            eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteAsSilent };
             Assert.IsFalse(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, out var subscriber, out var valueType));
             Assert.IsNull(subscriber);
             Assert.IsNull(valueType);
@@ -39,7 +39,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, out var subscriber, out var valueType));
             Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
 
-            eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteSilent };
+            eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteAsSilent };
             Assert.IsFalse(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, out var subscriber, out var valueType));
             Assert.IsNull(subscriber);
             Assert.IsNull(valueType);
@@ -79,7 +79,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, out var subscriber, out var valueType));
             Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorAmbiquousSubscriber));
 
-            eso = new EventSubscriberOrchestrator() { AmbiquousSubscriberHandling = ErrorHandling.CompleteSilent }.AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>();
+            eso = new EventSubscriberOrchestrator() { AmbiquousSubscriberHandling = ErrorHandling.CompleteAsSilent }.AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>();
             Assert.IsFalse(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, out var subscriber, out var valueType));
             Assert.That(subscriber, Is.Null);
             Assert.That(valueType, Is.Null);
@@ -101,39 +101,39 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         }
 
         [Test] public async Task Receive_Unhandled_None() => await ReceiveTest(null, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), false, message: "Unhandled exception.");
-        [Test] public async Task Receive_Unhandled_Exception() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.Exception, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception.");
-        [Test] public async Task Receive_Unhandled_CompleteSilent() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.CompleteSilent, () => throw new System.NotImplementedException("Unhandled exception."));
+        [Test] public async Task Receive_Unhandled_Exception() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.ThrowSubscriberException, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception.");
+        [Test] public async Task Receive_Unhandled_CompleteSilent() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.CompleteAsSilent, () => throw new System.NotImplementedException("Unhandled exception."));
 
         [Test] public async Task Receive_Unhandled_FailFast()
         {
             // The following must be tested independently (comment out Assert.Inconclusive) to verify as it will kill the test process.
             Assert.Inconclusive("FailFast can not be executed within testing as it will kill the test process; must be manually tested!");
-            await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.FailFast, () => throw new System.NotImplementedException("Unhandled exception."));
+            await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.CriticalFailFast, () => throw new System.NotImplementedException("Unhandled exception."));
             Assert.Fail("Should never, ever, ever, get here ;-)");
         }
 
         [Test] public async Task Receive_Security_None() => await ReceiveTest(null, () => throw new AuthenticationException(), typeof(AuthenticationException), false);
-        [Test] public async Task Receive_Security_Exception() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.Exception, () => throw new AuthorizationException(), typeof(AuthorizationException), true);
-        [Test] public async Task Receive_Security_Retry() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.Retry, () => throw new AuthorizationException(), typeof(AuthorizationException), true, true);
-        [Test] public async Task Receive_Security_CompleteSilent() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.CompleteSilent, () => throw new AuthorizationException());
+        [Test] public async Task Receive_Security_Exception() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.ThrowSubscriberException, () => throw new AuthorizationException(), typeof(AuthorizationException), true);
+        [Test] public async Task Receive_Security_Retry() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.TransientRetry, () => throw new AuthorizationException(), typeof(AuthorizationException), true, true);
+        [Test] public async Task Receive_Security_CompleteSilent() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.CompleteAsSilent, () => throw new AuthorizationException());
 
         [Test] public async Task Receive_InvalidData_None() => await ReceiveTest(null, () => throw new BusinessException(), typeof(BusinessException), false);
-        [Test] public async Task Receive_InvalidData_Exception() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.Exception, () => throw new ConflictException(), typeof(ConflictException), true);
-        [Test] public async Task Receive_InvalidData_CompleteSilent() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.CompleteSilent, () => throw new DuplicateException());
-        [Test] public async Task Receive_InvalidData_Exception_ValueIsRequired() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.Exception, () => throw new DivideByZeroException(), typeof(ValidationException), true, message: "Invalid message; body was not provided, contained invalid JSON, or was incorrectly formatted: Value is required.", ed: new EventData<Employee>());
+        [Test] public async Task Receive_InvalidData_Exception() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.ThrowSubscriberException, () => throw new ConflictException(), typeof(ConflictException), true);
+        [Test] public async Task Receive_InvalidData_CompleteSilent() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.CompleteAsSilent, () => throw new DuplicateException());
+        [Test] public async Task Receive_InvalidData_Exception_ValueIsRequired() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.ThrowSubscriberException, () => throw new DivideByZeroException(), typeof(ValidationException), true, message: "Invalid message; body was not provided, contained invalid JSON, or was incorrectly formatted: Value is required.", ed: new EventData<Employee>());
 
         [Test] public async Task Receive_Concurrency_None() => await ReceiveTest(null, () => throw new ConcurrencyException(), typeof(ConcurrencyException), false);
-        [Test] public async Task Receive_Concurrency_Exception() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.Exception, () => throw new ConcurrencyException(), typeof(ConcurrencyException), true);
-        [Test] public async Task Receive_Concurrency_CompleteSilent() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.CompleteSilent, () => throw new ConcurrencyException());
+        [Test] public async Task Receive_Concurrency_Exception() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.ThrowSubscriberException, () => throw new ConcurrencyException(), typeof(ConcurrencyException), true);
+        [Test] public async Task Receive_Concurrency_CompleteSilent() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.CompleteAsSilent, () => throw new ConcurrencyException());
 
         [Test] public async Task Receive_NotFound_None() => await ReceiveTest(null, () => throw new NotFoundException(), typeof(NotFoundException), false);
-        [Test] public async Task Receive_NotFound_Exception() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.Exception, () => throw new NotFoundException(), typeof(NotFoundException), true);
-        [Test] public async Task Receive_NotFound_CompleteSilent() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.CompleteSilent, () => throw new NotFoundException());
+        [Test] public async Task Receive_NotFound_Exception() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.ThrowSubscriberException, () => throw new NotFoundException(), typeof(NotFoundException), true);
+        [Test] public async Task Receive_NotFound_CompleteSilent() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.CompleteAsSilent, () => throw new NotFoundException());
 
         [Test] public async Task Receive_Transient_None() => await ReceiveTest(null, () => throw new TransientException(), typeof(TransientException), false, true);
-        [Test] public async Task Receive_Transient_Retry() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.Retry, () => throw new TransientException(), typeof(TransientException), true, true);
-        [Test] public async Task Receive_Transient_Exception() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.Exception, () => throw new TransientException(), typeof(TransientException), true, false);
-        [Test] public async Task Receive_Transient_CompleteSilent() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.CompleteSilent, () => throw new TransientException());
+        [Test] public async Task Receive_Transient_Retry() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.TransientRetry, () => throw new TransientException(), typeof(TransientException), true, true);
+        [Test] public async Task Receive_Transient_Exception() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.ThrowSubscriberException, () => throw new TransientException(), typeof(TransientException), true, false);
+        [Test] public async Task Receive_Transient_CompleteSilent() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.CompleteAsSilent, () => throw new TransientException());
 
         [Test]
         public void GetSubscriber()

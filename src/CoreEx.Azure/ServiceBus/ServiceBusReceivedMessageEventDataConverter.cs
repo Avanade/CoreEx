@@ -4,6 +4,7 @@ using Azure.Messaging.ServiceBus;
 using CoreEx.Events;
 using CoreEx.Text.Json;
 using System;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,9 +36,21 @@ namespace CoreEx.Azure.ServiceBus
         {
             EventData @event;
             if (valueType is null)
-                @event = await EventSerializer.DeserializeAsync(message.Body, cancellationToken).ConfigureAwait(false);
+            {
+                if (message.ContentType == MediaTypeNames.Application.Json)
+                    @event = await EventSerializer.DeserializeAsync(message.Body, cancellationToken).ConfigureAwait(false);
+                else if (message.ContentType == MediaTypeNames.Text.Plain)
+                    @event = new EventData { Value = message.Body.ToString() };
+                else
+                    @event = new EventData();
+            }
             else
-                @event = await EventSerializer.DeserializeAsync(message.Body, valueType, cancellationToken).ConfigureAwait(false)!;
+            {
+                if (message.ContentType == MediaTypeNames.Text.Plain && valueType == typeof(string))
+                    @event = new EventData<string> { Value = message.Body.ToString() };
+                else
+                    @event = await EventSerializer.DeserializeAsync(message.Body, valueType, cancellationToken).ConfigureAwait(false)!;
+            }
 
             UpdateMetaDataWhereApplicable(message, @event);
             return @event;
