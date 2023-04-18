@@ -20,7 +20,15 @@ namespace CoreEx.Events
         Task<object> ConvertToAsync(EventData @event, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Converts from a  messaging sub-system value to an <see cref="EventData"/>. 
+        /// Converts from a messaging sub-system value to an <see cref="EventData"/> value the metadata properties only (that underlying <see cref="EventDataBase"/> should be ignored).
+        /// </summary>
+        /// <param name="message">The messaging sub-system value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="EventData"/>.</returns>
+        Task<EventData> ConvertFromMetadataOnlyAsync(object message, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Converts from a messaging sub-system value to an <see cref="EventData"/> value.
         /// </summary>
         /// <param name="message">The messaging sub-system value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -28,7 +36,7 @@ namespace CoreEx.Events
         public Task<EventData> ConvertFromAsync(object message, CancellationToken cancellationToken) => ConvertFromAsync(message, null, cancellationToken);
 
         /// <summary>
-        /// Converts from a  messaging sub-system value to an <see cref="EventData"/> or <see cref="EventData{T}"/> depending on <paramref name="valueType"/>. 
+        /// Converts from a messaging sub-system value to an <see cref="EventData"/> or <see cref="EventData{T}"/> depending on <paramref name="valueType"/>. 
         /// </summary>
         /// <param name="message">The messaging sub-system value.</param>
         /// <param name="valueType">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</param>
@@ -37,7 +45,7 @@ namespace CoreEx.Events
         Task<EventData> ConvertFromAsync(object message, Type? valueType, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Converts from a  messaging sub-system value to an <see cref="EventData{T}"/>.
+        /// Converts from a messaging sub-system value to an <see cref="EventData{T}"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="message">The messaging sub-system value.</param>

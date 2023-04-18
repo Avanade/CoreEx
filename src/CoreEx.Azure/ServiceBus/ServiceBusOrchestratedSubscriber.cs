@@ -32,7 +32,7 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <param name="eventSubscriberInvoker">The optional <see cref="EventSubscriberInvoker"/>.</param>
         /// <param name="serviceBusSubscriberInvoker">The optional <see cref="ServiceBus.ServiceBusSubscriberInvoker"/>.</param>
-        /// <param name="eventDataConverter">The optional <see cref="IEventDataConverter{ServiceBusReceivedMessage}"/>.</param>
+        /// <param name="eventDataConverter">The optional <see cref="IEventDataConverter{TMessage}"/>.</param>
         /// <param name="eventSerializer">The optional <see cref="IEventSerializer"/>.</param>
         public ServiceBusOrchestratedSubscriber(EventSubscriberOrchestrator orchestrator, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSubscriber> logger, EventSubscriberInvoker? eventSubscriberInvoker = null, ServiceBusSubscriberInvoker? serviceBusSubscriberInvoker = null, IEventDataConverter<ServiceBusReceivedMessage>? eventDataConverter = null, IEventSerializer? eventSerializer = null)
             : base(eventDataConverter ?? new ServiceBusReceivedMessageEventDataConverter(eventSerializer ?? new CoreEx.Text.Json.EventDataSerializer()), executionContext, settings, logger, eventSubscriberInvoker)
@@ -94,7 +94,9 @@ namespace CoreEx.Azure.ServiceBus
                 }
 
                 // Execute subscriber receive with the event.
-                await Orchestrator.ReceiveAsync(this, subscriber!, @event, cancellationToken).ConfigureAwait(false);
+                var success = await Orchestrator.ReceiveAsync(this, subscriber!, @event, cancellationToken).ConfigureAwait(false);
+                if (success)
+                    Logger.LogInformation("{Type} executed {Subscriber} successfully - Service Bus message '{Message}'.", GetType().Name, subscriber!.GetType().Name, message.MessageId);
             }, (message, messageActions), cancellationToken);
         }
     }

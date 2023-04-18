@@ -37,7 +37,10 @@ namespace CoreEx.Events
         /// </summary>
         private IExtendedException? InnerExtendedException => InnerException is IExtendedException eex ? eex : null;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the error type/reason.
+        /// </summary>
+        /// <remarks>See either the <see cref="Abstractions.ErrorType"/> or <see cref="EventSubscriberExceptionSource"/> for standard values.</remarks>
         public string ErrorType => InnerExtendedException?.ErrorType ?? (ExceptionSource == EventSubscriberExceptionSource.Subscriber ? Abstractions.ErrorType.UnhandledError.ToString() : ExceptionSource.ToString());
 
         /// <inheritdoc/>

@@ -32,6 +32,14 @@ namespace CoreEx.Azure.ServiceBus
         public Task<ServiceBusReceivedMessage> ConvertToAsync(EventData @event, CancellationToken cancellationToken) => throw new NotSupportedException($"The {nameof(ServiceBusReceivedMessage)} constructor is internal; therefore, can not be instantiated.");
 
         /// <inheritdoc/>
+        public Task<EventData> ConvertFromMetadataOnlyAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken)
+        {
+            var @event = new EventData();
+            UpdateMetaDataWhereApplicable(message, @event);
+            return Task.FromResult(@event);
+        }
+
+        /// <inheritdoc/>
         public async Task<EventData> ConvertFromAsync(ServiceBusReceivedMessage message, Type? valueType, CancellationToken cancellationToken)
         {
             EventData @event;
@@ -65,8 +73,10 @@ namespace CoreEx.Azure.ServiceBus
         }
 
         /// <summary>
-        /// Update the metadata from the message where the Id is not null; otherwise, assume deserialized from the body and carry on.
+        /// Updates the metadata from the <paramref name="message"/> where the <paramref name="event"/> <see cref="EventDataBase.Id"/> is not <c>null</c>; otherwise, assume already updated.
         /// </summary>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/></param>
+        /// <param name="event">The <see cref="EventData"/>.</param>
         private static void UpdateMetaDataWhereApplicable(ServiceBusReceivedMessage message, EventData @event)
         {
             if (@event.Id is not null)

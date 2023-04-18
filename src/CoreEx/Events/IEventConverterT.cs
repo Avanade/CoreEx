@@ -16,6 +16,9 @@ namespace CoreEx.Events
         async Task<object> IEventDataConverter.ConvertToAsync(EventData @event, CancellationToken cancellationToken) => await ConvertToAsync(@event, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
+        Task<EventData> IEventDataConverter.ConvertFromMetadataOnlyAsync(object message, CancellationToken cancellationToken) => ConvertFromMetadataOnlyAsync((TMessage)message, cancellationToken);
+
+        /// <inheritdoc/>
         Task<EventData> IEventDataConverter.ConvertFromAsync(object message, CancellationToken cancellationToken) => ConvertFromAsync(message, null, cancellationToken);
 
         /// <inheritdoc/>
@@ -31,6 +34,14 @@ namespace CoreEx.Events
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <typeparamref name="TMessage"/> value.</returns>
         new Task<TMessage> ConvertToAsync(EventData @event, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Converts from a messaging sub-system value to an <see cref="EventData"/> value the metadata properties only (that underlying <see cref="EventDataBase"/> should be ignored).
+        /// </summary>
+        /// <param name="message">The messaging sub-system value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="EventData"/>.</returns>
+        Task<EventData> ConvertFromMetadataOnlyAsync(TMessage message, CancellationToken cancellationToken);
 
         /// <summary>
         /// Converts from a <typeparamref name="TMessage"/> to an <see cref="EventData"/> value. 

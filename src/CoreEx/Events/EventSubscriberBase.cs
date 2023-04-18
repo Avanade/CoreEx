@@ -106,7 +106,15 @@ namespace CoreEx.Events
         public ErrorHandling InvalidDataHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
 
         /// <summary>
-        /// Deserializes (<see cref="EventDataConverter"/>) the <paramref name="originatingMessage"/> into the specified <see cref="EventData"/>.
+        /// Deserializes (<see cref="EventDataConverter"/>) the <paramref name="originatingMessage"/> into the specified <see cref="EventData"/> value containg metadata only. 
+        /// </summary>
+        /// <param name="originatingMessage">The originating message.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        protected Task<EventData> DeserializeEventMetaDataOnlyAsync(object originatingMessage, CancellationToken cancellationToken = default)
+            => EventDataConverter.ConvertFromMetadataOnlyAsync(originatingMessage, cancellationToken);
+
+        /// <summary>
+        /// Deserializes (<see cref="EventDataConverter"/>) the <paramref name="originatingMessage"/> into the specified <see cref="EventData"/> value. 
         /// </summary>
         /// <param name="originatingMessage">The originating message.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -115,7 +123,7 @@ namespace CoreEx.Events
         {
             try
             {
-                var @event = await EventDataConverter.ConvertFromAsync(originatingMessage, cancellationToken).ConfigureAwait(false)!;
+                var @event = await EventDataConverter.ConvertFromAsync(originatingMessage, cancellationToken).ConfigureAwait(false);
                 if (@event is not null)
                     return @event;
             }

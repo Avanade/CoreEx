@@ -219,22 +219,22 @@ namespace CoreEx.Http
             {
                 case HttpStatusCode.BadRequest:
                     if (errorType == Abstractions.ErrorType.BusinessError)
-                        return new BusinessException(message);
+                        return new BusinessException(message, new HttpRequestException(content));
                     else
                     {
                         var mic = CreateMessageItems(content);
                         if (mic == null)
-                            return new ValidationException(message);
+                            return new ValidationException(message, new HttpRequestException(content));
                         else
                             return new ValidationException(mic);
                     }
 
-                case HttpStatusCode.Forbidden: return new AuthenticationException(message);
-                case HttpStatusCode.Unauthorized: return new AuthorizationException(message);
-                case HttpStatusCode.PreconditionFailed: return new ConcurrencyException(message);
-                case HttpStatusCode.Conflict: return errorType == Abstractions.ErrorType.DuplicateError ? new DuplicateException(message) : new ConflictException(message);
-                case HttpStatusCode.NotFound: return new NotFoundException(message);
-                case HttpStatusCode.ServiceUnavailable: return new TransientException(message);
+                case HttpStatusCode.Forbidden: return new AuthenticationException(message, new HttpRequestException(content));
+                case HttpStatusCode.Unauthorized: return new AuthorizationException(message, new HttpRequestException(content));
+                case HttpStatusCode.PreconditionFailed: return new ConcurrencyException(message, new HttpRequestException(content));
+                case HttpStatusCode.Conflict: return errorType == Abstractions.ErrorType.DuplicateError ? new DuplicateException(message, new HttpRequestException(content)) : new ConflictException(message, new HttpRequestException(content));
+                case HttpStatusCode.NotFound: return new NotFoundException(message, new HttpRequestException(content));
+                case HttpStatusCode.ServiceUnavailable: return new TransientException(message, new HttpRequestException(content));
                 default: return null;
             }
         }

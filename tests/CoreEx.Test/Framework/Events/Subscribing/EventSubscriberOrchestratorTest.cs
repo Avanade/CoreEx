@@ -75,7 +75,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var sb = SetUpServiceProvider(sc => sc.AddScoped<DeleteSubscriber>());
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
-            var eso = new EventSubscriberOrchestrator().AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>();
+            var eso = new EventSubscriberOrchestrator().AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>().UseAmbiquousSubscriberHandling(ErrorHandling.None);
             var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, out var subscriber, out var valueType));
             Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorAmbiquousSubscriber));
 
@@ -100,9 +100,9 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             Assert.That(valueType2, Is.Null);
         }
 
-        [Test] public async Task Receive_Unhandled_None() => await ReceiveTest(null, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), false, message: "Unhandled exception.");
-        [Test] public async Task Receive_Unhandled_Exception() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.ThrowSubscriberException, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception.");
-        [Test] public async Task Receive_Unhandled_CompleteSilent() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.CompleteAsSilent, () => throw new System.NotImplementedException("Unhandled exception."));
+        [Test] public async Task Receive_Unhandled_None() => Assert.IsFalse(await ReceiveTest(null, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), false, message: "Unhandled exception."));
+        [Test] public async Task Receive_Unhandled_Exception() => Assert.IsFalse(await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.ThrowSubscriberException, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception."));
+        [Test] public async Task Receive_Unhandled_CompleteSilent() => Assert.IsFalse(await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.CompleteAsSilent, () => throw new System.NotImplementedException("Unhandled exception.")));
 
         [Test] public async Task Receive_Unhandled_FailFast()
         {
@@ -135,6 +135,8 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         [Test] public async Task Receive_Transient_Exception() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.ThrowSubscriberException, () => throw new TransientException(), typeof(TransientException), true, false);
         [Test] public async Task Receive_Transient_CompleteSilent() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.CompleteAsSilent, () => throw new TransientException());
 
+        [Test] public async Task Receive_Success() => Assert.IsTrue(await ReceiveTest(null, () => { }, null, false));
+
         [Test]
         public void GetSubscriber()
         {
@@ -158,7 +160,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             return sc.BuildServiceProvider();
         }
 
-        private async Task ReceiveTest(System.Action<ModifySubscriber>? setAction, System.Action receiveAction, System.Type? exceptionType = null, bool eventSubscriberException = true, bool isTransient = false, string? message = null, EventData<Employee>? ed = null)
+        private async Task<bool> ReceiveTest(System.Action<ModifySubscriber>? setAction, System.Action receiveAction, System.Type? exceptionType = null, bool eventSubscriberException = true, bool isTransient = false, string? message = null, EventData<Employee>? ed = null)
         {
             var ms = new ModifySubscriber();
             var sb = SetUpServiceProvider(sc => sc.AddSingleton(ms));
@@ -173,8 +175,9 @@ namespace CoreEx.Test.Framework.Events.Subscribing
 
             try
             {
-                await eso.ReceiveAsync(ees, subscriber!, ed ?? new EventData<Employee> { Value = new Employee { Id = 1, Name = "Bob" } });
+                var success = await eso.ReceiveAsync(ees, subscriber!, ed ?? new EventData<Employee> { Value = new Employee { Id = 1, Name = "Bob" } });
                 Assert.IsNull(exceptionType, "Expected an exception!");
+                return success;
             }
             catch (EventSubscriberException esex)
             {
@@ -201,6 +204,8 @@ namespace CoreEx.Test.Framework.Events.Subscribing
                 ms._ConcurrencyHandling = ErrorHandling.None;
                 ms._InvalidDataHandling = ErrorHandling.None;
             }
+
+            return false;
         }
 
         [EventSubscriber("my.hr.employee", "created", "updated")]

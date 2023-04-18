@@ -276,6 +276,9 @@ namespace CoreEx.Http
                 return null;
 
             var content = response.Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (string.IsNullOrEmpty(content))
+                content = $"Response status code does not indicate success: {(int)response.StatusCode} ({(string.IsNullOrEmpty(response.ReasonPhrase) ? response.StatusCode : response.ReasonPhrase)}).";
+
             return HttpResult.CreateExtendedException(response, content, useContentAsErrorMessage);
         }
 

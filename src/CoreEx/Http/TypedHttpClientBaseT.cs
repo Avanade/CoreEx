@@ -140,7 +140,8 @@ namespace CoreEx.Http
         /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
         /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        /// <remarks><para>The <paramref name="count"/> is the number of additional retries that should be performed in addition to the initial request.</para>
+        /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TSelf WithRetry(int? count = null, double? seconds = null)
         {
             SendOptions.WithRetry(count, seconds);
@@ -223,11 +224,11 @@ namespace CoreEx.Http
         }
 
         /// <summary>
-        /// Sets max retry delay that polly retries will be capped with (this affects mostly 429 and 503 responses that can return Retry-After header).
-        /// Default is 30s but it can be overridden for async calls (e.g. when using service bus trigger).
+        /// Sets the maximum retry delay that polly retries will be capped with (this affects mostly 429 and 503 responses that can return Retry-After header).
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        /// <remarks><para>Default is <c>30</c> seconds but it can be overridden for async calls (e.g. when using Azure Service Bus trigger).</para>
+        /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TSelf WithMaxRetryDelay(TimeSpan maxRetryDelay)
         {
             SendOptions.WithMaxRetryDelay(maxRetryDelay);
@@ -337,7 +338,7 @@ namespace CoreEx.Http
                             }
                             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                             {
-                                throw new TimeoutException();
+                                throw new TimeoutException("The configured timeout for the HTTP send has been exceeded and therefore terminated.");
                             }
                         }).ConfigureAwait(false); ;
 
@@ -346,7 +347,7 @@ namespace CoreEx.Http
                 catch (Exception ex) when (ex is TimeoutException || ex is SocketException)
                 {
                     // Both TimeoutException and SocketException are transient and indicate a connection was terminated.
-                    throw new TransientException("Timeout when calling service", ex);
+                    throw new TransientException("Timeout when calling service.", ex);
                 }
                 catch (HttpRequestException hrex)
                 {
@@ -392,7 +393,7 @@ namespace CoreEx.Http
         /// </summary>
         private CancellationToken SetCancellationBasedOnTimeout(CancellationToken cancellationToken, out CancellationTokenSource? cts)
         {
-            var timeout = SendOptions.Timeout ?? TimeSpan.FromSeconds(Settings.HttpTimeoutSeconds);
+            var timeout = SendOptions.Timeout ?? TimeSpan.FromSeconds(Settings.GetValue<int?>($"{GetType().Name}__{nameof(SettingsBase.HttpTimeoutSeconds)}") ?? Settings.HttpTimeoutSeconds);
             if (timeout == Timeout.InfiniteTimeSpan)
             {
                 // No need to create a CTS if there's no timeout
