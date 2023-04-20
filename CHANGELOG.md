@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v2.9.0
+- *Enhancement:* Added `PagingAttribute` and `PagingOperationFilter` to enable swagger output of `PagingArgs` parameters for an operation.
+
 ## v2.8.0
 - *Enhancement:* Added `CoreEx.EntityFrameworkCore` support for framework `net7.0`.
 - *Enhancement:* Updated `ServiceBusSubscriberInvoker` to improve logging, including opportunities to inherit and add further before and after processing logging and/or monitoring.

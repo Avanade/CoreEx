@@ -6,7 +6,7 @@ using System.Net.Mime;
 namespace CoreEx.WebApis
 {
     /// <summary>
-    /// A filter that specifies the expected request <b>body</b> <see cref="Type"/> that the action accepts and the supported request content types.
+    /// An attribute that specifies the expected request <b>body</b> <see cref="Type"/> that the action/operation accepts and the supported request content types.
     /// </summary>
     /// <remarks>The is used to enable <i>Swagger/Swashbuckle</i> generated documentation where the operation does not explicitly define the body as a method parameter; i.e. via <see cref="Microsoft.AspNetCore.Mvc.FromBodyAttribute"/>.</remarks>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]

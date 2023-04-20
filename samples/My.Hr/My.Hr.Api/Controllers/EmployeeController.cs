@@ -30,6 +30,7 @@ public class EmployeeController : ControllerBase
     /// <returns>All <see cref="Employee"/>.</returns>
     [HttpGet("", Name = "GetAll")]
     [ProducesResponseType(typeof(IEnumerable<Employee>), (int)HttpStatusCode.OK)]
+    [Paging]
     public Task<IActionResult> GetAllAsync()
         => _webApi.GetAsync(Request, p => _service.GetAllAsync(p.RequestOptions.Paging));
 
