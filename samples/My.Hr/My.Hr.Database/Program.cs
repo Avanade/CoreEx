@@ -1,5 +1,5 @@
-﻿using DbEx.SqlServer.Console;
-using System.Reflection;
+﻿using DbEx.Migration;
+using DbEx.SqlServer.Console;
 
 namespace My.Hr.Database
 {
@@ -13,20 +13,22 @@ namespace My.Hr.Database
         /// </summary>
         /// <param name="args">The startup arguments.</param>
         /// <returns>The status code whereby zero indicates success.</returns>
-        internal static Task<int> Main(string[] args) => RunMigrator("Data Source=.;Initial Catalog=My.HrDb;Integrated Security=True;TrustServerCertificate=true", null, args);
+        internal static Task<int> Main(string[] args) => new SqlServerMigrationConsole("Data Source=.;Initial Catalog=My.HrDb;Integrated Security=True;TrustServerCertificate=true")
+            .Configure(c => ConfigureMigrationArgs(c.Args))
+            .RunAsync(args);
 
-        public static Task<int> RunMigrator(string connectionString, Assembly? assembly = null, params string[] args)
-            => SqlServerMigrationConsole
-                .Create<Program>(connectionString)
-                .Configure(c =>
-                {
-                    c.Args.AcceptPrompts = true;
-                    c.Args.ConnectionStringEnvironmentVariableName = "My_HrDb";
-                    c.Args.DataParserArgs.RefDataColumnDefaults.TryAdd("IsActive", _ => true);
-                    c.Args.DataParserArgs.RefDataColumnDefaults.TryAdd("SortOrder", i => i);
-                    if (assembly != null)
-                        c.Args.AddAssembly(assembly);
-                })
-                .RunAsync(args);
+        /// <summary>
+        /// Configure the <see cref="MigrationArgs"/>.
+        /// </summary>
+        /// <param name="args">The <see cref="MigrationArgs"/>.</param>
+        /// <returns>The <see cref="MigrationArgs"/>.</returns>
+        public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
+        {
+            args.ConnectionStringEnvironmentVariableName = "My_HrDb";
+            args.DataParserArgs.RefDataColumnDefaults.TryAdd("IsActive", _ => true);
+            args.DataParserArgs.RefDataColumnDefaults.TryAdd("SortOrder", i => i);
+            args.AddAssembly<Program>();
+            return args;
+        }
     }
 }

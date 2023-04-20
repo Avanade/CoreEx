@@ -56,9 +56,9 @@ namespace CoreEx.Events.Subscribing
         public ErrorHandling NotSubscribedHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
 
         /// <summary>
-        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has more than one <see cref="AddSubscribers">subscriber</see> (is ambiguous). Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.
+        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has more than one <see cref="AddSubscribers">subscriber</see> (is ambiguous). Defaults to <see cref="ErrorHandling.CriticalFailFast"/>.
         /// </summary>
-        public ErrorHandling AmbiquousSubscriberHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        public ErrorHandling AmbiquousSubscriberHandling { get; set; } = ErrorHandling.CriticalFailFast;
 
         /// <summary>
         /// Use (set) the <see cref="NotSubscribedHandling"/> <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to.
@@ -76,7 +76,7 @@ namespace CoreEx.Events.Subscribing
         /// </summary>
         /// <param name="ambiquousSubscriberHandling">The <see cref="ErrorHandling"/>.</param>
         /// <returns>The <see cref="EventSubscriberOrchestrator"/> to support fluent-style method-chaining.</returns>
-        public EventSubscriberOrchestrator UseNotsubscribedHandling(ErrorHandling ambiquousSubscriberHandling)
+        public EventSubscriberOrchestrator UseAmbiquousSubscriberHandling(ErrorHandling ambiquousSubscriberHandling)
         {
             AmbiquousSubscriberHandling = ambiquousSubscriberHandling;
             return this;
@@ -215,15 +215,17 @@ namespace CoreEx.Events.Subscribing
         /// <param name="subscriber">The <see cref="IEventSubscriber"/> that should receive the <paramref name="event"/>.</param>
         /// <param name="event">The <see cref="EventData"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public async virtual Task ReceiveAsync(EventSubscriberBase parent, IEventSubscriber subscriber, EventData @event, CancellationToken cancellationToken = default)
+        /// <returns><c>true</c> indicates that the subscriber executed successfully; otherwise, <c>false</c>.</returns>
+        public async virtual Task<bool> ReceiveAsync(EventSubscriberBase parent, IEventSubscriber subscriber, EventData @event, CancellationToken cancellationToken = default)
         {
             if (parent is null) throw new ArgumentNullException(nameof(parent));
             if (subscriber is null) throw new ArgumentNullException(nameof(subscriber));
             if (@event is null) throw new ArgumentNullException(nameof(@event));
 
-            await parent.EventSubscriberInvoker.InvokeAsync(subscriber, async (ct) =>
+            return await parent.EventSubscriberInvoker.InvokeAsync(subscriber, async (ct) =>
             {
                 await subscriber!.ReceiveAsync(@event, ct);
+                return true;
             }, parent.Logger, cancellationToken).ConfigureAwait(false);
         }
     }

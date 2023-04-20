@@ -15,7 +15,7 @@ using System.Transactions;
 namespace CoreEx.Database.SqlServer.Outbox
 {
     /// <summary>
-    /// Provides the base <see cref="EventSendData"/> <see cref="IDatabase">database</see> <i>outbox dequeue</i> and corresponding <see cref="IEventSender.SendAsync(IEnumerable{EventSendData}, CancellationToken)"/>.
+    /// Provides the base <see cref="EventSendData"/> <see cref="IDatabase">database</see> <i>outbox dequeue</i>.
     /// </summary>
     /// <remarks>The <see cref="EventDataBase.Id"/> (being the unique event identifier) can be leveraged by the underlying messaging platform to perform duplicate checking. There is no guarantee that a dequeued event is <i>on</i> published more
     /// than once, the guarantee is at best <i>at-least</i> once semantics based on the implementation of the final <see cref="IEventSender"/>.

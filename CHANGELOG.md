@@ -2,6 +2,14 @@
 
 Represents the **NuGet** versions.
 
+## v2.8.0
+- *Enhancement:* Added `CoreEx.EntityFrameworkCore` support for framework `net7.0`.
+- *Enhancement:* Updated `ServiceBusSubscriberInvoker` to improve logging, including opportunities to inherit and add further before and after processing logging and/or monitoring.
+- *Enhancement:* Updated `ServiceBusOrchestratedSubscriber` to perform a `LogInformation` on success.
+- *Enhancement:* The `TypedHttpClientBase<TSelf>` will probe settings by `GetType().Name` to enable settings per implementation type as an overridding configurable option.
+- *Fixed:* `HttpResult.CreateExtendedException` passes inner `HttpRequestException` for context. 
+- *Fixed:* `EventSubscriberOrchestrator.AmbiquousSubscriberHandling` is correctly set to `ErrorHandling.CriticalFailFast` by default.
+
 ## v2.7.0
 - *Enhancement:* Simplified usage for `TypedHttpClientCore` and `TypedHttpClientBase` such that all parameters with the exception of `HttpClient` default where not specified.
 - *Enhancement:* `IServiceCollection` extension methods for `CoreEx.Validation` and `CoreEx.FluentValidation` support option to include/exclude underlying interfaces where performing register using `AddValidator` and `AddValidators`.

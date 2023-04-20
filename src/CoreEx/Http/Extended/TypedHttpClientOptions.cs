@@ -170,12 +170,13 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
         /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry.</param>
-        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
+        /// <para>The <paramref name="count"/> is the number of additional retries that should be performed in addition to the initial request.</para></remarks>
         public TypedHttpClientOptions WithRetry(int? count = null, double? seconds = null)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
-            var retryCount = _settings.HttpRetryCount;
-            var retrySeconds = _settings.HttpRetrySeconds;
+            var retryCount = (_owner is null ? null : _settings.GetValue<int?>($"{_owner.GetType().Name}__{nameof(SettingsBase.HttpRetryCount)}")) ?? _settings.HttpRetryCount;
+            var retrySeconds = (_owner is null ? null : _settings.GetValue<double?>($"{_owner.GetType().Name}__{nameof(SettingsBase.HttpRetrySeconds)}")) ?? _settings.HttpRetrySeconds;
 
             RetryCount = count ?? retryCount;
             if (RetryCount < 0)
