@@ -58,7 +58,7 @@ jobs:
         echo "ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
 
     - name: Create/Migrate DB
-      run: dotnet run all --project ./samples/My.Hr/My.Hr.Database
+      run: dotnet run all --project ./samples/My.Hr/My.Hr.Database --connection-varname ConnectionStrings__Database
 
     - name: Test With DB
       run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
