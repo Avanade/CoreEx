@@ -9,7 +9,7 @@ namespace CoreEx.WebApis
     /// <summary>
     /// A <i>Swagger/Swashbuckle</i> <see cref="IOperationFilter"/> to infer the <see cref="OpenApiRequestBody"/> from the specification of the <see cref="AcceptsBodyAttribute"/>.
     /// </summary>
-    /// <remarks>This must be added when registering services (DI) during application startup; example as follows:
+    /// <remarks>The <see cref="AcceptsBodyOperationFilter"/> must be added when registering services (DI) during application startup; example as follows:
     /// <code>
     /// services.AddSwaggerGen(c =&gt; c.OperationFilter&lt;AcceptsBodyOperationFilter&gt;());
     /// </code></remarks>
