@@ -1,7 +1,10 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Http;
 using DbEx;
-using Microsoft.Extensions.Configuration;
+using DbEx.Migration;
+using DbEx.SqlServer.Migration;
+using Microsoft.Extensions.DependencyInjection;
+using My.Hr.Business;
 using My.Hr.Business.Models;
 using My.Hr.Functions;
 using My.Hr.Functions.Functions;
@@ -25,9 +28,11 @@ namespace My.Hr.UnitTest
             HttpConsts.IncludeFieldsQueryStringName = "include-fields";
 
             using var test = FunctionTester.Create<Startup>();
-            var cs = test.Configuration.GetConnectionString("Database");
-            if (await Database.Program.RunMigrator(cs, typeof(EmployeeControllerTest).Assembly, MigrationCommand.ResetAndAll.ToString()).ConfigureAwait(false) != 0)
-                Assert.Fail("Database migration failed.");
+            var settings = test.Services.GetRequiredService<HrSettings>();
+            var args = Database.Program.ConfigureMigrationArgs(new MigrationArgs(MigrationCommand.ResetAndDatabase, settings.ConnectionStrings__Database)).AddAssembly<EmployeeControllerTest>();
+            var (Success, Output) = await new SqlServerMigration(args).MigrateAndLogAsync().ConfigureAwait(false);
+            if (!Success)
+                Assert.Fail(Output);
         }
 
         [Test]

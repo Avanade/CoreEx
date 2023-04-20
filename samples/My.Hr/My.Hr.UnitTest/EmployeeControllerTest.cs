@@ -14,6 +14,10 @@ using UnitTestEx;
 using UnitTestEx.Expectations;
 using UnitTestEx.NUnit;
 using DbEx;
+using Microsoft.Extensions.DependencyInjection;
+using My.Hr.Business;
+using DbEx.Migration;
+using DbEx.SqlServer.Migration;
 
 namespace My.Hr.UnitTest
 {
@@ -28,8 +32,10 @@ namespace My.Hr.UnitTest
 
             using var test = ApiTester.Create<Startup>();
             var cs = test.Configuration.GetConnectionString("Database");
-            if (await Database.Program.RunMigrator(cs, typeof(EmployeeControllerTest).Assembly, MigrationCommand.ResetAndAll.ToString()).ConfigureAwait(false) != 0)
-                Assert.Fail("Database migration failed.");
+            var args = Database.Program.ConfigureMigrationArgs(new MigrationArgs(MigrationCommand.ResetAndDatabase, cs)).AddAssembly<EmployeeControllerTest>();
+            var (Success, Output) = await new SqlServerMigration(args).MigrateAndLogAsync().ConfigureAwait(false);
+            if (!Success)
+                Assert.Fail(Output);
         }
 
         [Test]
