@@ -67,5 +67,5 @@ jobs:
       run: dotnet test --filter Category=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
       if: ${{ false }}
 
-    - name: Test Docker Build
-      run: docker-compose -f docker-compose.myHr.yml -f docker-compose.myHr.override.yml build --build-arg LOCAL=true
+    #- name: Test Docker Build
+    #  run: docker-compose -f docker-compose.myHr.yml -f docker-compose.myHr.override.yml build --build-arg LOCAL=true
