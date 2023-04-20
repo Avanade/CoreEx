@@ -1,5 +1,8 @@
 using System.Threading.Tasks;
 using Dapper;
+using DbEx;
+using DbEx.Migration;
+using DbEx.SqlServer.Migration;
 using Microsoft.Data.SqlClient;
 using Pulumi;
 
@@ -36,13 +39,14 @@ public class DbOperations : IDbOperations
         });
     }
 
-    public Task<int> DeployDbSchemaAsync(string connectionString)
+    public Task<bool> DeployDbSchemaAsync(string connectionString)
     {
         if (Deployment.Instance.IsDryRun)
             // skip in dry run
-            return Task.FromResult(0);
+            return Task.FromResult(true);
 
         Log.Info($"Deploying DB schema using {connectionString}");
-        return Database.Program.RunMigrator(connectionString, assembly: typeof(My.Hr.Database.Program).Assembly, "DeployWithData");
+        var args = Database.Program.ConfigureMigrationArgs(new MigrationArgs(MigrationCommand.DeployWithData, connectionString));
+        return new SqlServerMigration(args).MigrateAsync();
     }
 }
