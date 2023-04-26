@@ -8,6 +8,7 @@ using CoreEx.TestFunction.Models;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Moq;
 using NUnit.Framework;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using UnitTestEx.NUnit;
@@ -28,7 +29,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -43,7 +44,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, EventSubscriberExceptionSource.EventDataDeserialization.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), EventSubscriberExceptionSource.EventDataDeserialization.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -61,7 +62,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, EventSubscriberExceptionSource.EventDataDeserialization.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), EventSubscriberExceptionSource.EventDataDeserialization.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -76,7 +77,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -94,7 +95,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -135,7 +136,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertSuccess();
 
             mc.Verify();
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.UnhandledError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.UnhandledError.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 

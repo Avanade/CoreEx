@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using UnitTestEx.Abstractions;
 using UnitTestEx.NUnit;
 using Az = Azure.Messaging.ServiceBus;
@@ -33,7 +34,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, EventSubscriberExceptionSource.OrchestratorNotSubscribed.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), EventSubscriberExceptionSource.OrchestratorNotSubscribed.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -64,7 +65,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 
@@ -79,7 +80,7 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.ValidationError.ToString(), It.IsNotNull<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
 

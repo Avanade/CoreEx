@@ -5,6 +5,7 @@ using CoreEx.TestFunction.Models;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Moq;
 using NUnit.Framework;
+using System.Collections.Generic;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.Framework.FluentValidation
@@ -23,7 +24,7 @@ namespace CoreEx.Test.Framework.FluentValidation
                 .Run(s => s.RunAsync(message, actionsMock.Object))
                 .AssertSuccess();
 
-            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, ErrorType.ValidationError.ToString(), It.IsAny<string>(), default), Times.Once);
+            actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.ValidationError.ToString(), It.IsAny<string>(), default), Times.Once);
             actionsMock.VerifyNoOtherCalls();
         }
     }

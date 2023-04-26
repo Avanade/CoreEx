@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v2.9.1
+- *Fixed:* The dead-lettering within `ServiceBusSubscriberInvoker` will write the exception stack trace, etc. to a new message property named `SubscriberException` to ensure this content is consistently persisted, with related error description being the exception message only.
+
 ## v2.9.0
 - *Enhancement:* Added `PagingAttribute` and `PagingOperationFilter` to enable swagger output of `PagingArgs` parameters for an operation.
 

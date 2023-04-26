@@ -18,6 +18,8 @@ namespace CoreEx.Azure.ServiceBus
     /// </summary>
     public class ServiceBusSubscriberInvoker : InvokerBase<EventSubscriberBase, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions)>
     {
+        private const string SubscriberExceptionPropertyName = "SubscriberException";
+
         /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(EventSubscriberBase invoker, Func<CancellationToken, Task<TResult>> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args, CancellationToken cancellationToken)
         {
@@ -94,14 +96,14 @@ namespace CoreEx.Azure.ServiceBus
         public static async Task DeadLetterExceptionAsync(EventSubscriberBase invoker, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, string errorReason, Exception exception, CancellationToken cancellationToken)
         {
             invoker.Logger.LogDebug("Dead Lettering - Service Bus message '{Message}'. [{Reason}] {Error}", message.MessageId, errorReason, exception.Message);
-            await messageActions.DeadLetterMessageAsync(message, errorReason, ToDeadLetterReason(exception.ToString()), cancellationToken).ConfigureAwait(false);
+            await messageActions.DeadLetterMessageAsync(message, new Dictionary<string, object?> { { SubscriberExceptionPropertyName, FormatText(exception.ToString()) } }, errorReason, FormatText(exception.Message), cancellationToken).ConfigureAwait(false);
             invoker.Logger.LogError(exception, "Dead Lettered - Service Bus message '{Message}'. [{Reason}] {Error}", message.MessageId, errorReason, exception.Message);
         }
 
         /// <summary>
-        /// Shortens the reason text to 4096 characters, which is the maximum allowed length for a dead letter reason.
+        /// Shortens the text to 2048 characters; should be enough to given context - otherwise, full context should have be written to the log.
         /// </summary>
-        private static string? ToDeadLetterReason(string? reason) => reason?[..Math.Min(reason.Length, 4096)];
+        private static string? FormatText(string? text) => text?[..Math.Min(text.Length, 2048)];
 
         /// <summary>
         /// Update the <see cref="ILogger.BeginScope{TState}(TState)"/> <paramref name="state"/> from the <paramref name="message"/>.
