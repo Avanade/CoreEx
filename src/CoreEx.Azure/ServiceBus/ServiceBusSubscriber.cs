@@ -93,7 +93,7 @@ namespace CoreEx.Azure.ServiceBus
                 // Invoke the actual function logic.
                 await function(@event!).ConfigureAwait(false);
 
-                Logger.LogInformation("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId);
+                Logger.LogDebug("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId);
             }, (message, messageActions), cancellationToken);
         }
 
