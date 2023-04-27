@@ -22,7 +22,7 @@ namespace CoreEx.Azure.ServiceBus
     /// message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically deadletter; otherwise, it will be
     /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.
     /// <para>The <see cref="UpdateEventDataWithServiceBusMessage(EventData, ServiceBusReceivedMessage, ServiceBusMessageActions)"/> is invoked after each <see cref="EventData"/> deserialization.</para></remarks>
-    public class ServiceBusSubscriber : EventSubscriberBase
+    public class ServiceBusSubscriber : EventSubscriberBase, IServiceBusSubscriber
     {
         /// <summary>
         /// Gets the <see cref="EventDataBase.Internal"/> name to access the <see cref="ServiceBusMessage"/>.
@@ -48,7 +48,13 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="eventSerializer">The optional <see cref="IEventSerializer"/>.</param>
         public ServiceBusSubscriber(ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSubscriber> logger, EventSubscriberInvoker? eventSubscriberInvoker = null, ServiceBusSubscriberInvoker? serviceBusSubscriberInvoker = null, IEventDataConverter<ServiceBusReceivedMessage>? eventDataConverter = null, IEventSerializer? eventSerializer = null)
             : base(eventDataConverter ?? new ServiceBusReceivedMessageEventDataConverter(eventSerializer ?? new CoreEx.Text.Json.EventDataSerializer()), executionContext, settings, logger, eventSubscriberInvoker)
-            => ServiceBusSubscriberInvoker = serviceBusSubscriberInvoker ?? (_invoker ??= new ServiceBusSubscriberInvoker());
+        {
+            ServiceBusSubscriberInvoker = serviceBusSubscriberInvoker ?? (_invoker ??= new ServiceBusSubscriberInvoker());
+            AbandonOnTransient = settings.GetValue($"{GetType().Name}__{nameof(AbandonOnTransient)}", false);
+            MaxDeliveryCount = settings.GetValue<int?>($"{GetType().Name}__{nameof(MaxDeliveryCount)}");
+            RetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(RetryDelay)}");
+            MaxRetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(MaxRetryDelay)}");
+        }
 
         /// <summary>
         /// Gets the <see cref="ServiceBus.ServiceBusSubscriberInvoker"/>.
@@ -59,6 +65,18 @@ namespace CoreEx.Azure.ServiceBus
         /// Gets the <see cref="IEventDataConverter{ServiceBusReceivedMessage}"/>.
         /// </summary>
         protected new IEventDataConverter<ServiceBusReceivedMessage> EventDataConverter => (IEventDataConverter<ServiceBusReceivedMessage>)base.EventDataConverter;
+
+        /// <inheritdoc/>
+        public bool AbandonOnTransient { get; set; }
+
+        /// <inheritdoc/>
+        public int? MaxDeliveryCount { get; set; }
+
+        /// <inheritdoc/>
+        public TimeSpan? RetryDelay { get; set; }
+
+        /// <inheritdoc/>
+        public TimeSpan? MaxRetryDelay { get; set; }
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData"/> (with no value) for processing.

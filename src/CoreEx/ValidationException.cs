@@ -123,7 +123,7 @@ namespace CoreEx
             var sb = new StringBuilder(message);
             foreach (var mi in mic.Where(x => x.Type == MessageType.Error))
             {
-                sb.Append($"{Environment.NewLine}\t{mi.Property}: {mi.Text}");
+                sb.Append($" [{mi.Property}: {mi.Text}]");
             }
 
             return sb.ToString();

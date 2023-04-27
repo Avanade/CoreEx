@@ -21,7 +21,7 @@ namespace CoreEx.Azure.ServiceBus
     /// message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically deadletter; otherwise, it will be
     /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.
     /// <para>The <see cref="ServiceBusSubscriber.UpdateEventDataWithServiceBusMessage(EventData, ServiceBusReceivedMessage, ServiceBusMessageActions)"/> is invoked after each <see cref="EventData"/> deserialization.</para></remarks>
-    public class ServiceBusOrchestratedSubscriber : EventSubscriberBase
+    public class ServiceBusOrchestratedSubscriber : EventSubscriberBase, IServiceBusSubscriber
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceBusOrchestratedSubscriber"/> class.
@@ -39,6 +39,10 @@ namespace CoreEx.Azure.ServiceBus
         {
             Orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
             ServiceBusSubscriberInvoker = serviceBusSubscriberInvoker ?? (ServiceBusSubscriber._invoker ??= new ServiceBusSubscriberInvoker());
+            AbandonOnTransient = settings.GetValue($"{GetType().Name}__{nameof(AbandonOnTransient)}", false);
+            MaxDeliveryCount = settings.GetValue<int?>($"{GetType().Name}__{nameof(MaxDeliveryCount)}");
+            RetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(RetryDelay)}");
+            MaxRetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(MaxRetryDelay)}");
         }
 
         /// <summary>
@@ -55,6 +59,18 @@ namespace CoreEx.Azure.ServiceBus
         /// Gets the <see cref="IEventDataConverter{ServiceBusReceivedMessage}"/>.
         /// </summary>
         protected new IEventDataConverter<ServiceBusReceivedMessage> EventDataConverter => (IEventDataConverter<ServiceBusReceivedMessage>)base.EventDataConverter;
+
+        /// <inheritdoc/>
+        public bool AbandonOnTransient { get; set; }
+
+        /// <inheritdoc/>
+        public int? MaxDeliveryCount { get; set; }
+
+        /// <inheritdoc/>
+        public TimeSpan? RetryDelay { get; set; }
+
+        /// <inheritdoc/>
+        public TimeSpan? MaxRetryDelay { get; set; }
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> leveraging the underlying <see cref="Orchestrator"/> to receive and process the message.
