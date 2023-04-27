@@ -74,6 +74,10 @@ namespace CoreEx.Events.Subscribing
         /// <para>An <paramref name="errorHandling"/> value of <see cref="ErrorHandling.None"/> will be treated as <see cref="ErrorHandling.ThrowSubscriberException"/>; <see cref="ErrorHandling.None"/> should generally be handled prior to invocation.</para></remarks>
         public virtual void HandleError(EventSubscriberException eventSubscriberException, ErrorHandling errorHandling, ILogger logger)
         {
+            // Where the exception is known then exception and stack trace need not be logged.
+            var ex = eventSubscriberException.HasInnerExtendedException ? null : eventSubscriberException;
+
+            // Handle based on error handling configuration.
             switch (errorHandling)
             {
                 case ErrorHandling.TransientRetry:
@@ -81,7 +85,7 @@ namespace CoreEx.Events.Subscribing
                     throw eventSubscriberException;
 
                 case ErrorHandling.CriticalFailFast:
-                    logger.LogCritical(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    logger.LogCritical(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     FailFast(eventSubscriberException);
                     goto case ErrorHandling.ThrowSubscriberException; // A backup in case FailFast does not function as expected.
 
@@ -91,15 +95,15 @@ namespace CoreEx.Events.Subscribing
                     throw eventSubscriberException;
 
                 case ErrorHandling.CompleteWithInformation:
-                    logger.LogInformation(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    logger.LogInformation(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     break;
 
                 case ErrorHandling.CompleteWithWarning:
-                    logger.LogWarning(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    logger.LogWarning(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     break;
 
                 case ErrorHandling.CompleteWithError:
-                    logger.LogError(eventSubscriberException, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    logger.LogError(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     break;
             }
         }

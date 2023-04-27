@@ -19,6 +19,7 @@ namespace CoreEx.Azure.ServiceBus
     public class ServiceBusSubscriberInvoker : InvokerBase<EventSubscriberBase, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions)>
     {
         private const string SubscriberExceptionPropertyName = "SubscriberException";
+        private const string SubscriberAbandonReasonPropertyName = "SubscriberAbandonReason";
 
         /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(EventSubscriberBase invoker, Func<CancellationToken, Task<TResult>> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args, CancellationToken cancellationToken)
@@ -65,23 +66,12 @@ namespace CoreEx.Azure.ServiceBus
             }
             catch (Exception ex)
             {
-                if (ex is IExtendedException eex)
-                {
-                    if (eex.IsTransient)
-                    {
-                        // Do not abandon the message when transient, as there may be a Retry Policy configured; otherwise, it should eventaully be dead-lettered by the host/runtime/fabric.
-                        invoker.Logger.LogWarning(ex, "Retry - Service Bus message '{Message}'. [{Reason}] Processing attempt {Count}. {Error}", args.Message.MessageId, eex.ErrorType, args.Message.DeliveryCount, ex.Message);
-                        OnAfterMessageProcessing(invoker, args.Message, ex);
-                        throw;
-                    }
-
-                    await DeadLetterExceptionAsync(invoker, args.Message, args.MessageActions, eex.ErrorType, ex, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                    await DeadLetterExceptionAsync(invoker, args.Message, args.MessageActions, ErrorType.UnhandledError.ToString(), ex, cancellationToken).ConfigureAwait(false);
-
-                // It's been handled, swallow the exception and carry on.
+                var keepThrowing = await HandleExceptionAsync(invoker, args.Message, args.MessageActions, ex, cancellationToken).ConfigureAwait(false);
                 OnAfterMessageProcessing(invoker, args.Message, ex);
+
+                if (keepThrowing)
+                    throw;
+
                 return default!;
             }
             finally
@@ -91,13 +81,84 @@ namespace CoreEx.Azure.ServiceBus
         }
 
         /// <summary>
+        /// Handle the exception.
+        /// </summary>
+        private static async Task<bool> HandleExceptionAsync(EventSubscriberBase invoker, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Exception exception, CancellationToken cancellationToken)
+        {
+            // Handle a known exception type.
+            if (exception is IExtendedException eex)
+            {
+                // Where not considered transient then dead-letter.
+                if (!eex.IsTransient)
+                {
+                    await DeadLetterExceptionAsync(invoker, message, messageActions, eex.ErrorType, exception, cancellationToken).ConfigureAwait(false);
+                    return false;
+                }
+
+                // Determine the delay, if any.
+                var sbs = invoker as IServiceBusSubscriber;
+                var delay = sbs is not null && sbs.RetryDelay.HasValue ? (int)(sbs.RetryDelay.Value.TotalMilliseconds * message.DeliveryCount) : -1;
+                if (sbs is not null && sbs.MaxRetryDelay.HasValue)
+                {
+                    if (delay < 0 || delay > sbs.MaxRetryDelay.Value.TotalMilliseconds)
+                        delay = (int)sbs.MaxRetryDelay.Value.TotalMilliseconds;
+                }
+
+                // Where the exception is known then exception and stack trace need not be logged.
+                var ex = exception is EventSubscriberException esex && esex.HasInnerExtendedException ? null : exception;
+
+                // Log the transient retry as a warning.
+                if (delay <= 0)
+                    invoker.Logger.LogWarning(ex, "Retry - Service Bus message '{Message}'. [{Reason}] Processing attempt {Count}. {Error}", message.MessageId, eex.ErrorType, message.DeliveryCount, exception.Message);
+                else
+                    invoker.Logger.LogWarning(ex, "Retry - Service Bus message '{Message}'. [{Reason}] Processing attempt {Count}; retry delay {Delay}ms. {Error}", message.MessageId, eex.ErrorType, message.DeliveryCount, delay, exception.Message);
+
+                if (sbs is not null)
+                {
+                    if (sbs.MaxDeliveryCount.HasValue && message.DeliveryCount >= sbs.MaxDeliveryCount.Value)
+                    {
+                        // Dead-letter when maximum delivery count achieved.
+                        await DeadLetterExceptionAsync(invoker, message, messageActions, "MaxDeliveryCountExceeded", new EventSubscriberException($"Message could not be consumed after {sbs.MaxDeliveryCount.Value} attempts (as defined by {invoker.GetType().Name}).", exception), cancellationToken).ConfigureAwait(false);
+                        return false;
+                    }
+
+                    if (delay > 0)
+                    {
+                        // Renew the lock to maximize time and then delay.
+                        await messageActions.RenewMessageLockAsync(message, cancellationToken).ConfigureAwait(false);
+                        invoker.Logger.LogDebug("Retry delaying - Service Bus message '{Message}'. Retry delay {Delay}ms.", message.MessageId, delay);
+                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                        invoker.Logger.LogDebug("Retry delayed - Service Bus message '{Message}'.", message.MessageId, delay);
+                    }
+
+                    if (sbs.AbandonOnTransient)
+                    {
+                        // Abandon message versus bubbling.
+                        invoker.Logger.LogDebug("Abandoning - Service Bus message '{Message}'.", message.MessageId);
+                        await messageActions.AbandonMessageAsync(message, new Dictionary<string, object?> { { SubscriberAbandonReasonPropertyName, FormatText(exception.Message) } }, cancellationToken).ConfigureAwait(false);
+                        invoker.Logger.LogDebug("Abandoned - Service Bus message '{Message}'.", message.MessageId);
+                        return false;
+                    }
+                }
+
+                return true; // Keep throwing; i.e. bubble exception.
+            }
+
+            // Dead-letter the unhandled exception.
+            await DeadLetterExceptionAsync(invoker, message, messageActions, ErrorType.UnhandledError.ToString(), exception, cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+
+        /// <summary>
         /// Performs the dead-lettering.
         /// </summary>
         public static async Task DeadLetterExceptionAsync(EventSubscriberBase invoker, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, string errorReason, Exception exception, CancellationToken cancellationToken)
         {
+            var ex = exception is EventSubscriberException esex && esex.HasInnerExtendedException ? null : exception;
+
             invoker.Logger.LogDebug("Dead Lettering - Service Bus message '{Message}'. [{Reason}] {Error}", message.MessageId, errorReason, exception.Message);
             await messageActions.DeadLetterMessageAsync(message, new Dictionary<string, object?> { { SubscriberExceptionPropertyName, FormatText(exception.ToString()) } }, errorReason, FormatText(exception.Message), cancellationToken).ConfigureAwait(false);
-            invoker.Logger.LogError(exception, "Dead Lettered - Service Bus message '{Message}'. [{Reason}] {Error}", message.MessageId, errorReason, exception.Message);
+            invoker.Logger.LogError(ex, "Dead Lettered - Service Bus message '{Message}'. [{Reason}] {Error}", message.MessageId, errorReason, exception.Message);
         }
 
         /// <summary>

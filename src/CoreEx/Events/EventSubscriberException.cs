@@ -38,6 +38,11 @@ namespace CoreEx.Events
         private IExtendedException? InnerExtendedException => InnerException is IExtendedException eex ? eex : null;
 
         /// <summary>
+        /// Indicates that there is an <see cref="Exception.InnerException"/> and that it implements <see cref="IExtendedException"/>.
+        /// </summary>
+        public bool HasInnerExtendedException => InnerException is IExtendedException;
+
+        /// <summary>
         /// Gets the error type/reason.
         /// </summary>
         /// <remarks>See either the <see cref="Abstractions.ErrorType"/> or <see cref="EventSubscriberExceptionSource"/> for standard values.</remarks>
