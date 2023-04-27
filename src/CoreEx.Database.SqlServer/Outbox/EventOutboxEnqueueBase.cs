@@ -19,7 +19,7 @@ namespace CoreEx.Database.SqlServer.Outbox
     /// <remarks>By default the events are first sent/enqueued to the database outbox, then a secondary process dequeues and sends. Also, by enqueing to a single database outbox the event publishing order is preserved.
     /// <para>This can however introduce unwanted latency depending on the frequency in which the secondary process performs the dequeue and send, as this is essentially a polling-based operation. To improve (minimize) latency, the primary
     /// <see cref="IEventSender"/> can be specified using <see cref="SetPrimaryEventSender(IEventSender)"/>. This will then be used to send the events immediately, and where successful, they will be audited in the database as dequeued 
-    /// event(s); versus on error (as a backup), where they will be enqueued for the out-of-process dequeue and send (as per default). Note: the challenge this introduces is in-order publishing; there is no means to guarantee order for the 
+    /// event(s); versus on error (as a backup), where they will be enqueued for the out-of-process dequeue and send (as per default). Note: the challenge this primary sender introduces is in-order publishing; there is no means to guarantee order for the 
     /// events that are processed on error.</para></remarks>
     public abstract class EventOutboxEnqueueBase : IEventSender
     {
