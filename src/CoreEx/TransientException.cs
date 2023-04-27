@@ -74,7 +74,14 @@ namespace CoreEx
         /// <returns>The <see cref="ShouldExceptionBeLogged"/> value.</returns>
         public bool ShouldBeLogged => ShouldExceptionBeLogged;
 
+        /// <summary>
+        /// Gets or sets the corresponding <see cref="HeaderNames.RetryAfter"/> seconds.
+        /// </summary>
+        /// <remarks>Defaults to <c>120</c> seconds.</remarks>
+        public int RetryAfterSeconds { get; set; } = 120;
+
         /// <inheritdoc/>
+        /// <remarks>Sets the <see cref="HeaderNames.RetryAfter"/> <see cref="HttpResponse.Headers"/> value to <see cref="RetryAfterSeconds"/>.</remarks>
         public IActionResult ToResult() => new ExtendedContentResult
         {
             Content = Message,
@@ -82,7 +89,7 @@ namespace CoreEx
             StatusCode = (int)StatusCode,
             BeforeExtension = r =>
             {
-                r.GetTypedHeaders().Set(HeaderNames.RetryAfter, "120");
+                r.GetTypedHeaders().Set(HeaderNames.RetryAfter, RetryAfterSeconds);
                 return Task.CompletedTask;
             }
         };

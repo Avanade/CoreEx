@@ -4,6 +4,7 @@ Represents the **NuGet** versions.
 
 ## v2.10.0
 - *Enhancement:* Added `IServiceBusSubscriber` with following properties: `AbandonOnTransient` (perform an Abandon versus bubbling exception), `MaxDeliveryCount` (max delivery count check within subscriber), `RetryDelay` (basic transient retry specification) and `MaxRetryDelay` (defines upper bounds of retry delay). These are defaulted from corresponding `IConfiguration` settings. Both the `ServiveBusSubscriber` and `ServiveBusOrchestratedSubscriber` implement; related logic within `ServiceBusSubscriberInvoker`.
+- *Enhancement:* Added `RetryAfterSeconds` to `TransientException` to allow overriding; defaults to `120` seconds.
 - *Fixed:* Log output from subscribers will no longer write exception stack trace where known `IExtendedException` (noise reduction).
 - *Fixed:* `ValidationException` message reformatted such that newlines are no longer included (message simplification).
 
