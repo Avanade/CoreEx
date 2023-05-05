@@ -165,6 +165,7 @@ namespace CoreEx.Hosting
         {
             // Create a scope in which to perform the execution.
             using var scope = ServiceProvider.CreateScope();
+            ExecutionContext.Reset();
 
             try
             {

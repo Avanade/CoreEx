@@ -128,6 +128,16 @@ namespace CoreEx.Events
         public bool ETagDefaultGenerated { get; set; } = false;
 
         /// <summary>
+        /// Indicates whether to default the <see cref="EventDataBase.PartitionKey"/> to the <see cref="EventData.Value"/> value where it implements <see cref="IPartitionKey"/>.
+        /// </summary>
+        public bool PartitionKeyDefaultFromValue { get; set; } = true;
+
+        /// <summary>
+        /// Indicates whether to default the <see cref="EventDataBase.TenantId"/> to the <see cref="EventData.Value"/> value where it implements <see cref="ITenantId"/>.
+        /// </summary>
+        public bool TenantIdDefaultFromValue { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the <see cref="IJsonSerializer"/>.
         /// </summary>
         /// <remarks>Required for the <see cref="ETagDefaultGenerated"/>.</remarks>
@@ -189,10 +199,20 @@ namespace CoreEx.Events
             else
                 @event.CorrelationId = null;
 
-            if (!PropertySelection.HasFlag(EventDataProperty.TenantId))
+            if (PropertySelection.HasFlag(EventDataProperty.TenantId))
+            {
+                if (@event.TenantId is null && TenantIdDefaultFromValue && value is not null && value is ITenantId tid)
+                    @event.TenantId = tid.TenantId;
+            }
+            else
                 @event.TenantId = null;
 
-            if (!PropertySelection.HasFlag(EventDataProperty.PartitionKey))
+            if (PropertySelection.HasFlag(EventDataProperty.PartitionKey))
+            {
+                if (@event.PartitionKey is null && PartitionKeyDefaultFromValue && value is not null && value is IPartitionKey pk)
+                    @event.PartitionKey = pk.PartitionKey;
+            }
+            else
                 @event.PartitionKey = null;
 
             if (PropertySelection.HasFlag(EventDataProperty.ETag))

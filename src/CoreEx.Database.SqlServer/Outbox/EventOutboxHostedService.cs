@@ -125,6 +125,7 @@ namespace CoreEx.Database.SqlServer.Outbox
                 {
                     // As we want to tight loop the execution where there mey be more in the queue, a new 'Scope' is used to ensure new instances of dependencies are used otherwise a disposed error may occur for the underlying transaction.
                     using var scope = scopedServiceProvider.CreateScope();
+                    ExecutionContext.Reset();
                     var eod = EventOutboxDequeueFactory(scope.ServiceProvider) ?? throw new InvalidOperationException($"The {nameof(EventOutboxDequeueFactory)} function must return an instance of {nameof(EventOutboxDequeueBase)}.");
                     sent = await eod.DequeueAndSendAsync(MaxDequeueSize, PartitionKey, Destination, cancellationToken).ConfigureAwait(false);
                 }
