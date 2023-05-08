@@ -31,6 +31,7 @@ namespace CoreEx.WebApis
             if (att == null)
                 return;
 
+            operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsPageQueryStringName, "The specified number of pages.", "number"));
             operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsSkipQueryStringName, "The specified number of elements in a sequence to bypass.", "number"));
             operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsTakeQueryStringName, "The specified number of contiguous elements from the start of a sequence.", "number"));
             operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsCountQueryStringName, "Indicates whether to get the total count when performing the underlying query.", "boolean"));
