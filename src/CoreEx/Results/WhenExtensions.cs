@@ -63,7 +63,7 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<U> When<T, U>(this Result<T> result, Predicate<T> condition, Func<U> func)
-            => result.IsSuccessful && condition(result.Value) ? Result.Success((func ?? throw new ArgumentNullException(nameof(func))).Invoke()) : result.Combine(Result<U>.Successful);
+            => result.IsSuccessful && condition(result.Value) ? Result<U>.Success((func ?? throw new ArgumentNullException(nameof(func))).Invoke()) : result.Combine(Result<U>.Successful);
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccessful"/>.
@@ -75,7 +75,7 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<U> When<T, U>(this Result result, bool condition, Func<Result<U>> func)
-            => result.IsSuccessful && condition ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result.Combine(Result.Success<U>());
+            => result.IsSuccessful && condition ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result.Combine(Result<U>.Success());
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccessful"/>.
@@ -267,7 +267,7 @@ namespace CoreEx.Results
         public static async Task<Result<U>> WhenAsync<T, U>(this Result<T> result, Predicate<T> condition, Func<Task<U>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            return result.IsSuccessful && condition(result.Value) ? Result.Success(await func().ConfigureAwait(false)) : result.Combine(Result<U>.Successful);
+            return result.IsSuccessful && condition(result.Value) ? Result<U>.Success(await func().ConfigureAwait(false)) : result.Combine(Result<U>.Successful);
         }
 
         /// <summary>

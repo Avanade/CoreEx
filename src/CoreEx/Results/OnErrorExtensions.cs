@@ -59,7 +59,7 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/> as <see cref="Result{T}.IsSuccessful"/>.</returns>
         public static Result<U> OnError<T, U>(this Result<T> result, Func<U> func)
-            => result.IsFailure ? Result.Success((func ?? throw new ArgumentNullException(nameof(func))).Invoke()) : result.Combine(Result<U>.Successful);
+            => result.IsFailure ? Result<U>.Success((func ?? throw new ArgumentNullException(nameof(func))).Invoke()) : result.Combine(Result<U>.Successful);
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
@@ -249,7 +249,7 @@ namespace CoreEx.Results
         public static async Task<Result<U>> OnErrorAsync<T, U>(this Result<T> result, Func<Task<U>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            return result.IsFailure ? Result.Success(await func().ConfigureAwait(false)) : result.Combine(Result<U>.Successful);
+            return result.IsFailure ? Result<U>.Success(await func().ConfigureAwait(false)) : result.Combine(Result<U>.Successful);
         }
 
         /// <summary>

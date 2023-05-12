@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Localization;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -67,6 +68,26 @@ namespace CoreEx.Results
 
         /// <inheritdoc/>
         public override string ToString() => IsSuccessful ? "Successful" : $"Failure: {Error.Message}";
+
+        /// <summary>
+        /// Creates a <see cref="Result"/> that is considered <see cref="Result{T}.IsSuccessful"/>.
+        /// </summary>
+        /// <returns>The <see cref="Successful"/> value.</returns>
+        public static Result Success() => Successful;
+
+        /// <summary>
+        /// Creates a <see cref="Result"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>).
+        /// </summary>
+        /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
+        /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result Failure(Exception error) => new(error);
+
+        /// <summary>
+        /// Creates a <see cref="Result"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="BusinessException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result Failure(LText message) => new(new BusinessException(message));
 
         /// <summary>
         /// Implicitly converts an <see cref="Exception"/> to a <see cref="Result"/> that is considered <see cref="IsFailure"/>.

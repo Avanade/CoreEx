@@ -92,15 +92,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Task<Result<T>> Begin<T>(Func<Task> func) => Result<T>.Successful.ThenAsync(func);
-
-        /// <summary>
-        /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Task<Result<T>> BeginAsync<T>(Func<Task<T>> func) => Result<T>.Successful.ThenAsync(func);
+        public static Task<Result<T>> BeginAsync<T>(Func<Task> func) => Result<T>.Successful.ThenAsync(func);
 
         /// <summary>
         /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
@@ -109,6 +101,14 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static async Task<Result<T>> BeginAsync<T>(Func<Task<Result<T>>> func) => await Result<T>.Successful.ThenAsync(func).ConfigureAwait(false);
+
+        /// <summary>
+        /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Task<Result<T>> BeginAsync<T>(Func<Task<T>> func) => Result<T>.Successful.ThenAsync(func);
 
         #endregion
     }

@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Localization;
 using System;
+using System.Collections.Generic;
 
 namespace CoreEx.Results
 {
@@ -71,6 +73,33 @@ namespace CoreEx.Results
         public override string ToString() => IsSuccessful ? $"Successful: {(Value is null ? "null" : Value)}" : $"Failure: {Error.Message}";
 
         /// <summary>
+        /// Creates a <see cref="Result{T}"/> with a default <see cref="Result{T}.Value"/> that is considered <see cref="Result{T}.IsSuccessful"/>.
+        /// </summary>
+        /// <returns>The <see cref="Result{T}"/> that is <see cref="Result{T}.IsSuccessful"/>.</returns>
+        public static Result<T> Success() => Result<T>.Successful;
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with a <see cref="Result{T}.Value"/> that is considered <see cref="Result{T}.IsSuccessful"/>.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The <see cref="Result{T}"/> that is <see cref="Result{T}.IsSuccessful"/>.</returns>
+        public static Result<T> Success(T value) => value is null || (value is IComparable ic && Comparer<T>.Default.Compare(value, default!) == 0) ? Result<T>.Successful : new Result<T>(value);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Result{T}.Error"/> (see <see cref="Result{T}.IsFailure"/>).
+        /// </summary>
+        /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="Result{T}.IsFailure"/>.</returns>
+        public static Result<T> Failure(Exception error) => new(error);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Result{T}.Error"/> (see <see cref="Result{T}.IsFailure"/>) of type <see cref="BusinessException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="Result{T}.IsFailure"/>.</returns>
+        public static Result<T> Failure(LText message) => new(new BusinessException(message));
+
+        /// <summary>
         /// Implicitly converts an <see cref="Exception"/> to a <see cref="Result"/> that is considered <see cref="IsFailure"/>.
         /// </summary>
         /// <param name="error">The underlying error represented as an <see cref="Exception"/>.</param>
@@ -92,7 +121,7 @@ namespace CoreEx.Results
         /// Implicityly converts a <see cref="Value"/> to a <see cref="Result{T}"/> as <see cref="IsSuccessful"/>.
         /// </summary>
         /// <param name="value">The underlying value.</param>
-        public static implicit operator Result<T>(T value) => Result.Success(value);
+        public static implicit operator Result<T>(T value) => Result<T>.Success(value);
 
         /// <summary>
         /// Implicitly converts a <see cref="Result{T}"/> to a <see cref="Value"/> where <see cref="IsSuccessful"/>.
