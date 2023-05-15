@@ -10,21 +10,21 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public void Result_Success_No_Value()
         {
-            var r = Result.Success<int>();
-            Assert.AreEqual(Result<int>.Successful, r);
+            var r = Result.Ok<int>();
+            Assert.AreEqual(Result<int>.None, r);
         }
 
         [Test]
         public void Result_Success_With_Value()
         {
-            var r = Result.Success(1);
-            Assert.AreEqual(Result<int>.Success(1), r);
+            var r = Result.Ok(1);
+            Assert.AreEqual(Result<int>.Ok(1), r);
         }
 
         [Test]
         public void Result_Failure_With_Exception()
         {
-            var r = Result.Failure<int>(new BusinessException());
+            var r = Result<int>.Fail(new BusinessException());
             Assert.IsTrue(r.IsFailure);
             Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
         }
@@ -32,37 +32,37 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public void Result_Failure_With_Message()
         {
-            var r = Result.Failure<int>("Test");
+            var r = Result<int>.Fail("Test");
             Assert.IsTrue(r.IsFailure);
             Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>().And.Message.EqualTo("Test"));
         }
 
         [Test]
-        public void Result_Ok_No_Value()
+        public void Result_Success()
         {
-            var r = Result.Ok();
-            Assert.AreEqual(Result.Successful, r);
+            var r = Result.Success;
+            Assert.AreEqual(Result.Success, r);
         }
 
         [Test]
         public void Result_Ok_With_Value()
         {
             var r = Result.Ok(1);
-            Assert.AreEqual(Result<int>.Success(1), r);
+            Assert.AreEqual(Result<int>.Ok(1), r);
         }
 
         [Test]
-        public void Result_Err_With_Exception()
+        public void Result_Fail_With_Exception()
         {
-            var r = Result.Err(new BusinessException());
+            var r = Result.Fail(new BusinessException());
             Assert.IsTrue(r.IsFailure);
             Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
         }
 
         [Test]
-        public void Result_Err_With_Message()
+        public void Result_Fail_With_Message()
         {
-            var r = Result.Err("Test");
+            var r = Result.Fail("Test");
             Assert.IsTrue(r.IsFailure);
             Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>().And.Message.EqualTo("Test"));
         }

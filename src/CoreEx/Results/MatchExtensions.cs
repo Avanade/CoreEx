@@ -6,288 +6,289 @@ using System.Threading.Tasks;
 namespace CoreEx.Results
 {
     /// <summary>
-    /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>Match</c> and <c>MatchAsync</c> extension methods to execute the corresponding function when either <see cref="IResult.IsSuccessful"/> or <see cref="IResult.IsFailure"/>.
+    /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>Match</c> and <c>MatchAsync</c> extension methods to execute the corresponding function when either <see cref="IResult.IsSuccess"/> or <see cref="IResult.IsFailure"/>.
     /// </summary>
     public static class MatchExtensions
     {
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="onSuccess">The success function.</param>
-        /// <param name="onFailure">The failure function.</param>
+        /// <param name="ok">The success function.</param>
+        /// <param name="fail">The failure function.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result Match(this Result result, Action onSuccess, Action<Exception> onFailure)
+        public static Result Match(this Result result, Action ok, Action<Exception> fail)
             => result.Match(() =>
             {
-                onSuccess();
+                ok();
                 return result;
             }, e =>
             {
-                onFailure(e);
+                fail(e);
                 return result;
             });
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="onSuccess">The success function.</param>
-        /// <param name="onFailure">The failure function.</param>
+        /// <param name="ok">The success function.</param>
+        /// <param name="fail">The failure function.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result Match(this Result result, Func<Result> onSuccess, Func<Exception, Result> onFailure)
+        public static Result Match(this Result result, Func<Result> ok, Func<Exception, Result> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
-            return result.IsSuccessful ? onSuccess() : onFailure(result.Error);
+            ThrowIfNull(ok, fail);
+            return result.IsSuccess ? ok() : fail(result.Error);
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success function.</param>
-        /// <param name="onFailure">The failure function.</param>
+        /// <param name="ok">The success function.</param>
+        /// <param name="fail">The failure function.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> Match<T>(this Result<T> result, Action<T> onSuccess, Action<Exception> onFailure)
+        public static Result<T> Match<T>(this Result<T> result, Action<T> ok, Action<Exception> fail)
             => result.Match(v =>
             {
-                onSuccess(v);
+                ok(v);
                 return result;
             }, e =>
             {
-                onFailure(e);
+                fail(e);
                 return result;
             });
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success function.</param>
-        /// <param name="onFailure">The failure function.</param>
+        /// <param name="ok">The success function.</param>
+        /// <param name="fail">The failure function.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> Match<T>(this Result<T> result, Func<T, Result<T>> onSuccess, Func<Exception, Result<T>> onFailure)
+        public static Result<U> Match<T, U>(this Result<T> result, Func<T, Result<U>> ok, Func<Exception, Result<U>> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
-            return result.IsSuccessful ? onSuccess(result.Value) : onFailure(result.Error);
+            ThrowIfNull(ok, fail);
+            return result.IsSuccess ? ok(result.Value) : fail(result.Error);
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> Match(this Task<Result> result, Action onSuccess, Action<Exception> onFailure)
+        public static async Task<Result> Match(this Task<Result> result, Action ok, Action<Exception> fail)
         { 
             var r = await result.ConfigureAwait(false);
             return r.Match(() =>
             {
-                onSuccess();
+                ok();
                 return r;
             }, e =>
             {
-                onFailure(e);
+                fail(e);
                 return r;
             });
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> Match(this Task<Result> result, Func<Result> onSuccess, Func<Exception, Result> onFailure)
+        public static async Task<Result> Match(this Task<Result> result, Func<Result> ok, Func<Exception, Result> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
+            ThrowIfNull(ok, fail);
             var r = await result.ConfigureAwait(false);
-            return r.IsSuccessful ? onSuccess() : onFailure(r.Error);
+            return r.IsSuccess ? ok() : fail(r.Error);
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> Match<T>(this Task<Result<T>> result, Action<T> onSuccess, Action<Exception> onFailure)
+        public static async Task<Result<T>> Match<T>(this Task<Result<T>> result, Action<T> ok, Action<Exception> fail)
         {
             var r = await result.ConfigureAwait(false);
             return r.Match(v =>
             {
-                onSuccess(v);
+                ok(v);
                 return r;
             }, e =>
             {
-                onFailure(e);
+                fail(e);
                 return r;
             });
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> Match<T, U>(this Task<Result<T>> result, Func<T, Result<U>> onSuccess, Func<Exception, Result<U>> onFailure)
+        public static async Task<Result<U>> Match<T, U>(this Task<Result<T>> result, Func<T, Result<U>> ok, Func<Exception, Result<U>> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
+            ThrowIfNull(ok, fail);
             var r = await result.ConfigureAwait(false);
-            return r.IsSuccessful ? onSuccess(r.Value) : onFailure(r.Error);
+            return r.IsSuccess ? ok(r.Value) : fail(r.Error);
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> MatchAsync(this Result result, Func<Task> onSuccess, Func<Exception, Task> onFailure)
+        public static async Task<Result> MatchAsync(this Result result, Func<Task> ok, Func<Exception, Task> fail)
             => await result.MatchAsync(async () =>
             {
-                await onSuccess().ConfigureAwait(false);
+                await ok().ConfigureAwait(false);
                 return result;
             }, async e =>
             {
-                await onFailure(e).ConfigureAwait(false);
+                await fail(e).ConfigureAwait(false);
                 return result;
             }).ConfigureAwait(false);
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result> MatchAsync(this Result result, Func<Task<Result>> onSuccess, Func<Exception, Task<Result>> onFailure)
+        public static Task<Result> MatchAsync(this Result result, Func<Task<Result>> ok, Func<Exception, Task<Result>> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
-            return result.IsSuccessful ? onSuccess() : onFailure(result.Error);
+            ThrowIfNull(ok, fail);
+            return result.IsSuccess ? ok() : fail(result.Error);
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result<T>> MatchAsync<T>(this Result<T> result, Func<T, Task> onSuccess, Func<Exception, Task> onFailure)
+        public static Task<Result<T>> MatchAsync<T>(this Result<T> result, Func<T, Task> ok, Func<Exception, Task> fail)
             => result.MatchAsync(async v =>
             {
-                await onSuccess(v).ConfigureAwait(false);
+                await ok(v).ConfigureAwait(false);
                 return result;
             }, async e =>
             {
-                await onFailure(e).ConfigureAwait(false);
+                await fail(e).ConfigureAwait(false);
                 return result;
             });
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result<U>> MatchAsync<T, U>(this Result<T> result, Func<T, Task<Result<U>>> onSuccess, Func<Exception, Task<Result<U>>> onFailure)
+        public static Task<Result<U>> MatchAsync<T, U>(this Result<T> result, Func<T, Task<Result<U>>> ok, Func<Exception, Task<Result<U>>> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
-            return result.IsSuccessful ? onSuccess(result.Value) : onFailure(result.Error);
+            ThrowIfNull(ok, fail);
+            return result.IsSuccess ? ok(result.Value) : fail(result.Error);
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> MatchAsync(this Task<Result> result, Func<Task> onSuccess, Func<Exception, Task> onFailure)
+        public static async Task<Result> MatchAsync(this Task<Result> result, Func<Task> ok, Func<Exception, Task> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
+            ThrowIfNull(ok, fail);
             var r = await result.ConfigureAwait(false);
-            if (r.IsSuccessful)
-                await onSuccess().ConfigureAwait(false);
+            if (r.IsSuccess)
+                await ok().ConfigureAwait(false);
             else
-                await onFailure(r.Error).ConfigureAwait(false);
+                await fail(r.Error).ConfigureAwait(false);
 
             return r;
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> MatchAsync(this Task<Result> result, Func<Task<Result>> onSuccess, Func<Exception, Task<Result>> onFailure)
+        public static async Task<Result> MatchAsync(this Task<Result> result, Func<Task<Result>> ok, Func<Exception, Task<Result>> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
+            ThrowIfNull(ok, fail);
             var r = await result.ConfigureAwait(false);
-            return r.IsSuccessful ? await onSuccess().ConfigureAwait(false) : await onFailure(r.Error).ConfigureAwait(false);
+            return r.IsSuccess ? await ok().ConfigureAwait(false) : await fail(r.Error).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> MatchAsync<T>(this Task<Result<T>> result, Func<T, Task> onSuccess, Func<Exception, Task> onFailure)
+        public static async Task<Result<T>> MatchAsync<T>(this Task<Result<T>> result, Func<T, Task> ok, Func<Exception, Task> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
+            ThrowIfNull(ok, fail);
             var r = await result.ConfigureAwait(false);
-            if (r.IsSuccessful)
-                await onSuccess(r.Value).ConfigureAwait(false);
+            if (r.IsSuccess)
+                await ok(r.Value).ConfigureAwait(false);
             else
-                await onFailure(r.Error).ConfigureAwait(false);
+                await fail(r.Error).ConfigureAwait(false);
 
             return r;
         }
 
         /// <summary>
-        /// Invokes (matches) the <paramref name="onSuccess"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccessful"/>; otherwise, invokes the <paramref name="onFailure"/> function.
+        /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="onSuccess">The success <see cref="Action"/>.</param>
-        /// <param name="onFailure">The failure <see cref="Action"/>.</param>
+        /// <param name="ok">The success <see cref="Action"/>.</param>
+        /// <param name="fail">The failure <see cref="Action"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> MatchAsync<T, U>(this Task<Result<T>> result, Func<T, Task<Result<U>>> onSuccess, Func<Exception, Task<Result<U>>> onFailure)
+        public static async Task<Result<U>> MatchAsync<T, U>(this Task<Result<T>> result, Func<T, Task<Result<U>>> ok, Func<Exception, Task<Result<U>>> fail)
         {
-            ThrowIfNull(onSuccess, onFailure);
+            ThrowIfNull(ok, fail);
             var r = await result.ConfigureAwait(false);
-            return r.IsSuccessful ? await onSuccess(r.Value).ConfigureAwait(false): await onFailure(r.Error).ConfigureAwait(false);
+            return r.IsSuccess ? await ok(r.Value).ConfigureAwait(false): await fail(r.Error).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Check parameters and throw where null.
         /// </summary>
-        private static void ThrowIfNull(object onSuccess, object onFailure)
+        private static void ThrowIfNull(object ok, object fail)
         {
-            if (onSuccess == null) throw new ArgumentNullException(nameof(onSuccess));
-            if (onFailure == null) throw new ArgumentNullException(nameof(onFailure));
+            if (ok == null) throw new ArgumentNullException(nameof(ok));
+            if (fail == null) throw new ArgumentNullException(nameof(fail));
         }
     }
 }

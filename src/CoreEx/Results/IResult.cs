@@ -17,7 +17,7 @@ namespace CoreEx.Results
         /// <summary>
         /// Indicates whether the operation was successful.
         /// </summary>
-        bool IsSuccessful { get; }
+        bool IsSuccess { get; }
 
         /// <summary>
         /// Indicates whether the operation was a failure.

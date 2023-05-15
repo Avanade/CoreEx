@@ -11,20 +11,20 @@ namespace CoreEx.Test.Framework.Results
         public void Begin_No_Args()
         {
             var r = Result.Begin();
-            Assert.AreEqual(Result.Successful, r);
+            Assert.AreEqual(Result.Success, r);
         }
 
         [Test]
         public void Begin_With_Action()
         {
             var r = Result.Begin(() => { });
-            Assert.AreEqual(Result.Successful, r);
+            Assert.AreEqual(Result.Success, r);
         }
 
         [Test]
         public void Begin_With_Result_Func()
         {
-            var r = Result.Begin(() => Result.Err("Test"));
+            var r = Result.Begin(() => Result.Fail("Test"));
             Assert.IsTrue(r.IsFailure);
         }
 
@@ -32,7 +32,7 @@ namespace CoreEx.Test.Framework.Results
         public void Begin_Value_With_Action()
         {
             var r = Result.Begin<int>(() => { });
-            Assert.AreEqual(Result<int>.Successful, r);
+            Assert.AreEqual(Result<int>.None, r);
         }
 
         [Test]
@@ -53,7 +53,7 @@ namespace CoreEx.Test.Framework.Results
         public void Begin_Value_No_Args()
         {
             var r = Result.Begin<int>();
-            Assert.AreEqual(Result<int>.Successful, r);
+            Assert.AreEqual(Result<int>.None, r);
         }
 
         /* Begin_Async */
@@ -62,13 +62,13 @@ namespace CoreEx.Test.Framework.Results
         public async Task BeginAsync_With_Action()
         {
             var r = await Result.BeginAsync(() => Task.CompletedTask);
-            Assert.AreEqual(Result.Successful, r);
+            Assert.AreEqual(Result.Success, r);
         }
 
         [Test]
         public async Task BeginAsync_With_Result_Func()
         {
-            var r = await Result.BeginAsync(() => Task.FromResult(Result.Err("Test")));
+            var r = await Result.BeginAsync(() => Task.FromResult(Result.Fail("Test")));
             Assert.IsTrue(r.IsFailure);
         }
 
@@ -76,7 +76,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task BeginAsync_Value_With_Action()
         {
             var r = await Result.BeginAsync<int>(() => Task.CompletedTask);
-            Assert.AreEqual(Result<int>.Successful, r);
+            Assert.AreEqual(Result<int>.None, r);
         }
 
         [Test]

@@ -12,14 +12,14 @@ namespace CoreEx.Results
     public readonly partial struct Result : IResult
     {
         /// <summary>
-        /// Gets the <see cref="IsSuccessful"/> default <see cref="Result"/>.
+        /// Gets the <see cref="IsSuccess"/> <see cref="Result"/>.
         /// </summary>
-        public static Result Successful { get; } = new();
+        public static Result Success { get; } = new();
 
         private readonly Exception? _error = default;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Result"/> class that is considered <see cref="IsSuccessful"/>.
+        /// Initializes a new instance of the <see cref="Result"/> class that is considered <see cref="IsSuccess"/>.
         /// </summary>
         public Result() { }
 
@@ -33,7 +33,7 @@ namespace CoreEx.Results
         public Exception Error { get => _error ?? throw new InvalidOperationException($"The {nameof(Error)} cannot be accessed as the {nameof(Result)} is in a successful state."); }
 
         /// <inheritdoc/>
-        public bool IsSuccessful => _error is null;
+        public bool IsSuccess => _error is null;
 
         /// <inheritdoc/>
         public bool IsFailure => _error is not null;
@@ -66,28 +66,28 @@ namespace CoreEx.Results
             throw new AggregateException(error);
         }
 
-        /// <inheritdoc/>
-        public override string ToString() => IsSuccessful ? "Successful" : $"Failure: {Error.Message}";
-
         /// <summary>
-        /// Creates a <see cref="Result"/> that is considered <see cref="Result{T}.IsSuccessful"/>.
+        /// Gets the <see cref="Success"/> <see cref="Result"/>.
         /// </summary>
-        /// <returns>The <see cref="Successful"/> value.</returns>
-        public static Result Success() => Successful;
+        /// <returns>The <see cref="Success"/> <see cref="Result"/>.</returns>
+        public static Result Ok() => Success;
 
         /// <summary>
         /// Creates a <see cref="Result"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>).
         /// </summary>
         /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
         /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
-        public static Result Failure(Exception error) => new(error);
+        public static Result Fail(Exception error) => new(error);
 
         /// <summary>
         /// Creates a <see cref="Result"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="BusinessException"/>.
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
-        public static Result Failure(LText message) => new(new BusinessException(message));
+        public static Result Fail(LText message) => new(new BusinessException(message));
+
+        /// <inheritdoc/>
+        public override string ToString() => IsSuccess ? "Success." : $"Failure: {Error.Message}";
 
         /// <summary>
         /// Implicitly converts an <see cref="Exception"/> to a <see cref="Result"/> that is considered <see cref="IsFailure"/>.

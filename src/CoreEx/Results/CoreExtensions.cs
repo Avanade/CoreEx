@@ -10,7 +10,7 @@ namespace CoreEx.Results
     public static class CoreExtensions
     {
         /// <summary>
-        /// Unwraps the <paramref name="result"/> and where <see cref="Result{T}.IsSuccessful"/> invokes the <paramref name="func"/> and returns the resulting <see cref="Result{T}"/>; 
+        /// Unwraps the <paramref name="result"/> and where <see cref="Result{T}.IsSuccess"/> invokes the <paramref name="func"/> and returns the resulting <see cref="Result{T}"/>; 
         /// otherwise, where <see cref="Result{T}.IsFailure"/> returns a resulting instance with the corresponding <see cref="Result{T}.Error"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
@@ -21,11 +21,11 @@ namespace CoreEx.Results
         public static Result<U> Bind<T, U>(this Result<T> result, Func<T, Result<U>> func)
         {
             if (func is null) throw new ArgumentNullException(nameof(func));
-            return result.IsSuccessful ? func(result.Value) : new Result<U>(result.Error!);
+            return result.IsSuccess ? func(result.Value) : new Result<U>(result.Error!);
         }
 
         /// <summary>
-        /// Unwraps the <paramref name="result"/> and where <see cref="Result{T}.IsSuccessful"/> invokes the <paramref name="func"/> and returns the resulting <see cref="Result{T}"/>; 
+        /// Unwraps the <paramref name="result"/> and where <see cref="Result{T}.IsSuccess"/> invokes the <paramref name="func"/> and returns the resulting <see cref="Result{T}"/>; 
         /// otherwise, where <see cref="Result{T}.IsFailure"/> returns a resulting instance with the corresponding <see cref="Result{T}.Error"/>.
         /// </summary>
         /// <typeparam name="T">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
@@ -35,7 +35,7 @@ namespace CoreEx.Results
         public static Result<T> Bind<T>(this Result result, Func<Result<T>> func)
         {
             if (func is null) throw new ArgumentNullException(nameof(func));
-            return result.IsSuccessful ? func() : new Result<T>(result.Error!);
+            return result.IsSuccess ? func() : new Result<T>(result.Error!);
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result Bind<T>(this Result<T> result) => result.IsSuccessful ? Result.Successful : new Result(result.Error);
+        public static Result Bind<T>(this Result<T> result) => result.IsSuccess ? Result.Success : new Result(result.Error);
 
         /// <summary>
         /// Maps a <paramref name="value"/> into a <see cref="Result{T}"/>.
