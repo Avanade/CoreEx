@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CoreEx.Results
@@ -8,8 +9,11 @@ namespace CoreEx.Results
     /// <summary>
     /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>Match</c> and <c>MatchAsync</c> extension methods to execute the corresponding function when either <see cref="IResult.IsSuccess"/> or <see cref="IResult.IsFailure"/>.
     /// </summary>
+    [DebuggerStepThrough]
     public static class MatchExtensions
     {
+        #region Synchronous
+
         /// <summary>
         /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
@@ -74,6 +78,10 @@ namespace CoreEx.Results
             ThrowIfNull(ok, fail);
             return result.IsSuccess ? ok(result.Value) : fail(result.Error);
         }
+
+        #endregion
+
+        #region AsyncResult
 
         /// <summary>
         /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
@@ -148,6 +156,10 @@ namespace CoreEx.Results
             return r.IsSuccess ? ok(r.Value) : fail(r.Error);
         }
 
+        #endregion
+
+        #region AsyncFunc
+
         /// <summary>
         /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
         /// </summary>
@@ -212,6 +224,10 @@ namespace CoreEx.Results
             ThrowIfNull(ok, fail);
             return result.IsSuccess ? ok(result.Value) : fail(result.Error);
         }
+
+        #endregion
+
+        #region AsyncBoth
 
         /// <summary>
         /// Invokes (matches) the <paramref name="ok"/> function when the <paramref name="result"/> is <see cref="IResult.IsSuccess"/>; otherwise, invokes the <paramref name="fail"/> function.
@@ -290,5 +306,7 @@ namespace CoreEx.Results
             if (ok == null) throw new ArgumentNullException(nameof(ok));
             if (fail == null) throw new ArgumentNullException(nameof(fail));
         }
+
+        #endregion
     }
 }

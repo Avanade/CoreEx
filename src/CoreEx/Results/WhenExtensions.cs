@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CoreEx.Results
@@ -8,6 +9,7 @@ namespace CoreEx.Results
     /// <summary>
     /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>When</c> and <c>WhenAsync</c> extension methods to execute the corresponding function when <see cref="IResult.IsSuccess"/> and the specified condition/predicate evaluates to <c>true</c>.
     /// </summary>
+    [DebuggerStepThrough]
     public static class WhenExtensions
     {
         #region Synchronous

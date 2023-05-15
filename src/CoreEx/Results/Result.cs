@@ -2,6 +2,7 @@
 
 using CoreEx.Localization;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace CoreEx.Results
@@ -9,6 +10,7 @@ namespace CoreEx.Results
     /// <summary>
     /// Represents the outcome of an operation with no value.
     /// </summary>
+    [DebuggerStepThrough]
     public readonly partial struct Result : IResult
     {
         /// <summary>

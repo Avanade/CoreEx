@@ -7,7 +7,7 @@ namespace CoreEx.Test.Framework.Results
     public class ResultTest
     {
         [Test]
-        public void Successful_Property()
+        public void Success_Property()
         {
             var r = Result.Success;
             Assert.IsTrue(r.IsSuccess);
@@ -23,7 +23,7 @@ namespace CoreEx.Test.Framework.Results
         }
 
         [Test]
-        public void Success_Is_Successful()
+        public void Success_Is_Success()
         {
             var r = Result.Success;
             Assert.IsTrue(r.IsSuccess);

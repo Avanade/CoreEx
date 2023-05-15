@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics;
 
 namespace CoreEx.Results
 {
     /// <summary>
     /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> core extension methods.
     /// </summary>
+    [DebuggerStepThrough]
     public static class CoreExtensions
     {
         /// <summary>

@@ -3,6 +3,7 @@
 using CoreEx.Localization;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace CoreEx.Results
 {
@@ -10,6 +11,7 @@ namespace CoreEx.Results
     /// Represents the outcome of an operation with a <see cref="Value"/>.
     /// </summary>
     /// <typeparam name="T">The <see cref="Value"/> <see cref="Type"/>.</typeparam>
+    [DebuggerStepThrough]
     public readonly struct Result<T> : IResultValue<T>
     {
         /// <summary>
