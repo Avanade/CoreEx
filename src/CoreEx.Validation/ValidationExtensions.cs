@@ -3,6 +3,7 @@
 using CoreEx.Http;
 using CoreEx.Localization;
 using CoreEx.RefData;
+using CoreEx.Results;
 using CoreEx.Validation.Clauses;
 using CoreEx.Validation.Rules;
 using CoreEx.Wildcards;
@@ -1112,6 +1113,44 @@ namespace CoreEx.Validation
 
             (multiValidator ?? throw new ArgumentNullException(nameof(multiValidator))).Validators.Add(validator.ValidateAsync);
             return multiValidator;
+        }
+
+        #endregion
+
+        #region Result
+
+        /// <summary>
+        /// Executes the <paramref name="validation"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="validation">The <see cref="ValidationContext{TEntity}"/> resulting function.</param>
+        /// <param name="args">An optional <see cref="ValidationArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
+        public static Task<Result<TEntity>> ValidationAsync<TEntity>(this Result<TEntity> result, Func<TEntity, ValidationArgs?, CancellationToken, Task<ValidationContext<TEntity>>> validation, ValidationArgs? args = default, CancellationToken cancellationToken = default) 
+            => ValidationAsync(Task.FromResult(result), validation, args, cancellationToken);
+
+        /// <summary>
+        /// Executes the <paramref name="validation"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="validation">The <see cref="IValidationResult{T}"/> resulting function.</param>
+        /// <param name="args">An optional <see cref="ValidationArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
+        public static async Task<Result<TEntity>> ValidationAsync<TEntity>(this Task<Result<TEntity>> result, Func<TEntity, ValidationArgs?, CancellationToken, Task<ValidationContext<TEntity>>> validation, ValidationArgs? args = default, CancellationToken cancellationToken = default)
+        {
+            if (validation == null) throw new ArgumentNullException(nameof(validation));
+
+            return await result.ThenAsync(async v =>
+            {
+                var vr = await validation(v, args, cancellationToken).ConfigureAwait(false);
+                return vr.HasErrors ? Result<TEntity>.Fail(vr.ToValidationException()!) : Result<TEntity>.Ok(vr.Value!);
+            });
         }
 
         #endregion

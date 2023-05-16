@@ -10,7 +10,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public void Result_Success_No_Value()
         {
-            var r = Result.Ok<int>();
+            var r = Result<int>.Ok();
             Assert.AreEqual(Result<int>.None, r);
         }
 

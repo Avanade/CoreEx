@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using CoreEx.Localization;
 using System;
 using System.Collections.Generic;
@@ -130,5 +131,80 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="result"></param>
         public static implicit operator T(Result<T> result) => result.Value;
+
+        #region Errors
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="ValidationException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> ValidationError(LText? message = default) => new ValidationException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="ValidationException"/>.
+        /// </summary>
+        /// <param name="messages">The <see cref="MessageItem"/> list.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> ValidationError(IEnumerable<MessageItem> messages) => new ValidationException(messages);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="ValidationException"/>.
+        /// </summary>
+        /// <param name="message">The <see cref="MessageItem"/>.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>       
+        public static Result<T> ValidationError(MessageItem message) => new ValidationException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="ConflictException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        /// <remarks>An example would be where the identifier provided for a Create operation already exists.</remarks>
+        public static Result<T> ConflictError(LText? message = default) => new ConflictException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="ConcurrencyException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> ConcurrencyError(LText? message = default) => new ConcurrencyException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="DuplicateException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> DuplicateError(LText? message = default) => new DuplicateException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="NotFoundException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> NotFoundError(LText? message = default) => new NotFoundException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="TransientException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> TransientError(LText? message = default) => new TransientException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="AuthenticationException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> AuthenticationError(LText? message = default) => new AuthenticationException(message);
+
+        /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="AuthorizationException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> AuthorizationError(LText? message = default) => new AuthorizationException(message);
+
+        #endregion
     }
 }

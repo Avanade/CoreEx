@@ -2,6 +2,7 @@
 
 using System;
 using System.Threading.Tasks;
+using CoreEx.Results.Abstractions;
 
 namespace CoreEx.Results
 {

@@ -62,6 +62,16 @@ namespace CoreEx.Caching
         public static Task<T?> GetOrAddAsync<T>(this IRequestCache cache, object? key, Func<Task<T?>> addFactory) => cache.GetOrAddAsync(new CompositeKey(key), addFactory);
 
         /// <summary>
+        /// Sets (adds or overrides) the cache value for the specified <see cref="Type"/> and <paramref name="key"/>1 and returns <paramref name="value"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <param name="key">The key of the value to set.</param>
+        /// <param name="value">The value to set.</param>
+        /// <returns>The <paramref name="value"/>.</returns>
+        public static T? SetValue<T>(this IRequestCache cache, object? key, T? value) => cache.SetValue(new CompositeKey(key), value);
+
+        /// <summary>
         /// Sets (adds or overrides) the cache value for the specified <see cref="IEntityKey"/> <see cref="Type"/> and returns <paramref name="value"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>

@@ -37,6 +37,15 @@ namespace CoreEx.Results
         public static Result Any(this Result result, Func<Result> func) => (func ?? throw new ArgumentNullException(nameof(func))).Invoke();
 
         /// <summary>
+        /// Invokes the <paramref name="func"/> regardless of the <paramref name="result"/> state.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Needed to enable fluent-style method-chaining.")]
+        public static Result<T> Any<T>(this Result result, Func<Result<T>> func) => (func ?? throw new ArgumentNullException(nameof(func))).Invoke();
+
+        /// <summary>
         /// Invokes the <paramref name="action"/> regardless of the <paramref name="result"/> state.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -91,6 +100,18 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> Any(this Task<Result> result, Func<Result> func)
+        {
+            var r = await result.ConfigureAwait(false);
+            return (func ?? throw new ArgumentNullException(nameof(func))).Invoke();
+        }
+
+        /// <summary>
+        /// Invokes the <paramref name="func"/> regardless of the <paramref name="result"/> state.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> Any<T>(this Task<Result> result, Func<Result<T>> func)
         {
             var r = await result.ConfigureAwait(false);
             return (func ?? throw new ArgumentNullException(nameof(func))).Invoke();
@@ -171,6 +192,18 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> AnyAsync<T>(this Result result, Func<Result, Task<Result<T>>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            return await func(result).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Invokes the <paramref name="func"/> regardless of the <paramref name="result"/> state.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static async Task<Result<T>> AnyAsync<T>(this Result<T> result, Func<Result<T>, Task> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
@@ -228,6 +261,19 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> AnyAsync(this Task<Result> result, Func<Result, Task<Result>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            var r = await result.ConfigureAwait(false);
+            return await func(r).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Invokes the <paramref name="func"/> regardless of the <paramref name="result"/> state.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> AnyAsync<T>(this Task<Result> result, Func<Result, Task<Result<T>>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             var r = await result.ConfigureAwait(false);

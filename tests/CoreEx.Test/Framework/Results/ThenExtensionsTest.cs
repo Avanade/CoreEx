@@ -166,7 +166,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task AsyncResult_Result_Then_With_Action_Success()
         {
             var i = 0;
-            var r = Result.BeginAsync(() => Task.CompletedTask);
+            var r = Result.GoAsync(() => Task.CompletedTask);
             var r2 = await r.Then(() => i = 1);
             Assert.AreEqual(1, i);
         }
@@ -175,7 +175,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task AsyncResult_Result_Then_With_Action_Failure()
         {
             var i = 0;
-            var r = Result.BeginAsync(() => Task.FromResult(Result.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result.Fail(new BusinessException())));
             var r2 = await r.Then(() => i = 1);
             Assert.AreEqual(0, i);
         }
@@ -183,7 +183,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_Result_Then_With_Func_Success()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result.Success));
+            var r = Result.GoAsync(() => Task.FromResult(Result.Success));
             var r2 = await r.Then(() => Result.Fail("Test"));
             Assert.True(r2.IsFailure);
         }
@@ -191,7 +191,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_Result_Then_With_Func_Failure()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result.Fail(new BusinessException())));
             var r2 = await r.Then(() => Result.NotFoundError());
             Assert.True(r2.IsFailure);
             Assert.That(r2.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
@@ -201,7 +201,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task AsyncResult_ResultT_Then_Action_Success()
         {
             var i = 0;
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Ok()));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Ok()));
             var r2 = await r.Then(() => { i = 1; });
             Assert.AreEqual(1, i);
         }
@@ -210,7 +210,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task AsyncResult_ResultT_Then_Action_Failure()
         {
             var i = 0;
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
             var r2 = await r.Then(() => { i = 1; });
             Assert.AreEqual(0, i);
         }
@@ -218,7 +218,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Value_Success()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Ok()));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Ok()));
             var r2 = await r.Then(() => 1);
             Assert.AreEqual(1, r2.Value);
         }
@@ -226,7 +226,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Value_Failure()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
             var r2 = await r.Then(() => 1);
             Assert.IsTrue(r2.IsFailure);
         }
@@ -234,7 +234,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Result_Success()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Ok()));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Ok()));
             var r2 = await r.Then(() => Result.Fail("Test"));
             Assert.IsTrue(r2.IsFailure);
         }
@@ -242,7 +242,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Result_Failure()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
             var r2 = await r.Then(() => Result.NotFoundError());
             Assert.IsTrue(r2.IsFailure);
             Assert.That(r2.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
@@ -251,7 +251,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Diff_Value_Success()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Ok()));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Ok()));
             var r2 = await r.Then(() => true);
             Assert.AreEqual(true, r2.Value);
         }
@@ -259,7 +259,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Diff_Value_Failure()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
             var r2 = await r.Then(() => true);
             Assert.IsTrue(r2.IsFailure);
         }
@@ -267,7 +267,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Result_Value_Success()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Ok()));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Ok()));
             var r2 = await r.Then(() => Result<int>.Fail("Test"));
             Assert.IsTrue(r2.IsFailure);
         }
@@ -275,7 +275,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_Func_Result_Value_Failure()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
             var r2 = await r.Then(() => Result<int>.Fail(new NotFoundException()));
             Assert.IsTrue(r2.IsFailure);
             Assert.That(r2.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
@@ -284,7 +284,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_FuncT_Result_Success()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Ok()));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Ok()));
             var r2 = await r.Then(v => new Result<bool>(true));
             Assert.IsTrue(r2.IsSuccess);
         }
@@ -292,7 +292,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_FuncT_Result_Failure()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
             var r2 = await r.Then(v => new Result<bool>(true));
             Assert.IsTrue(r2.IsFailure);
             Assert.That(r2.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
@@ -301,7 +301,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_FuncT_ResultT_Success()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Ok()));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Ok()));
             var r2 = await r.Then(v => true);
             Assert.IsTrue(r2.IsSuccess);
         }
@@ -309,7 +309,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task AsyncResult_ResultT_Then_FuncT_ResultT_Failure()
         {
-            var r = Result.BeginAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
+            var r = Result.GoAsync(() => Task.FromResult(Result<int>.Fail(new BusinessException())));
             var r2 = await r.Then(v => true);
             Assert.IsTrue(r2.IsFailure);
             Assert.That(r2.Error, Is.Not.Null.And.InstanceOf<BusinessException>());

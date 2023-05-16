@@ -1,10 +1,11 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Invokers;
+using CoreEx.Results;
+using CoreEx.Results.Abstractions;
 using System;
 using System.Threading.Tasks;
 
-namespace CoreEx.Results
+namespace CoreEx.Invokers
 {
     /// <summary>
     /// Provides a <typeparamref name="TInvoker"/> <see cref="WithWrapper"/> implementation.
@@ -25,7 +26,7 @@ namespace CoreEx.Results
             if (result.IsFailure)
                 return result;
 
-            var invoker = CoreEx.ExecutionContext.GetService<TInvoker>() ?? (_default ??= new TInvoker());
+            var invoker = ExecutionContext.GetService<TInvoker>() ?? (_default ??= new TInvoker());
             return invoker.Invoke(args.Item1!, func, args.Item2);
         }
 

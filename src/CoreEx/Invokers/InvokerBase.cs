@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Results;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,6 +32,15 @@ namespace CoreEx.Invokers
 
                 // Invoke the underlying logic.
                 var result = await func(cancellationToken).ConfigureAwait(false);
+
+                // Where using Railway-oriented programming, rollback the transaction where a failure has occurred.
+                if (result is IResult r && r.IsFailure)
+                {
+                    // Rollback the transaction where requested.
+                    txn?.Dispose();
+                    CoreEx.ExecutionContext.Current.OperationType = ot;
+                    return result;
+                }
 
                 // Send any published events where applicable.
                 if (bia.EventPublisher != null)

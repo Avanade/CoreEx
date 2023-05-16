@@ -3,7 +3,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace CoreEx.Results
+namespace CoreEx.Results.Abstractions
 {
     /// <summary>
     /// Provides a '<c>try/catch</c>' <see cref="WithWrapper"/> implementation.
