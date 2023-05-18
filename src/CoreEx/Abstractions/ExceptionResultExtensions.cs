@@ -1,9 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Http;
+using CoreEx.WebApis;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
 using System.Net.Mime;
+using System.Threading.Tasks;
 
 namespace CoreEx.Abstractions
 {
@@ -13,13 +17,24 @@ namespace CoreEx.Abstractions
     public static class ExceptionResultExtensions
     {
         /// <summary>
-        /// Converts the <paramref name="exception"/> into a corresponding <see cref="ContentResult"/> with the specified <paramref name="statusCode"/>.
+        /// Converts the <paramref name="exception"/> into a corresponding <see cref="ExtendedContentResult"/>.
         /// </summary>
-        /// <param name="exception">The <see cref="Exception"/>.</param>
-        /// <param name="statusCode">The <see cref="HttpStatusCode"/>.</param>
-        /// <returns>The corresponding <see cref="ContentResult"/>.</returns>
-        public static IActionResult ToResult(this Exception exception, HttpStatusCode statusCode)
-            => new ContentResult { StatusCode = (int)statusCode, ContentType = MediaTypeNames.Text.Plain, Content = exception.Message };
+        /// <param name="exception">The <see cref="IExtendedException"/>.</param>
+        /// <param name="statusCode">The optional overridding <see cref="HttpStatusCode"/>.</param>
+        /// <returns>The corresponding <see cref="ExtendedContentResult"/>.</returns>
+        public static IActionResult ToResult(this IExtendedException exception, HttpStatusCode? statusCode) => new ExtendedContentResult
+        {
+            Content = exception.Message,
+            ContentType = MediaTypeNames.Text.Plain,
+            StatusCode = (int)(statusCode ?? exception.StatusCode),
+            BeforeExtension = r =>
+            {
+                var th = r.GetTypedHeaders();
+                th.Set(HttpConsts.ErrorTypeHeaderName, exception.ErrorType);
+                th.Set(HttpConsts.ErrorCodeHeaderName, exception.ErrorCode.ToString());
+                return Task.CompletedTask;
+            }
+        };
 
         /// <summary>
         /// Converts the unexpected <paramref name="exception"/> into a corresponding <see cref="HttpStatusCode.InternalServerError"/> <see cref="ContentResult"/>.

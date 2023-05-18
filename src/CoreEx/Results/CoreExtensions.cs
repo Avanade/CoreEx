@@ -41,7 +41,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Binds/converts the <see cref="Result{T}"/> to a corresponding <see cref="Result"/> loosing the <see cref="Result{T}.Value"/>.
+        /// Binds/converts the <see cref="Result{T}"/> to a corresponding <see cref="Result"/> losing the <see cref="Result{T}.Value"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>

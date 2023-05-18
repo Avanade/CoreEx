@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Http;
 using CoreEx.Localization;
 using CoreEx.WebApis;
 using Microsoft.AspNetCore.Http;
@@ -89,7 +90,10 @@ namespace CoreEx
             StatusCode = (int)StatusCode,
             BeforeExtension = r =>
             {
-                r.GetTypedHeaders().Set(HeaderNames.RetryAfter, RetryAfterSeconds);
+                var th = r.GetTypedHeaders();
+                th.Set(HttpConsts.ErrorTypeHeaderName, ErrorType);
+                th.Set(HttpConsts.ErrorCodeHeaderName, ErrorCode.ToString());
+                th.Set(HeaderNames.RetryAfter, RetryAfterSeconds);
                 return Task.CompletedTask;
             }
         };

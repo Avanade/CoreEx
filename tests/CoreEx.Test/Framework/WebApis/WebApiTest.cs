@@ -1,5 +1,6 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Http;
+using CoreEx.Results;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using CoreEx.WebApis;
@@ -604,38 +605,6 @@ namespace CoreEx.Test.Framework.WebApis
                 .Assert(new Person { Id = 13, Name = "Gazza" });
         }
 
-        [Test]
-        public void OverrideWebApiInvokerBeforeAndAfterSuccess()
-        {
-            var wai = new WebApiInvokerEx();
-            using var test = FunctionTester.Create<Startup>().ReplaceScoped<WebApiInvoker>(_ => wai);
-            test.Type<WebApi>()
-                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult("it-worked")))
-                .ToActionResultAssertor()
-                .AssertOK()
-                .Assert("it-worked");
-
-            Assert.AreEqual(1, wai.BeforeCount);
-            Assert.AreEqual(1, wai.AfterCount);
-            Assert.AreEqual(0, wai.ErrorCount);
-        }
-
-        [Test]
-        public void OverrideWebApiInvokerBeforeAndAfterException()
-        {
-            var wai = new WebApiInvokerEx();
-            using var test = FunctionTester.Create<Startup>().ReplaceScoped<WebApiInvoker>(_ => wai);
-            test.Type<WebApi>()
-                .Run(f => f.RunAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), _ => throw new ValidationException()))
-                .ToActionResultAssertor()
-                .AssertBadRequest()
-                .Assert("A data validation error occurred.");
-
-            Assert.AreEqual(1, wai.BeforeCount);
-            Assert.AreEqual(0, wai.AfterCount);
-            Assert.AreEqual(1, wai.ErrorCount);
-        }
-
         private HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
             => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, new HttpRequestOptions { ETag = etag }, HttpConsts.MergePatchMediaTypeName);
 
@@ -649,32 +618,5 @@ namespace CoreEx.Test.Framework.WebApis
         private class PersonCollection : List<Person> { }
 
         private class PersonCollectionResult : CollectionResult<PersonCollection, Person> { }
-
-        private class WebApiInvokerEx : WebApiInvoker
-        {
-            public int BeforeCount { get; set; }
-
-            public int AfterCount { get; set; }
-
-            public int ErrorCount { get; set; }
-
-            protected override Task OnBeforeAsync(WebApiBase owner, WebApiParam param, CancellationToken cancellationToken)
-            {
-                BeforeCount++;
-                return base.OnBeforeAsync(owner, param, cancellationToken);
-            }
-
-            protected override Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result, CancellationToken cancellationToken)
-            {
-                AfterCount++;
-                return base.OnAfterSuccessAsync(owner, param, result, cancellationToken);
-            }
-
-            protected override Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result, CancellationToken cancellationToken)
-            {
-                ErrorCount++;
-                return base.OnAfterExceptionAsync(owner, param, exception, result, cancellationToken);
-            }
-        }
     }
 }

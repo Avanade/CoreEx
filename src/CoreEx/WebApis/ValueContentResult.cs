@@ -4,6 +4,7 @@ using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.Json;
+using CoreEx.Results;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
@@ -101,6 +102,9 @@ namespace CoreEx.WebApis
         /// <returns><c>true</c> indicates that the <paramref name="valueContentResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
         public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
         {
+            if (value is IResult)
+                throw new ArgumentException($"The {nameof(value)} must not implement {nameof(IResult)}; the underlying {nameof(IResult.Value)} must be unwrapped before invoking.", nameof(value));
+
             object? val;
             PagingResult? paging;
 

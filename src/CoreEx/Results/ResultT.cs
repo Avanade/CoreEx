@@ -13,6 +13,7 @@ namespace CoreEx.Results
     /// </summary>
     /// <typeparam name="T">The <see cref="Value"/> <see cref="Type"/>.</typeparam>
     [DebuggerStepThrough]
+    [DebuggerDisplay("{ToDebuggerString()}")]
     public readonly struct Result<T> : IResultValue<T>
     {
         /// <summary>
@@ -34,6 +35,9 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
         public Result(Exception error) => _error = error ?? throw new ArgumentNullException(nameof(error));
+
+        /// <inheritdoc/>
+        object? IResult.Value => Value;
 
         /// <inheritdoc/>
         public T Value
@@ -76,6 +80,11 @@ namespace CoreEx.Results
         public override string ToString() => IsSuccess ? $"Success: {(Value is null ? "null" : Value)}" : $"Failure: {Error.Message}";
 
         /// <summary>
+        /// Get the <see cref="string"/> representation of the <see cref="Result"/> for debugging purposes.
+        /// </summary>
+        private string ToDebuggerString() => IsSuccess ? $"Success: {(Value is null ? "null" : Value)}" : $"Failure: {Error.Message} [{Error.GetType().Name}]";
+
+        /// <summary>
         /// Creates a <see cref="Result{T}"/> with a default <see cref="Result{T}.Value"/> that is considered <see cref="Result{T}.IsSuccess"/>.
         /// </summary>
         /// <returns>The <see cref="Result{T}"/> that is <see cref="Result{T}.IsSuccess"/> (see <see cref="Result{T}.None"/>).</returns>
@@ -115,7 +124,7 @@ namespace CoreEx.Results
         public static implicit operator Result<T>(Result result) => result.Bind(() => new Result<T>());
 
         /// <summary>
-        /// Implicitly converts a <see cref="Result{T}"/> to a <see cref="Result"/> loosing the <see cref="Value"/> where <see cref="IsSuccess"/>.
+        /// Implicitly converts a <see cref="Result{T}"/> to a <see cref="Result"/> losing the <see cref="Value"/> where <see cref="IsSuccess"/>.
         /// </summary>
         /// <param name="result"></param>
         public static implicit operator Result(Result<T> result) => result.Bind();

@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions;
 using CoreEx.Http;
 using CoreEx.Invokers;
+using CoreEx.Results;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -48,77 +48,19 @@ namespace CoreEx.WebApis
 
             try
             {
-                await OnBeforeAsync(owner, param, cancellationToken).ConfigureAwait(false);
                 var ar = await func(cancellationToken).ConfigureAwait(false);
-                ar = await OnAfterSuccessAsync(owner, param, ar, cancellationToken).ConfigureAwait(false);
-                owner.Logger.LogDebug("WebApi stopped; completed successfully.");
+                owner.Logger.LogDebug("WebApi stopped; completed.");
                 return ar;
             }
             catch (Exception ex) when (CatchAndHandleExceptions)
             {
-                owner.Logger.LogDebug("WebApi stopped; {Type}: {Error}", ex.GetType().Name, ex.Message);
-
-                if (ex is IExtendedException eex)
-                {
-                    if (eex.ShouldBeLogged)
-                        owner.Logger.LogError(ex, "{Error}", ex.Message);
-
-                    param.Request.HttpContext.Response.Headers.Add(HttpConsts.ErrorTypeHeaderName, eex.ErrorType);
-                    param.Request.HttpContext.Response.Headers.Add(HttpConsts.ErrorCodeHeaderName, eex.ErrorCode.ToString());
-
-                    return await OnAfterExceptionAsync(owner, param, ex, (TResult)eex.ToResult(), cancellationToken).ConfigureAwait(false);
-                }
-
-                if (ex is IExceptionResult rex)
-                {
-                    owner.Logger.LogCritical(ex, "WebApi encountered an Unhandled Exception: {Error}", ex.Message);
-                    return await OnAfterExceptionAsync(owner, param, ex, (TResult)rex.ToResult(), cancellationToken).ConfigureAwait(false);
-                }
-
-                var ar = await owner.OnUnhandledExceptionAsync(ex, cancellationToken).ConfigureAwait(false);
-                if (ar != null)
-                    return await OnAfterExceptionAsync(owner, param, ex, (TResult)ar, cancellationToken).ConfigureAwait(false);
-
-                owner.Logger.LogCritical(ex, "WebApi encountered an Unhandled Exception: {Error}", ex.Message);
-                return await OnAfterExceptionAsync(owner, param, ex, (TResult)ex.ToUnexpectedResult(owner.Settings.IncludeExceptionInResult), cancellationToken).ConfigureAwait(false);
+                return (TResult) await WebApiBase.CreateActionResultFromExceptionAsync(owner, param.Request.HttpContext, ex, owner.Settings, owner.Logger, owner.OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (!CatchAndHandleExceptions)
             {
-                owner.Logger.LogDebug("WebApi stopped; {Type}: {Error}", ex.GetType().Name, ex.Message);
+                owner.Logger.LogDebug("WebApi stopped; {Error} [{Type}]", ex.Message, ex.GetType().Name);
                 throw;
             }
         }
-
-        /// <summary>
-        /// Provides an opportunity to perform additional processing before the underlying function logic is invoked.
-        /// </summary>
-        /// <param name="owner">The <see cref="WebApiBase"/> owner/caller</param>
-        /// <param name="param">The corresponding <see cref="WebApiParam"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        protected virtual Task OnBeforeAsync(WebApiBase owner, WebApiParam param, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        /// <summary>
-        /// Provides an opportunity to perform additional processing after the underlying function logic has been invoked successfully.
-        /// </summary>
-        /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
-        /// <param name="owner">The <see cref="WebApiBase"/> owner/caller</param>
-        /// <param name="param">The corresponding <see cref="WebApiParam"/>.</param>
-        /// <param name="result">The result from the function.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The result.</returns>
-        protected virtual Task<TResult> OnAfterSuccessAsync<TResult>(WebApiBase owner, WebApiParam param, TResult result, CancellationToken cancellationToken = default) => Task.FromResult(result);
-
-        /// <summary>
-        /// Provides an opportunity to perform additional processing after the underlying function logic has thrown an <paramref name="exception"/>.
-        /// </summary>
-        /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
-        /// <param name="owner">The <see cref="WebApiBase"/> owner/caller</param>
-        /// <param name="param">The corresponding <see cref="WebApiParam"/>.</param>
-        /// <param name="exception">The <see cref="Exception"/>.</param>
-        /// <param name="result">The result from the function.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The result.</returns>
-        /// <remarks>Only invoked when <see cref="CatchAndHandleExceptions"/> is set to <c>true</c>. The exception will have already been converted to the corresponding result where applicable.</remarks>
-        protected virtual Task<TResult> OnAfterExceptionAsync<TResult>(WebApiBase owner, WebApiParam param, Exception exception, TResult result, CancellationToken cancellationToken = default) => Task.FromResult(result);
     }
 }

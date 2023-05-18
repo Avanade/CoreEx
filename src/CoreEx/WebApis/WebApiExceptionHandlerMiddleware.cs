@@ -2,7 +2,6 @@
 
 using CoreEx.Abstractions;
 using CoreEx.Configuration;
-using CoreEx.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -21,11 +20,6 @@ namespace CoreEx.WebApis
         private readonly RequestDelegate _next;
         private readonly SettingsBase _settings;
         private readonly ILogger _logger;
-
-        /// <summary>
-        /// Indicates whether to include the unhandled <see cref="Exception"/> details in the response.
-        /// </summary>
-        public bool IncludeUnhandledExceptionInResponse { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebApiExceptionHandlerMiddleware"/>.
@@ -53,27 +47,7 @@ namespace CoreEx.WebApis
             }
             catch (Exception ex)
             {
-                IActionResult ar;
-                if (ex is IExtendedException eex)
-                {
-                    if (eex.ShouldBeLogged)
-                        _logger.LogError(ex, "{Error}", ex.Message);
-
-                    context.Response.Headers.Add(HttpConsts.ErrorTypeHeaderName, eex.ErrorType);
-                    context.Response.Headers.Add(HttpConsts.ErrorCodeHeaderName, eex.ErrorCode.ToString());
-                    ar = eex.ToResult();
-                }
-                else if (ex is IExceptionResult rex)
-                {
-                    _logger.LogCritical(ex, "WebApi encountered an Unhandled Exception: {Error}", ex.Message);
-                    ar = rex.ToResult();
-                }
-                else
-                {
-                    _logger.LogCritical(ex, "WebApi encountered an Unhandled Exception: {Error}", ex.Message);
-                    ar = ex.ToUnexpectedResult(_settings.IncludeExceptionInResult);
-                }
-
+                var ar = await WebApiBase.CreateActionResultFromExceptionAsync(null, context, ex, _settings, _logger, null, default).ConfigureAwait(false);
                 var ac = new ActionContext(context, new RouteData(), new ActionDescriptor());
                 await ar.ExecuteResultAsync(ac).ConfigureAwait(false);
             }

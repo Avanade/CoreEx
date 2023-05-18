@@ -13,6 +13,7 @@ namespace CoreEx.Results
     /// Represents the outcome of an operation with no value.
     /// </summary>
     [DebuggerStepThrough]
+    [DebuggerDisplay("{ToDebuggerString()}")]
     public readonly partial struct Result : IResult
     {
         /// <summary>
@@ -32,6 +33,9 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
         public Result(Exception error) => _error = error ?? throw new ArgumentNullException(nameof(error));
+
+        /// <inheritdoc/>
+        object? IResult.Value => null;
 
         /// <inheritdoc/>
         public Exception Error { get => _error ?? throw new InvalidOperationException($"The {nameof(Error)} cannot be accessed as the {nameof(Result)} is in a successful state."); }
@@ -100,6 +104,11 @@ namespace CoreEx.Results
 
         /// <inheritdoc/>
         public override string ToString() => IsSuccess ? "Success." : $"Failure: {Error.Message}";
+
+        /// <summary>
+        /// Get the <see cref="string"/> representation of the <see cref="Result"/> for debugging purposes.
+        /// </summary>
+        private string ToDebuggerString() => IsSuccess ? "Success." : $"Failure: {Error.Message} [{Error.GetType().Name}]";
 
         /// <summary>
         /// Implicitly converts an <see cref="Exception"/> to a <see cref="Result"/> that is considered <see cref="IsFailure"/>.

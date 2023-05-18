@@ -2,6 +2,7 @@
 
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Entities;
+using CoreEx.Results;
 using System;
 using System.Collections;
 using System.Linq;
@@ -82,6 +83,30 @@ namespace CoreEx.Json.Merge
 
             // Perform the root merge patch.
             return (MergeRoot(j.JsonElement, j.Value, ref value), value);
+        }
+
+        /// <inheritdoc/>
+        public async Task<Result<(bool HasChanges, T Value)>> MergeWithResultAsync<T>(string json, Func<T, CancellationToken, Task<Result<T>>> getValue, CancellationToken cancellationToken = default)
+        {
+            if (json == null)
+                throw new ArgumentNullException(nameof(json));
+
+            if (getValue == null)
+                throw new ArgumentNullException(nameof(getValue));
+
+            // Parse the JSON.
+            var j = ParseJson<T>(json);
+
+            // Get the value.
+            var result = await getValue(j.Value!, cancellationToken).ConfigureAwait(false);
+            return result.Then(value =>
+            {
+                if (value == null)
+                    return Result<(bool, T)>.Ok((false, default!));
+
+                // Perform the root merge patch.
+                return Result.Ok((MergeRoot(j.JsonElement, j.Value, ref value!), value));
+            });
         }
 
         /// <summary>

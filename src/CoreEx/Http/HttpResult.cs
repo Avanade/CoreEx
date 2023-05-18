@@ -3,6 +3,7 @@
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Json;
+using CoreEx.Results;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -47,7 +48,7 @@ namespace CoreEx.Http
         {
             var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
-                return new HttpResult<T>(response, content, default!);
+                return new HttpResult<T>(response, content, default(T)!);
 
             if (typeof(T) == typeof(string) && StringComparer.OrdinalIgnoreCase.Compare(response.Content.Headers?.ContentType?.MediaType, MediaTypeNames.Text.Plain) == 0)
             {
@@ -57,7 +58,7 @@ namespace CoreEx.Http
                 }
                 catch (Exception ex)
                 {
-                    throw new InvalidOperationException($"Unable to convert the content '{content}' [{MediaTypeNames.Text.Plain}] to Type {typeof(T).Name}", ex);
+                    return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to convert the content '{content}' [{MediaTypeNames.Text.Plain}] to Type {typeof(T).Name}.", ex));
                 }
             }
 
@@ -78,7 +79,7 @@ namespace CoreEx.Http
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Unable to deserialize the JSON content '{content}' [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] to Type {typeof(T).FullName}", ex);
+                return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to deserialize the JSON content '{content}' [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] to Type {typeof(T).FullName}.", ex));
             }
         }
 
@@ -142,12 +143,12 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets the <see cref="HttpStatusCode"/>.
         /// </summary>
-        public HttpStatusCode StatusCode => WillResultInNullAsNotFound ? HttpStatusCode.NoContent : Response.StatusCode;
+        public virtual HttpStatusCode StatusCode => WillResultInNullAsNotFound ? HttpStatusCode.NoContent : Response.StatusCode;
 
         /// <summary>
         /// Indicates whether the request was successful.
         /// </summary>
-        public bool IsSuccess => WillResultInNullAsNotFound || Response.IsSuccessStatusCode;
+        public virtual bool IsSuccess => WillResultInNullAsNotFound || Response.IsSuccessStatusCode;
 
         /// <summary>
         /// Gets the <see cref="MessageItemCollection"/>.
@@ -269,5 +270,32 @@ namespace CoreEx.Http
 
             return mic;
         }
+
+        /// <summary>
+        /// Converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/>.
+        /// </summary>
+        /// <param name="convertToKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be used.</param>
+        /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public Result ToResult(bool convertToKnownException = true, bool useContentAsErrorMessage = true)
+        {
+            if (IsSuccess)
+                return Result.Success;
+
+            if (convertToKnownException)
+            {
+                var eex = CreateExtendedException(Response, Content, useContentAsErrorMessage);
+                if (eex != null)
+                    return new Result((Exception)eex);
+            }
+
+            return new Result(new HttpRequestException(Content));
+        }
+
+        /// <summary>
+        /// Implicitly converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/>.
+        /// </summary>
+        /// <param name="result">The <see cref="HttpResult"/>.</param>
+        public static implicit operator Result(HttpResult result) => result.ToResult();
     }
 }

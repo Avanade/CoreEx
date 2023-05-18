@@ -11,8 +11,8 @@ namespace CoreEx.Results
     public interface IResultValue<out T> : IResult
     {
         /// <summary>
-        /// Gets the underlying value.
+        /// Gets the underlying value where <see cref="IResult.IsSuccess"/>.
         /// </summary>
-        T Value { get; }
+        new T Value { get; }
     }
 }

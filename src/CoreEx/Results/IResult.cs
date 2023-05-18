@@ -10,9 +10,14 @@ namespace CoreEx.Results
     public interface IResult
     {
         /// <summary>
+        /// Gets the underlying value where <see cref="IsSuccess"/>.
+        /// </summary>
+        object? Value { get; }
+
+        /// <summary>
         /// Gets the underlying error represented as an <see cref="Exception"/>.
         /// </summary>
-        Exception? Error { get; }
+        Exception Error { get; }
 
         /// <summary>
         /// Indicates whether the operation was successful.

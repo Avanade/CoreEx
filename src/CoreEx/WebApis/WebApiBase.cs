@@ -148,15 +148,68 @@ namespace CoreEx.WebApis
         /// Provides an opportunity to handle an unhandled exception.
         /// </summary>
         /// <param name="ex">The unhandled <see cref="Exception"/>.</param>
+        /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="IActionResult"/> to return where handled; otherwise, <c>null</c> which in turn will result in <see cref="ExceptionResultExtensions.ToUnexpectedResult(Exception, bool)"/>.</returns>
         /// <remarks>Any <see cref="IExtendedException"/> exceptions will be handled per their implementation; see <see cref="IExceptionResult.ToResult"/>.</remarks>
-        protected internal virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex, CancellationToken cancellationToken) => UnhandledExceptionAsync(ex, cancellationToken);
+        protected internal virtual Task<IActionResult?> OnUnhandledExceptionAsync(Exception ex, ILogger logger, CancellationToken cancellationToken) => UnhandledExceptionAsync(ex, logger, cancellationToken);
 
         /// <summary>
         /// Gets or sets the delegate that is invoked as an opportunity to handle an unhandled exception.
         /// </summary>
-        /// <remarks>This is invoked by <see cref="OnUnhandledExceptionAsync(Exception, CancellationToken)"/>.</remarks>
-        public Func<Exception, CancellationToken, Task<IActionResult?>> UnhandledExceptionAsync { get; set; } = (_, __) => Task.FromResult<IActionResult?>(null!);
+        /// <remarks>This is invoked by <see cref="OnUnhandledExceptionAsync(Exception, ILogger, CancellationToken)"/>.
+        /// <para>This should also include any logging requirements; not performed by default as it may not be required for all exception types.</para></remarks>
+        public Func<Exception, ILogger, CancellationToken, Task<IActionResult?>> UnhandledExceptionAsync { get; set; } = (_, _, _) => Task.FromResult<IActionResult?>(null!);
+
+        /// <summary>
+        /// Creates an <see cref="IActionResult"/> from an <paramref name="exception"/>.
+        /// </summary>
+        /// <param name="owner">The optional owning <see cref="WebApiBase"/>.</param>
+        /// <param name="context">The <see cref="HttpContext"/>.</param>
+        /// <param name="exception">The <see cref="Exception"/>.</param>
+        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+        /// <param name="logger">The <see cref="ILogger"/>.</param>
+        /// <param name="unhandledExceptionAsync">The delegate that is invoked as an opportunity to handle an unhandled exception.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The corresponding <see cref="IActionResult"/>.</returns>
+        public static async Task<IActionResult> CreateActionResultFromExceptionAsync(WebApiBase? owner, HttpContext context, Exception exception, SettingsBase settings, ILogger logger, Func<Exception, ILogger, CancellationToken, Task<IActionResult?>>? unhandledExceptionAsync = null, CancellationToken cancellationToken = default)
+        {
+            if (context is null) throw new ArgumentNullException(nameof(context));
+            if (exception is null) throw new ArgumentNullException(nameof(exception));
+            if (logger is null) throw new ArgumentNullException(nameof(logger));
+            if (settings is null) throw new ArgumentNullException(nameof(settings));
+
+            if (owner is not null && !owner.Invoker.CatchAndHandleExceptions)
+                throw exception;
+
+            logger.LogDebug("WebApi error: {Error} [{Type}]", exception.Message, exception.GetType().Name);
+
+            IActionResult? ar = null;
+            if (exception is IExtendedException eex)
+            {
+                if (eex.ShouldBeLogged)
+                    logger.LogError(exception, "{Error}", exception.Message);
+
+                ar = eex.ToResult();
+            }
+            else if (exception is IExceptionResult rex)
+            {
+                logger.LogCritical(exception, "WebApi unhandled exception: {Error}", exception.Message);
+                ar = rex.ToResult();
+            }
+            else
+            {
+                if (unhandledExceptionAsync is not null)
+                    ar = await unhandledExceptionAsync(exception, logger, cancellationToken).ConfigureAwait(false);
+
+                if (ar is null)
+                {
+                    logger.LogCritical(exception, "WebApi unhandled exception: {Error}", exception.Message);
+                    ar = exception.ToUnexpectedResult(settings.IncludeExceptionInResult);
+                }
+            }
+
+            return ar;
+        }
     }
 }
