@@ -9,6 +9,7 @@ global using CoreEx.Http;
 global using CoreEx.Json;
 global using CoreEx.Mapping;
 global using CoreEx.RefData;
+global using CoreEx.Results;
 global using Microsoft.Data.SqlClient;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.Metadata.Builders;

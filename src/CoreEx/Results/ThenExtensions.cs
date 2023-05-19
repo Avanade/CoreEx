@@ -38,6 +38,16 @@ namespace CoreEx.Results
             => result.IsSuccess ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result;
 
         /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>. 
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<T> Then<T>(this Result result, Func<T> func)
+            => result.IsSuccess ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result;
+
+        /// <summary>
         /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -159,6 +169,19 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> Then(this Task<Result> result, Func<Result> func)
+        {
+            var r = await result.ConfigureAwait(false);
+            return r.Then(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>. 
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> Then<T>(this Task<Result> result, Func<T> func)
         {
             var r = await result.ConfigureAwait(false);
             return r.Then(func);
@@ -311,6 +334,19 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> ThenAsync(this Result result, Func<Task<Result>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            return result.IsSuccess ? await func().ConfigureAwait(false) : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>. 
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> ThenAsync<T>(this Result result, Func<Task<T>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             return result.IsSuccess ? await func().ConfigureAwait(false) : result;
@@ -480,6 +516,20 @@ namespace CoreEx.Results
             if (func == null) throw new ArgumentNullException(nameof(func));
             var r = await result.ConfigureAwait(false);
             return await r.ThenAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>. 
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> ThenAsync<T>(this Task<Result> result, Func<Task<T>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            var r = await result.ConfigureAwait(false);
+            return r.IsSuccess ? await func().ConfigureAwait(false) : r;
         }
 
         /// <summary>

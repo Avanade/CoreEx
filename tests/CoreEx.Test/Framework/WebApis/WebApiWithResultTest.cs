@@ -353,7 +353,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Patch, "https://unittest");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person>.Ok(null!)), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(null!)), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .Assert(HttpStatusCode.UnsupportedMediaType)
                 .Assert("Unsupported 'Content-Type' for a PATCH; only JSON Merge Patch is supported using either: 'application/merge-patch+json' or 'application/json'.");
@@ -365,7 +365,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, null);
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<PersonCollection>.Ok(null!)), put: _ => Task.FromResult(Result<PersonCollection>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<PersonCollection?>.Ok(null!)), put: _ => Task.FromResult(Result<PersonCollection>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .Assert("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
@@ -377,7 +377,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "<xml/>");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<PersonCollection>.Ok(null!)), put: _ => Task.FromResult(Result<PersonCollection>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<PersonCollection?>.Ok(null!)), put: _ => Task.FromResult(Result<PersonCollection>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .Assert("'<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
@@ -389,7 +389,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ }");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person())), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person())), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
                 .Assert("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
@@ -401,7 +401,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ }", "aaaa");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person>.Ok(null!)), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(null!)), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertNotFound();
         }
@@ -412,7 +412,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"etag\": \"aaa\"}");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person>.Ok(null!)), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(null!)), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertNotFound();
         }
@@ -423,7 +423,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ }", "aaa");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { ETag = "bbb" })), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { ETag = "bbb" })), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
                 .Assert("A concurrency error occurred; please refresh the data and try again.");
@@ -435,7 +435,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"etag\": \"aaa\"}");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { ETag = "bbb" })), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { ETag = "bbb" })), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
                 .Assert("A concurrency error occurred; please refresh the data and try again.");
@@ -447,7 +447,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"name\": \"bob\" }", "aaa");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { ETag = "aaa" })), put: _ => throw new ConcurrencyException()))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { ETag = "aaa" })), put: _ => throw new ConcurrencyException()))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
                 .Assert("A concurrency error occurred; please refresh the data and try again.");
@@ -459,7 +459,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"name\": \"bob\" }", "aaa");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { Name = "bobby", ETag = "aaa" })), put: _ => throw new DuplicateException()))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Name = "bobby", ETag = "aaa" })), put: _ => throw new DuplicateException()))
                 .ToActionResultAssertor()
                 .AssertConflict();
         }
@@ -470,7 +470,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"name\": \"bob\" }", "aaa");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { Name = "bob", ETag = "aaa" })), put: _ => throw new ConcurrencyException()))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Name = "bob", ETag = "aaa" })), put: _ => throw new ConcurrencyException()))
                 .ToActionResultAssertor()
                 .AssertOK();
         }
@@ -482,7 +482,7 @@ namespace CoreEx.Test.Framework.WebApis
             var hr = CreatePatchRequest(test, "{ \"name\": \"bobby\" }", "aaa");
             test.Type<WebApi>()
                 .Run(f => f.PatchWithResultAsync(hr,
-                    get: _ => Task.FromResult(Result.Ok(new Person { Name = "bob", ETag = "aaa" })),
+                    get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Name = "bob", ETag = "aaa" })),
                     put: p => { ObjectComparer.Assert(new Person { Name = "bobby", ETag = "aaa" }, p.Value); p.Value!.ETag = "bbb"; return Task.FromResult(Result.Ok(p.Value!)); }))
                 .ToActionResultAssertor()
                 .AssertOK()
@@ -496,7 +496,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"name\": \"Gazza\" }");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result<Person>.Ok(null!)), simulatedConcurrency: true))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result<Person>.Ok(null!)), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
                 .Assert("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
@@ -508,7 +508,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"name\": \"Gazza\" }", etag: "bbb");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result<Person>.Ok(null!)), simulatedConcurrency: true))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result<Person>.Ok(null!)), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
                 .Assert("A concurrency error occurred; please refresh the data and try again.");
@@ -520,7 +520,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             var hr = CreatePatchRequest(test, "{ \"name\": \"Gazza\" }", etag: "Q8nNyU0hP+j7+1tDN0JzLGMcfPOX8OsLAh7lma4U0xo=");
             test.Type<WebApi>()
-                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result.Ok(new Person { Id = 13, Name = "Gazza" })), simulatedConcurrency: true))
+                .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result.Ok(new Person { Id = 13, Name = "Gazza" })), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(new Person { Id = 13, Name = "Gazza" });

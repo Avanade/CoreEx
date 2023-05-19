@@ -5,7 +5,6 @@ using CoreEx.Entities;
 using CoreEx.Mapping;
 using CoreEx.Results;
 using Microsoft.EntityFrameworkCore;
-using System.Data.Common;
 
 namespace CoreEx.EntityFrameworkCore
 {

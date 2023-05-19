@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.Results;
 using Microsoft.Azure.Cosmos;
 using System;
 using System.Linq;
@@ -68,8 +69,9 @@ namespace CoreEx.Cosmos
         /// Invoked where a <see cref="CosmosException"/> has been thrown.
         /// </summary>
         /// <param name="cex">The <see cref="CosmosException"/>.</param>
+        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
         /// <remarks>Provides an opportunity to inspect and handle the exception before it bubbles up.</remarks>
-        void HandleCosmosException(CosmosException cex);
+        Result HandleCosmosException(CosmosException cex);
 
         /// <summary>
         /// Gets or instantiates the <see cref="Microsoft.Azure.Cosmos.ItemRequestOptions"/>.

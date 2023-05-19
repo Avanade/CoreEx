@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 using Microsoft.Azure.Cosmos;
 using System;
 using System.Threading;
@@ -57,5 +58,41 @@ namespace CoreEx.Cosmos
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         Task DeleteAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the entity for the specified <paramref name="id"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        Task<Result<T?>> GetWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Creates the entity with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="value">The value to create.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The created value.</returns>
+        Task<Result<T>> CreateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Updates the entity with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="value">The value to update.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The updated value.</returns>
+        Task<Result<T>> UpdateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes the entity for the specified <paramref name="id"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+        Task<Result> DeleteWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default);
     }
 }

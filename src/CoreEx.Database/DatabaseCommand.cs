@@ -329,7 +329,7 @@ namespace CoreEx.Database
         {
             var coll = new List<T>();
             var result = await SelectQueryWithResultAsync(coll, mapper, cancellationToken).ConfigureAwait(false);
-            return result.Then<IEnumerable<T>>(() => coll);
+            return result.Then(() => Result<IEnumerable<T>>.Ok(coll));
         }
 
         /// <summary>
@@ -353,7 +353,7 @@ namespace CoreEx.Database
         {
             var coll = new List<T>();
             var result = await SelectQueryWithResultAsync(coll, func, cancellationToken).ConfigureAwait(false);
-            return result.Then<IEnumerable<T>>(() => coll);
+            return result.Then(() => Result<IEnumerable<T>>.Ok(coll));
         }
 
         /// <summary>

@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.Results;
 using Microsoft.Azure.Cosmos;
 using System;
 using System.Collections.Concurrent;
@@ -157,27 +158,21 @@ namespace CoreEx.Cosmos
         }
 
         /// <inheritdoc/>
-        public void HandleCosmosException(CosmosException cex) => OnCosmosException(cex);
+        public Result HandleCosmosException(CosmosException cex) => OnCosmosException(cex);
 
         /// <summary>
         /// Provides the <see cref="CosmosException"/> handling as a result of <see cref="HandleCosmosException(CosmosException)"/>.
         /// </summary>
         /// <param name="cex">The <see cref="CosmosException"/>.</param>
+        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
         /// <remarks>Where overridding and the <see cref="CosmosException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</remarks>
-        protected virtual void OnCosmosException(CosmosException cex)
+        protected virtual Result OnCosmosException(CosmosException cex) => cex == null ? throw new ArgumentNullException(nameof(cex)) : cex.StatusCode switch
         {
-            switch ((cex ?? throw new ArgumentNullException(nameof(cex))).StatusCode)
-            {
-                case System.Net.HttpStatusCode.NotFound:
-                    throw new NotFoundException(null, cex);
-
-                case System.Net.HttpStatusCode.Conflict:
-                    throw new DuplicateException(null, cex);
-
-                case System.Net.HttpStatusCode.PreconditionFailed:
-                    throw new ConcurrencyException(null, cex);
-            }
-        }
+            System.Net.HttpStatusCode.NotFound => Result.Fail(new NotFoundException(null, cex)),
+            System.Net.HttpStatusCode.Conflict => Result.Fail(new DuplicateException(null, cex)),
+            System.Net.HttpStatusCode.PreconditionFailed => Result.Fail(new ConcurrencyException(null, cex)),
+            _ => Result.Fail(cex)
+        };
 
         /// <inheritdoc/>
         public virtual string FormatIdentifier(object? id) => id == null ? throw new ArgumentNullException(nameof(id)) : id switch

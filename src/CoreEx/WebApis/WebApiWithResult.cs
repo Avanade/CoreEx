@@ -726,7 +726,7 @@ namespace CoreEx.WebApis
         /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         /// <remarks>Currently on the <see cref="JsonMergePatch"/> is supported.</remarks>
-        public Task<IActionResult> PatchWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<Result<TValue>>> get, Func<WebApiParam<TValue>, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+        public Task<IActionResult> PatchWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false) where TValue : class
             => PatchWithResultAsync(request, (p, _) => get(p), (p, _) => put(p), statusCode, operationType, validator, simulatedConcurrency, CancellationToken.None);
 
@@ -744,7 +744,7 @@ namespace CoreEx.WebApis
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         /// <remarks>Currently on the <see cref="JsonMergePatch"/> is supported.</remarks>
-        public async Task<IActionResult> PatchWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result<TValue>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+        public async Task<IActionResult> PatchWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false, CancellationToken cancellationToken = default) where TValue : class
         {
             if (JsonMergePatch == null)

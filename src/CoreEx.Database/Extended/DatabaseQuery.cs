@@ -84,7 +84,7 @@ namespace CoreEx.Database.Extended
         public async Task<T> SelectSingleAsync(CancellationToken cancellationToken = default) => await SelectSingleWithResultAsync(cancellationToken).ConfigureAwait(false);
 
         /// <summary>
-        /// Selects a single item.
+        /// Selects a single item with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item.</returns>
@@ -98,7 +98,7 @@ namespace CoreEx.Database.Extended
         public async Task<T?> SelectSingleOrDefaultAsync(CancellationToken cancellationToken = default) => await SelectSingleOrDefaultWithResultAsync(cancellationToken).ConfigureAwait(false);
 
         /// <summary>
-        /// Selects a single item or default.
+        /// Selects a single item or default with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
@@ -112,7 +112,7 @@ namespace CoreEx.Database.Extended
         public async Task<T> SelectFirstAsync(CancellationToken cancellationToken = default) => await SelectFirstWithResultAsync(cancellationToken).ConfigureAwait(false);
 
         /// <summary>
-        /// Selects first item.
+        /// Selects first item with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The first item.</returns>
@@ -126,7 +126,7 @@ namespace CoreEx.Database.Extended
         public async Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => await SelectFirstOrDefaultWithResultAsync(cancellationToken).ConfigureAwait(false);
 
         /// <summary>
-        /// Selects first item or default.
+        /// Selects first item or default with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
@@ -143,7 +143,7 @@ namespace CoreEx.Database.Extended
             => (await SelectResultWithResultAsync<TCollResult, TColl>(cancellationToken).ConfigureAwait(false)).Value;
 
         /// <summary>
-        /// Executes the query command creating a <typeparamref name="TCollResult"/>.
+        /// Executes the query command creating a <typeparamref name="TCollResult"/> with a <see cref="Result{T}"/>.
         /// </summary>
         /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
@@ -165,7 +165,7 @@ namespace CoreEx.Database.Extended
             => await SelectQueryWithResultAsync<TColl>(cancellationToken).ConfigureAwait(false);
 
         /// <summary>
-        /// Executes the query command creating a resultant collection.
+        /// Executes the query command creating a resultant collection with a <see cref="Result{T}"/>.
         /// </summary>
         /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -187,7 +187,7 @@ namespace CoreEx.Database.Extended
             => (await SelectQueryWithResultAsync(coll, cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
         /// <summary>
-        /// Executes a query adding to the passed collection.
+        /// Executes a query adding to the passed collection with a <see cref="Result{T}"/>.
         /// </summary>
         /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
         /// <param name="coll">The collection to add items to.</param>

@@ -46,7 +46,7 @@ namespace CoreEx.Database.Extended
             => (await LoadWithResultAsync(coll, idColumnName, additionalProperties, multiSetArgs, confirmItemIsToBeAdded, cancellationToken)).ThrowOnError();
 
         /// <summary>
-        /// Executes a dynamic <see cref="IReferenceDataCollection"/> query updating the <paramref name="coll"/>.
+        /// Executes a dynamic <see cref="IReferenceDataCollection"/> query updating the <paramref name="coll"/> with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="coll">The <see cref="IReferenceDataCollection"/>.</param>
         /// <param name="idColumnName">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> column name override; defaults to <see cref="Extended.DatabaseColumns.RefDataIdName"/>.</param>
@@ -82,7 +82,7 @@ namespace CoreEx.Database.Extended
             => (await LoadWithResultAsync(idColumnName, additionalProperties, multiSetArgs, confirmItemIsToBeAdded, cancellationToken)).ThrowOnError();
 
         /// <summary>
-        /// Executes a dynamic <see cref="IReferenceDataCollection"/> query.
+        /// Executes a dynamic <see cref="IReferenceDataCollection"/> query with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="idColumnName">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> column name override; defaults to <see cref="Extended.DatabaseColumns.RefDataIdName"/>.</param>
         /// <param name="additionalProperties">The additional properties action that enables non-standard properties to be updated from the <see cref="DatabaseRecord"/>.</param>

@@ -37,6 +37,7 @@ public class Startup
         services
             .AddScoped<ReferenceDataService>()
             .AddScoped<IEmployeeService, EmployeeService>()
+            .AddScoped<IEmployeeResultService, EmployeeResultService>()
             .AddFluentValidators<EmployeeService>();
 
         // Register the database and EF services, including required AutoMapper.
