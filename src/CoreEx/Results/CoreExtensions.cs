@@ -31,7 +31,7 @@ namespace CoreEx.Results
         /// otherwise, where <see cref="Result{T}.IsFailure"/> returns a resulting instance with the corresponding <see cref="Result{T}.Error"/>.
         /// </summary>
         /// <typeparam name="T">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The binding (mapping) function.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<T> Bind<T>(this Result result, Func<Result<T>> func)
@@ -39,6 +39,15 @@ namespace CoreEx.Results
             if (func is null) throw new ArgumentNullException(nameof(func));
             return result.IsSuccess ? func() : new Result<T>(result.Error!);
         }
+
+        /// <summary>
+        /// Binds/converts the <see cref="Result"/> to a corresponding <see cref="Result{T}"/> defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/>;
+        /// otherwise, where <see cref="Result.IsFailure"/> returns a resulting instance with the corresponding <see cref="Result.Error"/>.
+        /// </summary>
+        /// <typeparam name="T">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<T> Bind<T>(this Result result) => result.IsSuccess ? Result<T>.None : new Result<T>(result.Error!);
 
         /// <summary>
         /// Binds/converts the <see cref="Result{T}"/> to a corresponding <see cref="Result"/> losing the <see cref="Result{T}.Value"/>.

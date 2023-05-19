@@ -3,6 +3,7 @@
 using CoreEx.Database.Extended;
 using CoreEx.Entities;
 using CoreEx.Mapping.Converters;
+using CoreEx.Results;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Data;
@@ -124,14 +125,14 @@ namespace CoreEx.Database
             => new(this, CommandType.Text, sqlStatement ?? throw new ArgumentNullException(nameof(sqlStatement)));
 
         /// <inheritdoc/>
-        public void HandleDbException(DbException dbex) => OnDbException(dbex);
+        public Result HandleDbException(DbException dbex) => OnDbException(dbex);
 
         /// <summary>
         /// Provides the <see cref="DbException"/> handling as a result of <see cref="HandleDbException(DbException)"/>.
         /// </summary>
         /// <param name="dbex">The <see cref="DbException"/>.</param>
         /// <remarks>Where overridding and the <see cref="DbException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</remarks>
-        protected virtual void OnDbException(DbException dbex) { }
+        protected virtual Result OnDbException(DbException dbex) => Result.Fail(dbex);
 
         /// <inheritdoc/>
         public void Dispose()

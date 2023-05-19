@@ -2,6 +2,15 @@
 
 Represents the **NuGet** versions.
 
+## v2.11.0
+- *Enhancement:* Added new `CoreEx.Results` namespace with primary `Result` and `Result<T>` classes to enable [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html):
+    - Includes `Result`-based extension methods for `Go`, `Then`, `OnFailure`, `When`, `Match`, `Any`, `WithTryCatch`, `Validation`, `Required`, `With*Invoker` to enable fluent-style method-chaining to support railway orientation.
+    - Added `IValidation.ToResult` and `IValidation<T>.ToResult` extension methods..
+    - Added `HttpResult.ToResult` method.
+    - `CoreEx.WebApis` namespace: added `*WithResultAsync` methods to `WebApiBase`, `WebApi` and `WebApiPublisher`.
+    - `CoreEx.Database` namespace: added `*WithResultAsync` methods to `DatabaseCommand`, `DatabaseQuery`, `RefDataLoadeder` and `DatabaseExtendedExtensions` to support.
+    - `CoreEx.EntityFrameworkCore` namespace: add `*WithResultAsync` methods to `IEfDb`, `EfDb` and `EfDbEntity`.
+
 ## v2.10.1
 - *Fixed:* `EventOutboxHostedService` updated so when a new `IServiceScope` is created that `ExecutionContext.Reset` is invoked to ensure existing `ServiceProvider` is not reused.
 - *Fixed:* `EventDataFormatter` defaults `PartitionKey` and `TenantId` properties, where not already set, from the value where implements `IPartitionKey` and `ITenantId` respectively.

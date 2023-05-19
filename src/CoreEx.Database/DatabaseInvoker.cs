@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Invokers;
+using CoreEx.Results;
 using System;
 using System.Data.Common;
 using System.Threading;
@@ -23,7 +24,16 @@ namespace CoreEx.Database
             }
             catch (DbException dbex)
             {
-                database.HandleDbException(dbex);
+                var eresult = database.HandleDbException(dbex);
+                if (eresult.IsFailure)
+                {
+                    var dresult = default(TResult);
+                    if (dresult is IResult dir)
+                        return (TResult)dir.ToFailure(eresult.Error);
+                    else
+                        eresult.ThrowOnError();
+                }
+
                 throw;
             }
         }

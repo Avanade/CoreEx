@@ -114,10 +114,7 @@ namespace CoreEx.Validation
             return await result.ThenAsync(async v =>
             {
                 var vr = await validation(v).ConfigureAwait(false);
-                if (vr.HasErrors)
-                    return Result<T>.Fail(vr.ToValidationException()!);
-
-                return Result<T>.Ok(v);
+                return vr.ToResult<T>();
             });
         }
 
@@ -130,18 +127,35 @@ namespace CoreEx.Validation
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
-        public static async Task<Result<T>> ValidationAsync<T>(this Task<Result<T>> result, Func<T, CancellationToken, Task<IValidationResult>> validation, CancellationToken cancellationToken = default)
+        public static async Task<Result<T>> ValidationAsync<T>(this Task<Result<T>> result, Func<T, CancellationToken, Task<IValidationResult<T>>> validation, CancellationToken cancellationToken = default)
         {
             if (validation == null) throw new ArgumentNullException(nameof(validation));
 
             return await result.ThenAsync(async v =>
             {
                 var vr = await validation(v, cancellationToken).ConfigureAwait(false);
-                if (vr.HasErrors)
-                    return Result<T>.Fail(vr.ToValidationException()!);
-
-                return Result<T>.Ok(v);
+                return vr.ToResult();
             });
         }
+
+        /// <summary>
+        /// Converts the <see cref="IValidationResult{T}"/> into a corresponding <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="IValidationResult{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="validationResult">The <see cref="IValidationResult{T}"/></param>
+        /// <returns>The corresponding <see cref="Result{T}"/>.</returns>
+        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
+        public static Result<T?> ToResult<T>(this IValidationResult<T> validationResult)
+            => validationResult.HasErrors ? Result<T?>.Fail(validationResult.ToValidationException()!) : Result<T?>.Ok(validationResult.Value!);
+
+        /// <summary>
+        /// Converts the <see cref="IValidationResult"/> into a corresponding <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="IValidationResult.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="validationResult">The <see cref="IValidationResult{T}"/></param>
+        /// <returns>The corresponding <see cref="Result{T}"/>.</returns>
+        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
+        public static Result<T?> ToResult<T>(this IValidationResult validationResult)
+            => validationResult.HasErrors ? Result<T?>.Fail(validationResult.ToValidationException()!) : Result<T?>.Ok((T?)validationResult.Value!);
     }
 }

@@ -40,6 +40,28 @@ namespace CoreEx.Results
             => result.IsSuccess && (condition ?? throw new ArgumentNullException(nameof(condition))).Invoke() ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result;
 
         /// <summary>
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="action">The <see cref="Action{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result When<T>(this Result<T> result, Predicate<T> condition, Action<T> action)
+            => result.When(v => (condition ?? throw new ArgumentNullException(nameof(condition))).Invoke(v), () => (action ?? throw new ArgumentNullException(nameof(action))).Invoke(result.Value));
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result When<T>(this Result<T> result, Predicate<T> condition, Func<T, Result> func)
+            => result.IsSuccess && (condition ?? throw new ArgumentNullException(nameof(condition))).Invoke(result.Value) ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke(result.Value) : result;
+
+        /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and the specified <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -150,6 +172,34 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> When(this Task<Result> result, Func<bool> condition, Func<Result> func)
+        {
+            var r = await result.ConfigureAwait(false);
+            return r.When(condition, func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="action">The <see cref="Action{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> When<T>(this Task<Result<T>> result, Predicate<T> condition, Action<T> action)
+        {
+            var r = await result.ConfigureAwait(false);
+            return r.When(condition, action);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> When<T>(this Task<Result<T>> result, Predicate<T> condition, Func<T, Result> func)
         {
             var r = await result.ConfigureAwait(false);
             return r.When(condition, func);
@@ -291,6 +341,37 @@ namespace CoreEx.Results
         }
 
         /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> WhenAsync<T>(this Result<T> result, Predicate<T> condition, Func<T, Task> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            if (result.IsSuccess && (condition ?? throw new ArgumentNullException(nameof(condition))).Invoke(result.Value))
+                await func(result.Value).ConfigureAwait(false);
+
+            return result.Bind();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> WhenAsync<T>(this Result<T> result, Predicate<T> condition, Func<T, Task<Result>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            return result.IsSuccess && (condition ?? throw new ArgumentNullException(nameof(condition))).Invoke(result.Value) ? await func(result.Value).ConfigureAwait(false) : result.Bind();
+        }
+
+        /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and the specified <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -425,6 +506,39 @@ namespace CoreEx.Results
             if (func == null) throw new ArgumentNullException(nameof(func));
             var r = await result.ConfigureAwait(false);
             return await r.WhenAsync(condition, func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> WhenAsync<T>(this Task<Result<T>> result, Predicate<T> condition, Func<T, Task> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            var r = await result.ConfigureAwait(false);
+            if (r.IsSuccess && (condition ?? throw new ArgumentNullException(nameof(condition))).Invoke(r.Value))
+                await func(r.Value).ConfigureAwait(false);
+
+            return r.Bind();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> WhenAsync<T>(this Task<Result<T>> result, Predicate<T> condition, Func<T, Task<Result>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            var r = await result.ConfigureAwait(false);
+            return r.IsSuccess && (condition ?? throw new ArgumentNullException(nameof(condition))).Invoke(r.Value) ? await func(r.Value).ConfigureAwait(false) : r.Bind();
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -80,28 +81,56 @@ namespace CoreEx.Database.Extended
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item.</returns>
-        public Task<T> SelectSingleAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectSingleAsync(Mapper, ct), cancellationToken);
+        public async Task<T> SelectSingleAsync(CancellationToken cancellationToken = default) => await SelectSingleWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects a single item.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item.</returns>
+        public Task<Result<T>> SelectSingleWithResultAsync(CancellationToken cancellationToken = default) => SelectWrapperWithResultAsync((cmd, ct) => cmd.SelectSingleWithResultAsync(Mapper, ct), cancellationToken);
 
         /// <summary>
         /// Selects a single item or default.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
-        public Task<T?> SelectSingleOrDefaultAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectSingleOrDefaultAsync(Mapper, ct), cancellationToken);
+        public async Task<T?> SelectSingleOrDefaultAsync(CancellationToken cancellationToken = default) => await SelectSingleOrDefaultWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects a single item or default.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public Task<Result<T?>> SelectSingleOrDefaultWithResultAsync(CancellationToken cancellationToken = default) => SelectWrapperWithResultAsync((cmd, ct) => cmd.SelectSingleOrDefaultWithResultAsync(Mapper, ct), cancellationToken);
 
         /// <summary>
         /// Selects first item.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The first item.</returns>
-        public Task<T> SelectFirstAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectFirstAsync(Mapper, ct), cancellationToken);
+        public async Task<T> SelectFirstAsync(CancellationToken cancellationToken = default) => await SelectFirstWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects first item.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The first item.</returns>
+        public Task<Result<T>> SelectFirstWithResultAsync(CancellationToken cancellationToken = default) => SelectWrapperWithResultAsync((cmd, ct) => cmd.SelectFirstWithResultAsync(Mapper, ct), cancellationToken);
 
         /// <summary>
         /// Selects first item or default.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
-        public Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => SelectWrapperAsync((cmd, ct) => cmd.SelectFirstOrDefaultAsync(Mapper, ct), cancellationToken);
+        public async Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => await SelectFirstOrDefaultWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects first item or default.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public Task<Result<T?>> SelectFirstOrDefaultWithResultAsync(CancellationToken cancellationToken = default) => SelectWrapperWithResultAsync((cmd, ct) => cmd.SelectFirstOrDefaultWithResultAsync(Mapper, ct), cancellationToken);
 
         /// <summary>
         /// Executes the query command creating a <typeparamref name="TCollResult"/>.
@@ -110,11 +139,21 @@ namespace CoreEx.Database.Extended
         /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
-        public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
+        public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() 
+            => (await SelectResultWithResultAsync<TCollResult, TColl>(cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <summary>
+        /// Executes the query command creating a <typeparamref name="TCollResult"/>.
+        /// </summary>
+        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
+        public async Task<Result<TCollResult>> SelectResultWithResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new()
         {
-            Paging = Paging,
-            Items = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
-        };
+            var result = await SelectQueryWithResultAsync<TColl>(cancellationToken).ConfigureAwait(false);
+            return result.Then(items => new TCollResult { Items = items, Paging = Paging });
+        }
 
         /// <summary>
         /// Executes the query command creating a resultant collection.
@@ -123,13 +162,19 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>A resultant collection.</returns>
         public async Task<TColl> SelectQueryAsync<TColl>(CancellationToken cancellationToken = default) where TColl : ICollection<T>, new()
+            => await SelectQueryWithResultAsync<TColl>(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes the query command creating a resultant collection.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>A resultant collection.</returns>
+        public async Task<Result<TColl>> SelectQueryWithResultAsync<TColl>(CancellationToken cancellationToken = default) where TColl : ICollection<T>, new()
         {
             var coll = new TColl();
-            return await SelectWrapperAsync(async (cmd, ct) =>
-            {
-                await cmd.SelectQueryAsync(coll, Mapper, ct).ConfigureAwait(false);
-                return coll;
-            }, cancellationToken).ConfigureAwait(false);
+            var result = await SelectQueryWithResultAsync(coll, cancellationToken).ConfigureAwait(false);
+            return result.Then<TColl>(() => coll);
         }
 
         /// <summary>
@@ -138,29 +183,35 @@ namespace CoreEx.Database.Extended
         /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
         /// <param name="coll">The collection to add items to.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task SelectQueryAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+        public async Task SelectQueryAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+            => (await SelectQueryWithResultAsync(coll, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+        /// <summary>
+        /// Executes a query adding to the passed collection.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="coll">The collection to add items to.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public async Task<Result> SelectQueryWithResultAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) where TColl : ICollection<T>
         {
-            return SelectWrapperAsync(async (cmd, ct) =>
+            return await SelectWrapperWithResultAsync(async (cmd, ct) =>
             {
-                await cmd.SelectQueryAsync(coll, Mapper, ct).ConfigureAwait(false);
-                return coll;
-            }, cancellationToken);
+                var result = await cmd.SelectQueryWithResultAsync(coll, Mapper, ct).ConfigureAwait(false);
+                return result.Then(() => Result<TColl>.Ok(coll));
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Wraps the select query to perform standard logic.
         /// </summary>
-        private async Task<TResult> SelectWrapperAsync<TResult>(Func<DatabaseCommand, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        private async Task<Result<TResult>> SelectWrapperWithResultAsync<TResult>(Func<DatabaseCommand, CancellationToken, Task<Result<TResult>>> func, CancellationToken cancellationToken)
         {
             var rvp = Paging != null && Paging.IsGetCount ? Parameters.AddReturnValueParameter() : null;
             var cmd = Command.Params(Parameters).PagingParams(Paging);
 
-            var res = await func(cmd, cancellationToken).ConfigureAwait(false);
-
-            if (rvp != null && rvp.Value != null)
-                Paging!.TotalCount = (long)rvp.Value;
-
-            return QueryArgs.CleanUpResult ? Cleaner.Clean(res) : res;
+            var result = await func(cmd, cancellationToken).ConfigureAwait(false);
+            return result.When(_ => rvp != null && rvp.Value != null, () => { Paging!.TotalCount = (long)rvp!.Value; })
+                         .Then(res => QueryArgs.CleanUpResult ? Cleaner.Clean(res) : res);
         }
     }
 }

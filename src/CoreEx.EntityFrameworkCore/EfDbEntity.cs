@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 
 namespace CoreEx.EntityFrameworkCore
 {
@@ -34,6 +35,8 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="query">The function to further define the query.</param>
         /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
         public EfDbQuery<T, TModel> Query(EfDbArgs queryArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) => new(EfDb, queryArgs, query);
+
+        #region Standard
 
         /// <summary>
         /// Gets the entity for the specified <paramref name="keys"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/>.
@@ -136,5 +139,113 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then a <see cref="NotFoundException"/> will be thrown.</remarks>
         public Task DeleteAsync(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) => EfDb.DeleteAsync<T, TModel>(args, key, cancellationToken);
+
+        #endregion
+
+        #region WithResult
+
+        /// <summary>
+        /// Gets the entity for the specified <paramref name="keys"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="keys">The key values.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
+        public Task<Result<T?>> GetWithResultAsync(params object?[] keys) => GetWithResultAsync(keys, default);
+
+        /// <summary>
+        /// Gets the entity for the specified <paramref name="keys"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="keys">The key values.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
+        public Task<Result<T?>> GetWithResultAsync(object?[] keys, CancellationToken cancellationToken = default) => GetWithResultAsync(CompositeKey.Create(keys), cancellationToken);
+
+        /// <summary>
+        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
+        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then <c>null</c> will be returned.</remarks>
+        public Task<Result<T?>> GetWithResultAsync(CompositeKey key, CancellationToken cancellationToken = default) => GetWithResultAsync(new EfDbArgs(EfDb.DbArgs), key, cancellationToken);
+
+        /// <summary>
+        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
+        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then <c>null</c> will be returned.</remarks>
+        public Task<Result<T?>> GetWithResultAsync(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) => EfDb.GetWithResultAsync<T, TModel>(args, key, cancellationToken);
+
+        /// <summary>
+        /// Performs a create for the value (reselects and/or automatically saves changes where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (refreshed where specified).</returns>
+        public Task<Result<T>> CreateWithResultAsync(T value, CancellationToken cancellationToken = default) => CreateWithResultAsync(new EfDbArgs(EfDb.DbArgs), value, cancellationToken);
+
+        /// <summary>
+        /// Performs a create for the value (reselects and/or automatically saves changes where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (refreshed where specified).</returns>
+        public Task<Result<T>> CreateWithResultAsync(EfDbArgs args, T value, CancellationToken cancellationToken = default) => EfDb.CreateWithResultAsync<T, TModel>(args, value, cancellationToken);
+
+        /// <summary>
+        /// Performs an update for the value (reselects and/or automatically saves changes where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (refreshed where specified).</returns>
+        public Task<Result<T>> UpdateWithResultAsync(T value, CancellationToken cancellationToken = default) => UpdateWithResultAsync(new EfDbArgs(EfDb.DbArgs), value, cancellationToken);
+
+        /// <summary>
+        /// Performs an update for the value (reselects and/or automatically saves changes where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (refreshed where specified).</returns>
+        public Task<Result<T>> UpdateWithResultAsync(EfDbArgs args, T value, CancellationToken cancellationToken = default) => EfDb.UpdateWithResultAsync<T, TModel>(args, value, cancellationToken);
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="keys"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="keys">The key values.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
+        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then a <see cref="NotFoundException"/> will be thrown.</remarks>
+        public Task<Result> DeleteWithResultAsync(params object?[] keys) => DeleteWithResultAsync(keys, default);
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="keys"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="keys">The key values.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
+        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then a <see cref="NotFoundException"/> will be thrown.</remarks>
+        public Task<Result> DeleteWithResultAsync(object?[] keys, CancellationToken cancellationToken = default) => DeleteWithResultAsync(CompositeKey.Create(keys), cancellationToken);
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then a <see cref="NotFoundException"/> will be thrown.</remarks>
+        public Task<Result> DeleteWithResultAsync(CompositeKey key, CancellationToken cancellationToken = default) => DeleteWithResultAsync(new EfDbArgs(EfDb.DbArgs), key, cancellationToken);
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then a <see cref="NotFoundException"/> will be thrown.</remarks>
+        public Task<Result> DeleteWithResultAsync(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) => EfDb.DeleteWithResultAsync<T, TModel>(args, key, cancellationToken);
+
+        #endregion
     }
 }

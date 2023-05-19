@@ -14,7 +14,7 @@ namespace CoreEx.Validation
         object? IValidationResult.Value => Value;
 
         /// <summary>
-        /// gets the originating value being validated.
+        /// Gets the originating value being validated.
         /// </summary>
         new T? Value { get; }
     }

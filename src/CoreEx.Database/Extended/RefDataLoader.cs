@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.RefData;
+using CoreEx.Results;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -42,6 +43,19 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public async Task LoadAsync(TColl coll, string? idColumnName = null, Action<DatabaseRecord, TItem>? additionalProperties = null, IEnumerable<IMultiSetArgs>? multiSetArgs = null,
             Func<DatabaseRecord, TItem, bool>? confirmItemIsToBeAdded = null, CancellationToken cancellationToken = default)
+            => (await LoadWithResultAsync(coll, idColumnName, additionalProperties, multiSetArgs, confirmItemIsToBeAdded, cancellationToken)).ThrowOnError();
+
+        /// <summary>
+        /// Executes a dynamic <see cref="IReferenceDataCollection"/> query updating the <paramref name="coll"/>.
+        /// </summary>
+        /// <param name="coll">The <see cref="IReferenceDataCollection"/>.</param>
+        /// <param name="idColumnName">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> column name override; defaults to <see cref="Extended.DatabaseColumns.RefDataIdName"/>.</param>
+        /// <param name="additionalProperties">The additional properties action that enables non-standard properties to be updated from the <see cref="DatabaseRecord"/>.</param>
+        /// <param name="multiSetArgs">The additional <see cref="IMultiSetArgs"/> where additional datasets are returned.</param>
+        /// <param name="confirmItemIsToBeAdded">The action to confirm whether the item is to be added (defaults to <c>true</c>).</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public async Task<Result> LoadWithResultAsync(TColl coll, string? idColumnName = null, Action<DatabaseRecord, TItem>? additionalProperties = null, IEnumerable<IMultiSetArgs>? multiSetArgs = null,
+            Func<DatabaseRecord, TItem, bool>? confirmItemIsToBeAdded = null, CancellationToken cancellationToken = default)
         {
             if (coll == null)
                 throw new ArgumentNullException(nameof(coll));
@@ -50,8 +64,8 @@ namespace CoreEx.Database.Extended
             if (multiSetArgs != null)
                 list.AddRange(multiSetArgs);
 
-            await Command.SelectMultiSetAsync(list, cancellationToken).ConfigureAwait(false);
-            Cleaner.Clean(coll);
+            var result = await Command.SelectMultiSetWithResultAsync(list, cancellationToken).ConfigureAwait(false);
+            return result.Then(() => Cleaner.Clean(coll));
         }
 
         /// <summary>
@@ -65,10 +79,23 @@ namespace CoreEx.Database.Extended
         /// <returns>The <see cref="IReferenceDataCollection"/>.</returns>
         public async Task<TColl> LoadAsync(string? idColumnName = null, Action<DatabaseRecord, TItem>? additionalProperties = null, IEnumerable<IMultiSetArgs>? multiSetArgs = null,
             Func<DatabaseRecord, TItem, bool>? confirmItemIsToBeAdded = null, CancellationToken cancellationToken = default)
+            => (await LoadWithResultAsync(idColumnName, additionalProperties, multiSetArgs, confirmItemIsToBeAdded, cancellationToken)).ThrowOnError();
+
+        /// <summary>
+        /// Executes a dynamic <see cref="IReferenceDataCollection"/> query.
+        /// </summary>
+        /// <param name="idColumnName">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> column name override; defaults to <see cref="Extended.DatabaseColumns.RefDataIdName"/>.</param>
+        /// <param name="additionalProperties">The additional properties action that enables non-standard properties to be updated from the <see cref="DatabaseRecord"/>.</param>
+        /// <param name="multiSetArgs">The additional <see cref="IMultiSetArgs"/> where additional datasets are returned.</param>
+        /// <param name="confirmItemIsToBeAdded">The action to confirm whether the item is to be added (defaults to <c>true</c>).</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="IReferenceDataCollection"/>.</returns>
+        public async Task<Result<TColl>> LoadWithResultAsync(string? idColumnName = null, Action<DatabaseRecord, TItem>? additionalProperties = null, IEnumerable<IMultiSetArgs>? multiSetArgs = null,
+            Func<DatabaseRecord, TItem, bool>? confirmItemIsToBeAdded = null, CancellationToken cancellationToken = default)
         {
             var coll = new TColl();
-            await LoadAsync(coll, idColumnName, additionalProperties, multiSetArgs, confirmItemIsToBeAdded, cancellationToken).ConfigureAwait(false);
-            return coll;
+            var result = await LoadWithResultAsync(coll, idColumnName, additionalProperties, multiSetArgs, confirmItemIsToBeAdded, cancellationToken).ConfigureAwait(false);
+            return result.Then<TColl>(() => coll);
         }
     }
 }

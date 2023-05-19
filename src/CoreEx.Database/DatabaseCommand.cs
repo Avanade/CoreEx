@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -71,12 +72,28 @@ namespace CoreEx.Database
         public Task SelectMultiSetAsync(params IMultiSetArgs[] multiSetArgs) => SelectMultiSetAsync(multiSetArgs, default);
 
         /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public Task<Result> SelectMultiSetWithResultAsync(params IMultiSetArgs[] multiSetArgs) => SelectMultiSetWithResultAsync(multiSetArgs, default);
+
+        /// <summary>
         /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>.
         /// </summary>
         /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
-        public Task SelectMultiSetAsync(IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
+        public async Task SelectMultiSetAsync(IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
+            => (await SelectMultiSetWithResultAsync(multiSetArgs, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public Task<Result> SelectMultiSetWithResultAsync(IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
         {
             var multiSetList = multiSetArgs?.ToList() ?? null;
             if (multiSetList == null || multiSetList.Count == 0)
@@ -95,7 +112,7 @@ namespace CoreEx.Database
                 do
                 {
                     if (index >= multiSetList.Count)
-                        throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} has returned more record sets than expected ({multiSetList.Count}).");
+                        return Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} has returned more record sets than expected ({multiSetList.Count})."));
 
                     if (multiSetList[index] != null)
                     {
@@ -105,16 +122,16 @@ namespace CoreEx.Database
                         {
                             records++;
                             if (multiSetArg.MaxRows.HasValue && records > multiSetArg.MaxRows.Value)
-                                throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} (msa[{index}]) has returned more records than expected ({multiSetArg.MaxRows.Value}).");
+                                return Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} (msa[{index}]) has returned more records than expected ({multiSetArg.MaxRows.Value})."));
 
                             multiSetArg.DatasetRecord(new DatabaseRecord(Database, dr));
                         }
 
                         if (records < multiSetArg.MinRows)
-                            throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)}  (msa[{index}]) has returned less records ({records}) than expected ({multiSetArg.MinRows}).");
+                            return Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} (msa[{index}]) has returned less records ({records}) than expected ({multiSetArg.MinRows})."));
 
                         if (records == 0 && multiSetArg.StopOnNull)
-                            return;
+                            return Result.Success;
 
                         multiSetArg.InvokeResult();
                     }
@@ -122,8 +139,9 @@ namespace CoreEx.Database
                     index++;
                 } while (dr.NextResult());
 
-                if (index < multiSetList.Count && !multiSetList[index].StopOnNull)
-                    throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)}  has returned less ({index}) record sets than expected ({multiSetList.Count}).");
+                return index < multiSetList.Count && !multiSetList[index].StopOnNull 
+                    ? Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} has returned less ({index}) record sets than expected ({multiSetList.Count})."))
+                    : Result.Success;
             }, cancellationToken);
         }
 
@@ -133,7 +151,15 @@ namespace CoreEx.Database
         /// <param name="paging">The <see cref="PagingArgs"/> or <see cref="PagingResult"/> to add to the <see cref="Parameters"/>.</param>
         /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
         /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
-        public Task SelectMultiSetAsync(PagingArgs? paging, params IMultiSetArgs[] multiSetArgs) => SelectMultiSetAsync(paging, multiSetArgs, default);
+        public async Task SelectMultiSetAsync(PagingArgs? paging, params IMultiSetArgs[] multiSetArgs) => (await SelectMultiSetWithResultAsync(paging, multiSetArgs).ConfigureAwait(false)).ThrowOnError();
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/> that supports <paramref name="paging"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/> or <see cref="PagingResult"/> to add to the <see cref="Parameters"/>.</param>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public Task<Result> SelectMultiSetWithResultAsync(PagingArgs? paging, params IMultiSetArgs[] multiSetArgs) => SelectMultiSetWithResultAsync(paging, multiSetArgs, default);
 
         /// <summary>
         /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/> that supports <paramref name="paging"/>.
@@ -143,12 +169,25 @@ namespace CoreEx.Database
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
         public async Task SelectMultiSetAsync(PagingArgs? paging, IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
+            => (await SelectMultiSetWithResultAsync(paging, multiSetArgs, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/> that supports <paramref name="paging"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/> or <see cref="PagingResult"/> to add to the <see cref="Parameters"/>.</param>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public async Task<Result> SelectMultiSetWithResultAsync(PagingArgs? paging, IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
         {
             Parameters.PagingParams(paging);
 
-            var rv = await SelectMultiSetWithValueAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
-            if (paging is PagingResult pr && pr.IsGetCount && rv >= 0)
-                pr.TotalCount = rv;
+            var result = await SelectMultiSetWithValueResultAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
+            return result.Then(rv =>
+            {
+                if (paging is PagingResult pr && pr.IsGetCount && rv >= 0)
+                    pr.TotalCount = rv;
+            });
         }
 
         /// <summary>
@@ -157,7 +196,15 @@ namespace CoreEx.Database
         /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
         /// <returns>The resultant return value.</returns>
         /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
-        public Task<int> SelectMultiSetWithValueAsync(params IMultiSetArgs[] multiSetArgs) => SelectMultiSetWithValueAsync(multiSetArgs, default);
+        public async Task<int> SelectMultiSetWithValueAsync(params IMultiSetArgs[] multiSetArgs) => await SelectMultiSetWithValueResultAsync(multiSetArgs).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>; whilst also outputing the resulting <see cref="int"/> <see cref="ParameterDirection.ReturnValue"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <returns>The resultant return value.</returns>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public Task<Result<int>> SelectMultiSetWithValueResultAsync(params IMultiSetArgs[] multiSetArgs) => SelectMultiSetWithValueResultAsync(multiSetArgs, default);
 
         /// <summary>
         /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>; whilst also outputing the resulting <see cref="int"/> <see cref="ParameterDirection.ReturnValue"/>.
@@ -167,10 +214,20 @@ namespace CoreEx.Database
         /// <returns>The resultant return value.</returns>
         /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
         public async Task<int> SelectMultiSetWithValueAsync(IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
+            => await SelectMultiSetWithValueResultAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes a multi-dataset query command with one or more <see cref="IMultiSetArgs"/>; whilst also outputing the resulting <see cref="int"/> <see cref="ParameterDirection.ReturnValue"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resultant return value.</returns>
+        /// <remarks>The number of <see cref="IMultiSetArgs"/> specified must match the number of returned datasets. A null dataset indicates to ignore (skip) a dataset.</remarks>
+        public async Task<Result<int>> SelectMultiSetWithValueResultAsync(IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
         {
             var rvp = Parameters.AddReturnValueParameter();
-            await SelectMultiSetAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
-            return rvp.Value == null ? -1 : (int)rvp.Value;
+            var result = await SelectMultiSetWithResultAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
+            return result.Then<int>(() => rvp.Value == null ? -1 : (int)rvp.Value);
         }
 
         /// <summary>
@@ -178,7 +235,14 @@ namespace CoreEx.Database
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The number of rows affected.</returns>
-        public Task<int> NonQueryAsync(CancellationToken cancellationToken = default) => NonQueryAsync(null, cancellationToken);
+        public async Task<int> NonQueryAsync(CancellationToken cancellationToken = default) => await NonQueryWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes a non-query command with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The number of rows affected.</returns>
+        public Task<Result<int>> NonQueryWithResultAsync(CancellationToken cancellationToken = default) => NonQueryWithResultAsync(null, cancellationToken);
 
         /// <summary>
         /// Executes a non-query command.
@@ -186,12 +250,20 @@ namespace CoreEx.Database
         /// <param name="parameters">The post-execution delegate to enable parameter access.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The number of rows affected.</returns>
-        public Task<int> NonQueryAsync(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
+        public async Task<int> NonQueryAsync(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => await NonQueryWithResultAsync(parameters, cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes a non-query command with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="parameters">The post-execution delegate to enable parameter access.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The number of rows affected.</returns>
+        public Task<Result<int>> NonQueryWithResultAsync(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
         {
             using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
             parameters?.Invoke(cmd.Parameters);
             var result = await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            return result;
+            return Result.Ok(result);
         }, cancellationToken);
 
         /// <summary>
@@ -200,7 +272,15 @@ namespace CoreEx.Database
         /// <typeparam name="T">The result <see cref="Type"/>.</typeparam>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value of the first column of the first row in the result set.</returns>
-        public Task<T> ScalarAsync<T>(CancellationToken cancellationToken = default) => ScalarAsync<T>(null, cancellationToken);
+        public async Task<T> ScalarAsync<T>(CancellationToken cancellationToken = default) => await ScalarWithResultAsync<T>(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes the query and returns the first column of the first row in the result set returned by the query with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The result <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value of the first column of the first row in the result set.</returns>
+        public Task<Result<T>> ScalarWithResultAsync<T>(CancellationToken cancellationToken = default) => ScalarWithResultAsync<T>(null, cancellationToken);
 
         /// <summary>
         /// Executes the query and returns the first column of the first row in the result set returned by the query.
@@ -209,13 +289,23 @@ namespace CoreEx.Database
         /// <param name="parameters">The post-execution delegate to enable parameter access.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value of the first column of the first row in the result set.</returns>
-        public Task<T> ScalarAsync<T>(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
+        public async Task<T> ScalarAsync<T>(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default)
+            => await ScalarWithResultAsync<T>(parameters, cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes the query and returns the first column of the first row in the result set returned by the query with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The result <see cref="Type"/>.</typeparam>
+        /// <param name="parameters">The post-execution delegate to enable parameter access.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value of the first column of the first row in the result set.</returns>
+        public Task<Result<T>> ScalarWithResultAsync<T>(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
         {
             using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
             parameters?.Invoke(cmd.Parameters);
             var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
             T value = result is null ? default! : result is DBNull ? default! : (T)result;
-            return value;
+            return Result.Ok(value);
         }, cancellationToken);
 
         /// <summary>
@@ -226,10 +316,20 @@ namespace CoreEx.Database
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The item sequence.</returns>
         public async Task<IEnumerable<T>> SelectQueryAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
+            => (await SelectQueryWithResultAsync(mapper, cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <summary>
+        /// Selects none or more items from the first result set using a <paramref name="mapper"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The item <see cref="Type"/>.</typeparam>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The item sequence.</returns>
+        public async Task<Result<IEnumerable<T>>> SelectQueryWithResultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
         {
             var coll = new List<T>();
-            await SelectQueryAsync(coll, mapper, cancellationToken).ConfigureAwait(false);
-            return coll;
+            var result = await SelectQueryWithResultAsync(coll, mapper, cancellationToken).ConfigureAwait(false);
+            return result.Then<IEnumerable<T>>(() => coll);
         }
 
         /// <summary>
@@ -240,10 +340,20 @@ namespace CoreEx.Database
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting set.</returns>
         public async Task<IEnumerable<T>> SelectQueryAsync<T>(Func<DatabaseRecord, T> func, CancellationToken cancellationToken = default)
+            => (await SelectQueryWithResultAsync<T>(func, cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <summary>
+        /// Selects none or more items from the first result set with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The item <see cref="Type"/>.</typeparam>
+        /// <param name="func">The <see cref="DatabaseRecord"/> mapping function.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting set.</returns>
+        public async Task<Result<IEnumerable<T>>> SelectQueryWithResultAsync<T>(Func<DatabaseRecord, T> func, CancellationToken cancellationToken = default)
         {
             var coll = new List<T>();
-            await SelectQueryAsync(coll, func, cancellationToken);
-            return coll;
+            var result = await SelectQueryWithResultAsync(coll, func, cancellationToken).ConfigureAwait(false);
+            return result.Then<IEnumerable<T>>(() => coll);
         }
 
         /// <summary>
@@ -255,6 +365,17 @@ namespace CoreEx.Database
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public async Task SelectQueryAsync<T, TColl>(TColl collection, IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+            => (await SelectQueryWithResultAsync(collection, mapper, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+        /// <summary>
+        /// Selects none or more items from the first result set and adds to the <paramref name="collection"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The item <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="collection">The collection.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public async Task<Result> SelectQueryWithResultAsync<T, TColl>(TColl collection, IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default) where TColl : ICollection<T>
             => await SelectInternalAsync(collection, mapper, false, false, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
@@ -266,6 +387,17 @@ namespace CoreEx.Database
         /// <param name="func">The <see cref="DatabaseRecord"/> mapping function.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public async Task SelectQueryAsync<T, TColl>(TColl collection, Func<DatabaseRecord, T> func, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+            => (await SelectQueryWithResultAsync(collection, func, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+        /// <summary>
+        /// Selects none or more items from the first result set and adds to the <paramref name="collection"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The item <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="collection">The collection.</param>
+        /// <param name="func">The <see cref="DatabaseRecord"/> mapping function.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public async Task<Result> SelectQueryWithResultAsync<T, TColl>(TColl collection, Func<DatabaseRecord, T> func, CancellationToken cancellationToken = default) where TColl : ICollection<T>
             => await SelectInternalAsync(collection, new DatabaseRecordMapper<T>(func), false, false, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
@@ -275,13 +407,19 @@ namespace CoreEx.Database
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item.</returns>
-        public async Task<T> SelectSingleAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
-        {
-            T item = await SelectSingleFirstAsync(mapper, true, cancellationToken).ConfigureAwait(false);
-            if (Comparer<T>.Default.Compare(item, default!) == 0)
-                throw new InvalidOperationException("SelectSingle request has not returned a row.");
+        public async Task<T> SelectSingleAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default) => (await SelectSingleWithResultAsync(mapper, cancellationToken).ConfigureAwait(false)).Value;
 
-            return item;
+        /// <summary>
+        /// Selects a single item with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item.</returns>
+        public async Task<Result<T>> SelectSingleWithResultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
+        {
+            var result = await SelectSingleFirstWithResultAsync(mapper, true, cancellationToken).ConfigureAwait(false);
+            return result.When(item => Comparer<T>.Default.Compare(item, default!) == 0, () => Result<T>.Fail(new InvalidOperationException("SelectSingle request has not returned a row.")));
         }
 
         /// <summary>
@@ -291,7 +429,18 @@ namespace CoreEx.Database
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
-        public async Task<T?> SelectSingleOrDefaultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default) => await SelectSingleFirstAsync(mapper, false, cancellationToken).ConfigureAwait(false);
+        public async Task<T?> SelectSingleOrDefaultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
+            => await SelectSingleOrDefaultWithResultAsync(mapper, cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects a single item or default with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public async Task<Result<T?>> SelectSingleOrDefaultWithResultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
+            => await SelectSingleFirstWithResultAsync(mapper, false, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Selects first item.
@@ -301,12 +450,19 @@ namespace CoreEx.Database
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item.</returns>
         public async Task<T> SelectFirstAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
-        {
-            T item = await SelectSingleFirstAsync(mapper, false, cancellationToken).ConfigureAwait(false);
-            if (Comparer<T>.Default.Compare(item, default!) == 0)
-                throw new InvalidOperationException("SelectFirst request has not returned a row.");
+            => await SelectFirstWithResultAsync(mapper, cancellationToken).ConfigureAwait(false);
 
-            return item;
+        /// <summary>
+        /// Selects first item with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item.</returns>
+        public async Task<Result<T>> SelectFirstWithResultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
+        {
+            var result = await SelectSingleFirstWithResultAsync(mapper, false, cancellationToken).ConfigureAwait(false);
+            return result.When<T>(item => Comparer<T>.Default.Compare(item, default!) == 0, () => new InvalidOperationException("SelectFirst request has not returned a row."));
         }
 
         /// <summary>
@@ -316,27 +472,38 @@ namespace CoreEx.Database
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
-        public async Task<T?> SelectFirstOrDefaultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default) => await SelectSingleFirstAsync(mapper, false, cancellationToken).ConfigureAwait(false);
+        public async Task<T?> SelectFirstOrDefaultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
+            => await SelectFirstOrDefaultWithResultAsync(mapper, cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects first item or default with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public async Task<Result<T?>> SelectFirstOrDefaultWithResultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default) 
+            => await SelectSingleFirstWithResultAsync(mapper, false, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Select first row result only (where exists).
         /// </summary>
-        private async Task<T> SelectSingleFirstAsync<T>(IDatabaseMapper<T> mapper, bool throwWhereMulti, CancellationToken cancellationToken)
+        private async Task<Result<T>> SelectSingleFirstWithResultAsync<T>(IDatabaseMapper<T> mapper, bool throwWhereMulti, CancellationToken cancellationToken)
         {
             var coll = new List<T>();
-            await SelectInternalAsync(coll, mapper, throwWhereMulti, true, cancellationToken).ConfigureAwait(false);
-            return coll.Count == 0 ? default! : coll[0];
+            var result = await SelectInternalAsync(coll, mapper, throwWhereMulti, true, cancellationToken).ConfigureAwait(false);
+            return result.Bind<T>().Then(() => coll.Count == 0 ? default! : coll[0]);
         }
 
         /// <summary>
         /// Select the rows from the query.
         /// </summary>
-        private async Task SelectInternalAsync<T, TColl>(TColl coll, IDatabaseMapper<T> mapper, bool throwWhereMulti, bool stopAfterOneRow, CancellationToken cancellationToken) where TColl : ICollection<T>
+        private async Task<Result> SelectInternalAsync<T, TColl>(TColl coll, IDatabaseMapper<T> mapper, bool throwWhereMulti, bool stopAfterOneRow, CancellationToken cancellationToken) where TColl : ICollection<T>
         {
             if (mapper == null)
                 throw new ArgumentNullException(nameof(mapper));
 
-            await Database.Invoker.InvokeAsync(Database, mapper, throwWhereMulti, stopAfterOneRow, async (mapper, throwWhereMulti, stopAfterOneRow, ct) =>
+            return await Database.Invoker.InvokeAsync(Database, mapper, throwWhereMulti, stopAfterOneRow, async (mapper, throwWhereMulti, stopAfterOneRow, ct) =>
             {
                 int i = 0;
 
@@ -348,17 +515,22 @@ namespace CoreEx.Database
                     if (++i == 2)
                     {
                         if (throwWhereMulti)
-                            throw new InvalidOperationException("SelectSingle request has returned more than one row.");
+                            Result.Fail(new InvalidOperationException("SelectSingle request has returned more than one row."));
 
                         if (stopAfterOneRow)
-                            return;
+                            return Result.Success;
                     }
 
-                    var val = mapper.MapFromDb(new DatabaseRecord(Database, dr)) ?? throw new InvalidOperationException("A null must not be returned from the mapper.");
+                    var val = mapper.MapFromDb(new DatabaseRecord(Database, dr));
+                    if (val == null)
+                        return Result.Fail(new InvalidOperationException("A null must not be returned from the mapper."));
+
                     coll.Add(val);
                     if (!throwWhereMulti && stopAfterOneRow)
-                        return;
+                        return Result.Success;
                 }
+
+                return Result.Success;
             }, cancellationToken).ConfigureAwait(false);
         }
     }

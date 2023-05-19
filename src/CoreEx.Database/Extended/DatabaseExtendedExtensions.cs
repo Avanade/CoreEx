@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using CoreEx.Mapping;
 using CoreEx.RefData;
+using CoreEx.Results;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -92,6 +93,40 @@ namespace CoreEx.Database.Extended
         public static DatabaseQuery<T> Query<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, Action<DatabaseParameterCollection>? queryParams = null) where T : class, new() => new(command, new DatabaseArgs(command.Database.DbArgs, mapper), queryParams);
 
         /// <summary>
+        /// Performs the save (create or update) operation.
+        /// </summary>
+        private static async Task<Result<T>> SaveWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, OperationTypes operationType, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            if (command == null)
+                throw new ArgumentNullException(nameof(command));
+
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
+            // Set ChangeLog properties where appropriate.
+            if (operationType == OperationTypes.Create)
+                ChangeLog.PrepareCreated(value);
+            else
+                ChangeLog.PrepareUpdated(value);
+
+            // Map the parameters.
+            var map = (IDatabaseMapper<T>)args.Mapper;
+            map.MapToDb(value, command.Parameters, operationType);
+
+            if (args.Refresh)
+            {
+                var result = await command.ReselectRecordParam().SelectFirstOrDefaultWithResultAsync(map, cancellationToken).ConfigureAwait(false);
+                return result.When(v => v is null, () => Result.NotFoundError());
+            }
+
+            // NOTE: without refresh, fields like IDs and RowVersion are not automatically updated.
+            var nqresult = await command.NonQueryWithResultAsync(cancellationToken).ConfigureAwait(false);
+            return nqresult.Then(() => value);
+        }
+
+        #region Standard
+
+        /// <summary>
         /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
@@ -124,10 +159,8 @@ namespace CoreEx.Database.Extended
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T>(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
-            => (command ?? throw new ArgumentNullException(nameof(command)))
-                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
-                .SelectFirstOrDefaultAsync((IDatabaseMapper<T>)args.Mapper, cancellationToken);
+        public static async Task<T?> GetAsync<T>(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
+            => await GetWithResultAsync<T>(command, args, key, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/>.
@@ -150,8 +183,8 @@ namespace CoreEx.Database.Extended
         /// <param name="value">The value to insert.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (reselected where specified).</returns>
-        public static Task<T> CreateAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, CancellationToken cancellationToken = default) where T : class, new()
-            => SaveAsync(command, args, value, OperationTypes.Create, cancellationToken);
+        public static async Task<T> CreateAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => await SaveWithResultAsync(command, args, value, OperationTypes.Create, cancellationToken);
 
         /// <summary>
         /// Performs a create using the specified stored procedure and value (reselects where specified).
@@ -162,8 +195,8 @@ namespace CoreEx.Database.Extended
         /// <param name="value">The value to insert.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (reselected where specified).</returns>
-        public static Task<T> CreateAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
-            => SaveAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Create, cancellationToken);
+        public async static Task<T> CreateAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => await SaveWithResultAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Create, cancellationToken);
 
         /// <summary>
         /// Performs an update using the specified stored procedure and value (reselects where specified).
@@ -174,8 +207,8 @@ namespace CoreEx.Database.Extended
         /// <param name="value">The value to insert.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (reselected where specified).</returns>
-        public static Task<T> UpdateAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, CancellationToken cancellationToken = default) where T : class, new()
-            => SaveAsync(command, args, value, OperationTypes.Update, cancellationToken);
+        public static async Task<T> UpdateAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => await SaveWithResultAsync(command, args, value, OperationTypes.Update, cancellationToken);
 
         /// <summary>
         /// Performs an update using the specified stored procedure and value (reselects where specified).
@@ -186,37 +219,8 @@ namespace CoreEx.Database.Extended
         /// <param name="value">The value to insert.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (reselected where specified).</returns>
-        public static Task<T> UpdateAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
-            => SaveAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Update, cancellationToken);
-
-        /// <summary>
-        /// Performs the save (create or update) operation.
-        /// </summary>
-        private static async Task<T> SaveAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, OperationTypes operationType, CancellationToken cancellationToken = default) where T : class, new()
-        {
-            if (command == null)
-                throw new ArgumentNullException(nameof(command));
-
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
-            // Set ChangeLog properties where appropriate.
-            if (operationType == OperationTypes.Create)
-                ChangeLog.PrepareCreated(value);
-            else
-                ChangeLog.PrepareUpdated(value);
-
-            // Map the parameters.
-            var map = (IDatabaseMapper<T>)args.Mapper;
-            map.MapToDb(value, command.Parameters, operationType);
-
-            if (args.Refresh)
-                return await command.ReselectRecordParam().SelectFirstOrDefaultAsync(map, cancellationToken).ConfigureAwait(false) ?? throw new NotFoundException();
-
-            // NOTE: without refresh, fields like IDs and RowVersion are not automatically updated.
-            await command.NonQueryAsync(cancellationToken).ConfigureAwait(false);
-            return value;
-        }
+        public static async Task<T> UpdateAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => await SaveWithResultAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Update, cancellationToken);
 
         /// <summary>
         /// Performs a delete for the specified <paramref name="key"/>.
@@ -246,14 +250,7 @@ namespace CoreEx.Database.Extended
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public static async Task DeleteAsync(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default)
-        {
-            var rowsAffected = await (command ?? throw new ArgumentNullException(nameof(command)))
-                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
-                .ScalarAsync<int>(cancellationToken).ConfigureAwait(false);
-
-            if (rowsAffected < 1)
-                throw new NotFoundException();
-        }
+            => (await DeleteWithResultAsync(command, args, key, cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
         /// <summary>
         /// Performs a delete for the specified <paramref name="key"/>.
@@ -264,5 +261,155 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public static Task DeleteAsync(this DatabaseCommand command, IDatabaseMapper mapper, CompositeKey key, CancellationToken cancellationToken = default)
             => DeleteAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), key, cancellationToken);
+
+        #endregion
+
+        #region WithResult
+
+        /// <summary>
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="key">The key value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value where found; otherwise, <c>null</c>.</returns>
+        public static Task<Result<T?>> GetWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, object[] key, CancellationToken cancellationToken = default) where T : class, new()
+            => GetWithResultAsync<T>(command, args, CompositeKey.Create(key), cancellationToken);
+
+        /// <summary>
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="key">The key value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value where found; otherwise, <c>null</c>.</returns>
+        public static Task<Result<T?>> GetWithResultAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, object? key, CancellationToken cancellationToken = default) where T : class, new()
+            => GetWithResultAsync<T>(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(key), cancellationToken);
+
+        /// <summary>
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value where found; otherwise, <c>null</c>.</returns>
+        public static Task<Result<T?>> GetWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
+            => (command ?? throw new ArgumentNullException(nameof(command)))
+                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
+                .SelectFirstOrDefaultWithResultAsync((IDatabaseMapper<T>)args.Mapper, cancellationToken);
+
+        /// <summary>
+        /// Gets the value for the specified <paramref name="key"/> mapping to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value where found; otherwise, <c>null</c>.</returns>
+        public static Task<Result<T?>> GetWithResultAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
+            => GetWithResultAsync<T>(command, new DatabaseArgs(command.Database.DbArgs, mapper), key, cancellationToken);
+
+        /// <summary>
+        /// Performs a create using the specified stored procedure and value (reselects where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (reselected where specified).</returns>
+        public static Task<Result<T>> CreateWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => SaveWithResultAsync(command, args, value, OperationTypes.Create, cancellationToken);
+
+        /// <summary>
+        /// Performs a create using the specified stored procedure and value (reselects where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (reselected where specified).</returns>
+        public static Task<Result<T>> CreateWithResultAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => SaveWithResultAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Create, cancellationToken);
+
+        /// <summary>
+        /// Performs an update using the specified stored procedure and value (reselects where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (reselected where specified).</returns>
+        public static Task<Result<T>> UpdateWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => SaveWithResultAsync(command, args, value, OperationTypes.Update, cancellationToken);
+
+        /// <summary>
+        /// Performs an update using the specified stored procedure and value (reselects where specified) with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="value">The value to insert.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The value (reselected where specified).</returns>
+        public static Task<Result<T>> UpdateWithResultAsync<T>(this DatabaseCommand command, IDatabaseMapper<T> mapper, T value, CancellationToken cancellationToken = default) where T : class, new()
+            => SaveWithResultAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), value, OperationTypes.Update, cancellationToken);
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="key">The key value.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public static Task<Result> DeleteWithResultAsync(this DatabaseCommand command, DatabaseArgs args, object? key, CancellationToken cancellationToken = default)
+            => DeleteWithResultAsync(command, args, CompositeKey.Create(key), cancellationToken);
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="key">The key values.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public static Task<Result> DeleteWithResultAsync(this DatabaseCommand command, IDatabaseMapper mapper, object? key, CancellationToken cancellationToken = default)
+            => DeleteWithResultAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), CompositeKey.Create(key), cancellationToken);
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="args">The <see cref="DatabaseArgs"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public static async Task<Result> DeleteWithResultAsync(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default)
+        {
+            var rowsAffectedResult = await (command ?? throw new ArgumentNullException(nameof(command)))
+                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
+                .ScalarWithResultAsync<int>(cancellationToken).ConfigureAwait(false);
+
+            return rowsAffectedResult.When(rowsAffected => rowsAffected < 1, () => Result.NotFoundError());
+        }
+
+        /// <summary>
+        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
+        /// </summary>
+        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+        /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public static Task DeleteWithResultAsync(this DatabaseCommand command, IDatabaseMapper mapper, CompositeKey key, CancellationToken cancellationToken = default)
+            => DeleteWithResultAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), key, cancellationToken);
+
+        #endregion
     }
 }

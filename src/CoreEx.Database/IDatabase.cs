@@ -3,6 +3,7 @@
 using CoreEx.Database.Extended;
 using CoreEx.Entities;
 using CoreEx.Mapping.Converters;
+using CoreEx.Results;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Data.Common;
@@ -97,7 +98,8 @@ namespace CoreEx.Database
         /// Invoked where a <see cref="DbException"/> has been thrown.
         /// </summary>
         /// <param name="dbex">The <see cref="DbException"/>.</param>
-        /// <remarks>Provides an opportunity to inspect and handle the exception before it bubbles up.</remarks>
-        void HandleDbException(DbException dbex);
+        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
+        /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned.</remarks>
+        Result HandleDbException(DbException dbex);
     }
 }
