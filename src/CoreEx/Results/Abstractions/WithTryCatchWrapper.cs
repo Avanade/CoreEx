@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CoreEx.Results.Abstractions
@@ -8,6 +9,7 @@ namespace CoreEx.Results.Abstractions
     /// <summary>
     /// Provides a '<c>try/catch</c>' <see cref="WithWrapper"/> implementation.
     /// </summary>
+    [DebuggerStepThrough]
     public class WithTryCatchWrapper : WithWrapper
     {
         /// <summary>

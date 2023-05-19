@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CoreEx.Results.Abstractions
@@ -8,6 +9,7 @@ namespace CoreEx.Results.Abstractions
     /// <summary>
     /// Provides the common with/wrapped execution functionality.
     /// </summary>
+    [DebuggerStepThrough]
     public abstract class WithWrapper
     {
         /// <summary>

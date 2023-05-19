@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using CoreEx.Results.Abstractions;
 
@@ -10,6 +11,7 @@ namespace CoreEx.Results
     /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>WithTryCatch</c> and <c>WithTryCatchAsync</c> extension methods to execute the corresponding function with a '<c>try/catch</c>' that will result in a failure where an 
     /// <see cref="Exception"/> is encountered; see <see cref="WithTryCatchWrapper"/>.
     /// </summary>
+    [DebuggerStepThrough]
     public static class WithTryCatchExtensions
     {
         #region Synchronous
