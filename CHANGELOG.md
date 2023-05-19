@@ -10,7 +10,7 @@ Represents the **NuGet** versions.
     - `CoreEx.WebApis` namespace: added `*WithResultAsync` methods to `WebApiBase`, `WebApi` and `WebApiPublisher`.
     - `CoreEx.Database` namespace: added `*WithResultAsync` methods to `DatabaseCommand`, `DatabaseQuery`, `RefDataLoadeder` and `DatabaseExtendedExtensions` to support.
     - `CoreEx.EntityFrameworkCore` namespace: add `*WithResultAsync` methods to `IEfDb`, `EfDb` and `EfDbEntity`.
-    - `CoreEx.Cosmos` namespace: added `*WithResultAsync` methods to `CosmosDbContainerBase`.
+    - `CoreEx.Cosmos` namespace: added `*WithResultAsync` methods to `CosmosDbContainerBase`, `CosmosDbContainer`, `CosmosDbValueContainer`, `CosmosDbQueryBase`, `CosmosDbQuery` and `CosmosDbValueQuery`.
 
 ## v2.10.1
 - *Fixed:* `EventOutboxHostedService` updated so when a new `IServiceScope` is created that `ExecutionContext.Reset` is invoked to ensure existing `ServiceProvider` is not reused.
