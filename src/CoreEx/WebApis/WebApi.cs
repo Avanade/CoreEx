@@ -53,7 +53,7 @@ namespace CoreEx.WebApis
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
         /// <remarks>This is, and must be, used by all methods that process an <see cref="HttpRequest"/> to ensure that the standardized before and after, success and error, handling occurs as required.</remarks>
         public Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified)
-            => RunAsync(request, (p, _) => function(p), operationType, CancellationToken.None);
+            => base.RunAsync(request, (p, _) => function(p), operationType, CancellationToken.None);
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="HttpRequest"/> <paramref name="function"/> returning a corresponding <see cref="IActionResult"/>.

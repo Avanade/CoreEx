@@ -116,7 +116,7 @@ namespace CoreEx.Database.Extended
             if (args.Refresh)
             {
                 var result = await command.ReselectRecordParam().SelectFirstOrDefaultWithResultAsync(map, cancellationToken).ConfigureAwait(false);
-                return result.When(v => v is null, () => Result.NotFoundError());
+                return result.When(v => v is null, () => Result<T>.NotFoundError());
             }
 
             // NOTE: without refresh, fields like IDs and RowVersion are not automatically updated.
