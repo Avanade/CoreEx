@@ -145,18 +145,18 @@ namespace CoreEx.Test.Framework.Results
         }
 
         [Test]
-        public void Result_Success_Implicit_Convert_To_Result()
+        public void Result_Success_Explicit_Convert_To_Result()
         {
             Result<int> r = Result<int>.Ok(1);
-            Result r2 = r;
+            Result r2 = (Result)r;
             Assert.AreEqual(Result.Success, r2);
         }
 
         [Test]
-        public void Result_Failure_Implicit_Convert_To_Result()
+        public void Result_Failure_Explicit_Convert_To_Result()
         {
             Result<int> r = Result<int>.Fail(new BusinessException());
-            Result r2 = r;
+            Result r2 = (Result)r;
             Assert.IsTrue(r2.IsFailure);
             Assert.That(r2.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
         }

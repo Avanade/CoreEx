@@ -11,7 +11,7 @@ namespace CoreEx.Http
     /// <summary>
     /// Provides the <see cref="HttpResponseMessage"/> result with a <see cref="Value"/>.
     /// </summary>
-    public class HttpResult<T> : HttpResult
+    public class HttpResult<T> : HttpResult, IToResult<T>
     {
         private readonly T _value;
         private readonly Exception? _internalException = null;
@@ -66,6 +66,9 @@ namespace CoreEx.Http
             return this;
         }
 
+        /// <inheritdoc/>
+        Result<T> IToResult<T>.ToResult() => ToResult();
+
         /// <summary>
         /// Converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/>.
         /// </summary>
@@ -84,10 +87,10 @@ namespace CoreEx.Http
             {
                 var eex = CreateExtendedException(Response, Content, useContentAsErrorMessage);
                 if (eex != null)
-                    return new Result((Exception)eex);
+                    return new Result<T>((Exception)eex);
             }
 
-            return new Result(new HttpRequestException(Content));
+            return new Result<T>(new HttpRequestException(Content));
         }
 
         /// <summary>

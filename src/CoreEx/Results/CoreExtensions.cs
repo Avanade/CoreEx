@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace CoreEx.Results
@@ -24,6 +25,24 @@ namespace CoreEx.Results
         {
             if (func is null) throw new ArgumentNullException(nameof(func));
             return result.IsSuccess ? func(result.Value) : new Result<U>(result.Error!);
+        }
+
+        /// <summary>
+        /// Binds/converts the <see cref="Result"/> to a corresponding <see cref="Result{T}"/> defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/> losing the <see cref="Result{T}.Value"/>;
+        /// otherwise, where <see cref="Result.IsFailure"/> returns a resulting instance with the corresponding <see cref="Result.Error"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>Will perform a <see cref="TypeConverter">type conversion</see> for the <see cref="Result{T}.Value"/> between the <typeparamref name="T"/> and <typeparamref name="U"/> where possible; otherwise, will simply default.</remarks>
+        public static Result<U> Bind<T, U>(this Result<T> result)
+        {
+            if (result.IsFailure)
+                return new Result<U>(result.Error!);
+
+            var tc = TypeDescriptor.GetConverter(typeof(T));
+            return tc.CanConvertTo(typeof(U)) ? new Result<U>((U)tc.ConvertTo(result.Value, typeof(U))) : Result<U>.None;
         }
 
         /// <summary>

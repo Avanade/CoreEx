@@ -12,7 +12,7 @@ namespace CoreEx.Results
     /// <summary>
     /// Represents the outcome of an operation with no value.
     /// </summary>
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     [DebuggerDisplay("{ToDebuggerString()}")]
     public readonly partial struct Result : IResult
     {
@@ -100,7 +100,7 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="message">The error message.</param>
         /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
-        public static Result Fail(LText message) => new(new BusinessException(message));
+        public static Result Fail(LText? message = null) => new(new BusinessException(message));
 
         /// <inheritdoc/>
         public override string ToString() => IsSuccess ? "Success." : $"Failure: {Error.Message}";
@@ -130,7 +130,7 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="messages">The <see cref="MessageItem"/> list.</param>
         /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
-        public static Result ValidationError(IEnumerable<MessageItem> messages) => new ValidationException(messages);
+        public static Result ValidationError(IEnumerable<MessageItem>? messages) => messages is null ? new ValidationException() : new ValidationException(messages);
 
         /// <summary>
         /// Creates a <see cref="Result"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="ValidationException"/>.

@@ -97,7 +97,7 @@ namespace CoreEx.Cosmos
             try
             {
                 var val = await Container.ReadItemAsync<TModel>(key, args.PartitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
-                return Result.Go(CheckAuthorized(val)).Then(() => GetResponseValue(val));
+                return Result.Go(CheckAuthorized(val)).ThenAs(() => GetResponseValue(val));
             }
             catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return Result<T?>.None; }
         }, cancellationToken);
@@ -113,8 +113,8 @@ namespace CoreEx.Cosmos
 
             return await Result
                 .Go(CheckAuthorized(model))
-                .ThenAsync(() => Container.CreateItemAsync(model, pk, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct))
-                .Then(resp => GetResponseValue(resp!)!);
+                .ThenAsAsync(() => Container.CreateItemAsync(model, pk, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct))
+                .ThenAs(resp => GetResponseValue(resp!)!);
         }, cancellationToken);
 
         /// <inheritdoc/>
@@ -146,7 +146,7 @@ namespace CoreEx.Cosmos
                     // Re-check auth to make sure not updating to something not allowed.
                     return CheckAuthorized(resp);
                 })
-                .ThenAsync(async () =>
+                .ThenAsAsync(async () =>
                 {
                     resp = await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
                     return GetResponseValue(resp)!;

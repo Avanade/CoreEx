@@ -1,608 +1,97 @@
 ﻿using CoreEx.Results;
 using NUnit.Framework;
 using System.Threading.Tasks;
+using static CoreEx.Test.Framework.Results.ThenExtensionsTest;
 
 namespace CoreEx.Test.Framework.Results
 {
     [TestFixture]
     public class WhenExtensionsTest
     {
-        [Test]
-        public void Sync_Result_When_With_Action_Success()
-        {
-            var i = 0;
-            var r = Result.Success;
-            var r2 = r.When(() => true, () => i = 1);
-            Assert.AreEqual(1, i);
-        }
-
-        [Test]
-        public void Sync_Result_WhenNot_With_Action_Success()
-        {
-            var i = 0;
-            var r = Result.Success;
-            var r2 = r.When(() => false, () => i = 1);
-            Assert.AreEqual(0, i);
-        }
-
-        [Test]
-        public void Sync_Result_When_With_Func_Success()
-        {
-            var r = Result.Success;
-            var r2 = r.When(() => true, () => Result.Fail("Test"));
-            Assert.True(r2.IsFailure);
-        }
-
-        [Test]
-        public void Sync_Result_WhenNot_With_Func_Success()
-        {
-            var r = Result.Success;
-            var r2 = r.When(() => false, () => Result.Fail("Test"));
-            Assert.True(r2.IsSuccess);
-        }
-
-        [Test]
-        public void Sync_ResultT_When_Action_Success()
-        {
-            var i = 0;
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => true, () => { i = 1; });
-            Assert.AreEqual(1, i);
-        }
-
-        [Test]
-        public void Sync_ResultT_WhenNot_Action_Success()
-        {
-            var i = 0;
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => false, () => { i = 1; });
-            Assert.AreEqual(0, i);
-        }
-
-        [Test]
-        public void Sync_ResultT_When_Func_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => true, () => 1);
-            Assert.AreEqual(1, r2.Value);
-        }
-
-        [Test]
-        public void Sync_ResultT_WhenNot_Func_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => false, () => 1);
-            Assert.AreEqual(0, r2.Value);
-        }
-
-        [Test]
-        public void Sync_ResultT_When_Func_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => true, () => Result.Fail("Test"));
-            Assert.IsTrue(r2.IsFailure);
-        }
-
-        [Test]
-        public void Sync_ResultT_WhenNot_Func_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => false, () => Result.Fail("Test"));
-            Assert.IsTrue(r2.IsSuccess);
-        }
-
-        [Test]
-        public void Sync_ResultT_When_Func_Diff_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => true, () => true);
-            Assert.AreEqual(true, r2.Value);
-        }
-
-        [Test]
-        public void Sync_ResultT_WhenNot_Func_Diff_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => false, () => true);
-            Assert.AreEqual(false, r2.Value);
-        }
-
-        [Test]
-        public void Sync_ResultT_When_Func_Result_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => true, () => Result<int>.Fail("Test"));
-            Assert.IsTrue(r2.IsFailure);
-        }
-
-        [Test]
-        public void Sync_ResultT_WhenNot_Func_Result_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => false, () => Result<int>.Fail("Test"));
-            Assert.IsTrue(r2.IsSuccess);
-        }
-
-        [Test]
-        public void Sync_ResultT_When_FuncT_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => true, v => new Result<bool>(true));
-            Assert.IsTrue(r2.Value);
-        }
-
-        [Test]
-        public void Sync_ResultT_WhenNot_FuncT_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => false, v => new Result<bool>(true));
-            Assert.IsFalse(r2.Value);
-        }
-
-        [Test]
-        public void Sync_ResultT_When_FuncT_ResultT_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => true, v => true);
-            Assert.IsTrue(r2.Value);
-        }
-
-        [Test]
-        public void Sync_ResultT_WhenNot_FuncT_ResultT_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = r.When(_ => false, v => true);
-            Assert.IsFalse(r2.Value);
-        }
-
-        /* AsyncResult */
-
-        [Test]
-        public async Task AsyncResult_Result_When_With_Action_Success()
-        {
-            var i = 0;
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.When(() => true, () => i = 1);
-            Assert.AreEqual(1, i);
-        }
-
-        [Test]
-        public async Task AsyncResult_Result_WhenNot_With_Action_Success()
-        {
-            var i = 0;
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.When(() => false, () => i = 1);
-            Assert.AreEqual(0, i);
-        }
-
-        [Test]
-        public async Task AsyncResult_Result_When_With_Func_Success()
-        {
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.When(() => true, () => Result.Fail("Test"));
-            Assert.True(r2.IsFailure);
-        }
-
-        [Test]
-        public async Task AsyncResult_Result_WhenNot_With_Func_Success()
-        {
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.When(() => false, () => Result.Fail("Test"));
-            Assert.True(r2.IsSuccess);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_When_Action_Success()
-        {
-            var i = 0;
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => true, () => { i = 1; });
-            Assert.AreEqual(1, i);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_WhenNot_Action_Success()
-        {
-            var i = 0;
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => false, () => { i = 1; });
-            Assert.AreEqual(0, i);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_When_Func_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => true, () => 1);
-            Assert.AreEqual(1, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_WhenNot_Func_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => false, () => 1);
-            Assert.AreEqual(0, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_When_Func_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => true, () => Result.Fail("Test"));
-            Assert.IsTrue(r2.IsFailure);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_WhenNot_Func_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => false, () => Result.Fail("Test"));
-            Assert.IsTrue(r2.IsSuccess);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_When_Func_Diff_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => true, () => true);
-            Assert.AreEqual(true, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_WhenNot_Func_Diff_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => false, () => true);
-            Assert.AreEqual(false, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_When_Func_Result_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => true, () => Result<int>.Fail("Test"));
-            Assert.IsTrue(r2.IsFailure);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_WhenNot_Func_Result_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => false, () => Result<int>.Fail("Test"));
-            Assert.IsTrue(r2.IsSuccess);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_When_FuncT_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => true, v => new Result<bool>(true));
-            Assert.IsTrue(r2.Value);
-        }
+        public void AssertSuccess(Result result) => Assert.True(result.IsSuccess);
+        public void AssertFailure(Result result) => Assert.True(result.IsFailure);
 
-        [Test]
-        public async Task AsyncResult_ResultT_WhenNot_FuncT_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => false, v => new Result<bool>(true));
-            Assert.IsFalse(r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_When_FuncT_ResultT_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => true, v => true);
-            Assert.IsTrue(r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncResult_ResultT_WhenNot_FuncT_ResultT_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.When(_ => false, v => true);
-            Assert.IsFalse(r2.Value);
-        }
-
-        /* AsyncFunc */
-
-        [Test]
-        public async Task AsyncFunc_Result_When_With_Action_Success()
-        {
-            var i = 0;
-            var r = Result.Success;
-            var r2 = await r.WhenAsync(() => true, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(1, i);
-        }
-
-        [Test]
-        public async Task AsyncFunc_Result_WhenNot_With_Action_Success()
-        {
-            var i = 0;
-            var r = Result.Success;
-            var r2 = await r.WhenAsync(() => false, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(0, i);
-        }
-
-        [Test]
-        public async Task AsyncFunc_Result_When_With_Func_Success()
-        {
-            var r = Result.Success;
-            var r2 = await r.WhenAsync(() => true, () => Task.FromResult(Result.Fail("Test")));
-            Assert.True(r2.IsFailure);
-        }
-
-        [Test]
-        public async Task AsyncFunc_Result_WhenNot_With_Func_Success()
-        {
-            var r = Result.Success;
-            var r2 = await r.WhenAsync(() => false, () => Task.FromResult(Result.Fail("Test")));
-            Assert.True(r2.IsSuccess);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_When_Action_Success()
-        {
-            var i = 0;
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => true, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(1, i);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_WhenNot_Action_Success()
-        {
-            var i = 0;
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => false, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(0, i);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_When_Func_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(1));
-            Assert.AreEqual(1, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_WhenNot_Func_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(1));
-            Assert.AreEqual(0, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_When_Func_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(Result.Fail("Test")));
-            Assert.IsTrue(r2.IsFailure);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_WhenNot_Func_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(Result.Fail("Test")));
-            Assert.IsTrue(r2.IsSuccess);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_When_Func_Diff_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(true));
-            Assert.AreEqual(true, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_WhenNot_Func_Diff_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(true));
-            Assert.AreEqual(false, r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_When_Func_Result_Value_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(Result<int>.Fail("Test")));
-            Assert.IsTrue(r2.IsFailure);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_WhenNot_Func_Result_Value_Success()
+        public T AssertSuccess<T>(Result<T> result)
         {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(Result<int>.Fail("Test")));
-            Assert.IsTrue(r2.IsSuccess);
+            Assert.True(result.IsSuccess);
+            return result.Value;
         }
 
-        [Test]
-        public async Task AsyncFunc_ResultT_When_FuncT_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => true, v => Task.FromResult(new Result<bool>(true)));
-            Assert.IsTrue(r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_WhenNot_FuncT_Result_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => false, v => Task.FromResult(new Result<bool>(true)));
-            Assert.IsFalse(r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_When_FuncT_ResultT_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => true, v => Task.FromResult(true));
-            Assert.IsTrue(r2.Value);
-        }
-
-        [Test]
-        public async Task AsyncFunc_ResultT_WhenNot_FuncT_ResultT_Success()
-        {
-            var r = Result<int>.Ok();
-            var r2 = await r.WhenAsync(_ => false, v => Task.FromResult(true));
-            Assert.IsFalse(r2.Value);
-        }
-
-        /* AsyncBoth */
+        public void AssertFailure<T>(Result<T> result) => Assert.True(result.IsFailure);
 
         [Test]
-        public async Task AsyncBoth_Result_When_With_Action_Success()
+        public void Sync()
         {
-            var i = 0;
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.WhenAsync(() => true, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(1, i);
-        }
+            int j = 0;
+            AssertSuccess(Result.Go().When(() => true, () => { j++; }).When(() => false, () => { j++; }));
+            Assert.AreEqual(1, j);
+            AssertFailure(Result.Fail(new BusinessException()).When(() => true, () => { Assert.Fail(); }));
 
-        [Test]
-        public async Task AsyncBoth_Result_WhenNot_With_Action_Success()
-        {
-            var i = 0;
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.WhenAsync(() => false, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(0, i);
-        }
+            AssertSuccess(Result.Go().When(() => true, () => Result.Success).When(() => false, () => Result.Fail()));
+            AssertFailure(Result.Fail(new BusinessException()).When(() => true, () => Result.NotFoundError()));
 
-        [Test]
-        public async Task AsyncBoth_Result_When_With_Func_Success()
-        {
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.WhenAsync(() => true, () => Task.FromResult(Result.Fail("Test")));
-            Assert.True(r2.IsFailure);
-        }
+            j = 0;
+            AssertSuccess(Result.Go(0).When(_ => true, _ => { j++; }).When(_ => false, _ => { Assert.Fail(); }));
+            Assert.AreEqual(1, j);
+            AssertFailure(Result.Go<int>(new NotFoundException()).When(_ => true, _ => { Assert.Fail(); }));
 
-        [Test]
-        public async Task AsyncBoth_Result_WhenNot_With_Func_Success()
-        {
-            var r = Task.FromResult(Result.Success);
-            var r2 = await r.WhenAsync(() => false, () => Task.FromResult(Result.Fail("Test")));
-            Assert.True(r2.IsSuccess);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).When(_ => true, i => ++i).When(_ => false, _ => Assert.Fail())));
+            AssertFailure(Result.Go<int>(new NotFoundException()).When(_ => true, i => { Assert.Fail(); return +i; }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_When_Action_Success()
-        {
-            var i = 0;
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => true, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(1, i);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).When(_ => true, i => Result.Ok(++i)).When(_ => false, i => Result.Ok(++i))));
+            AssertFailure(Result.Go<int>(new NotFoundException()).When(_ => true, i => { Assert.Fail(); return Result.Ok(++i); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_WhenNot_Action_Success()
-        {
-            var i = 0;
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => false, () => { i = 1; return Task.CompletedTask; });
-            Assert.AreEqual(0, i);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenAs(() => true, () => 1)));
+            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenAs(() => false, () => 1)));
+            AssertFailure(Result.NotFoundError().WhenAs(() => true, () => { Assert.Fail(); return 1; }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_When_Func_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(1));
-            Assert.AreEqual(1, r2.Value);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenAs(() => true, () => Result.Ok(1))));
+            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenAs(() => false, () => Result.Ok(1))));
+            AssertFailure(Result.NotFoundError().WhenAs(() => true, () => { Assert.Fail(); return Result.Ok(1); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_WhenNot_Func_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(1));
-            Assert.AreEqual(0, r2.Value);
-        }
+            AssertSuccess(Result.Go(1).WhenAs(_ => true, _ => { }));
+            AssertSuccess(Result.Go(1).WhenAs(_ => false, _ => { Assert.Fail(); }));
+            AssertFailure(Result<int>.NotFoundError().WhenAs(_ => true, _ => { Assert.Fail(); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_When_Func_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(Result.Fail("Test")));
-            Assert.IsTrue(r2.IsFailure);
-        }
+            AssertSuccess(Result.Go(1).WhenAs(_ => true, _ => Result.Success));
+            AssertSuccess(Result.Go(1).WhenAs(_ => false, _ => Result.Fail()));
+            AssertFailure(Result<int>.NotFoundError().WhenAs(_ => true, _ => Result.Success));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_WhenNot_Func_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(Result.Fail("Test")));
-            Assert.IsTrue(r2.IsSuccess);
-        }
+            Assert.AreEqual(2f, AssertSuccess(Result.Go(1).WhenAs(_ => true, i => i + 1f)));
+            Assert.AreEqual(1f, AssertSuccess(Result.Go(1).WhenAs(_ => false, i => i + 1f)));
+            AssertFailure(Result.Go<int>(new NotFoundException()).WhenAs(_ => true, i => { Assert.Fail(); return i + 1f; }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_When_Func_Diff_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(true));
-            Assert.AreEqual(true, r2.Value);
-        }
+            Assert.AreEqual(2f, AssertSuccess(Result.Go(1).WhenAs(_ => true, i => Result.Ok(i + 1f))));
+            Assert.AreEqual(1f, AssertSuccess(Result.Go(1).WhenAs(_ => false, i => Result.Ok(i + 1f))));
+            AssertFailure(Result.Go<int>(new NotFoundException()).WhenAs(_ => true, i => { Assert.Fail(); return Result.Ok(i + 1f); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_WhenNot_Func_Diff_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(true));
-            Assert.AreEqual(false, r2.Value);
-        }
+            AssertSuccess(Result.Go().When(() => true, () => new IToResultTest()));
+            AssertSuccess(Result.Go().When(() => false, () => { Assert.Fail(); return new IToResultTest(); }));
+            AssertFailure(Result.NotFoundError().When(() => true, () => { Assert.Fail(); return new IToResultTest(); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_When_Func_Result_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => true, () => Task.FromResult(Result<int>.Fail("Test")));
-            Assert.IsTrue(r2.IsFailure);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).When(_ => true, _ => new ITypedToResultTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go(0).When(_ => false, _ => new ITypedToResultTest())));
+            AssertFailure(Result<int>.NotFoundError().When(_ => true, _ => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_WhenNot_Func_Result_Value_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => false, () => Task.FromResult(Result<int>.Fail("Test")));
-            Assert.IsTrue(r2.IsSuccess);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).When(_ => true, _ => new IToResultIntTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go(0).When(_ => false, _ => new IToResultIntTest())));
+            AssertFailure(Result<int>.NotFoundError().When(_ => true, _ => { Assert.Fail(); return new IToResultIntTest(); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_When_FuncT_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => true, v => Task.FromResult(new Result<bool>(true)));
-            Assert.IsTrue(r2.Value);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenAs<int>(() => true, () => new ITypedToResultTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenAs<int>(() => false, () => new ITypedToResultTest())));
+            AssertFailure(Result.NotFoundError().WhenAs<int>(() => true, () => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_WhenNot_FuncT_Result_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => false, v => Task.FromResult(new Result<bool>(true)));
-            Assert.IsFalse(r2.Value);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenAs<int>(() => true, () => new IToResultIntTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenAs<int>(() => false, () => new IToResultIntTest())));
+            AssertFailure(Result.NotFoundError().WhenAs<int>(() => true, () => { Assert.Fail(); return new IToResultIntTest(); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_When_FuncT_ResultT_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => true, v => Task.FromResult(true));
-            Assert.IsTrue(r2.Value);
-        }
+            Assert.AreEqual(1, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => true, _ => new ITypedToResultTest())));
+            Assert.AreEqual(2, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => false, _ => new ITypedToResultTest())));
+            AssertFailure(Result<float>.NotFoundError().WhenAs<float, int>(_ => true, _ => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-        [Test]
-        public async Task AsyncBoth_ResultT_WhenNot_FuncT_ResultT_Success()
-        {
-            var r = Task.FromResult(Result<int>.Ok());
-            var r2 = await r.WhenAsync(_ => false, v => Task.FromResult(true));
-            Assert.IsFalse(r2.Value);
+            Assert.AreEqual(1, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => true, _ => new IToResultIntTest())));
+            Assert.AreEqual(2, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => false, _ => new IToResultIntTest())));
+            AssertFailure(Result<float>.NotFoundError().WhenAs<float, int>(_ => true, _ => { Assert.Fail(); return new IToResultIntTest(); }));
         }
     }
 }

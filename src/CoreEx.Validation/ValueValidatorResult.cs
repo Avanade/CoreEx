@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 using System;
 using System.Linq;
 
@@ -42,6 +43,9 @@ namespace CoreEx.Validation
 
         /// <inheritdoc/>
         IValidationResult IValidationResult.ThrowOnError() => ThrowOnError();
+
+        /// <inheritdoc/>
+        public Result<R> ToResult<R>() => HasErrors ? Result<R>.ValidationError(Messages!) : CoreEx.Validation.Validation.ConvertValueToResult<TProperty, R>(Value!);
 
         /// <summary>
         /// Throws a <see cref="ValidationException"/> where an error was found (and optionally if warnings).

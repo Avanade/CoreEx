@@ -1,6 +1,7 @@
 ﻿using CoreEx.Events;
 using CoreEx.Events.Subscribing;
 using CoreEx.FluentValidation;
+using CoreEx.Results;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Validators;
 using Microsoft.Extensions.Logging;
@@ -23,15 +24,16 @@ namespace CoreEx.TestFunction.Subscribers
             ValueValidator = new ProductValidator().Wrap();
         }
 
-        public override Task ReceiveAsync(EventData<Product> @event, CancellationToken cancellationToken)
+        public async override Task<Result> ReceiveAsync(EventData<Product> @event, CancellationToken cancellationToken)
         {
+            await Task.CompletedTask.ConfigureAwait(false);
             EventIds.Add(@event.Id!);
             _logger.LogInformation($"Message {@event.Id} for Product {@event.Value.Id} was received.");
 
             if (@event.Value.Id == "PS5")
-                throw new TransientException($"{@event.Value.Name} is currently not permissable; please try again later.");
+                return Result.TransientError($"{@event.Value.Name} is currently not permissable; please try again later.");
 
-            return Task.CompletedTask;
+            return Result.Success;
         }
     }
 }

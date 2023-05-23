@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 
 namespace CoreEx.Validation
 {
     /// <summary>
     /// Enables <see cref="Value"/> validation results.
     /// </summary>
-    public interface IValidationResult
+    public interface IValidationResult : ITypedToResult
     {
         /// <summary>
         /// Gets the originating value being validated.

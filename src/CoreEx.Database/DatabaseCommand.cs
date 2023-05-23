@@ -183,7 +183,7 @@ namespace CoreEx.Database
             Parameters.PagingParams(paging);
 
             var result = await SelectMultiSetWithValueResultAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
-            return result.Then(rv =>
+            return result.ThenAs(rv =>
             {
                 if (paging is PagingResult pr && pr.IsGetCount && rv >= 0)
                     pr.TotalCount = rv;
@@ -227,7 +227,7 @@ namespace CoreEx.Database
         {
             var rvp = Parameters.AddReturnValueParameter();
             var result = await SelectMultiSetWithResultAsync(multiSetArgs, cancellationToken).ConfigureAwait(false);
-            return result.Then<int>(() => rvp.Value == null ? -1 : (int)rvp.Value);
+            return result.ThenAs(() => rvp.Value == null ? -1 : (int)rvp.Value);
         }
 
         /// <summary>
@@ -329,7 +329,7 @@ namespace CoreEx.Database
         {
             var coll = new List<T>();
             var result = await SelectQueryWithResultAsync(coll, mapper, cancellationToken).ConfigureAwait(false);
-            return result.Then(() => Result<IEnumerable<T>>.Ok(coll));
+            return result.ThenAs(() => (IEnumerable<T>)coll);
         }
 
         /// <summary>
@@ -353,7 +353,7 @@ namespace CoreEx.Database
         {
             var coll = new List<T>();
             var result = await SelectQueryWithResultAsync(coll, func, cancellationToken).ConfigureAwait(false);
-            return result.Then(() => Result<IEnumerable<T>>.Ok(coll));
+            return result.ThenAs(() => (IEnumerable<T>)coll);
         }
 
         /// <summary>
@@ -419,7 +419,7 @@ namespace CoreEx.Database
         public async Task<Result<T>> SelectSingleWithResultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
         {
             var result = await SelectSingleFirstWithResultAsync(mapper, true, cancellationToken).ConfigureAwait(false);
-            return result.When(item => Comparer<T>.Default.Compare(item, default!) == 0, () => Result<T>.Fail(new InvalidOperationException("SelectSingle request has not returned a row.")));
+            return result.When(item => Comparer<T>.Default.Compare(item, default!) == 0, _ => Result<T>.Fail(new InvalidOperationException("SelectSingle request has not returned a row.")));
         }
 
         /// <summary>
@@ -462,7 +462,7 @@ namespace CoreEx.Database
         public async Task<Result<T>> SelectFirstWithResultAsync<T>(IDatabaseMapper<T> mapper, CancellationToken cancellationToken = default)
         {
             var result = await SelectSingleFirstWithResultAsync(mapper, false, cancellationToken).ConfigureAwait(false);
-            return result.When<T>(item => Comparer<T>.Default.Compare(item, default!) == 0, () => new InvalidOperationException("SelectFirst request has not returned a row."));
+            return result.When(item => Comparer<T>.Default.Compare(item, default!) == 0, _ => new InvalidOperationException("SelectFirst request has not returned a row."));
         }
 
         /// <summary>
@@ -492,7 +492,7 @@ namespace CoreEx.Database
         {
             var coll = new List<T>();
             var result = await SelectInternalAsync(coll, mapper, throwWhereMulti, true, cancellationToken).ConfigureAwait(false);
-            return result.Bind<T>().Then(() => coll.Count == 0 ? default! : coll[0]);
+            return result.ThenAs(() => coll.Count == 0 ? default! : coll[0]);
         }
 
         /// <summary>

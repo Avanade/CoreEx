@@ -78,7 +78,7 @@ namespace CoreEx.Cosmos
         public async Task<Result<T>> SelectSingleWithResultAsync(CancellationToken cancellationToken = default)
         {
             var result = await SelectArrayWithResultAsync(nameof(SelectSingleAsync), 2, cancellationToken).ConfigureAwait(false);
-            return result.Then(coll => Result<T>.Ok(coll.Single()));
+            return result.ThenAs(coll => coll.Single());
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace CoreEx.Cosmos
         public async Task<Result<T?>> SelectSingleOrDefaultWithResultAsync(CancellationToken cancellationToken = default)
         {
             var result = await SelectArrayWithResultAsync(nameof(SelectSingleOrDefaultAsync), 2, cancellationToken).ConfigureAwait(false);
-            return result.Then(coll => Result<T?>.Ok(coll.SingleOrDefault()));
+            return result.ThenAs(coll => Result<T?>.Ok(coll.SingleOrDefault()));
         }
 
         /// <summary>
@@ -118,7 +118,7 @@ namespace CoreEx.Cosmos
         public async Task<Result<T>> SelectFirstWithResultAsync(CancellationToken cancellationToken = default)
         {
             var result = await SelectArrayWithResultAsync(nameof(SelectFirstAsync), 1, cancellationToken).ConfigureAwait(false);
-            return result.Then(coll => Result<T>.Ok(coll.First()));
+            return result.ThenAs(coll => coll.First());
         }
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace CoreEx.Cosmos
         public async Task<Result<T?>> SelectFirstOrDefaultWithResultAsync(CancellationToken cancellationToken = default)
         {
             var result = await SelectArrayWithResultAsync(nameof(SelectFirstOrDefaultAsync), 1, cancellationToken).ConfigureAwait(false);
-            return result.Then(coll => Result<T?>.Ok(coll.FirstOrDefault()));
+            return result.ThenAs(coll => Result<T?>.Ok(coll.FirstOrDefault()));
         }
 
         /// <summary>
@@ -173,7 +173,7 @@ namespace CoreEx.Cosmos
         {
             var coll = new TColl();
             var result = await SelectQueryWithResultAsync(coll, cancellationToken).ConfigureAwait(false);
-            return result.Then(() => coll);
+            return result.ThenAs(() => coll);
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace CoreEx.Cosmos
         {
             var list = new List<T>();
             var result = await SelectQueryWithResultAsync(list, cancellationToken).ConfigureAwait(false);
-            return result.Then(() => list.ToArray());
+            return result.ThenAs(() => list.ToArray());
         }
 
         /// <summary>
@@ -237,7 +237,7 @@ namespace CoreEx.Cosmos
         public async Task<Result<TCollResult>> SelectResultWithResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new()
         {
             var result = await SelectQueryWithResultAsync<TColl>(cancellationToken).ConfigureAwait(false);
-            return result.Then(coll => new TCollResult { Items = coll, Paging = Paging ?? new PagingResult() });
+            return result.ThenAs(coll => new TCollResult { Items = coll, Paging = Paging ?? new PagingResult() });
         }
     }
 }

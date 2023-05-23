@@ -1,6 +1,7 @@
 ﻿using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
+using CoreEx.Results;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -214,10 +215,10 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         {
             public System.Action Action { get; set; } = () => throw new System.NotImplementedException("Unhandled exception.");
 
-            public override Task ReceiveAsync(EventData<Employee> @event, CancellationToken cancellationToken)
+            public override Task<Result> ReceiveAsync(EventData<Employee> @event, CancellationToken cancellationToken)
             {
                 Action();
-                return Task.CompletedTask;
+                return Task.FromResult(Result.Success);
             }
 
             public ErrorHandling _UnhandledHandling = ErrorHandling.None;
@@ -243,7 +244,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         [EventSubscriber("my.hr.employee", "deleted")]
         public class DeleteSubscriber : SubscriberBase
         {
-            public override Task ReceiveAsync(EventData @event, CancellationToken cancellationToken)
+            public override Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken)
             {
                 throw new System.NotImplementedException();
             }
@@ -252,7 +253,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         [EventSubscriber("my.hr.employee", "deleted")]
         public class DuplicateSubscriber : SubscriberBase
         {
-            public override Task ReceiveAsync(EventData @event, CancellationToken cancellationToken)
+            public override Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken)
             {
                 throw new System.NotImplementedException();
             }
@@ -261,7 +262,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         [EventSubscriber("my.hr.other", ExtendedMatchMethod = nameof(IsExtendedMatch))]
         public class OthersSubscriber : SubscriberBase
         {
-            public override Task ReceiveAsync(EventData @event, CancellationToken cancellationToken)
+            public override Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken)
             {
                 throw new System.NotImplementedException();
             }

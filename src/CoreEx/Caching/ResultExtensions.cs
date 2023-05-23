@@ -67,7 +67,7 @@ namespace CoreEx.Caching
             if (addFactory == null) throw new ArgumentNullException(nameof(addFactory));
 
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsync(async () =>
+            return await r.ThenAsAsync(async () =>
             {
                 if (cache.TryGetValue<T>(key, out var val))
                     return Result.Ok(val!);

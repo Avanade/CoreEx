@@ -116,12 +116,12 @@ namespace CoreEx.Database.Extended
             if (args.Refresh)
             {
                 var result = await command.ReselectRecordParam().SelectFirstOrDefaultWithResultAsync(map, cancellationToken).ConfigureAwait(false);
-                return result.When(v => v is null, () => Result<T>.NotFoundError());
+                return result.ThenAs(v => v is null ? Result<T>.NotFoundError() : Result.Ok(v));
             }
 
             // NOTE: without refresh, fields like IDs and RowVersion are not automatically updated.
             var nqresult = await command.NonQueryWithResultAsync(cancellationToken).ConfigureAwait(false);
-            return nqresult.Then(() => value);
+            return nqresult.ThenAs(_ => value);
         }
 
         #region Standard
@@ -397,7 +397,7 @@ namespace CoreEx.Database.Extended
                 .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
                 .ScalarWithResultAsync<int>(cancellationToken).ConfigureAwait(false);
 
-            return rowsAffectedResult.When(rowsAffected => rowsAffected < 1, () => Result.NotFoundError());
+            return rowsAffectedResult.WhenAs(rowsAffected => rowsAffected < 1, _ => Result.NotFoundError());
         }
 
         /// <summary>

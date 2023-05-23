@@ -224,7 +224,8 @@ namespace CoreEx.Events.Subscribing
 
             return await parent.EventSubscriberInvoker.InvokeAsync(subscriber, async (ct) =>
             {
-                await subscriber!.ReceiveAsync(@event, ct);
+                var result = await subscriber!.ReceiveAsync(@event, ct);
+                result.ThrowOnError();
                 return true;
             }, parent.Logger, cancellationToken).ConfigureAwait(false);
         }

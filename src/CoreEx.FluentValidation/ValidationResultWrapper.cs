@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Localization;
+using CoreEx.Results;
 using CoreEx.Validation;
 using FluentValidation.Results;
 using System;
@@ -63,5 +64,8 @@ namespace CoreEx.FluentValidation
 
         /// <inheritdoc/>
         public ValidationException? ToValidationException() => HasErrors ? (_vex ??= Result!.ToValidationException()) : null;
+
+        /// <inheritdoc/>
+        public Result<R> ToResult<R>() => HasErrors ? Result<R>.ValidationError(Messages!) : Validation.Validation.ConvertValueToResult<T, R>(Value!);
     }
 }

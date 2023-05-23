@@ -3,6 +3,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Threading;
+using CoreEx.Results;
 
 namespace CoreEx.Events.Subscribing
 {
@@ -26,6 +27,7 @@ namespace CoreEx.Events.Subscribing
         /// </summary>
         /// <param name="event">The <see cref="EventData"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        Task ReceiveAsync(EventData @event, CancellationToken cancellationToken);
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken);
     }
 }

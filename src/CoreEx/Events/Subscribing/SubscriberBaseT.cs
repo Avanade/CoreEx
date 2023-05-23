@@ -4,6 +4,7 @@ using CoreEx.Validation;
 using System;
 using System.Threading.Tasks;
 using System.Threading;
+using CoreEx.Results;
 
 namespace CoreEx.Events.Subscribing
 {
@@ -33,20 +34,20 @@ namespace CoreEx.Events.Subscribing
 
         /// <inheritdoc/>
         /// <remarks>Caution where overridding this method as it contains the underlying functionality to invoke <see cref="ReceiveAsync(EventData{TValue}, CancellationToken)"/> that is the <i>required</i> method to be overridden.</remarks>
-        public async override Task ReceiveAsync(EventData @event, CancellationToken cancellationToken)
+        public async override Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken)
         {
             if (@event == null)
                 throw new ArgumentNullException(nameof(@event));
 
-            if (ValueIsRequired && @event.Value is null)
-                throw new ValidationException(Events.EventSubscriberBase.RequiredErrorText);
-
-            var edv = @event is EventData<TValue> edvx ? edvx : new EventData<TValue>(@event).Adjust(e => e.Value = (TValue)@event.Value!);
-
-            if (ValueValidator != null)
-                (await ValueValidator.ValidateAsync(edv.Value, cancellationToken).ConfigureAwait(false)).ThrowOnError();
-
-            await ReceiveAsync(edv, cancellationToken).ConfigureAwait(false);
+            return await Result.Go(@event)
+                .When(ed => ValueIsRequired && ed.Value is null, _ => Result<EventData>.ValidationError(EventSubscriberBase.RequiredErrorText))
+                .ThenAs(ed => ed is EventData<TValue> edvx ? edvx : new EventData<TValue>(ed).Adjust(e => e.Value = (TValue)ed.Value!))
+                .WhenAsync(ed => ValueValidator != null, async ed =>
+                {
+                    var vr = await ValueValidator!.ValidateAsync(ed.Value, cancellationToken).ConfigureAwait(false);
+                    return vr.HasErrors ? Result<EventData<TValue>>.ValidationError(vr.Messages) : Result.Ok(ed);
+                })
+                .ThenAsAsync(ed => ReceiveAsync(ed, cancellationToken));
         }
 
         /// <summary>
@@ -56,6 +57,6 @@ namespace CoreEx.Events.Subscribing
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>Where <see cref="ValueIsRequired"/> and/or <see cref="ValueValidator"/> are specified then this method will only be invoked where the aforementioned validation has occured and the underlying <see cref="EventData{T}.Value"/>
         /// is considered valid.</remarks>
-        public abstract Task ReceiveAsync(EventData<TValue> @event, CancellationToken cancellationToken);
+        public abstract Task<Result> ReceiveAsync(EventData<TValue> @event, CancellationToken cancellationToken);
     }
 }

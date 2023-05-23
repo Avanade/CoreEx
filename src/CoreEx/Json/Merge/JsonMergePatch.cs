@@ -99,7 +99,7 @@ namespace CoreEx.Json.Merge
 
             // Get the value.
             var result = await getValue(j.Value!, cancellationToken).ConfigureAwait(false);
-            return result.Then(value =>
+            return result.ThenAs(value =>
             {
                 if (value == null)
                     return Result<(bool, T)>.Ok((false, default!));

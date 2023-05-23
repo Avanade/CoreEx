@@ -102,11 +102,11 @@ namespace CoreEx.Cosmos
 
                 // Check that the TypeName is the same.
                 if (val?.Resource == null || val.Resource.Type != _typeName)
-                    return args.NullOnNotFound ? Result<T?>.None : Result.NotFoundError();
+                    return args.NullOnNotFound ? Result<T?>.None : Result<T?>.NotFoundError();
 
                 return Result
                     .Go(CheckAuthorized(val))
-                    .Then(() => GetResponseValue(val));
+                    .ThenAs(() => GetResponseValue(val));
             }
             catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return Result<T?>.None; }
         }, cancellationToken);
@@ -121,7 +121,7 @@ namespace CoreEx.Cosmos
             var cvm = new CosmosDbValue<TModel>(model!);
             return await Result
                 .Go(CheckAuthorized(cvm))
-                .ThenAsync(async () =>
+                .ThenAsAsync(async () =>
                 {
                     ((ICosmosDbValue)cvm).PrepareBefore(CosmosDb);
 
@@ -159,7 +159,7 @@ namespace CoreEx.Cosmos
                     // Re-check auth to make sure not updating to something not allowed.
                     return CheckAuthorized(resp);
                 })
-                .ThenAsync(async () =>
+                .ThenAsAsync(async () =>
                 {
                     resp = await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
                     return GetResponseValue(resp)!;

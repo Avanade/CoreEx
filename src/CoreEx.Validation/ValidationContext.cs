@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using CoreEx.Localization;
+using CoreEx.Results;
 
 namespace CoreEx.Validation
 {
@@ -142,6 +143,9 @@ namespace CoreEx.Validation
         /// <param name="includeWarnings">Indicates whether to throw where only warnings exist.</param>
         /// <returns>The <see cref="ValidationContext{TEntity}"/> to support fluent-style method-chaining.</returns>
         public ValidationContext<TEntity> ThrowOnError(bool includeWarnings = false) => (HasErrors || (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))) ?  throw ToValidationException()! : this;
+
+        /// <inheritdoc/>
+        public Result<R> ToResult<R>() => HasErrors ? Result<R>.ValidationError(Messages!) : CoreEx.Validation.Validation.ConvertValueToResult<TEntity, R>(Value!);
 
         /// <summary>
         /// Merges a validation result into this.

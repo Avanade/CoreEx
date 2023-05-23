@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 using System;
 using System.Linq;
 
@@ -9,11 +10,12 @@ namespace CoreEx.Validation
     /// <summary>
     /// Represents the result of a <see cref="MultiValidator"/> <see cref="MultiValidator.ValidateAsync(System.Threading.CancellationToken)"/>.
     /// </summary>
-    public class MultiValidatorResult : IValidationResult
+    public class MultiValidatorResult : IValidationResult, IToResult
     {
         private MessageItemCollection? _messages;
 
         /// <inheritdoc/>
+        /// <remarks>This is nonsensical and as such will throw a <see cref="NotSupportedException"/>.</remarks>
         object? IValidationResult.Value => throw new NotSupportedException();
         
         /// <inheritdoc/>
@@ -73,5 +75,12 @@ namespace CoreEx.Validation
         /// <param name="includeWarnings">Indicates whether to throw where only warnings exist.</param>
         /// <returns>The <see cref="MultiValidatorResult"/> to support fluent-style method-chaining.</returns>
         public MultiValidatorResult ThrowOnError(bool includeWarnings = false) => (HasErrors || (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))) ? throw ToValidationException()! : this;
+
+        /// <inheritdoc/>
+        /// <remarks>This is largely nonsensical from a <typeparamref name="T"/> perspective and as such the <see cref="IResultValue{T}.Value"/> will be set to its default value..</remarks>
+        public Result<T> ToResult<T>() => HasErrors ? Result<T>.ValidationError(Messages!) : Result<T>.None;
+
+        /// <inheritdoc/>
+        public Result ToResult() => HasErrors ? Result.ValidationError(Messages!) : Result.Success;
     }
 }

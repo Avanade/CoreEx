@@ -9,6 +9,8 @@ namespace CoreEx.Results.Abstractions
     /// <summary>
     /// Provides the common with/wrapped execution functionality.
     /// </summary>
+    /// <reamrks>The underlying <c>Execute</c> and <c>ExecuteAsync</c> methods support <see cref="IResult"/> <see cref="Type"/> changes without explicit <c>As</c> method as it is assumed this is managed explicitly within wrapper
+    /// and will avoid specifying more than once.</reamrks>
     [DebuggerStepThrough]
     public abstract class WithWrapper
     {

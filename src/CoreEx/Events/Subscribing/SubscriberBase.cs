@@ -3,6 +3,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Threading;
+using CoreEx.Results;
 
 namespace CoreEx.Events.Subscribing
 {
@@ -43,6 +44,6 @@ namespace CoreEx.Events.Subscribing
         public virtual ErrorHandling InvalidDataHandling => ErrorHandling.None;
 
         /// <inheritdoc/>
-        public abstract Task ReceiveAsync(EventData @event, CancellationToken cancellationToken);
+        public abstract Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken);
     }
 }

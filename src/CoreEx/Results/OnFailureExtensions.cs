@@ -22,8 +22,9 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static Result OnFailure(this Result result, Action action)
         {
+            ThrowIfNull(result, action, nameof(action));
             if (result.IsFailure)
-                (action ?? throw new ArgumentNullException(nameof(action))).Invoke();
+                action();
 
             return result;
         }
@@ -35,29 +36,23 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static Result OnFailure(this Result result, Func<Result> func)
-            => result.IsFailure ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result;
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> OnFailure<T>(this Result result, Func<Result<T>> func)
-            => result.IsFailure ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : Result<T>.None;
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func() : result;
+        }
 
         /// <summary>
         /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke.</param>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="action">The <see cref="Action{T}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> OnFailure<T>(this Result<T> result, Action action)
+        public static Result<T> OnFailure<T>(this Result<T> result, Action<T> action)
         {
+            ThrowIfNull(result, action, nameof(action));
             if (result.IsFailure)
-                (action ?? throw new ArgumentNullException(nameof(action))).Invoke();
+                action(result.Value);
 
             return result;
         }
@@ -66,55 +61,217 @@ namespace CoreEx.Results
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result OnFailure<T>(this Result<T> result, Func<Result> func)
-            => result.IsFailure ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result;
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, T> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? Result<T>.Ok(func(result.Value)) : result;
+        }
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<U> OnFailure<T, U>(this Result<T> result, Func<U> func)
-            => result.IsFailure ? Result<U>.Ok((func ?? throw new ArgumentNullException(nameof(func))).Invoke()) : result.Combine(Result<U>.None);
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, Result<T>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value) : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<T> OnFailureAs<T>(this Result result, Func<T> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? Result<T>.Ok(func()) : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<T> OnFailureAs<T>(this Result result, Func<Result<T>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func() : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="action">The <see cref="Action{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result OnFailureAs<T>(this Result<T> result, Action<T> action)
+        {
+            ThrowIfNull(result, action, nameof(action));
+            if (result.IsFailure)
+                action(result.Value);
+
+            return result.Bind();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result OnFailureAs<T>(this Result<T> result, Func<T, Result> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value) : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, U> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? Result<U>.Ok(func(result.Value)) : result.Bind<T, U>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, Result<U>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value) : result.Bind<T, U>();
+        }
+
+        /* IToResult */
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<U> OnFailure<T, U>(this Result<T> result, Func<Result<U>> func)
-            => result.IsFailure ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke() : result.Combine(Result<U>.None);
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result OnFailure(this Result result, Func<IToResult> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func().ToResult() : result;
+        }
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<U> OnFailure<T, U>(this Result<T> result, Func<Exception, Result<U>> func)
-            => result.IsFailure ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke(result.Error) : result.Combine(Result<U>.None);
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, ITypedToResult> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value).ToResult<T>() : result;
+        }
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<U> OnFailure<T, U>(this Result<T> result, Func<Exception, U> func)
-            => result.IsFailure ? (func ?? throw new ArgumentNullException(nameof(func))).Invoke(result.Error) : result.Combine(Result<U>.None);
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, IToResult<T>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value).ToResult() : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result OnFailureAs<T>(this Result<T> result, Func<T, IToResult> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value).ToResult() : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result<T> OnFailureAs<T>(this Result result, Func<ITypedToResult> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func().ToResult<T>() : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result<T> OnFailureAs<T>(this Result result, Func<IToResult<T>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func().ToResult() : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, ITypedToResult> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value).ToResult<U>() : result.Bind<T, U>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, IToResult<U>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? func(result.Value).ToResult() : result.Bind<T, U>();
+        }
 
         #endregion
 
@@ -128,6 +285,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> OnFailure(this Task<Result> result, Action action)
         {
+            ThrowIfNull(result, action, nameof(action));
             var r = await result.ConfigureAwait(false);
             return r.OnFailure(action);
         }
@@ -140,19 +298,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> OnFailure(this Task<Result> result, Func<Result> func)
         {
-            var r = await result.ConfigureAwait(false);
-            return r.OnFailure(func);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailure<T>(this Task<Result> result, Func<Result<T>> func)
-        {
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return r.OnFailure(func);
         }
@@ -161,11 +307,12 @@ namespace CoreEx.Results
         /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke.</param>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="action">The <see cref="Action{T}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Action action)
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Action<T> action)
         {
+            ThrowIfNull(result, action, nameof(action));
             var r = await result.ConfigureAwait(false);
             return r.OnFailure(action);
         }
@@ -174,11 +321,12 @@ namespace CoreEx.Results
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result> OnFailure<T>(this Task<Result<T>> result, Func<Result> func)
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, T> func)
         {
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return r.OnFailure(func);
         }
@@ -187,12 +335,113 @@ namespace CoreEx.Results
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, Result<T>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailure(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> OnFailureAs<T>(this Task<Result> result, Func<T> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> OnFailureAs<T>(this Task<Result> result, Func<Result<T>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="action">The <see cref="Action{T}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Action<T> action)
+        {
+            ThrowIfNull(result, action, nameof(action));
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs(action);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Func<T, Result> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, U> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs<T, U>(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, Result<U>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs<T, U>(func);
+        }
+
+        /* IToResult */
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailure<T, U>(this Task<Result<T>> result, Func<U> func)
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailure(this Task<Result> result, Func<IToResult> func)
         {
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return r.OnFailure(func);
         }
@@ -201,26 +450,12 @@ namespace CoreEx.Results
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailure<T, U>(this Task<Result<T>> result, Func<Result<U>> func)
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
         {
-            var r = await result.ConfigureAwait(false);
-            return r.OnFailure<T, U>(func);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailure<T, U>(this Task<Result<T>> result, Func<Exception, Result<U>> func)
-        {
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return r.OnFailure(func);
         }
@@ -228,15 +463,87 @@ namespace CoreEx.Results
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailure<T, U>(this Task<Result<T>> result, Func<Exception, U> func)
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, IToResult<T>> func)
         {
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return r.OnFailure(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Func<T, IToResult> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAs<T>(this Task<Result> result, Func<ITypedToResult> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs<T>(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAs<T>(this Task<Result> result, Func<IToResult<T>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs<T, U>(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, IToResult<U>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.OnFailureAs<T, U>(func);
         }
 
         #endregion
@@ -251,7 +558,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> OnFailureAsync(this Result result, Func<Task> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             if (result.IsFailure)
                 await func().ConfigureAwait(false);
 
@@ -266,7 +573,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> OnFailureAsync(this Result result, Func<Task<Result>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             return result.IsFailure ? await func().ConfigureAwait(false) : result;
         }
 
@@ -277,11 +584,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Result result, Func<Task<Result<T>>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             if (result.IsFailure)
-                return await func().ConfigureAwait(false);
+                await func(result.Value).ConfigureAwait(false);
 
             return result;
         }
@@ -290,85 +597,216 @@ namespace CoreEx.Results
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<Task> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<T>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
+            return result.IsFailure ? Result<T>.Ok(await func(result.Value).ConfigureAwait(false)) : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<Result<T>>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? await func(result.Value).ConfigureAwait(false) : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Result result, Func<Task<T>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? Result<T>.Ok(await func().ConfigureAwait(false)) : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Result result, Func<Task<Result<T>>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? await func().ConfigureAwait(false) : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<T, Task> func)
+        {
+            ThrowIfNull(result, func);
             if (result.IsFailure)
-                await func().ConfigureAwait(false);
+                await func(result.Value).ConfigureAwait(false);
 
-            return result;
+            return result.Bind();
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Result<T> result, Func<Task<U>> func)
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<T, Task<Result>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            return result.IsFailure ? Result<U>.Ok(await func().ConfigureAwait(false)) : result.Combine(Result<U>.None);
+            ThrowIfNull(result, func);
+            return result.IsFailure ? await func(result.Value).ConfigureAwait(false) : result.Bind<T>();
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result> OnFailureAsync<T>(this Result<T> result, Func<Task<Result>> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            return result.IsFailure ? await func().ConfigureAwait(false) : result;
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Result<T> result, Func<Task<Result<U>>> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            return result.IsFailure ? await func().ConfigureAwait(false) : result.Combine(Result<U>.None);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Result<T> result, Func<Exception, Task<Result<U>>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<U>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            return result.IsFailure ? await func(result.Error).ConfigureAwait(false) : result.Combine(Result<U>.None);
+            ThrowIfNull(result, func);
+            return result.IsFailure ? Result<U>.Ok(await func(result.Value).ConfigureAwait(false)) : result.Bind<T, U>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<Result<U>>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? await func(result.Value).ConfigureAwait(false) : result.Bind<T, U>();
+        }
+
+        /* IToResult */
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAsync(this Result result, Func<Task<IToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func().ConfigureAwait(false)).ToResult() : result;
         }
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Result<T> result, Func<Exception, Task<U>> func)
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            return result.IsFailure ? await func(result.Error).ConfigureAwait(false) : result.Combine(Result<U>.None);
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult<T>() : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<IToResult<T>>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<T, Task<IToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Result result, Func<Task<ITypedToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func().ConfigureAwait(false)).ToResult<T>() : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Result result, Func<Task<IToResult<T>>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func().ConfigureAwait(false)).ToResult() : result.Bind<T>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult<U>() : result.Bind<T, U>();
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<IToResult<U>>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result.Bind<T, U>();
         }
 
         #endregion
@@ -383,7 +821,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> OnFailureAsync(this Task<Result> result, Func<Task> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return await r.OnFailureAsync(func).ConfigureAwait(false);
         }
@@ -396,7 +834,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> OnFailureAsync(this Task<Result> result, Func<Task<Result>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return await r.OnFailureAsync(func).ConfigureAwait(false);
         }
@@ -407,27 +845,10 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result> result, Func<Task<Result<T>>> func)
+        /// <return>The resulting <see cref="Result{T}"/>.</return>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            var r = await result.ConfigureAwait(false);
-            if (r.IsFailure)
-                return await func().ConfigureAwait(false);
-
-            return r;
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<Task> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return await r.OnFailureAsync(func).ConfigureAwait(false);
         }
@@ -436,57 +857,12 @@ namespace CoreEx.Results
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Task<Result<T>> result, Func<Task<U>> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            var r = await result.ConfigureAwait(false);
-            return await r.OnFailureAsync(func).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{T}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result> OnFailureAsync<T>(this Task<Result<T>> result, Func<Task<Result>> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            var r = await result.ConfigureAwait(false);
-            return await r.OnFailureAsync(func).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Task<Result<T>> result, Func<Task<Result<U>>> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            var r = await result.ConfigureAwait(false);
-            return await r.OnFailureAsync(func).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Task<Result<T>> result, Func<Exception, Task<Result<U>>> func)
+        /// <return>The resulting <see cref="Result{T}"/>.</return>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<T>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return await r.OnFailureAsync(func).ConfigureAwait(false);
         }
@@ -494,18 +870,227 @@ namespace CoreEx.Results
         /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsync<T, U>(this Task<Result<T>> result, Func<Exception, Task<U>> func)
+        /// <return>The resulting <see cref="Result{T}"/>.</return>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<Result<T>>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
             return await r.OnFailureAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <return>The resulting <see cref="Result{T}"/>.</return>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Task<Result> result, Func<Task<T>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <return>The resulting <see cref="Result{T}"/>.</return>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Task<Result> result, Func<Task<Result<T>>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <return>The resulting <see cref="Result"/>.</return>
+        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<T, Task> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <return>The resulting <see cref="Result"/>.</return>
+        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<T, Task<Result>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <return>The resulting <see cref="Result{T}"/>.</return>
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<U>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <return>The resulting <see cref="Result{T}"/>.</return>
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<Result<U>>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /* IToResult */
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAsync(this Task<Result> result, Func<Task<IToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult<T>>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Task<Result> result, Func<Task<ITypedToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync<T>(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<T>> OnFailureAsAsync<T>(this Task<Result> result, Func<Task<IToResult<T>>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync<T, U>(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsFailure"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<IToResult<U>>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.OnFailureAsAsync<T, U>(func).ConfigureAwait(false);
         }
 
         #endregion
+
+        /// <summary>
+        /// Check parameters and throw where null.
+        /// </summary>
+        private static void ThrowIfNull(object result, object func, string? name = null)
+        {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            if (func == null) throw new ArgumentNullException(name ?? nameof(func));
+        }
     }
 }

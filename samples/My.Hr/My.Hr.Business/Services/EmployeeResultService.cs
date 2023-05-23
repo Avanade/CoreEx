@@ -27,21 +27,20 @@ public class EmployeeResultService : IEmployeeResultService
 
     public Task<Result> DeleteEmployeeAsync(Guid id) => _efDb.Employees.DeleteWithResultAsync(id);
 
-    public Task<Result> VerifyEmployeeAsync(Guid id) 
-        => Result
-            .GoAsync(GetEmployeeAsync(id))
-            .When(employee => employee == null, () => Result<Employee>.NotFoundError())
-            .ThenAsync(async employee =>
+    public Task<Result> VerifyEmployeeAsync(Guid id)  => Result
+        .GoAsync(GetEmployeeAsync(id))
+        .When(employee => employee == null, _ => Result.NotFoundError())
+        .ThenAsAsync(async employee =>
+        {
+            // Publish message to service bus for employee verification.
+            var verification = new EmployeeVerificationRequest
             {
-                // Publish message to service bus for employee verification.
-                var verification = new EmployeeVerificationRequest
-                {
-                    Name = employee.FirstName,
-                    Age = DateTime.UtcNow.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
-                    Gender = employee.Gender?.Code
-                };
+                Name = employee!.FirstName,
+                Age = DateTime.UtcNow.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
+                Gender = employee.Gender?.Code
+            };
 
-                _publisher.PublishNamed(_settings.VerificationQueueName, new EventData { Value = verification });
-                await _publisher.SendAsync();
-            });
+            _publisher.PublishNamed(_settings.VerificationQueueName, new EventData { Value = verification });
+            await _publisher.SendAsync();
+        });
 }

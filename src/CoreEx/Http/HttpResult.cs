@@ -19,7 +19,7 @@ namespace CoreEx.Http
     /// <summary>
     /// Provides the <see cref="HttpResponseMessage"/> result with no value.
     /// </summary>
-    public class HttpResult
+    public class HttpResult : IToResult
     {
         private readonly Lazy<string?> _errorType;
         private readonly Lazy<int?> _errorCode;
@@ -270,6 +270,9 @@ namespace CoreEx.Http
 
             return mic;
         }
+
+        /// <inheritdoc/>
+        Result IToResult.ToResult() => ToResult();
 
         /// <summary>
         /// Converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/>.

@@ -80,7 +80,7 @@ namespace CoreEx.EntityFrameworkCore
                 return Result<T?>.Ok(default!);
 
             var result = Mapper.Map<T>(model, OperationTypes.Get);
-            return (result is not null) ? Result<T?>.Ok(CleanUpResult(result)) : Result.Fail(new InvalidOperationException("Mapping from the EF model must not result in a null value."));
+            return (result is not null) ? Result<T?>.Ok(CleanUpResult(result)) : Result<T?>.Fail(new InvalidOperationException("Mapping from the EF model must not result in a null value."));
         }, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>

@@ -152,7 +152,7 @@ namespace CoreEx.Database.Extended
         public async Task<Result<TCollResult>> SelectResultWithResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new()
         {
             var result = await SelectQueryWithResultAsync<TColl>(cancellationToken).ConfigureAwait(false);
-            return result.Then(items => new TCollResult { Items = items, Paging = Paging });
+            return result.ThenAs(items => new TCollResult { Items = items, Paging = Paging });
         }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace CoreEx.Database.Extended
         {
             var coll = new TColl();
             var result = await SelectQueryWithResultAsync(coll, cancellationToken).ConfigureAwait(false);
-            return result.Then<TColl>(() => coll);
+            return result.ThenAs(() => coll);
         }
 
         /// <summary>
@@ -194,11 +194,13 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public async Task<Result> SelectQueryWithResultAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) where TColl : ICollection<T>
         {
-            return await SelectWrapperWithResultAsync(async (cmd, ct) =>
+            var result = await SelectWrapperWithResultAsync(async (cmd, ct) =>
             {
                 var result = await cmd.SelectQueryWithResultAsync(coll, Mapper, ct).ConfigureAwait(false);
-                return result.Then(() => Result<TColl>.Ok(coll));
+                return result.ThenAs(() => coll);
             }, cancellationToken).ConfigureAwait(false);
+
+            return result.Bind();
         }
 
         /// <summary>
@@ -210,7 +212,7 @@ namespace CoreEx.Database.Extended
             var cmd = Command.Params(Parameters).PagingParams(Paging);
 
             var result = await func(cmd, cancellationToken).ConfigureAwait(false);
-            return result.When(_ => rvp != null && rvp.Value != null, () => { Paging!.TotalCount = (long)rvp!.Value; })
+            return result.When(_ => rvp != null && rvp.Value != null, _ => { Paging!.TotalCount = (long)rvp!.Value; })
                          .Then(res => QueryArgs.CleanUpResult ? Cleaner.Clean(res) : res);
         }
     }

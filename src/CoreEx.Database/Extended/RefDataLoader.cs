@@ -95,7 +95,7 @@ namespace CoreEx.Database.Extended
         {
             var coll = new TColl();
             var result = await LoadWithResultAsync(coll, idColumnName, additionalProperties, multiSetArgs, confirmItemIsToBeAdded, cancellationToken).ConfigureAwait(false);
-            return result.Then<TColl>(() => coll);
+            return result.ThenAs(() => coll);
         }
     }
 }

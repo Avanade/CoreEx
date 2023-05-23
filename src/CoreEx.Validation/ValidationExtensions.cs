@@ -1149,7 +1149,7 @@ namespace CoreEx.Validation
             return await result.ThenAsync(async v =>
             {
                 var vr = await validation(v, args, cancellationToken).ConfigureAwait(false);
-                return vr.ToResult();
+                return vr.ToResult<TEntity>();
             });
         }
 
