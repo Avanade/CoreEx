@@ -102,7 +102,7 @@ namespace CoreEx.Database.SqlServer
         }
 
         /// <inheritdoc/>
-        protected override Result OnDbException(DbException dbex)
+        protected override Result? OnDbException(DbException dbex)
         {
             if (!ThrowTransformedException)
                 return base.OnDbException(dbex);

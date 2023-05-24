@@ -24,7 +24,7 @@ namespace CoreEx.EntityFrameworkCore
             }
             catch (Exception ex)
             {
-                Result eresult = Result.Success;
+                Result? eresult = null;
                 if (ex is DbException dbex)
                     eresult = efdb.Database.HandleDbException(dbex);
                 else if (ex is DbUpdateConcurrencyException)
@@ -34,13 +34,13 @@ namespace CoreEx.EntityFrameworkCore
                 else if (ex is TargetInvocationException tiex && tiex.InnerException is DbException dbex3)
                     eresult = efdb.Database.HandleDbException(dbex3);
 
-                if (eresult.IsFailure)
+                if (eresult.HasValue && eresult.Value.IsFailure)
                 {
                     var dresult = default(TResult);
                     if (dresult is IResult dir)
-                        return (TResult)dir.ToFailure(eresult.Error);
+                        return (TResult)dir.ToFailure(eresult.Value.Error);
                     else
-                        eresult.ThrowOnError();
+                        eresult.Value.ThrowOnError();
                 }
 
                 throw;

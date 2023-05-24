@@ -25,13 +25,13 @@ namespace CoreEx.Database
             catch (DbException dbex)
             {
                 var eresult = database.HandleDbException(dbex);
-                if (eresult.IsFailure)
+                if (eresult.HasValue && eresult.Value.IsFailure)
                 {
                     var dresult = default(TResult);
                     if (dresult is IResult dir)
-                        return (TResult)dir.ToFailure(eresult.Error);
+                        return (TResult)dir.ToFailure(eresult.Value.Error);
                     else
-                        eresult.ThrowOnError();
+                        eresult.Value.ThrowOnError();
                 }
 
                 throw;

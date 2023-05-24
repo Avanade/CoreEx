@@ -69,9 +69,10 @@ namespace CoreEx.Cosmos
         /// Invoked where a <see cref="CosmosException"/> has been thrown.
         /// </summary>
         /// <param name="cex">The <see cref="CosmosException"/>.</param>
-        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
-        /// <remarks>Provides an opportunity to inspect and handle the exception before it bubbles up.</remarks>
-        Result HandleCosmosException(CosmosException cex);
+        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/> where handled; otherwise, <c>null</c> indicating that the exception is unexpected and will continue to be thrown as such.</returns>
+        /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned. A resulting <see cref="Result"/> that is <see cref="Result.IsSuccess"/> is not considered sensical; therefore, will result in the originating
+        /// exception being thrown.</remarks>
+        Result? HandleCosmosException(CosmosException cex);
 
         /// <summary>
         /// Gets or instantiates the <see cref="Microsoft.Azure.Cosmos.ItemRequestOptions"/>.

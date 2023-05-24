@@ -211,9 +211,9 @@ namespace CoreEx.Database.Extended
             var rvp = Paging != null && Paging.IsGetCount ? Parameters.AddReturnValueParameter() : null;
             var cmd = Command.Params(Parameters).PagingParams(Paging);
 
-            var result = await func(cmd, cancellationToken).ConfigureAwait(false);
-            return result.When(_ => rvp != null && rvp.Value != null, _ => { Paging!.TotalCount = (long)rvp!.Value; })
-                         .Then(res => QueryArgs.CleanUpResult ? Cleaner.Clean(res) : res);
+            return await Result.GoAsync(func(cmd, cancellationToken))
+                               .When(_ => rvp != null && rvp.Value != null, _ => { Paging!.TotalCount = (long)rvp!.Value; })
+                               .Then(res => QueryArgs.CleanUpResult ? Cleaner.Clean(res) : res);
         }
     }
 }

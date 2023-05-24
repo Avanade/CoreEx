@@ -98,8 +98,9 @@ namespace CoreEx.Database
         /// Invoked where a <see cref="DbException"/> has been thrown.
         /// </summary>
         /// <param name="dbex">The <see cref="DbException"/>.</param>
-        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
-        /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned.</remarks>
-        Result HandleDbException(DbException dbex);
+        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/> where handled; otherwise, <c>null</c> indicating that the exception is unexpected and will continue to be thrown as such.</returns>
+        /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned. A resulting <see cref="Result"/> that is <see cref="Result.IsSuccess"/> is not considered sensical; therefore, will result in the originating
+        /// exception being thrown.</remarks>
+        Result? HandleDbException(DbException dbex);
     }
 }

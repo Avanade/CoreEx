@@ -77,7 +77,7 @@ namespace CoreEx.Validation
         public MultiValidatorResult ThrowOnError(bool includeWarnings = false) => (HasErrors || (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))) ? throw ToValidationException()! : this;
 
         /// <inheritdoc/>
-        /// <remarks>This is largely nonsensical from a <typeparamref name="T"/> perspective and as such the <see cref="IResultValue{T}.Value"/> will be set to its default value..</remarks>
+        /// <remarks>This is largely nonsensical from a <typeparamref name="T"/> perspective and as such the <see cref="IResult{T}.Value"/> will be set to its default value (see <see cref="Result{T}.None"/>).</remarks>
         public Result<T> ToResult<T>() => HasErrors ? Result<T>.ValidationError(Messages!) : Result<T>.None;
 
         /// <inheritdoc/>

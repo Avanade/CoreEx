@@ -45,7 +45,7 @@ namespace CoreEx.Database.MySql
         public List<int> SqlDuplicateErrorNumbers { get; set; } = new List<int>(new int[] { 1022, 1062, 1088, 1291, 1586, 1859 });
 
         /// <inheritdoc/>
-        protected override Result OnDbException(DbException dbex)
+        protected override Result? OnDbException(DbException dbex)
         {
             if (!ThrowTransformedException)
                 return base.OnDbException(dbex);

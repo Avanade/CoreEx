@@ -14,7 +14,7 @@ namespace CoreEx.Results
     /// <typeparam name="T">The <see cref="Value"/> <see cref="Type"/>.</typeparam>
     [DebuggerStepThrough]
     [DebuggerDisplay("{ToDebuggerString()}")]
-    public readonly struct Result<T> : IResultValue<T>
+    public readonly struct Result<T> : IResult<T>
     {
         /// <summary>
         /// Gets the <see cref="IsSuccess"/> <see cref="Result{T}"/> with a default <see cref="Value"/>.

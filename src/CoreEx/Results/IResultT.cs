@@ -8,7 +8,7 @@ namespace CoreEx.Results
     /// Enables the use of a <c>Result</c> type with a <see cref="Value"/> to represent the outcome of an operation.
     /// </summary>
     /// <typeparam name="T">The <see cref="Value"/> <see cref="Type"/>.</typeparam>
-    public interface IResultValue<out T> : IResult
+    public interface IResult<out T> : IResult
     {
         /// <summary>
         /// Gets the underlying value where <see cref="IResult.IsSuccess"/>.

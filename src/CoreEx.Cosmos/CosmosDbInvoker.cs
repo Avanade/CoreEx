@@ -25,13 +25,13 @@ namespace CoreEx.Cosmos
             catch (CosmosException cex)
             {
                 var eresult = cosmos.HandleCosmosException(cex);
-                if (eresult.IsFailure)
+                if (eresult.HasValue && eresult.Value.IsFailure)
                 {
                     var dresult = default(TResult);
                     if (dresult is IResult dir)
-                        return (TResult)dir.ToFailure(eresult.Error);
+                        return (TResult)dir.ToFailure(eresult.Value.Error);
                     else
-                        eresult.ThrowOnError();
+                        eresult.Value.ThrowOnError();
                 }
 
                 throw;
