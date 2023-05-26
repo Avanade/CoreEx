@@ -2,7 +2,6 @@
 
 using CoreEx.Http;
 using CoreEx.Invokers;
-using CoreEx.Results;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -17,11 +16,21 @@ namespace CoreEx.WebApis
     /// </summary>
     public class WebApiInvoker : InvokerBase<WebApiBase, WebApiParam>
     {
+        private static WebApiInvoker? _default;
+
+        /// <summary>
+        /// Gets the current configured instance (see <see cref="ExecutionContext.ServiceProvider"/>).
+        /// </summary>
+        public static WebApiInvoker Current => CoreEx.ExecutionContext.GetService<WebApiInvoker>() ?? (_default ??= new WebApiInvoker());
+
         /// <summary>
         /// Indicates whether to catch and handle any <see cref="Exception"/> thrown as a result of executing the underlying logic.
         /// </summary>
         /// <remarks>Defaults to <c>true</c>.</remarks>
         public bool CatchAndHandleExceptions { get; set; } = true;
+
+        /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(WebApiBase invoker, Func<TResult> func, WebApiParam? args) => throw new NotSupportedException();
 
         /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(WebApiBase owner, Func<CancellationToken, Task<TResult>> func, WebApiParam? param, CancellationToken cancellationToken)

@@ -24,12 +24,12 @@ namespace CoreEx.Results
         private readonly Exception? _error = default;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Result"/> class that is considered <see cref="IsSuccess"/>.
+        /// Initializes a new instance of the <see cref="Result"/> that is considered <see cref="IsSuccess"/>.
         /// </summary>
         public Result() { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Result"/> class with an <see cref="Error"/> (see <see cref="IsFailure"/>).
+        /// Initializes a new instance of the <see cref="Result"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>).
         /// </summary>
         /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
         public Result(Exception error) => _error = error ?? throw new ArgumentNullException(nameof(error));

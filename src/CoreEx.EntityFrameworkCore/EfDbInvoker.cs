@@ -16,6 +16,9 @@ namespace CoreEx.EntityFrameworkCore
     public class EfDbInvoker : InvokerBase<IEfDb>
     {
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(IEfDb efDb, Func<TResult> func) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(IEfDb efdb, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try

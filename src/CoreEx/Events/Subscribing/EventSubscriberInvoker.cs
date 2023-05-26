@@ -17,6 +17,9 @@ namespace CoreEx.Events.Subscribing
     {
         private const string LogFormat = "{Message} [Source: {Source}, Handling: {Handling}]";
 
+        /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(IErrorHandling invoker, Func<TResult> func, ILogger? args) => throw new NotSupportedException();
+
         /// <summary>
         /// Invokes the <paramref name="func"/> providing consistent <paramref name="errorHandling"/>.
         /// </summary>

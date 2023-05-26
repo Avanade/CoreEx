@@ -158,7 +158,7 @@ namespace CoreEx.Cosmos
         }
 
         /// <inheritdoc/>
-        public Result HandleCosmosException(CosmosException cex) => OnCosmosException(cex);
+        public Result? HandleCosmosException(CosmosException cex) => OnCosmosException(cex);
 
         /// <summary>
         /// Provides the <see cref="CosmosException"/> handling as a result of <see cref="HandleCosmosException(CosmosException)"/>.
@@ -166,12 +166,12 @@ namespace CoreEx.Cosmos
         /// <param name="cex">The <see cref="CosmosException"/>.</param>
         /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
         /// <remarks>Where overridding and the <see cref="CosmosException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</remarks>
-        protected virtual Result OnCosmosException(CosmosException cex) => cex == null ? throw new ArgumentNullException(nameof(cex)) : cex.StatusCode switch
+        protected virtual Result? OnCosmosException(CosmosException cex) => cex == null ? throw new ArgumentNullException(nameof(cex)) : cex.StatusCode switch
         {
             System.Net.HttpStatusCode.NotFound => Result.Fail(new NotFoundException(null, cex)),
             System.Net.HttpStatusCode.Conflict => Result.Fail(new DuplicateException(null, cex)),
             System.Net.HttpStatusCode.PreconditionFailed => Result.Fail(new ConcurrencyException(null, cex)),
-            _ => Result.Fail(cex)
+            _ => null!
         };
 
         /// <inheritdoc/>

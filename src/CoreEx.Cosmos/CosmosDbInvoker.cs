@@ -16,6 +16,9 @@ namespace CoreEx.Cosmos
     public class CosmosDbInvoker : InvokerBase<ICosmosDb>
     {
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(ICosmosDb cosmos, Func<TResult> func) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(ICosmosDb cosmos, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try

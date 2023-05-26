@@ -14,6 +14,9 @@ namespace CoreEx.Azure.ServiceBus
     public class ServiceBusSenderInvoker : InvokerBase<ServiceBusSender>
     {
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(ServiceBusSender invoker, Func<TResult> func) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected async override System.Threading.Tasks.Task<TResult> OnInvokeAsync<TResult>(ServiceBusSender invoker, Func<CancellationToken, System.Threading.Tasks.Task<TResult>> func, CancellationToken cancellationToken)
         {
             TransactionScope? txn = null;

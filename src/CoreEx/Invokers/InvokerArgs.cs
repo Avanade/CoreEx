@@ -9,7 +9,7 @@ namespace CoreEx.Invokers
     /// <summary>
     /// Provides arguments for the <see cref="InvokerBase"/> to manage the likes of <see cref="Transaction">transactions</see> and <see cref="EventPublisher">event sending.</see>.
     /// </summary>
-    public class InvokerArgs
+    public record InvokerArgs
     {
         /// <summary>
         /// Gets or sets the <i>default</i> <see cref="InvokerArgs"/> where <see cref="IncludeTransactionScope"/> is <c>false</c> and <see cref="OperationType"/> is <c>null</c>.

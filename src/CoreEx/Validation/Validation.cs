@@ -49,7 +49,7 @@ namespace CoreEx.Validation
         }
 
         /// <summary>
-        /// Ensures that the <paramref name="value"/> is non-default and continues; otherwise, will throw a <see cref="ValidationException"/>.
+        /// Validates (ensures) that the <paramref name="value"/> is non-default and continues; otherwise, will throw a <see cref="ValidationException"/>.
         /// </summary>
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="value">The value to validate.</param>
@@ -61,7 +61,7 @@ namespace CoreEx.Validation
         public static T? EnsureValue<T>(this T? value, string? name = null, LText? text = null) => Required(value, name, text);
 
         /// <summary>
-        /// Ensures that the <paramref name="value"/> is non-default and continues; otherwise, will throw a <see cref="ValidationException"/>.
+        /// Validates (requires) that the <paramref name="value"/> is non-default and continues; otherwise, will throw a <see cref="ValidationException"/>.
         /// </summary>
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="value">The value to validate.</param>
@@ -73,7 +73,7 @@ namespace CoreEx.Validation
             => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? ((name == null || name == ValueNameDefault) ? ValueTextDefault : name.ToSentenceCase()!))) : value;
 
         /// <summary>
-        /// Ensures (requires) that the <paramref name="result"/> <see cref="Result{T}.Value"/> is non-default and executes the <paramref name="success"/> action; otherwise, will return a <see cref="Result{T}"/> with a <see cref="ValidationException"/> (see <see cref="Result{T}.ValidationError(MessageItem)"/>).
+        /// Validates (requires) that the <paramref name="result"/> <see cref="Result{T}.Value"/> is non-default and executes the <paramref name="success"/> action; otherwise, will return a <see cref="Result{T}"/> with a <see cref="ValidationException"/> (see <see cref="Result{T}.ValidationError(MessageItem)"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -91,40 +91,42 @@ namespace CoreEx.Validation
         });
 
         /// <summary>
-        /// Executes the <paramref name="validation"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// Validates using the <paramref name="validator"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="validation">The <see cref="IValidationResult{T}"/> resulting function.</param>
+        /// <param name="validator">The function to get the <see cref="IValidator{T}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
-        public static async Task<Result<T>> ValidationAsync<T>(this Result<T> result, Func<T, Task<IValidationResult>> validation)
+        /// <remarks>Where the <see cref="IValidationResult"/> <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
+        public static async Task<Result<T>> ValidateAsync<T>(this Result<T> result, Func<IValidator<T>> validator, CancellationToken cancellationToken = default) where T : class
         {
-            if (validation == null) throw new ArgumentNullException(nameof(validation));
+            if (validator == null) throw new ArgumentNullException(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
-                var vr = await validation(v).ConfigureAwait(false);
+                var vi = validator() ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
+                var vr = await vi.ValidateAsync(v, cancellationToken).ConfigureAwait(false);
                 return vr.ToResult<T>();
             });
         }
 
         /// <summary>
-        /// Executes the <paramref name="validation"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// Validates using the <paramref name="validator"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="validation">The <see cref="IValidationResult{T}"/> resulting function.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
-        public static async Task<Result<T>> ValidationAsync<T>(this Task<Result<T>> result, Func<T, CancellationToken, Task<IValidationResult>> validation, CancellationToken cancellationToken = default)
+        /// <remarks>Where the <see cref="IValidationResult"/> <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
+        public static async Task<Result<T>> ValidateAsync<T>(this Result<T> result, IValidator<T> validator, CancellationToken cancellationToken = default) where T : class
         {
-            if (validation == null) throw new ArgumentNullException(nameof(validation));
+            if (validator == null) throw new ArgumentNullException(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
-                var vr = await validation(v, cancellationToken).ConfigureAwait(false);
+                var vr = await validator.ValidateAsync(v, cancellationToken).ConfigureAwait(false);
                 return vr.ToResult<T>();
             });
         }

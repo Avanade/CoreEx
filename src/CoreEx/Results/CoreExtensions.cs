@@ -35,15 +35,7 @@ namespace CoreEx.Results
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>Will perform a <see cref="TypeConverter">type conversion</see> for the <see cref="Result{T}.Value"/> between the <typeparamref name="T"/> and <typeparamref name="U"/> where possible; otherwise, will simply default.</remarks>
-        public static Result<U> Bind<T, U>(this Result<T> result)
-        {
-            if (result.IsFailure)
-                return new Result<U>(result.Error!);
-
-            var tc = TypeDescriptor.GetConverter(typeof(T));
-            return tc.CanConvertTo(typeof(U)) ? new Result<U>((U)tc.ConvertTo(result.Value, typeof(U))) : Result<U>.None;
-        }
+        public static Result<U> Bind<T, U>(this Result<T> result) => result.IsSuccess ? (result.Value is U uv ? new Result<U>(uv) : Result<U>.None) : new Result<U>(result.Error!);
 
         /// <summary>
         /// Unwraps the <paramref name="result"/> and where <see cref="Result{T}.IsSuccess"/> invokes the <paramref name="func"/> and returns the resulting <see cref="Result{T}"/>; 

@@ -2,54 +2,54 @@
 
 The `CoreEx.Result` namespace enables [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html), as illustrated below (from referenced article) - this is a **must** read for context and understanding of the benefits of this approach.
 
-![Railway-oriented](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/assets/img/Recipe_Railway_Transparent.png)
+![Railway-oriented](../../../images/Railway_Transparent.png)
 
 <br/>
 
 ## Motivation
 
-To provide a means to enable Railway-oriented programming where leveraging _CoreEx_, and within own development, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although, C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is in keeping withing the spirit of railway-orientation.
+To provide a means to enable Railway-oriented programming within _CoreEx_, and where leveraging, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although, C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is in keeping withing the spirit of railway-orientation.
 
 <br/>
 
 ### Cost of exceptions
 
-There are some logic and performance benefits for leveraging, especially where managing errors, as this can avoid the traditional throwing of exceptions, which can be expensive, and instead provides a means to manage and return errors in a more functional manner.
+There are some logic and performance benefits for leveraging, especially where managing errors, as this can avoid the traditional throwing of exceptions; and instead, provides a means to manage and return errors in a more functional manner.
 
-There are a number of articles on the internet, that provide concrete examples of the performance challenges that can come with the usage of exceptions, that clearly demonstrate the potential impact.
+There are a number of [articles](https://csharpplayersguide.com/blog/2022/03/12/exception-performance/) on the internet that provide concrete examples of the performance challenges that can come with the usage of exceptions, these clearly demonstrate the potential impact.
 
-This is not to say the exceptions are bad and should be avoided, they absolutely serve a purpose and should continue to be leveraged in those truly _exceptional_ cases. Microsoft provides [guidance](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/exceptions-and-performance) around this specifically; also review their [best practices](https://learn.microsoft.com/en-us/dotnet/standard/exceptions/best-practices-for-exceptions) for exceptions.
+This is not to say that exceptions are bad and should be avoided, they absolutely serve a purpose and should continue to be leveraged in those truly _exceptional_ cases. Microsoft provides [guidance](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/exceptions-and-performance) around this specifically; also review their [best practices](https://learn.microsoft.com/en-us/dotnet/standard/exceptions/best-practices-for-exceptions) for exceptions.
 
 <br/>
 
 ### Exception vs error
 
-However, in some instances where returning more of a business/logic error (versus an unexpected exception) that is intended to be handled by the consumer then an exception, although convenient, is possibly not the best approach.
+However, in some instances where returning a business functional error that is intended to be handled by the consumer then an exception, although convenient, is possibly not the best approach.
 
-For example, where exposing an API that supports the updating of an entity, and the entity data is not valid, then more typically some sort of validation exception would be thrown by the business logic, then re-caught by the API logic and finally transformed in a corresponding HTTP 400 error. This validation error is intended and expected behaviour, i.e. not _exceptional_, and therfore treating it as an explicit error is more appropriate.
+For example, where exposing an API that supports the updating of an entity, and the entity data is not valid, then more typically some sort of validation exception would be thrown by the business logic, then re-caught by the API logic, and finally transformed in a corresponding HTTP 400 error. This validation error is intended and expected behaviour, i.e. it is _not_ exceptional, and therefore treating it as an explicit _error_ is the most appropriate course of action.
 
-However, in the example, where persisting the entity to a database, and the database is unavailable, then this is an _exceptional_ case, and therefore throwing an exception as areult is more appropriate.
+However, in this example, where persisting the entity to a database, and the database is unavailable, then this is an unexpected _exceptional_ case, and throwing a corresponding exception as a result is appropriate.
 
-Finally, an exception contains other context, such as the stack trace to assist with the likes of troubleshooting, which is generally not required for an explicit (expected) business error.
+Finally, an exception contains additional context, such as the stack trace to assist with the likes of troubleshooting, which is generally not required for an explicit (expected) business error.
 
 <br/>
 
 ## Results
 
-_CoreEx_ enables using the following types, which can be used to represent either a successful result or an error result.
+_CoreEx_ enables using the following two types, which can be used to represent either a successful result or an error result.
 
 Class | Description
 -|-
 [`Result`](./Result.cs) | Represents the outcome of an operation with _no_ value. It is intended to be a replacement for `void`-based methods, where the `void` is replaced with a `Result` that can be used to represent the outcome of the operation. The static `Result.Success` property represents the successful `Result` instance.
 [`Result<T>`](./ResultT.cs) | Represents the outcome of an operation _with_ a `Value` (of type `T`). It is intended to be a used where a method previously returns a value. The static `Result<T>.None` property represents the successful `Result<T>` instance with its [default](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/default) value.
 
-They results each additionally contain the following key properties as per [`IResult`](./IResult.cs).
+The results each additionally contain the following key properties as per [`IResult`](./IResult.cs).
 
 Property | Description
 -|-
 `IsSuccess` | Indicates whether the operation was successful.
 `IsFailure` | Indicates whether the operation was a failure.
-`Error` | The failure error, represented as an `Exception`. The .NET [`Exception`](https://learn.microsoft.com/en-us/dotnet/api/system.exception) is used for the error type as it already provides a rich set of capabilities, can easily be thrown where applicable, has support for the likes of an [`AggregateException`](https://learn.microsoft.com/en-us/dotnet/api/system.aggregateexception) for combining, and is well understood by developers; i.e. there is limited benefit in creating a new custom error type.
+`Error` | The failure error, represented as an `Exception`. The .NET [`Exception`](https://learn.microsoft.com/en-us/dotnet/api/system.exception) is used for the error type as it already provides a rich set of capabilities, can easily be thrown where applicable, has support for the likes of an [`AggregateException`](https://learn.microsoft.com/en-us/dotnet/api/system.aggregateexception) for combining, and is well understood by developers; i.e. it was determined that there is limited benefit in creating an alternate error type.
 
 <br/>
 
@@ -72,7 +72,7 @@ Method | Description
 
 The `Result` and `Result<T>` also support [implicit](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/user-defined-conversion-operators) conversion from an `Exception`.
 
-The following secondary failure methods are provided that enable the creation of a failure result with a specific _CoreEx_ error type; these exceptions are used extensively within _CoreEx_ to both represent specifixc error types and to enable related functionality as a result of the exception typically being thrown.
+The following secondary failure methods are provided that enable the creation of a failure result with a specific _CoreEx_ error type. These exceptions are used extensively within _CoreEx_ to both represent specific error types, and to enable related functionality as a result of the exception typically being thrown.
 
 Method | Description
 -|-
@@ -95,15 +95,15 @@ It is a common requirement where leveraging results that the result type needs t
 
 Where converting from a `Result<T>` to a `Result` the `Value` will be lost, and where converting from a `Result` to a `Result<T>` the `Result<T>.None` value is used. 
 
-Additionally, where converting between different `Result<T>` types the `Value` will be converted from one type to another using a [`TypeConverter`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.typeconverter) where possible; otherwise, the `Value` will be lost.
+Additionally, there is implicit conversion support from `Result` to `Result<T>` as there is no data loss; and explict conversion (casting) support from `Result<T>` to `Result` given the data loss (this is intended to minimize unintentional data loss).
 
-Finally, there is implicit conversion support between `Result` and `Result<T>` as there is no data loss; and explict conversion (casting) support between `Result<T>` and `Result` given the data loss (this is intended to minimize unintentional data loss).
+Finally, as a general rule the binding will be performed automatically by the framework (i.e. is used primarily internally).
 
 <br/>
 
 ### Combining
 
-The [`Result.Combine`](./CoreExtensions.cs) extension methods and its various overloads enable combining two results into a single result. Where combining and there are multiple failures, then these will be combined into a single `Error`leveraging an underlying [`AggregateException`](https://learn.microsoft.com/en-us/dotnet/api/system.aggregateexception).
+The [`Result.Combine`](./CoreExtensions.cs) extension methods and its various overloads enable combining two results into a single result. Where combining and there are multiple failures, then these will be combined into a single `Error` leveraging an underlying [`AggregateException`](https://learn.microsoft.com/en-us/dotnet/api/system.aggregateexception).
 
 <br/>
 
@@ -115,16 +115,30 @@ The following extension methods are provided to enable the composition of result
 
 Method | Description
 -|-
-[`Go`](./ResultGo.cs), `GoAsync` | Begins (starts) a new result chain.
-[`Then`](./ThenExtensions.cs), `ThenAsync`, `ThenAs`, `ThenAsAsync` | Executes the specified function if the result is a success; otherwise, does nothing.
-[`When`](./WhenExtensions.cs), `WhenAsync`, `WhenAs`, `WhenAsAsync` | Executes the specified function if the result is a success and the corresponding condition evaluates to _true_; otherwise, does nothing.
-[`OnFailure`](./OnFailureExtensions.cs), `OnFailureAsync`, `OnFailureAs`, `OnFailureAsAsync`  | Executes the specified function if the result is a failure; otherwise, does nothing.
-[`Match`](./MatchExtensions.cs), `MatchAsync`, `MatchAs`, `MatchAsAsync` | Executes (matches) the _ok_ function when the result is a success; otherwise, invokes the corresponding _fail_ function.
-[`Any`](./AnyExtensions.cs), `AnyAsync`, `AnyAs`, `AnyAsAsync` | Executes the specified function regardless of the result state.
+[`Go()`](./ResultGo.cs), `GoAsync()` | Begins (starts) a new result chain.
+[`Then()`](./ThenExtensions.cs), `ThenAsync()`, `ThenAs()`, `ThenAsAsync()` | Executes the specified function if the result is a success; otherwise, does nothing.
+[`When()`](./WhenExtensions.cs), `WhenAsync`, `WhenAs()`, `WhenAsAsync()` | Executes the specified function if the result is a success and the corresponding condition evaluates to _true_; otherwise, does nothing.
+[`OnFailure()`](./OnFailureExtensions.cs), `OnFailureAsync()`, `OnFailureAs()`, `OnFailureAsAsync()`  | Executes the specified function if the result is a failure; otherwise, does nothing.
+[`Match()`](./MatchExtensions.cs), `MatchAsync()`, `MatchAs()`, `MatchAsAsync()` | Executes (matches) the _ok_ function when the result is a success; otherwise, invokes the corresponding _fail_ function.
+[`Any()`](./AnyExtensions.cs), `AnyAsync()`, `AnyAs()`, `AnyAsAsync()` | Executes the specified function regardless of the result state.
+[`Try().Catch<TEx>.With()`](./TryCatchWithExtensions.cs), `.WithAs()`, `.WithAsync()`, `.WithAsAsyc()` | Executes the specified function with a [try-catch](./Abstractions/TryCatchWith.cs), and converts any specified exception into a resulting failure where thrown.
 
-The methods above that are named with `As` are to support _explicit_ conversion between types to minimize unintentional data loss and/or unexpected side-effects. The methods above that are named with `Async` are to support asynchronous execution.
+By convention the methods that are named with:
+- `As` are to support _explicit_ conversion between types to minimize unintentional data loss and/or unexpected side-effects;
+- `Async` are to support asynchronous execution (versus synchronous).
 
-For the most part the above also support the following interfaces, which can be applied to other types to enable the composition of results: [`IToResult`](./IToResult.cs), [`IToResult<T>`](./IToResultT.cs) and [`ITypedToResult`](./ITypedToResult.cs). For example, the _CoreEx_ [`IValidationResult`](../Validation/IValidationResult.cs) implements the `ITypedToResult` to enable the composition of validation results.
+<br/>
+
+### ToResult
+
+For the most part the aforementiond extension methods also support the following interfaces, which can be applied to other types to enable the composition of results: [`IToResult`](./IToResult.cs), [`IToResult<T>`](./IToResultT.cs) and [`ITypedToResult`](./ITypedToResult.cs). 
+
+These have been added to the following types:
+
+Namespace | Type(s)
+-|-
+[`CoreEx.Http`](../Http) | [`HttpResult`](../Http/HttpResult.cs) implements `IToResult`. <br/> [`HttpResult<T>`](../Http/HttpResultT.cs) implements `IToResult<T>`.
+[`CoreEx.Validation`](../Validation) | [`IValidationResult`](../Validation/IValidationResult.cs) implements `ITypedToResult`.
 
 <br/>
 
@@ -170,3 +184,32 @@ return await Result
         return GetResponseValue(resp)!;
     });
 ```
+
+<br/>
+
+### Additional
+
+The following additional composition extensions methods are available:
+
+Method | Description
+-|-
+`ValidateAsync` | Validates the `Result<T>.Value` using either the specified [`IValidator<T>`](../Validation/IValidatorT.cs) or [`IPropertyRule<ValidationValue<TEntity?>, TEntity?>`](../../CoreEx.Validation/IPropertyRuleT2.cs) resulting in either success or failure (`Result<T>.ValidationError`). Include `CoreEx.Validation` namespace to enable.
+`Required` | Validates that the `Result<T>.Value` is non-default (i.e. is required) resulting in either success or failure (`Result<T>.ValidationError`). Include `CoreEx.Validation` namespace to enable.
+`CacheGetOrAddAsync` | Gets the [`IRequestCache`](../Caching/IRequestCache.cs) cached value associated with the specified key where it exists; otherwise, adds and returns the value created by the corresponding add factory function. Include `CoreEx.Caching` namespace to enable.
+
+<br/>
+
+## WithResult
+
+Within _CoreEx_ `Result` and `Result<T>` support has been enabled; these are methods generally suffixed by `WithResult` or `WithResultAsync` by convention. These co-exist with the existing exception throwing methods. 
+
+This allows these methods to be conveniently invoked without the need to explicitly catch the related exceptions as the `IResult.Error` will have been set accordingly. Note that only exceptions that correspond to the _CoreEx_ [secondary failures](#Failures) will be caught and converted; otherwise, the _exceptional_ exceptions will continue to be thrown. These would then need to be explicitly caught and handled where applicable.
+
+The `*WithResult` or `*WithResultAsync` methods have been added to the following types:
+
+Namespace | Type(s)
+-|-
+[`CoreEx.Cosmos`](../../CoreEx.Cosmos) | [`CosmosDbContainerBase`](../../CoreEx.Cosmos/CosmosDbContainerBase.cs), [`CosmosDbContainer`](../../CoreEx.Cosmos/CosmosDbContainer.cs), [`CosmosDbValueContainer`](../../CoreEx.Cosmos/CosmosDbValueContainer.cs), [`CosmosDbQueryBase`](../../CoreEx.Cosmos/CosmosDbQueryBase.cs), [`CosmosDbQuery`](../../CoreEx.Cosmos/CosmosDbQuery.cs) and [`CosmosDbValueQuery`](../../CoreEx.Cosmos/CosmosDbValueQuery.cs).
+[`CoreEx.Database`](../../CoreEx.Database) | [`DatabaseCommand`](../../CoreEx.Database/DatabaseCommand.cs), [`DatabaseQuery`](../../CoreEx.Database/Extended/DatabaseQuery.cs), [`RefDataLoadeder`](../../CoreEx.Database/Extended/RefDataLoader.cs) and [`DatabaseExtendedExtensions`](../../CoreEx.Database/Extended/DatabaseExtendedExtensions.cs).
+[`CoreEx.EntityFrameworkCore`](../../CoreEx.EntityFrameworkCore) | [`IEfDb`](../../CoreEx.EntityFrameworkCore/IEfDb.cs), [`EfDb`](../../CoreEx.EntityFrameworkCore/EfDb.cs) and [`EfDbEntity`](../../CoreEx.EntityFrameworkCore/EfDbEntity.cs).
+[`CoreEx.WebApis`](../WebApis) | [`WebApiBase`](../WebApis/WebApiBase.cs), [`WebApi`](../WebApis/WebApi.cs) and [`WebApiPublisher`](../WebApis/WebApiPublisher.cs).

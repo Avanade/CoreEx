@@ -34,7 +34,7 @@ namespace CoreEx.WebApis
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            Invoker = invoker ?? new WebApiInvoker();
+            Invoker = invoker ?? WebApiInvoker.Current;
         }
 
         /// <summary>

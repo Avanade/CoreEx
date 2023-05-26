@@ -41,42 +41,42 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task Validation_Success_Entity_ValidationContext_Valid()
         {
-            var r = await Result.Ok(new Person { Name = "Tom", Age = 18 }).ValidationAsync(_personValidator.ValidateAsync);
+            var r = await Result.Ok(new Person { Name = "Tom", Age = 18 }).ValidateAsync(() => _personValidator);
             Assert.IsTrue(r.IsSuccess);
         }
 
         [Test]
         public async Task Validation_Success_Entity_ValidationContext_Invalid()
         {
-            var r = await Result.Ok(new Person { Name = "Tom" }).ValidationAsync(_personValidator.ValidateAsync);
+            var r = await Result.Ok(new Person { Name = "Tom" }).ValidateAsync(_personValidator);
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [Age: Age must be greater than 0.]"));
         }
 
         [Test]
         public async Task Validation_Failure_Entity_ValidationContext_Invalid()
         {
-            var r = await Result<Person>.Fail("bad").ValidationAsync(_personValidator.ValidateAsync);
+            var r = await Result<Person>.Fail("bad").ValidateAsync(_personValidator);
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("bad"));
         }
 
         [Test]
         public async Task Validation_Success_Entity_IValidationResult_Valid()
         {
-            var r = await Result.Ok(new Person { Name = "Tom", Age = 18 }).ValidationAsync(v => v.Validate().Entity(_personValidator).ValidateAsync());
+            var r = await Result.Ok(new Person { Name = "Tom", Age = 18 }).ValidateAsync(_personValidator);
             Assert.IsTrue(r.IsSuccess);
         }
 
         [Test]
         public async Task Validation_Success_Entity_IValidationResult_InValid()
         {
-            var r = await Result.Ok(new Person { Name = "Tom" }).ValidationAsync(v => v.Validate().Entity(_personValidator).ValidateAsync());
+            var r = await Result.Ok(new Person { Name = "Tom" }).ValidateAsync(v => v.Mandatory().Entity(_personValidator));
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [value.Age: Age must be greater than 0.]"));
         }
 
         [Test]
         public async Task Validation_Failure_Entity_IValidationResult_InValid()
         {
-            var r = await Result<Person>.Fail("bad").ValidationAsync(v => v.Validate().Entity(_personValidator).ValidateAsync());
+            var r = await Result<Person>.Fail("bad").ValidateAsync(v => v.Mandatory().Entity(_personValidator));
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("bad"));
         }
 
@@ -86,12 +86,12 @@ namespace CoreEx.Test.Framework.Results
             var value = new Person { Name = "Tom", Age = 18 };
             var id = 88;
 
-            var r = await Result.Go(value).WithManagerAsync(this, v =>
+            var r = await Result.Go().Manager(this, InvokerArgs.Create).WithAsAsync(r =>
             {
-                return v.Required(v => v.Id = id)
-                        .ValidationAsync(v => v.Validate().Entity(_personValidator).ValidateAsync())
-                        .Then(v => v);
-            }, InvokerArgs.Create);
+                return Result.Go(value)
+                    .Required(v => v.Id = id)
+                    .ThenAsync(v => v.Validate().Entity(_personValidator).ValidateAsync());
+            });
 
             Assert.IsTrue(r.IsSuccess);
         }

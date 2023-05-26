@@ -25,13 +25,13 @@ namespace CoreEx.Results
         private readonly Exception? _error = default;
 
         /// <summary>
-        /// Initializes a new <see cref="IsSuccess"/> instance of the <see cref="Result{T}"/> class with a <paramref name="value"/>.
+        /// Initializes a new <see cref="IsSuccess"/> instance of the <see cref="Result{T}"/> with a <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The <see cref="Result{T}.Value"/>.</param>
         public Result(T value) => _value = value is Exception ? throw new ArgumentException($"A {nameof(Value)} cannot be a {nameof(Type)} of {nameof(Exception)}.", nameof(value)) : value;
 
         /// <summary>
-        /// Initializes a new <see cref="IsFailure"/> instance of the <see cref="Result{T}"/> class with a corresponding <paramref name="error"/>.
+        /// Initializes a new <see cref="IsFailure"/> instance of the <see cref="Result{T}"/> with a corresponding <paramref name="error"/>.
         /// </summary>
         /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
         public Result(Exception error) => _error = error ?? throw new ArgumentNullException(nameof(error));

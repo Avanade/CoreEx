@@ -16,6 +16,9 @@ namespace CoreEx.Database
     public class DatabaseInvoker : InvokerBase<IDatabase>
     {
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(IDatabase database, Func<TResult> func) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected override async Task<TResult> OnInvokeAsync<TResult>(IDatabase database, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try

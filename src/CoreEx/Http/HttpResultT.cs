@@ -67,7 +67,7 @@ namespace CoreEx.Http
         }
 
         /// <inheritdoc/>
-        Result<T> IToResult<T>.ToResult() => ToResult();
+        public new Result<T> ToResult() => ToResult(true);
 
         /// <summary>
         /// Converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/>.
@@ -75,7 +75,7 @@ namespace CoreEx.Http
         /// <param name="convertToKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be used.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public new Result<T> ToResult(bool convertToKnownException = true, bool useContentAsErrorMessage = true)
+        public new Result<T> ToResult(bool convertToKnownException, bool useContentAsErrorMessage = true)
         {
             if (_internalException is not null)
                 return new Result<T>(_internalException);
@@ -92,17 +92,5 @@ namespace CoreEx.Http
 
             return new Result<T>(new HttpRequestException(Content));
         }
-
-        /// <summary>
-        /// Implicitly converts the <see cref="HttpResult"/> into an equivalent <see cref="Result{T}"/>.
-        /// </summary>
-        /// <param name="result">The <see cref="HttpResult{T}"/>.</param>
-        public static implicit operator Result<T>(HttpResult<T> result) => result.ToResult();
-
-        /// <summary>
-        /// Implicitly converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/> losing the <see cref="Value"/>.
-        /// </summary>
-        /// <param name="result">The <see cref="HttpResult"/>.</param>
-        public static implicit operator Result(HttpResult<T> result) => result.ToResult().Bind();
     }
 }
