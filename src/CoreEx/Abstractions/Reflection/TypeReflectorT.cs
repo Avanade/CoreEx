@@ -45,7 +45,7 @@ namespace CoreEx.Abstractions.Reflection
             foreach (var p in TypeReflector.GetProperties(typeof(TEntity)))
             {
                 var lex = Expression.Lambda(Expression.Property(pe, p), pe);
-                var pr = (IPropertyReflector)Activator.CreateInstance(typeof(PropertyReflector<,>).MakeGenericType(typeof(TEntity), p.PropertyType), Args, lex);
+                var pr = (IPropertyReflector)Activator.CreateInstance(typeof(PropertyReflector<,>).MakeGenericType(typeof(TEntity), p.PropertyType), Args, lex)!;
 
                 if (Args.PropertyBuilder != null && !Args.PropertyBuilder(pr))
                     continue;
@@ -114,7 +114,7 @@ namespace CoreEx.Abstractions.Reflection
         public IPropertyReflector GetProperty(string name)
         {
             _properties.TryGetValue(name, out var value);
-            return value;
+            return value!;
         }
 
         /// <inheritdoc/>
@@ -169,7 +169,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns><c>true</c> if the two source sequences are of equal length and their corresponding elements are equal according to the default equality comparer for their type; otherwise, <c>false</c>.</returns>
         private bool CompareSequence(object? left, object? right)
         {
-            _itemEqualityComparer ??= (IItemEqualityComparer)Activator.CreateInstance(typeof(ItemEqualityComparer<>).MakeGenericType(ItemType!));
+            _itemEqualityComparer ??= (IItemEqualityComparer)Activator.CreateInstance(typeof(ItemEqualityComparer<>).MakeGenericType(ItemType!))!;
 
             switch (TypeCode)
             {
@@ -201,7 +201,7 @@ namespace CoreEx.Abstractions.Reflection
                         if (!dr.Contains(edl.Key))
                             return false;
 
-                        if (!_itemEqualityComparer!.IsEqual(edl.Value, dr[edl.Key]))
+                        if (!_itemEqualityComparer!.IsEqual(edl.Value!, dr[edl.Key]!))
                             return false;
                     }
 

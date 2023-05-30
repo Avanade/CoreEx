@@ -11,6 +11,7 @@ using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using UnitTestEx.NUnit;
+using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.Test.Framework.Http
 {

@@ -363,7 +363,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddMappers(this IServiceCollection services, params Assembly[] assemblies)
         {
             var mapper = new Mapper();
-            var mi = typeof(Mapper).GetMethod(nameof(Mapper.Register), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            var mi = typeof(Mapper).GetMethod(nameof(Mapper.Register), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)!;
 
             foreach (var assembly in assemblies.Distinct())
             {
@@ -377,7 +377,7 @@ namespace Microsoft.Extensions.DependencyInjection
                                       where @interface != null
                                       select new { type, sourceType, destinationType })
                 {
-                    mi.MakeGenericMethod(match.sourceType, match.destinationType).Invoke(mapper, new object[] { Activator.CreateInstance(match.type) });
+                    mi.MakeGenericMethod(match.sourceType, match.destinationType).Invoke(mapper, new object[] { Activator.CreateInstance(match.type)! });
                 }
             }
 

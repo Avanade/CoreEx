@@ -313,7 +313,7 @@ namespace CoreEx.Json.Merge
                 // Find the existing and merge; otherwise, add as-is.
                 if (dict.Contains(jp.Name))
                 {
-                    var destitem = dict[jp.Name];
+                    var destitem = dict[jp.Name]!;
                     switch (tr.ItemTypeCode)
                     {
                         case TypeReflectorTypeCode.Simple:
@@ -367,7 +367,7 @@ namespace CoreEx.Json.Merge
                 if (ji.ValueKind != JsonValueKind.Object && ji.ValueKind != JsonValueKind.Null)
                     throw new JsonMergePatchException($"The JSON array item must be an Object where the destination collection supports keys. Path: {path}");
 
-                var srceitem = (IEntityKey)srce[i++];
+                var srceitem = (IEntityKey)srce[i++]!;
 
                 // Find the existing and merge; otherwise, add as-is.
                 var destitem = srceitem == null ? null : dest?.GetByKey(srceitem.EntityKey);

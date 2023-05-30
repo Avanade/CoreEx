@@ -39,7 +39,7 @@ namespace CoreEx.Events
             Key = @event.Key;
 
             if (@event.HasAttributes)
-                Attributes = new Dictionary<string, string>(@event.Attributes);
+                Attributes = new Dictionary<string, string>(@event.Attributes!);
 
             if (@event.HasInternal)
                 _internal = new Dictionary<string, object?>(@event.Internal);

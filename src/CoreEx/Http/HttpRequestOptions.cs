@@ -145,7 +145,7 @@ namespace CoreEx.Http
                 }
                 else
                 {
-                    queryString = queryString.Add(QueryStringNamePagingArgsPage, Paging.Page.ToString());
+                    queryString = queryString.Add(QueryStringNamePagingArgsPage, Paging.Page?.ToString() ?? 1.ToString());
                     queryString = queryString.Add(QueryStringNamePagingArgsSize, Paging.Size.ToString());
                 }
 

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFrameworks>net6.0;net7.0;netstandard2.1</TargetFrameworks>
     <RootNamespace>CoreEx.Database.MySql</RootNamespace>
     <Product>CoreEx</Product>
     <Title>CoreEx .NET MySQL Database extras.</Title>

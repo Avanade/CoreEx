@@ -58,7 +58,7 @@ namespace CoreEx.Abstractions.Reflection
                 if (me.Member.MemberType != MemberTypes.Property)
                     throw new InvalidOperationException("Expression results in a Member that is not a Property.");
 
-                if (!me.Member.DeclaringType.GetTypeInfo().IsAssignableFrom(typeof(TEntity).GetTypeInfo()))
+                if (!me.Member.DeclaringType!.GetTypeInfo().IsAssignableFrom(typeof(TEntity).GetTypeInfo()))
                     throw new InvalidOperationException("Expression results in a Member for a different Entity class.");
 
                 string name = me.Member.Name;
@@ -70,17 +70,14 @@ namespace CoreEx.Abstractions.Reflection
                     // Probe corresponding 'Sid' or 'Sids' properties (using the standardised naming convention) where IReferenceData Type.
                     if (me.Member is PropertyInfo rpi && rpi.PropertyType.IsClass && rpi.PropertyType.GetInterfaces().Contains(typeof(IReferenceData)))
                     {
-                        var spi = me.Member.DeclaringType.GetProperty($"{name}Sid");
-                        if (spi == null)
-                            spi = me.Member.DeclaringType.GetProperty($"{name}Sids");
-
+                        var spi = me.Member.DeclaringType!.GetProperty($"{name}Sid") ?? me.Member.DeclaringType.GetProperty($"{name}Sids");
                         if (spi != null)
                             jsonSerializer.TryGetJsonName(spi, out jn);
                     }
                 }
 
                 // Either get the friendly text from a corresponding DisplayAttribute or split the member name into friendlier sentence case text.
-                DisplayAttribute ca = me.Member.GetCustomAttribute<DisplayAttribute>(true);
+                DisplayAttribute? ca = me.Member.GetCustomAttribute<DisplayAttribute>(true);
 
                 // Create a setter from the getter.
                 var pi = (PropertyInfo)me.Member;
@@ -89,13 +86,13 @@ namespace CoreEx.Abstractions.Reflection
                 {
                     var pte = Expression.Parameter(typeof(TEntity), "e");
                     var ptp = Expression.Parameter(typeof(TProperty), "p");
-                    var exp = Expression.Lambda<Action<TEntity, TProperty>>(Expression.Call(pte, pi.GetSetMethod(), ptp), pte, ptp);
+                    var exp = Expression.Lambda<Action<TEntity, TProperty>>(Expression.Call(pte, pi.GetSetMethod()!, ptp), pte, ptp);
                     setValue = exp.Compile();
                 }
 
                 // Create expression (with compilation also).
                 return new PropertyExpression<TEntity, TProperty>(pi, name, jn, ca?.Name, isSerializable, propertyExpression.Compile(), setValue);
-            });
+            })!;
         }
 
         /// <summary>

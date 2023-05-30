@@ -6,6 +6,7 @@ Represents the **NuGet** versions.
 - *Enhancement:* Added new `CoreEx.Results` namespace with primary `Result` and `Result<T>` classes to enable [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html); see [`CoreEx.Results`](./src/CoreEx/Results/README.md) for more implementation details.
 - *Fixed:* Validation extension method `EnsureValue` has been renamed to `Required` to be more explicit as to purpose; existing temporarily marked as obsolete.
 - *Fixed:* `InvokerBase` and `InvokerBase<TResult>` now split sync and async code to avoid sync over async; requires both the sync and async virtual methods to be overridden to implement correctly.
+- *Enhancement:* Added `net6.0` and `net7.0` in addition to [.NET Standard](https://learn.microsoft.com/en-us/dotnet/standard/net-standard#when-to-target-net50-or-net60-vs-netstandard) support to all packages. This will allow access to additional features per version where required, and overall performance improvements.
 
 ## v2.10.1
 - *Fixed:* `EventOutboxHostedService` updated so when a new `IServiceScope` is created that `ExecutionContext.Reset` is invoked to ensure existing `ServiceProvider` is not reused.

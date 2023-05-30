@@ -103,6 +103,9 @@ namespace CoreEx.Events.Subscribing
             if (Actions == null || Actions.Length == 0)
                 return true;
 
+            if (action == null)
+                return false;
+
             foreach (var at in Actions)
             {
                 if (string.IsNullOrEmpty(at) || at == action || at == "*")

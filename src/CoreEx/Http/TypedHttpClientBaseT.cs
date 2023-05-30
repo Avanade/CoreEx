@@ -426,10 +426,17 @@ namespace CoreEx.Http
                 Version = request.Version
             };
 
+#if NETSTANDARD2_1
             foreach (KeyValuePair<string, object?> prop in request.Properties)
             {
                 clone.Properties.Add(prop.Key, prop.Value);
             }
+#else
+            foreach (var prop in request.Options)
+            {
+                clone.Options.TryAdd(prop.Key, prop.Value);
+            }
+#endif
 
             foreach (KeyValuePair<string, IEnumerable<string>> header in request.Headers)
             {

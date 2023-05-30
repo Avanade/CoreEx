@@ -295,7 +295,7 @@ namespace CoreEx.RefData.Extended
             }
 
             /// <inheritdoc/>
-            public override bool Equals(object obj) => Equals(obj as ReferenceDataBaseEx<TId, TSelf>.MappingsDictionary);
+            public override bool Equals(object? obj) => Equals(obj! as ReferenceDataBaseEx<TId, TSelf>.MappingsDictionary);
 
             /// <inheritdoc/>
             public override int GetHashCode()

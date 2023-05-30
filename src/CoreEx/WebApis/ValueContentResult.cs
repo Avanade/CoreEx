@@ -102,8 +102,8 @@ namespace CoreEx.WebApis
         /// <returns><c>true</c> indicates that the <paramref name="valueContentResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
         public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
         {
-            if (value is IResult)
-                throw new ArgumentException($"The {nameof(value)} must not implement {nameof(IResult)}; the underlying {nameof(IResult.Value)} must be unwrapped before invoking.", nameof(value));
+            if (value is Results.IResult)
+                throw new ArgumentException($"The {nameof(value)} must not implement {nameof(Results.IResult)}; the underlying {nameof(Results.IResult.Value)} must be unwrapped before invoking.", nameof(value));
 
             object? val;
             PagingResult? paging;
@@ -248,8 +248,7 @@ namespace CoreEx.WebApis
                     if (requestOptions.Request.Path.HasValue)
                         sb.Append(requestOptions.Request.Path.Value);
 
-                    if (requestOptions.Request.QueryString != null)
-                        sb.Append(requestOptions.Request.QueryString.ToString());
+                    sb.Append(requestOptions.Request.QueryString.ToString());
                 }
             }
 

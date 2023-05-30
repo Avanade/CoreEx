@@ -26,7 +26,7 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult"/>.</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
         public static async Task<HttpResult> CreateAsync(HttpResponseMessage response, CancellationToken cancellationToken = default)
-            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), response.Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), response.Content == null || response.Content.Headers.ContentLength == 0 ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false));
 
         /// <summary>
         /// Creates a new <see cref="HttpResult{T}"/> with a <see cref="HttpResult{T}.Value"/>.
@@ -38,7 +38,7 @@ namespace CoreEx.Http
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
         public static async Task<HttpResult<T>> CreateAsync<T>(HttpResponseMessage response, IJsonSerializer? jsonSerializer = default, CancellationToken cancellationToken = default)
         {
-            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
                 return new HttpResult<T>(response, content, default(T)!);
 

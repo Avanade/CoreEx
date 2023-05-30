@@ -68,7 +68,7 @@ namespace CoreEx.Events
 
             if (SerializeValueOnly)
             {
-                var ed = (EventData)Activator.CreateInstance(edvt);
+                var ed = (EventData)Activator.CreateInstance(edvt)!;
                 ed.Value = JsonSerializer.Deserialize(eventData, valueType);
                 return Task.FromResult(ed);
             }

@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.NUnit;
+using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.Test.Framework.WebApis
 {
@@ -535,7 +536,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertException<BusinessException>();
         }
 
-        private HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
+        private static HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
             => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, new HttpRequestOptions { ETag = etag }, HttpConsts.MergePatchMediaTypeName);
 
         private class Person : IIdentifier<int>, IETag

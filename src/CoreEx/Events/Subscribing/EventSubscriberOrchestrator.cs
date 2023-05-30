@@ -196,7 +196,7 @@ namespace CoreEx.Events.Subscribing
                         if (subscriber != null)
                             return false;
 
-                        if (att.ExtendedMatchMethodInfo is not null && !(bool)att.ExtendedMatchMethodInfo.Invoke(null, new object[] { @event }))
+                        if (att.ExtendedMatchMethodInfo is not null && !(bool)att.ExtendedMatchMethodInfo.Invoke(null, new object[] { @event })!)
                             return false;
 
                         subscriber = (IEventSubscriber)(ServiceProvider?.GetService(item.SubscriberType) ?? ExecutionContext.GetRequiredService(item.SubscriberType));

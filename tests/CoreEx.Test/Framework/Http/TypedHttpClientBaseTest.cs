@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CoreEx.Http;
 using CoreEx.RefData;
 using NUnit.Framework;
+using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -153,7 +154,7 @@ namespace CoreEx.Test.Framework.Http
         public string VerifyUri(string requestUri, HttpRequestOptions? requestOptions = null, params IHttpArg[] args)
         {
             var request = CreateRequestAsync(HttpMethod.Post, requestUri, requestOptions, args).Result;
-            return request.RequestUri.ToString();
+            return request.RequestUri!.ToString();
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => throw new NotImplementedException();

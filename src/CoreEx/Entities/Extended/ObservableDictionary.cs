@@ -123,7 +123,7 @@ namespace CoreEx.Entities.Extended
         }
 
         /// <inheritdoc/>
-        void IDictionary.Add(object key, object value) => Add((TKey)key, (TValue)value);
+        void IDictionary.Add(object key, object? value) => Add((TKey)key, (TValue)value!);
 
         /// <inheritdoc/>
         public void Add(TKey key, TValue value) => AddItem(new KeyValuePair<TKey, TValue>(key, value));
@@ -159,7 +159,7 @@ namespace CoreEx.Entities.Extended
         public bool ContainsKey(TKey key) => _dict.ContainsKey(OnModifyKey(key));
 
         /// <inheritdoc/>
-        public bool TryGetValue(TKey key, [NotNullWhen(true)] out TValue value) => _dict.TryGetValue(OnModifyKey(key), out value);
+        public bool TryGetValue(TKey key, [NotNullWhen(true)] out TValue value) => _dict.TryGetValue(OnModifyKey(key), out value!);
 
         /// <inheritdoc/>
         public bool Remove(TKey key) => TryGetValue(key, out var value) && RemoveItem(new KeyValuePair<TKey, TValue>(key, value));

@@ -189,6 +189,23 @@ return await Result
 
 <br/>
 
+### ToResult example
+
+The following code demonstrates the usage of the [`IToResult<T>`](./IToResult<T>.cs) interface enabled by the `HttpResult<T>`; with the key takeaway being that the `Result.GoFrom()` method is used.
+
+``` csharp
+public async Task<Result<OktaUser>> GetUserAsync(Guid id, string email) 
+    => Result.GoFrom(await GetAsync<List<OktaUser>>($"/api/v1/users?search=profile.email eq \"{email}\"").ConfigureAwait(false))
+        .ThenAs(coll => coll.Count switch 
+        {
+            0 => Result.NotFoundError($"Employee {id} with email {email} not found within OKTA."),
+            1 => Result.Ok(coll[0]),
+            _ => Result.NotFoundError($"Employee {id} with email {email} has multiple entries within OKTA.")
+        });
+```
+
+<br/>
+
 ### Additional
 
 The following additional composition extensions methods are available:

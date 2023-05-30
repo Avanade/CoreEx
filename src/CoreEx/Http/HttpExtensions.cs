@@ -84,7 +84,7 @@ namespace CoreEx.Http
             ApplyETag(httpRequest, requestOptions.ETag);
 
             // Apply updates to the query string.
-            var queryString = QueryString.FromUriComponent(httpRequest.RequestUri);
+            var queryString = QueryString.FromUriComponent(httpRequest.RequestUri!);
             queryString = requestOptions.AddToQueryString(queryString);
             var ub = httpRequest.RequestUri == null ? new UriBuilder() : new UriBuilder(httpRequest.RequestUri);
             ub.Query = queryString.ToUriComponent();
@@ -107,9 +107,9 @@ namespace CoreEx.Http
             if (!string.IsNullOrEmpty(etag))
             {
                 if (httpRequest.Method == HttpMethod.Get || httpRequest.Method == HttpMethod.Head)
-                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)));
+                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)!));
                 else
-                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)));
+                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)!));
             }
 
             return httpRequest;
@@ -269,13 +269,19 @@ namespace CoreEx.Http
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IExtendedException"/> where applicable; otherwise, <c>null</c>.</returns>
+#if NETSTANDARD2_1
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there is case it ever does.")]
+#endif
         public async static Task<IExtendedException?> ToExtendedExceptionAsync(this HttpResponseMessage response, bool useContentAsErrorMessage = true, CancellationToken cancellationToken = default)
         {
             if (response == null || response.IsSuccessStatusCode)
                 return null;
 
+#if NETSTANDARD2_1
             var content = response.Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+#else
+            var content = response.Content == null ? null : await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+#endif
             if (string.IsNullOrEmpty(content))
                 content = $"Response status code does not indicate success: {(int)response.StatusCode} ({(string.IsNullOrEmpty(response.ReasonPhrase) ? response.StatusCode : response.ReasonPhrase)}).";
 
@@ -297,7 +303,7 @@ namespace CoreEx.Http
 
             if (response.Headers.TryGetValues(name, out IEnumerable<string>? values))
             {
-                value = values.FirstOrDefault();
+                value = values.First();
                 return true;
             }
 

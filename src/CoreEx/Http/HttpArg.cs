@@ -125,7 +125,7 @@ namespace CoreEx.Http
             if (value is DateTimeOffset dto)
                 return (queryString.Add(name, dto.ToString("o", CultureInfo.InvariantCulture)), true);
 
-            if (value is IReferenceData rd)
+            if (value is IReferenceData rd && rd.Code is not null)
                 return (queryString.Add(name, rd.Code), true);
 
             if (value is Enum en)

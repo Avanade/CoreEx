@@ -89,7 +89,7 @@ namespace CoreEx.Wildcards
             if (Selection.HasFlag(WildcardSelection.Single))
                 return Selection.HasFlag(WildcardSelection.MultiWildcard) ? "^.*$" : "^.$";
 
-            var p = Regex.Escape(Text);
+            var p = Regex.Escape(Text!);
             if (Selection.HasFlag(WildcardSelection.MultiWildcard))
                 p = p.Replace("\\*", ".*", StringComparison.InvariantCulture);
 

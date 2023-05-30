@@ -58,8 +58,8 @@ namespace CoreEx.Events
             if (valueType == null)
                 throw new ArgumentNullException(nameof(valueType));
 
-            var mi = GetType().GetMethod(nameof(DeserializeAsync), 1, new Type[] { typeof(BinaryData), typeof(CancellationToken) });
-            dynamic task = mi.MakeGenericMethod(valueType).Invoke(this, new object[] { eventData, cancellationToken });
+            var mi = GetType().GetMethod(nameof(DeserializeAsync), 1, new Type[] { typeof(BinaryData), typeof(CancellationToken) })!;
+            dynamic task = mi.MakeGenericMethod(valueType).Invoke(this, new object[] { eventData, cancellationToken })!;
             return await task.ConfigureAwait(false);
         }
 

@@ -176,7 +176,7 @@ namespace CoreEx.WebApis
                     await beforeEvents(wapv!, ct).ConfigureAwait(false);
 
                 var max = maxCollSize ?? Settings.MaxPublishCollSize;
-                var count = wapv!.Value.Count();
+                var count = wapv!.Value?.Count() ?? 0;
                 if (count > max)
                 {
                     Logger.LogWarning("The publish collection contains {EventsCount} items where only a maximum size of {MaxCollSize} is supported; request has been rejected.", count, max);
@@ -350,7 +350,7 @@ namespace CoreEx.WebApis
                 }
 
                 var max = maxCollSize ?? Settings.MaxPublishCollSize;
-                var count = wapv!.Value.Count();
+                var count = wapv!.Value?.Count() ?? 0;
                 if (count > max)
                 {
                     Logger.LogWarning("The publish collection contains {EventsCount} items where only a maximum size of {MaxCollSize} is supported; request has been rejected.", count, max);

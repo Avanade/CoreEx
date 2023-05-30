@@ -97,7 +97,7 @@ namespace CoreEx.Configuration
             // Try the key as specified.
             if (Configuration!.GetSection(key)?.Value != null)
             {
-                value = Configuration.GetValue<T>(key);
+                value = Configuration.GetValue<T>(key)!;
                 return true;
             }
 
@@ -105,7 +105,7 @@ namespace CoreEx.Configuration
             var alternateKey = key.Replace(":", "__");
             if (alternateKey != key && Configuration.GetSection(alternateKey)?.Value != null)
             {
-                value = Configuration.GetValue<T>(alternateKey);
+                value = Configuration.GetValue<T>(alternateKey)!;
                 return true;
             }
 
@@ -113,7 +113,7 @@ namespace CoreEx.Configuration
             alternateKey = key.Replace("__", ":");
             if (alternateKey != key && Configuration.GetSection(alternateKey)?.Value != null)
             {
-                value = Configuration.GetValue<T>(alternateKey);
+                value = Configuration.GetValue<T>(alternateKey)!;
                 return true;
             }
 

@@ -43,7 +43,7 @@ namespace CoreEx.WebApis
             {
                 if (param.Request.Headers.TryGetValue(name, out var values))
                 {
-                    owner.ExecutionContext.CorrelationId = values.First();
+                    owner.ExecutionContext.CorrelationId = values.First()!;
                     break;
                 }
             }

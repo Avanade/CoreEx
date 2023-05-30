@@ -215,7 +215,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? GetByType(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
+        public IReferenceDataCollection? GetByType(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection? coll) ? coll! : Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
@@ -229,7 +229,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
-        public IReferenceDataCollection GetByTypeRequired(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection coll) ? coll : Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
+        public IReferenceDataCollection GetByTypeRequired(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection? coll) ? coll! : Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
@@ -317,8 +317,8 @@ namespace CoreEx.RefData
         {
             // Try and get as most likely already in the cache; where exists then exit fast.
             var key = OnGetCacheKey(type);
-            if (Cache.TryGetValue(key, out IReferenceDataCollection coll))
-                return coll;
+            if (Cache.TryGetValue(key, out IReferenceDataCollection? coll))
+                return coll!;
 
             // Get or add a new semaphore for the cache key so we can manage single concurrency for that key only.
             SemaphoreSlim semaphore = _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
@@ -328,11 +328,11 @@ namespace CoreEx.RefData
             try
             {
                 // Does a get or create as it may have been added as we went to lock.
-                return await Cache.GetOrCreateAsync(key, async entry =>
+                return (await Cache.GetOrCreateAsync(key, async entry =>
                 {
                     OnCreateCacheEntry(type, entry);
-                    return await getCollAsync(type, cancellationToken).ConfigureAwait(false);
-                }).ConfigureAwait(false);
+                    return await getCollAsync(type, cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException("The returned collection must not be null.");
+                }).ConfigureAwait(false))!;
             }
             finally
             {
@@ -443,7 +443,7 @@ namespace CoreEx.RefData
             // Apply the filter.
             var items = includeInactive ? coll.AllItems : coll.ActiveItems;
             var result = items
-                .WhereWhen(x => codes.Contains(x.Code, StringComparer.OrdinalIgnoreCase), codes != null && codes.Distinct().FirstOrDefault() != null)
+                .WhereWhen(x => codes!.Contains(x.Code, StringComparer.OrdinalIgnoreCase), codes != null && codes.Distinct().FirstOrDefault() != null)
                 .WhereWildcard(x => x.Text, text);
 
             return Task.FromResult(result);
@@ -534,7 +534,7 @@ namespace CoreEx.RefData
             {
                 if (string.Compare(q.Key, "names", StringComparison.InvariantCultureIgnoreCase) == 0)
                 {
-                    foreach (var v in SplitStringValues(q.Value.Where(x => !string.IsNullOrEmpty(x)).Distinct()))
+                    foreach (var v in SplitStringValues(q.Value.Where(x => !string.IsNullOrEmpty(x)).Distinct()!))
                     {
                         dict.TryAdd(v, new List<string>());
                     }
@@ -543,14 +543,14 @@ namespace CoreEx.RefData
                 {
                     if (dict.TryGetValue(q.Key, out var codes))
                     {
-                        foreach (var code in SplitStringValues(q.Value.Distinct()))
+                        foreach (var code in SplitStringValues(q.Value.Distinct()!))
                         {
                             if (!codes.Contains(code))
                                 codes.Add(code);
                         }
                     }
                     else
-                        dict.Add(q.Key, new List<string>(SplitStringValues(q.Value.Distinct())));
+                        dict.Add(q.Key, new List<string>(SplitStringValues(q.Value.Distinct()!)));
                 }
             }
 

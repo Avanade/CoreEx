@@ -106,7 +106,8 @@ namespace CoreEx
             var msd = new ModelStateDictionary();
             foreach (var item in Messages.GetMessagesForType(MessageType.Error))
             {
-                msd.AddModelError(item.Property, item.Text);
+                if (item.Property is not null && item.Text is not null)
+                    msd.AddModelError(item.Property, item.Text);
             }
 
             return new BadRequestObjectResult(msd);

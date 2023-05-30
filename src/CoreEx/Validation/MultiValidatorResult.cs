@@ -38,7 +38,7 @@ namespace CoreEx.Validation
         /// <summary>
         /// Handle the add of a message.
         /// </summary>
-        private void Messages_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        private void Messages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             if (HasErrors)
                 return;
@@ -46,7 +46,7 @@ namespace CoreEx.Validation
             switch (e.Action)
             {
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
-                    foreach (var m in e.NewItems)
+                    foreach (var m in e.NewItems!)
                     {
                         MessageItem mi = (MessageItem)m;
                         if (mi.Type == MessageType.Error)
