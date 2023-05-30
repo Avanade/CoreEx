@@ -11,7 +11,7 @@ namespace CoreEx.Http
     /// <summary>
     /// Provides the <see cref="HttpResponseMessage"/> result with a <see cref="Value"/>.
     /// </summary>
-    public class HttpResult<T> : HttpResult, IToResult<T>
+    public class HttpResult<T> : HttpResultBase, IToResult<T>
     {
         private readonly T _value;
         private readonly Exception? _internalException = null;
@@ -21,7 +21,7 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
-        /// <param name="value">The deserialized value where <see cref="HttpResult.IsSuccess"/>; otherwise, <c>default</c>.</param>
+        /// <param name="value">The deserialized value where <see cref="HttpResultBase.IsSuccess"/>; otherwise, <c>default</c>.</param>
         internal HttpResult(HttpResponseMessage response, string? content, T value) : base(response, content) => _value = value;
 
         /// <summary>
@@ -52,22 +52,29 @@ namespace CoreEx.Http
         public override HttpStatusCode StatusCode => _internalException is not null ? HttpStatusCode.InternalServerError : base.StatusCode;
 
         /// <summary>
-        /// Throws an exception if the request was not successful (see <see cref="HttpResult.IsSuccess"/>).
+        /// Throws an exception if the request was not successful (see <see cref="HttpResultBase.IsSuccess"/>).
         /// </summary>
         /// <param name="throwKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be thrown.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>The <see cref="HttpResult"/> instance to support fluent-style method-chaining.</returns>
-        public new HttpResult<T> ThrowOnError(bool throwKnownException = true, bool useContentAsErrorMessage = true)
+        public HttpResult<T> ThrowOnError(bool throwKnownException = true, bool useContentAsErrorMessage = true)
         {
-            if (_internalException is not null)
-                throw _internalException;
+            if (IsSuccess)
+                return this;
 
-            base.ThrowOnError(throwKnownException, useContentAsErrorMessage);
+            if (throwKnownException)
+            {
+                var eex = CreateExtendedException(Response, Content, useContentAsErrorMessage);
+                if (eex != null)
+                    throw (Exception)eex;
+            }
+
+            Response.EnsureSuccessStatusCode();
             return this;
         }
 
         /// <inheritdoc/>
-        public new Result<T> ToResult() => ToResult(true);
+        public Result<T> ToResult() => ToResult(true);
 
         /// <summary>
         /// Converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/>.
@@ -75,7 +82,7 @@ namespace CoreEx.Http
         /// <param name="convertToKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be used.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public new Result<T> ToResult(bool convertToKnownException, bool useContentAsErrorMessage = true)
+        public Result<T> ToResult(bool convertToKnownException, bool useContentAsErrorMessage = true)
         {
             if (_internalException is not null)
                 return new Result<T>(_internalException);

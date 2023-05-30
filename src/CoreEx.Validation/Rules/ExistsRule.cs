@@ -19,7 +19,7 @@ namespace CoreEx.Validation.Rules
         private readonly Predicate<TEntity>? _predicate;
         private readonly Func<TEntity, CancellationToken, Task<bool>>? _exists;
         private readonly Func<TEntity, CancellationToken, Task<object?>>? _existsNotNull;
-        private readonly Func<TEntity, CancellationToken, Task<HttpResult>>? _httpResult;
+        private readonly Func<TEntity, CancellationToken, Task<HttpResultBase>>? _httpResult;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExistsRule{TEntity, TProperty}"/> class with a <paramref name="predicate"/>.
@@ -40,13 +40,13 @@ namespace CoreEx.Validation.Rules
         public ExistsRule(Func<TEntity, CancellationToken, Task<object?>> exists) => _existsNotNull = exists ?? throw new ArgumentNullException(nameof(exists));
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ExistsRule{TEntity, TProperty}"/> class with an <paramref name="httpResult"/> function that must return a successful <see cref="HttpResult"/>.
+        /// Initializes a new instance of the <see cref="ExistsRule{TEntity, TProperty}"/> class with an <paramref name="httpResult"/> function that must return a successful <see cref="HttpResultBase"/>.
         /// </summary>
         /// <param name="httpResult">The <see cref="HttpResult"/> function.</param>
-        /// <remarks>A result of <see cref="HttpResult.IsSuccess"/> implies exists, whilst a <see cref="HttpResult.StatusCode"/> of <see cref="HttpStatusCode.NotFound"/> does not.
-        /// Any other status code will result in the underlying <see cref="HttpResult.Response"/> <see cref="HttpResponseMessage.EnsureSuccessStatusCode"/> being invoked resulting in an
+        /// <remarks>A result of <see cref="HttpResultBase.IsSuccess"/> implies exists, whilst a <see cref="HttpResultBase.StatusCode"/> of <see cref="HttpStatusCode.NotFound"/> does not.
+        /// Any other status code will result in the underlying <see cref="HttpResultBase.Response"/> <see cref="HttpResponseMessage.EnsureSuccessStatusCode"/> being invoked resulting in an
         /// appropriate exception being thrown.</remarks>
-        public ExistsRule(Func<TEntity, CancellationToken, Task<HttpResult>> httpResult) => _httpResult = httpResult ?? throw new ArgumentNullException(nameof(httpResult));
+        public ExistsRule(Func<TEntity, CancellationToken, Task<HttpResultBase>> httpResult) => _httpResult = httpResult ?? throw new ArgumentNullException(nameof(httpResult));
 
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)

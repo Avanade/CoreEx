@@ -174,7 +174,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result Then(this Result result, Func<IToResult> func)
+        public static Result ThenFrom(this Result result, Func<IToResult> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func().ToResult() : result;
@@ -187,7 +187,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> Then<T>(this Result<T> result, Func<T, ITypedToResult> func)
+        public static Result<T> ThenFrom<T>(this Result<T> result, Func<T, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func(result.Value).ToResult<T>() : result;
@@ -200,7 +200,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> Then<T>(this Result<T> result, Func<T, IToResult<T>> func)
+        public static Result<T> ThenFrom<T>(this Result<T> result, Func<T, IToResult<T>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func(result.Value).ToResult() : result;
@@ -213,7 +213,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result ThenAs<T>(this Result<T> result, Func<T, IToResult> func)
+        public static Result ThenFromAs<T>(this Result<T> result, Func<T, IToResult> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func(result.Value).ToResult() : result.Bind<T>();
@@ -226,7 +226,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> ThenAs<T>(this Result result, Func<ITypedToResult> func)
+        public static Result<T> ThenFromAs<T>(this Result result, Func<ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func().ToResult<T>() : result.Bind<T>();
@@ -239,7 +239,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> ThenAs<T>(this Result result, Func<IToResult<T>> func)
+        public static Result<T> ThenFromAs<T>(this Result result, Func<IToResult<T>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func().ToResult() : result.Bind<T>();
@@ -253,7 +253,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<U> ThenAs<T, U>(this Result<T> result, Func<T, ITypedToResult> func)
+        public static Result<U> ThenFromAs<T, U>(this Result<T> result, Func<T, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func(result.Value).ToResult<U>() : result.Bind<T, U>();
@@ -267,7 +267,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<U> ThenAs<T, U>(this Result<T> result, Func<T, IToResult<U>> func)
+        public static Result<U> ThenFromAs<T, U>(this Result<T> result, Func<T, IToResult<U>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func(result.Value).ToResult() : result.Bind<T, U>();
@@ -439,11 +439,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> Then(this Task<Result> result, Func<IToResult> func)
+        public static async Task<Result> ThenFrom(this Task<Result> result, Func<IToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return r.Then(func);
+            return r.ThenFrom(func);
         }
 
         /// <summary>
@@ -453,11 +453,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> Then<T>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
+        public static async Task<Result<T>> ThenFrom<T>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return r.Then(func);
+            return r.ThenFrom(func);
         }
 
         /// <summary>
@@ -467,11 +467,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> Then<T>(this Task<Result<T>> result, Func<T, IToResult<T>> func)
+        public static async Task<Result<T>> ThenFrom<T>(this Task<Result<T>> result, Func<T, IToResult<T>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return r.Then(func);
+            return r.ThenFrom(func);
         }
 
         /// <summary>
@@ -481,11 +481,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> ThenAs<T>(this Task<Result<T>> result, Func<T, IToResult> func)
+        public static async Task<Result> ThenFromAs<T>(this Task<Result<T>> result, Func<T, IToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return r.ThenAs(func);
+            return r.ThenFromAs(func);
         }
 
         /// <summary>
@@ -495,11 +495,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAs<T>(this Task<Result> result, Func<ITypedToResult> func)
+        public static async Task<Result<T>> ThenFromAs<T>(this Task<Result> result, Func<ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return r.ThenAs<T>(func);
+            return r.ThenFromAs<T>(func);
         }
 
         /// <summary>
@@ -509,26 +509,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAs<T>(this Task<Result> result, Func<IToResult<T>> func)
+        public static async Task<Result<T>> ThenFromAs<T>(this Task<Result> result, Func<IToResult<T>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return r.ThenAs(func);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> ThenAs<T, U>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
-        {
-            ThrowIfNull(result, func);
-            var r = await result.ConfigureAwait(false);
-            return r.ThenAs<T, U>(func);
+            return r.ThenFromAs(func);
         }
 
         /// <summary>
@@ -539,11 +524,26 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> ThenAs<T, U>(this Task<Result<T>> result, Func<T, IToResult<U>> func)
+        public static async Task<Result<U>> ThenFromAs<T, U>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return r.ThenAs<T, U>(func);
+            return r.ThenFromAs<T, U>(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> ThenFromAs<T, U>(this Task<Result<T>> result, Func<T, IToResult<U>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.ThenFromAs<T, U>(func);
         }
 
         #endregion
@@ -710,7 +710,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> ThenAsync(this Result result, Func<Task<IToResult>> func)
+        public static async Task<Result> ThenFromAsync(this Result result, Func<Task<IToResult>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func().ConfigureAwait(false)).ToResult() : result;
@@ -723,7 +723,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsync<T>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
+        public static async Task<Result<T>> ThenFromAsync<T>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func(result.Value).ConfigureAwait(false)).ToResult<T>() : result;
@@ -736,7 +736,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsync<T>(this Result<T> result, Func<T, Task<IToResult<T>>> func)
+        public static async Task<Result<T>> ThenFromAsync<T>(this Result<T> result, Func<T, Task<IToResult<T>>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result;
@@ -749,7 +749,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> ThenAsAsync<T>(this Result<T> result, Func<T, Task<IToResult>> func)
+        public static async Task<Result> ThenFromAsAsync<T>(this Result<T> result, Func<T, Task<IToResult>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result.Bind<T>();
@@ -762,7 +762,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsAsync<T>(this Result result, Func<Task<ITypedToResult>> func)
+        public static async Task<Result<T>> ThenFromAsAsync<T>(this Result result, Func<Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func().ConfigureAwait(false)).ToResult<T>() : result.Bind<T>();
@@ -775,7 +775,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsAsync<T>(this Result result, Func<Task<IToResult<T>>> func)
+        public static async Task<Result<T>> ThenFromAsAsync<T>(this Result result, Func<Task<IToResult<T>>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func().ConfigureAwait(false)).ToResult() : result.Bind<T>();
@@ -789,7 +789,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> ThenAsAsync<T, U>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
+        public static async Task<Result<U>> ThenFromAsAsync<T, U>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func(result.Value).ConfigureAwait(false)).ToResult<U>() : result.Bind<T, U>();
@@ -803,7 +803,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> ThenAsAsync<T, U>(this Result<T> result, Func<T, Task<IToResult<U>>> func)
+        public static async Task<Result<U>> ThenFromAsAsync<T, U>(this Result<T> result, Func<T, Task<IToResult<U>>> func)
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result.Bind<T, U>();
@@ -975,11 +975,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> ThenAsync(this Task<Result> result, Func<Task<IToResult>> func)
+        public static async Task<Result> ThenFromAsync(this Task<Result> result, Func<Task<IToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsync(func).ConfigureAwait(false);
+            return await r.ThenFromAsync(func).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -989,11 +989,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsync<T>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
+        public static async Task<Result<T>> ThenFromAsync<T>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsync(func).ConfigureAwait(false);
+            return await r.ThenFromAsync(func).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1003,11 +1003,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult<T>>> func)
+        public static async Task<Result<T>> ThenFromAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult<T>>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsync(func).ConfigureAwait(false);
+            return await r.ThenFromAsync(func).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1017,11 +1017,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> ThenAsAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult>> func)
+        public static async Task<Result> ThenFromAsAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsAsync(func).ConfigureAwait(false);
+            return await r.ThenFromAsAsync(func).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1031,11 +1031,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsAsync<T>(this Task<Result> result, Func<Task<ITypedToResult>> func)
+        public static async Task<Result<T>> ThenFromAsAsync<T>(this Task<Result> result, Func<Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsAsync<T>(func).ConfigureAwait(false);
+            return await r.ThenFromAsAsync<T>(func).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1045,26 +1045,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> ThenAsAsync<T>(this Task<Result> result, Func<Task<IToResult<T>>> func)
+        public static async Task<Result<T>> ThenFromAsAsync<T>(this Task<Result> result, Func<Task<IToResult<T>>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsAsync(func).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> ThenAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
-        {
-            ThrowIfNull(result, func);
-            var r = await result.ConfigureAwait(false);
-            return await r.ThenAsAsync<T, U>(func).ConfigureAwait(false);
+            return await r.ThenFromAsAsync(func).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1075,11 +1060,26 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> ThenAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<IToResult<U>>> func)
+        public static async Task<Result<U>> ThenFromAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
-            return await r.ThenAsAsync<T, U>(func).ConfigureAwait(false);
+            return await r.ThenFromAsAsync<T, U>(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public static async Task<Result<U>> ThenFromAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<IToResult<U>>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.ThenFromAsAsync<T, U>(func).ConfigureAwait(false);
         }
 
         #endregion

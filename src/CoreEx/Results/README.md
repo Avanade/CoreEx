@@ -8,7 +8,7 @@ The `CoreEx.Result` namespace enables [monadic](https://en.wikipedia.org/wiki/Mo
 
 ## Motivation
 
-To provide a means to enable Railway-oriented programming within _CoreEx_, and where leveraging, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although, C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is in keeping withing the spirit of railway-orientation.
+To provide a means to enable Railway-oriented programming within _CoreEx_, and where leveraging, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is in keeping withing the spirit of railway-orientation.
 
 <br/>
 
@@ -57,7 +57,7 @@ Property | Description
 
 By default, each of the results has a default property to represent success,`Result.Success` and `Result<T>.None` (default value). 
 
-Additionally, the `Result<T>.Ok(T value)` method enables the creation of a successful result with the specified value. The `Result<T>` also supports [implicit](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/user-defined-conversion-operators) conversion from `T` to `Result<T>` and vice versa.
+Additionally, the `Result<T>.Ok(T value)` method enables the creation of a successful result with the specified value. The `Result<T>` also supports [implicit](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/user-defined-conversion-operators) conversion from `T` to `Result<T>` and vice-versa.
 
 <br/>
 
@@ -115,25 +115,27 @@ The following extension methods are provided to enable the composition of result
 
 Method | Description
 -|-
-[`Go()`](./ResultGo.cs), `GoAsync()` | Begins (starts) a new result chain.
-[`Then()`](./ThenExtensions.cs), `ThenAsync()`, `ThenAs()`, `ThenAsAsync()` | Executes the specified function if the result is a success; otherwise, does nothing.
-[`When()`](./WhenExtensions.cs), `WhenAsync`, `WhenAs()`, `WhenAsAsync()` | Executes the specified function if the result is a success and the corresponding condition evaluates to _true_; otherwise, does nothing.
+[`Go()`](./ResultGo.cs), `GoAsync()`, `GoFrom()`, `GoFromAsync()` | Begins (starts) a new result chain.
+[`Then()`](./ThenExtensions.cs), `ThenAsync()`, `ThenAs()`, `ThenAsAsync()`, `ThenFrom()`, `ThenFromAsync()`, `ThenFromAs()`, `ThenFromAsAsync()` | Executes the specified function if the result is a success; otherwise, does nothing.
+[`When()`](./WhenExtensions.cs), `WhenAsync`, `WhenAs()`, `WhenAsAsync()`, `WhenFrom()`, `WhenFromAsync()`, `WhenFromAs()`, `WhenFromAsAsync()` | Executes the specified function if the result is a success and the corresponding condition evaluates to _true_; otherwise, does nothing.
 [`OnFailure()`](./OnFailureExtensions.cs), `OnFailureAsync()`, `OnFailureAs()`, `OnFailureAsAsync()`  | Executes the specified function if the result is a failure; otherwise, does nothing.
 [`Match()`](./MatchExtensions.cs), `MatchAsync()`, `MatchAs()`, `MatchAsAsync()` | Executes (matches) the _ok_ function when the result is a success; otherwise, invokes the corresponding _fail_ function.
 [`Any()`](./AnyExtensions.cs), `AnyAsync()`, `AnyAs()`, `AnyAsAsync()` | Executes the specified function regardless of the result state.
 [`Try().Catch<TEx>.With()`](./TryCatchWithExtensions.cs), `.WithAs()`, `.WithAsync()`, `.WithAsAsyc()` | Executes the specified function with a [try-catch](./Abstractions/TryCatchWith.cs), and converts any specified exception into a resulting failure where thrown.
 
-By convention the methods that are named with:
-- `As` are to support _explicit_ conversion between types to minimize unintentional data loss and/or unexpected side-effects;
-- `Async` are to support asynchronous execution (versus synchronous).
+By convention methods that are named with the following have the following characteristics.
+
+Convention | Description
+-|-
+`As` | Supports _explicit_ conversion between types to minimize unintentional data loss and/or unexpected side-effects.
+`Async` | Supports asynchronous execution (versus synchronous).
+`From` | Supports [`IToResult`](./IToResult.cs), [`IToResult<T>`](./IToResultT.cs) and [`ITypedToResult`](./ITypedToResult.cs) result conversion.
 
 <br/>
 
 ### ToResult
 
-For the most part the aforementiond extension methods also support the following interfaces, which can be applied to other types to enable the composition of results: [`IToResult`](./IToResult.cs), [`IToResult<T>`](./IToResultT.cs) and [`ITypedToResult`](./ITypedToResult.cs). 
-
-These have been added to the following types:
+The [`IToResult`](./IToResult.cs), [`IToResult<T>`](./IToResultT.cs) and [`ITypedToResult`](./ITypedToResult.cs) interfaces enable the conversion of a type to a result. These have been added to the following types.
 
 Namespace | Type(s)
 -|-

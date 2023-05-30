@@ -41,22 +41,14 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="result">The starting <see cref="IToResult"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result Go(IToResult result) => Success.Then(() => result);
+        public static Result GoFrom(IToResult result) => Success.ThenFrom(() => result);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="func"/>.
         /// </summary>
         /// <param name="func">The starting <see cref="IToResult"/> function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result Go(Func<IToResult> func) => Success.Then(func);
-
-        /// <summary>
-        /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="action"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="action">The <see cref="Action"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> Go<T>(Action action) => Result<T>.None.Then(_ => { action(); });
+        public static Result GoFrom(Func<IToResult> func) => Success.ThenFrom(func);
 
         /// <summary>
         /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
@@ -102,7 +94,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The starting <see cref="IToResult{T}"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> Go<T>(IToResult<T> result) => Result<T>.None.Then(_ => result);
+        public static Result<T> GoFrom<T>(IToResult<T> result) => Result<T>.None.ThenFrom(_ => result);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="func"/>.
@@ -110,7 +102,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="func">The starting <see cref="IToResult{T}"/> function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> Go<T>(Func<IToResult<T>> func) => Result<T>.None.Then(_ => func());
+        public static Result<T> GoFrom<T>(Func<IToResult<T>> func) => Result<T>.None.ThenFrom(_ => func());
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="result"/>.
@@ -118,7 +110,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The starting <see cref="ITypedToResult"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> Go<T>(ITypedToResult result) => Result<T>.None.Then(_ => result);
+        public static Result<T> GoFrom<T>(ITypedToResult result) => Result<T>.None.ThenFrom(_ => result);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="func"/>.
@@ -126,7 +118,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="func">The starting <see cref="IToResult{T}"/> function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> Go<T>(Func<ITypedToResult> func) => Result<T>.None.Then(_ => func());
+        public static Result<T> GoFrom<T>(Func<ITypedToResult> func) => Result<T>.None.ThenFrom(_ => func());
 
         #endregion
 
@@ -158,22 +150,14 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="result">The starting <see cref="IToResult"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result> GoAsync(Task<IToResult> result) => Success.ThenAsync(() => result);
+        public static Task<Result> GoFromAsync(Task<IToResult> result) => Success.ThenFromAsync(() => result);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="func"/>.
         /// </summary>
         /// <param name="func">The starting <see cref="IToResult"/> function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result> GoAsync(Func<Task<IToResult>> func) => Success.ThenAsync(async () => await func());
-
-        /// <summary>
-        /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Task<Result<T>> GoAsync<T>(Func<Task> func) => Result<T>.None.ThenAsync(async _ => await func().ConfigureAwait(false));
+        public static Task<Result> GoFromAsync(Func<Task<IToResult>> func) => Success.ThenFromAsync(async () => await func());
 
         /// <summary>
         /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
@@ -205,7 +189,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The starting <see cref="IToResult{T}"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result<T>> GoAsync<T>(Task<IToResult<T>> result) => Result<T>.None.ThenAsync(_ => result);
+        public static Task<Result<T>> GoFromAsync<T>(Task<IToResult<T>> result) => Result<T>.None.ThenFromAsync(_ => result);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="func"/>.
@@ -213,7 +197,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="func">The starting <see cref="IToResult{T}"/> function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result<T>> GoAsync<T>(Func<Task<IToResult<T>>> func) => Result<T>.None.ThenAsync(async _ => await func().ConfigureAwait(false));
+        public static Task<Result<T>> GoFromAsync<T>(Func<Task<IToResult<T>>> func) => Result<T>.None.ThenFromAsync(async _ => await func().ConfigureAwait(false));
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="result"/>.
@@ -221,7 +205,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The starting <see cref="ITypedToResult"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result<T>> GoAsync<T>(Task<ITypedToResult> result) => Result<T>.None.ThenAsync(_ => result);
+        public static Task<Result<T>> GoFromAsync<T>(Task<ITypedToResult> result) => Result<T>.None.ThenFromAsync(_ => result);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by starting with the <paramref name="func"/>.
@@ -229,7 +213,7 @@ namespace CoreEx.Results
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="func">The starting <see cref="IToResult{T}"/> function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Task<Result<T>> GoAsync<T>(Func<Task<ITypedToResult>> func) => Result<T>.None.ThenAsync(async _ => await func().ConfigureAwait(false));
+        public static Task<Result<T>> GoFromAsync<T>(Func<Task<ITypedToResult>> func) => Result<T>.None.ThenFromAsync(async _ => await func().ConfigureAwait(false));
 
         #endregion
     }

@@ -60,25 +60,25 @@ namespace CoreEx.Test.Framework.Results
             AssertFailure(Result.Go<int>(new NotFoundException()).ThenAs(i => { Assert.Fail(); return Result.Ok(i + 1f); }));
 
             AssertSuccess(Result.Go().Then(() => new IToResultTest()));
-            AssertFailure(Result.NotFoundError().Then(() => { Assert.Fail(); return new IToResultTest(); }));
+            AssertFailure(Result.NotFoundError().ThenFrom(() => { Assert.Fail(); return new IToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(0).Then(_ => new ITypedToResultTest())));
-            AssertFailure(Result<int>.NotFoundError().Then(_ => { Assert.Fail(); return new ITypedToResultTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).ThenFrom(_ => new ITypedToResultTest())));
+            AssertFailure(Result<int>.NotFoundError().ThenFrom(_ => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(0).Then(_ => new IToResultIntTest())));
-            AssertFailure(Result<int>.NotFoundError().Then(_ => { Assert.Fail(); return new IToResultIntTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).ThenFrom(_ => new IToResultIntTest())));
+            AssertFailure(Result<int>.NotFoundError().ThenFrom(_ => { Assert.Fail(); return new IToResultIntTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go().ThenAs<int>(() => new ITypedToResultTest())));
-            AssertFailure(Result.NotFoundError().ThenAs<int>(() => { Assert.Fail(); return new ITypedToResultTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go().ThenFromAs<int>(() => new ITypedToResultTest())));
+            AssertFailure(Result.NotFoundError().ThenFromAs<int>(() => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go().ThenAs<int>(() => new IToResultIntTest())));
-            AssertFailure(Result.NotFoundError().ThenAs<int>(() => { Assert.Fail(); return new IToResultIntTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go().ThenFromAs<int>(() => new IToResultIntTest())));
+            AssertFailure(Result.NotFoundError().ThenFromAs<int>(() => { Assert.Fail(); return new IToResultIntTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(1f).ThenAs<float, int>(_ => new ITypedToResultTest())));
-            AssertFailure(Result<float>.NotFoundError().ThenAs<float, int>(_ => { Assert.Fail(); return new ITypedToResultTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(1f).ThenFromAs<float, int>(_ => new ITypedToResultTest())));
+            AssertFailure(Result<float>.NotFoundError().ThenFromAs<float, int>(_ => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(1f).ThenAs<float, int>(_ => new IToResultIntTest())));
-            AssertFailure(Result<float>.NotFoundError().ThenAs<float, int>(_ => { Assert.Fail(); return new IToResultIntTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(1f).ThenFromAs<float, int>(_ => new IToResultIntTest())));
+            AssertFailure(Result<float>.NotFoundError().ThenFromAs<float, int>(_ => { Assert.Fail(); return new IToResultIntTest(); }));
         }
 
         [Test]
@@ -121,26 +121,26 @@ namespace CoreEx.Test.Framework.Results
             Assert.AreEqual(2f, AssertSuccess(await Result.Go(1).ThenAsAsync(i => Task.FromResult(Result.Ok(i + 1f)))));
             AssertFailure(await Result.Go<int>(new NotFoundException()).ThenAsAsync(i => { Assert.Fail(); return Task.FromResult(Result.Ok(i + 1f)); }));
 
-            AssertSuccess(await Result.Go().ThenAsync(async () => await Task.FromResult(new IToResultTest())));
-            AssertFailure(await Result.NotFoundError().ThenAsync(async () => { Assert.Fail(); return await Task.FromResult(new IToResultTest()); }));
+            AssertSuccess(await Result.Go().ThenFromAsync(async () => await Task.FromResult(new IToResultTest())));
+            AssertFailure(await Result.NotFoundError().ThenFromAsync(async () => { Assert.Fail(); return await Task.FromResult(new IToResultTest()); }));
 
-            Assert.AreEqual(1, AssertSuccess(await Result.Go(0).ThenAsync(async _ => await Task.FromResult(new ITypedToResultTest()))));
-            AssertFailure(await Result<int>.NotFoundError().ThenAsync(async _ => { Assert.Fail(); return await Task.FromResult(new ITypedToResultTest()); }));
+            Assert.AreEqual(1, AssertSuccess(await Result.Go(0).ThenFromAsync(async _ => await Task.FromResult(new ITypedToResultTest()))));
+            AssertFailure(await Result<int>.NotFoundError().ThenFromAsync(async _ => { Assert.Fail(); return await Task.FromResult(new ITypedToResultTest()); }));
 
-            Assert.AreEqual(1, AssertSuccess(await Result.Go(0).ThenAsync(async _ => await Task.FromResult(new IToResultIntTest()))));
-            AssertFailure(await Result<int>.NotFoundError().ThenAsync(async _ => { Assert.Fail(); return await Task.FromResult(new IToResultIntTest()); }));
+            Assert.AreEqual(1, AssertSuccess(await Result.Go(0).ThenFromAsync(async _ => await Task.FromResult(new IToResultIntTest()))));
+            AssertFailure(await Result<int>.NotFoundError().ThenFromAsync(async _ => { Assert.Fail(); return await Task.FromResult(new IToResultIntTest()); }));
 
-            Assert.AreEqual(1, AssertSuccess(await Result.Go().ThenAsAsync<int>(async () => await Task.FromResult(new ITypedToResultTest()))));
-            AssertFailure(await Result.NotFoundError().ThenAsAsync<int>(async () => { Assert.Fail(); return await Task.FromResult(new ITypedToResultTest()); }));
+            Assert.AreEqual(1, AssertSuccess(await Result.Go().ThenFromAsAsync<int>(async () => await Task.FromResult(new ITypedToResultTest()))));
+            AssertFailure(await Result.NotFoundError().ThenFromAsAsync<int>(async () => { Assert.Fail(); return await Task.FromResult(new ITypedToResultTest()); }));
 
-            Assert.AreEqual(1, AssertSuccess(await Result.Go().ThenAsAsync<int>(async () => await Task.FromResult(new IToResultIntTest()))));
-            AssertFailure(await Result.NotFoundError().ThenAsAsync<int>(async () => { Assert.Fail(); return await Task.FromResult(new IToResultIntTest()); }));
+            Assert.AreEqual(1, AssertSuccess(await Result.Go().ThenFromAsAsync<int>(async () => await Task.FromResult(new IToResultIntTest()))));
+            AssertFailure(await Result.NotFoundError().ThenFromAsAsync<int>(async () => { Assert.Fail(); return await Task.FromResult(new IToResultIntTest()); }));
 
-            Assert.AreEqual(1, AssertSuccess(await Result.Go(1f).ThenAsAsync<float, int>(async _ => await Task.FromResult(new ITypedToResultTest()))));
-            AssertFailure(await Result<float>.NotFoundError().ThenAsAsync<float, int>(async _ => { Assert.Fail(); return await Task.FromResult(new ITypedToResultTest()); }));
+            Assert.AreEqual(1, AssertSuccess(await Result.Go(1f).ThenFromAsAsync<float, int>(async _ => await Task.FromResult(new ITypedToResultTest()))));
+            AssertFailure(await Result<float>.NotFoundError().ThenFromAsAsync<float, int>(async _ => { Assert.Fail(); return await Task.FromResult(new ITypedToResultTest()); }));
 
-            Assert.AreEqual(1, AssertSuccess(await Result.Go(1f).ThenAsAsync<float, int>(async _ => await Task.FromResult(new IToResultIntTest()))));
-            AssertFailure(await Result<float>.NotFoundError().ThenAsAsync<float, int>(async _ => { Assert.Fail(); return await Task.FromResult(new IToResultIntTest()); }));
+            Assert.AreEqual(1, AssertSuccess(await Result.Go(1f).ThenFromAsAsync<float, int>(async _ => await Task.FromResult(new IToResultIntTest()))));
+            AssertFailure(await Result<float>.NotFoundError().ThenFromAsAsync<float, int>(async _ => { Assert.Fail(); return await Task.FromResult(new IToResultIntTest()); }));
         }
 
         public class IToResultTest : IToResult

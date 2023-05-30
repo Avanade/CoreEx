@@ -34,7 +34,7 @@ namespace CoreEx.Text.Json
             WriteIndented = false,
             DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
             PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
-            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new ReferenceDataConverterFactory(), new CollectionResultConverterFactory() }
+            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new ReferenceDataConverterFactory(), new CollectionResultConverterFactory(), new ResultConverterFactory() }
         };
 
         /// <summary>

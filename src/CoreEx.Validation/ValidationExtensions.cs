@@ -267,7 +267,20 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
         public static IPropertyRule<TEntity, TProperty> AgentExistsAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<HttpResult>> agentResult, LText? errorText = null) where TEntity : class
-            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(agentResult) { ErrorText = errorText });
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(async (v, ct) => await agentResult(v, ct).ConfigureAwait(false)) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a validation where the rule <paramref name="agentResult"/> function must return a successful response to verify it exists (see <see cref="ExistsRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TAgentValue">The corresponding <see cref="HttpResult{T}"/> <see cref="HttpResult{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="agentResult">The <see cref="HttpResult"/> function.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> AgentExistsAsync<TEntity, TProperty, TAgentValue>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<HttpResult<TAgentValue>>> agentResult, LText? errorText = null) where TEntity : class
+            => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new ExistsRule<TEntity, TProperty>(async (v, ct) => await agentResult(v, ct).ConfigureAwait(false)) { ErrorText = errorText });
 
         #endregion
 

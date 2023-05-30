@@ -65,33 +65,33 @@ namespace CoreEx.Test.Framework.Results
             Assert.AreEqual(0f, AssertSuccess(Result.Go(1).WhenAs(_ => false, i => Result.Ok(i + 1f))));
             AssertFailure(Result.Go<int>(new NotFoundException()).WhenAs(_ => true, i => { Assert.Fail(); return Result.Ok(i + 1f); }));
 
-            AssertSuccess(Result.Go().When(() => true, () => new IToResultTest()));
-            AssertSuccess(Result.Go().When(() => false, () => { Assert.Fail(); return new IToResultTest(); }));
-            AssertFailure(Result.NotFoundError().When(() => true, () => { Assert.Fail(); return new IToResultTest(); }));
+            AssertSuccess(Result.Go().WhenFrom(() => true, () => new IToResultTest()));
+            AssertSuccess(Result.Go().WhenFrom(() => false, () => { Assert.Fail(); return new IToResultTest(); }));
+            AssertFailure(Result.NotFoundError().WhenFrom(() => true, () => { Assert.Fail(); return new IToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(0).When(_ => true, _ => new ITypedToResultTest())));
-            Assert.AreEqual(0, AssertSuccess(Result.Go(0).When(_ => false, _ => new ITypedToResultTest())));
-            AssertFailure(Result<int>.NotFoundError().When(_ => true, _ => { Assert.Fail(); return new ITypedToResultTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).WhenFrom(_ => true, _ => new ITypedToResultTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go(0).WhenFrom(_ => false, _ => new ITypedToResultTest())));
+            AssertFailure(Result<int>.NotFoundError().WhenFrom(_ => true, _ => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(0).When(_ => true, _ => new IToResultIntTest())));
-            Assert.AreEqual(0, AssertSuccess(Result.Go(0).When(_ => false, _ => new IToResultIntTest())));
-            AssertFailure(Result<int>.NotFoundError().When(_ => true, _ => { Assert.Fail(); return new IToResultIntTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(0).WhenFrom(_ => true, _ => new IToResultIntTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go(0).WhenFrom(_ => false, _ => new IToResultIntTest())));
+            AssertFailure(Result<int>.NotFoundError().WhenFrom(_ => true, _ => { Assert.Fail(); return new IToResultIntTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenAs<int>(() => true, () => new ITypedToResultTest())));
-            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenAs<int>(() => false, () => new ITypedToResultTest())));
-            AssertFailure(Result.NotFoundError().WhenAs<int>(() => true, () => { Assert.Fail(); return new ITypedToResultTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenFromAs<int>(() => true, () => new ITypedToResultTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenFromAs<int>(() => false, () => new ITypedToResultTest())));
+            AssertFailure(Result.NotFoundError().WhenFromAs<int>(() => true, () => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenAs<int>(() => true, () => new IToResultIntTest())));
-            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenAs<int>(() => false, () => new IToResultIntTest())));
-            AssertFailure(Result.NotFoundError().WhenAs<int>(() => true, () => { Assert.Fail(); return new IToResultIntTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go().WhenFromAs<int>(() => true, () => new IToResultIntTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go().WhenFromAs<int>(() => false, () => new IToResultIntTest())));
+            AssertFailure(Result.NotFoundError().WhenFromAs<int>(() => true, () => { Assert.Fail(); return new IToResultIntTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => true, _ => new ITypedToResultTest())));
-            Assert.AreEqual(0, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => false, _ => new ITypedToResultTest())));
-            AssertFailure(Result<float>.NotFoundError().WhenAs<float, int>(_ => true, _ => { Assert.Fail(); return new ITypedToResultTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(2.2f).WhenFromAs<float, int>(_ => true, _ => new ITypedToResultTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go(2.2f).WhenFromAs<float, int>(_ => false, _ => new ITypedToResultTest())));
+            AssertFailure(Result<float>.NotFoundError().WhenFromAs<float, int>(_ => true, _ => { Assert.Fail(); return new ITypedToResultTest(); }));
 
-            Assert.AreEqual(1, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => true, _ => new IToResultIntTest())));
-            Assert.AreEqual(0, AssertSuccess(Result.Go(2.2f).WhenAs<float, int>(_ => false, _ => new IToResultIntTest())));
-            AssertFailure(Result<float>.NotFoundError().WhenAs<float, int>(_ => true, _ => { Assert.Fail(); return new IToResultIntTest(); }));
+            Assert.AreEqual(1, AssertSuccess(Result.Go(2.2f).WhenFromAs<float, int>(_ => true, _ => new IToResultIntTest())));
+            Assert.AreEqual(0, AssertSuccess(Result.Go(2.2f).WhenFromAs<float, int>(_ => false, _ => new IToResultIntTest())));
+            AssertFailure(Result<float>.NotFoundError().WhenFromAs<float, int>(_ => true, _ => { Assert.Fail(); return new IToResultIntTest(); }));
         }
     }
 }
