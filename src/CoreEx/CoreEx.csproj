@@ -4,9 +4,9 @@
     <TargetFrameworks>net6.0;net7.0;netstandard2.1</TargetFrameworks>
     <RootNamespace>CoreEx</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Standard Extensions.</Title>
-    <Description>CoreEx .NET Standard (v2.1) Extensions.</Description>
-    <PackageTags>coreex api function aspnet entity microservices referencedata jsonserializer eventdata events httpclient settings</PackageTags>
+    <Title>CoreEx .NET backend Extensions.</Title>
+    <Description>CoreEx .NET backend Extensions.</Description>
+    <PackageTags>coreex api function aspnet entity microservices referencedata jsonserializer eventdata events httpclient settings railway-oriented</PackageTags>
     <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
   </PropertyGroup>
 

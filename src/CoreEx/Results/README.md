@@ -1,6 +1,6 @@
 # CoreEx.Results
 
-The `CoreEx.Result` namespace enables [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html), as illustrated below (from referenced article) - this is a **must** read for context and understanding of the benefits of this approach.
+The `CoreEx.Result` namespace enables [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to as [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html), as illustrated below (from referenced article) - this is a **must** read for context and understanding of the benefits of this approach.
 
 ![Railway-oriented](../../../images/Railway_Transparent.png)
 
@@ -8,7 +8,7 @@ The `CoreEx.Result` namespace enables [monadic](https://en.wikipedia.org/wiki/Mo
 
 ## Motivation
 
-To provide a means to enable Railway-oriented programming within _CoreEx_, and where leveraging, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is in keeping withing the spirit of railway-orientation.
+To provide a means to enable Railway-oriented programming within _CoreEx_, and where leveraging, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is in keeping within the spirit of this.
 
 <br/>
 
@@ -55,7 +55,7 @@ Property | Description
 
 ### Success
 
-By default, each of the results has a default property to represent success,`Result.Success` and `Result<T>.None` (default value). 
+By default, each of the results has a default property to represent success, `Result.Success` and `Result<T>.None` (default value). 
 
 Additionally, the `Result<T>.Ok(T value)` method enables the creation of a successful result with the specified value. The `Result<T>` also supports [implicit](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/user-defined-conversion-operators) conversion from `T` to `Result<T>` and vice-versa.
 
@@ -67,23 +67,23 @@ The following primary failure methods are provided.
 
 Method | Description
 -|-
-`Fail` | Creates a failure result with the specified error message (internally creates a [`BusinessException`](../BusinessException.cs)), or alternatively can be passed an `Exception` directly.
-`ThrowOnError` | Throws the `Error` if the result is a failure; otherwise, does nothing.
+`Fail()` | Creates a failure result with the specified error message (internally creates a [`BusinessException`](../BusinessException.cs)), or alternatively can be passed an `Exception` directly.
+`ThrowOnError()` | Throws the `Error` if the result is a failure; otherwise, does nothing.
 
 The `Result` and `Result<T>` also support [implicit](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/user-defined-conversion-operators) conversion from an `Exception`.
 
-The following secondary failure methods are provided that enable the creation of a failure result with a specific _CoreEx_ error type. These exceptions are used extensively within _CoreEx_ to both represent specific error types, and to enable related functionality as a result of the exception typically being thrown.
+The following secondary failure methods are provided that enable the creation of a failure result with a specific _CoreEx_ error type. These [exceptions](../README.md/#exceptions) are used extensively within _CoreEx_ to both represent specific error types, and to enable related functionality as a result of the exception typically being thrown.
 
 Method | Description
 -|-
-`AuthenticationError` | Creates a failure result with the [`AuthenticationException`](../AuthenticationException.cs).
-`AuthorizationError` | Creates a failure result with the [`AuthorizationException`](../AuthorizationException.cs).
-`ConcurrencyError` | Creates a failure result with the [`ConcurrencyException`](../ConcurrencyException.cs).
-`ConflictError` | Creates a failure result with the [`ConflictException`](../ConflictException.cs).
-`DuplicateError` | Creates a failure result with the [`DuplicateException`](../DuplicateException.cs).
-`NotFoundError` | Creates a failure result with the [`NotFoundException`](../NotFoundException.cs).
-`TransientError` | Creates a failure result with the [`TransientException`](../TransientException.cs).
-`ValidationError` | Creates a failure result with the [`ValidationException`](../ValidationException.cs).
+`AuthenticationError()` | Creates a failure result with the [`AuthenticationException`](../AuthenticationException.cs).
+`AuthorizationError()` | Creates a failure result with the [`AuthorizationException`](../AuthorizationException.cs).
+`ConcurrencyError()` | Creates a failure result with the [`ConcurrencyException`](../ConcurrencyException.cs).
+`ConflictError()` | Creates a failure result with the [`ConflictException`](../ConflictException.cs).
+`DuplicateError()` | Creates a failure result with the [`DuplicateException`](../DuplicateException.cs).
+`NotFoundError()` | Creates a failure result with the [`NotFoundException`](../NotFoundException.cs).
+`TransientError()` | Creates a failure result with the [`TransientException`](../TransientException.cs).
+`ValidationError()` | Creates a failure result with the [`ValidationException`](../ValidationException.cs).
 
 All of the above methods support the passing of the error message, which leverages [`LText`](../Localization/LText.cs) to enable the localization of the error message.
 
