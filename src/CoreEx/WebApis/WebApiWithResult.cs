@@ -775,7 +775,7 @@ namespace CoreEx.WebApis
                     };
 
                 // Retrieve the JSON content string; there must be some content of some type.
-                var json = await request.ReadAsStringAsync(true, ct).ConfigureAwait(false);
+                var json = await request.ReadAsBinaryDataAsync(true, ct).ConfigureAwait(false);
                 if (json.Exception != null)
                     return await CreateActionResultFromExceptionAsync(this, request.HttpContext, json.Exception, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false);
 

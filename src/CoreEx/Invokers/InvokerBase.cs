@@ -16,9 +16,9 @@ namespace CoreEx.Invokers
     public abstract class InvokerBase : InvokerBase<object, InvokerArgs>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(object owner, Func<TResult> func, InvokerArgs? param)
+        protected override TResult OnInvoke<TResult>(object owner, Func<TResult> func, InvokerArgs param)
         {
-            InvokerArgs bia = param ?? InvokerArgs.Default;
+            InvokerArgs bia = param;
             TransactionScope? txn = null;
             var ot = CoreEx.ExecutionContext.Current.OperationType;
             if (bia.OperationType.HasValue)
@@ -58,9 +58,9 @@ namespace CoreEx.Invokers
         }
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(object owner, Func<CancellationToken, Task<TResult>> func, InvokerArgs? param, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(object owner, Func<CancellationToken, Task<TResult>> func, InvokerArgs param, CancellationToken cancellationToken)
         {
-            InvokerArgs bia = param ?? InvokerArgs.Default;
+            InvokerArgs bia = param;
             TransactionScope? txn = null;
             var ot = CoreEx.ExecutionContext.Current.OperationType;
             if (bia.OperationType.HasValue)

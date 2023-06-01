@@ -112,12 +112,12 @@ namespace CoreEx.Validation
         /// <summary>
         /// Handle the add of a message.
         /// </summary>
-        private void Messages_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        private void Messages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             switch (e.Action)
             {
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
-                    foreach (var m in e.NewItems)
+                    foreach (var m in e.NewItems!)
                     {
                         MessageItem mi = (MessageItem)m;
                         if (mi.Type == MessageType.Error)
@@ -204,7 +204,7 @@ namespace CoreEx.Validation
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The property expression.</param>
         /// <returns>The corresponding <see cref="MessageItem"/>; otherwise, <c>null</c>.</returns>
-        public MessageItem? GetError<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression) => _propertyMessages.TryGetValue(CreateFullyQualifiedName(propertyExpression), out MessageItem mi) ? null : mi;
+        public MessageItem? GetError<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression) => _propertyMessages.TryGetValue(CreateFullyQualifiedName(propertyExpression), out MessageItem? mi) ? null : mi;
 
         /// <summary>
         /// Adds an <see cref="MessageType.Error"/> <see cref="MessageItem"/> to the <see cref="Messages"/> for the specified property and explicit text. 

@@ -58,8 +58,8 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddValidators<TAssembly>(this IServiceCollection services, bool includeInternalTypes = false, bool alsoRegisterInterfaces = true)
         {
             var av = alsoRegisterInterfaces
-                ? typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorWithInterfacesInternal), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
-                : typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorInternal), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                ? typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorWithInterfacesInternal), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
+                : typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorInternal), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
 
             foreach (var match in from type in includeInternalTypes ? typeof(TAssembly).Assembly.GetTypes() : typeof(TAssembly).Assembly.GetExportedTypes()
                                   where !type.IsAbstract && !type.IsGenericTypeDefinition

@@ -212,7 +212,7 @@ namespace CoreEx.Database.Extended
             var cmd = Command.Params(Parameters).PagingParams(Paging);
 
             return await Result.GoAsync(func(cmd, cancellationToken))
-                               .When(_ => rvp != null && rvp.Value != null, _ => { Paging!.TotalCount = (long)rvp!.Value; })
+                               .When(_ => rvp != null && rvp.Value != null, _ => { Paging!.TotalCount = (long)rvp!.Value!; })
                                .Then(res => QueryArgs.CleanUpResult ? Cleaner.Clean(res) : res);
         }
     }

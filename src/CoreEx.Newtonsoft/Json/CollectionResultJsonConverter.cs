@@ -21,7 +21,7 @@ namespace CoreEx.Newtonsoft.Json
             if (reader.TokenType == JsonToken.Null)
                 return default;
 
-            var cr = (ICollectionResult)Activator.CreateInstance(objectType);
+            var cr = (ICollectionResult)Activator.CreateInstance(objectType)!;
             var coll = (ICollection?)serializer.Deserialize(reader, cr.CollectionType);
 
             if (coll != null)

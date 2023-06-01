@@ -129,7 +129,7 @@ namespace CoreEx.Newtonsoft.Json
 
             if (Settings.ContractResolver is ContractResolver cr)
             {
-                var jo = memberInfo.DeclaringType.GetCustomAttribute<JsonObjectAttribute>(true);
+                var jo = memberInfo.DeclaringType?.GetCustomAttribute<JsonObjectAttribute>(true);
                 var jp = cr.GetProperty(memberInfo, jo == null ? MemberSerialization.OptOut : jo.MemberSerialization);
                 if (jp != null)
                 {

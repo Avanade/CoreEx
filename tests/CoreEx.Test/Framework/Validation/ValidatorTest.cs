@@ -636,54 +636,6 @@ namespace CoreEx.Test.Framework.Validation
         }
 
         [Test]
-        public void EnsureValue()
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            var vex = Assert.Throws<ValidationException>(() => 0.EnsureValue());
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Value is required.", vex.Messages[0].Text);
-            Assert.AreEqual("value", vex.Messages[0].Property);
-
-            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("count"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Count is required.", vex.Messages[0].Text);
-            Assert.AreEqual("count", vex.Messages[0].Property);
-
-            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("count", "Counter"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Counter is required.", vex.Messages[0].Text);
-            Assert.AreEqual("count", vex.Messages[0].Property);
-
-            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("numberOfPlayers"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Number Of Players is required.", vex.Messages[0].Text);
-            Assert.AreEqual("numberOfPlayers", vex.Messages[0].Property);
-
-            vex = Assert.Throws<ValidationException>(() => 0.EnsureValue("id"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Identifier is required.", vex.Messages[0].Text);
-            Assert.AreEqual("id", vex.Messages[0].Property);
-
-            Assert.AreEqual(123, 123.EnsureValue());
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
-
-        [Test]
         public void Required()
         {
             var vex = Assert.Throws<ValidationException>(() => 0.Required());

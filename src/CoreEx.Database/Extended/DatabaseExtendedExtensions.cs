@@ -5,6 +5,7 @@ using CoreEx.Mapping;
 using CoreEx.RefData;
 using CoreEx.Results;
 using System;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -63,7 +64,7 @@ namespace CoreEx.Database.Extended
             if (!database.Provider.CanCreateCommandBuilder)
                 throw new NotSupportedException("Database Provider can not CreateCommandBuilder which is required to quote the identifiers to minimize SQL inject possibility.");
 
-            var cb = database.Provider.CreateCommandBuilder();
+            var cb = database.Provider.CreateCommandBuilder() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateCommandBuilder)} returned a null.");
             if (string.IsNullOrEmpty(schemaName))
                 return ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database)))
                     .SqlStatement($"SELECT * FROM {cb.QuoteIdentifier(tableName ?? throw new ArgumentNullException(nameof(tableName)))}"));

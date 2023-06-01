@@ -49,18 +49,6 @@ namespace CoreEx.Validation
         }
 
         /// <summary>
-        /// Validates (ensures) that the <paramref name="value"/> is non-default and continues; otherwise, will throw a <see cref="ValidationException"/>.
-        /// </summary>
-        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="value">The value to validate.</param>
-        /// <param name="name">The value name (defaults to <see cref="ValueNameDefault"/>).</param>
-        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
-        /// <returns>The value where non-default.</returns>
-        /// <exception cref="ValidationException">Thrown where the value is default.</exception>
-        [Obsolete($"The {nameof(EnsureValue)} extension method is being renamed to {nameof(Required)} as this is more explicit of purpose; please refactor to use new.")]
-        public static T? EnsureValue<T>(this T? value, string? name = null, LText? text = null) => Required(value, name, text);
-
-        /// <summary>
         /// Validates (requires) that the <paramref name="value"/> is non-default and continues; otherwise, will throw a <see cref="ValidationException"/>.
         /// </summary>
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>

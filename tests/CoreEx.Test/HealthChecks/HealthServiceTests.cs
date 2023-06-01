@@ -25,8 +25,8 @@ namespace CoreEx.Test.HealthChecks
 
             // Act
             var result = await test.Type<HealthService>().RunAsync(x => x.RunAsync());
-            var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
-            var jsonSerializer = (IJsonSerializer)test.Services.GetService(typeof(IJsonSerializer));
+            var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content!;
+            var jsonSerializer = (IJsonSerializer)test.Services.GetRequiredService(typeof(IJsonSerializer));
 
             JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
@@ -47,17 +47,17 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             using var test = FunctionTester.Create<Startup>();
             //   setup failing health check
-            Mock<IHealthCheck> mock = new Mock<IHealthCheck>();
+            Mock<IHealthCheck> mock = new();
             mock.Setup(h => h.CheckHealthAsync(It.IsAny<HealthCheckContext>(), default))
                 .Returns(Task.FromResult(HealthCheckResult.Unhealthy("Failed during health checks")));
             test.ConfigureServices(sc => sc.AddHealthChecks().AddCheck("Failing", mock.Object));
 
-            var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
-            var jsonSerializer = (IJsonSerializer)test.Services.GetService(typeof(IJsonSerializer));
+            var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase))!;
+            var jsonSerializer = (IJsonSerializer)test.Services.GetRequiredService(typeof(IJsonSerializer));
 
             // Act
             var result = await test.Type<HealthService>().RunAsync(x => x.RunAsync());
-            var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
+            var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content!;
             JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert
@@ -77,17 +77,17 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             using var test = FunctionTester.Create<Startup>();
             //   setup failing health check
-            Mock<IHealthCheck> mock = new Mock<IHealthCheck>();
+            Mock<IHealthCheck> mock = new();
             mock.Setup(h => h.CheckHealthAsync(It.IsAny<HealthCheckContext>(), default))
                 .Throws(new Exception("Failed during health checks"));
             test.ConfigureServices(sc => sc.AddHealthChecks().AddCheck("Failing-with-exception", mock.Object));
 
-            var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
-            var jsonSerializer = (IJsonSerializer)test.Services.GetService(typeof(IJsonSerializer));
+            var settings = (SettingsBase?)test.Services.GetService(typeof(SettingsBase));
+            var jsonSerializer = (IJsonSerializer)test.Services.GetRequiredService(typeof(IJsonSerializer));
 
             // Act
             var result = await test.Type<HealthService>().RunAsync(x => x.RunAsync());
-            var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content;
+            var json = ((Microsoft.AspNetCore.Mvc.ContentResult)result.Result).Content!;
             JsonElement jsonObj = (JsonElement)jsonSerializer.Deserialize(json)!;
 
             // Assert

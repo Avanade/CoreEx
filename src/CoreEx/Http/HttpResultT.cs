@@ -20,17 +20,17 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="HttpResult{T}"/> class.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/> (see <see cref="HttpContent.ReadAsByteArrayAsync()"/>).</param>
         /// <param name="value">The deserialized value where <see cref="HttpResultBase.IsSuccess"/>; otherwise, <c>default</c>.</param>
-        internal HttpResult(HttpResponseMessage response, string? content, T value) : base(response, content) => _value = value;
+        internal HttpResult(HttpResponseMessage response, BinaryData? content, T value) : base(response, content) => _value = value;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HttpResult{T}"/> class that has an exception.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/> (see <see cref="HttpContent.ReadAsByteArrayAsync()"/>).</param>
         /// <param name="internalException">The internal <see cref="Exception"/>.</param>
-        internal HttpResult(HttpResponseMessage response, string? content, Exception internalException) : this(response, content, default(T)!) => _internalException = internalException;
+        internal HttpResult(HttpResponseMessage response, BinaryData? content, Exception internalException) : this(response, content, default(T)!) => _internalException = internalException;
 
         /// <summary>
         /// Gets the response value.

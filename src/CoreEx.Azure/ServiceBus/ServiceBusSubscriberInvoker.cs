@@ -79,7 +79,7 @@ namespace CoreEx.Azure.ServiceBus
             }
             finally
             {
-                scope.Dispose();
+                scope?.Dispose();
             }
         }
 

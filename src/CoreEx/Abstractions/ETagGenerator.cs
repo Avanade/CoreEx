@@ -60,8 +60,12 @@ namespace CoreEx.Abstractions
         public static string GenerateHash(string text)
         {
             var buf = Encoding.UTF8.GetBytes(text ?? throw new ArgumentNullException(nameof(text)));
+#if NETSTANDARD2_1
             using var sha256 = System.Security.Cryptography.SHA256.Create();
             var hash = new BinaryData(sha256.ComputeHash(buf));
+#else
+            var hash = System.Security.Cryptography.SHA256.HashData(buf);
+#endif
             return Convert.ToBase64String(hash);
         }
 

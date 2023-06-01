@@ -24,11 +24,11 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="HttpResultBase"/> class.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
-        protected HttpResultBase(HttpResponseMessage response, string? content)
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/>.</param>
+        protected HttpResultBase(HttpResponseMessage response, BinaryData? content)
         {
             Response = response ?? throw new ArgumentNullException(nameof(response));
-            Content = content;
+            BinaryContent = content;
 
             _errorType = new Lazy<string?>(() =>
             {
@@ -68,9 +68,14 @@ namespace CoreEx.Http
         public HttpResponseMessage Response { get; }
 
         /// <summary>
-        /// Gets the <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).
+        /// Gets the <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/>.
         /// </summary>
-        public string? Content { get => WillResultInNullAsNotFound ? null : _content; private set => _content = value; }
+        public BinaryData? BinaryContent { get; }
+
+        /// <summary>
+        /// Gets the <see cref="BinaryContent"/> as a <see cref="string"/>.
+        /// </summary>
+        public string? Content { get => WillResultInNullAsNotFound ? null : _content ??= BinaryContent?.ToString(); }
 
         /// <summary>
         /// Gets the underlying <see cref="HttpRequestMessage"/>.

@@ -22,7 +22,7 @@ namespace CoreEx.Validation.Rules
         protected override Task ValidateAsync(PropertyContext<TEntity, TProperty?> context, CancellationToken cancellationToken = default)
         {
             // Make sure the enum is defined.
-            if (!Enum.IsDefined(typeof(TProperty), context.Value))
+            if (context.Value is null || !Enum.IsDefined(typeof(TProperty), context.Value))
                 context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
 
             return Task.CompletedTask;

@@ -172,15 +172,17 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpRequestJsonValue{T}"/>.</returns>
         public static async Task<HttpRequestJsonValue<T>> ReadAsJsonValueAsync<T>(this HttpRequest httpRequest, IJsonSerializer jsonSerializer, bool valueIsRequired = true, IValidator<T>? validator = null, CancellationToken cancellationToken = default)
         {
-            using var sr = new StreamReader((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Body, Encoding.UTF8, true, 1024, leaveOpen: true);
-            var json = await sr.ReadToEndAsync().ConfigureAwait(false);
+            if (httpRequest == null)
+                throw new ArgumentNullException(nameof(httpRequest));
+
+            var content = await BinaryData.FromStreamAsync(httpRequest.Body, cancellationToken).ConfigureAwait(false);
             var jv = new HttpRequestJsonValue<T>();
 
             // Deserialize the JSON into the selected type.
             try
             {
-                if (!string.IsNullOrEmpty(json)) 
-                    jv.Value = (jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).Deserialize<T>(json)!;
+                if (content.ToMemory().Length > 0)
+                    jv.Value = (jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).Deserialize<T>(content)!;
 
                 if (valueIsRequired && jv.Value == null)
                     jv.ValidationException = new ValidationException($"{InvalidJsonMessagePrefix} Value is mandatory.");
@@ -199,20 +201,18 @@ namespace CoreEx.Http
             return jv;
         }
 
-
         /// <summary>
-        /// Reads the HTTP <see cref="HttpRequest.Body"/> as a <see cref="string"/>.
+        /// Reads the HTTP <see cref="HttpRequest.Body"/> as <see cref="BinaryData"/> and optionally validates whether <paramref name="valueIsRequired"/>.
         /// </summary>
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
-        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where underlying <see cref="Stream"/> length is zero.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The content where successful, otherwise the <see cref="ValidationException"/> invalid.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there in case it ever does.")]
-        public static async Task<(string? Content, ValidationException? Exception)> ReadAsStringAsync(this HttpRequest httpRequest, bool valueIsRequired = true, CancellationToken cancellationToken = default)
+        /// <returns>The <see cref="BinaryData"/> content where successful, otherwise the <see cref="ValidationException"/> invalid.</returns>
+        public static async Task<(BinaryData? Content, ValidationException? Exception)> ReadAsBinaryDataAsync(this HttpRequest httpRequest, bool valueIsRequired = true, CancellationToken cancellationToken = default)
         {
-            using var sr = new StreamReader((httpRequest ?? throw new ArgumentNullException(nameof(httpRequest))).Body, Encoding.UTF8, true, 1024, leaveOpen: true);
-            var content = await sr.ReadToEndAsync().ConfigureAwait(false);
-            if (valueIsRequired && string.IsNullOrEmpty(content))
+            var content = await BinaryData.FromStreamAsync(httpRequest.Body, cancellationToken).ConfigureAwait(false);
+
+            if (valueIsRequired && content.ToMemory().Length == 0)
                 return (null, new ValidationException($"{InvalidJsonMessagePrefix} Value is mandatory."));
             else
                 return (content, null);
@@ -223,16 +223,14 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
         /// <returns>The <see cref="HttpRequestOptions"/>.</returns>
-        public static WebApiRequestOptions GetRequestOptions(this HttpRequest httpRequest)
-            => new(httpRequest ?? throw new ArgumentNullException(nameof(httpRequest)));
+        public static WebApiRequestOptions GetRequestOptions(this HttpRequest httpRequest) => new(httpRequest ?? throw new ArgumentNullException(nameof(httpRequest)));
 
         /// <summary>
         /// Adds the <see cref="PagingArgs"/> to the <see cref="HttpResponse"/>.
         /// </summary>
         /// <param name="httpResponse">The <see cref="HttpResponse"/>.</param>
         /// <param name="paging">The <see cref="PagingResult"/>.</param>
-        public static void AddPagingResult(this HttpResponse httpResponse, PagingResult? paging)
-            => httpResponse.Headers.AddPagingResult(paging);
+        public static void AddPagingResult(this HttpResponse httpResponse, PagingResult? paging) => httpResponse.Headers.AddPagingResult(paging);
 
         /// <summary>
         /// Adds the <see cref="PagingArgs"/> to the <see cref="IHeaderDictionary"/>.
@@ -269,9 +267,6 @@ namespace CoreEx.Http
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IExtendedException"/> where applicable; otherwise, <c>null</c>.</returns>
-#if NETSTANDARD2_1
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "StreamReader.ReadToEndAsync does not currently support, it is there is case it ever does.")]
-#endif
         public async static Task<IExtendedException?> ToExtendedExceptionAsync(this HttpResponseMessage response, bool useContentAsErrorMessage = true, CancellationToken cancellationToken = default)
         {
             if (response == null || response.IsSuccessStatusCode)
@@ -285,7 +280,7 @@ namespace CoreEx.Http
             if (string.IsNullOrEmpty(content))
                 content = $"Response status code does not indicate success: {(int)response.StatusCode} ({(string.IsNullOrEmpty(response.ReasonPhrase) ? response.StatusCode : response.ReasonPhrase)}).";
 
-            return HttpResult.CreateExtendedException(response, content, useContentAsErrorMessage);
+            return HttpResultBase.CreateExtendedException(response, content, useContentAsErrorMessage);
         }
 
         /// <summary>

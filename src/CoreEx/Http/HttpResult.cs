@@ -24,9 +24,14 @@ namespace CoreEx.Http
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
         public static async Task<HttpResult> CreateAsync(HttpResponseMessage response, CancellationToken cancellationToken = default)
-            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), response.Content == null || response.Content.Headers.ContentLength == 0 ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+#if NETSTANDARD2_1
+            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), 
+                response.Content == null || response.Content.Headers.ContentLength == 0 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false)));
+#else
+            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), 
+                response.Content == null || response.Content.Headers.ContentLength == 0 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false)));
+#endif
 
         /// <summary>
         /// Creates a new <see cref="HttpResult{T}"/> with a <see cref="HttpResult{T}.Value"/>.
@@ -35,18 +40,26 @@ namespace CoreEx.Http
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/> for deserializing the <see cref="HttpResult{T}.Value"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
         public static async Task<HttpResult<T>> CreateAsync<T>(HttpResponseMessage response, IJsonSerializer? jsonSerializer = default, CancellationToken cancellationToken = default)
         {
-            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
+#if NETSTANDARD2_1
+            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
+                ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false));
+#else
+            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
+                ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false));
+#endif
+
+            if (!response.IsSuccessStatusCode || content == BinaryData.Empty)
                 return new HttpResult<T>(response, content, default(T)!);
 
             if (typeof(T) == typeof(string) && StringComparer.OrdinalIgnoreCase.Compare(response.Content.Headers?.ContentType?.MediaType, MediaTypeNames.Text.Plain) == 0)
             {
                 try
                 {
-                    return new HttpResult<T>(response, content, (T)Convert.ChangeType(content, typeof(T), CultureInfo.CurrentCulture));
+                    return content == null 
+                        ? new HttpResult<T>(response, content, default(T)!)
+                        : new HttpResult<T>(response, content, (T)Convert.ChangeType(content.ToString(), typeof(T), CultureInfo.CurrentCulture));
                 }
                 catch (Exception ex)
                 {
@@ -56,7 +69,7 @@ namespace CoreEx.Http
 
             try
             {
-                var value = (jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? JsonSerializer.Default).Deserialize<T>(content);
+                var value = content == null ? default! : (jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? JsonSerializer.Default).Deserialize<T>(content);
                 if (value != null && value is IETag etag && etag.ETag == null && response.Headers.ETag != null)
                     etag.ETag = response.Headers.ETag.Tag;
 
@@ -79,8 +92,8 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="HttpResult"/> class.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
-        public HttpResult(HttpResponseMessage response, string? content) : base(response, content) { }
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/> (see <see cref="HttpContent.ReadAsByteArrayAsync()"/>).</param>
+        internal HttpResult(HttpResponseMessage response, BinaryData? content) : base(response, content) { }
 
         /// <summary>
         /// Throws an exception if the request was not successful (see <see cref="HttpResultBase.IsSuccess"/>).

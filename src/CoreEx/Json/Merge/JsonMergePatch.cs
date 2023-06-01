@@ -52,7 +52,7 @@ namespace CoreEx.Json.Merge
         public JsonMergePatchOptions Options { get; set; }
 
         /// <inheritdoc/>
-        public bool Merge<T>(string json, ref T? value)
+        public bool Merge<T>(BinaryData json, ref T? value)
         {
             if (json == null)
                 throw new ArgumentNullException(nameof(json));
@@ -65,7 +65,7 @@ namespace CoreEx.Json.Merge
         }
 
         /// <inheritdoc/>
-        public async Task<(bool HasChanges, T? Value)> MergeAsync<T>(string json, Func<T?, CancellationToken, Task<T?>> getValue, CancellationToken cancellationToken = default)
+        public async Task<(bool HasChanges, T? Value)> MergeAsync<T>(BinaryData json, Func<T?, CancellationToken, Task<T?>> getValue, CancellationToken cancellationToken = default)
         {
             if (json == null)
                 throw new ArgumentNullException(nameof(json));
@@ -86,7 +86,7 @@ namespace CoreEx.Json.Merge
         }
 
         /// <inheritdoc/>
-        public async Task<Result<(bool HasChanges, T Value)>> MergeWithResultAsync<T>(string json, Func<T, CancellationToken, Task<Result<T>>> getValue, CancellationToken cancellationToken = default)
+        public async Task<Result<(bool HasChanges, T Value)>> MergeWithResultAsync<T>(BinaryData json, Func<T, CancellationToken, Task<Result<T>>> getValue, CancellationToken cancellationToken = default)
         {
             if (json == null)
                 throw new ArgumentNullException(nameof(json));
@@ -179,7 +179,7 @@ namespace CoreEx.Json.Merge
         /// <summary>
         /// Parses the JSON.
         /// </summary>
-        private (JsonElement JsonElement, T? Value) ParseJson<T>(string json)
+        private (JsonElement JsonElement, T? Value) ParseJson<T>(BinaryData json)
         {
             try
             {
@@ -187,7 +187,7 @@ namespace CoreEx.Json.Merge
                 var value = Options.JsonSerializer.Deserialize<T>(json);
 
                 // Parse the JSON into a JsonElement which will be used to navigate the merge.
-                var jr = new Utf8JsonReader(new BinaryData(json));
+                var jr = new Utf8JsonReader(json);
                 var je = JsonElement.ParseValue(ref jr);
                 return (je, value);
             }

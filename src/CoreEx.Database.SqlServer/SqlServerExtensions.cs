@@ -25,7 +25,7 @@ namespace CoreEx.Database.SqlServer
         /// <returns>A <see cref="DbParameter"/>.</returns>
         public static SqlParameter AddParameter(this DatabaseParameterCollection dpc, string name, object? value, SqlDbType? sqlDbType = null, ParameterDirection direction = ParameterDirection.Input)
         {
-            var p = (SqlParameter)(dpc ?? throw new ArgumentNullException(nameof(dpc))).Database.Provider.CreateParameter();
+            var p = (SqlParameter)((dpc ?? throw new ArgumentNullException(nameof(dpc))).Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
             p.ParameterName = DatabaseParameterCollection.ParameterizeName(name);
             if (sqlDbType.HasValue)
                 p.SqlDbType = sqlDbType.Value;
@@ -47,7 +47,7 @@ namespace CoreEx.Database.SqlServer
         /// <remarks>This specifically implies that the <see cref="SqlParameter"/> is being used; if not then an exception will be thrown.</remarks>
         public static SqlParameter AddTableValuedParameter(this DatabaseParameterCollection dpc, string name, TableValuedParameter tvp)
         {
-            var p = (SqlParameter)(dpc ?? throw new ArgumentNullException(nameof(dpc))).Database.Provider.CreateParameter();
+            var p = (SqlParameter)((dpc ?? throw new ArgumentNullException(nameof(dpc))).Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
             p.ParameterName = DatabaseParameterCollection.ParameterizeName(name);
             p.SqlDbType = SqlDbType.Structured;
             p.TypeName = (tvp ?? throw new ArgumentNullException(nameof(tvp))).TypeName;

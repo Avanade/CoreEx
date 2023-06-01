@@ -571,7 +571,7 @@ namespace CoreEx.Test.Framework.RefData
             Assert.AreEqual(new string[] { "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(text: "*IN*").GetAwaiter().GetResult().Select(x => x.Code));
             Assert.AreEqual(new string[] { "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(text: "*in*").GetAwaiter().GetResult().Select(x => x.Code));
             Assert.AreEqual(new string[] { "WA" }, o.GetWithFilterAsync<State>(text: "*on").GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(new string[0], o.GetWithFilterAsync<State>(text: "pl*").GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.AreEqual(Array.Empty<string>(), o.GetWithFilterAsync<State>(text: "pl*").GetAwaiter().GetResult().Select(x => x.Code));
             Assert.AreEqual(new string[] { "XX" }, o.GetWithFilterAsync<State>(text: "pl*", includeInactive: true).GetAwaiter().GetResult().Select(x => x.Code));
 
             Assert.AreEqual(new string[] { "IL", "WA" }, o.GetWithFilterAsync<State>(new string[] { "az", "il", "wa" }, text: "*in*").GetAwaiter().GetResult().Select(x => x.Code));
@@ -1007,9 +1007,9 @@ namespace CoreEx.Test.Framework.RefData
 
     public class RefDataProvider : IReferenceDataProvider
     {
-        private readonly RefDataCollection _refData = new RefDataCollection() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
-        private readonly RefDataExCollection _refDataEx = new RefDataExCollection() { new RefDataEx { Id = "AA", Code = "AAA" }, new RefDataEx { Id = "BB", Code = "BBB" } };
-        private readonly StateCollection _state = new StateCollection() 
+        private readonly RefDataCollection _refData = new() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
+        private readonly RefDataExCollection _refDataEx = new() { new RefDataEx { Id = "AA", Code = "AAA" }, new RefDataEx { Id = "BB", Code = "BBB" } };
+        private readonly StateCollection _state = new() 
         {
             new State { Id = 1, Code = "IL", Text = "Illinois" },
             new State { Id = 2, Code = "SC", Text = "South Carolina" },
@@ -1018,7 +1018,7 @@ namespace CoreEx.Test.Framework.RefData
             new State { Id = 5, Code = "XX", Text = "Placeholder", IsActive = false },
             new State { Id = 6, Code = "WA", Text = "Washington" }
         };
-        private readonly SuburbCollection _suburb = new SuburbCollection()
+        private readonly SuburbCollection _suburb = new()
         {
             new Suburb { Id = "BB", Code = "B", Text = "Bardon" },
             new Suburb { Id = "RR", Code = "R", Text = "Redmond" },
@@ -1044,8 +1044,8 @@ namespace CoreEx.Test.Framework.RefData
 
     public class RefDataProviderSlow : IReferenceDataProvider
     {
-        private readonly RefDataCollection _refData = new RefDataCollection() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
-        private readonly RefDataExCollection _refDataEx = new RefDataExCollection() { new RefDataEx { Id = "AA", Code = "AAA" }, new RefDataEx { Id = "BB", Code = "BBB" } };
+        private readonly RefDataCollection _refData = new() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
+        private readonly RefDataExCollection _refDataEx = new() { new RefDataEx { Id = "AA", Code = "AAA" }, new RefDataEx { Id = "BB", Code = "BBB" } };
 
         public Type[] Types => new Type[] { typeof(RefData), typeof(RefDataEx) };
 
@@ -1058,7 +1058,7 @@ namespace CoreEx.Test.Framework.RefData
                 _ => throw new InvalidOperationException()
             };
 
-            await Task.Delay(500).ConfigureAwait(false);
+            await Task.Delay(500, cancellationToken).ConfigureAwait(false);
 
             return coll;
         }
@@ -1079,7 +1079,7 @@ namespace CoreEx.Test.Framework.RefData
                 Assert.Fail("ReferenceData has loaded already; this should not occur as the ReferenceDataOrchestrator should ensure multi-load under concurrency does not occur.");
 
             var coll = new RefDataCollection() { new RefData { Id = 1, Code = "A" }, new RefData { Id = 2, Code = "B" } };
-            await Task.Delay(100).ConfigureAwait(false);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"GetAsync=>Exit({_count})");
             return coll;
         }

@@ -248,8 +248,12 @@ namespace CoreEx.Http
             if (response.Content == null)
                 return default!;
 
-            var str = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return JsonSerializer.Deserialize<TResp>(str)!;
+#if NETSTANDARD2_1
+            var data = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+#else
+            var data = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+#endif
+            return JsonSerializer.Deserialize<TResp>(new BinaryData(data))!;
         }
 
         /// <summary>
