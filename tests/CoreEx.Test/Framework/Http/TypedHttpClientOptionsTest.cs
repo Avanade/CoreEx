@@ -19,7 +19,7 @@ namespace CoreEx.Test.Framework.Http
             AssertIsInitial(o);
         }
 
-        private void AssertIsInitial(TypedHttpClientOptions o)
+        private static void AssertIsInitial(TypedHttpClientOptions o)
         {
             Assert.IsNotNull(o);
             Assert.IsNull(o.CustomRetryPolicy);
@@ -121,13 +121,13 @@ namespace CoreEx.Test.Framework.Http
             o.EnsureAccepted();
             o.EnsureCreated();
             o.EnsureNoContent();
-            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent }, o.ExpectedStatusCodes.ToArray());
+            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent }, o.ExpectedStatusCodes!.ToArray());
 
             o.Ensure(HttpStatusCode.Continue, HttpStatusCode.Conflict);
-            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }, o.ExpectedStatusCodes.ToArray());
+            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }, o.ExpectedStatusCodes!.ToArray());
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }, o2.ExpectedStatusCodes.ToArray());
+            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }, o2.ExpectedStatusCodes!.ToArray());
 
             o.Reset();
             AssertIsInitial(o);

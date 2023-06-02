@@ -269,7 +269,7 @@ namespace CoreEx.Test.Framework.Validation
             [System.ComponentModel.DataAnnotations.Display(Name = "Description")]
             public string? Text { get; set; }
 
-            public CompositeKey PrimaryKey => new CompositeKey(Part1, Part2);
+            public CompositeKey PrimaryKey => new(Part1, Part2);
 
         }
 
@@ -419,7 +419,7 @@ namespace CoreEx.Test.Framework.Validation
             InstantiateValidators();
         }
 
-        private void InstantiateValidators()
+        private static void InstantiateValidators()
         {
             for (int i = 0; i < 1000; i++)
             {

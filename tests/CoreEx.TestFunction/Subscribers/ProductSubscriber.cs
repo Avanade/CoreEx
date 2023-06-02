@@ -24,7 +24,7 @@ namespace CoreEx.TestFunction.Subscribers
             ValueValidator = new ProductValidator().Wrap();
         }
 
-        public async override Task<Result> ReceiveAsync(EventData<Product> @event, CancellationToken cancellationToken)
+        public async override Task<Result> ReceiveAsync(EventData<Product> @event, EventSubscriberArgs args, CancellationToken cancellationToken)
         {
             await Task.CompletedTask.ConfigureAwait(false);
             EventIds.Add(@event.Id!);

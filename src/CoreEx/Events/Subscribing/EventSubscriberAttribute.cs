@@ -64,7 +64,7 @@ namespace CoreEx.Events.Subscribing
         /// <summary>
         /// Gets or sets the extended match method name that is to be invoked on the <see cref="IEventSubscriber"/> to perform any extended match for the declared <see cref="EventSubscriberAttribute"/>.
         /// </summary>
-        /// <remarks>The extended match method signature must be: <c>public static bool ExtendedMatchName(EventData)</c>. The current <see cref="EventData"/> will be passed as the parameter. The method must return a <c>bool</c> where <c>true</c>
+        /// <remarks>The extended match method signature must be: <c>public static bool ExtendedMatchName(EventData, EventSubscriberArgs)</c>. The current <see cref="EventData"/> will be passed as the parameter. The method must return a <c>bool</c> where <c>true</c>
         /// indicates a match; otherwise, <c>false</c>.
         /// <para>The static method will only be invoked where the <see cref="Subject"/>, <see cref="Type"/> and <see cref="Actions"/> have resulted in a match; i.e. this allows additional match filtering.</para></remarks>
         public string? ExtendedMatchMethod { get; set; }

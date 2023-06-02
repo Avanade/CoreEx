@@ -44,6 +44,6 @@ namespace CoreEx.Events.Subscribing
         public virtual ErrorHandling InvalidDataHandling => ErrorHandling.None;
 
         /// <inheritdoc/>
-        public abstract Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken);
+        public abstract Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken);
     }
 }

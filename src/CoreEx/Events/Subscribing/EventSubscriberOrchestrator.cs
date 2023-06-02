@@ -112,7 +112,7 @@ namespace CoreEx.Events.Subscribing
                         if (att.ExtendedMatchMethod is not null)
                         {
                             var mi = type.GetMethod(att.ExtendedMatchMethod, BindingFlags.Public | BindingFlags.Static);
-                            if (mi == null || mi.ReturnParameter.ParameterType != typeof(bool) || mi.GetParameters().Length != 1 || mi.GetParameters()[0].ParameterType != typeof(EventData))
+                            if (mi == null || mi.ReturnParameter.ParameterType != typeof(bool) || mi.GetParameters().Length != 2 || mi.GetParameters()[0].ParameterType != typeof(EventData) || mi.GetParameters()[1].ParameterType != typeof(EventSubscriberArgs))
                                 throw new ArgumentException($"Type '{type.FullName}' has Attribute with {nameof(EventSubscriberAttribute.ExtendedMatchMethod)} of {att.ExtendedMatchMethod} that either does not exist or has an invalid method signature defined.", nameof(types));
 
                             att.ExtendedMatchMethodInfo = mi;
@@ -154,17 +154,18 @@ namespace CoreEx.Events.Subscribing
         /// </summary>
         /// <param name="parent">The parent (owning) <see cref="EventSubscriberBase"/>.</param>
         /// <param name="event">The actual <see cref="EventData"/>.</param>
+        /// <param name="args">The optional <see cref="EventSubscriberArgs"/>.</param>
         /// <param name="subscriber">The resulting <see cref="IEventSubscriber"/>.</param>
         /// <param name="valueType">The resulting <see cref="EventData.Value"/> <see cref="Type"/> (where applicable).</param>
         /// <returns><c>true</c> indicates that a single <paramref name="subscriber"/> was found; otherwise, <c>false</c>.</returns>
         /// <remarks>Depending on the the <see cref="NotSubscribedHandling"/> and <see cref="AmbiquousSubscriberHandling"/> a corresponding <see cref="EventSubscriberException"/> will be thrown.</remarks>
         /// <exception cref="EventSubscriberException"></exception>
-        public bool TryMatchSubscriber(EventSubscriberBase parent, EventData @event, out IEventSubscriber? subscriber, out Type? valueType)
+        public bool TryMatchSubscriber(EventSubscriberBase parent, EventData @event, EventSubscriberArgs args, out IEventSubscriber? subscriber, out Type? valueType)
         {
             if (parent == null) throw new ArgumentNullException(nameof(parent));
             if (@event == null) throw new ArgumentNullException(nameof(@event));
 
-            if (TryMatchSubscriberInternal(@event, out subscriber, out valueType))
+            if (TryMatchSubscriberInternal(@event, args, out subscriber, out valueType))
                 return true;
 
             var txt = $"Subject: {(string.IsNullOrEmpty(@event.Subject) ? "<none>" : @event.Subject)}, Action: {(string.IsNullOrEmpty(@event.Action) ? "<none>" : @event.Action)}, Type: {(string.IsNullOrEmpty(@event.Type) ? "<none>" : @event.Type)}";
@@ -181,7 +182,7 @@ namespace CoreEx.Events.Subscribing
         /// <summary>
         /// Try and match a subscriber.
         /// </summary>
-        private bool TryMatchSubscriberInternal(EventData @event, out IEventSubscriber? subscriber, out Type? valueType)
+        private bool TryMatchSubscriberInternal(EventData @event, EventSubscriberArgs args, out IEventSubscriber? subscriber, out Type? valueType)
         {
             subscriber = null;
             valueType = null;
@@ -196,7 +197,7 @@ namespace CoreEx.Events.Subscribing
                         if (subscriber != null)
                             return false;
 
-                        if (att.ExtendedMatchMethodInfo is not null && !(bool)att.ExtendedMatchMethodInfo.Invoke(null, new object[] { @event })!)
+                        if (att.ExtendedMatchMethodInfo is not null && !(bool)att.ExtendedMatchMethodInfo.Invoke(null, new object[] { @event, args })!)
                             return false;
 
                         subscriber = (IEventSubscriber)(ServiceProvider?.GetService(item.SubscriberType) ?? ExecutionContext.GetRequiredService(item.SubscriberType));
@@ -214,9 +215,10 @@ namespace CoreEx.Events.Subscribing
         /// <param name="parent">The parent (owning) <see cref="EventSubscriberBase"/>.</param>
         /// <param name="subscriber">The <see cref="IEventSubscriber"/> that should receive the <paramref name="event"/>.</param>
         /// <param name="event">The <see cref="EventData"/>.</param>
+        /// <param name="args">The optional <see cref="EventSubscriberArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns><c>true</c> indicates that the subscriber executed successfully; otherwise, <c>false</c>.</returns>
-        public async virtual Task<bool> ReceiveAsync(EventSubscriberBase parent, IEventSubscriber subscriber, EventData @event, CancellationToken cancellationToken = default)
+        public async virtual Task<bool> ReceiveAsync(EventSubscriberBase parent, IEventSubscriber subscriber, EventData @event, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
         {
             if (parent is null) throw new ArgumentNullException(nameof(parent));
             if (subscriber is null) throw new ArgumentNullException(nameof(subscriber));
@@ -224,7 +226,7 @@ namespace CoreEx.Events.Subscribing
 
             return await parent.EventSubscriberInvoker.InvokeAsync(subscriber, async (ct) =>
             {
-                var result = await subscriber!.ReceiveAsync(@event, ct);
+                var result = await subscriber!.ReceiveAsync(@event, args ??= new(), ct);
                 result.ThrowOnError();
                 return true;
             }, parent.Logger, cancellationToken).ConfigureAwait(false);

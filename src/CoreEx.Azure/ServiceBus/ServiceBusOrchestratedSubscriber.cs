@@ -20,7 +20,7 @@ namespace CoreEx.Azure.ServiceBus
     /// default. A <see cref="ILogger.BeginScope{TState}(TState)"/> with the <see cref="ExecutionContext.CorrelationId"/> and <see cref="ServiceBusReceivedMessage.MessageId"/> is performed to wrap the logic logging with the correlation and
     /// message identifiers. Where the unhandled <see cref="Exception"/> is <see cref="IExtendedException.IsTransient"/> this will bubble out for the Azure Function runtime/fabric to retry and automatically deadletter; otherwise, it will be
     /// immediately deadletted with a reason of <see cref="IExtendedException.ErrorType"/> or <see cref="ErrorType.UnhandledError"/> depending on the exception <see cref="Type"/>.
-    /// <para>The <see cref="ServiceBusSubscriber.UpdateEventDataWithServiceBusMessage(EventData, ServiceBusReceivedMessage, ServiceBusMessageActions)"/> is invoked after each <see cref="EventData"/> deserialization.</para></remarks>
+    /// <para>The <see cref="ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(EventSubscriberArgs, ServiceBusReceivedMessage, ServiceBusMessageActions)"/> is invoked after each <see cref="EventData"/> deserialization.</para></remarks>
     public class ServiceBusOrchestratedSubscriber : EventSubscriberBase, IServiceBusSubscriber
     {
         /// <summary>
@@ -77,8 +77,9 @@ namespace CoreEx.Azure.ServiceBus
         /// </summary>
         /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
+        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
@@ -93,10 +94,10 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
-                ServiceBusSubscriber.UpdateEventDataWithServiceBusMessage(@event, message, messageActions);
+                ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(args ??= new(), message, messageActions);
 
                 // Match subscriber to metadata.
-                if (!Orchestrator.TryMatchSubscriber(this, @event, out var subscriber, out var valueType))
+                if (!Orchestrator.TryMatchSubscriber(this, @event, args, out var subscriber, out var valueType))
                     return;
 
                 // Deserialize the event (again) where there is a value as value not deserialized previously.
@@ -105,12 +106,10 @@ namespace CoreEx.Azure.ServiceBus
                     @event = await DeserializeEventAsync(message, valueType, cancellationToken).ConfigureAwait(false);
                     if (@event is null)
                         return;
-
-                    ServiceBusSubscriber.UpdateEventDataWithServiceBusMessage(@event, message, messageActions);
                 }
 
                 // Execute subscriber receive with the event.
-                var success = await Orchestrator.ReceiveAsync(this, subscriber!, @event, cancellationToken).ConfigureAwait(false);
+                var success = await Orchestrator.ReceiveAsync(this, subscriber!, @event, args, cancellationToken).ConfigureAwait(false);
                 if (success)
                     Logger.LogDebug("{Type} executed {Subscriber} successfully - Service Bus message '{Message}'.", GetType().Name, subscriber!.GetType().Name, message.MessageId);
             }, (message, messageActions), cancellationToken);

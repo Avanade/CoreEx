@@ -6,6 +6,7 @@ using CoreEx.Azure.HealthChecks;
 using CoreEx.Configuration;
 using CoreEx.TestFunction;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using NUnit.Framework;
@@ -23,7 +24,7 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             string connectionName = "ServiceBusConnection", queueSettingName = "TestQueueName";
             using var test = FunctionTester.Create<Startup>();
-            var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
+            var settings = (SettingsBase)test.Services.GetRequiredService(typeof(SettingsBase));
             var mock = new Mock<ServiceBusAdministrationClient>();
             //   replace connection to service bus with mock
             AzureServiceHealthCheckBase.ManagementClientConnections.AddOrUpdate(settings.GetValue<string>(connectionName)
@@ -46,7 +47,7 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             string connectionName = "ServiceBusConnection", queueSettingName = "NonExistingQueueName";
             using var test = FunctionTester.Create<Startup>();
-            var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
+            var settings = (SettingsBase)test.Services.GetRequiredService(typeof(SettingsBase));
             var mock = new Mock<ServiceBusAdministrationClient>();
             var context = new HealthCheckContext();
 
@@ -66,7 +67,7 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             string connectionName = "NonExistingConnectionName", queueSettingName = "TestQueueName";
             using var test = FunctionTester.Create<Startup>();
-            var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
+            var settings = (SettingsBase)test.Services.GetRequiredService(typeof(SettingsBase));
             var mock = new Mock<ServiceBusAdministrationClient>();
             var context = new HealthCheckContext();
 
@@ -86,7 +87,7 @@ namespace CoreEx.Test.HealthChecks
             // Arrange
             string connectionName = "ServiceBusConnection", queueSettingName = "TestQueueName";
             using var test = FunctionTester.Create<Startup>();
-            var settings = (SettingsBase)test.Services.GetService(typeof(SettingsBase));
+            var settings = (SettingsBase)test.Services.GetRequiredService(typeof(SettingsBase));
             var mock = new Mock<ServiceBusAdministrationClient>();
             var exception = new ArgumentException("Test exception");
             mock.Setup(x => x.GetQueueRuntimePropertiesAsync(settings.GetValue<string>(queueSettingName, null!), It.IsAny<CancellationToken>()))

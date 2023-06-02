@@ -22,10 +22,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             public string? Code { get; set; }
             public string? Text { get; set; }
             public string? Other { get; set; }
-
-            public string[] PrimaryKeyProperties => new string[] { "Code" };
-
-            public CompositeKey PrimaryKey => new CompositeKey(Code);
+            public CompositeKey PrimaryKey => new(Code);
         }
 
         public class KeyDataCollection : EntityKeyCollection<KeyData> { }
@@ -889,7 +886,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_RootArray_Simple_Null()
         {
-            var arr = new int[0];
+            var arr = Array.Empty<int>();
             var jmp = new JsonMergePatch();
             jmp.Merge(BinaryData.FromString("null"), ref arr);
             Assert.AreEqual(null, arr);

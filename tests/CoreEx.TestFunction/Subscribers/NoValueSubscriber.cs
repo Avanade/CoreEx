@@ -17,7 +17,7 @@ namespace CoreEx.TestFunction.Subscribers
 
         public NoValueSubscriber(ILogger<NoValueSubscriber> logger) => _logger = logger;
 
-        public override Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken)
+        public override Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken)
         {
             EventIds.Add(@event.Id!);
             _logger.LogInformation($"Message {@event.Id} was received.");

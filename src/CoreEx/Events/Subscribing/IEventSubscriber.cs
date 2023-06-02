@@ -26,8 +26,9 @@ namespace CoreEx.Events.Subscribing
         /// Received and process the subscribed <paramref name="event"/>.
         /// </summary>
         /// <param name="event">The <see cref="EventData"/>.</param>
+        /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        Task<Result> ReceiveAsync(EventData @event, CancellationToken cancellationToken);
+        Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken);
     }
 }
