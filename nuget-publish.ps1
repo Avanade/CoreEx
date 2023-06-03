@@ -51,6 +51,7 @@ param(
         "src\CoreEx",
         "src\CoreEx.AutoMapper",
         "src\CoreEx.Azure",
+        "src\CoreEx.Solace",
         "src\CoreEx.Database",
         "src\CoreEx.Database.SqlServer",
         "src\CoreEx.Database.MySql",
