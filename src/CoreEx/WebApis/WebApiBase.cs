@@ -112,8 +112,8 @@ namespace CoreEx.WebApis
         /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where <c>null</c>.</param>
         /// <param name="validator">The optional <see cref="IValidator{T}"/> to validate the value (only invoked where the value is not <c>null</c>).</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="ValidationException"/> where there is an error; otherwise, <see cref="WebApiParam{T}"/> for success.</returns>
-        protected internal async Task<(WebApiParam<TValue>?, ValidationException?)> ValidateValueAsync<TValue>(WebApiParam wap, bool useValue, TValue value, bool valueIsRequired = true, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
+        /// <returns>The <see cref="Exception"/> where there is an error; otherwise, <see cref="WebApiParam{T}"/> for success.</returns>
+        protected internal async Task<(WebApiParam<TValue>?, Exception?)> ValidateValueAsync<TValue>(WebApiParam wap, bool useValue, TValue value, bool valueIsRequired = true, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
         {
             if (wap == null)
                 throw new ArgumentNullException(nameof(wap));
@@ -127,7 +127,7 @@ namespace CoreEx.WebApis
                 if (value != null && validator != null)
                 {
                     var vr = await validator.ValidateAsync(value, cancellationToken).ConfigureAwait(false);
-                    return (null, vr.ToValidationException());
+                    return (null, vr.ToException());
                 }
 
                 wapv = new WebApiParam<TValue>(wap, value);

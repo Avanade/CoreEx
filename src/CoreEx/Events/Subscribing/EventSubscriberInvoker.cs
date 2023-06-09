@@ -44,16 +44,7 @@ namespace CoreEx.Events.Subscribing
             catch (Exception ex) when (ex is IExtendedException eex)
             {
                 // Handle the exception based on the subscriber configuration.
-                var handling = eex.ErrorCode switch
-                {
-                    (int)ErrorType.AuthenticationError or (int)ErrorType.AuthorizationError => errorHandling.SecurityHandling,
-                    (int)ErrorType.BusinessError or (int)ErrorType.ConflictError or (int)ErrorType.DuplicateError or (int)ErrorType.ValidationError => errorHandling.InvalidDataHandling,
-                    (int)ErrorType.ConcurrencyError => errorHandling.ConcurrencyHandling,
-                    (int)ErrorType.NotFoundError => errorHandling.NotFoundHandling,
-                    (int)ErrorType.TransientError => errorHandling.TransientHandling,
-                    _ => errorHandling.UnhandledHandling
-                };
-
+                var handling = DetermineErrorHandling(errorHandling, eex);
                 if (handling == ErrorHandling.None)
                     throw;
 
@@ -66,6 +57,31 @@ namespace CoreEx.Events.Subscribing
 
             return default!;
         }
+
+        /// <summary>
+        /// Determines the <see cref="ErrorHandling"/> based on the <paramref name="errorHandling"/> and <paramref name="exception"/>.
+        /// </summary>
+        /// <param name="errorHandling">The <see cref="IErrorHandling"/> configuration.</param>
+        /// <param name="exception">The <see cref="Exception"/>.</param>
+        /// <returns>The <see cref="ErrorHandling"/>.</returns>
+        public static ErrorHandling DetermineErrorHandling(IErrorHandling errorHandling, Exception exception)
+            => (exception ?? throw new ArgumentNullException(nameof(exception))) is IExtendedException eex ? DetermineErrorHandling(errorHandling, eex) : errorHandling.UnhandledHandling;
+
+        /// <summary>
+        /// Determines the <see cref="ErrorHandling"/> based on the <paramref name="errorHandling"/> and <paramref name="extendedException"/>.
+        /// </summary>
+        /// <param name="errorHandling">The <see cref="IErrorHandling"/> configuration.</param>
+        /// <param name="extendedException">The <see cref="IExtendedException"/>.</param>
+        /// <returns>The <see cref="ErrorHandling"/>.</returns>
+        public static ErrorHandling DetermineErrorHandling(IErrorHandling errorHandling, IExtendedException extendedException) => (extendedException ?? throw new ArgumentNullException(nameof(extendedException))).ErrorCode switch
+        {
+            (int)ErrorType.AuthenticationError or (int)ErrorType.AuthorizationError => errorHandling.SecurityHandling,
+            (int)ErrorType.BusinessError or (int)ErrorType.ConflictError or (int)ErrorType.DuplicateError or (int)ErrorType.ValidationError => errorHandling.InvalidDataHandling,
+            (int)ErrorType.ConcurrencyError => errorHandling.ConcurrencyHandling,
+            (int)ErrorType.NotFoundError => errorHandling.NotFoundHandling,
+            (int)ErrorType.TransientError => errorHandling.TransientHandling,
+            _ => errorHandling.UnhandledHandling
+        };
 
         /// <summary>
         /// Handles (actions) the <paramref name="eventSubscriberException"/> as defined by the <paramref name="errorHandling"/>.

@@ -64,7 +64,26 @@ namespace CoreEx.Validation
         }
 
         /// <inheritdoc/>
-        public ValidationException? ToValidationException() => HasErrors ? new ValidationException(Messages!) : null;
+        public Result? FailureResult { get; private set; }
+
+        /// <summary>
+        /// Sets the <see cref="FailureResult"/>.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        internal void SetFailureResult(Result? result)
+        {
+            if (result is null)
+                return;
+
+            if (FailureResult.HasValue)
+                throw new InvalidOperationException("The ValidationContext is already in a Failure state.");
+
+            if (result.Value.IsFailure)
+                FailureResult = result;
+        }
+
+        /// <inheritdoc/>
+        public Exception? ToException() => FailureResult.HasValue ? FailureResult.Value.Error : (HasErrors ? new ValidationException(Messages!) : null);
 
         /// <inheritdoc/>
         IValidationResult IValidationResult.ThrowOnError() => ThrowOnError();
@@ -74,13 +93,23 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="includeWarnings">Indicates whether to throw where only warnings exist.</param>
         /// <returns>The <see cref="MultiValidatorResult"/> to support fluent-style method-chaining.</returns>
-        public MultiValidatorResult ThrowOnError(bool includeWarnings = false) => (HasErrors || (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))) ? throw ToValidationException()! : this;
+        public MultiValidatorResult ThrowOnError(bool includeWarnings = false)
+        {
+            var ex = ToException();
+            if (ex is not null)
+                throw ex;
+
+            if (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))
+                throw new ValidationException(Messages);
+
+            return this;
+        }
 
         /// <inheritdoc/>
         /// <remarks>This is largely nonsensical from a <typeparamref name="T"/> perspective and as such the <see cref="IResult{T}.Value"/> will be set to its default value (see <see cref="Result{T}.None"/>).</remarks>
-        public Result<T> ToResult<T>() => HasErrors ? Result<T>.ValidationError(Messages!) : Result<T>.None;
+        Result<T> ITypedToResult.ToResult<T>() => FailureResult.HasValue ? FailureResult.Value.Bind<T>() : (HasErrors ? Result<T>.ValidationError(Messages!) : Result<T>.None);
 
         /// <inheritdoc/>
-        public Result ToResult() => HasErrors ? Result.ValidationError(Messages!) : Result.Success;
+        public Result ToResult() => FailureResult ?? (HasErrors ? Result.ValidationError(Messages!) : Result.Success);
     }
 }

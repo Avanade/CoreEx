@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.RefData;
+using CoreEx.Results;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
@@ -231,32 +232,27 @@ namespace CoreEx
         public virtual void SetRoles(IEnumerable<string> roles) => _roles = new HashSet<string>(roles.Distinct());
 
         /// <summary>
-        /// Determines whether the user has the required <paramref name="permission"/>.
+        /// Checks whether the user has the required <paramref name="permission"/>.
         /// </summary>
         /// <param name="permission">The permission to validate.</param>
-        /// <param name="throwAuthorizationException">Indicates whether to throw an <see cref="AuthorizationException"/> where the user is not authorised.</param>
-        /// <returns><c>true</c> where the user is authorized; otherwise, <c>false</c>.</returns>
-        /// <remarks>This method is intended to be overridden; this implementation always returns <c>false</c>.</remarks>
-        public virtual bool IsAuthorized(string permission, bool throwAuthorizationException = false)
+        /// <returns>The corresponding <see cref="Result"/>.</returns>
+        /// <remarks>This method is intended to be overridden; this implementation always returns <see cref="Result.AuthorizationError"/>.</remarks>
+        public virtual Result UserIsAuthorized(string permission)
         {
             if (string.IsNullOrEmpty(permission))
                 throw new ArgumentNullException(nameof(permission));
 
-            if (throwAuthorizationException)
-                throw new AuthorizationException();
-
-            return false;
+            return Result.AuthorizationError();
         }
 
         /// <summary>
-        /// Determines whether the user has the required permission (as a combination of an <paramref name="entity"/> and <paramref name="action"/>).
+        /// Checks whether the user has the required permission (as a combination of an <paramref name="entity"/> and <paramref name="action"/>).
         /// </summary>
         /// <param name="entity">The entity name.</param>
         /// <param name="action">The action name.</param>
-        /// <param name="throwAuthorizationException">Indicates whether to throw an <see cref="AuthorizationException"/> where the user is not authorised.</param>
-        /// <returns><c>true</c> where the user is authorized; otherwise, <c>false</c>.</returns>
-        /// <remarks>This method is intended to be overridden; this implementation always returns <c>false</c>.</remarks>
-        public virtual bool IsAuthorized(string entity, string action, bool throwAuthorizationException = false)
+        /// <returns>The corresponding <see cref="Result"/>.</returns>
+        /// <remarks>This method is intended to be overridden; this implementation always returns <see cref="Result.AuthorizationError"/>.</remarks>
+        public virtual Result UserIsAuthorized(string entity, string action)
         {
             if (string.IsNullOrEmpty(entity))
                 throw new ArgumentNullException(nameof(entity));
@@ -264,25 +260,18 @@ namespace CoreEx
             if (string.IsNullOrEmpty(action))
                 throw new ArgumentNullException(nameof(action));
 
-            if (throwAuthorizationException)
-                throw new AuthorizationException();
-
-            return false;
+            return Result.AuthorizationError();
         }
 
         /// <summary>
         /// Determines whether the user is in the specified role (see <see cref="SetRoles"/> and <see cref="GetRoles"/>).
         /// </summary>
         /// <param name="role">The role name.</param>
-        /// <param name="throwAuthorizationException">Indicates whether to throw an <see cref="AuthorizationException"/> where the user is not in the specified role.</param>
-        /// <returns><c>true</c> where the user is in the specified role; otherwise, <c>false</c>.</returns>
-        public virtual bool IsInRole(string role, bool throwAuthorizationException = false)
+        /// <returns>The corresponding <see cref="Result"/>.</returns>
+        public virtual Result UserIsInRole(string role)
         {
             var isInRole = (_roles != null) && _roles.TryGetValue(role, out _);
-            if (!isInRole && throwAuthorizationException)
-                throw new AuthorizationException();
-
-            return isInRole;
+            return isInRole ? Result.Success : Result.AuthorizationError();
         }
 
         #endregion

@@ -11,9 +11,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
+using System.Xml.Linq;
 
 namespace CoreEx.Validation
 {
@@ -971,9 +974,9 @@ namespace CoreEx.Validation
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
-        /// <param name="custom">The custom action.</param>
+        /// <param name="custom">The custom function.</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
-        public static IPropertyRule<TEntity, TProperty> Custom<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Action<PropertyContext<TEntity, TProperty>> custom) where TEntity : class
+        public static IPropertyRule<TEntity, TProperty> Custom<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, Result> custom) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CustomRule<TEntity, TProperty>(custom));
 
         /// <summary>
@@ -984,7 +987,7 @@ namespace CoreEx.Validation
         /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="customAsync">The custom function.</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
-        public static IPropertyRule<TEntity, TProperty> CustomAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task> customAsync) where TEntity : class
+        public static IPropertyRule<TEntity, TProperty> CustomAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task<Result>> customAsync) where TEntity : class
             => (rule ?? throw new ArgumentNullException(nameof(rule))).AddRule(new CustomRule<TEntity, TProperty>(customAsync));
 
         #endregion
@@ -1133,32 +1136,7 @@ namespace CoreEx.Validation
         #region Result
 
         /// <summary>
-        /// Executes the <paramref name="validator"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
-        /// </summary>
-        /// <typeparam name="TEntity">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
-        public static Task<Result<TEntity>> ValidateAsync<TEntity>(this Result<TEntity> result, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, CancellationToken cancellationToken = default)
-            => ValidateAsync(result, null, validator, cancellationToken);
-
-        /// <summary>
-        /// Executes the <paramref name="validator"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
-        /// </summary>
-        /// <typeparam name="TEntity">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="result">The <see cref="Result{T}"/>.</param>
-        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
-        public static Task<Result<TEntity>> ValidateAsync<TEntity>(this Result<TEntity> result, string? name, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, CancellationToken cancellationToken = default)
-            => ValidateAsync(result, name, null, validator, cancellationToken);
-
-        /// <summary>
-        /// Executes the <paramref name="validator"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// Executes the <paramref name="validator"/> for the <see cref="Result{T}.Value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
         /// </summary>
         /// <typeparam name="TEntity">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -1167,8 +1145,8 @@ namespace CoreEx.Validation
         /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToValidationException"/>.</remarks>
-        public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Result<TEntity> result, string? name, LText? text, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, CancellationToken cancellationToken = default)
+        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
+        public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Result<TEntity> result, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
         {
             if (validator == null) throw new ArgumentNullException(nameof(validator));
 
@@ -1178,6 +1156,108 @@ namespace CoreEx.Validation
                 var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
                 return vr.ToResult<TEntity>();
             });
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="validator"/> for the <see cref="Result{T}.Value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
+        /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
+        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
+        public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Task<Result<TEntity>> result, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
+        {
+            if (validator == null) throw new ArgumentNullException(nameof(validator));
+
+            return await result.ThenAsync(async v =>
+            {
+                var vi = validator(v.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
+                var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
+                return vr.ToResult<TEntity>();
+            });
+        }
+
+#if NETSTANDARD2_1
+        /// <summary>
+        /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The <see cref="IResult"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="IResult"/>.</param>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
+        /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="IResult"/>.</returns>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+#else
+        /// <summary>
+        /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The <see cref="IResult"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="IResult"/>.</param>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
+        /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="IResult"/>.</returns>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+#endif
+        {
+            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            if (result.IsFailure)
+                return result;
+
+            var vi = validator(value.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
+            var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
+            return vr.HasErrors ? (TResult)result.ToFailure(vr.ToException()!) : result;           
+        }
+
+#if NETSTANDARD2_1
+        /// <summary>
+        /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The <see cref="IResult"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="IResult"/>.</param>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
+        /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="IResult"/>.</returns>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+#else
+        /// <summary>
+        /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The <see cref="IResult"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="IResult"/>.</param>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
+        /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <see cref="IResult"/>.</returns>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+#endif
+        {
+            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            var r = await result.ConfigureAwait(false);
+            if (r.IsFailure)
+                return r;
+
+            var vi = validator(value.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
+            var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
+            return vr.HasErrors ? (TResult)r.ToFailure(vr.ToException()!) : r;
         }
 
         #endregion

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace CoreEx.Results
 {
@@ -20,6 +21,11 @@ namespace CoreEx.Results
         /// Gets the <see cref="IsSuccess"/> <see cref="Result"/>.
         /// </summary>
         public static Result Success { get; } = new();
+
+        /// <summary>
+        /// Gets the <see cref="IsSuccess"/> <see cref="Result"/> <see cref="Task"/>.
+        /// </summary>
+        public static Task<Result> SuccessTask { get; } = Task.FromResult(Success);
 
         private readonly Exception? _error = default;
 
@@ -50,6 +56,15 @@ namespace CoreEx.Results
         IResult IResult.ToFailure(Exception error) => new Result(error);
 
         /// <summary>
+        /// Converts the <see cref="Result"/> to a corresponding <see cref="Result{T}"/> (of <see cref="Type"/> <typeparamref name="T"/>) defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/>; otherwise, where
+        /// <see cref="IsFailure"/> returns a resulting instance with the corresponding <see cref="Error"/>.
+        /// </summary>
+        /// <typeparam name="T">The (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <returns>The corresponding <see cref="Result{T}"/>.</returns>
+        /// <remarks>This invokes <see cref="CoreExtensions.Bind{T}(Result)"/> internally to perform.</remarks>
+        public Result<T> ToResult<T>() => this.Bind<T>();
+
+        /// <summary>
         /// Throws the <see cref="Error"/> where <see cref="IsFailure"/>; otherwise, does nothing.
         /// </summary>
         /// <returns>The <see cref="Result"/>.</returns>
@@ -75,10 +90,17 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Gets the <see cref="Success"/> <see cref="Result"/>.
+        /// Executes the specified <paramref name="action"/> and returns <see cref="Success"/>.
         /// </summary>
+        /// <param name="action">The action to execute.</param>
         /// <returns>The <see cref="Success"/> <see cref="Result"/>.</returns>
-        public static Result Ok() => Success;
+        /// <remarks>This is a helper method to simplify code where an <paramref name="action"/> should be invoked followed immediately by a corresponding <see cref="Success"/> to complete/conclude.</remarks>
+        public static Result Done(Action action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+            action();
+            return Success;
+        }
 
         /// <summary>
         /// Creates a <see cref="Result{T}"/> with a <see cref="Result{T}.Value"/> that is considered <see cref="Result{T}.IsSuccess"/>.

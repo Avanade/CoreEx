@@ -1,4 +1,5 @@
 ﻿using CoreEx.Entities;
+using CoreEx.Results;
 using CoreEx.Validation;
 using CoreEx.Validation.Rules;
 using NUnit.Framework;
@@ -154,7 +155,7 @@ namespace CoreEx.Test.Framework.Validation
                 {
                     context.Check(x => x.Text, true, ValidatorStrings.MaxCountFormat, 10);
                     context.Check(x => x.Text, true, ValidatorStrings.MaxCountFormat, 10);
-                    return Task.CompletedTask;
+                    return Task.FromResult(Result.Success);
                 }).ValidateAsync(new TestItem());
 
             Assert.IsTrue(r.HasErrors);
@@ -225,7 +226,7 @@ namespace CoreEx.Test.Framework.Validation
 
         public class TestItemValidator2 : Validator<TestItem>
         {
-            protected override Task OnValidateAsync(ValidationContext<TestItem> context, CancellationToken ct)
+            protected override Task<Result> OnValidateAsync(ValidationContext<TestItem> context, CancellationToken ct)
             {
                 if (!context.HasError(x => x.Id))
                     context.AddError(x => x.Id, ValidatorStrings.InvalidFormat);
@@ -235,7 +236,7 @@ namespace CoreEx.Test.Framework.Validation
 
                 context.Check(x => x.Text, (v) => string.IsNullOrEmpty(v), ValidatorStrings.MaxCountFormat, 10);
                 context.Check(x => x.Text, (v) => throw new NotFoundException(), ValidatorStrings.MaxCountFormat, 10);
-                return Task.CompletedTask;
+                return Task.FromResult(Result.Success);
             }
         }
 
@@ -360,7 +361,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual("Value.Code", vx.Messages[0].Property);
         }
 
-        private void TestInjectValueValidate(PropertyContext<TestInject, object?> context)
+        private Result TestInjectValueValidate(PropertyContext<TestInject, object?> context)
         {
             var vxc = Validator.Create<TestInjectChild>()
                 .HasProperty(x => x.Code, p => p.Mandatory().CompareValue(CompareOperator.GreaterThan, 10));
@@ -369,6 +370,7 @@ namespace CoreEx.Test.Framework.Validation
             var mi = type.GetMethod("ValidateAsync")!;
             var vc = ((Task<ValidationContext<TestInjectChild>>)mi.Invoke(vxc, new object?[] { context.Value, context.CreateValidationArgs(), System.Threading.CancellationToken.None })!).GetAwaiter().GetResult();
             context.Parent.MergeResult(vc);
+            return Result.Success;
         }
 
         [Test]
@@ -623,16 +625,18 @@ namespace CoreEx.Test.Framework.Validation
             var ev = new EmployeeValidator();
             var v = new Employee { FirstName = "Speedy", LastName = "Fasti", Birthdate = new DateTime(1999, 10, 22), Salary = 51000m, WorkingYears = 20 };
 
+            await ev.ValidateAsync(v).ConfigureAwait(false);
+
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             for (int i = 0; i < 100000; i++)
             {
                 var r = await ev.ValidateAsync(v).ConfigureAwait(false);
-                Assert.IsFalse(r.HasErrors);
+                r.ThrowOnError();
             }
 
             sw.Stop();
-            System.Console.WriteLine($"100K validations - elapsed: {sw.Elapsed.TotalMilliseconds}ms");
+            System.Console.WriteLine($"100K validations - elapsed: {sw.Elapsed.TotalMilliseconds}ms (per {sw.Elapsed.TotalMilliseconds / 100000}ms)");
         }
 
         [Test]
@@ -643,8 +647,17 @@ namespace CoreEx.Test.Framework.Validation
             Assert.NotNull(vex!.Messages);
             Assert.AreEqual(1, vex.Messages!.Count);
             Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Value is required.", vex.Messages[0].Text);
-            Assert.AreEqual("value", vex.Messages[0].Property);
+            Assert.AreEqual("0 is required.", vex.Messages[0].Text);
+            Assert.AreEqual("0", vex.Messages[0].Property);
+
+            var count = 0;
+            vex = Assert.Throws<ValidationException>(() => count.Required());
+            Assert.NotNull(vex);
+            Assert.NotNull(vex!.Messages);
+            Assert.AreEqual(1, vex.Messages!.Count);
+            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
+            Assert.AreEqual("Count is required.", vex.Messages[0].Text);
+            Assert.AreEqual("count", vex.Messages[0].Property);
 
             vex = Assert.Throws<ValidationException>(() => 0.Required("count"));
             Assert.NotNull(vex);
@@ -683,10 +696,93 @@ namespace CoreEx.Test.Framework.Validation
             Assert.NotNull(vex!.Messages);
             Assert.AreEqual(1, vex.Messages!.Count);
             Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Value is required.", vex.Messages[0].Text);
-            Assert.AreEqual("value", vex.Messages[0].Property);
+            Assert.AreEqual("0 is required.", vex.Messages[0].Text);
+            Assert.AreEqual("0", vex.Messages[0].Property);
 
             Assert.AreEqual(123, 123.Required());
+        }
+
+        [Test]
+        public async Task Validator_FailureResult()
+        {
+            var ev = new EmployeeValidator2();
+            var v = new Employee { FirstName = "Speedy", LastName = "Fasti", Birthdate = new DateTime(1999, 10, 22), Salary = 51000m, WorkingYears = 20 };
+
+            var r = await ev.ValidateAsync(v).ConfigureAwait(false);
+            Assert.NotNull(r);
+            Assert.IsFalse(r.HasErrors);
+
+            v.Salary += 88000;
+            r = await ev.ValidateAsync(v).ConfigureAwait(false);
+            Assert.NotNull(r);
+            Assert.IsTrue(r.HasErrors);
+            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<ConflictException>());
+
+            Assert.Throws<ConflictException>(() => r.ThrowOnError());
+        }
+
+        public class EmployeeValidator2 : Validator<Employee>
+        {
+            public EmployeeValidator2()
+            {
+                Property(x => x.FirstName).Mandatory().String(100);
+                Property(x => x.LastName).Mandatory().String(100);
+                Property(x => x.Birthdate).Mandatory().CompareValue(CompareOperator.LessThanEqual, DateTime.UtcNow, "today");
+                Property(x => x.Salary).Mandatory().Numeric(allowNegatives: false, maxDigits: 10, decimalPlaces: 2);
+                Property(x => x.WorkingYears).Numeric(allowNegatives: false).CompareValue(CompareOperator.LessThanEqual, 50);
+            }
+
+            protected override async Task<Result> OnValidateAsync(ValidationContext<Employee> context, CancellationToken cancellationToken)
+            {
+                if (context.Value.Salary > 88000m)
+                    return Result.ConflictError("Highly paid individual already exists.");
+
+                return await base.OnValidateAsync(context, cancellationToken);
+            }
+        }
+
+        public class TeamLeader
+        {
+            public Employee? Person { get; set; }
+
+            public string? TeamName { get; set; }
+        }
+
+        public class TeamLeaderValidator : Validator<TeamLeader>
+        {
+            public TeamLeaderValidator()
+            {
+                Property(x => x.Person).Mandatory().Entity(new EmployeeValidator2());
+                Property(x => x.TeamName).Mandatory().String(20);
+            }
+        }
+
+        [Test]
+        public async Task Validator_Nested_FailureResult()
+        {
+            var tlv = new TeamLeaderValidator();
+            var v = new TeamLeader { Person = new Employee { FirstName = "Speedy", LastName = "Fasti", Birthdate = new DateTime(1999, 10, 22), Salary = 51000m, WorkingYears = 20 }, TeamName = "Bananas" };
+
+            var r = await tlv.ValidateAsync(v).ConfigureAwait(false);
+            Assert.NotNull(r);
+            Assert.IsFalse(r.HasErrors);
+
+            v.TeamName += " and Oranges and Apples and Kiwi Fruit";
+            r = await tlv.ValidateAsync(v).ConfigureAwait(false);
+            Assert.NotNull(r);
+            Assert.IsTrue(r.HasErrors);
+            Assert.AreEqual(1, r.Messages!.Count);
+            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
+            Assert.AreEqual("Team Name must not exceed 20 characters in length.", r.Messages[0].Text);
+
+            v.Person.Salary += 88000;
+            r = await tlv.ValidateAsync(v).ConfigureAwait(false);
+            Assert.NotNull(r);
+            Assert.IsTrue(r.HasErrors);
+            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<ConflictException>());
+
         }
     }
 }

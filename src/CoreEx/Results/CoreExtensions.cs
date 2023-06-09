@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
 
 namespace CoreEx.Results
@@ -28,7 +27,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Binds/converts the <see cref="Result"/> to a corresponding <see cref="Result{T}"/> defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/> losing the <see cref="Result{T}.Value"/>;
+        /// Binds/converts the <paramref name="result"/> to a corresponding <see cref="Result{T}"/> defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/> losing the <see cref="Result{T}.Value"/>;
         /// otherwise, where <see cref="Result.IsFailure"/> returns a resulting instance with the corresponding <see cref="Result.Error"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
@@ -52,7 +51,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Binds/converts the <see cref="Result"/> to a corresponding <see cref="Result{T}"/> defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/>;
+        /// Binds/converts the <paramref name="result"/> to a corresponding <see cref="Result{T}"/> defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/>;
         /// otherwise, where <see cref="Result.IsFailure"/> returns a resulting instance with the corresponding <see cref="Result.Error"/>.
         /// </summary>
         /// <typeparam name="T">The output (resulting) <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
@@ -61,7 +60,7 @@ namespace CoreEx.Results
         public static Result<T> Bind<T>(this Result result) => result.IsSuccess ? Result<T>.None : new Result<T>(result.Error!);
 
         /// <summary>
-        /// Binds/converts the <see cref="Result{T}"/> to a corresponding <see cref="Result"/> losing the <see cref="Result{T}.Value"/>.
+        /// Binds/converts the <paramref name="result"/> to a corresponding <see cref="Result"/> losing the <see cref="Result{T}.Value"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -92,7 +91,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Combines the <paramref name="result"/> and <paramref name="other"/> into a single <see cref="Result{T}"/>.
+        /// Combines the <paramref name="result"/> and <paramref name="other"/> into a single <see cref="Result{T}"/>; on success the <paramref name="other"/> will be returned.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>

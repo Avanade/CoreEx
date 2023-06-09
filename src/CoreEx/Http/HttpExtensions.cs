@@ -190,7 +190,7 @@ namespace CoreEx.Http
                 if (jv.Value != null && validator != null)
                 {
                     var vr = await validator.ValidateAsync(jv.Value, cancellationToken).ConfigureAwait(false);
-                    jv.ValidationException = vr.ToValidationException();
+                    jv.ValidationException = vr.ToException();
                 }
             }
             catch (Exception ex)

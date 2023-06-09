@@ -105,7 +105,7 @@ namespace CoreEx.WebApis
             {
                 var vr = await request.ReadAsJsonValueAsync(JsonSerializer, valueIsRequired, validator, ct).ConfigureAwait(false);
                 if (vr.IsInvalid)
-                    return vr.ToBadRequestResult();
+                    return vr.ToActionResult();
 
                 return await function(new WebApiParam<TValue>(wap, vr.Value), ct).ConfigureAwait(false);
             }, operationType, cancellationToken).ConfigureAwait(false);
@@ -900,7 +900,7 @@ namespace CoreEx.WebApis
                     {
                         var vr = await validator.ValidateAsync(Value!, ct).ConfigureAwait(false);
                         if (vr.HasErrors)
-                            return await CreateActionResultFromExceptionAsync(this, request.HttpContext, vr.ToValidationException()!, Settings, Logger, OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
+                            return await CreateActionResultFromExceptionAsync(this, request.HttpContext, vr.ToException()!, Settings, Logger, OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
                     }
 
                     Value = await put(new WebApiParam<TValue>(wap, Value!), ct).ConfigureAwait(false);

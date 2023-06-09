@@ -3,6 +3,7 @@
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Entities;
 using CoreEx.Localization;
+using CoreEx.Results;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
@@ -19,7 +20,7 @@ namespace CoreEx.Validation
     public class Validator<TEntity> : ValidatorBase<TEntity> where TEntity : class
     {
         private RuleSet<TEntity>? _currentRuleSet;
-        private Func<ValidationContext<TEntity>, CancellationToken, Task>? _additionalAsync;
+        private Func<ValidationContext<TEntity>, CancellationToken, Task<Result>>? _additionalAsync;
 
         /// <inheritdoc/>
         public override async Task<ValidationContext<TEntity>> ValidateAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
@@ -35,12 +36,17 @@ namespace CoreEx.Validation
             foreach (var rule in Rules)
             {
                 await rule.ValidateAsync(context, cancellationToken).ConfigureAwait(false);
+
+                // Where in a failure state no further validation should be performed.
+                if (context.FailureResult.HasValue)
+                    return context;
             }
 
-            await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
-            if (_additionalAsync != null)
-                await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
+            var result = await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
+            if (result.IsSuccess && _additionalAsync != null)
+                result = await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
 
+            context.SetFailureResult(result);
             return context;
         }
 
@@ -49,8 +55,10 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="context">The <see cref="ValidationContext{TEntity}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The corresponding <see cref="Task"/>.</returns>
-        protected virtual Task OnValidateAsync(ValidationContext<TEntity> context, CancellationToken cancellationToken) => Task.CompletedTask;
+        /// <returns>The corresponding <see cref="Result"/>.</returns>
+        /// <remarks>The <paramref name="context"/> (see <see cref="ValidationContext{TEntity}"/> 'AddError' and related methods should be used for specific validation messages. Any <see cref="Result.IsFailure"/> <see cref="Result"/> will
+        /// override any existing validations and no further validations will occur.</remarks>
+        protected virtual Task<Result> OnValidateAsync(ValidationContext<TEntity> context, CancellationToken cancellationToken) => Task.FromResult(Result.Success);
 
         /// <summary>
         /// Adds a <see cref="PropertyRule{TEntity, TProperty}"/> to the validator.
@@ -115,7 +123,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
-        public Validator<TEntity> AdditionalAsync(Func<ValidationContext<TEntity>, CancellationToken, Task> additionalAsync)
+        public Validator<TEntity> AdditionalAsync(Func<ValidationContext<TEntity>, CancellationToken, Task<Result>> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a Validator.");

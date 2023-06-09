@@ -45,7 +45,10 @@ namespace CoreEx.FluentValidation
         public bool HasErrors => Result == null || !Result.IsValid;
 
         /// <inheritdoc/>
-        public MessageItemCollection? Messages => HasErrors ? ToValidationException()!.Messages : null;
+        public MessageItemCollection? Messages => HasErrors ? (ToException() is ValidationException vex ? vex.Messages : null) : null;
+
+        /// <inheritdoc/>
+        public Result? FailureResult => null;
 
         /// <inheritdoc/>
         IValidationResult IValidationResult.ThrowOnError() => ThrowOnError();
@@ -57,13 +60,13 @@ namespace CoreEx.FluentValidation
         public ValidationResultWrapper<T> ThrowOnError()
         {
             if (HasErrors)
-                throw ToValidationException()!;
+                throw ToException()!;
 
             return this;
         }
 
         /// <inheritdoc/>
-        public ValidationException? ToValidationException() => HasErrors ? (_vex ??= Result!.ToValidationException()) : null;
+        public Exception? ToException() => HasErrors ? (_vex ??= Result!.ToValidationException()) : null;
 
         /// <inheritdoc/>
         public Result<R> ToResult<R>() => HasErrors ? Result<R>.ValidationError(Messages!) : Validation.Validation.ConvertValueToResult<T, R>(Value!);

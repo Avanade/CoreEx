@@ -267,6 +267,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
                 throw new System.NotImplementedException();
             }
 
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Needed by the ExtendedMatchMethod functionality.")]
             public static bool IsExtendedMatch(EventData ed, EventSubscriberArgs args) => ed.Key == "KEY";
         }
 

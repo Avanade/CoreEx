@@ -5,6 +5,8 @@ Represents the **NuGet** versions.
 ## v3.0.0
 - *Enhancement:* Added new `CoreEx.Results` namespace with primary `Result` and `Result<T>` classes to enable [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html); see [`CoreEx.Results`](./src/CoreEx/Results/README.md) for more implementation details.
 - *Enhancement:* `SubscriberBase` and `SubscriberBase<T>` modified to include `EventSubscriberArgs` (`Dictionary<string, object?>`) to allow other parameters to be passed in; `ReceiveAsync` breaking method change. 
+- *Enhancement:* Where overriding `OnValidateAsync` this method now supports a return value of type `Result`, as does the `CustomRule` (for consistency); breaking change. The `Result` enables other errors to be returned avoiding the need to throw an exception.
+- *Enhancement:* `ExecutionContext` user authorization methods have been renamed (`UserIsAuthorized` and `UserIsInRole`) and explicitly leverage `Result`; breaking change.
 - *Fixed:* Validation extension method `EnsureValue` has been renamed to `Required` to be more explicit as to purpose; breaking change.
 - *Fixed:* `InvokerBase` and `InvokerBase<TResult>` now split sync and async code to avoid sync over async; requires both the sync and async virtual methods to be overridden to implement correctly.
 - *Enhancement:* Ad-hoc performance optimizations; some minor breaking changes primarily impacting internal usage.

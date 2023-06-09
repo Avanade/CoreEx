@@ -2,6 +2,7 @@
 
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Localization;
+using CoreEx.Results;
 using CoreEx.Validation.Rules;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace CoreEx.Validation
     public class CollectionValidator<TColl, TItem> : ValidatorBase<TColl> where TColl : class, IEnumerable<TItem>
     {
         private ICollectionRuleItem? _item;
-        private Func<ValidationContext<TColl>, Task>? _additionalAsync;
+        private Func<ValidationContext<TColl>, Task<Result>>? _additionalAsync;
 
         /// <summary>
         /// Gets or sets the minimum count;
@@ -94,6 +95,9 @@ namespace CoreEx.Validation
                     var ia = ic.CreateValidationArgs();
                     var ir = await Item.ItemValidator.ValidateAsync(item, ia, cancellationToken).ConfigureAwait(false);
                     context.MergeResult(ir);
+                    if (context.FailureResult is not null)
+                        return context;
+
                     if (ir.HasErrors)
                         hasItemErrors = true;
                 }
@@ -118,10 +122,14 @@ namespace CoreEx.Validation
                 Item.DuplicateValidation(pctx, context.Value);
             }
 
-            await OnValidateAsync(context).ConfigureAwait(false);
-            if (_additionalAsync != null)
-                await _additionalAsync(context).ConfigureAwait(false);
+            if (context.FailureResult is not null)
+                return context;
 
+            var result = await OnValidateAsync(context).ConfigureAwait(false);
+            if (result.IsSuccess && _additionalAsync != null)
+                result = await _additionalAsync(context).ConfigureAwait(false);
+
+            context.SetFailureResult(result);
             return context;
         }
 
@@ -129,15 +137,15 @@ namespace CoreEx.Validation
         /// Validate the entity value (post all configured property rules) enabling additional validation logic to be added by the inheriting classes.
         /// </summary>
         /// <param name="context">The <see cref="ValidationContext{TEntity}"/>.</param>
-        /// <returns>The corresponding <see cref="Task"/>.</returns>
-        protected virtual Task OnValidateAsync(ValidationContext<TColl> context) => Task.CompletedTask;
+        /// <returns>The corresponding <see cref="Result"/>.</returns>
+        protected virtual Task<Result> OnValidateAsync(ValidationContext<TColl> context) => Task.FromResult(Result.Success);
 
         /// <summary>
         /// Validate the entity value (post all configured property rules) enabling additional validation logic to be added.
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="CollectionValidator{TColl, TItem}"/>.</returns>
-        public CollectionValidator<TColl, TItem> AdditionalAsync(Func<ValidationContext<TColl>, Task> additionalAsync)
+        public CollectionValidator<TColl, TItem> AdditionalAsync(Func<ValidationContext<TColl>, Task<Result>> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a CollectionValidator.");

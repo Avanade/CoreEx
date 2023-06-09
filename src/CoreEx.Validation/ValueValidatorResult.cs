@@ -3,7 +3,6 @@
 using CoreEx.Entities;
 using CoreEx.Results;
 using System;
-using System.Linq;
 
 namespace CoreEx.Validation
 {
@@ -33,25 +32,32 @@ namespace CoreEx.Validation
         public TProperty? Value => _context.Value;
 
         /// <inheritdoc/>
-        public bool HasErrors => _context.HasError; 
+        public bool HasErrors => _context.Parent.FailureResult is not null || _context.HasError; 
 
         /// <inheritdoc/>
         public MessageItemCollection? Messages => _context.Parent.Messages;
 
         /// <inheritdoc/>
-        public ValidationException? ToValidationException() => HasErrors ? new ValidationException(Messages!) : null;
+        public Exception? ToException() => _context.Parent.ToException();
 
         /// <inheritdoc/>
         IValidationResult IValidationResult.ThrowOnError() => ThrowOnError();
 
         /// <inheritdoc/>
-        public Result<R> ToResult<R>() => HasErrors ? Result<R>.ValidationError(Messages!) : CoreEx.Validation.Validation.ConvertValueToResult<TProperty, R>(Value!);
+        public Result? FailureResult => _context.Parent.FailureResult;
+
+        /// <inheritdoc/>
+        public Result<R> ToResult<R>() => FailureResult.HasValue ? FailureResult.Value.Bind<R>() : (HasErrors ? Result<R>.ValidationError(Messages!) : Validation.ConvertValueToResult<TProperty, R>(Value!));
 
         /// <summary>
         /// Throws a <see cref="ValidationException"/> where an error was found (and optionally if warnings).
         /// </summary>
         /// <param name="includeWarnings">Indicates whether to throw where only warnings exist.</param>
         /// <returns>The <see cref="ValidationContext{TEntity}"/> to support fluent-style method-chaining.</returns>
-        public ValueValidatorResult<TEntity, TProperty> ThrowOnError(bool includeWarnings = false) => (HasErrors || (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))) ? throw ToValidationException()! : this;
+        public ValueValidatorResult<TEntity, TProperty> ThrowOnError(bool includeWarnings = false)
+        {
+            _context.Parent.ThrowOnError(includeWarnings);
+            return this;
+        }
     }
 }

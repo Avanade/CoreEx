@@ -1,16 +1,11 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CoreEx.Results
 {
-    /// <summary>
-    /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>Then</c> and <c>ThenAsync</c> extension methods to execute the corresponding action/function where <see cref="IResult.IsSuccess"/>.
-    /// </summary>
-    [DebuggerStepThrough]
-    public static class ThenExtensions
+    public static partial class ResultsExtensions
     {
         #region Synchronous
 
@@ -81,6 +76,19 @@ namespace CoreEx.Results
         {
             ThrowIfNull(result, func);
             return result.IsSuccess ? func(result.Value) : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<T> Then<T>(this Result<T> result, Func<T, Result> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsSuccess ? func(result.Value).Combine(result) : result;
         }
 
         /// <summary>
@@ -339,6 +347,20 @@ namespace CoreEx.Results
         /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static async Task<Result<T>> Then<T>(this Task<Result<T>> result, Func<T, Result<T>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return r.Then(func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> Then<T>(this Task<Result<T>> result, Func<T, Result> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -620,6 +642,19 @@ namespace CoreEx.Results
         }
 
         /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> ThenAsync<T>(this Result<T> result, Func<T, Task<Result>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsSuccess ? (await func(result.Value).ConfigureAwait(false)).Combine(result) : result;
+        }
+
+        /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -882,6 +917,20 @@ namespace CoreEx.Results
         }
 
         /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> ThenAsync<T>(this Task<Result<T>> result, Func<T, Task<Result>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.ThenAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -1083,14 +1132,5 @@ namespace CoreEx.Results
         }
 
         #endregion
-
-        /// <summary>
-        /// Check parameters and throw where null.
-        /// </summary>
-        private static void ThrowIfNull(object result, object func, string? name = null)
-        {
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            if (func == null) throw new ArgumentNullException(name ?? nameof(func));
-        }
     }
 }

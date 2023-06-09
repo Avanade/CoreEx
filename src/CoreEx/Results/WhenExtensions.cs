@@ -1,21 +1,16 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CoreEx.Results
 {
-    /// <summary>
-    /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>When</c> and <c>WhenAsync</c> extension methods to execute the corresponding function when <see cref="IResult.IsSuccess"/> and the specified condition/predicate evaluates to <c>true</c>.
-    /// </summary>
-    [DebuggerStepThrough]
-    public static class WhenExtensions
+    public static partial class ResultsExtensions
     {
         #region Synchronous
 
         /// <summary>
-        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -31,7 +26,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -44,7 +39,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -61,7 +56,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -75,7 +70,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -89,7 +84,21 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>  and <paramref name="condition"/> evaluates to <c>true</c> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<T> When<T>(this Result<T> result, Predicate<T> condition, Func<T, Result> func)
+        {
+            ThrowIfNull(result, condition, func);
+            return result.IsSuccess && condition(result.Value) ? func(result.Value).Combine(result) : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -103,7 +112,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -117,7 +126,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -134,7 +143,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -148,7 +157,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -163,7 +172,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -180,7 +189,7 @@ namespace CoreEx.Results
         /* IToResult */
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -193,7 +202,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -207,7 +216,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -221,7 +230,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -235,7 +244,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -249,7 +258,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -263,7 +272,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -278,7 +287,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -297,7 +306,7 @@ namespace CoreEx.Results
         #region AsyncResult
 
         /// <summary>
-        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -311,7 +320,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -325,7 +334,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -340,7 +349,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -355,7 +364,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -370,7 +379,22 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> When<T>(this Task<Result<T>> result, Predicate<T> condition, Func<T, Result> func)
+        {
+            ThrowIfNull(result, condition, func);
+            var r = await result.ConfigureAwait(false);
+            return r.When(condition, func);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -385,7 +409,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -400,7 +424,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="action"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -415,7 +439,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -430,7 +454,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -446,7 +470,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -464,7 +488,7 @@ namespace CoreEx.Results
         /* IToResult */
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -478,7 +502,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -493,7 +517,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -508,7 +532,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -523,7 +547,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -538,7 +562,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -553,7 +577,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -569,7 +593,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -589,7 +613,7 @@ namespace CoreEx.Results
         #region AsyncFunc
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -605,7 +629,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -618,7 +642,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -635,7 +659,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -649,7 +673,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -663,7 +687,21 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> WhenAsync<T>(this Result<T> result, Predicate<T> condition, Func<T, Task<Result>> func)
+        {
+            ThrowIfNull(result, func);
+            return result.IsSuccess && condition(result.Value) ? (await func(result.Value).ConfigureAwait(false)).Combine(result) : result;
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -677,7 +715,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -691,7 +729,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -708,7 +746,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -722,7 +760,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -737,7 +775,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -754,7 +792,7 @@ namespace CoreEx.Results
         /* IToResult */
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -767,7 +805,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -781,7 +819,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -795,7 +833,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -809,7 +847,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -823,7 +861,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -837,7 +875,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -852,7 +890,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -871,7 +909,7 @@ namespace CoreEx.Results
         #region AsyncBoth
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -885,7 +923,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -899,7 +937,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -914,7 +952,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -929,7 +967,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -944,7 +982,22 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (the <paramref name="result"/> <see cref="Result{T}.Value"/> will not be lost).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="condition">The condition/predicate that must also be evaluated.</param>
+        /// <param name="func">The <see cref="Func{T, TResult}"/> to invoke.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> WhenAsync<T>(this Task<Result<T>> result, Predicate<T> condition, Func<T, Task<Result>> func)
+        {
+            ThrowIfNull(result, func);
+            var r = await result.ConfigureAwait(false);
+            return await r.WhenAsync(condition, func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -959,7 +1012,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -974,7 +1027,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -989,7 +1042,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
@@ -1004,7 +1057,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -1020,7 +1073,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c> (as new <see cref="Result"/> <see cref="Type"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -1038,7 +1091,7 @@ namespace CoreEx.Results
         /* IToResult */
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="condition">The condition/predicate that must also be evaluated.</param>
@@ -1052,7 +1105,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -1067,7 +1120,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -1082,7 +1135,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -1097,7 +1150,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -1112,7 +1165,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
@@ -1127,7 +1180,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
@@ -1143,7 +1196,7 @@ namespace CoreEx.Results
         }
 
         /// <summary>
-        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaulates to <c>true</c>.
+        /// Executes the <paramref name="func"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/> and <paramref name="condition"/> evaluates to <c>true</c>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
         /// <typeparam name="U">The output (resulting) <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>

@@ -3,15 +3,10 @@
 using CoreEx.Localization;
 using CoreEx.Results.Abstractions;
 using System;
-using System.Diagnostics;
 
 namespace CoreEx.Results
 {
-    /// <summary>
-    /// Provides the <see cref="TryCatchWith{T}"/> extension methods.
-    /// </summary>
-    [DebuggerStepThrough]
-    public static class TryCatchWithExtensions
+    public static partial class ResultsExtensions
     {
         /// <summary>
         /// Initiates a try-catch-with operation (see <see cref="TryCatchWith{T}"/>) where <paramref name="result"/> is <see cref="Result.IsSuccess"/>.

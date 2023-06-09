@@ -797,7 +797,7 @@ namespace CoreEx.WebApis
                         {
                             var vr = await validator.ValidateAsync(v.Value!, ct).ConfigureAwait(false);
                             if (vr.HasErrors)
-                                return vr.ToValidationException()!;
+                                return vr.ToException()!;
                         }
 
                         return await put(new WebApiParam<TValue>(wap, v.Value!), ct).ConfigureAwait(false);

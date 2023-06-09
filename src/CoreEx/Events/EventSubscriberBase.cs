@@ -196,14 +196,14 @@ namespace CoreEx.Events
             }
 
             // Perform the requested validation where applicable.
-            ValidationException? vex = null;
+            Exception? vex = null;
             if (valueIsRequired && @event.Value == null)
                 vex = new ValidationException(RequiredErrorText);
             else if (@event.Value != null && validator != null)
             {
                 var vr = await validator.ValidateAsync(@event.Value, cancellationToken).ConfigureAwait(false);
                 if (vr.HasErrors)
-                    vex = vr.ToValidationException();
+                    vex = vr.ToException();
             }
 
             // Exit where the event is considered valid.
@@ -211,10 +211,7 @@ namespace CoreEx.Events
                 return @event;
 
             // Handle the validation exception.
-            if (InvalidDataHandling == ErrorHandling.None)
-                throw vex;
-
-            EventSubscriberInvoker.HandleError(new EventSubscriberException(vex.Message, vex), InvalidDataHandling, Logger);
+            EventSubscriberInvoker.HandleError(new EventSubscriberException(vex.Message, vex), EventSubscriberInvoker.DetermineErrorHandling(this, vex), Logger);
             return null;
         }
     }

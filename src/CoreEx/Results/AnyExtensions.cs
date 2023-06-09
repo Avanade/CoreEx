@@ -1,16 +1,11 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CoreEx.Results
 {
-    /// <summary>
-    /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> <c>Any</c> and <c>AnyAsync</c> extension methods to execute the corresponding function regardless of the <see cref="IResult.IsSuccess"/> or <see cref="IResult.IsFailure"/> state.
-    /// </summary>
-    [DebuggerStepThrough]
-    public static class AnyExtensions
+    public static partial class ResultsExtensions
     {
         #region Synchronous
 
@@ -1077,14 +1072,5 @@ namespace CoreEx.Results
         }
 
         #endregion
-
-        /// <summary>
-        /// Check parameters and throw where null.
-        /// </summary>
-        private static void ThrowIfNull(object result, object func, string? name = null)
-        {
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            if (func == null) throw new ArgumentNullException(name ?? nameof(func));
-        }
     }
 }

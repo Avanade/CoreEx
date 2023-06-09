@@ -1,5 +1,7 @@
 ﻿using CoreEx.Results;
+using CoreEx.Validation;
 using NUnit.Framework;
+using System;
 using System.Threading.Tasks;
 
 namespace CoreEx.Test.Framework.Results
@@ -7,16 +9,16 @@ namespace CoreEx.Test.Framework.Results
     [TestFixture]
     public class ThenExtensionsTest
     {
-        public void AssertSuccess(Result result) => Assert.True(result.IsSuccess);
-        public void AssertFailure(Result result) => Assert.True(result.IsFailure);
+        public static void AssertSuccess(Result result) => Assert.True(result.IsSuccess);
+        public static void AssertFailure(Result result) => Assert.True(result.IsFailure);
 
-        public T AssertSuccess<T>(Result<T> result)
+        public static T AssertSuccess<T>(Result<T> result)
         {
             Assert.True(result.IsSuccess);
             return result.Value;
         }
 
-        public void AssertFailure<T>(Result<T> result) => Assert.True(result.IsFailure);
+        public static void AssertFailure<T>(Result<T> result) => Assert.True(result.IsFailure);
 
 
         [Test]
@@ -141,6 +143,9 @@ namespace CoreEx.Test.Framework.Results
 
             Assert.AreEqual(1, AssertSuccess(await Result.Go(1f).ThenFromAsAsync<float, int>(async _ => await Task.FromResult(new IToResultIntTest()))));
             AssertFailure(await Result<float>.NotFoundError().ThenFromAsAsync<float, int>(async _ => { Assert.Fail(); return await Task.FromResult(new IToResultIntTest()); }));
+
+            Func<int, Task<Result>>? func = null;
+            var t = Result.Go().ThenAsync(() => func?.Invoke(1) ?? Result.SuccessTask).Then(() => { });
         }
 
         public class IToResultTest : IToResult

@@ -112,6 +112,21 @@ namespace CoreEx.Results
         public static Result<T> Fail(LText message) => new(new BusinessException(message));
 
         /// <summary>
+        /// Requires (validates) that the <see cref="Value"/> is non-default; otherwise, will result in a <see cref="ValidationError(MessageItem)"/>.
+        /// </summary>
+        /// <param name="name">The value name (defaults to <see cref="Validation.Validation.ValueNameDefault"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>The format of the error messages is defined by <see cref="Validation.Validation.MandatoryFormat"/>.</remarks>
+        public Result<T> Required(string? name = null, LText? text = null)
+        {
+            if (IsSuccess && Comparer<T>.Default.Compare(Value, default!) == 0)
+                return ValidationError(MessageItem.CreateErrorMessage(name ?? Validation.Validation.ValueNameDefault, Validation.Validation.MandatoryFormat, text ?? ((name == null || name == Validation.Validation.ValueNameDefault) ? Validation.Validation.ValueTextDefault : name.ToSentenceCase()!)));
+
+            return this;
+        }
+
+        /// <summary>
         /// Implicitly converts an <see cref="Exception"/> to a <see cref="Result"/> that is considered <see cref="IsFailure"/>.
         /// </summary>
         /// <param name="error">The underlying error represented as an <see cref="Exception"/>.</param>

@@ -15,27 +15,22 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public void Ensure_Success_NonDefaultValue()
         {
-            bool success = false;
-            var r = Result.Ok(1).Required(v => success = true);
-            Assert.That(success, Is.True);
+            var r = Result.Ok(1).Required();
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
         public void Ensure_Success_DefaultValue()
         {
-            bool success = false;
-            var r = Result.Ok(0).Required(v => success = true);
+            var r = Result.Ok(0).Required();
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [value: Value is required.]"));
-            Assert.That(success, Is.False);
         }
 
         [Test]
         public void Ensure_Failure()
         {
-            bool success = false;
-            var r = Result<int>.Fail("bad").Required(v => success = true);
+            var r = Result<int>.Fail("bad").Required();
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("bad"));
-            Assert.That(success, Is.False);
         }
 
         [Test]
@@ -81,6 +76,21 @@ namespace CoreEx.Test.Framework.Results
         }
 
         [Test]
+        public async Task Validation_Success_Other_Value()
+        {
+            var r = await Result.Go().ValidatesAsync(1, v => v.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
+            Assert.IsTrue(r.IsSuccess);
+        }
+
+        [Test]
+        public async Task Validation_Failure_Other_Value()
+        {
+            var id = 88;
+            var r = await Result.Go().ValidatesAsync(id, v => v.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
+            Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [id: Identifier must be less than or equal to 10.]"));
+        }
+
+        [Test]
         public async Task Validation_Simulate_Ensure_And_Validation()
         {
             var value = new Person { Name = "Tom", Age = 18 };
@@ -89,11 +99,44 @@ namespace CoreEx.Test.Framework.Results
             var r = await Result.Go().Manager(this, InvokerArgs.Create).WithAsAsync(r =>
             {
                 return Result.Go(value)
-                    .Required(v => v.Id = id)
+                    .Required()
+                    .Then(v => v.Id = id)
                     .ThenAsync(v => v.Validate().Entity(_personValidator).ValidateAsync());
             });
 
             Assert.IsTrue(r.IsSuccess);
+        }
+
+        [Test]
+        public async Task Validation_MultiValidator_Success()
+        {
+            var value = new Person { Name = "Tom", Age = 18 };
+            var r = await Result.Go().ValidateAsync(() => MultiValidator.Create().Add(value.Validate().Mandatory().Entity(_personValidator)));
+            Assert.IsTrue(r.IsSuccess);
+        }
+
+        [Test]
+        public async Task Validation_MultiValidator_Failure()
+        {
+            var value = new Person { Name = "Tom" };
+            var r = await Result.Go().ValidateAsync(() => MultiValidator.Create().Add(value.Validate().Mandatory().Entity(_personValidator)));
+            Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [value.Age: Age must be greater than 0.]"));
+        }
+
+        [Test]
+        public async Task Validation_MultiValidator_Value_Success()
+        {
+            var value = new Person { Name = "Tom", Age = 18 };
+            var r = await Result.Go(value).ValidateAsync(p => MultiValidator.Create().Add(p.Validate().Mandatory().Entity(_personValidator)));
+            Assert.IsTrue(r.IsSuccess);
+        }
+
+        [Test]
+        public async Task Validation_MultiValidator_Value_Failure()
+        {
+            var value = new Person { Name = "Tom" };
+            var r = await Result.Go(value).ValidateAsync(p => MultiValidator.Create().Add(p.Validate().Mandatory().Entity(_personValidator)));
+            Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [value.Age: Age must be greater than 0.]"));
         }
 
         private static readonly Validator<Person> _personValidator = Validator.Create<Person>()

@@ -44,6 +44,8 @@ namespace CoreEx.Validation
                 foreach (var r in vb.Rules)
                 {
                     await r.ValidateAsync(ctx, cancellationToken).ConfigureAwait(false);
+                    if (ctx.FailureResult is not null)
+                        break;
                 }
             }
 

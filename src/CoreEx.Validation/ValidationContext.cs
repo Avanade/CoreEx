@@ -132,26 +132,64 @@ namespace CoreEx.Validation
         }
 
         /// <inheritdoc/>
-        public ValidationException? ToValidationException() => HasErrors ? new ValidationException(Messages!) : null;
+        public Result? FailureResult { get; private set; }
+
+        /// <summary>
+        /// Sets the <see cref="FailureResult"/>.
+        /// </summary>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        internal void SetFailureResult(Result? result)
+        {
+            if (result is null)
+                return;
+
+            if (FailureResult.HasValue)
+                throw new InvalidOperationException("The ValidationContext is already in a Failure state.");
+
+            if (result.Value.IsFailure)
+            {
+                FailureResult = result;
+                HasErrors = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        public Exception? ToException() => FailureResult.HasValue ? FailureResult.Value.Error : (HasErrors ? new ValidationException(Messages!) : null);
 
         /// <inheritdoc/>
         IValidationResult IValidationResult.ThrowOnError() => ThrowOnError(false);
 
         /// <summary>
-        /// Throws a <see cref="ValidationException"/> where an error was found (and optionally if warnings).
+        /// Throws a <see cref="Exception"/> (typically a <see cref="ValidationException"/>) where an error was found (and optionally if warnings).
         /// </summary>
         /// <param name="includeWarnings">Indicates whether to throw where only warnings exist.</param>
         /// <returns>The <see cref="ValidationContext{TEntity}"/> to support fluent-style method-chaining.</returns>
-        public ValidationContext<TEntity> ThrowOnError(bool includeWarnings = false) => (HasErrors || (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))) ?  throw ToValidationException()! : this;
+        public ValidationContext<TEntity> ThrowOnError(bool includeWarnings = false)
+        {
+            var ex = ToException();
+            if (ex is not null)
+                throw ex;
+
+            if (includeWarnings && Messages != null && Messages.Any(x => x.Type == MessageType.Warning))
+                throw new ValidationException(Messages);
+
+            return this;
+        }
 
         /// <inheritdoc/>
-        public Result<R> ToResult<R>() => HasErrors ? Result<R>.ValidationError(Messages!) : CoreEx.Validation.Validation.ConvertValueToResult<TEntity, R>(Value!);
+        public Result<R> ToResult<R>() => FailureResult.HasValue ? FailureResult.Value.Bind<R>() : (HasErrors ? Result<R>.ValidationError(Messages!) : Validation.ConvertValueToResult<TEntity, R>(Value!));
 
         /// <summary>
         /// Merges a validation result into this.
         /// </summary>
         /// <param name="context">The <see cref="IValidationContext"/> to merge.</param>
-        public void MergeResult(IValidationContext context) => MergeResult(context?.Messages);
+        public void MergeResult(IValidationContext context)
+        {
+            if (context.FailureResult.HasValue)
+                SetFailureResult(context.FailureResult.Value);
+            else
+                MergeResult(context?.Messages);
+        }
 
         /// <summary>
         /// Merges a <see cref="MessageItemCollection"/> into this.

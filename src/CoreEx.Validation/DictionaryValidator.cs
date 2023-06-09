@@ -2,6 +2,7 @@
 
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Localization;
+using CoreEx.Results;
 using CoreEx.Validation.Rules;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace CoreEx.Validation
         where TDict : class, IDictionary<TKey, TValue>
     {
         private IDictionaryRuleItem? _item;
-        private Func<ValidationContext<TDict>, CancellationToken, Task>? _additionalAsync;
+        private Func<ValidationContext<TDict>, CancellationToken, Task<Result>>? _additionalAsync;
 
         /// <summary>
         /// Indicates whether the underlying dictionary key can be null.
@@ -113,6 +114,8 @@ namespace CoreEx.Validation
                     var ka = kc.CreateValidationArgs();
                     var kr = await Item.KeyValidator.ValidateAsync(item.Key, ka, cancellationToken).ConfigureAwait(false);
                     context.MergeResult(kr);
+                    if (context.FailureResult is not null)
+                        return context;
                 }
 
                 if (item.Value != null && Item?.ValueValidator != null)
@@ -121,6 +124,8 @@ namespace CoreEx.Validation
                     var va = vc.CreateValidationArgs();
                     var vr = await Item.ValueValidator.ValidateAsync(item.Value, va, cancellationToken).ConfigureAwait(false);
                     context.MergeResult(vr);
+                    if (context.FailureResult is not null)
+                        return context;
                 }
             }
 
@@ -137,10 +142,14 @@ namespace CoreEx.Validation
             else if (MaxCount.HasValue && i > MaxCount.Value)
                 context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MaxCountFormat, new object?[] { text.Value, null, MaxCount });
 
-            await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
-            if (_additionalAsync != null)
-                await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
+            if (context.FailureResult is not null)
+                return context;
 
+            var result = await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
+            if (result.IsSuccess && _additionalAsync != null)
+                result = await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
+
+            context.SetFailureResult(result);
             return context;
         }
 
@@ -150,14 +159,14 @@ namespace CoreEx.Validation
         /// <param name="context">The <see cref="ValidationContext{TEntity}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="Task"/>.</returns>
-        protected virtual Task OnValidateAsync(ValidationContext<TDict> context, CancellationToken cancellationToken) => Task.CompletedTask;
+        protected virtual Task<Result> OnValidateAsync(ValidationContext<TDict> context, CancellationToken cancellationToken) => Task.FromResult(Result.Success);
 
         /// <summary>
         /// Validate the entity value (post all configured property rules) enabling additional validation logic to be added.
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="DictionaryValidator{TColl, TKey, TValue}"/>.</returns>
-        public DictionaryValidator<TDict, TKey, TValue> AdditionalAsync(Func<ValidationContext<TDict>, CancellationToken, Task> additionalAsync)
+        public DictionaryValidator<TDict, TKey, TValue> AdditionalAsync(Func<ValidationContext<TDict>, CancellationToken, Task<Result>> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a DictionaryValidator.");
