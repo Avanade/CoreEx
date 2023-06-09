@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Database\CoreEx.Database.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Solace\CoreEx.Solace.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />

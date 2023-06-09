@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFramework>netstandard2.1</TargetFramework>
+	  <RootNamespace>CoreEx.Solace</RootNamespace>
+	  <Product>CoreEx</Product>
+	  <Title>CoreEx .NET Standard Solace PubSub+ Extensions.</Title>
+	  <Description>CoreEx .NET Standard (v2.1) Solace PubSub+ Extensions.</Description>
+	  <PackageTags>coreex api function aspnet solace pubsubplus</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SolaceSystems.Solclient.Messaging" Version="10.20.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+  </ItemGroup>
+
+	<Import Project="..\..\Common.targets" />
+
+</Project>
