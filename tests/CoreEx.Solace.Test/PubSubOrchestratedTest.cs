@@ -2,7 +2,7 @@
 namespace CoreEx.Test.TestFunction
 {
     [TestFixture]
-    [Category("PubSubOrchestrated")]
+    [Category("WithSolace")]
     public class PubSubOrchestratedTest
     {
         // NOTE: PubSub local instance must be running in container for test to execute
