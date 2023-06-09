@@ -15,13 +15,13 @@ namespace CoreEx.Solace.PubSub
     public class EventSendDataToPubSubConverter : IValueConverter<EventSendData, IMessage>
     {
         /// <summary>
-        /// Gets or sets the <see cref="EventSendData"/> property selection; where a property is selected it will be sent as one of the <see cref="IMessage.ApplicationProperties"/>.
+        /// Gets or sets the <see cref="EventSendData"/> property selection; where a property is selected it will be set as one of the <see cref="IMessage"/> properties.
         /// </summary>
         /// <remarks>Defaults to <see cref="EventDataProperty.All"/>.</remarks>
         public EventDataProperty PropertySelection { get; set; } = EventDataProperty.All;
 
         /// <summary>
-        /// Gets or sets the <see cref="EventDataBase.Attributes"/> name for the <see cref="IMessage.SessionId"/>.
+        /// Gets or sets the <see cref="EventDataBase.Attributes"/> name for the <see cref="IMessage.UserPropertyMap"/>.
         /// </summary>
         /// <remarks>Defaults to '<c>_SessionId</c>'.</remarks>
         public string SessionIdAttributeName { get; set; } = $"_{nameof(IMessage.ApplicationMessageId)}";
@@ -33,20 +33,19 @@ namespace CoreEx.Solace.PubSub
         public string TimeToLiveAttributeName { get; set; } = $"_{nameof(IMessage.TimeToLive)}";
 
         /// <summary>
-        /// Indicates whether to use the <see cref="EventDataBase.PartitionKey"/> as the <see cref="IMessage.SessionId"/>.
+        /// Indicates whether to use the <see cref="EventDataBase.PartitionKey"/> as the <see cref="IMessage.UserPropertyMap"/>.
         /// </summary>
         public bool UsePartitionKeyAsSessionId { get; set; } = true;
 
         /// <inheritdoc/>
-        /// <remarks>By default the <see cref="SessionIdAttributeName"/> will be used to update the <see cref="IMessage.SessionId"/> from the <see cref="EventDataBase.Attributes"/>, followed by the
+        /// <remarks>By default the <see cref="SessionIdAttributeName"/> will be used to update the <see cref="IMessage.UserPropertyMap"/> from the <see cref="EventDataBase.Attributes"/>, followed by the
         /// <see cref="UsePartitionKeyAsSessionId"/> option, until not <c>null</c>; otherwise, will be left as <c>null</c>.
         /// <para>Similarily, the <see cref="TimeToLiveAttributeName"/> will be used to update the <see cref="IMessage.TimeToLive"/> from the <see cref="EventDataBase.Attributes"/>.</para></remarks>
         public IMessage Convert(EventSendData @event)
         {
-
             var message = ContextFactory.Instance.CreateMessage();
 
-            message.BinaryAttachment = @event.Data.ToArray();
+            message.BinaryAttachment = @event.Data?.ToArray() ?? Array.Empty<byte>();
             message.ApplicationMessageId = @event.Id;
             message.HttpContentType = MediaTypeNames.Application.Json;
             message.CorrelationId = @event.CorrelationId ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current.CorrelationId : null);
@@ -88,7 +87,6 @@ namespace CoreEx.Solace.PubSub
                 message.UserPropertyMap.AddString("SessionId", sessionId);
             else if (@event.PartitionKey != null)
                 message.UserPropertyMap.AddString("SessionId", UsePartitionKeyAsSessionId ? @event.PartitionKey : string.Empty);
-            
 
             if (@event.Attributes != null && @event.Attributes.TryGetValue(TimeToLiveAttributeName, out var ttl) && TimeSpan.TryParse(ttl, out var timeToLive))
                 message.TimeToLive = (long)timeToLive.TotalMilliseconds;

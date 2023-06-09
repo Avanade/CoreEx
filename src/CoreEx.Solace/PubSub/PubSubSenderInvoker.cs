@@ -3,6 +3,7 @@
 using CoreEx.Invokers;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Transactions;
 
 namespace CoreEx.Solace.PubSub
@@ -14,7 +15,22 @@ namespace CoreEx.Solace.PubSub
     public class PubSubSenderInvoker : InvokerBase<PubSubSender>
     {
         /// <inheritdoc/>
-        protected async override System.Threading.Tasks.Task<TResult> OnInvokeAsync<TResult>(PubSubSender invoker, Func<CancellationToken, System.Threading.Tasks.Task<TResult>> func, CancellationToken cancellationToken)
+        protected override TResult OnInvoke<TResult>(PubSubSender invoker, Func<TResult> func)
+        {
+            TransactionScope? txn = null;
+            try
+            {
+                txn = new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled);
+                return base.OnInvoke(invoker, func);
+            }
+            finally
+            {
+                txn?.Dispose();
+            }
+        }
+
+        /// <inheritdoc/>
+        protected async override Task<TResult> OnInvokeAsync<TResult>(PubSubSender invoker, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             TransactionScope? txn = null;
             try

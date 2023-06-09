@@ -15,7 +15,7 @@ namespace CoreEx.Azure.ServiceBus
     public class EventSendDataToServiceBusConverter : IValueConverter<EventSendData, ServiceBusMessage>
     {
         /// <summary>
-        /// Gets or sets the <see cref="EventSendData"/> property selection; where a property is selected it will be sent as one of the <see cref="ServiceBusMessage.ApplicationProperties"/>.
+        /// Gets or sets the <see cref="EventSendData"/> property selection; where a property is selected it will be set as one of the <see cref="ServiceBusMessage"/> properties.
         /// </summary>
         /// <remarks>Defaults to <see cref="EventDataProperty.All"/>.</remarks>
         public EventDataProperty PropertySelection { get; set; } = EventDataProperty.All;

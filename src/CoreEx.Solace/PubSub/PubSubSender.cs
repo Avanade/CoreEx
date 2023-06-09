@@ -40,7 +40,9 @@ namespace CoreEx.Solace.PubSub
             Converter = converter ?? new EventSendDataToPubSubConverter();
             DefaultQueueOrTopicName = Settings.GetValue($"{GetType().Name}:QueueOrTopicName", defaultValue: _unspecifiedQueueOrTopicName);
 
-            EstablishConnectionToPubSubBroker();
+            var conn = EstablishConnectionToPubSubBroker();
+            Session = conn.Session;
+            SolaceContext = conn.Context;
         }
 
         /// <summary>
@@ -74,12 +76,7 @@ namespace CoreEx.Solace.PubSub
         protected PubSubSenderInvoker Invoker { get; }
 
         /// <summary>
-        /// Gets the <see cref="CoreEx.ExecutionContext"/>.
-        /// </summary>
-        protected ExecutionContext ExecutionContext { get; }
-
-        /// <summary>
-        /// Gets the <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.
+        /// Gets the <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="IMessage"/>.
         /// </summary>
         protected IValueConverter<EventSendData, IMessage> Converter { get; }
 
@@ -94,7 +91,7 @@ namespace CoreEx.Solace.PubSub
             if (events == null || !events.Any())
                 return Task.CompletedTask;
 
-            return Invoker.InvokeAsync(this, events, async (events, cancellationToken) =>
+            Invoker.Invoke(this, events, (events) =>
             {
                 var totalCount = events.Count();
                 Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);
@@ -112,7 +109,7 @@ namespace CoreEx.Solace.PubSub
                     //Convert message
                     var message = Converter.Convert(@event) ?? throw new EventSendException($"The {nameof(Converter)} must return a {nameof(IMessage)} instance.");
 
-                    var name = @event.Destination ?? DefaultQueueOrTopicName;
+                    var name = @event.Destination ?? DefaultQueueOrTopicName ?? throw new InvalidOperationException($"The {nameof(DefaultQueueOrTopicName)} must be specified where the {nameof(EventSendData)}.{nameof(EventSendData.Destination)} is null.");
                     message.Destination = ContextFactory.Instance.CreateTopic(name);
 
                     //Enqueue event message
@@ -158,19 +155,22 @@ namespace CoreEx.Solace.PubSub
 
                         try
                         {
-                            Logger.LogInformation($"Sending {messageBatch.Count} message(s) to PubSub Broker.");
+                            Logger.LogInformation("Sending {Count} message(s) to PubSub Broker.", messageBatch.Count);
                             var returnCode = Session.Send(messageBatch.ToArray(), 0, messageBatch.Count, out int sentCount);
 
+                            if (returnCode != ReturnCode.SOLCLIENT_OK)
+                            {
+                                Logger.LogDebug("{UnsentCount} of the total {TotalCount} events were not successfully sent.", unsentEvents.Count, totalCount);
+                                throw new EventSendException(PrependStats($"PubSubMessage send failed with return code {Enum.GetName(typeof(ReturnCode), returnCode)}.", totalCount, unsentEvents.Count), unsentEvents);
+                            }
+
                             if (messageBatch.Count != sentCount)
-                                throw new Exception("Not all messages in batch were sent.");
-                            if (returnCode == ReturnCode.SOLCLIENT_OK)
                             {
-                                Logger.LogInformation($"Successful send of {messageBatch.Count} message(s)");
+                                Logger.LogDebug("{UnsentCount} of the total {TotalCount} events were not successfully sent.", unsentEvents.Count, totalCount);
+                                throw new InvalidOperationException("Not all messages in batch were sent; only {sentCount} of {messageBatch.Count} were sent.");
                             }
-                            else
-                            {
-                                Logger.LogError("Publishing to PubSub failed, return code: {0}", returnCode);
-                            }
+
+                            Logger.LogInformation("Successful send of {Count} message(s).", messageBatch.Count);
                         }
                         catch (Exception ex)
                         {
@@ -182,37 +182,31 @@ namespace CoreEx.Solace.PubSub
                         unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id ?? string.Empty));
                     }
                 }
-            }, cancellationToken);
+            });
+
+            return Task.CompletedTask;
         }
 
-        private void EstablishConnectionToPubSubBroker()
+        /// <summary>
+        /// Establishes the connection to the PubSub broker.
+        /// </summary>
+        private (IContext Context, ISession Session) EstablishConnectionToPubSubBroker()
         {
-            // Initialize Solace Systems Messaging API with logging to console at Warning level
-            ContextFactoryProperties cfp = new ContextFactoryProperties()
-            {
-                SolClientLogLevel = SolLogLevel.Warning
-            };
+            // Initialize Solace Systems Messaging API with logging to console at Warning level.
+            var cfp = new ContextFactoryProperties { SolClientLogLevel = SolLogLevel.Warning };
             cfp.LogToConsoleError();
             ContextFactory.Instance.Init(cfp);
 
-            Logger.LogInformation($"Connecting to Solace as {SessionProperties.UserName}@{SessionProperties.VPNName} on {SessionProperties.Host}" +
-                $"with SSL Trust Store directory {SessionProperties.SSLTrustStoreDir}");
+            Logger.LogInformation("Connecting to Solace as {UserName}@{VPNName} on {Host} with SSL Trust Store directory {SSLTrustStoreDir}.", SessionProperties.UserName, SessionProperties.VPNName, SessionProperties.Host, SessionProperties.SSLTrustStoreDir);
 
             var context = ContextFactory.Instance.CreateContext(new ContextProperties(), null);
             var session = context.CreateSession(SessionProperties, null, null);
             var returnCode = session.Connect();
             if (returnCode == ReturnCode.SOLCLIENT_OK)
-            {
-                SolaceContext = context;
-                Session = session;
-            }
-            else
-            {
-                Logger.LogInformation($"Cannot connect to PubSub broker");
-                Logger.LogDebug($"Error Connecting to Solace.  Return code is {Enum.GetName(typeof(ReturnCode), returnCode)}");
-            }
-        }
+                return (context, session);
 
+            throw new InvalidOperationException($"Cannot connect to Solace PubSub broker. Return code is {Enum.GetName(typeof(ReturnCode), returnCode)}.");
+        }
 
         /// <summary>
         /// Prepend the sent stats to the message.

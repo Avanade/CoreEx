@@ -28,15 +28,13 @@ namespace CoreEx.Azure.ServiceBus
         /// Initializes a new instance of the <see cref="ServiceBusSender"/> class.
         /// </summary>
         /// <param name="client">The underlying <see cref="ServiceBusClient"/>.</param>
-        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <param name="invoker">The optional <see cref="ServiceBusSenderInvoker"/>.</param>
         /// <param name="converter">The optional <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.</param>
-        public ServiceBusSender(ServiceBusClient client, ExecutionContext executionContext, SettingsBase settings, ILogger<ServiceBusSender> logger, ServiceBusSenderInvoker? invoker = null, IValueConverter<EventSendData, ServiceBusMessage>? converter = null)
+        public ServiceBusSender(ServiceBusClient client, SettingsBase settings, ILogger<ServiceBusSender> logger, ServiceBusSenderInvoker? invoker = null, IValueConverter<EventSendData, ServiceBusMessage>? converter = null)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client), "Verify dependency injection configuration and if service bus connection string for publisher was correctly defined.");
-            ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Invoker = invoker ?? (_invoker ??= new ServiceBusSenderInvoker());
@@ -57,11 +55,6 @@ namespace CoreEx.Azure.ServiceBus
         /// Gets the <see cref="ServiceBusSenderInvoker"/>.
         /// </summary>
         protected ServiceBusSenderInvoker Invoker { get; }
-
-        /// <summary>
-        /// Gets the <see cref="CoreEx.ExecutionContext"/>.
-        /// </summary>
-        protected ExecutionContext ExecutionContext { get; }
 
         /// <summary>
         /// Gets the <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.
@@ -145,7 +138,7 @@ namespace CoreEx.Azure.ServiceBus
 
                         try
                         {
-                            Logger.LogInformation($"Sending {batch.Count} messages to {qn}.");
+                            Logger.LogInformation("Sending {Count} message(s) to {Name}.", batch.Count, qn);
                             await sender.SendMessagesAsync(batch, cancellationToken).ConfigureAwait(false);
                         }
                         catch (Exception ex)
