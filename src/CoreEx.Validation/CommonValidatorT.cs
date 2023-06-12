@@ -98,20 +98,15 @@ namespace CoreEx.Validation
             var ctx = new PropertyContext<ValidationValue<T>, T>(vc, context.Value, context.Name, context.JsonName, context.Text);
             await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
 
-            if (ctx.Parent.FailureResult is not null)
-                return;
-
-            var result = await OnValidateAsync(ctx, cancellationToken).ConfigureAwait(false);
-            if (result.IsSuccess && _additionalAsync != null)
-                result = await _additionalAsync(ctx, cancellationToken).ConfigureAwait(false);
-
-            if (result.IsSuccess)
-            {
-                context.HasError = ctx.HasError;
-                context.Parent.MergeResult(ctx.Parent);
-            }
-            else
-                context.Parent.SetFailureResult(result);
+            await (ctx.Parent.FailureResult ?? Result.Success)
+                .ThenAsync(() => OnValidateAsync(ctx, cancellationToken))
+                .WhenAsync(() => _additionalAsync != null, () => _additionalAsync!(ctx, cancellationToken))
+                .Match(ok: () =>
+                {
+                    context.HasError = ctx.HasError;
+                    context.Parent.MergeResult(ctx.Parent);
+                }, fail: ex => context.Parent.SetFailureResult(Result.Fail(ex)))
+                .ConfigureAwait(false);
         }
 
         /// <summary>

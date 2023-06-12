@@ -96,7 +96,7 @@ namespace CoreEx.Validation
                     await rule.ValidateAsync(context, cancellationToken).ConfigureAwait(false);
 
                 // Stop validating after an error.
-                if (context.HasError)
+                if (context.HasError || context.Parent.FailureResult.HasValue)
                     break;
             }
         }

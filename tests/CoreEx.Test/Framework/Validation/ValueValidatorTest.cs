@@ -1,4 +1,5 @@
-﻿using CoreEx.Validation;
+﻿using CoreEx.Results;
+using CoreEx.Validation;
 using NUnit.Framework;
 using System.Threading.Tasks;
 
@@ -28,6 +29,18 @@ namespace CoreEx.Test.Framework.Validation
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(1, r.Messages!.Count);
             Assert.AreEqual("Value is required.", r.Messages[0].Text);
+        }
+
+        [Test]
+        public async Task Validate_With_FailureResult()
+        {
+            string name = "Bill";
+            var r = await name.Validate().Mandatory().Custom(ctx => Result.Go().When(() => ctx.Value == "Bill", () => Result.NotFoundError())).String(5).ValidateAsync();
+            Assert.IsNotNull(r);
+            Assert.IsTrue(r.HasErrors);
+            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<NotFoundException>());
+            Assert.Throws<NotFoundException>(() => r.ThrowOnError());
         }
     }
 }
