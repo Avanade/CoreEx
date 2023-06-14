@@ -28,7 +28,7 @@ namespace CoreEx.Test.Framework.Validation
             Assert.IsNotNull(r);
             Assert.IsTrue(r.HasErrors);
             Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Value is required.", r.Messages[0].Text);
+            Assert.AreEqual("Name is required.", r.Messages[0].Text);
         }
 
         [Test]

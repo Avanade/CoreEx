@@ -20,7 +20,8 @@ namespace CoreEx
         /// <param name="adjuster">The adjusting action (invoked only where the <paramref name="value"/> is not <c>null</c>).</param>
         /// <returns>The adjusted value (same instance).</returns>
         /// <remarks>Useful in scenarios to in-line simple changes to a value to simplify code.</remarks>
-        public static T Adjust<T>(this T value, Action<T> adjuster) where T : class
+        [return: NotNullIfNotNull(nameof(value))]
+        public static T? Adjust<T>(this T? value, Action<T> adjuster)
         {
             if (value is not null)
                 adjuster?.Invoke(value ?? throw new ArgumentNullException(nameof(value)));

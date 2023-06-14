@@ -86,6 +86,14 @@ namespace CoreEx.Cosmos
         /// <inheritdoc/>
         public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() => new(this, containerId);
 
+        /// <inheritdoc/>
+        public CosmosDbModelQuery<TModel> ModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) where TModel : class, IIdentifier<string>, new()
+            => new(new CosmosDbModelContainer(this, GetCosmosContainer(containerId)), dbArgs, query);
+
+        /// <inheritdoc/>
+        public CosmosDbValueModelQuery<TModel> ValueModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) where TModel : class, IIdentifier<string>, new()
+            => new(new CosmosDbModelContainer(this, GetCosmosContainer(containerId)), dbArgs, query);
+
         /// <summary>
         /// Sets the filter for all operations performed on the <typeparamref name="TModel"/> for the specified <paramref name="containerId"/> to ensure authorisation is applied. Applies automatically 
         /// to all queries, plus create, update, delete and get operations.
@@ -149,6 +157,16 @@ namespace CoreEx.Cosmos
 
         /// <inheritdoc/>
         QueryRequestOptions ICosmosDb.GetQueryRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
+        {
+            var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
+            ro.PartitionKey ??= dbArgs.PartitionKey ?? PartitionKey;
+
+            UpdateQueryRequestOptions(ro);
+            return ro;
+        }
+
+        /// <inheritdoc/>
+        QueryRequestOptions ICosmosDb.GetQueryRequestOptions<TModel>(CosmosDbArgs dbArgs) where TModel : class
         {
             var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
             ro.PartitionKey ??= dbArgs.PartitionKey ?? PartitionKey;

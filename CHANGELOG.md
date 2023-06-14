@@ -3,15 +3,17 @@
 Represents the **NuGet** versions.
 
 ## v3.0.0
-- *Enhancement:* Added new `CoreEx.Results` namespace with primary `Result` and `Result<T>` classes to enable [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html); see [`CoreEx.Results`](./src/CoreEx/Results/README.md) for more implementation details.
-- *Enhancement:* `SubscriberBase` and `SubscriberBase<T>` modified to include `EventSubscriberArgs` (`Dictionary<string, object?>`) to allow other parameters to be passed in; `ReceiveAsync` breaking method change. 
-- *Enhancement:* Where overriding `OnValidateAsync` this method now supports a return value of type `Result`, as does the `CustomRule` (for consistency); breaking change. The `Result` enables other errors to be returned avoiding the need to throw an exception.
-- *Enhancement:* `ExecutionContext` user authorization methods have been renamed (`UserIsAuthorized` and `UserIsInRole`) and explicitly leverage `Result`; breaking change.
+- *Enhancement:* Added new `CoreEx.Results` namespace with primary `Result` and `Result<T>` classes to enable [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html); see [`CoreEx.Results`](./src/CoreEx/Results/README.md) for more implementation details. Related changes as follows:
+  - *Enhancement:* `SubscriberBase` and `SubscriberBase<T>` modified to include `EventSubscriberArgs` (`Dictionary<string, object?>`) to allow other parameters to be passed in. The `ReceiveAsync` method returns a `Result`; breaking change. 
+  - *Enhancement:* Where overriding `OnValidateAsync` this method now supports a return value of type `Result`, as does the `CustomRule` (for consistency); breaking change. The `Result` enables other errors to be returned avoiding the need to throw an exception.
+  - *Enhancement:* `ExecutionContext` user authorization methods have been renamed (`UserIsAuthorized` and `UserIsInRole`) and explicitly leverage `Result`; breaking change.
+  - *Enhancement:* `IReferenceDataProvider.GetAsync` method now supports a return type of `Result<T>`; breaking change.
 - *Fixed:* Validation extension method `EnsureValue` has been renamed to `Required` to be more explicit as to purpose; breaking change.
 - *Fixed:* `InvokerBase` and `InvokerBase<TResult>` now split sync and async code to avoid sync over async; requires both the sync and async virtual methods to be overridden to implement correctly.
 - *Enhancement:* Ad-hoc performance optimizations; some minor breaking changes primarily impacting internal usage.
 - *Enhancement:* Added `net6.0` and `net7.0` support in addition to [.NET Standard](https://learn.microsoft.com/en-us/dotnet/standard/net-standard#when-to-target-net50-or-net60-vs-netstandard) to all packages. This will allow access to additional features per version where required, and overall performance improvements.
 - *Enhancement:* Added `CoreEx.Solace` to enable the publishing of messages to [Solace](https://solace.com/) message brokers.
+- *Enhancement:* Updated `CoreEx.Cosmos` to support direct model queries using `ModelQuery` methods where applicable.
 
 ## v2.10.1
 - *Fixed:* `EventOutboxHostedService` updated so when a new `IServiceScope` is created that `ExecutionContext.Reset` is invoked to ensure existing `ServiceProvider` is not reused.

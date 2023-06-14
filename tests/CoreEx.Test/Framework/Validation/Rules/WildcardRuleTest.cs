@@ -14,22 +14,22 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task ValidateWildcard()
         {
-            var v1 = await "xxxx".Validate().Wildcard().ValidateAsync();
+            var v1 = await "xxxx".Validate("value").Wildcard().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "*xxxx".Validate().Wildcard().ValidateAsync();
+            v1 = await "*xxxx".Validate("value").Wildcard().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "xxxx*".Validate().Wildcard().ValidateAsync();
+            v1 = await "xxxx*".Validate("value").Wildcard().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "*xxxx*".Validate().Wildcard().ValidateAsync();
+            v1 = await "*xxxx*".Validate("value").Wildcard().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "x*x".Validate().Wildcard().ValidateAsync();
+            v1 = await "x*x".Validate("value").Wildcard().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "x?x".Validate().Wildcard().ValidateAsync();
+            v1 = await "x?x".Validate("value").Wildcard().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains invalid or non-supported wildcard selection.", v1.Messages[0].Text);

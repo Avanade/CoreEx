@@ -1079,6 +1079,7 @@ namespace CoreEx.Validation
 
         #region ValueValidator
 
+#if NETSTANDARD2_1
         /// <summary>
         /// Enables (sets up) validation for a value.
         /// </summary>
@@ -1088,6 +1089,17 @@ namespace CoreEx.Validation
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
         public static ValueValidator<T?> Validate<T>(this T? value, string? name = null, LText? text = null) => new(value, name, text);
+#else
+        /// <summary>
+        /// Enables (sets up) validation for a value.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+        /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
+        public static ValueValidator<T?> Validate<T>(this T? value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) => new(value, name, text);
+#endif
 
         #endregion
 

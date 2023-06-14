@@ -66,6 +66,26 @@ namespace CoreEx.Cosmos
         CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new();
 
         /// <summary>
+        /// Gets (creates) the <see cref="CosmosDbModelQuery{TModel}"/> for the specified <paramref name="containerId"/>.
+        /// </summary>
+        /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
+        /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="query">A function to modify the underlying <see cref="IQueryable{T}"/>.</param>
+        /// <returns>The <see cref="CosmosDbModelQuery{TModel}"/>.</returns>
+        CosmosDbModelQuery<TModel> ModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) where TModel : class, IIdentifier<string>, new();
+
+        /// <summary>
+        /// Gets (creates) the <see cref="CosmosDbValueModelQuery{TModel}"/> for the specified <paramref name="containerId"/>.
+        /// </summary>
+        /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
+        /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="query">A function to modify the underlying <see cref="IQueryable{T}"/>.</param>
+        /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
+        CosmosDbValueModelQuery<TModel> ValueModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) where TModel : class, IIdentifier<string>, new();
+
+        /// <summary>
         /// Invoked where a <see cref="CosmosException"/> has been thrown.
         /// </summary>
         /// <param name="cex">The <see cref="CosmosException"/>.</param>
@@ -91,6 +111,14 @@ namespace CoreEx.Cosmos
         /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <returns>The <see cref="QueryRequestOptions"/>.</returns>
         QueryRequestOptions GetQueryRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class, new() where TModel : class, IIdentifier, new();
+
+        /// <summary>
+        /// Gets or instantiates the <see cref="QueryRequestOptions"/>.
+        /// </summary>
+        /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <returns>The <see cref="QueryRequestOptions"/>.</returns>
+        QueryRequestOptions GetQueryRequestOptions<TModel>(CosmosDbArgs dbArgs) where TModel : class, IIdentifier, new();
 
         /// <summary>
         /// Gets the authorization filter.

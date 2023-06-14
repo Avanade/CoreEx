@@ -5,6 +5,7 @@ using CoreEx.Mapping.Converters;
 using CoreEx.RefData;
 using CoreEx.RefData.Caching;
 using CoreEx.RefData.Extended;
+using CoreEx.Results;
 using CoreEx.TestFunction;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -1027,7 +1028,7 @@ namespace CoreEx.Test.Framework.RefData
 
         public Type[] Types => new Type[] { typeof(RefData), typeof(RefDataEx), typeof(State), typeof(Suburb) };
 
-        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+        public Task<Result<IReferenceDataCollection>> GetAsync(Type type, CancellationToken cancellationToken = default)
         {
             IReferenceDataCollection coll = type switch
             {
@@ -1038,7 +1039,7 @@ namespace CoreEx.Test.Framework.RefData
                 _ => throw new InvalidOperationException()
             };
 
-            return Task.FromResult(coll);
+            return Task.FromResult(Result.Ok(coll));
         }
     }
 
@@ -1049,7 +1050,7 @@ namespace CoreEx.Test.Framework.RefData
 
         public Type[] Types => new Type[] { typeof(RefData), typeof(RefDataEx) };
 
-        public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+        public async Task<Result<IReferenceDataCollection>> GetAsync(Type type, CancellationToken cancellationToken = default)
         {
             IReferenceDataCollection coll = type switch
             {
@@ -1060,7 +1061,7 @@ namespace CoreEx.Test.Framework.RefData
 
             await Task.Delay(500, cancellationToken).ConfigureAwait(false);
 
-            return coll;
+            return Result.Ok(coll);
         }
     }
 
@@ -1070,7 +1071,7 @@ namespace CoreEx.Test.Framework.RefData
 
         public Type[] Types => new Type[] { typeof(RefData) };
 
-        public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+        public async Task<Result<IReferenceDataCollection>> GetAsync(Type type, CancellationToken cancellationToken = default)
         {
             System.Diagnostics.Debug.WriteLine($"GetAsync=>Enter({_count})");
             Interlocked.Increment(ref _count);

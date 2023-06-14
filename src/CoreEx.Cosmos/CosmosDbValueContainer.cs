@@ -92,6 +92,29 @@ namespace CoreEx.Cosmos
         /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
         public CosmosDbValueQuery<T, TModel> Query(CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, dbArgs, query);
 
+        /// <summary>
+        /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
+        /// </summary>
+        /// <param name="query">The function to perform additional query execution.</param>
+        /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
+        public CosmosDbValueModelQuery<TModel> ModelQuery(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) => ModelQuery(new CosmosDbArgs(CosmosDb.DbArgs), query);
+
+        /// <summary>
+        /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
+        /// </summary>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>.</param>
+        /// <param name="query">The function to perform additional query execution.</param>
+        /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
+        public CosmosDbValueModelQuery<TModel> ModelQuery(PartitionKey? partitionKey = null, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => ModelQuery(new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), query);
+
+        /// <summary>
+        /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
+        /// </summary>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="query">The function to perform additional query execution.</param>
+        /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
+        public CosmosDbValueModelQuery<TModel> ModelQuery(CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, dbArgs, query);
+
         /// <inheritdoc/>
         public override Task<Result<T?>> GetWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (key, args, ct) =>
         {

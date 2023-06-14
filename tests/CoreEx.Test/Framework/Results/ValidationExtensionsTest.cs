@@ -135,7 +135,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_MultiValidator_Value_Failure()
         {
             var value = new Person { Name = "Tom" };
-            var r = await Result.Go(value).ValidateAsync(p => MultiValidator.Create().Add(p.Validate().Mandatory().Entity(_personValidator)));
+            var r = await Result.Go(value).ValidateAsync(_ => MultiValidator.Create().Add(value.Validate().Mandatory().Entity(_personValidator)));
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [value.Age: Age must be greater than 0.]"));
         }
 

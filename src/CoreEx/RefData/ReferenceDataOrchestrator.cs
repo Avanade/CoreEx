@@ -278,7 +278,7 @@ namespace CoreEx.RefData
 
             var sw = Stopwatch.StartNew();
             var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
-            var coll = await provider.GetAsync(type, cancellationToken).ConfigureAwait(false);
+            var coll = (await provider.GetAsync(type, cancellationToken).ConfigureAwait(false)).Value;
             coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
             sw.Stop();
 
