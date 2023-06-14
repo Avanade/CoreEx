@@ -121,8 +121,7 @@ Method | Description
 [`OnFailure()`](./OnFailureExtensions.cs), `OnFailureAsync()`, `OnFailureAs()`, `OnFailureAsAsync()`  | Executes the specified function if the result is a failure; otherwise, does nothing.
 [`Match()`](./MatchExtensions.cs), `MatchAsync()`, `MatchAs()`, `MatchAsAsync()` | Executes (matches) the _ok_ function when the result is a success; otherwise, invokes the corresponding _fail_ function.
 [`Any()`](./AnyExtensions.cs), `AnyAsync()`, `AnyAs()`, `AnyAsAsync()` | Executes the specified function regardless of the result state.
-[`Try().Catch<TEx>.With()`](./TryCatchWithExtensions.cs), `.WithAs()`, `.WithAsync()`, `.WithAsAsyc()` | Executes the specified function with a [try-catch](./Abstractions/TryCatchWith.cs), and converts any specified exception into a resulting failure where thrown.
-[`AsResult()`](./ResultsExtensions.cs), `AsResultAsync()` | Converts (binds) the `Result<T>` to a `Result` (i.e. loses the `Value`); or a `Result<T>` to a Result<U>.
+[`AsResult()`](./ResultsExtensions.cs), `AsResultAsync()` | Converts (binds) the `Result<T>` to a `Result` (i.e. loses the `Value`); or a `Result<T>` to a `Result<U>`.
 
 By convention methods that are named with the following have the following characteristics.
 
@@ -214,6 +213,7 @@ The following additional composition extensions methods are available:
 Method | Description
 -|-
 `ValidateAsync` | Validates the `Result<T>.Value` using either the specified [`IValidator<T>`](../Validation/IValidatorT.cs) or [`IPropertyRule<ValidationValue<TEntity?>, TEntity?>`](../../CoreEx.Validation/IPropertyRuleT2.cs) resulting in either success or failure (`Result<T>.ValidationError`). Include `CoreEx.Validation` namespace to enable.
+`ValidatesAsync` | Validates the specified _value_ using either the specified [`IValidator<T>`](../Validation/IValidatorT.cs) or [`IPropertyRule<ValidationValue<TEntity?>, TEntity?>`](../../CoreEx.Validation/IPropertyRuleT2.cs) resulting in either success or failure (`Result<T>.ValidationError`). Include `CoreEx.Validation` namespace to enable.
 `Required` | Validates that the `Result<T>.Value` is non-default (i.e. is required) resulting in either success or failure (`Result<T>.ValidationError`). Include `CoreEx.Validation` namespace to enable.
 `Requires` | Validates that the specified _value_ is non-default (i.e. is required) resulting in either success or failure (`Result<T>.ValidationError`). Include `CoreEx.Validation` namespace to enable.
 `ThrowIfNull` | Throws a [`NullReferenceException`](https://docs.microsoft.com/en-us/dotnet/api/system.nullreferenceexception) if the `Result<T>.Value` is `null`. 
