@@ -1,4 +1,6 @@
 ﻿
+using SolaceSystems.Solclient.Messaging;
+
 namespace CoreEx.Test.TestFunction
 {
     [TestFixture]
@@ -6,6 +8,7 @@ namespace CoreEx.Test.TestFunction
     public class PubSubOrchestratedTest
     {
         // NOTE: PubSub local instance must be running in container for test to execute
+        private static IContext? _solaceContext;
 
         [Test]
         public void PubSubSend_Success()
@@ -51,6 +54,12 @@ namespace CoreEx.Test.TestFunction
             sender.SendAsync(events).Wait();
         }
 
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            _solaceContext?.Dispose();
+        }
+
         private static PubSubSender SetupSender()
         {
             var logger = GetLogger<PubSubSender>();
@@ -66,7 +75,15 @@ namespace CoreEx.Test.TestFunction
             var config = new ConfigurationBuilder().SetBasePath(Environment.CurrentDirectory).AddJsonFile("appsettings.unittest.json");
             var testSettings = new DefaultSettings(config.Build());
 
-            var sender = new PubSubSender(sessionProperties, testSettings, logger, null, convertor);
+            if (_solaceContext == null)
+            {
+                var cfp = new ContextFactoryProperties { SolClientLogLevel = SolLogLevel.Warning };
+                cfp.LogToConsoleError();
+                ContextFactory.Instance.Init(cfp);
+                _solaceContext = ContextFactory.Instance.CreateContext(new ContextProperties(), null);
+            }
+
+            var sender = new PubSubSender(_solaceContext, sessionProperties, testSettings, logger, null, convertor);
             return sender;
         }
 
@@ -75,7 +92,7 @@ namespace CoreEx.Test.TestFunction
         /// </summary>
         /// <typeparam name="T">The logger <see cref="Type"/>.</typeparam>
         /// <returns>The <see cref="ILogger"/>.</returns>
-        public static ILogger<T> GetLogger<T>() => LoggerFactory.Create(b =>
+        private static ILogger<T> GetLogger<T>() => LoggerFactory.Create(b =>
         {
             b.SetMinimumLevel(LogLevel.Trace);
             b.ClearProviders();

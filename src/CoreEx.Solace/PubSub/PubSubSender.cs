@@ -26,29 +26,22 @@ namespace CoreEx.Solace.PubSub
         /// <summary>
         /// Initializes a new instance of the <see cref="PubSubSender"/> class.
         /// </summary>
-        /// <param name="sessionProperties">The pubsub session properties used to creat a session</param>
+        /// <param name="solaceContext">The Solace <see cref="IContext"/>.</param>
+        /// <param name="sessionProperties">The Solace <see cref="SessionProperties"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <param name="invoker">The optional <see cref="PubSubSenderInvoker"/>.</param>
         /// <param name="converter">The optional <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="IMessage"/>.</param>
-        public PubSubSender(SessionProperties sessionProperties, SettingsBase settings, ILogger<PubSubSender> logger, PubSubSenderInvoker? invoker = null, IValueConverter<EventSendData, IMessage>? converter = null)
+        public PubSubSender(IContext solaceContext, SessionProperties sessionProperties, SettingsBase settings, ILogger<PubSubSender> logger, PubSubSenderInvoker? invoker = null, IValueConverter<EventSendData, IMessage>? converter = null)
         {
+            SolaceContext = solaceContext ?? throw new ArgumentNullException(nameof(solaceContext), "Verify PubSub connection properties have been correctly defined.");
             SessionProperties = sessionProperties ?? throw new ArgumentNullException(nameof(sessionProperties), "Verify PubSub connection properties have been correctly defined.");
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Invoker = invoker ?? (_invoker ??= new PubSubSenderInvoker());
             Converter = converter ?? new EventSendDataToPubSubConverter();
             DefaultQueueOrTopicName = Settings.GetValue($"{GetType().Name}:QueueOrTopicName", defaultValue: _unspecifiedQueueOrTopicName);
-
-            var conn = EstablishConnectionToPubSubBroker();
-            Session = conn.Session;
-            SolaceContext = conn.Context;
         }
-
-        /// <summary>
-        /// Gets the <see cref="ISession"/>.
-        /// </summary>
-        protected ISession Session { get; set; }
 
         /// <summary>
         /// Gets the <see cref="IContext"/>.
@@ -96,7 +89,10 @@ namespace CoreEx.Solace.PubSub
                 var totalCount = events.Count();
                 Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);
 
-                if (events.Count() != events.Select(x => x.Id).Distinct().Count())
+                if (totalCount == 0)
+                    return;
+
+                if (totalCount != events.Select(x => x.Id).Distinct().Count())
                     throw new EventSendException(PrependStats($"All events must have a unique identifier ({nameof(EventSendData)}.{nameof(EventSendData.Id)}).", totalCount, totalCount), events);
 
                 // Sets up the list of unsent events.
@@ -124,6 +120,9 @@ namespace CoreEx.Solace.PubSub
                 }
 
                 Logger.LogDebug("There are {QueueTopicCount} queues/topics specified; as such there will be that many batches sent as a minimum.", queueDict.Keys.Count);
+
+                // Establish session and dispose when done.
+                using var session = EstablishSessionToPubSubBroker();
 
                 // Get queue name by checking configuration override.
                 foreach (var qitem in queueDict)
@@ -156,7 +155,7 @@ namespace CoreEx.Solace.PubSub
                         try
                         {
                             Logger.LogInformation("Sending {Count} message(s) to PubSub Broker.", messageBatch.Count);
-                            var returnCode = Session.Send(messageBatch.ToArray(), 0, messageBatch.Count, out int sentCount);
+                            var returnCode = session.Send(messageBatch.ToArray(), 0, messageBatch.Count, out int sentCount);
 
                             if (returnCode != ReturnCode.SOLCLIENT_OK)
                             {
@@ -188,24 +187,19 @@ namespace CoreEx.Solace.PubSub
         }
 
         /// <summary>
-        /// Establishes the connection to the PubSub broker.
+        /// Establishes the session to the PubSub broker.
         /// </summary>
-        private (IContext Context, ISession Session) EstablishConnectionToPubSubBroker()
+        private ISession EstablishSessionToPubSubBroker()
         {
-            // Initialize Solace Systems Messaging API with logging to console at Warning level.
-            var cfp = new ContextFactoryProperties { SolClientLogLevel = SolLogLevel.Warning };
-            cfp.LogToConsoleError();
-            ContextFactory.Instance.Init(cfp);
+            Logger.LogDebug("Establishing Solace Session as {UserName}@{VPNName} on {Host} with SSL Trust Store directory {SSLTrustStoreDir}.", SessionProperties.UserName, SessionProperties.VPNName, SessionProperties.Host, SessionProperties.SSLTrustStoreDir);
 
-            Logger.LogInformation("Connecting to Solace as {UserName}@{VPNName} on {Host} with SSL Trust Store directory {SSLTrustStoreDir}.", SessionProperties.UserName, SessionProperties.VPNName, SessionProperties.Host, SessionProperties.SSLTrustStoreDir);
-
-            var context = ContextFactory.Instance.CreateContext(new ContextProperties(), null);
-            var session = context.CreateSession(SessionProperties, null, null);
+            var session = SolaceContext.CreateSession(SessionProperties, null, null);
             var returnCode = session.Connect();
             if (returnCode == ReturnCode.SOLCLIENT_OK)
-                return (context, session);
+                return session;
 
-            throw new InvalidOperationException($"Cannot connect to Solace PubSub broker. Return code is {Enum.GetName(typeof(ReturnCode), returnCode)}.");
+            session.Dispose();
+            throw new InvalidOperationException($"Cannot establish Solace PubSub broker session. Return code is {Enum.GetName(typeof(ReturnCode), returnCode)}.");
         }
 
         /// <summary>
