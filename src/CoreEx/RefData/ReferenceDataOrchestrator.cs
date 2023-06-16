@@ -125,6 +125,15 @@ namespace CoreEx.RefData
         [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
         public SettingsBase Settings => _settings.Value!;
 
+#if NET6_0_OR_GREATER
+        /// <summary>
+        /// Gets or sets the <see cref="ParallelOptions.MaxDegreeOfParallelism"/> to use when performing a <see cref="PrefetchAsync(IEnumerable{string}, CancellationToken)"/>.
+        /// </summary>
+        /// <remarks>Defaults to <c>-1</c>. The <see cref="PrefetchAsync"/> uses <see cref="Parallel.ForEachAsync{TSource}(IAsyncEnumerable{TSource}, ParallelOptions, Func{TSource, CancellationToken, ValueTask})"/> and as such 
+        /// these setting will equal the equivalent of the <see cref="Environment.ProcessorCount"/>; see this <see href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.paralleloptions.maxdegreeofparallelism#remarks">article</see>.</remarks>
+        public int PrefetchMaxDegreeOfParallelism { get; set; } = -1;
+#endif
+
         /// <summary>
         /// Registers the <see cref="IReferenceDataProvider"/> <see cref="Type"/>.
         /// </summary>
@@ -457,6 +466,11 @@ namespace CoreEx.RefData
         /// <remarks>As the reference data is a great candidate for caching this will force a prefetch of the cache items.</remarks>
         public Task PrefetchAsync(IEnumerable<string> names, CancellationToken cancellationToken = default)
         {
+#if NET6_0_OR_GREATER
+            return Parallel.ForEachAsync(names, new ParallelOptions { MaxDegreeOfParallelism = PrefetchMaxDegreeOfParallelism, CancellationToken = cancellationToken },
+                async (name, ct) => await GetByNameAsync(name, ct).ConfigureAwait(false));
+#else
+
             var tasks = new List<Task>();
             if (names != null)
             {
@@ -467,6 +481,7 @@ namespace CoreEx.RefData
             }
 
             return Task.WhenAll(tasks);
+#endif
         }
 
         /// <summary>

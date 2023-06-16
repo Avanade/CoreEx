@@ -52,23 +52,25 @@ namespace CoreEx.WebApis
             param.Request.HttpContext.Response.Headers.Add(HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId);
 
             // Start logging scope and begin work.
-            using var scope = owner.Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId } });
-            owner.Logger.LogDebug("WebApi started.");
+            using (owner.Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId } }))
+            {
+                owner.Logger.LogDebug("WebApi started.");
 
-            try
-            {
-                var ar = await func(cancellationToken).ConfigureAwait(false);
-                owner.Logger.LogDebug("WebApi stopped; completed.");
-                return ar;
-            }
-            catch (Exception ex) when (CatchAndHandleExceptions)
-            {
-                return (TResult) await WebApiBase.CreateActionResultFromExceptionAsync(owner, param.Request.HttpContext, ex, owner.Settings, owner.Logger, owner.OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (!CatchAndHandleExceptions)
-            {
-                owner.Logger.LogDebug("WebApi stopped; {Error} [{Type}]", ex.Message, ex.GetType().Name);
-                throw;
+                try
+                {
+                    var ar = await func(cancellationToken).ConfigureAwait(false);
+                    owner.Logger.LogDebug("WebApi stopped; completed.");
+                    return ar;
+                }
+                catch (Exception ex) when (CatchAndHandleExceptions)
+                {
+                    return (TResult) await WebApiBase.CreateActionResultFromExceptionAsync(owner, param.Request.HttpContext, ex, owner.Settings, owner.Logger, owner.OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!CatchAndHandleExceptions)
+                {
+                    owner.Logger.LogDebug("WebApi stopped; {Error} [{Type}]", ex.Message, ex.GetType().Name);
+                    throw;
+                }
             }
         }
     }

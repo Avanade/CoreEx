@@ -845,7 +845,7 @@ namespace CoreEx.WebApis
         /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>Currently on the <see cref="JsonMergePatch"/> is supported.</remarks>
+        /// <remarks>Currently only the <see cref="JsonMergePatch"/> is supported.</remarks>
         public async Task<IActionResult> PatchAsync<TValue>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<TValue?>> get, Func<WebApiParam<TValue>, CancellationToken, Task<TValue>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false, CancellationToken cancellationToken = default) where TValue : class
         {

@@ -12,7 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="MySql.Data" Version="8.0.31" />
+    <PackageReference Include="MySql.Data" Version="8.0.33" />
     <PackageReference Include="StrongNamer" Version="0.2.5" />
   </ItemGroup>
 
