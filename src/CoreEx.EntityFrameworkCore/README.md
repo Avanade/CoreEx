@@ -21,6 +21,12 @@ The **entity** and **model** are different types to encourage separation between
 
 <br/>
 
+## Railway-oriented programming
+
+To support [railway-oriented programming](../CoreEx/Results/README.md) whenever a method name includes `WithResult` this indicates that it will return a `Result` or `Result<T>` including the resulting success or failure information. In these instances an `Exception` will only be thrown when considered truly exceptional.
+
+<br/>
+
 ## CRUD capabilities
 
 The [`IEfDb`](./IEfDb.cs) and corresponding [`EfDb`](./EfDb.cs) provides the base CRUD capabilities as follows.
@@ -35,23 +41,23 @@ Queried entities are not tracked by default; internally uses [`AsNoTracking`](ht
 
 Note: a consumer should also consider using [`IgnoreAutoIncludes`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.ignoreautoincludes) to exclude related data, where not required, to improve query performance.
 
-The following methods provide additional capabilities.
+The following methods provide additional capabilities
 
 Method | Description
 -|-
 `WithPaging` | Adds `Skip` and `Take` paging to the query.
-`SelectSingleAsync` | Selects a single item.
-`SelectSingleOrDefaultAsync` | Selects a single item or default.
-`SelectFirstAsync` | Selects first item.
-`SelectFirstOrDefaultAsync` | Selects first item or default.
-`SelectQueryAsync` | Select items into or creating a resultant collection.
-`SelectResultAsync` | Select items creating a [`ICollectionResult`](../CoreEx/Entities/ICollectionResultT2.cs) which also contains corresponding [`PagingResult`](../CoreEx/Entities/PagingResult.cs).
+`SelectSingleAsync`, `SelectSingleWithResult` | Selects a single item.
+`SelectSingleOrDefaultAsync`, `SelectSingleOrDefaultWithResultAsync` | Selects a single item or default.
+`SelectFirstAsync`, `SelectFirstWithResultAsync` | Selects first item.
+`SelectFirstOrDefaultAsync`, `SelectFirstOrDefaultWithResultAsync` | Selects first item or default.
+`SelectQueryAsync`, `SelectQueryWithResultAsync` | Select items into or creating a resultant collection.
+`SelectResultAsync`, `SelectResultWithResultAsync` | Select items creating a [`ICollectionResult`](../CoreEx/Entities/ICollectionResultT2.cs) which also contains corresponding [`PagingResult`](../CoreEx/Entities/PagingResult.cs).
 
 <br/>
 
 ### Get (Read)
 
-Gets the **entity** for the specified key mapping from the **model**. Uses the [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find) internally for the **model** and specified key.
+Gets (`GetAsync` or `GetWithResultAsync`) the **entity** for the specified key mapping from the **model**. Uses the [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find) internally for the **model** and specified key.
 
 Where the data is not found, then a `null` will be returned. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and returns a `null`.
 
@@ -59,7 +65,7 @@ Where the data is not found, then a `null` will be returned. Where the **model**
 
 ### Create
 
-Creates the **entity** by firstly mapping to the **model**. Uses the [`DbContext.Add`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be inserted into the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
+Creates (`CreateAsync` or `CreateWithResultAsync`) the **entity** by firstly mapping to the **model**. Uses the [`DbContext.Add`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be inserted into the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
 
 Where the **entity** implements [`IChangeLogAuditLog`](../CoreEx/Entities/IChangeLogAuditLog.cs) generally via [`ChangeLog`](../CoreEx/Entities/IChangeLog.cs) or [`ChangeLogEx`](../CoreEx/Entities/Extended/IChangeLogEx.cs), then the `CreatedBy` and `CreatedDate` properties will be automatically set from the [`ExecutionContext`](../CoreEx/ExecutionContext.cs).
 
@@ -73,7 +79,7 @@ The inserted **model** is then re-mapped to the **entity** and returned where [`
 
 ### Update
 
-Updates the **entity** by firstly mapping to the **model**. Uses the [`DbContext.Update`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be updated within the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
+Updates (`UpdateAsync` or `UpdateWithResultAsync`) the **entity** by firstly mapping to the **model**. Uses the [`DbContext.Update`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be updated within the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
 
 First will check existence of the **model** by performing a [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
 
@@ -91,7 +97,7 @@ The updated **model** is then re-mapped to the **entity** and returned where [`E
 
 ### Delete
 
-Deletes the **entity** either physically or logically.
+Deletes (`DeleteAsync` or `DeleteWithResultAsync`) the **entity** either physically or logically.
 
 First will check existence of the **model** by performing a [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
 

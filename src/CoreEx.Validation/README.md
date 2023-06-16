@@ -188,12 +188,12 @@ public class PersonValidator : Validator<Person>
         Property(x => x.Birthday).CompareValue(CompareOperator.LessThanEqual, DateTime.Now, "today");
     }
 
-    protected override Task OnValidateAsync(ValidationContext<Test> context)
+    protected override Task<Result> OnValidateAsync(ValidationContext<Test> context)
     {
         // Check that Amount property has not had an error already; then validate and error.
         context.Check(x = x.Amount, (val) => val <= 100, "{0} must be greater than 100.");
 
-        return Task.CompletedTask;
+        return Result.SuccessTask;
     }
 }
 

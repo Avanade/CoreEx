@@ -10,6 +10,12 @@ The motivation is to simplify and unify the approach to _ADO.NET_ (database) acc
 
 <br/>
 
+## Railway-oriented programming
+
+To support [railway-oriented programming](../CoreEx/Results/README.md) whenever a method name includes `WithResult` this indicates that it will return a `Result` or `Result<T>` including the resulting success or failure information. In these instances an `Exception` will only be thrown when considered truly exceptional.
+
+<br/>
+
 ## Database
 
 The [`Database`](./Database.cs) is the base (common) implementation for the [`IDatabase`](./IDatabase.cs) interface that provides the standardized access to the underlying database.
@@ -60,14 +66,14 @@ The following [`DatabaseCommand`](./DatabaseCommand.cs) methods provide addition
 
 Method | Description
 -|-
-`NonQueryAsync` | Executes a non-query command.
-`ScalarAsync<T>` | Executes the query and returns the first column of the first row in the result set returned by the query.
-`SelectSingleAsync` | Selects a single item.
+`NonQueryAsync`, `NonQueryWithResultAsync` | Executes a non-query command.
+`ScalarAsync<T>`, `ScalarWithResultAsync<T>` | Executes the query and returns the first column of the first row in the result set returned by the query.
+`SelectSingleAsync`, `SelectSingleWithResultAsync` | Selects a single item.
 `SelectSingleOrDefaultAsync` | Selects a single item or default.
-`SelectFirstAsync` | Selects first item.
-`SelectFirstOrDefaultAsync` | Selects first item or default.
-`SelectQueryAsync` | Select items into or creating a resultant collection.
-`SelectMultiSetAsync` | Executes a multi-dataset query command with one or more [multi-set arguments](#Multi-set-arguments).
+`SelectFirstAsync`, `SelectFirstWithResultAsync` | Selects first item.
+`SelectFirstOrDefaultAsync`, `SelectFirstOrDefaultWithResultAsync` | Selects first item or default.
+`SelectQueryAsync`, `SelectQueryWithResultAsync` | Select items into or creating a resultant collection.
+`SelectMultiSetAsync`, `SelectMultiSetWithResulAsync` | Executes a multi-dataset query command with one or more [multi-set arguments](#Multi-set-arguments).
 
 The _DbEx_ [`DatabaseExtensions`](https://github.com/Avanade/DbEx/blob/main/src/DbEx/DatabaseExtensions.cs) class demonstrates usage of the `SelectQueryAsync` (_without_ [Mapping](#Mapping)) within the `SelectSchemaAsync` method.
 
@@ -80,18 +86,18 @@ The [`Extended`](./Extended) namespace provides a `DatabaseCommand.Query<T>` tha
 Method | Description
 -|-
 `WithPaging` | Adds `Skip` and `Take` paging to the query.
-`SelectSingleAsync` | Selects a single item.
-`SelectSingleOrDefaultAsync` | Selects a single item or default.
-`SelectFirstAsync` | Selects first item.
-`SelectFirstOrDefaultAsync` | Selects first item or default.
-`SelectQueryAsync` | Select items into or creating a resultant collection.
-`SelectResultAsync` | Select items creating a [`ICollectionResult`](../CoreEx/Entities/ICollectionResultT2.cs) which also contains corresponding [`PagingResult`](../CoreEx/Entities/PagingResult.cs).
+`SelectSingleAsync`, `SelectSingleWithResultAsync` | Selects a single item.
+`SelectSingleOrDefaultAsync`, `SelectSingleOrDefaultWithResultAsync` | Selects a single item or default.
+`SelectFirstAsync`, `SelectFirstWithResultAsync` | Selects first item.
+`SelectFirstOrDefaultAsync`, `SelectFirstOrDefaultWithResultAsync` | Selects first item or default.
+`SelectQueryAsync`, `SelectQueryWithResultAsync` | Select items into or creating a resultant collection.
+`SelectResultAsync`, `SelectResultWithResultAsync` | Select items creating a [`ICollectionResult`](../CoreEx/Entities/ICollectionResultT2.cs) which also contains corresponding [`PagingResult`](../CoreEx/Entities/PagingResult.cs).
 
 <br/>
 
 ### Reference data
 
-The [`Extended`](./Extended) namespace provides a `DatabaseCommand.ReferenceData<TColl, TItem, TId>` that provides a [`RefDataLoader<TColl, TItem, TId>`](./Extended/RefDataLoader.cs) (via the `LoadAsync` method) to simplify the loading of a reference data collection.
+The [`Extended`](./Extended) namespace provides a `DatabaseCommand.ReferenceData<TColl, TItem, TId>` that provides a [`RefDataLoader<TColl, TItem, TId>`](./Extended/RefDataLoader.cs) (via the `LoadAsync` and `LoadWithResultAsync` methods) to simplify the loading of a reference data collection.
 
 The [`ReferenceDataService`](../../samples/My.Hr/My.Hr.Business/Services/ReferenceDataService.cs) within the `My.Hr` smaple demonstrates usage.
 
