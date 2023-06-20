@@ -28,7 +28,7 @@ namespace CoreEx.Results
         /// Initializes a new <see cref="IsSuccess"/> instance of the <see cref="Result{T}"/> with a <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The <see cref="Result{T}.Value"/>.</param>
-        public Result(T value) => _value = value is Exception ? throw new ArgumentException($"A {nameof(Value)} cannot be a {nameof(Type)} of {nameof(Exception)}.", nameof(value)) : value;
+        public Result(T value) => _value = value;
 
         /// <summary>
         /// Initializes a new <see cref="IsFailure"/> instance of the <see cref="Result{T}"/> with a corresponding <paramref name="error"/>.

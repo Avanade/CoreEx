@@ -30,7 +30,7 @@ namespace CoreEx.Entities
         /// Initializes a new instance of the <see cref="CollectionResult{TColl, TEntity}"/> class with <paramref name="paging"/>.
         /// </summary>
         /// <param name="paging">Defaults the <see cref="Paging"/> to the requesting <see cref="PagingArgs"/>.</param>
-        protected CollectionResult(PagingArgs paging)
+        protected CollectionResult(PagingArgs? paging)
         {
             if (paging != null)
                 Paging = new PagingResult(paging);

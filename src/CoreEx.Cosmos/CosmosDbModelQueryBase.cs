@@ -46,7 +46,7 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param name="paging">The <see cref="PagingArgs"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> instance to suport fluent-style method-chaining.</returns>
-        public TSelf WithPaging(PagingArgs paging)
+        public TSelf WithPaging(PagingArgs? paging)
         {
             Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
             return (TSelf)this;

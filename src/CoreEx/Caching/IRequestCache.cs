@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CoreEx.Caching
 {
@@ -26,6 +27,7 @@ namespace CoreEx.Caching
         /// <param name="key">The key of the value to set.</param>
         /// <param name="value">The value to set.</param>
         /// <returns>The <paramref name="value"/>.</returns>
+        [return: NotNullIfNotNull(nameof(value))]
         T? SetValue<T>(CompositeKey key, T? value);
 
         /// <summary>

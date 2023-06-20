@@ -118,3 +118,21 @@ To use `EfDB` relationships to the EF Core [`DbContext`](https://learn.microsoft
 - [`EfDb`](./EfDb.cs) and `DbContext` relationship must be defined; see [example](../../samples/My.Hr/My.Hr.Business/Data/HrEfDb.cs).
 
 Alternatively, review the _Beef_ [MyEf.Hr data](https://github.com/Avanade/Beef/tree/master/samples/MyEf.Hr/MyEf.Hr.Business/Data) sample implementation.
+
+<br/>
+
+### MySql
+
+Where leveraging _MySQL_ it is recommended to use the [Pomelo.EntityFrameworkCore.MySql](https://www.nuget.org/packages/Pomelo.EntityFrameworkCore.MySql) package; this has greater uptake and community supporting than the Oracle-enabled [MySql.Data.EntityFrameworkCore](https://www.nuget.org/packages/MySql.Data.EntityFrameworkCore) package.
+
+The `DbContextOptionsBuilder` code within the `DbContext` implementation should be as follows (review version specification) to enable.
+
+```csharp
+protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+{
+    base.OnConfiguring(optionsBuilder);
+
+    if (!optionsBuilder.IsConfigured)
+        optionsBuilder.UseMySql(BaseDatabase.GetConnection(), ServerVersion.Create(new Version(8, 0, 33), Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql));
+}
+```

@@ -33,7 +33,7 @@ Represents the **NuGet** versions.
 - *Enhancement:* Added `PagingAttribute` and `PagingOperationFilter` to enable swagger output of `PagingArgs` parameters for an operation.
 
 ## v2.8.0
-- *Enhancement:* Added `CoreEx.EntityFrameworkCore` support for framework `net7.0`.
+- *Enhancement:* Added `CoreEx.EntityFrameworkCore` support for .NET framework `net7.0`.
 - *Enhancement:* Updated `ServiceBusSubscriberInvoker` to improve logging, including opportunities to inherit and add further before and after processing logging and/or monitoring.
 - *Enhancement:* Updated `ServiceBusOrchestratedSubscriber` to perform a `LogInformation` on success.
 - *Enhancement:* The `TypedHttpClientBase<TSelf>` will probe settings by `GetType().Name` to enable settings per implementation type as an overridding configurable option.

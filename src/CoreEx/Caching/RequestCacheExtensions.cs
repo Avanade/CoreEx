@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace CoreEx.Caching
@@ -69,6 +70,7 @@ namespace CoreEx.Caching
         /// <param name="key">The key of the value to set.</param>
         /// <param name="value">The value to set.</param>
         /// <returns>The <paramref name="value"/>.</returns>
+        [return: NotNullIfNotNull(nameof(value))]
         public static T? SetValue<T>(this IRequestCache cache, object? key, T? value) => cache.SetValue(new CompositeKey(key), value);
 
         /// <summary>
@@ -78,6 +80,7 @@ namespace CoreEx.Caching
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="value">The value to set.</param>
         /// <returns>The <paramref name="value"/>.</returns>
+        [return: NotNullIfNotNull(nameof(value))]
         public static T? SetValue<T>(this IRequestCache cache, T? value) where T : IEntityKey => value is null ? value : cache.SetValue(value.EntityKey, value);
 
         /// <summary>

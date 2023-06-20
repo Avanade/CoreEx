@@ -3,6 +3,7 @@
 using CoreEx.Entities;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace CoreEx.Caching
@@ -28,6 +29,7 @@ namespace CoreEx.Caching
         }
 
         /// <inheritdoc/>
+        [return: NotNullIfNotNull(nameof(value))]
         public T? SetValue<T>(CompositeKey key, T? value)
         {
             _caching.Value.AddOrUpdate(new(typeof(T), key), value, (_, __) => value);

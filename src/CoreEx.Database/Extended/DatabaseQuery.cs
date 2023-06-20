@@ -62,7 +62,7 @@ namespace CoreEx.Database.Extended
         /// </summary>
         /// <param name="paging">The <see cref="PagingArgs"/>.</param>
         /// <returns>The <see cref="DatabaseQuery{T}"/> to suport fluent-style method-chaining.</returns>
-        public DatabaseQuery<T> WithPaging(PagingArgs paging)
+        public DatabaseQuery<T> WithPaging(PagingArgs? paging)
         {
             Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
             return this;
