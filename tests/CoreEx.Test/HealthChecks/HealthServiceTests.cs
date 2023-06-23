@@ -2,7 +2,7 @@ using System;
 using System.Configuration;
 using System.Text.Json;
 using System.Threading.Tasks;
-using CoreEx.HealthChecks;
+using CoreEx.AspNetCore.HealthChecks;
 using CoreEx.Json;
 using CoreEx.TestFunction;
 using FluentAssertions;

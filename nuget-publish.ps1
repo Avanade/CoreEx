@@ -49,6 +49,7 @@ param(
     [string]$NugetCacheFolder = "$($env:USERPROFILE)\.nuget\packages",
     [String[]]$ProjectsToPublish = @(
         "src\CoreEx",
+        "src\CoreEx.AspNetCore",
         "src\CoreEx.AutoMapper",
         "src\CoreEx.Azure",
         "src\CoreEx.Solace",

@@ -1,16 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
-using CoreEx.Http;
 using CoreEx.Localization;
-using CoreEx.WebApis;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
 using System;
 using System.Net;
-using System.Net.Mime;
-using System.Threading.Tasks;
 
 namespace CoreEx
 {
@@ -76,26 +69,9 @@ namespace CoreEx
         public bool ShouldBeLogged => ShouldExceptionBeLogged;
 
         /// <summary>
-        /// Gets or sets the corresponding <see cref="HeaderNames.RetryAfter"/> seconds.
+        /// Gets or sets the corresponding <see href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.net.http.headers.headernames.retryafter">HeaderNames.RetryAfter</see> seconds.
         /// </summary>
         /// <remarks>Defaults to <c>120</c> seconds.</remarks>
         public int RetryAfterSeconds { get; set; } = 120;
-
-        /// <inheritdoc/>
-        /// <remarks>Sets the <see cref="HeaderNames.RetryAfter"/> <see cref="HttpResponse.Headers"/> value to <see cref="RetryAfterSeconds"/>.</remarks>
-        public IActionResult ToResult() => new ExtendedContentResult
-        {
-            Content = Message,
-            ContentType = MediaTypeNames.Text.Plain,
-            StatusCode = (int)StatusCode,
-            BeforeExtension = r =>
-            {
-                var th = r.GetTypedHeaders();
-                th.Set(HttpConsts.ErrorTypeHeaderName, ErrorType);
-                th.Set(HttpConsts.ErrorCodeHeaderName, ErrorCode.ToString());
-                th.Set(HeaderNames.RetryAfter, RetryAfterSeconds);
-                return Task.CompletedTask;
-            }
-        };
     }
 }

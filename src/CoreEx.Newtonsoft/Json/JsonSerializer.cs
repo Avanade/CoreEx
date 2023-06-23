@@ -113,6 +113,13 @@ namespace CoreEx.Newtonsoft.Json
             if (memberInfo == null)
                 throw new ArgumentNullException(nameof(memberInfo));
 
+            var sji = memberInfo.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>(true);
+            if (sji != null)
+            {
+                jsonName = null;
+                return false;
+            }
+
             var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>(true);
             if (ji != null)
             {

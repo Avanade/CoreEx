@@ -5,7 +5,6 @@ using CoreEx.Entities.Extended;
 using CoreEx.Events;
 using CoreEx.RefData;
 using CoreEx.RefData.Extended;
-using CoreEx.WebApis;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
@@ -39,8 +38,6 @@ namespace CoreEx.Newtonsoft.Json
                     .AddType<MessageItem>()
                     .AddType<PagingArgs>()
                     .AddType<PagingResult>()
-                    .AddType<ExtendedContentResult>()
-                    .AddType<ExtendedStatusCodeResult>()
                     .AddType<EventDataBase>();
         }
 

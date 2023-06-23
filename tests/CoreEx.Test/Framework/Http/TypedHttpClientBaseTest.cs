@@ -68,7 +68,7 @@ namespace CoreEx.Test.Framework.Http
 
             var arg3 = new HttpArg<DateTime>("id", new DateTime(2022, 01, 31, 08, 45, 59, DateTimeKind.Utc));
             uri = new TestHttpClient().VerifyUri("product", null, arg3);
-            Assert.AreEqual("/product?id=2022-01-31T08%3A45%3A59.0000000Z", uri);
+            Assert.AreEqual("/product?id=2022-01-31T08%3a45%3a59.0000000Z", uri);
         }
 
         [Test]
@@ -79,14 +79,14 @@ namespace CoreEx.Test.Framework.Http
                 new HttpArg<string>("body", "in_the_body_only", HttpArgType.FromBody),
                 new HttpArg<int?>("id2", null), new HttpArg<HttpArgType>("type", HttpArgType.FromUri), new HttpArg<char[]>("char", new char[] { 'a', 'b', 'c' }), new HttpArg<Gender>("gender", new Gender { Id = 1, Code = "F", Text = "Female" }));
 
-            Assert.AreEqual("/product?id=88&text=bananas&date=2020-01-01T11%3A59%3A58.0000000Z&type=FromUri&char=a&char=b&char=c&gender=F", uri);
+            Assert.AreEqual("/product?id=88&text=bananas&date=2020-01-01T11%3a59%3a58.0000000Z&type=FromUri&char=a&char=b&char=c&gender=F", uri);
 
             uri = new TestHttpClient().VerifyUri("product/{id}", null,
                 new HttpArg<int>("id", 88), new HttpArg<string>("text", "bananas"), new HttpArg<DateTime>("date", new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc)),
                 new HttpArg<string>("body", "in_the_body_only", HttpArgType.FromBody),
                 new HttpArg<int?>("id2", null), new HttpArg<HttpArgType>("type", HttpArgType.FromUri), new HttpArg<char[]>("char", new char[] { 'a', 'b', 'c' }), new HttpArg<Gender>("gender", new Gender { Id = 1, Code = "F", Text = "Female" }));
 
-            Assert.AreEqual("/product/88?text=bananas&date=2020-01-01T11%3A59%3A58.0000000Z&type=FromUri&char=a&char=b&char=c&gender=F", uri);
+            Assert.AreEqual("/product/88?text=bananas&date=2020-01-01T11%3a59%3a58.0000000Z&type=FromUri&char=a&char=b&char=c&gender=F", uri);
         }
 
         [Test]
@@ -98,15 +98,15 @@ namespace CoreEx.Test.Framework.Http
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUseProperties);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?id=88&name=gary&date=2020-01-01T11%3A59%3A58.0000000Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
+            Assert.AreEqual("/people?id=88&name=gary&date=2020-01-01T11%3a59%3a58.0000000Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "*gary*", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Utc), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUseProperties);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?id=88&name=*gary*&date=2020-01-01T11%3A59%3A58.0000000Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
+            Assert.AreEqual("/people?id=88&name=*gary*&date=2020-01-01T11%3a59%3a58.0000000Z&amount=-123.85&happy=true&codes=0&codes=1&codes=2", uri);
 
             arg = new HttpArg<Person>("person", new Person { Id = 88, Name = "gary", Date = new DateTime(2020, 01, 01, 11, 59, 58, DateTimeKind.Unspecified), Amount = -123.85m, Happy = true, Codes = new List<int> { 0, 1, 2 } }, HttpArgType.FromUriUsePropertiesAndPrefix);
             uri = new TestHttpClient().VerifyUri("people", null, arg);
-            Assert.AreEqual("/people?person.id=88&person.name=gary&person.date=2020-01-01T11%3A59%3A58.0000000&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
+            Assert.AreEqual("/people?person.id=88&person.name=gary&person.date=2020-01-01T11%3a59%3a58.0000000&person.amount=-123.85&person.happy=true&person.codes=0&person.codes=1&person.codes=2", uri);
         }
 
         [Test]
@@ -114,11 +114,11 @@ namespace CoreEx.Test.Framework.Http
         {
             var arg = new HttpArg<Coordinates>("coordinates", new Coordinates());
             var uri = new TestHttpClient().VerifyUri("map", null, arg);
-            Assert.AreEqual("/map?coordinates=1,2", uri);
+            Assert.AreEqual("/map?coordinates=1%2c2", uri);
 
             var arg2 = new HttpArg<CoordinatesArgs>("ignored", new CoordinatesArgs(), HttpArgType.FromUriUseProperties);
             var uri2 = new TestHttpClient().VerifyUri("map", null, arg2);
-            Assert.AreEqual("/map?coordinates=1,2", uri2);
+            Assert.AreEqual("/map?coordinates=1%2c2", uri2);
         }
 
         public class Person

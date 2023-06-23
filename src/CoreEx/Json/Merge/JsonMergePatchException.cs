@@ -7,7 +7,7 @@ namespace CoreEx.Json.Merge
     /// <summary>
     /// Represents a <see cref="JsonMergePatch"/> <see cref="ValidationException"/>.
     /// </summary>
-    /// <remarks>Inherits from <see cref="ValidationException"/> as the <see cref="ValidationException.ToResult"/> handling and <see cref="ValidationException.StatusCode"/> are the same.</remarks>
+    /// <remarks>Inherits from <see cref="ValidationException"/> as the <see cref="ValidationException.StatusCode"/> and related handling are the same.</remarks>
     public class JsonMergePatchException : ValidationException
     {
         /// <summary>

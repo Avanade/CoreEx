@@ -1,5 +1,5 @@
 ﻿using CoreEx.Validation;
-using CoreEx.WebApis;
+using CoreEx.AspNetCore.WebApis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;

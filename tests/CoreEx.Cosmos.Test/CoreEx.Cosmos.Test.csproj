@@ -34,7 +34,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="UnitTestEx.NUnit" Version="2.2.3" />
+    <PackageReference Include="UnitTestEx.NUnit" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>

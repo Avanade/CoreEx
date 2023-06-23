@@ -2,7 +2,7 @@
 using CoreEx.Results;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
-using CoreEx.WebApis;
+using CoreEx.AspNetCore.WebApis;
 using NUnit.Framework;
 using System.Net.Http;
 using System.Threading.Tasks;

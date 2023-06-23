@@ -1,4 +1,4 @@
-﻿using CoreEx.Http;
+﻿using CoreEx.AspNetCore.Http;
 using CoreEx.FluentValidation;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;

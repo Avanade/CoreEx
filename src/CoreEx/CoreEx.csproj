@@ -6,7 +6,7 @@
     <Product>CoreEx</Product>
     <Title>CoreEx .NET backend Extensions.</Title>
     <Description>CoreEx .NET backend Extensions.</Description>
-    <PackageTags>coreex api function aspnet entity microservices referencedata jsonserializer eventdata events httpclient settings railway-oriented</PackageTags>
+    <PackageTags>coreex entity microservices referencedata jsonserializer eventdata events httpclient settings railway-oriented</PackageTags>
     <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
   </PropertyGroup>
 
@@ -50,15 +50,11 @@
 
   <ItemGroup>
     <PackageReference Include="CloudNative.CloudEvents.SystemTextJson" Version="2.6.0" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Polly" Version="7.2.4" />
     <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="YamlDotNet" Version="13.1.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.1'">
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

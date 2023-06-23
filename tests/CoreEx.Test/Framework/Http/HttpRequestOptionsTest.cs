@@ -25,7 +25,7 @@ namespace CoreEx.Test.Framework.Http
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?id=123");
             ro.Exclude("<app& le>");
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc,%3Capp%26%20le%3E", hr.RequestUri!.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc,%3capp%26+le%3e", hr.RequestUri!.AbsoluteUri);
         }
 
         [Test]

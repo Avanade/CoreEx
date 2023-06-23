@@ -1,6 +1,5 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Entities.Extended;
-using CoreEx.Http;
 using CoreEx.Mapping.Converters;
 using CoreEx.RefData;
 using CoreEx.RefData.Caching;
@@ -22,6 +21,7 @@ using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 using Nsj = Newtonsoft.Json;
 using Stj = System.Text.Json;
+using CoreEx.AspNetCore.Http;
 
 namespace CoreEx.Test.Framework.RefData
 {

@@ -3,7 +3,7 @@ using CoreEx.Events;
 using CoreEx.Json;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Services;
-using CoreEx.WebApis;
+using CoreEx.AspNetCore.WebApis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;

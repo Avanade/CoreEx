@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 
 namespace CoreEx.Entities.Extended
 {
@@ -12,7 +12,7 @@ namespace CoreEx.Entities.Extended
     /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TEntity">The entity item <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The entity <see cref="Type"/> itself.</typeparam>
-    /// <remarks>Generally an <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Items"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
+    /// <remarks>Generally an <see cref="EntityCollectionResult{TColl, TEntity, TSelf}"/> is not intended for serialized <see cref="HttpResponseMessage"/>; the underlying <see cref="Items"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponseMessage.Headers"/>.</remarks>
     [System.Diagnostics.DebuggerStepThrough]
     public class EntityCollectionResult<TColl, TEntity, TSelf> : EntityBase, ICollectionResult<TColl, TEntity>, IPagingResult
         where TColl : EntityBaseCollection<TEntity, TColl>, new()

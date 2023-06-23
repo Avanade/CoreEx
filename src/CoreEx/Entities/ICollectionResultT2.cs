@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Http;
 
 namespace CoreEx.Entities
 {
@@ -12,7 +12,7 @@ namespace CoreEx.Entities
     /// </summary>
     /// <typeparam name="TColl">The result collection <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The underlying item <see cref="Type"/>.</typeparam>
-    /// <remarks>Generally an <see cref="ICollectionResult"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Items"/> is serialized with the <see cref="ICollectionResult.Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
+    /// <remarks>Generally an <see cref="ICollectionResult"/> is not intended for serialized <see cref="HttpResponseMessage"/>; the underlying <see cref="Items"/> is serialized with the <see cref="ICollectionResult.Paging"/> returned as <see cref="HttpResponseMessage.Headers"/>.</remarks>
     public interface ICollectionResult<TColl, TItem> : ICollectionResult<TItem> where TColl : ICollection<TItem>, new()
     {
         /// <inheritdoc/>

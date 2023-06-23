@@ -1,4 +1,4 @@
-using CoreEx.HealthChecks;
+using CoreEx.AspNetCore.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
