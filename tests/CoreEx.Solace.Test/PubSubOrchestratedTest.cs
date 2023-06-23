@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.Extensions.Configuration;
 using SolaceSystems.Solclient.Messaging;
 
 namespace CoreEx.Test.TestFunction
@@ -15,9 +16,11 @@ namespace CoreEx.Test.TestFunction
         {
             // Arrange
             PubSubSender sender = SetupSender();
-            var events = new List<EventSendData>();
-            events.Add(new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")), Destination = "try-me" });
-            events.Add(new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")), Destination = "try-me" });
+            var events = new List<EventSendData>
+            {
+                new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")), Destination = "try-me" },
+                new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")), Destination = "try-me" }
+            };
 
             // Act
             sender.SendAsync(events).Wait();
@@ -29,8 +32,8 @@ namespace CoreEx.Test.TestFunction
             // Arrange
             PubSubSender sender = SetupSender();
             var events = new List<EventSendData>();
-            var dataPayload1 = new BinaryData(Encoding.UTF8.GetBytes("Test Message1"));
-            var dataPayload2 = new BinaryData(Encoding.UTF8.GetBytes("Test Message2"));
+            //var dataPayload1 = new BinaryData(Encoding.UTF8.GetBytes("Test Message1"));
+            //var dataPayload2 = new BinaryData(Encoding.UTF8.GetBytes("Test Message2"));
             // build 51 events
             for (int i = 200; i < 251; i++)
             {
@@ -46,10 +49,12 @@ namespace CoreEx.Test.TestFunction
         {
             // Arrange
             PubSubSender sender = SetupSender();
-            var events = new List<EventSendData>();
-            events.Add(new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")) });
-            events.Add(new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")) });
-            
+            var events = new List<EventSendData>
+            {
+                new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")) },
+                new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")) }
+            };
+
             // Act
             sender.SendAsync(events).Wait();
         }
