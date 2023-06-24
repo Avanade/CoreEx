@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using CoreEx.Abstractions;
@@ -10,6 +11,7 @@ using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using UnitTestEx.NUnit;
+using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -589,6 +591,65 @@ namespace CoreEx.Test.Framework.Http
             Assert.That(res.ErrorCode, Is.Null);
             Assert.That(res.WillResultInNullAsNotFound, Is.False);
             Assert.That(res.Value, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task ToResult()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Get, "test").Respond.WithSequence(s =>
+            {
+                s.Respond().With(HttpStatusCode.NotFound);
+                s.Respond().With("no-not-happy", HttpStatusCode.NotAcceptable);
+                s.Respond().With(HttpStatusCode.OK);
+            });
+
+            var thc = mcf.GetHttpClient("Backend")!.CreateTypedClient();
+
+            var res = await thc.GetAsync("test");
+            var r = res.ToResult();
+            Assert.That(r.Error, Is.InstanceOf<NotFoundException>());
+
+            res = await thc.GetAsync("test");
+            r = res.ToResult();
+            Assert.That(r.Error, Is.InstanceOf<HttpRequestException>().And.Message.EqualTo("no-not-happy"));
+
+            res = await thc.GetAsync("test");
+            r = res.ToResult();
+            Assert.AreEqual(CoreEx.Results.Result.Success, r);
+        }
+
+        [Test]
+        public async Task ToResultT()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Get, "test").Respond.WithSequence(s =>
+            {
+                s.Respond().With(HttpStatusCode.NotFound);
+                s.Respond().With("no-not-happy", HttpStatusCode.NotAcceptable);
+                s.Respond().With("2");
+                s.Respond().With("a");
+            });
+
+            var thc = mcf.GetHttpClient("Backend")!.CreateTypedClient();
+
+            var res = await thc.GetAsync<int>("test");
+            var r = res.ToResult();
+            Assert.That(r.Error, Is.InstanceOf<NotFoundException>());
+
+            res = await thc.GetAsync<int>("test");
+            r = res.ToResult();
+            Assert.That(r.Error, Is.InstanceOf<HttpRequestException>().And.Message.EqualTo("no-not-happy"));
+
+            res = await thc.GetAsync<int>("test");
+            r = res.ToResult();
+            Assert.AreEqual(2, r.Value);
+
+            res = await thc.GetAsync<int>("test");
+            r = res.ToResult();
+            Assert.That(r.Error, Is.InstanceOf<InvalidOperationException>());
         }
     }
 }

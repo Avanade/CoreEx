@@ -16,6 +16,6 @@ namespace CoreEx.Validation
         public static ResourceManager ResourceManager { get; } = new("CoreEx.Validation.Resources", typeof(ValidationTextProvider).Assembly);
 
         /// <inheritdoc/>
-        protected override string? GetTextForKey(LText key) => ResourceManager.GetString(key.KeyAndOrText, System.Globalization.CultureInfo.CurrentCulture);
+        protected override string? GetTextForKey(LText key) => key.KeyAndOrText is null ? null : ResourceManager.GetString(key.KeyAndOrText, System.Globalization.CultureInfo.CurrentCulture);
     }
 }

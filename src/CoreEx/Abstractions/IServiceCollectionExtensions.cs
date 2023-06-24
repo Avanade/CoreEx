@@ -12,7 +12,6 @@ using CoreEx.Json;
 using CoreEx.Json.Merge;
 using CoreEx.Mapping;
 using CoreEx.RefData;
-using CoreEx.WebApis;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -274,45 +273,6 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddFileLockSynchronizer(this IServiceCollection services) => CheckServices(services).AddSingleton<IServiceSynchronizer, FileLockSynchronizer>();
 
         /// <summary>
-        /// Adds the <see cref="WebApi"/> as a scoped service.
-        /// </summary>
-        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddWebApi(this IServiceCollection services, Action<WebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
-        {
-            var wa = new WebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<WebApiInvoker>(), sp.GetService<IJsonMergePatch>());
-            configure?.Invoke(wa);
-            return wa;
-        });
-
-        /// <summary>
-        /// Adds the <see cref="ReferenceDataContentWebApi"/> as a scoped service.
-        /// </summary>
-        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddReferenceDataContentWebApi(this IServiceCollection services, Action<ReferenceDataContentWebApi>? configure = null) => CheckServices(services).AddScoped(sp =>
-        {
-            var wa = new ReferenceDataContentWebApi(sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IReferenceDataContentJsonSerializer>(), sp.GetRequiredService<ILogger<WebApi>>(), sp.GetService<WebApiInvoker>(), sp.GetService<IJsonMergePatch>());
-            configure?.Invoke(wa);
-            return wa;
-        });
-
-        /// <summary>
-        /// Adds the <see cref="WebApiPublisher"/> as a scoped service.
-        /// </summary>
-        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-        /// <param name="configure">The action to enable the <see cref="WebApi"/> to be further configured.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddWebApiPublisher(this IServiceCollection services, Action<WebApiPublisher>? configure = null) => CheckServices(services).AddScoped(sp =>
-        {
-            var wap = new WebApiPublisher(sp.GetRequiredService<IEventPublisher>(), sp.GetRequiredService<ExecutionContext>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IJsonSerializer>(), sp.GetRequiredService<ILogger<WebApiPublisher>>(), sp.GetService<WebApiInvoker>());
-            configure?.Invoke(wap);
-            return wap;
-        });
-
-        /// <summary>
         /// Adds the <see cref="ReferenceDataOrchestrator"/> created by <paramref name="createOrchestrator"/> as a singleton service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -363,7 +323,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddMappers(this IServiceCollection services, params Assembly[] assemblies)
         {
             var mapper = new Mapper();
-            var mi = typeof(Mapper).GetMethod(nameof(Mapper.Register), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            var mi = typeof(Mapper).GetMethod(nameof(Mapper.Register), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)!;
 
             foreach (var assembly in assemblies.Distinct())
             {
@@ -377,7 +337,7 @@ namespace Microsoft.Extensions.DependencyInjection
                                       where @interface != null
                                       select new { type, sourceType, destinationType })
                 {
-                    mi.MakeGenericMethod(match.sourceType, match.destinationType).Invoke(mapper, new object[] { Activator.CreateInstance(match.type) });
+                    mi.MakeGenericMethod(match.sourceType, match.destinationType).Invoke(mapper, new object[] { Activator.CreateInstance(match.type)! });
                 }
             }
 

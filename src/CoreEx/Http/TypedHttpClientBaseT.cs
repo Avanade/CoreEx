@@ -240,7 +240,7 @@ namespace CoreEx.Http
         /// </summary>
         /// <remarks>
         /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.
-        /// <para>Results in the corresponding <see cref="HttpResult"/> <see cref="HttpResult.NullOnNotFoundResponse"/> being set to get the desired outcome.</para></remarks>
+        /// <para>Results in the corresponding <see cref="HttpResult"/> <see cref="HttpResultBase.NullOnNotFoundResponse"/> being set to get the desired outcome.</para></remarks>
         public TSelf NullOnNotFound()
         {
             SendOptions.NullOnNotFound();
@@ -426,10 +426,17 @@ namespace CoreEx.Http
                 Version = request.Version
             };
 
+#if NETSTANDARD2_1
             foreach (KeyValuePair<string, object?> prop in request.Properties)
             {
                 clone.Properties.Add(prop.Key, prop.Value);
             }
+#else
+            foreach (var prop in request.Options)
+            {
+                clone.Options.TryAdd(prop.Key, prop.Value);
+            }
+#endif
 
             foreach (KeyValuePair<string, IEnumerable<string>> header in request.Headers)
             {

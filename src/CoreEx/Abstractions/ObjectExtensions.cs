@@ -3,6 +3,7 @@
 using CoreEx.Abstractions.Reflection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace CoreEx
 {
@@ -19,7 +20,8 @@ namespace CoreEx
         /// <param name="adjuster">The adjusting action (invoked only where the <paramref name="value"/> is not <c>null</c>).</param>
         /// <returns>The adjusted value (same instance).</returns>
         /// <remarks>Useful in scenarios to in-line simple changes to a value to simplify code.</remarks>
-        public static T Adjust<T>(this T value, Action<T> adjuster) where T : class
+        [return: NotNullIfNotNull(nameof(value))]
+        public static T? Adjust<T>(this T? value, Action<T> adjuster)
         {
             if (value is not null)
                 adjuster?.Invoke(value ?? throw new ArgumentNullException(nameof(value)));
@@ -36,5 +38,20 @@ namespace CoreEx
         /// <para>Uses the <see cref="PropertyExpression.SentenceCaseConverter"/> function to perform the conversion.</para></remarks>
         [return: NotNullIfNotNull(nameof(text))]
         public static string? ToSentenceCase(this string? text) => PropertyExpression.ToSentenceCase(text);
+
+#if NET6_0_OR_GREATER
+        /// <summary>
+        /// Throws an <see cref="ArgumentNullException"/> if the <paramref name="value"/> is <c>null</c>.
+        /// </summary>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to validate as non-null.</param>
+        /// <param name="paramName">The name of the parameter with which the <paramref name="value"/> corresponds.</param>
+        /// <returns>The <paramref name="value"/> to support fluent-style method-chaining.</returns>
+        public static T ThrowIfNull<T>([NotNull] this T? value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
+        {
+            ArgumentNullException.ThrowIfNull(value, paramName);
+            return value;
+        }
+#endif
     }
 }

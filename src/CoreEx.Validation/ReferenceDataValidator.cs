@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.RefData;
+using CoreEx.Results;
 using System;
 
 namespace CoreEx.Validation
@@ -26,21 +27,22 @@ namespace CoreEx.Validation
         /// <summary>
         /// Perform more complex mandatory check based on the ReferenceData base ID type.
         /// </summary>
-        private void ValidateId(PropertyContext<TEntity, object?> context)
+        private Result ValidateId(PropertyContext<TEntity, object?> context)
         {
             if (context.Value != null)
             {
                 if (context.Value is int iid && iid != 0)
-                    return;
+                    return Result.Success;
 
                 if (context.Value is long lid && lid != 0)
-                    return;
+                    return Result.Success;
 
                 if (context.Value is Guid gid && gid != Guid.Empty)
-                    return;
+                    return Result.Success;
             }
 
             context.CreateErrorMessage(ValidatorStrings.MandatoryFormat);
+            return Result.Success;
         }
     }
 }

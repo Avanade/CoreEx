@@ -7,7 +7,7 @@ namespace CoreEx.Abstractions
     /// <summary>
     /// Enables the extended exception capabilities.
     /// </summary>
-    public interface IExtendedException : IExceptionResult
+    public interface IExtendedException
     {
         /// <summary>
         /// Gets the exception message.

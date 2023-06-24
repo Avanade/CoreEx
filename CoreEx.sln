@@ -9,8 +9,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 		Common.targets = Common.targets
 		CONTRIBUTING.md = CONTRIBUTING.md
-		docker-compose.myHr.override.yml = docker-compose.myHr.override.yml
-		docker-compose.myHr.yml = docker-compose.myHr.yml
 		LICENCE = LICENCE
 		nuget-publish.ps1 = nuget-publish.ps1
 		README.md = README.md
@@ -36,6 +34,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{1B711C83-4E75-4A94-9B89-09DF08FF6602}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "My.Hr", "My.Hr", "{F53B0E83-87F8-4679-94B8-268FE6A9C0AD}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.myHr.override.yml = docker-compose.myHr.override.yml
+		docker-compose.myHr.yml = docker-compose.myHr.yml
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "My.Hr.Api", "samples\My.Hr\My.Hr.Api\My.Hr.Api.csproj", "{EC6BE86F-231A-4CA6-974E-27DDD290BCEE}"
 EndProject
@@ -73,7 +75,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Database.MySql", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Solace", "src\CoreEx.Solace\CoreEx.Solace.csproj", "{FB6495D7-931C-4280-9499-69D08A613B54}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Solace.Test", "tests\CoreEx.Solace.Test\CoreEx.Solace.Test.csproj", "{B2C31D4A-87EE-4568-859B-DC7E8EA1043D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Solace.Test", "tests\CoreEx.Solace.Test\CoreEx.Solace.Test.csproj", "{B2C31D4A-87EE-4568-859B-DC7E8EA1043D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.AspNetCore", "src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj", "{804FFA4D-D530-46A7-9ECD-D2D42987161E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -177,6 +181,10 @@ Global
 		{B2C31D4A-87EE-4568-859B-DC7E8EA1043D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B2C31D4A-87EE-4568-859B-DC7E8EA1043D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B2C31D4A-87EE-4568-859B-DC7E8EA1043D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{804FFA4D-D530-46A7-9ECD-D2D42987161E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{804FFA4D-D530-46A7-9ECD-D2D42987161E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{804FFA4D-D530-46A7-9ECD-D2D42987161E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{804FFA4D-D530-46A7-9ECD-D2D42987161E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -208,6 +216,7 @@ Global
 		{9A583DF9-5851-4CE1-97A1-9DC406792022} = {4B6BC31E-93B1-42B0-AE09-AD85AC4DB657}
 		{FB6495D7-931C-4280-9499-69D08A613B54} = {4B6BC31E-93B1-42B0-AE09-AD85AC4DB657}
 		{B2C31D4A-87EE-4568-859B-DC7E8EA1043D} = {3145DCB9-98FB-4519-BCC0-75A22A252EDC}
+		{804FFA4D-D530-46A7-9ECD-D2D42987161E} = {4B6BC31E-93B1-42B0-AE09-AD85AC4DB657}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8B4566D2-9B22-4E27-9654-402BDBA6C744}

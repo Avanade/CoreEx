@@ -14,10 +14,10 @@
         }
 
         [Test]
-        public void AsQueryable1() => Assert.That(_db.Persons1.Query().AsQueryable().Count(), Is.EqualTo(3));
+        public void AsQueryable1() => Assert.That(_db.Persons1.ModelQuery().AsQueryable().Count(), Is.EqualTo(3));
 
         [Test]
-        public void AsQueryable2() => Assert.That(_db.Persons2.Query().AsQueryable().Count(), Is.EqualTo(3));
+        public void AsQueryable2() => Assert.That(_db.Persons2.ModelQuery().AsQueryable().Count(), Is.EqualTo(3));
 
         [Test]
         public void AsQueryable3() => Assert.That(_db.Persons3.Query().AsQueryable().Count(), Is.EqualTo(3));

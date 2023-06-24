@@ -40,7 +40,9 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+#if NETSTANDARD2_1
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+#endif
         public async Task LogRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
         {
             try
@@ -50,7 +52,11 @@ namespace CoreEx.Http
                     _logger.LogInformation("Sending HTTP request {HttpRequestMethod} {HttpRequestUri} {HttpRequestContent} ({HttpRequestMediaType})",
                         request.Method,
                         request.RequestUri,
+#if NETSTANDARD2_1
                         request.Content == null ? "No content." : await request.Content.ReadAsStringAsync().ConfigureAwait(false),
+#else
+                        request.Content == null ? "No content." : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false),
+#endif
                         request.Content?.Headers?.ContentType?.MediaType ?? "None");
                 }
             }
@@ -82,7 +88,11 @@ namespace CoreEx.Http
                             request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode,
+#if NETSTANDARD2_1
                             response.Content == null ? "No content." : await response.Content.ReadAsStringAsync().ConfigureAwait(false),
+#else
+                            response.Content == null ? "No content." : await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false),
+#endif
                             response.Content?.Headers?.ContentType?.MediaType ?? "None");
                     }
                 }
@@ -95,7 +105,11 @@ namespace CoreEx.Http
                             request.RequestUri?.Host,
                             response.StatusCode,
                             (int)response.StatusCode,
+#if NETSTANDARD2_1
                             response.Content == null ? "No content." : await response.Content.ReadAsStringAsync().ConfigureAwait(false),
+#else
+                            response.Content == null ? "No content." : await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false),
+#endif
                             response.Content?.Headers?.ContentType?.MediaType ?? "None");
                     }
                     else

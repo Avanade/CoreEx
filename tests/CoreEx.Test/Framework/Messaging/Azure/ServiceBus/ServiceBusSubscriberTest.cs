@@ -24,7 +24,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
             var message = test.CreateServiceBusMessage<Product?>(null);
 
             test.Type<ServiceBusSubscriber>()
-                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, ed => throw new InvalidOperationException("Should not get here.")))
+                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => throw new InvalidOperationException("Should not get here.")))
                 .AssertSuccess();
 
             actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.ValidationError.ToString(), It.IsAny<string>(), default), Times.Once);
@@ -39,7 +39,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
             var message = test.CreateServiceBusMessage(new Product { Id = "A", Price = 1.99m });
 
             test.Type<ServiceBusSubscriber>()
-                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, ed => throw new TransientException()))
+                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => throw new TransientException()))
                 .AssertException<EventSubscriberException>("A transient error has occurred; please try again.");
 
             actionsMock.VerifyNoOtherCalls();
@@ -53,7 +53,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
             var message = test.CreateServiceBusMessage(new Product { Id = "A", Price = 1.99m });
 
             test.Type<ServiceBusSubscriber>()
-                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, ed => throw new DivideByZeroException()))
+                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => throw new DivideByZeroException()))
                 .AssertSuccess();
 
             actionsMock.Verify(m => m.DeadLetterMessageAsync(message, It.IsAny<Dictionary<string, object?>>(), ErrorType.UnhandledError.ToString(), It.IsAny<string>(), default), Times.Once);
@@ -68,7 +68,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
             var message = test.CreateServiceBusMessage(new Product { Id = "A", Price = 1.99m });
 
             test.Type<ServiceBusSubscriber>()
-                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, ed => Task.CompletedTask))
+                .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => Task.CompletedTask))
                 .AssertSuccess();
 
             actionsMock.Verify(m => m.CompleteMessageAsync(message, default), Times.Once);

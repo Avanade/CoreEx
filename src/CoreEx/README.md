@@ -30,9 +30,14 @@ Namespace | Description
 [`Localization`](./Localization) | Provided extended localization capabilities.
 [`Mapping`](./Mapping) | Provides implementation agnostic mapping capabilities.
 [`RefData`](./RefData) | Provides standardized and enriched capabilities for reference data.
+[`Results`](./Results) | Provides [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to as [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html) via `Result` and `Result<T>` types.
+[`Security`](./Security) | Provides extended security capabilities.
+[`Serialization`](./Serialization) | Provides implementation agnostic serialization capabilities.
 [`Text.Json`](./Text/Json) | Provides [`System.Text.Json`](https://docs.microsoft.com/en-us/dotnet/api/system.text.json) implementation of the [`IJsonSerializer`](./Json/IJsonSerializer.cs).
 [`Validation`](./Validation) | Provides implementation agnostic validation capabilities.
-[`WebApis`](./WebApis) | Provides extended capabilities to build Web APIs.
+[`Wildcards`](./Wildcards) | Provides standardized approach to parsing and validating [`Wildcard`](./Wildcards/Wildcard.cs) text.`
+[`Text.Json`](./Text/Json) | Provides [`System.Text.Json`](https://docs.microsoft.com/en-us/dotnet/api/system.text.json) implementation of the [`IJsonSerializer`](./Json/IJsonSerializer.cs).
+[`Validation`](./Validation) | Provides implementation agnostic validation capabilities.
 [`Wildcards`](./Wildcards) | Provides standardized approach to parsing and validating [`Wildcard`](./Wildcards/Wildcard.cs) text. 
 
 <br/>

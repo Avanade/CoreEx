@@ -7,7 +7,7 @@ namespace CoreEx.Text.Json
     /// <summary>
     /// Provides a substitution and camel case naming policy.
     /// </summary>
-    /// <remarks>Converts the name by checking <see cref="CoreEx.Json.JsonSerializer.NameSubstitutions"/>, then uses <see cref="Stj.JsonCamelCaseNamingPolicy"/>.</remarks>
+    /// <remarks>Converts the name by checking <see cref="CoreEx.Json.JsonSerializer.NameSubstitutions"/>, then uses <see cref="Stj.JsonNamingPolicy.CamelCase"/>.</remarks>
     public class SubstituteNamingPolicy : Stj.JsonNamingPolicy
     {
         /// <summary>

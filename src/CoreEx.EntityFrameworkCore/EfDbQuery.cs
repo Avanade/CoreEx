@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.Results;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoreEx.EntityFrameworkCore
@@ -73,19 +74,22 @@ namespace CoreEx.EntityFrameworkCore
         /// <summary>
         /// Manages the DbContext and underlying query construction and lifetime.
         /// </summary>
-        private Task<TResult?> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken) => EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, (efdb, query, args, ct) =>
+        private async Task<Result<TResult?>> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken) => await EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, async (efdb, query, args, ct) =>
         {
             var dbSet = args.QueryNoTracking ? efdb.DbContext.Set<TModel>().AsNoTracking() : efdb.DbContext.Set<TModel>();
-            return executeAsync((query == null) ? dbSet : query(dbSet), ct);
-        }, cancellationToken);
+            return Result<TResult?>.Ok(await executeAsync((query == null) ? dbSet : query(dbSet), ct).ConfigureAwait(false));
+        }, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Executes the query and maps.
         /// </summary>
-        private async Task<T?> ExecuteQueryAndMapAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken)
+        private async Task<Result<T?>> ExecuteQueryAndMapAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, CancellationToken cancellationToken)
         {
-            var model = await ExecuteQueryAsync(executeAsync, cancellationToken).ConfigureAwait(false);
-            var val = model == null ? default! : Mapper.Map<T>(model, Mapping.OperationTypes.Get);
+            var result = await ExecuteQueryAsync(executeAsync, cancellationToken).ConfigureAwait(false);
+            if (result.IsFailure)
+                return Result<T?>.Fail(result.Error);
+
+            var val = result.Value == null ? default! : Mapper.Map<T>(result.Value, Mapping.OperationTypes.Get);
             return Args.CleanUpResult ? Cleaner.Clean(val) : val;
         }
 
@@ -109,28 +113,56 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item.</returns>
-        public async Task<T> SelectSingleAsync(CancellationToken cancellationToken = default) => (await ExecuteQueryAndMapAsync(async (q, ct) => await q.SingleAsync(ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))!;
+        public async Task<T> SelectSingleAsync(CancellationToken cancellationToken = default) => await SelectSingleWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects a single item with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item.</returns>
+        public async Task<Result<T>> SelectSingleWithResultAsync(CancellationToken cancellationToken = default) => (await ExecuteQueryAndMapAsync(async (q, ct) => await q.SingleAsync(ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))!;
 
         /// <summary>
         /// Selects a single item or default.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
-        public Task<T?> SelectSingleOrDefaultAsync(CancellationToken cancellationToken = default) => ExecuteQueryAndMapAsync((q, ct) => q.SingleOrDefaultAsync(ct), cancellationToken);
+        public async Task<T?> SelectSingleOrDefaultAsync(CancellationToken cancellationToken = default) => await SelectSingleOrDefaultWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects a single item or default with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public Task<Result<T?>> SelectSingleOrDefaultWithResultAsync(CancellationToken cancellationToken = default) => ExecuteQueryAndMapAsync((q, ct) => q.SingleOrDefaultAsync(ct), cancellationToken);
 
         /// <summary>
         /// Selects first item.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The first item.</returns>
-        public async Task<T> SelectFirstAsync(CancellationToken cancellationToken = default) => (await ExecuteQueryAndMapAsync(async (q, ct) => await q.FirstAsync(ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))!;
+        public async Task<T> SelectFirstAsync(CancellationToken cancellationToken = default) => await SelectFirstWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects first item with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The first item.</returns>
+        public async Task<Result<T>> SelectFirstWithResultAsync(CancellationToken cancellationToken = default) => (await ExecuteQueryAndMapAsync(async (q, ct) => await q.FirstAsync(ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))!;
 
         /// <summary>
         /// Selects first item or default.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The single item or default.</returns>
-        public Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => ExecuteQueryAndMapAsync((q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
+        public async Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default) => await SelectFirstOrDefaultWithResultAsync(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Selects first item or default with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The single item or default.</returns>
+        public Task<Result<T?>> SelectFirstOrDefaultWithResultAsync(CancellationToken cancellationToken = default) => ExecuteQueryAndMapAsync((q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
 
         /// <summary>
         /// Executes the query command creating a <typeparamref name="TCollResult"/>.
@@ -139,7 +171,17 @@ namespace CoreEx.EntityFrameworkCore
         /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
-        public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
+        public async Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new()
+            => await SelectResultWithResultAsync<TCollResult, TColl>(cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes the query command creating a <typeparamref name="TCollResult"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
+        public async Task<Result<TCollResult>> SelectResultWithResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
         {
             Paging = Paging,
             Items = await SelectQueryAsync<TColl>(cancellationToken).ConfigureAwait(false)
@@ -151,10 +193,17 @@ namespace CoreEx.EntityFrameworkCore
         /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
         /// <returns>A resultant collection.</returns>
         public async Task<TColl> SelectQueryAsync<TColl>(CancellationToken cancellationToken = default) where TColl : ICollection<T>, new()
+            => (await SelectQueryWithResultAsync<TColl>(cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <summary>
+        /// Executes the query command creating a resultant collection with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <returns>A resultant collection.</returns>
+        public async Task<Result<TColl>> SelectQueryWithResultAsync<TColl>(CancellationToken cancellationToken = default) where TColl : ICollection<T>, new()
         {
             var coll = new TColl();
-            await SelectQueryAsync(coll, cancellationToken).ConfigureAwait(false);
-            return coll;
+            return await SelectQueryWithResultAsync(coll, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -165,6 +214,16 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="collection">The collection to add items to.</param>
         /// <returns>The <paramref name="collection"/>.</returns>
         public async Task<TColl> SelectQueryAsync<TColl>(TColl collection, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+            => (await SelectQueryWithResultAsync(collection, cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <summary>
+        /// Executes a query adding to the passed collection with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <param name="collection">The collection to add items to.</param>
+        /// <returns>The <paramref name="collection"/>.</returns>
+        public async Task<Result<TColl>> SelectQueryWithResultAsync<TColl>(TColl collection, CancellationToken cancellationToken = default) where TColl : ICollection<T>
         {
             if (collection == null)
                 throw new ArgumentNullException(nameof(collection));
@@ -173,7 +232,7 @@ namespace CoreEx.EntityFrameworkCore
             var mapper = Mapper;
             var args = Args;
 
-            var coll = await ExecuteQueryAsync(async (query, ct) =>
+            return await ExecuteQueryAsync(async (query, ct) =>
             {
                 var q = SetPaging(query, paging);
 
@@ -186,10 +245,8 @@ namespace CoreEx.EntityFrameworkCore
                 if (paging != null && paging.IsGetCount)
                     paging.TotalCount = query.LongCount();
 
-                return collection;
+                return Result<TColl>.Ok(collection);
             }, cancellationToken);
-
-            return coll!;
         }
     }
 }

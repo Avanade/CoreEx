@@ -1,4 +1,3 @@
-using CoreEx.Database;
 using CoreEx.Database.Extended;
 
 namespace My.Hr.Business.Services;
@@ -16,7 +15,7 @@ public class ReferenceDataService : IReferenceDataProvider
 
     public Type[] Types => new Type[] { typeof(USState), typeof(Gender) };
 
-    public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
+    public async Task<Result<IReferenceDataCollection>> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         Type t when t == typeof(USState) => await USStateCollection.CreateAsync(_dbContext.USStates.AsNoTracking(), cancellationToken).ConfigureAwait(false),
         Type t when t == typeof(Gender) => await _db.ReferenceData<GenderCollection, Gender, Guid>("Hr", "Gender").LoadAsync("GenderId", cancellationToken: cancellationToken).ConfigureAwait(false),

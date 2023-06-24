@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
+using System.Net.Http;
 
 namespace CoreEx.Entities
 {
     /// <summary>
     /// Provides the <see cref="Paging"/> and <see cref="Items"/> for a collection result.
     /// </summary>
-    /// <remarks>Generally an <see cref="ICollectionResult"/> is not intended for serialized <see cref="HttpResponse"/>; the underlying <see cref="Items"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponse.Headers"/>.</remarks>
+    /// <remarks>Generally an <see cref="ICollectionResult"/> is not intended for serialized <see cref="HttpResponseMessage"/>; the underlying <see cref="Items"/> is serialized with the <see cref="Paging"/> returned as <see cref="HttpResponseMessage.Headers"/>.</remarks>
     public interface ICollectionResult
     {
         /// <summary>

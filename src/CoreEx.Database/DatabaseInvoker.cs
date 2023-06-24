@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Invokers;
+using CoreEx.Results;
 using System;
 using System.Data.Common;
 using System.Threading;
@@ -15,6 +16,9 @@ namespace CoreEx.Database
     public class DatabaseInvoker : InvokerBase<IDatabase>
     {
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(IDatabase database, Func<TResult> func) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected override async Task<TResult> OnInvokeAsync<TResult>(IDatabase database, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
@@ -23,7 +27,16 @@ namespace CoreEx.Database
             }
             catch (DbException dbex)
             {
-                database.HandleDbException(dbex);
+                var eresult = database.HandleDbException(dbex);
+                if (eresult.HasValue && eresult.Value.IsFailure)
+                {
+                    var dresult = default(TResult);
+                    if (dresult is IResult dir)
+                        return (TResult)dir.ToFailure(eresult.Value.Error);
+                    else
+                        eresult.Value.ThrowOnError();
+                }
+
                 throw;
             }
         }

@@ -3,8 +3,6 @@
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Localization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,21 +94,6 @@ namespace CoreEx
         /// </summary>
         /// <returns>The <see cref="ShouldExceptionBeLogged"/> value.</returns>
         public bool ShouldBeLogged => ShouldExceptionBeLogged;
-
-        /// <inheritdoc/>
-        public IActionResult ToResult()
-        {
-            if (Messages == null || Messages.Count == 0)
-                return ExceptionResultExtensions.ToResult(this, StatusCode);
-
-            var msd = new ModelStateDictionary();
-            foreach (var item in Messages.GetMessagesForType(MessageType.Error))
-            {
-                msd.AddModelError(item.Property, item.Text);
-            }
-
-            return new BadRequestObjectResult(msd);
-        }
 
         /// <summary>
         /// Creates the exception message.

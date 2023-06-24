@@ -151,7 +151,7 @@ namespace CoreEx.Entities.Extended
             else if (this is IEntityKey ek)
                 return $"{base.ToString()} EntityKey={ek.EntityKey}";
             else
-                return base.ToString();
+                return base.ToString()!;
         }
 
         /// <inheritdoc/>

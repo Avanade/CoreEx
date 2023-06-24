@@ -30,7 +30,7 @@ namespace CoreEx.Test.TestFunction
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = false;
 
-            Assert.ThrowsAsync<EventSubscriberException>(() => sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please.")));
+            Assert.ThrowsAsync<EventSubscriberException>(() => sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please.")));
 
             actions.AssertRenew(0);
             actions.AssertNone();
@@ -46,7 +46,7 @@ namespace CoreEx.Test.TestFunction
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
 
-            await sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please."));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
 
             actions.AssertRenew(0);
             actions.AssertAbandon();
@@ -67,7 +67,7 @@ namespace CoreEx.Test.TestFunction
             sbs.RetryDelay = TimeSpan.FromSeconds(1);
 
             var sw = Stopwatch.StartNew();
-            await sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please."));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
             Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 950);
@@ -91,7 +91,7 @@ namespace CoreEx.Test.TestFunction
             sbs.RetryDelay = TimeSpan.FromSeconds(1);
 
             var sw = Stopwatch.StartNew();
-            await sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please."));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
             Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 1950);
@@ -116,7 +116,7 @@ namespace CoreEx.Test.TestFunction
             sbs.MaxRetryDelay = TimeSpan.FromMilliseconds(1100);
 
             var sw = Stopwatch.StartNew();
-            await sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please."));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
             Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 1050);
@@ -140,7 +140,7 @@ namespace CoreEx.Test.TestFunction
             sbs.MaxRetryDelay = TimeSpan.FromMilliseconds(600);
 
             var sw = Stopwatch.StartNew();
-            await sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please."));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
             Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 550);
@@ -163,7 +163,7 @@ namespace CoreEx.Test.TestFunction
             sbs.AbandonOnTransient = true;
             sbs.MaxDeliveryCount = 3;
 
-            await sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please."));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
 
             actions.AssertRenew(0);
             actions.AssertAbandon();
@@ -183,7 +183,7 @@ namespace CoreEx.Test.TestFunction
             sbs.AbandonOnTransient = true;
             sbs.MaxDeliveryCount = 3;
 
-            await sbs.ReceiveAsync(message, actions, _ => throw new TransientException("Retry again please."));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
 
             actions.AssertRenew(0);
             actions.AssertDeadLetter("MaxDeliveryCountExceeded", "Message could not be consumed after 3 attempts (as defined by ServiceBusSubscriber).");
@@ -201,7 +201,7 @@ namespace CoreEx.Test.TestFunction
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
 
-            await sbs.ReceiveAsync(message, actions, _ => Task.CompletedTask);
+            await sbs.ReceiveAsync(message, actions, (_, _) => Task.CompletedTask);
 
             actions.AssertRenew(0);
             actions.AssertComplete();
@@ -217,7 +217,7 @@ namespace CoreEx.Test.TestFunction
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
 
-            await sbs.ReceiveAsync(message, actions, _ => throw new DivideByZeroException("Zero is bad dude!"));
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new DivideByZeroException("Zero is bad dude!"));
 
             actions.AssertRenew(0);
             actions.AssertDeadLetter("UnhandledError", "Zero is bad dude!");

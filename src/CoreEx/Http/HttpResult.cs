@@ -3,11 +3,9 @@
 using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Json;
+using CoreEx.Results;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Mime;
 using System.Threading;
@@ -18,22 +16,22 @@ namespace CoreEx.Http
     /// <summary>
     /// Provides the <see cref="HttpResponseMessage"/> result with no value.
     /// </summary>
-    public class HttpResult
+    public class HttpResult : HttpResultBase, IToResult
     {
-        private readonly Lazy<string?> _errorType;
-        private readonly Lazy<int?> _errorCode;
-        private readonly Lazy<MessageItemCollection?> _messages;
-        private string? _content;
-
         /// <summary>
         /// Creates a new <see cref="HttpResult"/> with no value.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
         public static async Task<HttpResult> CreateAsync(HttpResponseMessage response, CancellationToken cancellationToken = default)
-            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), response.Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+#if NETSTANDARD2_1
+            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), 
+                response.Content == null || response.Content.Headers.ContentLength == 0 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false)));
+#else
+            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), 
+                response.Content == null || response.Content.Headers.ContentLength == 0 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false)));
+#endif
 
         /// <summary>
         /// Creates a new <see cref="HttpResult{T}"/> with a <see cref="HttpResult{T}.Value"/>.
@@ -42,28 +40,36 @@ namespace CoreEx.Http
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/> for deserializing the <see cref="HttpResult{T}.Value"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult{T}"/>.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
-        public static async Task<HttpResult<T>> CreateAsync<T>(HttpResponseMessage response, IJsonSerializer jsonSerializer, CancellationToken cancellationToken = default)
+        public static async Task<HttpResult<T>> CreateAsync<T>(HttpResponseMessage response, IJsonSerializer? jsonSerializer = default, CancellationToken cancellationToken = default)
         {
-            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
-                return new HttpResult<T>(response, content, default!);
+#if NETSTANDARD2_1
+            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
+                ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false));
+#else
+            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
+                ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false));
+#endif
+
+            if (!response.IsSuccessStatusCode || content == BinaryData.Empty)
+                return new HttpResult<T>(response, content, default(T)!);
 
             if (typeof(T) == typeof(string) && StringComparer.OrdinalIgnoreCase.Compare(response.Content.Headers?.ContentType?.MediaType, MediaTypeNames.Text.Plain) == 0)
             {
                 try
                 {
-                    return new HttpResult<T>(response, content, (T)Convert.ChangeType(content, typeof(T), CultureInfo.CurrentCulture));
+                    return content == null 
+                        ? new HttpResult<T>(response, content, default(T)!)
+                        : new HttpResult<T>(response, content, (T)Convert.ChangeType(content.ToString(), typeof(T), CultureInfo.CurrentCulture));
                 }
                 catch (Exception ex)
                 {
-                    throw new InvalidOperationException($"Unable to convert the content '{content}' [{MediaTypeNames.Text.Plain}] to Type {typeof(T).Name}", ex);
+                    return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to convert the content '{content}' [{MediaTypeNames.Text.Plain}] to Type {typeof(T).Name}.", ex));
                 }
             }
 
             try
             {
-                var value = (jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).Deserialize<T>(content);
+                var value = content == null ? default! : (jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? JsonSerializer.Default).Deserialize<T>(content);
                 if (value != null && value is IETag etag && etag.ETag == null && response.Headers.ETag != null)
                     etag.ETag = response.Headers.ETag.Tag;
 
@@ -78,7 +84,7 @@ namespace CoreEx.Http
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Unable to deserialize the JSON content '{content}' [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] to Type {typeof(T).FullName}", ex);
+                return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to deserialize the JSON content '{content}' [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] to Type {typeof(T).FullName}.", ex));
             }
         }
 
@@ -86,98 +92,11 @@ namespace CoreEx.Http
         /// Initializes a new instance of the <see cref="HttpResult"/> class.
         /// </summary>
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
-        protected HttpResult(HttpResponseMessage response, string? content)
-        {
-            Response = response ?? throw new ArgumentNullException(nameof(response));
-            Content = content;
-
-            _errorType = new Lazy<string?>(() =>
-            {
-                if (Response.TryGetHeaderValue(HttpConsts.ErrorTypeHeaderName, out var et))
-                    return et;
-                else
-                    return null;
-            });
-
-            _errorCode = new Lazy<int?>(() =>
-            {
-                if (Response.TryGetHeaderValue(HttpConsts.ErrorCodeHeaderName, out var ec) && int.TryParse(ec, out var code))
-                    return code;
-                else
-                    return null;
-            });
-
-            _messages = new Lazy<MessageItemCollection?>(() =>
-            {
-                if (!Response.TryGetHeaderValue(HttpConsts.MessagesHeaderName, out var mic) || string.IsNullOrEmpty(mic))
-                    return null;
-
-                try
-                {
-                    return System.Text.Json.JsonSerializer.Deserialize<MessageItemCollection>(mic);
-                }
-                catch
-                {
-                    return null;  // Swallow any deserialization errors.
-                }
-            });
-        }
+        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/> (see <see cref="HttpContent.ReadAsByteArrayAsync()"/>).</param>
+        internal HttpResult(HttpResponseMessage response, BinaryData? content) : base(response, content) { }
 
         /// <summary>
-        /// Gets the <see cref="HttpResponseMessage"/>.
-        /// </summary>
-        public HttpResponseMessage Response { get; }
-
-        /// <summary>
-        /// Gets the <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).
-        /// </summary>
-        public string? Content { get => WillResultInNullAsNotFound ? null : _content; private set => _content = value; }
-
-        /// <summary>
-        /// Gets the underlying <see cref="HttpRequestMessage"/>.
-        /// </summary>
-        public HttpRequestMessage? Request => Response.RequestMessage;
-
-        /// <summary>
-        /// Gets the <see cref="HttpStatusCode"/>.
-        /// </summary>
-        public HttpStatusCode StatusCode => WillResultInNullAsNotFound ? HttpStatusCode.NoContent : Response.StatusCode;
-
-        /// <summary>
-        /// Indicates whether the request was successful.
-        /// </summary>
-        public bool IsSuccess => WillResultInNullAsNotFound || Response.IsSuccessStatusCode;
-
-        /// <summary>
-        /// Gets the <see cref="MessageItemCollection"/>.
-        /// </summary>
-        public MessageItemCollection? Messages => _messages.Value;
-
-        /// <summary>
-        /// Gets the error type using the <see cref="HttpConsts.ErrorTypeHeaderName"/>.
-        /// </summary>
-        public string? ErrorType => WillResultInNullAsNotFound ? null : _errorType.Value;
-
-        /// <summary>
-        /// Gets the error code using the <see cref="HttpConsts.ErrorCodeHeaderName"/>
-        /// </summary>
-        public int? ErrorCode => WillResultInNullAsNotFound ? null : _errorCode.Value;
-
-        /// <summary>
-        /// Indicates whether a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/>; i.e. it acts as <see cref="HttpStatusCode.NoContent"/>.
-        /// </summary>
-        /// <remarks>When set to <c>true</c> and the corresponding <see cref="Response"/> has a <see cref="StatusCode"/> is <see cref="HttpStatusCode.NotFound"/>, then <see cref="IsSuccess"/> will return <c>true</c> and <see cref="Content"/> will return <c>null</c>.</remarks>
-        public bool NullOnNotFoundResponse { get; set; }
-
-        /// <summary>
-        /// Indicates whether the <see cref="HttpResult"/> will result in a <c>null</c> response where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/>
-        /// </summary>
-        /// <remarks>See <see cref="NullOnNotFoundResponse"/>.</remarks>
-        public bool WillResultInNullAsNotFound => NullOnNotFoundResponse && Response.StatusCode == HttpStatusCode.NotFound;
-
-        /// <summary>
-        /// Throws an exception if the request was not successful (see <see cref="IsSuccess"/>).
+        /// Throws an exception if the request was not successful (see <see cref="HttpResultBase.IsSuccess"/>).
         /// </summary>
         /// <param name="throwKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be thrown.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
@@ -198,76 +117,28 @@ namespace CoreEx.Http
             return this;
         }
 
+        /// <inheritdoc/>
+        public Result ToResult() => ToResult(true);
+
         /// <summary>
-        /// Creates an <see cref="IExtendedException"/> from the <see cref="HttpResponseMessage"/> based on the <see cref="HttpStatusCode"/>.
+        /// Converts the <see cref="HttpResult"/> into an equivalent <see cref="Result"/>.
         /// </summary>
-        /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
+        /// <param name="convertToKnownException">Indicates whether to check the <see cref="HttpResponseMessage.StatusCode"/> and where it matches one of the <i>known</i> <see cref="IExtendedException.StatusCode"/> values then that <see cref="IExtendedException"/> will be used.</param>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
-        /// <returns>The corresponding <see cref="IExtendedException"/> where applicable; otherwise, <c>null</c>.</returns>
-        internal static IExtendedException? CreateExtendedException(HttpResponseMessage response, string? content, bool useContentAsErrorMessage = true)
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        public Result ToResult(bool convertToKnownException, bool useContentAsErrorMessage = true)
         {
-            if (response == null || response.IsSuccessStatusCode)
-                return null;
+            if (IsSuccess)
+                return Result.Success;
 
-            if (!(response.TryGetHeaderValue(HttpConsts.ErrorTypeHeaderName, out var et) && Enum.TryParse(et, out ErrorType errorType)))
-                errorType = Abstractions.ErrorType.UnhandledError;
-
-            var message = useContentAsErrorMessage ? content : null;
-
-            switch (response.StatusCode)
+            if (convertToKnownException)
             {
-                case HttpStatusCode.BadRequest:
-                    if (errorType == Abstractions.ErrorType.BusinessError)
-                        return new BusinessException(message, new HttpRequestException(content));
-                    else
-                    {
-                        var mic = CreateMessageItems(content);
-                        if (mic == null)
-                            return new ValidationException(message, new HttpRequestException(content));
-                        else
-                            return new ValidationException(mic);
-                    }
-
-                case HttpStatusCode.Forbidden: return new AuthenticationException(message, new HttpRequestException(content));
-                case HttpStatusCode.Unauthorized: return new AuthorizationException(message, new HttpRequestException(content));
-                case HttpStatusCode.PreconditionFailed: return new ConcurrencyException(message, new HttpRequestException(content));
-                case HttpStatusCode.Conflict: return errorType == Abstractions.ErrorType.DuplicateError ? new DuplicateException(message, new HttpRequestException(content)) : new ConflictException(message, new HttpRequestException(content));
-                case HttpStatusCode.NotFound: return new NotFoundException(message, new HttpRequestException(content));
-                case HttpStatusCode.ServiceUnavailable: return new TransientException(message, new HttpRequestException(content));
-                default: return null;
-            }
-        }
-
-        /// <summary>
-        /// Create <see cref="MessageItemCollection"/> from <paramref name="content"/>.
-        /// </summary>
-        /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as a <see cref="string"/> (see <see cref="HttpContent.ReadAsStringAsync()"/>).</param>
-        /// <returns>The <see cref="MessageItemCollection"/> where successfully deserialized; otherwise, <c>null</c>.</returns>
-        internal static MessageItemCollection? CreateMessageItems(string? content)
-        {
-            MessageItemCollection? mic = null;
-
-            if (content != null)
-            {
-                try
-                {
-                    var errors = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string[]>>(content);
-                    if (errors != null)
-                    {
-                        foreach (var kvp in errors.Where(x => !string.IsNullOrEmpty(x.Key)))
-                        {
-                            foreach (var error in kvp.Value.Where(x => !string.IsNullOrEmpty(x)))
-                            {
-                                (mic ??= new MessageItemCollection()).AddPropertyError(kvp.Key, error);
-                            }
-                        }
-                    }
-                }
-                catch { } // Swallow any deserialization errors.
+                var eex = CreateExtendedException(Response, Content, useContentAsErrorMessage);
+                if (eex != null)
+                    return new Result((Exception)eex);
             }
 
-            return mic;
+            return new Result(new HttpRequestException(Content));
         }
     }
 }

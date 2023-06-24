@@ -31,10 +31,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            var v1 = await ((RefDataEx)"Aaa").Validate().IsValid().ValidateAsync();
+            var v1 = await ((RefDataEx)"Aaa").Validate("value").IsValid().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await ((RefDataEx)"Abc").Validate().IsValid().ValidateAsync();
+            v1 = await ((RefDataEx)"Abc").Validate("value").IsValid().ValidateAsync();
 
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
@@ -59,10 +59,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            var v1 = await "Aaa".Validate().RefDataCode().As<RefDataEx>().ValidateAsync();
+            var v1 = await "Aaa".Validate("value").RefDataCode().As<RefDataEx>().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "Abc".Validate().RefDataCode().As<RefDataEx>().ValidateAsync();
+            v1 = await "Abc".Validate("value").RefDataCode().As<RefDataEx>().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
@@ -87,7 +87,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
             var sids = new ReferenceDataCodeList<RefDataEx>("Aaa", "Abc");
-            var v1 = await sids.Validate().AreValid().ValidateAsync();
+            var v1 = await sids.Validate("value").AreValid().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains one or more invalid items.", v1.Messages[0].Text);
@@ -95,24 +95,24 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.AreEqual("value", v1.Messages[0].Property);
 
             sids = new ReferenceDataCodeList<RefDataEx>("Aaa", "Aaa");
-            v1 = await sids.Validate().AreValid().ValidateAsync();
+            v1 = await sids.Validate("value").AreValid().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value contains duplicates; Code 'AAA' specified more than once.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            v1 = await sids.Validate().AreValid(allowDuplicates: true).ValidateAsync();
+            v1 = await sids.Validate("value").AreValid(allowDuplicates: true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await sids.Validate().AreValid(true, 5).ValidateAsync();
+            v1 = await sids.Validate("value").AreValid(true, 5).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must have at least 5 item(s).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            v1 = await sids.Validate().AreValid(true, maxCount: 1).ValidateAsync();
+            v1 = await sids.Validate("value").AreValid(true, maxCount: 1).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not exceed 1 item(s).", v1.Messages[0].Text);

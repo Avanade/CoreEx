@@ -97,7 +97,7 @@ namespace CoreEx.Database.Mapping
                 var spe = Expression.Parameter(typeof(TSource), "x");
                 var sex = Expression.Lambda(Expression.Property(spe, sp), spe);
                 typeof(DatabaseMapper<TSource>)
-                    .GetMethod("Property", BindingFlags.Public | BindingFlags.Instance)
+                    .GetMethod("Property", BindingFlags.Public | BindingFlags.Instance)!
                     .MakeGenericMethod(new Type[] { sp.PropertyType })
                     .Invoke(this, new object?[] { sex, null, null, OperationTypes.Any });
             }
@@ -198,9 +198,9 @@ namespace CoreEx.Database.Mapping
             {
                 var lex = Expression.Lambda(Expression.Property(pe, p.PropertyName), pe);
                 var pmap = (IPropertyColumnMapper)type
-                    .GetMethod("Property", BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+                    .GetMethod("Property", BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)!
                     .MakeGenericMethod(p.PropertyType)
-                    .Invoke(this, new object?[] { lex, p.ColumnName, p.ParameterName, p.OperationTypes });
+                    .Invoke(this, new object?[] { lex, p.ColumnName, p.ParameterName, p.OperationTypes })!;
 
                 if (p.IsPrimaryKey)
                     pmap.SetPrimaryKey(p.IsPrimaryKeyGeneratedOnCreate);

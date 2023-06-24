@@ -36,7 +36,7 @@ namespace CoreEx.Newtonsoft.Json
                     return rd;
             }
 
-            var rdx = (IReferenceData)Activator.CreateInstance(objectType);
+            var rdx = (IReferenceData)Activator.CreateInstance(objectType)!;
             rdx.Code = code;
             rdx.SetInvalid();
             return rdx;

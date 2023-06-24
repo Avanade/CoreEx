@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />

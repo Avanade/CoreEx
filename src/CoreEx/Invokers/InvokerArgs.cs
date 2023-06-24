@@ -9,7 +9,7 @@ namespace CoreEx.Invokers
     /// <summary>
     /// Provides arguments for the <see cref="InvokerBase"/> to manage the likes of <see cref="Transaction">transactions</see> and <see cref="EventPublisher">event sending.</see>.
     /// </summary>
-    public class InvokerArgs
+    public struct InvokerArgs
     {
         /// <summary>
         /// Gets or sets the <i>default</i> <see cref="InvokerArgs"/> where <see cref="IncludeTransactionScope"/> is <c>false</c> and <see cref="OperationType"/> is <c>null</c>.
@@ -50,6 +50,11 @@ namespace CoreEx.Invokers
         /// Gets the <see cref="InvokerArgs"/> where <see cref="IncludeTransactionScope"/> is <c>true</c> and <see cref="TransactionScopeOption"/> is <see cref="TransactionScopeOption.RequiresNew"/>.
         /// </summary>
         public static InvokerArgs TransactionRequiresNew { get; } = new InvokerArgs { IncludeTransactionScope = true, TransactionScopeOption = TransactionScopeOption.RequiresNew };
+
+        /// <summary>
+        /// Initialises a new instance of the <see cref="InvokerArgs"/> struct.
+        /// </summary>
+        public InvokerArgs() { }
 
         /// <summary>
         /// Indicates whether to wrap the invocation with a <see cref="TransactionScope"/> (see <see cref="TransactionScopeOption"/>). Defaults to <c>false</c>.

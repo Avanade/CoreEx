@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Mapping.Converters;
+using CoreEx.Results;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System;
@@ -101,13 +102,10 @@ namespace CoreEx.Database.SqlServer
         }
 
         /// <inheritdoc/>
-        protected override void OnDbException(DbException dbex)
+        protected override Result? OnDbException(DbException dbex)
         {
             if (!ThrowTransformedException)
-            {
-                base.OnDbException(dbex);
-                return;
-            }
+                return base.OnDbException(dbex);
 
             if (dbex is SqlException sex)
             {
@@ -117,23 +115,23 @@ namespace CoreEx.Database.SqlServer
 
                 switch (sex.Number)
                 {
-                    case 56001: throw new ValidationException(msg, sex);
-                    case 56002: throw new BusinessException(msg, sex);
-                    case 56003: throw new AuthorizationException(msg, sex);
-                    case 56004: throw new ConcurrencyException(msg, sex);
-                    case 56005: throw new NotFoundException(msg, sex);
-                    case 56006: throw new ConflictException(msg, sex);
-                    case 56007: throw new DuplicateException(msg, sex);
+                    case 56001: return Result.Fail(new ValidationException(msg, sex));
+                    case 56002: return Result.Fail(new BusinessException(msg, sex));
+                    case 56003: return Result.Fail(new AuthorizationException(msg, sex));
+                    case 56004: return Result.Fail(new ConcurrencyException(msg, sex));
+                    case 56005: return Result.Fail(new NotFoundException(msg, sex));
+                    case 56006: return Result.Fail(new ConflictException(msg, sex));
+                    case 56007: return Result.Fail(new DuplicateException(msg, sex));
 
                     default:
                         if (CheckSqlDuplicateErrorNumbers && SqlDuplicateErrorNumbers.Contains(sex.Number))
-                            throw new DuplicateException(null, sex);
+                            return Result.Fail(new DuplicateException(null, sex));
 
                         break;
                 }
             }
 
-            base.OnDbException(dbex);
+            return base.OnDbException(dbex);
         }
     }
 }

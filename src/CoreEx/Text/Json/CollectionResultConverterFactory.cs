@@ -18,7 +18,7 @@ namespace CoreEx.Text.Json
 
         /// <inheritdoc/>
         public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-            => (JsonConverter)Activator.CreateInstance(typeof(JsonValueConverterReferenceData<>).MakeGenericType(typeToConvert));
+            => (JsonConverter)Activator.CreateInstance(typeof(JsonValueConverterReferenceData<>).MakeGenericType(typeToConvert))!;
 
         /// <summary>
         /// Performs the "actual" JSON value conversion for <see cref="ICollectionResult"/> values.

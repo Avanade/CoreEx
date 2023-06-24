@@ -113,6 +113,13 @@ namespace CoreEx.Newtonsoft.Json
             if (memberInfo == null)
                 throw new ArgumentNullException(nameof(memberInfo));
 
+            var sji = memberInfo.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>(true);
+            if (sji != null)
+            {
+                jsonName = null;
+                return false;
+            }
+
             var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>(true);
             if (ji != null)
             {
@@ -129,7 +136,7 @@ namespace CoreEx.Newtonsoft.Json
 
             if (Settings.ContractResolver is ContractResolver cr)
             {
-                var jo = memberInfo.DeclaringType.GetCustomAttribute<JsonObjectAttribute>(true);
+                var jo = memberInfo.DeclaringType?.GetCustomAttribute<JsonObjectAttribute>(true);
                 var jp = cr.GetProperty(memberInfo, jo == null ? MemberSerialization.OptOut : jo.MemberSerialization);
                 if (jp != null)
                 {

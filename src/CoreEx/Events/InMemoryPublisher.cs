@@ -14,7 +14,7 @@ namespace CoreEx.Events
     /// <summary>
     /// Provides an in-memory publisher which can be used for the likes of testing.
     /// </summary>
-    /// <remarks>Where a <see cref="Logger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
+    /// <remarks>Where a <see cref="ILogger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
     public class InMemoryPublisher : EventPublisher
     {
         private readonly ILogger? _logger;

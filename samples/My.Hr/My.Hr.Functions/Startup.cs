@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
 using CoreEx;
+using CoreEx.AspNetCore.HealthChecks;
+using CoreEx.AspNetCore.WebApis;
 using CoreEx.Azure.HealthChecks;
 using CoreEx.Database;
 using CoreEx.DataBase.HealthChecks;
@@ -39,7 +41,7 @@ public class Startup : FunctionsStartup
                 .AddEventDataFormatter()
                 .AddEventPublisher()
                 .AddAzureServiceBusSender()
-                .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
+                .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? WebApiBase.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
                 .AddJsonMergePatch()
                 .AddWebApiPublisher()
                 .AddAzureServiceBusSubscriber()

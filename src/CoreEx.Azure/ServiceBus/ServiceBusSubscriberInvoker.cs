@@ -22,6 +22,9 @@ namespace CoreEx.Azure.ServiceBus
         private const string SubscriberAbandonReasonPropertyName = "SubscriberAbandonReason";
 
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(EventSubscriberBase invoker, Func<TResult> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(EventSubscriberBase invoker, Func<CancellationToken, Task<TResult>> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args, CancellationToken cancellationToken)
         {
             if (args.Message == null)
@@ -76,7 +79,7 @@ namespace CoreEx.Azure.ServiceBus
             }
             finally
             {
-                scope.Dispose();
+                scope?.Dispose();
             }
         }
 

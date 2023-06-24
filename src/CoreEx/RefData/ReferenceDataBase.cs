@@ -45,7 +45,7 @@ namespace CoreEx.RefData
         public string? ETag { get; set; }
 
         /// <inheritdoc/>
-        public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString();
+        public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString()!;
 
         /// <summary>
         /// Sets the underlying <see cref="IIdentifier.IdType"/>.

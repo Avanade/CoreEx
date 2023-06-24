@@ -21,12 +21,12 @@ namespace CoreEx.Http
         /// <summary>
         /// Includes <paramref name="paging"/> by updating <paramref name="requestOptions"/> <see cref="HttpRequestOptions.Paging"/>.
         /// </summary>
-        /// <param name="requestOptions">The <see cref="HttpRequestOptions"/>.</param>
+        /// <param name="requestOptions">The <see cref="HttpRequestOptions"/> (can be <c>null</c>).</param>
         /// <param name="paging">The <see cref="PagingArgs"/>.</param>
         /// <returns>The <see cref="HttpRequestOptions"/>.</returns>
         /// <remarks>Will create a new <see cref="HttpRequestOptions"/> where the <paramref name="requestOptions"/> is <c>null</c> and the corresponding <paramref name="paging"/> is not <c>null</c>; otherwise, overrides the 
         /// existing <paramref name="requestOptions"/> <see cref="HttpRequestOptions.Paging"/>.</remarks>
-        public static HttpRequestOptions? IncludePaging(this HttpRequestOptions requestOptions, PagingArgs? paging)
+        public static HttpRequestOptions? IncludePaging(this HttpRequestOptions? requestOptions, PagingArgs? paging)
         {
             if (requestOptions == null && paging == null)
                 return requestOptions;

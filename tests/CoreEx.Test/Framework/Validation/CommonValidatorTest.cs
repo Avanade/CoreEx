@@ -1,5 +1,6 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Validation;
+using CoreEx.Results;
 using NUnit.Framework;
 using System.Threading;
 using System.Threading.Tasks;
@@ -100,16 +101,62 @@ namespace CoreEx.Test.Framework.Validation
             Assert.AreEqual("CountB", r.Messages[0].Property);
         }
 
+        [Test]
+        public async Task Common_FailureResult_ViaAdditional()
+        {
+            var cv = Validator.CreateCommon<string>(v => v.String(5)).AdditionalAsync((c, _) => Task.FromResult(Result.NotFoundError()));
+            var r = await cv.ValidateAsync("abc");
+
+            Assert.IsNotNull(r);
+            Assert.IsTrue(r.HasErrors);
+            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<NotFoundException>());
+            Assert.Throws<NotFoundException>(() => r.ThrowOnError());
+        }
+
+        [Test]
+        public async Task Common_FailureResult_ViaCustom()
+        {
+            var cv = Validator.CreateCommon<string>(v => v.String(5).Custom(ctx => Result.NotFoundError()));
+            var r = await cv.ValidateAsync("abc");
+
+            Assert.IsNotNull(r);
+            Assert.IsTrue(r.HasErrors);
+            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<NotFoundException>());
+            Assert.Throws<NotFoundException>(() => r.ThrowOnError());
+        }
+
+        [Test]
+        public async Task Common_FailureResult_WithOwningValidator()
+        {
+            var cv = Validator.CreateCommon<string>(v => v.String(5).Custom(ctx => Result.NotFoundError()));
+            var pv = Validator.Create<Person>().HasProperty(x => x.Name, p => p.Common(cv));
+
+            var p = new Person { Name = "abc" };
+            var r = await pv.ValidateAsync(p);
+            Assert.IsNotNull(r);
+            Assert.IsTrue(r.HasErrors);
+            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<NotFoundException>());
+            Assert.Throws<NotFoundException>(() => r.ThrowOnError());
+        }
+
+        public class Person
+        {
+            public string? Name { get; set; }
+        }   
+
         public class IntValidator : CommonValidator<int>
         {
             public IntValidator() => this.Text("Count").Mandatory().CompareValue(CompareOperator.GreaterThanEqual, 10).CompareValue(CompareOperator.LessThanEqual, 20);
 
-            protected override Task OnValidateAsync(PropertyContext<ValidationValue<int>, int> context, CancellationToken ct)
+            protected override Task<Result> OnValidateAsync(PropertyContext<ValidationValue<int>, int> context, CancellationToken ct)
             {
                 if (context.Value == 11)
                     context.CreateErrorMessage("{0} is not allowed to be eleven.");
 
-                return Task.CompletedTask;
+                return Task.FromResult(Result.Success);
             }
         }
 

@@ -29,7 +29,7 @@ public class Startup
             .AddAzureServiceBusPurger()
             .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection), configure: (o, sp) => o.RetryOptions.MaxRetries = 3)
             .AddJsonMergePatch()
-            .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? new ConcurrencyException().ToResult() : null))
+            .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? WebApiBase.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
             .AddReferenceDataContentWebApi()
             .AddRequestCache();
 
@@ -37,6 +37,7 @@ public class Startup
         services
             .AddScoped<ReferenceDataService>()
             .AddScoped<IEmployeeService, EmployeeService>()
+            .AddScoped<IEmployeeResultService, EmployeeResultService>()
             .AddFluentValidators<EmployeeService>();
 
         // Register the database and EF services, including required AutoMapper.
@@ -62,7 +63,7 @@ public class Startup
             var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
             options.OperationFilter<AcceptsBodyOperationFilter>();  // Needed to support AcceptsBodyAttribue where body parameter not explicitly defined.
-            options.OperationFilter<PagingOperationFilter>();       // Needed to support PagingAttribue where PagingArgs parameter not explicitly defined.
+            options.OperationFilter<PagingOperationFilter>(PagingOperationFilterFields.PageSizeCount);  // Needed to support PagingAttribue where PagingArgs parameter not explicitly defined.
         });
     }
 

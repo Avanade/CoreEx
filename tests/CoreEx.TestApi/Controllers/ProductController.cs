@@ -1,5 +1,5 @@
 ﻿using CoreEx.FluentValidation;
-using CoreEx.WebApis;
+using CoreEx.AspNetCore.WebApis;
 using CoreEx.TestFunction.Models;
 using CoreEx.TestFunction.Services;
 using CoreEx.TestFunction.Validators;

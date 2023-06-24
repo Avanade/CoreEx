@@ -6,6 +6,6 @@ Provides the key [Solace PubSub+ Event Broker](https://solace.com/products/event
 
 ## Publishing
 
-A _CoreEx_ [`PubSubSender`](./PubSubSender.cs) provides the [`IEventSender.SendAsync`](../../CoreEx/Events/IEventSender.cs) capabilities to batch send one or more events/mesages to PubSub+.
+A _CoreEx_ [`PubSubSender`](./PubSub/PubSubSender.cs) provides the [`IEventSender.SendAsync`](../CoreEx/Events/IEventSender.cs) capabilities to batch send one or more events/mesages to PubSub+.
 
 <br/>

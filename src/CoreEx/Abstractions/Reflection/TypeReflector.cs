@@ -61,7 +61,7 @@ namespace CoreEx.Abstractions.Reflection
                 var tr = new TypeReflector<TEntity>(args);
                 args.TypeBuilder?.Invoke(tr);
                 return (TypeReflector<TEntity>)ConfigureCacheEntry(ce, tr);
-            });
+            })!;
 
         /// <summary>
         /// Gets the <see cref="ITypeReflector"/> for the specified <paramref name="type"/>.
@@ -72,11 +72,11 @@ namespace CoreEx.Abstractions.Reflection
         public static ITypeReflector GetReflector(TypeReflectorArgs? args, Type type) 
             => (args ??= TypeReflectorArgs.Default).Cache.GetOrCreate(type ?? throw new ArgumentNullException(nameof(args)), ce =>
             {
-                var ec = typeof(TypeReflector<>).MakeGenericType(type).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(TypeReflectorArgs) }, null);
+                var ec = typeof(TypeReflector<>).MakeGenericType(type).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(TypeReflectorArgs) }, null)!;
                 var tr = (ITypeReflector)ec.Invoke(new object[] { args });
                 args.TypeBuilder?.Invoke(tr);
                 return ConfigureCacheEntry(ce, tr);
-            });
+            })!;
 
         /// <summary>
         /// Configure the cache entry setting expirations.

@@ -74,10 +74,10 @@ The following demonstrates an `IEventSubscriber` implementation.
 [EventSubscriber("my.hr.employee", "created", "updated")]
 public class EmployeeeSubscriber : SubscriberBase<Employee>
 {
-    public override Task ReceiveAsync(EventData<Employee> @event, CancellationToken cancellationToken)
+    public override Task<Result> ReceiveAsync(EventData<Employee> @event, EventSubscriberArgs args, CancellationToken cancellationToken)
     {
         // Perform requisite business logic.
-        return Task.CompletedTask;
+        return Task.FromResult(Result.Success);
     }
 ```
 

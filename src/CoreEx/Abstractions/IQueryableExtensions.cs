@@ -191,7 +191,7 @@ namespace System.Linq
             if (ignoreCase)
             {
                 s = s?.ToUpper(System.Globalization.CultureInfo.InvariantCulture);
-                exp = Expression.Call(me, typeof(string).GetMethod("ToUpper", System.Type.EmptyTypes));
+                exp = Expression.Call(me, typeof(string).GetMethod("ToUpper", System.Type.EmptyTypes)!)!;
             }
 
             if (wr.Selection.HasFlag(WildcardSelection.Equal))

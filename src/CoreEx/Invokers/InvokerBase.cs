@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Results;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,9 +16,51 @@ namespace CoreEx.Invokers
     public abstract class InvokerBase : InvokerBase<object, InvokerArgs>
     {
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(object owner, Func<CancellationToken, Task<TResult>> func, InvokerArgs? param, CancellationToken cancellationToken)
+        protected override TResult OnInvoke<TResult>(object owner, Func<TResult> func, InvokerArgs param)
         {
-            InvokerArgs bia = param ?? InvokerArgs.Default;
+            InvokerArgs bia = param;
+            TransactionScope? txn = null;
+            var ot = CoreEx.ExecutionContext.Current.OperationType;
+            if (bia.OperationType.HasValue)
+                CoreEx.ExecutionContext.Current.OperationType = bia.OperationType.Value;
+
+            try
+            {
+                // Initiate a transaction where requested.
+                if (bia.IncludeTransactionScope)
+                    txn = new TransactionScope(bia.TransactionScopeOption, TransactionScopeAsyncFlowOption.Enabled);
+
+                // Invoke the underlying logic.
+                var result = func();
+
+                // Where using Railway-oriented programming, rollback the transaction where a failure has occurred.
+                if (result is IResult r && r.IsFailure)
+                    return result;
+
+                // Send any published events where applicable.
+                if (bia.EventPublisher != null)
+                    Invoker.RunSync(() => bia.EventPublisher.SendAsync(default));
+
+                // Complete the transaction where requested to orchestrate one.
+                txn?.Complete();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                bia.ExceptionHandler?.Invoke(ex);
+                throw;
+            }
+            finally
+            {
+                txn?.Dispose();
+                CoreEx.ExecutionContext.Current.OperationType = ot;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected async override Task<TResult> OnInvokeAsync<TResult>(object owner, Func<CancellationToken, Task<TResult>> func, InvokerArgs param, CancellationToken cancellationToken)
+        {
+            InvokerArgs bia = param;
             TransactionScope? txn = null;
             var ot = CoreEx.ExecutionContext.Current.OperationType;
             if (bia.OperationType.HasValue)
@@ -31,6 +74,10 @@ namespace CoreEx.Invokers
 
                 // Invoke the underlying logic.
                 var result = await func(cancellationToken).ConfigureAwait(false);
+
+                // Where using Railway-oriented programming, rollback the transaction where a failure has occurred.
+                if (result is IResult r && r.IsFailure)
+                    return result;
 
                 // Send any published events where applicable.
                 if (bia.EventPublisher != null)

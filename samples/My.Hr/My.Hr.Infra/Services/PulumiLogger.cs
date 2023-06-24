@@ -10,7 +10,7 @@ public class PulumiLogger<T> : ILogger<T>
     private PulumiLogger()
     { }
 
-    public IDisposable BeginScope<TState>(TState state)
+    public IDisposable BeginScope<TState>(TState state) 
     {
         throw new NotImplementedException();
     }

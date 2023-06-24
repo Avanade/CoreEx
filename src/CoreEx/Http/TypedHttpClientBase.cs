@@ -9,9 +9,9 @@ using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using CoreEx.Entities;
 using CoreEx.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace CoreEx.Http
 {
@@ -116,20 +116,18 @@ namespace CoreEx.Http
             var uri = new Uri(requestUri, UriKind.RelativeOrAbsolute);
 
             var ub = new UriBuilder(uri.IsAbsoluteUri ? uri : new Uri(new Uri("https://coreex"), requestUri));
-            var qs = QueryString.FromUriComponent(ub.Query);
+            var qs = HttpUtility.ParseQueryString(ub.Query);
 
             // Extend the query string from the IHttpArgs.
             foreach (var arg in (args ??= Array.Empty<IHttpArg>()).Where(x => x != null))
             {
-                qs = arg.AddToQueryString(qs, JsonSerializer);
+                arg.AddToQueryString(qs, JsonSerializer);
             }
 
             // Extend the query string to include additional options.
-            if (requestOptions != null)
-                qs = requestOptions.AddToQueryString(qs);
+            ub.Query = (requestOptions ?? new HttpRequestOptions()).AddToQueryString(qs);
 
             // Create the request and include ETag if any.
-            ub.Query = qs.ToUriComponent();
             var request = new HttpRequestMessage(method, uri.IsAbsoluteUri ? ub.Uri.ToString() : ub.Uri.PathAndQuery).ApplyETag(requestOptions?.ETag);
             if (content != null)
                 request.Content = content;
@@ -241,15 +239,21 @@ namespace CoreEx.Http
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The deserialized response value.</returns>
+#if NETSTANDARD2_1
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
+#endif
         protected async Task<TResp> ReadAsJsonAsync<TResp>(HttpResponseMessage response, CancellationToken cancellationToken = default)
         {
             response.EnsureSuccessStatusCode();
             if (response.Content == null)
                 return default!;
 
-            var str = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return JsonSerializer.Deserialize<TResp>(str)!;
+#if NETSTANDARD2_1
+            var data = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+#else
+            var data = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+#endif
+            return JsonSerializer.Deserialize<TResp>(new BinaryData(data))!;
         }
 
         /// <summary>

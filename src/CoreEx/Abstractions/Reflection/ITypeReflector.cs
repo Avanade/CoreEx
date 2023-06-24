@@ -66,7 +66,7 @@ namespace CoreEx.Abstractions.Reflection
         /// Creates a new instance of the <see cref="Type"/> using the default empty constructor.
         /// </summary>
         /// <returns>A new instance of the <see cref="Type"/>.</returns>
-        object CreateInstance() => Activator.CreateInstance(Type);
+        object CreateInstance() => Activator.CreateInstance(Type)!;
 
         /// <summary>
         /// Gets the <see cref="ITypeReflector"/> for <see cref="ItemType"/>.

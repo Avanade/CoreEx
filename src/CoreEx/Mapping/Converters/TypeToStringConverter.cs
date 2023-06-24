@@ -13,7 +13,7 @@ namespace CoreEx.Mapping.Converters
     {
         private static readonly TypeConverter _typeConverter = TypeDescriptor.GetConverter(typeof(T));
         private static readonly ValueConverter<T, string?> _convertToDestination = new(s => s == null ? default! : _typeConverter.ConvertToInvariantString(s));
-        private static readonly ValueConverter<string?, T> _convertToSource = new(d => d == null ? default! : (T)_typeConverter.ConvertFromInvariantString(d));
+        private static readonly ValueConverter<string?, T> _convertToSource = new(d => d == null ? default! : (T)_typeConverter.ConvertFromInvariantString(d)!);
 
         /// <summary>
         /// Gets or sets the default (singleton) instance.

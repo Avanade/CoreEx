@@ -2,7 +2,6 @@
 
 using CoreEx.Abstractions;
 using CoreEx.Events.Subscribing;
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
 
@@ -59,8 +58,5 @@ namespace CoreEx.Events
 
         /// <inheritdoc/>
         public bool ShouldBeLogged => false;
-
-        /// <inheritdoc/>
-        public IActionResult ToResult() => InnerExtendedException?.ToResult() ?? this.ToResult(StatusCode);
     }
 }

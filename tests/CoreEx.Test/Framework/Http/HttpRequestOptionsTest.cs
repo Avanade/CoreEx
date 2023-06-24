@@ -3,6 +3,7 @@ using CoreEx.Http;
 using NUnit.Framework;
 using System.Linq;
 using System.Net.Http;
+using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -15,16 +16,16 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions().Include("fielda", "fieldb").Exclude("fieldc");
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$fields=fielda,fieldb&$exclude=fieldc", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?$fields=fielda,fieldb&$exclude=fieldc", hr.RequestUri!.AbsoluteUri);
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?id=123");
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc", hr.RequestUri!.AbsoluteUri);
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?id=123");
             ro.Exclude("<app& le>");
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc,%3Capp%26%20le%3E", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc,%3capp%26+le%3e", hr.RequestUri!.AbsoluteUri);
         }
 
         [Test]
@@ -33,22 +34,22 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { Paging = PagingArgs.CreateSkipAndTake(20, 25) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$skip=20&$take=25", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?$skip=20&$take=25", hr.RequestUri!.AbsoluteUri);
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             ro = new HttpRequestOptions() { Paging = PagingArgs.CreateSkipAndTake(20, 25, true) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$skip=20&$take=25&$count=true", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?$skip=20&$take=25&$count=true", hr.RequestUri!.AbsoluteUri);
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             ro = new HttpRequestOptions() { Paging = PagingArgs.CreatePageAndSize(2, 25) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$page=2&$size=25", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?$page=2&$size=25", hr.RequestUri!.AbsoluteUri);
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             ro = new HttpRequestOptions() { Paging = PagingArgs.CreatePageAndSize(2, 25, true) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$page=2&$size=25&$count=true", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?$page=2&$size=25&$count=true", hr.RequestUri!.AbsoluteUri);
         }
 
         [Test]
@@ -110,7 +111,7 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?fruit=apple");
             var ro = new HttpRequestOptions() { IncludeText = true };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?fruit=apple&$text=true", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?fruit=apple&$text=true", hr.RequestUri!.AbsoluteUri);
         }
 
         [Test]
@@ -119,7 +120,7 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { IncludeInactive = true };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$inactive=true", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?$inactive=true", hr.RequestUri!.AbsoluteUri);
         }
 
         [Test]
@@ -128,12 +129,12 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { UrlQueryString = "fruit=apple" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?fruit=apple", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?fruit=apple", hr.RequestUri!.AbsoluteUri);
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?fruit=banana");
             ro = new HttpRequestOptions() { UrlQueryString = "fruit=apple" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?fruit=banana&fruit=apple", hr.RequestUri.AbsoluteUri);
+            Assert.AreEqual("https://unittest/testing?fruit=banana&fruit=apple", hr.RequestUri!.AbsoluteUri);
         }
     }
 }

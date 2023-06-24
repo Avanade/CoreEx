@@ -17,6 +17,15 @@ namespace CoreEx.Cosmos
         private TModel _value;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CosmosDbValue{TModel}"/> class.
+        /// </summary>
+        public CosmosDbValue()
+        {
+            Type = typeof(TModel).Name;
+            _value = new();
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="CosmosDbValue{TModel}"/> class with a <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The value.</param>

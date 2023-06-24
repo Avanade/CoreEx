@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 using Microsoft.Azure.Cosmos.Linq;
 using System;
 using System.Linq;
@@ -49,15 +50,8 @@ namespace CoreEx.Cosmos
             return query;
         }
 
-        /// <summary>
-        /// Gets a pre-prepared <see cref="IQueryable"/> with filtering applied as applicable.
-        /// </summary>
-        /// <returns>The <see cref="IQueryable"/>.</returns>
-        /// <remarks>The <see cref="CosmosDbQueryBase{T, TModel, TSelf}.Paging"/> is not supported. The query will <i>not</i> be automatically included within an <see cref="CosmosDb.Invoker"/> execution.</remarks>
-        public IQueryable<TModel> AsQueryable() => AsQueryable(true, false);
-
         /// <inheritdoc/>
-        public override Task SelectQueryAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, coll, async (items, ct) =>
+        public override Task<Result> SelectQueryWithResultAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, coll, async (items, ct) =>
         {
             var q = AsQueryable(false, true);
 
@@ -72,6 +66,8 @@ namespace CoreEx.Cosmos
 
             if (Paging != null && Paging.IsGetCount)
                 Paging.TotalCount = (await q.CountAsync(cancellationToken).ConfigureAwait(false)).Resource;
+
+            return Result.Success;
         }, cancellationToken);
     }
 }

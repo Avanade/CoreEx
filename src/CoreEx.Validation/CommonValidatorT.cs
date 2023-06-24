@@ -2,6 +2,7 @@
 
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Localization;
+using CoreEx.Results;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ namespace CoreEx.Validation
     /// <remarks>Note: the <see cref="PropertyRuleBase{TEntity, TProperty}.Name"/>, <see cref="PropertyRuleBase{TEntity, TProperty}.JsonName"/> and <see cref="PropertyRuleBase{TEntity, TProperty}.Text"/> initially default to <see cref="Validation.ValueNameDefault"/>.</remarks>
     public class CommonValidator<T> : PropertyRuleBase<ValidationValue<T>, T>, IValidatorEx<T>
     {
-        private Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task>? _additionalAsync;
+        private Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task<Result>>? _additionalAsync;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CommonValidator{T}"/>.
@@ -58,9 +59,14 @@ namespace CoreEx.Validation
             await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
             var res = new ValueValidatorResult<ValidationValue<T>, T>(ctx);
 
-            await OnValidateAsync(ctx, cancellationToken).ConfigureAwait(false);
-            if (_additionalAsync != null)
-                await _additionalAsync(ctx, cancellationToken).ConfigureAwait(false);
+            if (ctx.Parent.FailureResult is null)
+            {
+                var result = await OnValidateAsync(ctx, cancellationToken).ConfigureAwait(false);
+                if (result.IsSuccess && _additionalAsync != null)
+                    result = await _additionalAsync(ctx, cancellationToken).ConfigureAwait(false);
+
+                ctx.Parent.SetFailureResult(result);
+            }
 
             if (throwOnError)
                 res.ThrowOnError();
@@ -92,12 +98,15 @@ namespace CoreEx.Validation
             var ctx = new PropertyContext<ValidationValue<T>, T>(vc, context.Value, context.Name, context.JsonName, context.Text);
             await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
 
-            await OnValidateAsync(ctx, cancellationToken).ConfigureAwait(false);
-            if (_additionalAsync != null)
-                await _additionalAsync(ctx, cancellationToken).ConfigureAwait(false);
-
-            context.HasError = ctx.HasError;
-            context.Parent.MergeResult(ctx.Parent.Messages);
+            await (ctx.Parent.FailureResult ?? Result.Success)
+                .ThenAsync(() => OnValidateAsync(ctx, cancellationToken))
+                .WhenAsync(() => _additionalAsync != null, () => _additionalAsync!(ctx, cancellationToken))
+                .Match(ok: () =>
+                {
+                    context.HasError = ctx.HasError;
+                    context.Parent.MergeResult(ctx.Parent);
+                }, fail: ex => context.Parent.SetFailureResult(Result.Fail(ex)))
+                .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -105,15 +114,15 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="context">The <see cref="ValidationContext{TEntity}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The corresponding <see cref="Task"/>.</returns>
-        protected virtual Task OnValidateAsync(PropertyContext<ValidationValue<T>, T> context, CancellationToken cancellationToken) => Task.CompletedTask;
+        /// <returns>The corresponding <see cref="Result"/>.</returns>
+        protected virtual Task<Result> OnValidateAsync(PropertyContext<ValidationValue<T>, T> context, CancellationToken cancellationToken) => Task.FromResult(Result.Success);
 
         /// <summary>
         /// Validate the entity value (post all configured property rules) enabling additional validation logic to be added.
         /// </summary>
         /// <param name="additionalAsync">The asynchronous function to invoke.</param>
         /// <returns>The <see cref="CommonValidator{T}"/>.</returns>
-        public CommonValidator<T> AdditionalAsync(Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task> additionalAsync)
+        public CommonValidator<T> AdditionalAsync(Func<PropertyContext<ValidationValue<T>, T>, CancellationToken, Task<Result>> additionalAsync)
         {
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a Validator.");

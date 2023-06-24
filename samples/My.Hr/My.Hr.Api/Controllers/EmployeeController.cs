@@ -18,7 +18,7 @@ public class EmployeeController : ControllerBase
     /// </summary>
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
     /// <returns>The selected <see cref="Employee"/> where found.</returns>
-    [HttpGet("{id}", Name = "Get")]
+    [HttpGet("{id}")]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public Task<IActionResult> GetAsync(Guid id)
@@ -28,7 +28,7 @@ public class EmployeeController : ControllerBase
     /// Gets all <see cref="Employee"/>.
     /// </summary>
     /// <returns>All <see cref="Employee"/>.</returns>
-    [HttpGet("", Name = "GetAll")]
+    [HttpGet("")]
     [ProducesResponseType(typeof(IEnumerable<Employee>), (int)HttpStatusCode.OK)]
     [Paging]
     public Task<IActionResult> GetAllAsync()
@@ -39,7 +39,7 @@ public class EmployeeController : ControllerBase
     /// </summary>
     /// <param name="validator">The validator.</param>
     /// <returns>The created <see cref="Employee"/>.</returns>
-    [HttpPost("", Name = "Create")]
+    [HttpPost("")]
     [AcceptsBody(typeof(Employee))]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.Created)]
     public Task<IActionResult> CreateAsync([FromServices] IValidator<Employee> validator)
@@ -52,7 +52,7 @@ public class EmployeeController : ControllerBase
     /// <param name="id">The <see cref="Employee"/> identifier.</param>
     /// <param name="validator">The validator.</param>
     /// <returns>The updated <see cref="Employee"/>.</returns>
-    [HttpPut("{id}", Name = "Update")]
+    [HttpPut("{id}")]
     [AcceptsBody(typeof(Employee))]
     [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
     public Task<IActionResult> UpdateAsync(Guid id, [FromServices] IValidator<Employee> validator)
@@ -74,7 +74,7 @@ public class EmployeeController : ControllerBase
     /// Deletes the specified <see cref="Employee"/>.
     /// </summary>
     /// <param name="id">The Id.</param>
-    [HttpDelete("{id}", Name = "Delete")]
+    [HttpDelete("{id}")]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
     public Task<IActionResult> DeleteAsync(Guid id)
         => _webApi.DeleteAsync(Request, _ => _service.DeleteEmployeeAsync(id));
@@ -82,7 +82,7 @@ public class EmployeeController : ControllerBase
     /// <summary>
     /// Performs <see cref="Employee"/> verification in an asynchronous process.
     /// </summary>
-    [HttpPost("{id}/verify", Name = "Verify")]
+    [HttpPost("{id}/verify")]
     [ProducesResponseType((int)HttpStatusCode.Accepted)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public Task<IActionResult> VerifyAsync(Guid id)

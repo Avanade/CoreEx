@@ -2,6 +2,7 @@
 
 using CoreEx.Database;
 using CoreEx.Invokers;
+using CoreEx.Results;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Common;
 using System.Reflection;
@@ -15,32 +16,35 @@ namespace CoreEx.EntityFrameworkCore
     public class EfDbInvoker : InvokerBase<IEfDb>
     {
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(IEfDb efDb, Func<TResult> func) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(IEfDb efdb, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {
                 return await base.OnInvokeAsync(efdb, func, cancellationToken).ConfigureAwait(false);
             }
-            catch (DbException dbex)
+            catch (Exception ex)
             {
-                efdb.Database.HandleDbException(dbex);
-                throw;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                throw new ConcurrencyException();
-            }
-            catch (DbUpdateException deux)
-            {
-                if (deux.InnerException != null && deux.InnerException is DbException dbex)
-                    efdb.Database.HandleDbException(dbex);
+                Result? eresult = null;
+                if (ex is DbException dbex)
+                    eresult = efdb.Database.HandleDbException(dbex);
+                else if (ex is DbUpdateConcurrencyException)
+                    eresult = Result.Fail(new ConcurrencyException());
+                else if (ex is DbUpdateException deux && deux.InnerException != null && deux.InnerException is DbException dbex2)
+                    eresult = efdb.Database.HandleDbException(dbex2);
+                else if (ex is TargetInvocationException tiex && tiex.InnerException is DbException dbex3)
+                    eresult = efdb.Database.HandleDbException(dbex3);
 
-                throw;
-            }
-            catch (TargetInvocationException tiex)
-            {
-                if (tiex?.InnerException is DbException dbex)
-                    efdb.Database.HandleDbException(dbex);
+                if (eresult.HasValue && eresult.Value.IsFailure)
+                {
+                    var dresult = default(TResult);
+                    if (dresult is IResult dir)
+                        return (TResult)dir.ToFailure(eresult.Value.Error);
+                    else
+                        eresult.Value.ThrowOnError();
+                }
 
                 throw;
             }

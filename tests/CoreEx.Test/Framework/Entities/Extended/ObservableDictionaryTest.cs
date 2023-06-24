@@ -20,7 +20,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             od.CollectionChanged += (_, e) =>
             {
                 Assert.AreEqual(NotifyCollectionChangedAction.Add, e.Action);
-                Assert.AreEqual(1, e.NewItems.Count);
+                Assert.AreEqual(1, e.NewItems!.Count);
                 Assert.AreEqual(new KeyValuePair<string, int>("A", 88), e.NewItems[0]);
                 Assert.IsNull(e.OldItems);
                 i++;
@@ -48,7 +48,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             od.CollectionChanged += (_, e) =>
             {
                 Assert.AreEqual(NotifyCollectionChangedAction.Add, e.Action);
-                Assert.AreEqual(1, e.NewItems.Count);
+                Assert.AreEqual(1, e.NewItems!.Count);
                 Assert.AreEqual(new KeyValuePair<string, int>("A", 88), e.NewItems[0]);
                 Assert.IsNull(e.OldItems);
                 i++;
@@ -78,9 +78,9 @@ namespace CoreEx.Test.Framework.Entities.Extended
             od.CollectionChanged += (_, e) =>
             {
                 Assert.AreEqual(NotifyCollectionChangedAction.Replace, e.Action);
-                Assert.AreEqual(1, e.OldItems.Count);
+                Assert.AreEqual(1, e.OldItems!.Count);
                 Assert.AreEqual(new KeyValuePair<string, int>("A", 99), e.OldItems[0]);
-                Assert.AreEqual(1, e.NewItems.Count);
+                Assert.AreEqual(1, e.NewItems!.Count);
                 Assert.AreEqual(new KeyValuePair<string, int>("A", 88), e.NewItems[0]);
                 i++;
             };
@@ -109,7 +109,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             od.CollectionChanged += (_, e) =>
             {
                 Assert.AreEqual(NotifyCollectionChangedAction.Remove, e.Action);
-                Assert.AreEqual(1, e.OldItems.Count);
+                Assert.AreEqual(1, e.OldItems!.Count);
                 Assert.AreEqual(new KeyValuePair<string, int>("A", 99), e.OldItems[0]);
                 Assert.IsNull(e.NewItems);
                 i++;
@@ -142,7 +142,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
                 if (i == 0)
                 {
                     Assert.AreEqual(NotifyCollectionChangedAction.Remove, e.Action);
-                    Assert.AreEqual(2, e.OldItems.Count);
+                    Assert.AreEqual(2, e.OldItems!.Count);
                     Assert.AreEqual(new KeyValuePair<string, int>("A", 99), e.OldItems[0]);
                     Assert.AreEqual(new KeyValuePair<string, int>("B", 98), e.OldItems[1]);
                     Assert.IsNull(e.NewItems);

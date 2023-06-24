@@ -60,8 +60,15 @@ namespace CoreEx.Validation
             foreach (var v in Validators)
             {
                 var r = await v(cancellationToken).ConfigureAwait(false);
-                if (r != null && r.Messages != null && r.Messages.Count > 0)
-                    res.Messages.AddRange(r.Messages);
+                if (r != null)
+                {
+                    res.SetFailureResult(r.FailureResult);
+                    if (res.FailureResult is not null)
+                        return res;
+
+                    if (r.Messages != null && r.Messages.Count > 0)
+                        res.Messages.AddRange(r.Messages);
+                }
             }
 
             return res;

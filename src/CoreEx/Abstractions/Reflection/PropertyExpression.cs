@@ -50,7 +50,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="JsonSerializer.Default"/> where not specified.</param>
         /// <returns>The <see cref="IPropertyExpression"/> where found; otherwise, <c>null</c>.</returns>
         public static IPropertyExpression? Get(Type entityType, string propertyName, IJsonSerializer? jsonSerializer = null)
-            => (IPropertyExpression)Cache.Get((entityType, propertyName, DetermineJsonSerializer(jsonSerializer).GetType())) ?? null;
+            => (IPropertyExpression?)Cache.Get((entityType, propertyName, DetermineJsonSerializer(jsonSerializer).GetType())) ?? null;
 
         /// <summary>
         /// Determine the <see cref="IJsonSerializer"/> by firstly using the <see cref="ExecutionContext.ServiceProvider"/> to find, then falling back to the <see cref="JsonSerializer.Default"/>.

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
-using Microsoft.AspNetCore.Http;
+using System.Collections.Specialized;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,12 +14,11 @@ namespace CoreEx.Http
     public interface IHttpArg
     {
         /// <summary>
-        /// Adds the <see cref="IHttpArg"/> to the <see cref="QueryString"/>.
+        /// Adds the <see cref="IHttpArg"/> to the <paramref name="queryString"/>.
         /// </summary>
-        /// <param name="queryString">The input <see cref="QueryString"/>.</param>
+        /// <param name="queryString">The <see cref="NameValueCollection"/>.</param>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <returns>The updated <see cref="QueryString"/>.</returns>
-        QueryString AddToQueryString(QueryString queryString, IJsonSerializer jsonSerializer);
+        void AddToQueryString(NameValueCollection queryString, IJsonSerializer jsonSerializer);
 
         /// <summary>
         /// Modifies the <see cref="HttpRequestMessage"/> from the <see cref="IHttpArg"/>.

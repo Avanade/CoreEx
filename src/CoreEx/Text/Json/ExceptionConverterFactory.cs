@@ -50,7 +50,7 @@ namespace CoreEx.Text.Json
 
                     reader.Read();
                     string? message = reader.GetString();
-                    exception = (TExceptionType)Activator.CreateInstance(typeof(TExceptionType), message);
+                    exception = (TExceptionType)Activator.CreateInstance(typeof(TExceptionType), message)!;
 
                     // read the rest of the exception
                     while (reader.Read())
@@ -96,6 +96,6 @@ namespace CoreEx.Text.Json
         public override bool CanConvert(Type typeToConvert) => typeof(Exception).IsAssignableFrom(typeToConvert);
 
         /// <inheritdoc/>
-        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) => (JsonConverter)Activator.CreateInstance(typeof(ExceptionConverter<>).MakeGenericType(typeToConvert));
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) => (JsonConverter)Activator.CreateInstance(typeof(ExceptionConverter<>).MakeGenericType(typeToConvert))!;
     }
 }

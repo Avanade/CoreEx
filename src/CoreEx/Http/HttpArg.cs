@@ -3,10 +3,10 @@
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Json;
 using CoreEx.RefData;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
 using System.Net.Http;
 using System.Net.Mime;
@@ -75,14 +75,13 @@ namespace CoreEx.Http
         }
 
         /// <inheritdoc/>
-        public QueryString AddToQueryString(QueryString queryString, IJsonSerializer? jsonSerializer = null)
+        public void AddToQueryString(NameValueCollection queryString, IJsonSerializer? jsonSerializer = null)
         {
             if (_isUsed || ArgType == HttpArgType.FromBody || Comparer<T>.Default.Compare(Value, default!) == 0)
-                return queryString;
+                return;
 
-            (queryString, var wasAdded) = AddNameValue(queryString, Name, Value);
-            if (wasAdded)
-                return queryString;
+            if (AddNameValue(queryString, Name, Value))
+                return;
 
             if (Value is IEnumerable enumerable)
             {
@@ -90,63 +89,69 @@ namespace CoreEx.Http
                 {
                     if (v != null)
                     {
-                        (queryString, wasAdded) = AddNameValue(queryString, Name, v);
-                        if (!wasAdded && (ArgType == HttpArgType.FromUriUseProperties || ArgType == HttpArgType.FromUriUsePropertiesAndPrefix))
-                            queryString = AddComplexType(queryString, Value, jsonSerializer);
+                        if (!AddNameValue(queryString, Name, v) && (ArgType == HttpArgType.FromUriUseProperties || ArgType == HttpArgType.FromUriUsePropertiesAndPrefix))
+                            AddComplexType(queryString, Value, jsonSerializer);
                     }
                 }
 
-                return queryString;
+                return;
             }
 
             if (ArgType == HttpArgType.FromUriUseProperties || ArgType == HttpArgType.FromUriUsePropertiesAndPrefix)
-                queryString = AddComplexType(queryString, Value, jsonSerializer);
-
-            return queryString;
+                AddComplexType(queryString, Value, jsonSerializer);
         }
 
         /// <summary>
         /// Adds the named value.
         /// </summary>
-        private static (QueryString QueryString, bool WasAdded) AddNameValue(QueryString queryString, string name, object? value)
+        private static bool AddNameValue(NameValueCollection queryString, string name, object? value)
         {
             if (value == null)
-                return (queryString, true);
+                return true;
 
             if (value is string str)
-                return (queryString.Add(name, str), true);
+                return AddNameValue(queryString, name, str);
 
             if (value is char ch)
-                return (queryString.Add(name, ch.ToString()), true);
+                return AddNameValue(queryString, name, ch.ToString());
 
             if (value is DateTime dt)
-                return (queryString.Add(name, dt.ToString("o", CultureInfo.InvariantCulture)), true);
+                return AddNameValue(queryString, name, dt.ToString("o", CultureInfo.InvariantCulture));
 
             if (value is DateTimeOffset dto)
-                return (queryString.Add(name, dto.ToString("o", CultureInfo.InvariantCulture)), true);
+                return AddNameValue(queryString, name, dto.ToString("o", CultureInfo.InvariantCulture));
 
-            if (value is IReferenceData rd)
-                return (queryString.Add(name, rd.Code), true);
+            if (value is IReferenceData rd && rd.Code is not null)
+                return AddNameValue(queryString, name, rd.Code);
 
             if (value is Enum en)
-                return (queryString.Add(name, en.ToString()), true);
+                return AddNameValue(queryString, name, en.ToString());
 
             if (value is bool bo)
-                return (queryString.Add(name, bo.ToString().ToLowerInvariant()), true);
+                return AddNameValue(queryString, name, bo.ToString().ToLowerInvariant());
 
             if (value is IFormattable fmt)
-                return (queryString.Add(name, fmt.ToString(null, CultureInfo.InvariantCulture)), true);
+                return AddNameValue(queryString, name, fmt.ToString(null, CultureInfo.InvariantCulture));
 
-            return (queryString, false);
+            return false;
+        }
+
+        /// <summary>
+        /// Adds the name and value
+        /// </summary>
+        private static bool AddNameValue(NameValueCollection queryString, string name, string value)
+        {
+            queryString.Add(name, value);
+            return true;
         }
 
         /// <summary>
         /// Adds the complex type to the query string.
         /// </summary>
-        private QueryString AddComplexType(QueryString queryString, object? value, IJsonSerializer? jsonSerializer)
+        private void AddComplexType(NameValueCollection queryString, object? value, IJsonSerializer? jsonSerializer)
         {
             if (value == null)
-                return queryString;
+                return;
 
             var tr = TypeReflector.GetReflector(new TypeReflectorArgs(jsonSerializer), value.GetType());
             foreach (var pr in tr.GetProperties())
@@ -157,20 +162,16 @@ namespace CoreEx.Http
                 {
                     foreach (var iv in ie)
                     {
-                        (queryString, var wasAdded) = AddNameValue(queryString, name, iv);
-                        if (!wasAdded)
+                        if (!AddNameValue(queryString, name, iv))
                             throw new InvalidOperationException($"Type '{tr.Type.Name}' cannot be serialized to a URI; Type should be passed using Request Body [FromBody] given complexity.");
                     }
                 }
                 else
                 {
-                    (queryString, var wasAdded) = AddNameValue(queryString, name, pv);
-                    if (!wasAdded)
+                    if (!AddNameValue(queryString, name, pv))
                         throw new InvalidOperationException($"Type '{tr.Type.Name}' cannot be serialized to a URI; Type should be passed using Request Body [FromBody] given complexity.");
                 }
             }
-
-            return queryString;
         }
 
         /// <inheritdoc/>

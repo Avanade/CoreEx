@@ -407,8 +407,8 @@ namespace CoreEx.Test.Framework.Json
             Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.FirstName))!, out string? jn));
             Assert.AreEqual("first_name", jn);
 
-            Assert.IsTrue(js.TryGetJsonName(t.GetProperty(nameof(Other.MiddleName))!, out jn));
-            Assert.AreEqual("middleName", jn);
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other.MiddleName))!, out jn));
+            Assert.AreEqual(null, jn);
 
             Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(Other.LastName))!, out jn));
             Assert.AreEqual(null, jn);
@@ -422,8 +422,8 @@ namespace CoreEx.Test.Framework.Json
             Assert.AreEqual(null, jn);
 
             // Verify ContractResolver STJ marked-up objects.
-            t = typeof(CoreEx.WebApis.ExtendedContentResult);
-            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(CoreEx.WebApis.ExtendedContentResult.AfterExtension))!, out jn));
+            t = typeof(CoreEx.AspNetCore.WebApis.ExtendedContentResult);
+            Assert.IsFalse(js.TryGetJsonName(t.GetProperty(nameof(CoreEx.AspNetCore.WebApis.ExtendedContentResult.AfterExtension))!, out jn));
             Assert.AreEqual(null, jn);
 
             t = typeof(CoreEx.Entities.ChangeLog);
@@ -544,7 +544,7 @@ namespace CoreEx.Test.Framework.Json
 
             [Nsj.JsonIgnore]
             [Stj.Serialization.JsonIgnore]
-            public CompositeKey PrimaryKey => new CompositeKey(Code);
+            public CompositeKey PrimaryKey => new(Code);
 
             public string? ETag { get; set; }
         }

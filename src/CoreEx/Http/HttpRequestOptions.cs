@@ -2,16 +2,19 @@
 
 using CoreEx.Entities;
 using CoreEx.RefData;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
+using System.Web;
+using YamlDotNet.Core.Tokens;
 
 namespace CoreEx.Http
 {
     /// <summary>
-    /// Represents additional (optional) request options for an <see cref="HttpRequest"/>.
+    /// Represents additional (optional) request options for an <see cref="HttpRequestMessage"/>.
     /// </summary>
     /// <remarks>Usage assumes that the HTTP endpoint supports and actions accordingly; i.e. by sending there is no guarantee that the desired outcome will occur as selected.</remarks>
     public class HttpRequestOptions
@@ -115,6 +118,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets or sets the optional query string value to include within the <see cref="Uri.Query"/>.
         /// </summary>
+        /// <remarks>It is assumed that the contents of these are valid as no encoding will be employed; i.e. will be used as-is. The specification of any leading '<c>&amp;</c>' and '<c>?</c>' characters is not required.</remarks>
         public string? UrlQueryString { get; set; }
 
         /// <summary>
@@ -130,49 +134,113 @@ namespace CoreEx.Http
         public bool IncludeInactive { get; set; }
 
         /// <summary>
-        /// Adds the <see cref="HttpRequestOptions"/> to a <see cref="QueryString"/>.
+        /// Adds the <see cref="HttpRequestOptions"/> to a <paramref name="queryString"/>.
         /// </summary>
-        /// <param name="queryString">The input <see cref="QueryString"/>.</param>
-        /// <returns>The resulting <see cref="QueryString"/>.</returns>
-        public QueryString AddToQueryString(QueryString queryString)
+        /// <param name="queryString">The query string.</param>
+        /// <returns>The updated query string.</returns>
+        public string? AddToQueryString(string? queryString) => AddToQueryString(string.IsNullOrEmpty(queryString) ? null : HttpUtility.ParseQueryString(queryString));
+
+        /// <summary>
+        /// Adds the <see cref="HttpRequestOptions"/> to a <see cref="NameValueCollection"/>.
+        /// </summary>
+        /// <param name="queryString">The <see cref="NameValueCollection"/>.</param>
+        /// <returns>The updated query string.</returns>
+        public string? AddToQueryString(NameValueCollection? queryString)
         {
+            var sb = new StringBuilder();
+            if (queryString is not null)
+                AddNameValueCollection(sb, queryString);
+
             if (Paging != null)
             {
                 if (Paging.IsSkipTake)
                 {
-                    queryString = queryString.Add(QueryStringNamePagingArgsSkip, Paging.Skip.ToString());
-                    queryString = queryString.Add(QueryStringNamePagingArgsTake, Paging.Take.ToString());
+                    AddNameValuePair(sb, QueryStringNamePagingArgsSkip, Paging.Skip.ToString(), false);
+                    AddNameValuePair(sb, QueryStringNamePagingArgsTake, Paging.Take.ToString(), false);
                 }
                 else
                 {
-                    queryString = queryString.Add(QueryStringNamePagingArgsPage, Paging.Page.ToString());
-                    queryString = queryString.Add(QueryStringNamePagingArgsSize, Paging.Size.ToString());
+                    AddNameValuePair(sb, QueryStringNamePagingArgsPage, Paging.Page?.ToString() ?? 1.ToString(), false);
+                    AddNameValuePair(sb, QueryStringNamePagingArgsSize, Paging.Size.ToString(), false);
                 }
 
                 if (Paging.IsGetCount)
-                    queryString = queryString.Add(QueryStringNamePagingArgsCount, "true");
+                    AddNameValuePair(sb, QueryStringNamePagingArgsCount, "true", false);
             }
 
             if (IncludeFields != null && IncludeFields.Count > 0)
-                queryString = queryString.Add(QueryStringNameIncludeFields, string.Join(",", IncludeFields.Where(x => !string.IsNullOrEmpty(x))));
+                AddNameValuePairs(sb, QueryStringNameIncludeFields, IncludeFields.Where(x => !string.IsNullOrEmpty(x)).Select(x => HttpUtility.UrlEncode(x)).ToArray(), false, true);
 
             if (ExcludeFields != null && ExcludeFields.Count > 0)
-                queryString = queryString.Add(QueryStringNameExcludeFields, string.Join(",", ExcludeFields.Where(x => !string.IsNullOrEmpty(x))));
+                AddNameValuePairs(sb, QueryStringNameExcludeFields, ExcludeFields.Where(x => !string.IsNullOrEmpty(x)).Select(x => HttpUtility.UrlEncode(x)).ToArray(), false, true);
 
             if (IncludeText)
-                queryString = queryString.Add(QueryStringNameIncludeText, "true");
+                AddNameValuePair(sb, QueryStringNameIncludeText, "true", false);
 
             if (IncludeInactive)
-                queryString = queryString.Add(QueryStringNameIncludeInactive, "true");
+                AddNameValuePair(sb, QueryStringNameIncludeInactive, "true", false);
 
+            var qs = sb.Length == 0 ? null : sb.ToString();
             if (!string.IsNullOrEmpty(UrlQueryString))
             {
-                var url = UrlQueryString.StartsWith("&") ? UrlQueryString[1..] : UrlQueryString;
-                url = url.StartsWith("?") ? url : '?' + url;
-                queryString = queryString.Add(QueryString.FromUriComponent(url));
+                if (qs is null)
+                    return UrlQueryString.StartsWith("?") ? UrlQueryString : $"?{(UrlQueryString.StartsWith("&") ? UrlQueryString[1..] : UrlQueryString)}";
+                else
+                    return $"{qs}{(UrlQueryString.StartsWith("&") ? UrlQueryString : $"&{UrlQueryString}")}";
             }
+            else
+                return qs;
+        }
 
-            return queryString;
+        /// <summary>
+        /// Add the name/value(s) pair(s) to the string builder.
+        /// </summary>
+        private static void AddNameValueCollection(StringBuilder sb, NameValueCollection nvc)
+        {
+            foreach (var name in nvc.AllKeys)
+            {
+                AddNameValuePairs(sb, name, nvc.GetValues(name), true, false);
+            }
+        }
+
+        /// <summary>
+        /// Add the name/value(s) pair to the string builder.
+        /// </summary>
+        private static void AddNameValuePairs(StringBuilder sb, string? name, string[]? values, bool encode = false, bool concatenateValues = false)
+        {
+            if (values is null || values.Length == 0)
+                return;
+            else if (concatenateValues)
+                AddNameValuePair(sb, name, string.Join(",", values), encode);
+            else
+            {
+                foreach (var value in values)
+                {
+                    AddNameValuePair(sb, name, value, encode);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Add the name/value pair to the string builder.
+        /// </summary>
+        private static void AddNameValuePair(StringBuilder sb, string? name, string? value, bool encode = false)
+        {
+            var nne = string.IsNullOrEmpty(name);
+            var vne = string.IsNullOrEmpty(value);
+
+            if (nne && vne)
+                return;
+
+            sb.Append(sb.Length == 0 ? '?' : '&');
+            if (!nne)
+                sb.Append(name);
+
+            if (!vne)
+            {
+                sb.Append('=');
+                sb.Append(encode ? HttpUtility.UrlEncode(value) : value);
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Results;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Invokers
 {
     /// <summary>
-    /// Provides <see cref="RunSync(Func{Task})"/> and <see cref="RunSync{T}(Func{Task{T}})"/> to execute an async <see cref="Task"/> synchronously.
+    /// Provides invoking capabilities including <see cref="RunSync(Func{Task})"/> and <see cref="RunSync{T}(Func{Task{T}})"/> to execute an async <see cref="Task"/> synchronously.
     /// </summary>
     public static class Invoker
     {

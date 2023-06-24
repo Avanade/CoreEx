@@ -1,11 +1,12 @@
 ﻿using CoreEx.HealthChecks;
 using CoreEx.Azure.ServiceBus;
 using CoreEx.TestFunction.Services;
-using CoreEx.WebApis;
+using CoreEx.AspNetCore.HealthChecks;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using CoreEx.Events.Subscribing;
 using CoreEx.TestFunction.Subscribers;
+using CoreEx.AspNetCore.WebApis;
 
 [assembly: FunctionsStartup(typeof(CoreEx.TestFunction.Startup))]
 

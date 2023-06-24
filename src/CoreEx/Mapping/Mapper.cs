@@ -88,8 +88,8 @@ namespace CoreEx.Mapping
                 if (di.TypeCode == TypeReflectorTypeCode.ICollection)
                     return _mappers.GetOrAdd((source, destination), _ =>
                     {
-                        var t = typeof(CollectionMapper<,,,>).MakeGenericType(source, si.ItemType, destination, di.ItemType);
-                        var mapper = (IMapperBase)Activator.CreateInstance(t);
+                        var t = typeof(CollectionMapper<,,,>).MakeGenericType(source, si.ItemType!, destination, di.ItemType!);
+                        var mapper = (IMapperBase)Activator.CreateInstance(t)!;
                         mapper.Owner = this;
                         return mapper;
                     });

@@ -113,17 +113,17 @@ namespace CoreEx.Validation.Rules
 
             if (_propertyExpression != null)
             {
-                var dict = new Dictionary<object?, object?>();
+                var dict = new Dictionary<object, object?>();
                 foreach (var item in items.Where(x => x != null))
                 {
                     var val = _propertyExpression.GetValue(item!);
-                    if (!dict.TryAdd(val, item))
+                    if (val is not null && !dict.TryAdd(val, item))
                         context.CreateErrorMessage(ValidatorStrings.DuplicateValueFormat, _duplicateText!, val!);
                 }
             }
             else
             {
-                var dict = new Dictionary<object?, object?>();
+                var dict = new Dictionary<object, object?>();
                 foreach (var item in items.Where(x => x != null).Cast<IEntityKey>())
                 {
                     if (_ignoreWhereKeyIsInitial && item.EntityKey.IsInitial)

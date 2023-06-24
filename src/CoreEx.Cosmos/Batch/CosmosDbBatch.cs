@@ -221,7 +221,7 @@ namespace CoreEx.Cosmos.Batch
 
                     foreach (var item in items.Where(x => x is not null))
                     {
-                        var cdv = Activator.CreateInstance(t, item);
+                        var cdv = Activator.CreateInstance(t, item)!;
                         ((ICosmosDbValue)cdv).PrepareBefore(cosmosDb);
 
                         if (SequentialExecution)

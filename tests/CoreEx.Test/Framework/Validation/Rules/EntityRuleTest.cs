@@ -19,7 +19,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate()
         {
             var te = new TestEntity { Item = new TestItem() };
-            var v1 = await te.Validate().Entity(_tev).ValidateAsync();
+            var v1 = await te.Validate("value").Entity(_tev).ValidateAsync();
 
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);

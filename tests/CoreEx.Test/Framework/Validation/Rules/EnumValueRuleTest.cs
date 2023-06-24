@@ -14,34 +14,34 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate()
         {
-            var v1 = await "A".Validate().Enum().As<AbcOption>().ValidateAsync();
+            var v1 = await "A".Validate("value").Enum().As<AbcOption>().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "a".Validate().Enum().As<AbcOption>().ValidateAsync();
+            v1 = await "a".Validate("value").Enum().As<AbcOption>().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            v1 = await "a".Validate().Enum().As<AbcOption>(true).ValidateAsync();
+            v1 = await "a".Validate("value").Enum().As<AbcOption>(true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "X".Validate().Enum().As<AbcOption>().ValidateAsync();
+            v1 = await "X".Validate("value").Enum().As<AbcOption>().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            v1 = await ((string?)null).Validate().Enum().As<AbcOption>().ValidateAsync();
+            v1 = await ((string?)null).Validate("value").Enum().As<AbcOption>().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
         }
 
         [Test]
         public async Task ValidateAndOverride()
         {
-            var v1 = await "someoptionwithcasing".Validate().Enum().As<CaseOption>(true, false).ValidateAsync();
+            var v1 = await "someoptionwithcasing".Validate("value").Enum().As<CaseOption>(true, false).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
             Assert.AreEqual("someoptionwithcasing", v1.Value);
 

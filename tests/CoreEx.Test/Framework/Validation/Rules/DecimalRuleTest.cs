@@ -15,56 +15,56 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_AllowNegatives()
         {
-            var v1 = await (123).Validate().Numeric().ValidateAsync();
+            var v1 = await (123).Validate("value").Numeric().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await (-123).Validate().Numeric().ValidateAsync();
+            v1 = await (-123).Validate("value").Numeric().ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not be negative.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            v1 = await (-123).Validate().Numeric(true).ValidateAsync();
+            v1 = await (-123).Validate("value").Numeric(true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var v2 = await (123m).Validate().Numeric().ValidateAsync();
+            var v2 = await (123m).Validate("value").Numeric().ValidateAsync();
             Assert.IsFalse(v2.HasErrors);
 
-            v2 = await (-123m).Validate().Numeric().ValidateAsync();
+            v2 = await (-123m).Validate("value").Numeric().ValidateAsync();
             Assert.IsTrue(v2.HasErrors);
             Assert.AreEqual(1, v2.Messages!.Count);
             Assert.AreEqual("Value must not be negative.", v2.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v2.Messages[0].Type);
             Assert.AreEqual("value", v2.Messages[0].Property);
 
-            v2 = await (-123m).Validate().Numeric(true).ValidateAsync();
+            v2 = await (-123m).Validate("value").Numeric(true).ValidateAsync();
             Assert.IsFalse(v2.HasErrors);
         }
 
         [Test]
         public async Task Validate_MaxDigits()
         {
-            var v1 = await (123).Validate().Numeric(maxDigits: 5).ValidateAsync();
+            var v1 = await (123).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await (12345).Validate().Numeric(maxDigits: 5).ValidateAsync();
+            v1 = await (12345).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await (123456).Validate().Numeric(maxDigits: 5).ValidateAsync();
+            v1 = await (123456).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not exceed 5 digits in total.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            var v2 = await (12.34m).Validate().Numeric(maxDigits: 5).ValidateAsync();
+            var v2 = await (12.34m).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
             Assert.IsFalse(v2.HasErrors);
 
-            v2 = await (12.345m).Validate().Numeric(maxDigits: 5).ValidateAsync();
+            v2 = await (12.345m).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
             Assert.IsFalse(v2.HasErrors);
 
-            v2 = await (1.23456m).Validate().Numeric(maxDigits: 5).ValidateAsync();
+            v2 = await (1.23456m).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
             Assert.IsTrue(v2.HasErrors);
             Assert.AreEqual(1, v2.Messages!.Count);
             Assert.AreEqual("Value must not exceed 5 digits in total.", v2.Messages[0].Text);
@@ -75,13 +75,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_DecimalPlaces()
         {
-            var v1 = await (12.3m).Validate().Numeric(decimalPlaces: 2).ValidateAsync();
+            var v1 = await (12.3m).Validate("value").Numeric(decimalPlaces: 2).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await (123.400m).Validate().Numeric(decimalPlaces: 2).ValidateAsync();
+            v1 = await (123.400m).Validate("value").Numeric(decimalPlaces: 2).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await (0.123m).Validate().Numeric(decimalPlaces: 2).ValidateAsync();
+            v1 = await (0.123m).Validate("value").Numeric(decimalPlaces: 2).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value exceeds the maximum specified number of decimal places (2).", v1.Messages[0].Text);
@@ -92,20 +92,20 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_MaxDigits_And_DecimalPlaces()
         {
-            var v1 = await (12.3m).Validate().Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            var v1 = await (12.3m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await (123.400m).Validate().Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            v1 = await (123.400m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await (0.123m).Validate().Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            v1 = await (0.123m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value exceeds the maximum specified number of decimal places (2).", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            v1 = await (1234.0m).Validate().Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            v1 = await (1234.0m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value must not exceed 5 digits in total.", v1.Messages[0].Text);

@@ -3,6 +3,7 @@
 using CoreEx.Database;
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.Results;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoreEx.EntityFrameworkCore
@@ -65,20 +66,29 @@ namespace CoreEx.EntityFrameworkCore
         public EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, IEntityKey, new() where TModel : class, new() => new(this, args, query);
 
         /// <inheritdoc/>
-        public async Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
+        public async Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() 
+            => (await GetWithResultAsync<T, TModel>(args, key, cancellationToken).ConfigureAwait(false)).Value;
+            
+        /// <inheritdoc/>
+        public async Task<Result<T?>> GetWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
         {
             var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), cancellationToken).ConfigureAwait(false);
             if (args.ClearChangeTrackerAfterGet)
                 DbContext.ChangeTracker.Clear();
 
             if (model == default || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
-                return default!;
+                return Result<T?>.Ok(default!);
 
-            return CleanUpResult(Mapper.Map<T>(model, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the EF model must not result in a null value."));
+            var result = Mapper.Map<T>(model, OperationTypes.Get);
+            return (result is not null) ? Result<T?>.Ok(CleanUpResult(result)) : Result<T?>.Fail(new InvalidOperationException("Mapping from the EF model must not result in a null value."));
         }, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
         public async Task<T> CreateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
+            => (await CreateWithResultAsync<T, TModel>(args, value, cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <inheritdoc/>
+        public async Task<Result<T>> CreateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
             if (value == null)
@@ -89,7 +99,10 @@ namespace CoreEx.EntityFrameworkCore
 
             return await Invoker.InvokeAsync(this, args, value, async (args, value, ct) =>
             {
-                TModel model = Mapper.Map<T, TModel>(value, Mapping.OperationTypes.Create) ?? throw new InvalidOperationException("Mapping to the EF model must not result in a null value.");
+                TModel model = Mapper.Map<T, TModel>(value, Mapping.OperationTypes.Create);
+                if (model == null)
+                    return Result<T>.Fail(new InvalidOperationException("Mapping to the EF model must not result in a null value."));
+
                 Cleaner.ResetTenantId(model);
 
                 DbContext.Add(model);
@@ -97,12 +110,16 @@ namespace CoreEx.EntityFrameworkCore
                 if (args.SaveChanges)
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
-                return CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, OperationTypes.Get)! : value);
+                return Result.Ok(CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, OperationTypes.Get)! : value));
             }, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async Task<T> UpdateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
+            => (await UpdateWithResultAsync<T, TModel>(args, value, cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <inheritdoc/>
+        public async Task<Result<T>> UpdateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
             if (value == null)
@@ -116,11 +133,11 @@ namespace CoreEx.EntityFrameworkCore
                 // Check (find) if the entity exists.
                 var model = await DbContext.FindAsync<TModel>(GetEfKeys(value), ct).ConfigureAwait(false);
                 if (model == null || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
-                    throw new NotFoundException();
+                    return Result<T>.NotFoundError();
 
                 // Check optimistic concurrency of etag/rowversion to ensure valid. This is needed as underlying EF uses the row version from the find above ignoring the value.ETag where overridden; this is needed to achieve.
                 if (value is IETag etag && Mapper.Map<TModel, T>(model, OperationTypes.Get) is IETag etag2 && etag.ETag != etag2.ETag)
-                    throw new ConcurrencyException();
+                    return Result<T>.ConcurrencyError();
 
                 // Update (map) the model from the entity then perform a dbcontext update which will discover/track changes.
                 model = Mapper.Map(value, model, OperationTypes.Update);
@@ -131,27 +148,31 @@ namespace CoreEx.EntityFrameworkCore
                 if (args.SaveChanges)
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
-                return CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, Mapping.OperationTypes.Get)! : value);
+                return Result.Ok(CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, Mapping.OperationTypes.Get)! : value));
             }, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async Task DeleteAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
+            => (await DeleteWithResultAsync<T, TModel>(args, key, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+        /// <inheritdoc/>
+        public async Task<Result> DeleteWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
         {
             CheckSaveArgs(args);
 
-            await Invoker.InvokeAsync(this, args, key, async (args, key, ct) =>
+            return await Invoker.InvokeAsync(this, args, key, async (args, key, ct) =>
             {
                 // A pre-read is required to get the row version for concurrency.
                 var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), ct).ConfigureAwait(false);
                 if (model == null)
-                    throw new NotFoundException();
+                    return Result.NotFoundError();
 
                 // Delete; either logically or physically.
                 if (model is ILogicallyDeleted ld)
                 {
                     if (ld.IsDeleted.HasValue && ld.IsDeleted.Value)
-                        throw new NotFoundException();
+                        return Result.NotFoundError();
 
                     ld.IsDeleted = true;
                     DbContext.Update(model);
@@ -161,6 +182,8 @@ namespace CoreEx.EntityFrameworkCore
 
                 if (args.SaveChanges)
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
+
+                return Result.Success;
             }, cancellationToken).ConfigureAwait(false);
         }
 

@@ -2,8 +2,6 @@
 using NUnit.Framework;
 using CoreEx.Entities;
 using System.Threading.Tasks;
-using FluentAssertions;
-using static CoreEx.Test.Framework.Validation.Rules.EnumValueRuleTest;
 
 namespace CoreEx.Test.Framework.Validation.Rules
 {
@@ -16,10 +14,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate()
         {
-            var v1 = await 1.Validate().CompareValues(new int[] { 1, 2 }).ValidateAsync();
+            var v1 = await 1.Validate("value").CompareValues(new int[] { 1, 2 }).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await 1.Validate().CompareValues(new int[] { 2, 3 }).ValidateAsync();
+            v1 = await 1.Validate("value").CompareValues(new int[] { 2, 3 }).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
@@ -30,17 +28,17 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_String()
         {
-            var v1 = await "A".Validate().CompareValues(new string[] { "A", "B" }).ValidateAsync();
+            var v1 = await "A".Validate("value").CompareValues(new string[] { "A", "B" }).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await "C".Validate().CompareValues(new string[] { "A", "B" }).ValidateAsync();
+            v1 = await "C".Validate("value").CompareValues(new string[] { "A", "B" }).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
             Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
             Assert.AreEqual("value", v1.Messages[0].Property);
 
-            v1 = await "a".Validate().CompareValues(new string[] { "A", "B" }, true).ValidateAsync();
+            v1 = await "a".Validate("value").CompareValues(new string[] { "A", "B" }, true).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
         }
 

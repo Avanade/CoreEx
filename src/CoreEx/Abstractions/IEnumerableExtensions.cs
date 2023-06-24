@@ -147,19 +147,19 @@ namespace System.Linq
                     return query.Where(x =>
                     {
                         var v = property.Invoke(x);
-                        return checkForNull ? v != null && v.Contains(wr.GetTextWithoutWildcards(), sc) : v!.Contains(wr.GetTextWithoutWildcards(), sc);
+                        return checkForNull ? v != null && v.Contains(wr.GetTextWithoutWildcards()!, sc) : v!.Contains(wr.GetTextWithoutWildcards()!, sc);
                     });
                 else if (wr.Selection.HasFlag(WildcardSelection.StartsWith))
                     return query.Where(x =>
                     {
                         var v = property.Invoke(x);
-                        return checkForNull ? v != null && v.StartsWith(wr.GetTextWithoutWildcards(), sc) : v!.StartsWith(wr.GetTextWithoutWildcards(), sc);
+                        return checkForNull ? v != null && v.StartsWith(wr.GetTextWithoutWildcards()!, sc) : v!.StartsWith(wr.GetTextWithoutWildcards()!, sc);
                     });
                 else if (wr.Selection.HasFlag(WildcardSelection.EndsWith))
                     return query.Where(x =>
                     {
                         var v = property.Invoke(x);
-                        return checkForNull ? v != null && v.EndsWith(wr.GetTextWithoutWildcards(), sc) : v!.EndsWith(wr.GetTextWithoutWildcards(), sc);
+                        return checkForNull ? v != null && v.EndsWith(wr.GetTextWithoutWildcards()!, sc) : v!.EndsWith(wr.GetTextWithoutWildcards()!, sc);
                     });
             }
 

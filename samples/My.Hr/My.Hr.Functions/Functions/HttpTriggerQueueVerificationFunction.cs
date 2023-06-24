@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Mime;
 using System.Threading.Tasks;
 using CoreEx.FluentValidation;
-using CoreEx.WebApis;
+using CoreEx.AspNetCore.WebApis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;

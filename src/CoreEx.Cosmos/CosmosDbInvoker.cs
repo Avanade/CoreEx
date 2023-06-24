@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Invokers;
+using CoreEx.Results;
 using Microsoft.Azure.Cosmos;
 using System;
 using System.Threading;
@@ -15,6 +16,9 @@ namespace CoreEx.Cosmos
     public class CosmosDbInvoker : InvokerBase<ICosmosDb>
     {
         /// <inheritdoc/>
+        protected override TResult OnInvoke<TResult>(ICosmosDb cosmos, Func<TResult> func) => throw new NotSupportedException();
+
+        /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(ICosmosDb cosmos, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
@@ -23,7 +27,16 @@ namespace CoreEx.Cosmos
             }
             catch (CosmosException cex)
             {
-                cosmos.HandleCosmosException(cex);
+                var eresult = cosmos.HandleCosmosException(cex);
+                if (eresult.HasValue && eresult.Value.IsFailure)
+                {
+                    var dresult = default(TResult);
+                    if (dresult is IResult dir)
+                        return (TResult)dir.ToFailure(eresult.Value.Error);
+                    else
+                        eresult.Value.ThrowOnError();
+                }
+
                 throw;
             }
         }

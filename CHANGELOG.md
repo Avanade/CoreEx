@@ -2,6 +2,22 @@
 
 Represents the **NuGet** versions.
 
+## v3.0.0
+- *Enhancement:* Added new `CoreEx.Results` namespace with primary `Result` and `Result<T>` classes to enable [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html); see [`CoreEx.Results`](./src/CoreEx/Results/README.md) for more implementation details. Thanks [Adi](https://github.com/AdiThakker) for inspiring and guiding on this change. Related changes as follows:
+  - *Enhancement:* `EventSubscriberBase`, `SubscriberBase` and `SubscriberBase<T>` modified to include `EventSubscriberArgs` (`Dictionary<string, object?>`) to allow other parameters to be passed in. The `ReceiveAsync` methods now support the args as a parameter, and must return a `Result` to better support errors; breaking change. 
+  - *Enhancement:* Where overriding `Validator.OnValidateAsync` this method must return a `Result`, as does the `CustomRule` (for consistency); breaking change. The `Result` enables other errors to be returned avoiding the need/cost to throw an exception.
+  - *Enhancement:* `ExecutionContext` user authorization methods have been renamed (`UserIsAuthorized` and `UserIsInRole`) and explicitly leverage `Result`; breaking change.
+  - *Enhancement:* `IReferenceDataProvider.GetAsync` method now supports a return type of `Result<T>`; breaking change.
+- *Enhancement:* The `WebApi` namespace has been moved to a new `CoreEx.AspNetCore` project/package to decouple these explicit [ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/introduction-to-aspnet-core) capabilities from the core; breaking change.
+  - The `IExceptionResult` interface has been deprecated as a result; all exceptions have been updated accordingly.
+- *Fixed:* Validation extension method `EnsureValue` has been renamed to `Required` to be more explicit as to purpose; breaking change.
+- *Fixed:* `InvokerBase` and `InvokerBase<TResult>` now split sync and async code to avoid sync over async; requires both the sync and async virtual methods to be overridden to implement correctly.
+- *Enhancement:* Ad-hoc performance optimizations; some minor breaking changes primarily impacting internal usage.
+- *Enhancement:* Added `net6.0` and `net7.0` support in addition to [.NET Standard](https://learn.microsoft.com/en-us/dotnet/standard/net-standard#when-to-target-net50-or-net60-vs-netstandard) to all packages. This will allow access to additional features per version where required, and overall performance improvements.
+- *Enhancement:* Added `CoreEx.Solace` to enable the publishing of messages to [Solace](https://solace.com/) message broker; thanks [Israel](https://github.com/israels).
+- *Enhancement:* Updated `CoreEx.Cosmos` to support direct model queries using `ModelQuery` methods where applicable.
+- *Enhancement:* Added `PagingOperationFilterFields` to allow specific selection of fields for the `PagingOperationFilter`. This was influenced by pull request [67](https://github.com/Avanade/CoreEx/pull/67).
+
 ## v2.10.1
 - *Fixed:* `EventOutboxHostedService` updated so when a new `IServiceScope` is created that `ExecutionContext.Reset` is invoked to ensure existing `ServiceProvider` is not reused.
 - *Fixed:* `EventDataFormatter` defaults `PartitionKey` and `TenantId` properties, where not already set, from the value where implements `IPartitionKey` and `ITenantId` respectively.
@@ -19,7 +35,7 @@ Represents the **NuGet** versions.
 - *Enhancement:* Added `PagingAttribute` and `PagingOperationFilter` to enable swagger output of `PagingArgs` parameters for an operation.
 
 ## v2.8.0
-- *Enhancement:* Added `CoreEx.EntityFrameworkCore` support for framework `net7.0`.
+- *Enhancement:* Added `CoreEx.EntityFrameworkCore` support for .NET framework `net7.0`.
 - *Enhancement:* Updated `ServiceBusSubscriberInvoker` to improve logging, including opportunities to inherit and add further before and after processing logging and/or monitoring.
 - *Enhancement:* Updated `ServiceBusOrchestratedSubscriber` to perform a `LogInformation` on success.
 - *Enhancement:* The `TypedHttpClientBase<TSelf>` will probe settings by `GetType().Name` to enable settings per implementation type as an overridding configurable option.

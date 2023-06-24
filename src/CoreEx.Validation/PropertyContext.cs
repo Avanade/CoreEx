@@ -238,7 +238,7 @@ namespace CoreEx.Validation
             if (context.HasErrors)
                 HasError = true;
 
-            Parent.MergeResult(context?.Messages);
+            Parent.MergeResult(context);
         }
     }
 }

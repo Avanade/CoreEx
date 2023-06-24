@@ -20,7 +20,7 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await MultiValidator.Create()
                 .Add(v1, new TestData { CountB = 0 })
-                .Add(1.Validate().Between(10, 20))
+                .Add(1.Validate("value").Between(10, 20))
                 .ValidateAsync().ConfigureAwait(false);
             
             Assert.IsNotNull(r);

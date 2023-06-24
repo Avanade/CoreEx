@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Results;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -52,7 +53,7 @@ namespace CoreEx.Database
         /// <returns>A <see cref="DbParameter"/>.</returns>
         public DbParameter AddParameter(string name, object? value, ParameterDirection direction = ParameterDirection.Input)
         {
-            var p = Database.Provider.CreateParameter();
+            var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
             p.ParameterName = ParameterizeName(name);
             p.Value = value;
             p.Direction = direction;
@@ -71,7 +72,7 @@ namespace CoreEx.Database
         /// <returns>A <see cref="DbParameter"/>.</returns>
         public DbParameter AddParameter(string name, object? value, DbType dbType, ParameterDirection direction = ParameterDirection.Input)
         {
-            var p = Database.Provider.CreateParameter();
+            var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
             p.ParameterName = ParameterizeName(name);
             p.DbType = dbType;
             p.Value = value;
@@ -91,7 +92,7 @@ namespace CoreEx.Database
         /// <returns>A <see cref="DbParameter"/>.</returns>
         public DbParameter AddParameter(string name, DbType dbType, int size, ParameterDirection direction = ParameterDirection.Input)
         {
-            var p = Database.Provider.CreateParameter();
+            var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
             p.ParameterName = ParameterizeName(name);
             p.DbType = dbType;
             p.Size = size;
@@ -107,7 +108,7 @@ namespace CoreEx.Database
         /// <returns>A <see cref="DbParameter"/>.</returns>
         public DbParameter AddReturnValueParameter()
         {
-            var p = Database.Provider.CreateParameter();
+            var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
             p.ParameterName = ParameterizeName(Database.DatabaseColumns.ReturnValueName);
             p.DbType = DbType.Int32;
             p.Direction = ParameterDirection.ReturnValue;

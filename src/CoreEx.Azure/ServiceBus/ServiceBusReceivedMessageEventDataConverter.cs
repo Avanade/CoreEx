@@ -92,7 +92,7 @@ namespace CoreEx.Azure.ServiceBus
                 switch (p.Key)
                 {
                     case nameof(EventData.Action): @event.Action = p.Value?.ToString(); break;
-                    case nameof(EventData.Source): @event.Source = p.Value == null ? null : new Uri(p.Value.ToString(), UriKind.RelativeOrAbsolute); break;
+                    case nameof(EventData.Source): @event.Source = p.Value == null ? null : new Uri(p.Value.ToString()!, UriKind.RelativeOrAbsolute); break;
                     case nameof(EventData.Type): @event.Type = p.Value?.ToString(); break;
                     case nameof(EventData.TenantId): @event.Type = p.Value?.ToString(); break;
                     case nameof(EventData.PartitionKey): @event.PartitionKey = p.Value?.ToString(); break;

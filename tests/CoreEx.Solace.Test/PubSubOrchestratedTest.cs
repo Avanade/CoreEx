@@ -1,4 +1,7 @@
 ﻿
+using Microsoft.Extensions.Configuration;
+using SolaceSystems.Solclient.Messaging;
+
 namespace CoreEx.Test.TestFunction
 {
     [TestFixture]
@@ -6,15 +9,18 @@ namespace CoreEx.Test.TestFunction
     public class PubSubOrchestratedTest
     {
         // NOTE: PubSub local instance must be running in container for test to execute
+        private static IContext? _solaceContext;
 
         [Test]
         public void PubSubSend_Success()
         {
             // Arrange
             PubSubSender sender = SetupSender();
-            var events = new List<EventSendData>();
-            events.Add(new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")), Destination = "try-me" });
-            events.Add(new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")), Destination = "try-me" });
+            var events = new List<EventSendData>
+            {
+                new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")), Destination = "try-me" },
+                new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")), Destination = "try-me" }
+            };
 
             // Act
             sender.SendAsync(events).Wait();
@@ -26,8 +32,8 @@ namespace CoreEx.Test.TestFunction
             // Arrange
             PubSubSender sender = SetupSender();
             var events = new List<EventSendData>();
-            var dataPayload1 = new BinaryData(Encoding.UTF8.GetBytes("Test Message1"));
-            var dataPayload2 = new BinaryData(Encoding.UTF8.GetBytes("Test Message2"));
+            //var dataPayload1 = new BinaryData(Encoding.UTF8.GetBytes("Test Message1"));
+            //var dataPayload2 = new BinaryData(Encoding.UTF8.GetBytes("Test Message2"));
             // build 51 events
             for (int i = 200; i < 251; i++)
             {
@@ -43,12 +49,20 @@ namespace CoreEx.Test.TestFunction
         {
             // Arrange
             PubSubSender sender = SetupSender();
-            var events = new List<EventSendData>();
-            events.Add(new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")) });
-            events.Add(new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")) });
-            
+            var events = new List<EventSendData>
+            {
+                new EventSendData { Id = "123", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message1")) },
+                new EventSendData { Id = "124", Subject = "my.Product", Data = new BinaryData(Encoding.UTF8.GetBytes("Test Message2")) }
+            };
+
             // Act
             sender.SendAsync(events).Wait();
+        }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            _solaceContext?.Dispose();
         }
 
         private static PubSubSender SetupSender()
@@ -66,7 +80,15 @@ namespace CoreEx.Test.TestFunction
             var config = new ConfigurationBuilder().SetBasePath(Environment.CurrentDirectory).AddJsonFile("appsettings.unittest.json");
             var testSettings = new DefaultSettings(config.Build());
 
-            var sender = new PubSubSender(sessionProperties, testSettings, logger, null, convertor);
+            if (_solaceContext == null)
+            {
+                var cfp = new ContextFactoryProperties { SolClientLogLevel = SolLogLevel.Warning };
+                cfp.LogToConsoleError();
+                ContextFactory.Instance.Init(cfp);
+                _solaceContext = ContextFactory.Instance.CreateContext(new ContextProperties(), null);
+            }
+
+            var sender = new PubSubSender(_solaceContext, sessionProperties, testSettings, logger, null, convertor);
             return sender;
         }
 
@@ -75,7 +97,7 @@ namespace CoreEx.Test.TestFunction
         /// </summary>
         /// <typeparam name="T">The logger <see cref="Type"/>.</typeparam>
         /// <returns>The <see cref="ILogger"/>.</returns>
-        public static ILogger<T> GetLogger<T>() => LoggerFactory.Create(b =>
+        private static ILogger<T> GetLogger<T>() => LoggerFactory.Create(b =>
         {
             b.SetMinimumLevel(LogLevel.Trace);
             b.ClearProviders();

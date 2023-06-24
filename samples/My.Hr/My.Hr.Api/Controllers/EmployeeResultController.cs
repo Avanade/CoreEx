@@ -1,0 +1,90 @@
+namespace My.Hr.Api.Controllers;
+
+[Route("api/results")]
+[Produces(MediaTypeNames.Application.Json)]
+public class EmployeeResultController : ControllerBase
+{
+    private readonly WebApi _webApi;
+    private readonly IEmployeeResultService _service;
+
+    public EmployeeResultController(WebApi webApi, IEmployeeResultService service)
+    {
+        _webApi = webApi;
+        _service = service;
+    }
+
+    /// <summary>
+    /// Gets the specified <see cref="Employee"/>.
+    /// </summary>
+    /// <param name="id">The <see cref="Employee"/> identifier.</param>
+    /// <returns>The selected <see cref="Employee"/> where found.</returns>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public Task<IActionResult> GetAsync(Guid id)
+        => _webApi.GetWithResultAsync(Request, _ => _service.GetEmployeeAsync(id));
+
+    /// <summary>
+    /// Gets all <see cref="Employee"/>.
+    /// </summary>
+    /// <returns>All <see cref="Employee"/>.</returns>
+    [HttpGet("")]
+    [ProducesResponseType(typeof(IEnumerable<Employee>), (int)HttpStatusCode.OK)]
+    [Paging]
+    public Task<IActionResult> GetAllAsync()
+        => _webApi.GetWithResultAsync(Request, p => _service.GetAllAsync(p.RequestOptions.Paging));
+
+    /// <summary>
+    /// Creates a new <see cref="Employee"/>.
+    /// </summary>
+    /// <param name="validator">The validator.</param>
+    /// <returns>The created <see cref="Employee"/>.</returns>
+    [HttpPost("")]
+    [AcceptsBody(typeof(Employee))]
+    [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.Created)]
+    public Task<IActionResult> CreateAsync([FromServices] IValidator<Employee> validator)
+        => _webApi.PostWithResultAsync(Request, p => _service.AddEmployeeAsync(p.Value!),
+           statusCode: HttpStatusCode.Created, validator: validator, locationUri: e => new Uri($"api/employees/{e.Id}", UriKind.RelativeOrAbsolute));
+
+    /// <summary>
+    /// Updates an existing <see cref="Employee"/>.
+    /// </summary>
+    /// <param name="id">The <see cref="Employee"/> identifier.</param>
+    /// <param name="validator">The validator.</param>
+    /// <returns>The updated <see cref="Employee"/>.</returns>
+    [HttpPut("{id}")]
+    [AcceptsBody(typeof(Employee))]
+    [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
+    public Task<IActionResult> UpdateAsync(Guid id, [FromServices] IValidator<Employee> validator)
+        => _webApi.PutWithResultAsync(Request, p => _service.UpdateEmployeeAsync(p.Value!, id), validator: validator);
+
+    /// <summary>
+    /// Patches an existing <see cref="Employee"/>.
+    /// </summary>
+    /// <param name="id">The <see cref="Employee"/> identifier.</param>
+    /// <param name="validator">The validator.</param>
+    /// <returns>The updated <see cref="Employee"/>.</returns>
+    [HttpPatch("{id}")]
+    [AcceptsBody(typeof(Employee), HttpConsts.MergePatchMediaTypeName)]
+    [ProducesResponseType(typeof(Employee), (int)HttpStatusCode.OK)]
+    public Task<IActionResult> PatchAsync(Guid id, [FromServices] IValidator<Employee> validator)
+        => _webApi.PatchWithResultAsync(Request, get: _ => _service.GetEmployeeAsync(id), put: p => _service.UpdateEmployeeAsync(p.Value!, id), validator: validator);
+
+    /// <summary>
+    /// Deletes the specified <see cref="Employee"/>.
+    /// </summary>
+    /// <param name="id">The Id.</param>
+    [HttpDelete("{id}")]
+    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    public Task<IActionResult> DeleteAsync(Guid id)
+        => _webApi.DeleteWithResultAsync(Request, _ => _service.DeleteEmployeeAsync(id));
+
+    /// <summary>
+    /// Performs <see cref="Employee"/> verification in an asynchronous process.
+    /// </summary>
+    [HttpPost("{id}/verify")]
+    [ProducesResponseType((int)HttpStatusCode.Accepted)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public Task<IActionResult> VerifyAsync(Guid id)
+        => _webApi.PostWithResultAsync(Request, apiParam => _service.VerifyEmployeeAsync(id), HttpStatusCode.Accepted);
+}

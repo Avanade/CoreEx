@@ -2,7 +2,6 @@
 
 using CoreEx.Abstractions;
 using CoreEx.Localization;
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
 
@@ -68,8 +67,5 @@ namespace CoreEx
         /// </summary>
         /// <returns>The <see cref="ShouldExceptionBeLogged"/> value.</returns>
         public bool ShouldBeLogged => ShouldExceptionBeLogged;
-
-        /// <inheritdoc/>
-        public IActionResult ToResult() => this.ToResult(StatusCode);
     }
 }
