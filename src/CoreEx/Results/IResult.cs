@@ -20,13 +20,14 @@ namespace CoreEx.Results
         Exception Error { get; }
 
         /// <summary>
-        /// Indicates whether the operation was successful.
+        /// Indicates whether the result is in a successful state.
         /// </summary>
         bool IsSuccess { get; }
 
         /// <summary>
-        /// Indicates whether the operation was a failure.
+        /// Indicates whether the result is in a failure state.
         /// </summary>
+        /// <remarks>Where <c>true</c> then the <see cref="Error"/> will contain a corresponding <see cref="Exception"/>.</remarks>
         bool IsFailure { get; }
 
         /// <summary>

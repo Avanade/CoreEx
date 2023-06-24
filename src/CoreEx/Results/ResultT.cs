@@ -67,7 +67,7 @@ namespace CoreEx.Results
         /// <summary>
         /// Throws the <see cref="Error"/> where <see cref="IsFailure"/>; otherwise, does nothing.
         /// </summary>
-        /// <returns>The <see cref="Result"/>.</returns>
+        /// <returns>The <see cref="Result{T}"/> where <see cref="IsSuccess"/> to enable further fluent-style method-chaining.</returns>
         public Result<T> ThrowOnError()
         {
             if (IsFailure)

@@ -67,7 +67,7 @@ namespace CoreEx.Results
         /// <summary>
         /// Throws the <see cref="Error"/> where <see cref="IsFailure"/>; otherwise, does nothing.
         /// </summary>
-        /// <returns>The <see cref="Result"/>.</returns>
+        /// <returns>The <see cref="Result"/> where <see cref="IsSuccess"/> to enable further fluent-style method-chaining.</returns>
         public Result ThrowOnError()
         {
             if (IsFailure)
@@ -94,7 +94,7 @@ namespace CoreEx.Results
         /// </summary>
         /// <param name="action">The action to execute.</param>
         /// <returns>The <see cref="Success"/> <see cref="Result"/>.</returns>
-        /// <remarks>This is a helper method to simplify code where an <paramref name="action"/> should be invoked followed immediately by a corresponding <see cref="Success"/> to complete/conclude.</remarks>
+        /// <remarks>This is a helper method to simplify code where an <paramref name="action"/> should be invoked followed immediately by returning a corresponding <see cref="Success"/> to complete/conclude.</remarks>
         public static Result Done(Action action)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));

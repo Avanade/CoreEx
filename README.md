@@ -21,6 +21,7 @@ The build status is [![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.
 Package | Status | Source & documentation
 -|-|-
 `CoreEx` | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [Link](./src/CoreEx)
+`CoreEx.AspNetCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AspNetCore.svg)](https://badge.fury.io/nu/CoreEx.AspNetCore) | [Link](./src/CoreEx/AspNetCore)
 `CoreEx.AutoMapper` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AutoMapper.svg)](https://badge.fury.io/nu/CoreEx.AutoMapper) | [Link](./src/CoreEx.AutoMapper)
 `CoreEx.Azure` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.svg)](https://badge.fury.io/nu/CoreEx.Azure) | [Link](./src/CoreEx.Azure)
 `CoreEx.Cosmos` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Cosmos.svg)](https://badge.fury.io/nu/CoreEx.Cosmos) | [Link](./src/CoreEx.Cosmos)
@@ -30,6 +31,7 @@ Package | Status | Source & documentation
 `CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx.EntityFrameworkCore)
 `CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [Link](./src/CoreEx.FluentValidation)
 `CoreEx.Newtonsoft` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
+`CoreEx.Solace` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Solace.svg)](https://badge.fury.io/nu/CoreEx.Solace) | [Link](./src/CoreEx.Solace)
 `CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx.Validation)
 
 The included [change log](CHANGELOG.md) details all key changes per published version.

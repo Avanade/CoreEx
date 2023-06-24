@@ -8,7 +8,7 @@ The `CoreEx.Result` namespace enables [monadic](https://en.wikipedia.org/wiki/Mo
 
 ## Motivation
 
-To provide a means to enable Railway-oriented programming within _CoreEx_, and where leveraging, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is in keeping within the spirit of this.
+To provide a means to enable Railway-oriented programming within _CoreEx_, in a rich and consistent manner. The capabilities are for the most part completely optional and can be used as needed. Although C# is not a functional language, it does support a number of functional concepts (i.e. LINQ), and adding this capability to _CoreEx_ is keeping within the spirit of this.
 
 <br/>
 
@@ -47,8 +47,8 @@ The results each additionally contain the following key properties as per [`IRes
 
 Property | Description
 -|-
-`IsSuccess` | Indicates whether the operation was successful.
-`IsFailure` | Indicates whether the operation was a failure.
+`IsSuccess` | Indicates whether the result is in a successful state.
+`IsFailure` | Indicates whether the result is in a failure state.
 `Error` | The failure error, represented as an `Exception`. The .NET [`Exception`](https://learn.microsoft.com/en-us/dotnet/api/system.exception) is used for the error type as it already provides a rich set of capabilities, can easily be thrown where applicable, has support for the likes of an [`AggregateException`](https://learn.microsoft.com/en-us/dotnet/api/system.aggregateexception) for combining, and is well understood by developers; i.e. it was determined that there is limited benefit in creating an alternate error type.
 
 <br/>
@@ -128,8 +128,14 @@ By convention methods that are named with the following have the following chara
 Convention | Description
 -|-
 `As` | Supports _explicit_ conversion between types to minimize unintentional data loss and/or unexpected side-effects.
-`Async` | Supports asynchronous execution (versus synchronous).
+`Async` | Supports asynchronous execution (versus synchronous). Note that all internal asynchronous executions are invoked with a [`ConfigureAwait(false)`](https://devblogs.microsoft.com/dotnet/configureawait-faq/#what-does-configureawaitfalse-do).
 `From` | Supports [`IToResult`](./IToResult.cs), [`IToResult<T>`](./IToResultT.cs) and [`ITypedToResult`](./ITypedToResult.cs) result conversion.
+
+<br/>
+
+### As-based conversion
+
+A key design decision was made that there _must_ be an _explicit_ conversion between types to minimize unintentional data loss and/or unexpected side-effects. Therefore the `As`-based convention was introduced to consistently support the requisite explicit conversion.
 
 <br/>
 
@@ -189,9 +195,21 @@ return await Result
 
 <br/>
 
+### Validation example
+
+The following [code](https://github.com/Avanade/Beef/blob/master/samples/MyEf.Hr/MyEf.Hr.Business/Generated/EmployeeManager.cs) demonstrates usage of the `Required`, `Requires` and `ValidateAsync` validation-oriented extension methods.
+
+``` csharp
+return Result.Go(value).Required().Requires(id).Then(v => v.Id = id)
+             .ValidateAsync(v => v.Entity().With<EmployeeValidator>(), cancellationToken: ct)
+             .ThenAsAsync(v => _dataService.UpdateAsync(value));
+```
+
+<br>
+
 ### ToResult example
 
-The following code demonstrates the usage of the [`IToResult<T>`](./IToResult<T>.cs) interface enabled by the `HttpResult<T>`; with the key takeaway being that the `Result.GoFrom()` method is used.
+The following [code](https://github.com/Avanade/Beef/blob/master/samples/MyEf.Hr/MyEf.Hr.Security.Subscriptions/OktaHttpClient.cs) demonstrates the usage of the [`IToResult<T>`](./IToResult<T>.cs) interface enabled by the `HttpResult<T>`; with the key takeaway being that the `Result.GoFrom()` method is used.
 
 ``` csharp
 public async Task<Result<OktaUser>> GetUserAsync(Guid id, string email) 
