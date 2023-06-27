@@ -47,10 +47,7 @@ namespace CoreEx.Database.MySql
         /// <inheritdoc/>
         protected override Result? OnDbException(DbException dbex)
         {
-            if (!ThrowTransformedException)
-                return base.OnDbException(dbex);
-
-            if (dbex is MySqlException sex)
+            if (ThrowTransformedException && dbex is MySqlException sex)
             {
                 var msg = sex.Message?.TrimEnd();
                 if (string.IsNullOrEmpty(msg))
