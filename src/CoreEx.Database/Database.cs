@@ -139,7 +139,7 @@ namespace CoreEx.Database
         /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned. A resulting <see cref="Result"/> that is <see cref="Result.IsSuccess"/> is not considered sensical; therefore, will result in the originating
         /// exception being thrown.
         /// <para>Where overridding and the <see cref="DbException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</para></remarks>
-        protected virtual Result? OnDbException(DbException dbex) => Result.Fail(dbex);
+        protected virtual Result? OnDbException(DbException dbex) => null;
 
         /// <inheritdoc/>
         public void Dispose()

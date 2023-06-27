@@ -55,7 +55,7 @@ namespace CoreEx.Abstractions
         /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
         /// <param name="assembly">The <see cref="Assembly"/> that contains the embedded resource; defaults to <see cref="Assembly.GetCallingAssembly"/>.</param>
         /// <returns>The <see cref="StreamReader"/>; otherwise, an <see cref="ArgumentException"/> will be thrown.</returns>
-        public static StreamReader GetStreamReader(string resourceName, Assembly? assembly = null) => new(GetStream(resourceName, assembly));
+        public static StreamReader GetStreamReader(string resourceName, Assembly? assembly = null) => new(GetStream(resourceName, assembly ?? Assembly.GetCallingAssembly()));
 
         /// <summary>
         /// Gets the named embedded resource <see cref="StreamReader"/> from the <see name="Assembly"/> inferred from the <typeparamref name="TResource"/> <see cref="Type"/>.

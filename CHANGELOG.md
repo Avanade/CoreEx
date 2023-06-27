@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.1.0
+- *Enhancement:* Added `Hosting.ServiceBase` class for a self-orchestrated service to execute for a specified `MaxIterations`; provides an alternative to using a `HostedService`. Useful for the likes of timer trigger Azure Functions for eample.
+- *Enhancement:* Added `EventOutboxService` as an alternative to `EventOutboxHostedService`; related to (and leverages) above to achieve same outcome.
+- *Fixed:* `Database.OnDbException` was incorrectly converting the unhandled exception to a `Result`; will now throw as expected.
+
 ## v3.0.0
 - *Enhancement:* Added new `CoreEx.Results` namespace with primary `Result` and `Result<T>` classes to enable [monadic](https://en.wikipedia.org/wiki/Monad_(functional_programming)) error-handling, often referred to [Railway-oriented programming](https://swlaschin.gitbooks.io/fsharpforfunandprofit/content/posts/recipe-part2.html); see [`CoreEx.Results`](./src/CoreEx/Results/README.md) for more implementation details. Thanks [Adi](https://github.com/AdiThakker) for inspiring and guiding on this change. Related changes as follows:
   - *Enhancement:* `EventSubscriberBase`, `SubscriberBase` and `SubscriberBase<T>` modified to include `EventSubscriberArgs` (`Dictionary<string, object?>`) to allow other parameters to be passed in. The `ReceiveAsync` methods now support the args as a parameter, and must return a `Result` to better support errors; breaking change. 

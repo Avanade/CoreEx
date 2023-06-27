@@ -104,10 +104,7 @@ namespace CoreEx.Database.SqlServer
         /// <inheritdoc/>
         protected override Result? OnDbException(DbException dbex)
         {
-            if (!ThrowTransformedException)
-                return base.OnDbException(dbex);
-
-            if (dbex is SqlException sex)
+            if (ThrowTransformedException && dbex is SqlException sex)
             {
                 var msg = sex.Message?.TrimEnd();
                 if (string.IsNullOrEmpty(msg))

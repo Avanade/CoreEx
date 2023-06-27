@@ -18,7 +18,7 @@ namespace CoreEx.Database.SqlServer.Outbox
     public class EventOutboxHostedService : SynchronizedTimerHostedServiceBase<EventOutboxHostedService>
     {
         private TimeSpan? _interval;
-        private int? _maxQuerySize;
+        private int? _maxDequeueSize;
         private string? _name;
 
         /// <summary>
@@ -98,8 +98,8 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <remarks>Will default to <see cref="SettingsBase"/> configuration, a) <see cref="TimerHostedServiceBase.ServiceName"/> : <see cref="MaxDequeueSizeName"/>, then b) <see cref="MaxDequeueSizeName"/>, where specified; otherwise, 10.</remarks>
         public int MaxDequeueSize
         {
-            get => _maxQuerySize ?? Settings.GetValue<int?>($"{ServiceName}:{MaxDequeueSizeName}".Replace(".", "_")) ?? Settings.GetValue<int?>(MaxDequeueSizeName.Replace(".", "_")) ?? 10;
-            set => _maxQuerySize = value;
+            get => _maxDequeueSize ?? Settings.GetValue<int?>($"{ServiceName}:{MaxDequeueSizeName}".Replace(".", "_")) ?? Settings.GetValue<int?>(MaxDequeueSizeName.Replace(".", "_")) ?? 10;
+            set => _maxDequeueSize = value;
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         protected override async Task SynchronizedExecuteAsync(IServiceProvider scopedServiceProvider, CancellationToken cancellationToken = default)
         {
             if (EventOutboxDequeueFactory == null)
-                throw new NotImplementedException($"The {nameof(EventOutboxDequeueFactory)} property must be configured to create an instance of the {nameof(EventOutboxDequeueBase)}.");
+                throw new InvalidOperationException($"The {nameof(EventOutboxDequeueFactory)} property must be configured to create an instance of the {nameof(EventOutboxDequeueBase)}.");
 
             try
             {
