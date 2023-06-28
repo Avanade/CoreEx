@@ -55,7 +55,7 @@ namespace CoreEx.Database
         {
             var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
             p.ParameterName = ParameterizeName(name);
-            p.Value = value;
+            p.Value = value ?? DBNull.Value;
             p.Direction = direction;
 
             _parameters.Add(p);
@@ -75,7 +75,7 @@ namespace CoreEx.Database
             var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
             p.ParameterName = ParameterizeName(name);
             p.DbType = dbType;
-            p.Value = value;
+            p.Value = value ?? DBNull.Value;
             p.Direction = direction;
 
             _parameters.Add(p);

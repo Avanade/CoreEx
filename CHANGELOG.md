@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.1.1
+- *Fixed:* The `DatabaseParameterCollection.AddParameter` now explicitly sets the `DbParameter.Value` to `DbNull.Value` where the value passed in is `null`.
+
 ## v3.1.0
 - *Enhancement:* Added `Hosting.ServiceBase` class for a self-orchestrated service to execute for a specified `MaxIterations`; provides an alternative to using a `HostedService`. Useful for the likes of timer trigger Azure Functions for eample.
 - *Enhancement:* Added `EventOutboxService` as an alternative to `EventOutboxHostedService`; related to (and leverages) above to achieve same outcome.
