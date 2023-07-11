@@ -1,8 +1,11 @@
 ﻿using CoreEx.Events;
+using CoreEx.Events.Attachments;
 using CoreEx.TestFunction.Models;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 
@@ -72,7 +75,7 @@ namespace CoreEx.Test.Framework.Events
             Assert.AreEqual("coreex.testfunction.models.product", ed2.Type);
         }
 
-        internal static EventData<Product> CreateProductEvent1() => new EventData<Product>
+        internal static EventData<Product> CreateProductEvent1() => new()
         {
             Id = "id",
             Type = "product.created",
@@ -88,7 +91,7 @@ namespace CoreEx.Test.Framework.Events
             Value = new Product { Id = "A", Name = "B", Price = 1.99m }
         };
 
-        internal static EventData<Product> CreateProductEvent2() => new EventData<Product>
+        internal static EventData<Product> CreateProductEvent2() => new()
         {
             Id = "id",
             Timestamp = new DateTime(2022, 02, 22, 22, 02, 22, DateTimeKind.Utc),
@@ -99,5 +102,25 @@ namespace CoreEx.Test.Framework.Events
         private const string CloudEvent1 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
 
         private const string CloudEvent2 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"correlationid\":\"cid\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
+
+        internal static EventStorage CreateEventStorage(string? data = null, int? max = null) => new(data) { MaxDataSize = max ?? 100000 };
+
+        internal class EventStorage : CoreEx.Events.Attachments.IAttachmentStorage
+        {
+            private readonly BinaryData _data;
+
+            public EventStorage(string? data)
+                => _data = data is null ? BinaryData.Empty : new BinaryData(data);
+
+            public int MaxDataSize { get; set; } = 10;
+
+            public Task<BinaryData> ReadAync(EventAttachment attachment, CancellationToken cancellationToken) => Task.FromResult(_data);
+
+            public Task<EventAttachment> WriteAsync(BinaryData attachmentData, CancellationToken cancellationToken)
+            {
+                Assert.AreEqual(_data.ToString(), attachmentData.ToString());
+                return Task.FromResult(new EventAttachment { Attachment = "bananas.json", ContentType = "application/json" });
+            }
+        }
     }
 }

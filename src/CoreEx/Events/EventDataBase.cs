@@ -21,29 +21,10 @@ namespace CoreEx.Events
         protected EventDataBase() { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventDataBase"/> class copying from another <paramref name="event"/>.
+        /// Initializes a new instance of the <see cref="EventDataBase"/> class copying the metadata from another <paramref name="event"/>.
         /// </summary>
-        /// <param name="event">The <paramref name="event"/> to copy from.</param>
-        protected EventDataBase(EventDataBase @event)
-        {
-            Id = (@event ?? throw new ArgumentNullException(nameof(@event))).Id;
-            Timestamp = @event.Timestamp;
-            Subject = @event.Subject;
-            Action = @event.Action;
-            Type = @event.Type;
-            Source = @event.Source;
-            CorrelationId = @event.CorrelationId;
-            TenantId = @event.TenantId;
-            PartitionKey = @event.PartitionKey;
-            ETag = @event.ETag;
-            Key = @event.Key;
-
-            if (@event.HasAttributes)
-                Attributes = new Dictionary<string, string>(@event.Attributes!);
-
-            if (@event.HasInternal)
-                _internal = new Dictionary<string, object?>(@event.Internal);
-        }
+        /// <param name="event">The <paramref name="event"/> to copy the metadata from.</param>
+        protected EventDataBase(EventDataBase @event) => CopyMetadata(@event);
 
         /// <summary>
         /// Gets or sets the unique event identifier.
@@ -160,5 +141,44 @@ namespace CoreEx.Events
         /// </summary>
         [JsonIgnore()]
         public bool HasInternal => _internal != null && _internal.Count > 0;
+
+        /// <summary>
+        /// Copies the metadata from the specified <paramref name="event"/> replacing existing.
+        /// </summary>
+        /// <param name="event">The <see cref="EventDataBase"/> to copy from.</param>
+        public void CopyMetadata(EventDataBase @event)
+        {
+            Id = (@event ?? throw new ArgumentNullException(nameof(@event))).Id;
+            Timestamp = @event.Timestamp;
+            Subject = @event.Subject;
+            Action = @event.Action;
+            Type = @event.Type;
+            Source = @event.Source;
+            CorrelationId = @event.CorrelationId;
+            TenantId = @event.TenantId;
+            PartitionKey = @event.PartitionKey;
+            ETag = @event.ETag;
+            Key = @event.Key;
+
+            if (@event.HasAttributes)
+            {
+                Attributes ??= new Dictionary<string, string>();
+                Attributes.Clear();
+                foreach (var attribute in @event.Attributes!)
+                    Attributes.Add(attribute.Key, attribute.Value);
+            }
+            else
+                Attributes?.Clear();
+
+            if (@event.HasInternal)
+            {
+                _internal ??= new Dictionary<string, object?>(@event.Internal);
+                _internal.Clear();
+                foreach (var attribute in @event.Internal)
+                    _internal.Add(attribute.Key, attribute.Value);
+            }
+            else
+                _internal?.Clear();
+        }
     }
 }
