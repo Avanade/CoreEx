@@ -147,7 +147,7 @@ namespace CoreEx.Events
                     return JsonSerializer.SerializeToBinaryData(@event.Value);
 
                 // Create the attachment and serialize the event with the attachment reference.
-                attachment = await AttachmentStorage.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+                attachment = await AttachmentStorage.WriteAsync(@event, data, cancellationToken).ConfigureAwait(false);
                 return JsonSerializer.SerializeToBinaryData(attachment);
             }
 
@@ -163,7 +163,7 @@ namespace CoreEx.Events
                 return JsonSerializer.SerializeToBinaryData(e);
 
             // Create the attachment and re-serialize the event with the attachment reference.
-            attachment = await AttachmentStorage.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+            attachment = await AttachmentStorage.WriteAsync(@event, data, cancellationToken).ConfigureAwait(false);
             return JsonSerializer.SerializeToBinaryData(new EventData(e) { Value = attachment });
         }
     }

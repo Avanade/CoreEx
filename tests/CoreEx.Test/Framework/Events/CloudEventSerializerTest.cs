@@ -105,7 +105,7 @@ namespace CoreEx.Test.Framework.Events
 
         internal static EventStorage CreateEventStorage(string? data = null, int? max = null) => new(data) { MaxDataSize = max ?? 100000 };
 
-        internal class EventStorage : CoreEx.Events.Attachments.IAttachmentStorage
+        internal class EventStorage : IAttachmentStorage
         {
             private readonly BinaryData _data;
 
@@ -116,7 +116,7 @@ namespace CoreEx.Test.Framework.Events
 
             public Task<BinaryData> ReadAync(EventAttachment attachment, CancellationToken cancellationToken) => Task.FromResult(_data);
 
-            public Task<EventAttachment> WriteAsync(BinaryData attachmentData, CancellationToken cancellationToken)
+            public Task<EventAttachment> WriteAsync(EventData @event, BinaryData attachmentData, CancellationToken cancellationToken)
             {
                 Assert.AreEqual(_data.ToString(), attachmentData.ToString());
                 return Task.FromResult(new EventAttachment { Attachment = "bananas.json", ContentType = "application/json" });

@@ -21,10 +21,11 @@ namespace CoreEx.Events.Attachments
         /// <summary>
         /// Writes the <paramref name="attachmentData"/> to the underlying storage and returns the <see cref="EventAttachment"/> details.
         /// </summary>
-        /// <param name="attachmentData">The attachment serialized as <see cref="BinaryData"/>.</param>
+        /// <param name="event">The initiating <see cref="EventData"/>.</param>
+        /// <param name="attachmentData">The attachment contents serialized as <see cref="BinaryData"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="EventAttachment"/> details.</returns>
-        Task<EventAttachment> WriteAsync(BinaryData attachmentData, CancellationToken cancellationToken);
+        Task<EventAttachment> WriteAsync(EventData @event, BinaryData attachmentData, CancellationToken cancellationToken);
 
         /// <summary>
         /// Reads the <paramref name="attachment"/> from the underlying storage and returns the contents as <see cref="BinaryData"/>.
