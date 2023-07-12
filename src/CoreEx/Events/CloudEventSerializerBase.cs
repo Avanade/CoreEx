@@ -37,14 +37,10 @@ namespace CoreEx.Events
         /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
         protected CloudEventSerializerBase(EventDataFormatter? eventDataFormatter) => EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
 
-        /// <summary>
-        /// Gets the <see cref="Events.EventDataFormatter"/>.
-        /// </summary>
+        /// <inheritdoc/>
         public EventDataFormatter EventDataFormatter { get; }
 
-        /// <summary>
-        /// Gets or sets the optional <see cref="IAttachmentStorage"/> to use for <see cref="EventAttachment">attachments</see>.
-        /// </summary>
+        /// <inheritdoc/>
         public IAttachmentStorage? AttachmentStorage { get; set; }
 
         /// <inheritdoc/>

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Events.Attachments;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,11 @@ namespace CoreEx.Events
         /// Gets the <see cref="Events.EventDataFormatter"/>.
         /// </summary>
         EventDataFormatter EventDataFormatter { get; }
+
+        /// <summary>
+        /// Gets or sets the optional <see cref="IAttachmentStorage"/> to use for an <see cref="EventAttachment"/>.
+        /// </summary>
+        public IAttachmentStorage? AttachmentStorage { get; set; }
 
         /// <summary>
         /// Serializes the <see cref="EventData"/> to a <see cref="BinaryData"/>.

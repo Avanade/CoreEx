@@ -30,18 +30,14 @@ namespace CoreEx.Events
         /// </summary>
         public IJsonSerializer JsonSerializer { get; }
 
-        /// <summary>
-        /// Gets the <see cref="Events.EventDataFormatter"/>.
-        /// </summary>
+        /// <inheritdoc/>
         public EventDataFormatter EventDataFormatter { get; }
 
-        /// <summary>
-        /// Gets or sets the optional <see cref="IAttachmentStorage"/> to use for <see cref="EventAttachment">attachments</see>.
-        /// </summary>
+        /// <inheritdoc/>
         public IAttachmentStorage? AttachmentStorage { get; set; }
 
         /// <summary>
-        /// Indicates whether the <see cref="EventData.Value"/> is serialized only (<c>true</c>); or alternatively, the complete <see cref="EventData"/> (<c>false</c>).
+        /// Indicates whether the <see cref="EventData.Value"/> is serialized only (<c>true</c>); or alternatively, the complete <see cref="EventData"/> including all metadata (<c>false</c>).
         /// </summary>
         /// <remarks>Defaults to <c>true</c>.</remarks>
         public bool SerializeValueOnly { get; set; } = true;

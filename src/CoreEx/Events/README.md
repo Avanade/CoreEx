@@ -88,3 +88,28 @@ public class EmployeeeSubscriber : SubscriberBase<Employee>
 The [`ServiceBusOrchestratedSubscriber`](../../CoreEx.Azure/ServiceBus/ServiceBusOrchestratedSubscriber.cs) is an [Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview) implementation that inherits from ``EventSubscriberBase`` and supports `EventSubscriberOrchestrator` functionality. See the corresponding [documentation](../../CoreEx.Azure/ServiceBus/README.md) for more information.
 
 The [`MyEf.Hr`](https://github.com/Avanade/Beef/tree/master/samples/MyEf.Hr) sample within [_Beef_](https://github.com/Avanade/Beef) demonstrates end-to-end usage.
+
+<br/>
+
+## Advanced
+
+The following provides further advanced capabilities.
+
+<br/>
+
+### Claim-check pattern
+
+The [claim-check pattern](https://docs.microsoft.com/en-us/azure/architecture/patterns/claim-check) is a messaging pattern that enables the payload to be stored externally to the message. This is useful where the payload is large and/or the message is to be published to multiple subscribers.
+
+To support the [`IAttachmentStorage`](./Attachments/IAttachmentStorage.cs) enables a pluggable approach to support the storage of the payload attachment (represented by an [`EventAttachment`](./Attachments/EventAttachment.cs)); enabling persistence within Azure, AWS, on-premises, etc.
+
+To further simplify the implementation, and to separate this capability from the underlying messaging sub-system, the [`IEventSerializer.AttachmentStorage`](./IEventSerializer.cs) property enables the optional specification. Where this value is non-null and the serialized `EventData.Value` length is greater than or equal to the `IAttachmentStorage.MaxDatSize`, then this will be stored as an attachment and the `EventData.Value` will be set to the corresponding `EventAttachment` value.
+
+The following demonstrates an example `EventAttachment` serialization where the attachment reference is set to the underlying unique `EventData.Id` value:
+
+``` json
+{
+  "contentType": "application/json",
+  "attachment": "550e8400-e29b-41d4-a716-446655440000.json"
+}
+```
