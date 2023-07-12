@@ -101,11 +101,11 @@ The following provides further advanced capabilities.
 
 The [claim-check pattern](https://docs.microsoft.com/en-us/azure/architecture/patterns/claim-check) is a messaging pattern that enables the payload to be stored externally to the message. This is useful where the payload is large and/or the message is to be published to multiple subscribers.
 
-To support the [`IAttachmentStorage`](./Attachments/IAttachmentStorage.cs) enables a pluggable approach to support the storage of the payload attachment (represented by an [`EventAttachment`](./Attachments/EventAttachment.cs)); enabling persistence within Azure, AWS, on-premises, etc.
+The [`IAttachmentStorage`](./Attachments/IAttachmentStorage.cs) enables a pluggable approach to support the storage of the payload attachment (represented by an [`EventAttachment`](./Attachments/EventAttachment.cs)); enabling flexibility with respect to persistence; e.g. Azure, AWS, on-premises, etc.
 
-To further simplify the implementation, and to separate this capability from the underlying messaging sub-system, the [`IEventSerializer.AttachmentStorage`](./IEventSerializer.cs) property enables the optional specification. Where this value is non-null and the serialized `EventData.Value` length is greater than or equal to the `IAttachmentStorage.MaxDatSize`, then this will be stored as an attachment and the `EventData.Value` will be set to the corresponding `EventAttachment` value.
+To further simplify the implementation, and to separate this capability from the underlying messaging sub-system, the [`IEventSerializer.AttachmentStorage`](./IEventSerializer.cs) property enables the optional specification. Where this value is non-null and the serialized `EventData.Value` length is greater than or equal to the `IAttachmentStorage.MaxDataSize`, then this will be stored as an attachment and the `EventData.Value` will be set to the corresponding `EventAttachment` value. The [`IEventSender`](./IEventSender.cs) is _not_ attachment aware, the [`EventSendData.Data`](./EventSendData.cs) will simply contain the appropriate serialized `BinaryData` (original content or `EventAttachment`) essentially decoupling serialization from sending.
 
-The following demonstrates an example `EventAttachment` serialization where the attachment reference is set to the underlying unique `EventData.Id` value:
+The following demonstrates an example `EventAttachment` serialization where the attachment reference (e.g. filename) is set to the underlying unique `EventData.Id` value.
 
 ``` json
 {
@@ -114,4 +114,10 @@ The following demonstrates an example `EventAttachment` serialization where the 
 }
 ```
 
-Note that the attachments are not automatically deleted; this is the responsibility of the consuming applications.
+The following demonstrates the dependency injection registration to configure the `AttachmentStorage` property for a given `IEventSerializer`.
+
+``` csharp
+services.AddCloudEventSerializer((sp, ces) => ces.AttachmentStorage = new XxxAttachmentStorage { MaxDataSize = 1000000 });
+```
+
+_Note:_ the attachments are not automatically deleted; this is the responsibility of the consuming developer/application.

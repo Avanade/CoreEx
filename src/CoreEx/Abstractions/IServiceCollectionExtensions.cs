@@ -241,8 +241,14 @@ namespace Microsoft.Extensions.DependencyInjection
         /// Adds the <see cref="CoreEx.Text.Json.CloudEventSerializer"/> as the <see cref="IEventSerializer"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="CoreEx.Text.Json.CloudEventSerializer"/> to be further configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddCloudEventSerializer(this IServiceCollection services) => CheckServices(services).AddScoped<IEventSerializer, CoreEx.Text.Json.CloudEventSerializer>();
+        public static IServiceCollection AddCloudEventSerializer(this IServiceCollection services, Action<IServiceProvider, CoreEx.Text.Json.CloudEventSerializer>? configure = null) => CheckServices(services).AddScoped<IEventSerializer>(sp =>
+        {
+            var ces = new CoreEx.Text.Json.CloudEventSerializer(sp.GetService<EventDataFormatter>());
+            configure?.Invoke(sp, ces);
+            return ces;
+        });
 
         /// <summary>
         /// Adds the <see cref="CoreEx.Text.Json.EventDataSerializer"/> as the <see cref="IEventSerializer"/> scoped service.
@@ -250,10 +256,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="configure">The action to enable the <see cref="CoreEx.Text.Json.EventDataSerializer"/> to be further configured.</param>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddEventDataSerializer(this IServiceCollection services, Action<CoreEx.Text.Json.EventDataSerializer>? configure = null) => CheckServices(services).AddScoped<IEventSerializer>(sp =>
+        public static IServiceCollection AddEventDataSerializer(this IServiceCollection services, Action<IServiceProvider, CoreEx.Text.Json.EventDataSerializer>? configure = null) => CheckServices(services).AddScoped<IEventSerializer>(sp =>
         {
             var eds = new CoreEx.Text.Json.EventDataSerializer(sp.GetService<IJsonSerializer>(), sp.GetService<EventDataFormatter>());
-            configure?.Invoke(eds);
+            configure?.Invoke(sp, eds);
             return eds;
         });
 
