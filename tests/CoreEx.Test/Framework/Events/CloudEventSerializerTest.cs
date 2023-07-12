@@ -47,6 +47,46 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
+        public async Task SystemTextJson_Serialize_Deserialize1_WithAttachment()
+        {
+            var es = new CoreEx.Text.Json.CloudEventSerializer() { AttachmentStorage = CreateEventStorage("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", 10) } as IEventSerializer;
+            var ed = CreateProductEvent1();
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.IsNotNull(bd);
+            Assert.AreEqual(CloudEvent1Attachement, bd.ToString());
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2);
+
+            ed2 = (EventData<Product>)await es.DeserializeAsync(bd, typeof(Product)).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2);
+
+            var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed3, "Value");
+            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
+        }
+
+        [Test]
+        public async Task SystemTextJson_Serialize_Deserialize1_WithNoAttachment()
+        {
+            var es = new CoreEx.Text.Json.CloudEventSerializer() { AttachmentStorage = CreateEventStorage("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", 1000) } as IEventSerializer;
+            var ed = CreateProductEvent1();
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.IsNotNull(bd);
+            Assert.AreEqual(CloudEvent1, bd.ToString());
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2);
+
+            ed2 = (EventData<Product>)await es.DeserializeAsync(bd, typeof(Product)).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2);
+
+            var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed3, "Value");
+            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
+        }
+
+        [Test]
         public async Task NewtonsoftJson_Serialize_Deserialize1()
         {
             var es = new CoreEx.Newtonsoft.Json.CloudEventSerializer() as IEventSerializer;
@@ -102,6 +142,8 @@ namespace CoreEx.Test.Framework.Events
         private const string CloudEvent1 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
 
         private const string CloudEvent2 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"correlationid\":\"cid\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
+
+        private const string CloudEvent1Attachement = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"contentType\":\"application/json\",\"attachment\":\"bananas.json\"}}";
 
         internal static EventStorage CreateEventStorage(string? data = null, int? max = null) => new(data) { MaxDataSize = max ?? 100000 };
 
