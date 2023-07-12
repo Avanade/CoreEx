@@ -113,3 +113,5 @@ The following demonstrates an example `EventAttachment` serialization where the 
   "attachment": "550e8400-e29b-41d4-a716-446655440000.json"
 }
 ```
+
+Note that the attachments are not automatically deleted; this is the responsibility of the consuming applications.
