@@ -44,7 +44,7 @@ namespace CoreEx.Test.Framework.Azure.Storage
             Assert.IsNotNull(eventReceivedData);
             Assert.AreEqual(eventData, eventReceivedData.ToString());
 
-            _bcc!.DeleteBlob(testEvent.Id);
+            _bcc!.DeleteBlob($"{testEvent.Id}.json");
         }
 
         [Test]
@@ -66,7 +66,39 @@ namespace CoreEx.Test.Framework.Azure.Storage
             Assert.IsNotNull(eventReceivedData);
             Assert.AreEqual(eventData, eventReceivedData.ToString());
 
-            _bcc!.DeleteBlob(testEvent.Id);
+            _bcc!.DeleteBlob($"{testEvent.Id}.json");
+        }
+
+        [Test]
+        public void BlobAttachmentStorage_WithTenantId_SetsProperContainer()
+        {
+            var testTenantId = "112233";
+            var testEvent = new EventData { Id = Guid.NewGuid().ToString(), TenantId = testTenantId };
+            var eventData = "{ \"id\": \"1234\" }";
+            var attachmentData = new BinaryData(eventData);
+            var bas = new BlobAttachmentStorage(_bcc!);
+
+            var result = bas.WriteAsync(testEvent, attachmentData, CancellationToken.None).Result;
+
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result.Attachment);
+            Assert.IsTrue(result.Attachment!.Contains($"{testTenantId}/{testEvent.Id}"));
+        }
+
+        [Test]
+        public void BlobSasAttachmentStorage_WithTenantId_SetsProperContainer()
+        {
+            var testTenantId = "112233";
+            var testEvent = new EventData { Id = Guid.NewGuid().ToString(), TenantId = testTenantId };
+            var eventData = "{ \"id\": \"1234\" }";
+            var attachmentData = new BinaryData(eventData);
+            var bas = new BlobSasAttachmentStorage(_bcc!);
+
+            var result = bas.WriteAsync(testEvent, attachmentData, CancellationToken.None).Result;
+
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result.Attachment);
+            Assert.IsTrue(result.Attachment!.Contains($"{testTenantId}/{testEvent.Id}"));
         }
 
         [OneTimeTearDown]
