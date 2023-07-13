@@ -67,9 +67,13 @@ namespace CoreEx.Azure.Storage
                 throw new InvalidOperationException($"The {nameof(BlobContainerClient)} must be passed in the constructor in order to write.");
 
             var blobName = @event.Id ?? Guid.NewGuid().ToString();
+            if (ContentType == "application/json")
+            {
+                blobName = $"{blobName}.json";
+            }
 
             // Where @event.tenantId is set, prepend to create a tenant specific folder
-            if(@event.TenantId != null)
+            if (@event.TenantId != null)
                 blobName = $"{@event.TenantId}/{blobName}";
 
             var blobClient = _blobContainerClient.GetBlobClient(blobName);

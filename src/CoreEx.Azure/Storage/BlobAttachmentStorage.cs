@@ -51,6 +51,11 @@ namespace CoreEx.Azure.Storage
             if (@event.TenantId != null)
                 blobName = $"{@event.TenantId}/{blobName}";
 
+            if (ContentType == "application/json")
+            {
+                blobName = $"{blobName}.json";
+            }
+
             var blobClient = _blobContainerClient.GetBlobClient(blobName);
             await blobClient.UploadAsync(attachmentData.ToStream(), cancellationToken).ConfigureAwait(false);
 
