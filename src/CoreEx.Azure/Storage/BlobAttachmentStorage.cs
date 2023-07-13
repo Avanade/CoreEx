@@ -51,7 +51,7 @@ namespace CoreEx.Azure.Storage
             if (@event.TenantId != null)
                 blobName = $"{@event.TenantId}/{blobName}";
 
-            if (ContentType == "application/json")
+            if (ContentType == MediaTypeNames.Application.Json)
             {
                 blobName = $"{blobName}.json";
             }

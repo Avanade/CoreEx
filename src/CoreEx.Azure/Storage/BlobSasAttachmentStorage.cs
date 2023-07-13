@@ -67,7 +67,7 @@ namespace CoreEx.Azure.Storage
                 throw new InvalidOperationException($"The {nameof(BlobContainerClient)} must be passed in the constructor in order to write.");
 
             var blobName = @event.Id ?? Guid.NewGuid().ToString();
-            if (ContentType == "application/json")
+            if (ContentType == MediaTypeNames.Application.Json)
             {
                 blobName = $"{blobName}.json";
             }
