@@ -4,7 +4,7 @@ Represents the **NuGet** versions.
 
 ## v3.2.0
 - *Enhancement:* Added `ServiceBusReceiverActions` as a means to encapsulate the `ServiceBusReceivedMessage` and `ServiceBusReceiver` as a `ServiceBusMessageActions` equivalent to enable both the `ServiceBusSubscriber` and `ServiceBusOrchestratedSubscriber` to be leveraged outside of native Azure Functions.
-- *Enhancement:* Added support for [claim-check pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check) for large messages. `EventData.Value` serialization to be stored as an attachment in the likes of blob storage and then referenced (claim-check) from the actual message. A new `IAttachmentService` encapsulates the attachment behavior with the `IEventSerializer` implementations referencing as applicable; whereby separating this behavior from the `IEventSender` enabling greater consistency and reuse.
+- *Enhancement:* Added support for [claim-check pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check) for large messages. `EventData.Value` serialization to be stored as an attachment in the likes of blob storage and then referenced (claim-check) from the actual message. A new `IAttachmentStorage` encapsulates the attachment behavior with the `IEventSerializer` implementations referencing as applicable; whereby separating this behavior from the `IEventSender` enabling greater consistency and reuse. Added `BlobAttachmentStorage` and `BlobSasAttachmentStorage` to support Azure blob storage.
 
 ## v3.1.1
 - *Fixed:* The `DatabaseParameterCollection.AddParameter` now explicitly sets the `DbParameter.Value` to `DbNull.Value` where the value passed in is `null`.
