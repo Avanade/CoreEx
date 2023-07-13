@@ -13,7 +13,7 @@ namespace CoreEx.Azure.Storage
     /// </summary>
     public class BlobSasAttachmentStorage : IAttachmentStorage
     {
-        private readonly BlobContainerClient _blobContainerClient;
+        private readonly BlobContainerClient? _blobContainerClient;
 
         /// <summary>
         /// Creates a new instance of <see cref="BlobSasAttachmentStorage"/>
@@ -23,6 +23,12 @@ namespace CoreEx.Azure.Storage
         {
             _blobContainerClient = blobContainerClient;
         }
+
+        /// <summary>
+        /// Default constructor for <see cref="BlobSasAttachmentStorage"/>
+        /// Used for ReadAsync as SAS token is provided rather than storage account
+        /// </summary>
+        public BlobSasAttachmentStorage() { }
 
         /// <summary>
         /// The maximum size of the attachment data in bytes
@@ -67,6 +73,11 @@ namespace CoreEx.Azure.Storage
         /// <returns>Reference to Event Atttachment as <see cref="EventAttachment"/></returns>
         public async Task<EventAttachment> WriteAsync(EventData @event, BinaryData attachmentData, CancellationToken cancellationToken)
         {
+            if(_blobContainerClient == null)
+            {
+                throw new ArgumentNullException(nameof(_blobContainerClient), "BlobContainerClient must be initialized in order to write");
+            }
+
             var blobName = @event.Id ?? Guid.NewGuid().ToString();
 
             // if @event.tenantId is set, prepend to create a tenant specific folder
