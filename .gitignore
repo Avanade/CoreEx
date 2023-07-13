@@ -755,3 +755,6 @@ __azurite_db_*
 
 # Pulumi
 Pulumi.*.yaml
+
+# Tests
+/tests/**/*.runsettings

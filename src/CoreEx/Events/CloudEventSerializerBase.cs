@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CloudNative.CloudEvents;
+using CoreEx.Events.Attachments;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -16,12 +17,19 @@ namespace CoreEx.Events
     /// </summary>
     public abstract class CloudEventSerializerBase : IEventSerializer
     {
+        private const string SubjectName = "subject";
+        private const string ActionName = "action";
+        private const string CorrelationIdName = "correlationid";
+        private const string PartitionKeyName = "partitionkey";
+        private const string TenantIdName = "tenantid";
+        private const string ETagName = "etag";
+
         /// <summary>
         /// Gets the list of reserved attribute names.
         /// </summary>
         /// <remarks>The reserved names are as follows: '<c>id</c>', '<c>time</c>', '<c>type</c>', '<c>source</c>', '<c>subject</c>', '<c>action</c>', '<c>correlationid</c>', '<c>tenantid</c>', '<c>etag</c>', '<c>partitionkey</c>'. Also,
         /// an attribute name must consist of lowercase letters and digits only; any that contain other characters will be ignored.</remarks>
-        public static string[] ReservedNames { get; } = new string[] { "id", "time", "type", "source", "subject", "action", "correlationid", "tenantid", "etag", "partitionkey" };
+        public static string[] ReservedNames { get; } = new string[] { "id", "time", "type", "source", SubjectName, ActionName, CorrelationIdName, TenantIdName, ETagName, PartitionKeyName };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudEventSerializerBase"/> class.
@@ -29,16 +37,37 @@ namespace CoreEx.Events
         /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
         protected CloudEventSerializerBase(EventDataFormatter? eventDataFormatter) => EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
 
-        /// <summary>
-        /// Gets the <see cref="Events.EventDataFormatter"/>.
-        /// </summary>
+        /// <inheritdoc/>
         public EventDataFormatter EventDataFormatter { get; }
+
+        /// <inheritdoc/>
+        public IAttachmentStorage? AttachmentStorage { get; set; }
 
         /// <inheritdoc/>
         public async Task<EventData> DeserializeAsync(BinaryData eventData, CancellationToken cancellationToken = default)
         {
-            var ce = await DecodeAsync(eventData, cancellationToken).ConfigureAwait(false);
-            var @event = new EventData { Value = ce.Data };
+            CloudEvent ce;
+            var @event = new EventData();
+            if (AttachmentStorage is null)
+            {
+                ce = await DecodeAsync(eventData, cancellationToken).ConfigureAwait(false);
+                @event.Value = ce.Data;
+            }
+            else
+            {
+                ce = await DecodeAsync<EventAttachment>(eventData, cancellationToken).ConfigureAwait(false);
+                if (ce.Data is not null && ce.Data is EventAttachment attachment && !attachment.IsEmpty)
+                {
+                    var val = await AttachmentStorage.ReadAync(attachment, cancellationToken).ConfigureAwait(false)!;
+                    @event.Value = EventDataFormatter.JsonSerializer!.Deserialize(val)!;
+                }
+                else
+                {
+                    ce = await DecodeAsync(eventData, cancellationToken).ConfigureAwait(false);
+                    @event.Value = ce.Data;
+                }
+            }
+
             DeserializeFromCloudEvent(ce, @event);
             return @event;
         }
@@ -46,8 +75,28 @@ namespace CoreEx.Events
         /// <inheritdoc/>
         public async Task<EventData<T>> DeserializeAsync<T>(BinaryData eventData, CancellationToken cancellationToken = default)
         {
-            var ce = await DecodeAsync<T>(eventData, cancellationToken).ConfigureAwait(false);
-            var @event = new EventData<T> { Value = (T)ce.Data! };
+            CloudEvent ce;
+            var @event = new EventData<T>();
+            if (AttachmentStorage is null)
+            {
+                ce = await DecodeAsync<T>(eventData, cancellationToken).ConfigureAwait(false);
+                @event.Value = (T)ce.Data!;
+            }
+            else
+            {
+                ce = await DecodeAsync<EventAttachment>(eventData, cancellationToken).ConfigureAwait(false);
+                if (ce.Data is not null && ce.Data is EventAttachment attachment && !attachment.IsEmpty)
+                {
+                    var val = await AttachmentStorage.ReadAync(attachment, cancellationToken).ConfigureAwait(false)!;
+                    @event.Value = EventDataFormatter.JsonSerializer!.Deserialize<T>(val)!;
+                }
+                else
+                {
+                    ce = await DecodeAsync<T>(eventData, cancellationToken).ConfigureAwait(false);
+                    @event.Value = (T)ce.Data!;
+                }
+            }
+
             DeserializeFromCloudEvent(ce, @event);
             return @event;
         }
@@ -73,24 +122,24 @@ namespace CoreEx.Events
             @event.Type = cloudEvent.Type;
             @event.Source = cloudEvent.Source;
 
-            if (TryGetExtensionAttribute(cloudEvent, "subject", out string? val))
+            if (TryGetExtensionAttribute(cloudEvent, SubjectName, out string? val))
                 @event.Subject = val;
 
-            if (TryGetExtensionAttribute(cloudEvent, "action", out val))
+            if (TryGetExtensionAttribute(cloudEvent, ActionName, out val))
                 @event.Action = val;
 
-            if (TryGetExtensionAttribute(cloudEvent, "correlationid", out val))
+            if (TryGetExtensionAttribute(cloudEvent, CorrelationIdName, out val))
                 @event.CorrelationId = val;
             else
                 @event.CorrelationId = null;
 
-            if (TryGetExtensionAttribute(cloudEvent, "partitionkey", out val))
+            if (TryGetExtensionAttribute(cloudEvent, PartitionKeyName, out val))
                 @event.PartitionKey = val;
             
-            if (TryGetExtensionAttribute(cloudEvent, "tenantid", out val))
+            if (TryGetExtensionAttribute(cloudEvent, TenantIdName, out val))
                 @event.TenantId = val;
 
-            if (TryGetExtensionAttribute(cloudEvent, "etag", out val))
+            if (TryGetExtensionAttribute(cloudEvent, ETagName, out val))
                 @event.ETag = val;
 
             foreach (var att in cloudEvent.ExtensionAttributes)
@@ -156,12 +205,12 @@ namespace CoreEx.Events
                 Source = @event.Source ?? throw new InvalidOperationException("CloudEvents must have a Source; the EventDataFormatter should be updated to set.")
             };
 
-            SetExtensionAttribute(ce, "subject", @event.Subject);
-            SetExtensionAttribute(ce, "action", @event.Action);
-            SetExtensionAttribute(ce, "correlationid", @event.CorrelationId);
-            SetExtensionAttribute(ce, "partitionkey", @event.PartitionKey);
-            SetExtensionAttribute(ce, "tenantid", @event.TenantId);
-            SetExtensionAttribute(ce, "etag", @event.ETag);
+            SetExtensionAttribute(ce, SubjectName, @event.Subject);
+            SetExtensionAttribute(ce, ActionName, @event.Action);
+            SetExtensionAttribute(ce, CorrelationIdName, @event.CorrelationId);
+            SetExtensionAttribute(ce, PartitionKeyName, @event.PartitionKey);
+            SetExtensionAttribute(ce, TenantIdName, @event.TenantId);
+            SetExtensionAttribute(ce, ETagName, @event.ETag);
 
             if (@event.Attributes != null)
             {
@@ -177,6 +226,14 @@ namespace CoreEx.Events
             {
                 ce.DataContentType = MediaTypeNames.Application.Json;
                 ce.Data = @event.Value;
+
+                // Where attachments are supported, check the size of the data and write to the attachment storage if required.
+                if (AttachmentStorage != null)
+                {
+                    var data = EventDataFormatter.JsonSerializer!.SerializeToBinaryData(@event.Value);
+                    if (data.ToMemory().Length >= AttachmentStorage!.MaxDataSize)
+                        ce.Data = await AttachmentStorage.WriteAsync(@event, data, cancellationToken).ConfigureAwait(false);
+                }
             }
 
             return await EncodeAsync(ce, cancellationToken).ConfigureAwait(false);
