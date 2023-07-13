@@ -46,15 +46,12 @@ namespace CoreEx.Azure.Storage
         public async Task<EventAttachment> WriteAsync(EventData @event, BinaryData attachmentData, CancellationToken cancellationToken)
         {
             var blobName = @event.Id ?? Guid.NewGuid().ToString();
+            if (ContentType == MediaTypeNames.Application.Json)
+                blobName = $"{blobName}.json";
 
             // Where @event.tenantId is set, prepend to create a tenant specific folder.
             if (@event.TenantId != null)
                 blobName = $"{@event.TenantId}/{blobName}";
-
-            if (ContentType == MediaTypeNames.Application.Json)
-            {
-                blobName = $"{blobName}.json";
-            }
 
             var blobClient = _blobContainerClient.GetBlobClient(blobName);
             await blobClient.UploadAsync(attachmentData.ToStream(), cancellationToken).ConfigureAwait(false);

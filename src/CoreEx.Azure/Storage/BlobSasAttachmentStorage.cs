@@ -68,9 +68,7 @@ namespace CoreEx.Azure.Storage
 
             var blobName = @event.Id ?? Guid.NewGuid().ToString();
             if (ContentType == MediaTypeNames.Application.Json)
-            {
                 blobName = $"{blobName}.json";
-            }
 
             // Where @event.tenantId is set, prepend to create a tenant specific folder
             if (@event.TenantId != null)
