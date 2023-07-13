@@ -1,67 +1,57 @@
-﻿using Azure.Storage.Blobs;
+﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+
+using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
 using CoreEx.Events;
 using CoreEx.Events.Attachments;
 using System;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Azure.Storage
 {
     /// <summary>
-    /// This class is used to store event payloads as attachments in Azure Blob Storage using a SAS token
+    /// Provides the reading and writing of a <see cref="EventData.Value"/> attachment that exceeds the <see cref="MaxDataSize"/> as identified by a corresponding <see cref="EventAttachment"/> within 
+    /// <see href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction">Azure Blob Storage</see> using a <see href="https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview">SAS token</see>.
     /// </summary>
     public class BlobSasAttachmentStorage : IAttachmentStorage
     {
         private readonly BlobContainerClient? _blobContainerClient;
 
         /// <summary>
-        /// Creates a new instance of <see cref="BlobSasAttachmentStorage"/>
+        /// Initializes a new instance of <see cref="BlobSasAttachmentStorage"/> class with a <paramref name="blobContainerClient"/>
         /// </summary>
-        /// <param name="blobContainerClient"></param>
-        public BlobSasAttachmentStorage(BlobContainerClient blobContainerClient)
-        {
-            _blobContainerClient = blobContainerClient;
-        }
+        /// <param name="blobContainerClient">The <see cref="BlobContainerClient"/>.</param>
+        public BlobSasAttachmentStorage(BlobContainerClient blobContainerClient) => _blobContainerClient = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
 
         /// <summary>
-        /// Default constructor for <see cref="BlobSasAttachmentStorage"/>
-        /// Used for ReadAsync as SAS token is provided rather than storage account
+        /// Initializes a new instance of <see cref="BlobSasAttachmentStorage"/> class.
         /// </summary>
         public BlobSasAttachmentStorage() { }
 
-        /// <summary>
-        /// The maximum size of the attachment data in bytes
-        /// </summary>
+        /// <inheritdoc/>
         public int MaxDataSize { get; set; }
 
         /// <summary>
-        /// Number of days the SAS token is valid for
-        /// Defaults to 2 days
+        /// Gets or sets the expiratation <see cref="TimeSpan"/> that is added to <see cref="DateTimeOffset.UtcNow"/> to create the SAS token.
         /// </summary>
-        public int SasExpirationInDays { get; set; } = 2;
+        /// <remarks>Defaults to two (2) days.</remarks>
+        public TimeSpan Expiration { get; set; } = TimeSpan.FromDays(2);
 
         /// <summary>
-        /// The content type of the attachment
-        /// Defaults to application/json
+        /// Gets or sets the content type of the attachment. 
         /// </summary>
-        public string ContentType { get; set; } = "application/json";
+        /// <remarks>Defaults to <see cref="MediaTypeNames.Application.Json"/></remarks>
+        public string ContentType { get; set; } = MediaTypeNames.Application.Json;
 
-        /// <summary>
-        /// Reads the attachment data from Azure Blob Storage using the SAS token
-        /// </summary>
-        /// <param name="attachment"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns>Attachment data as <see cref="BinaryData"/></returns>
-        public Task<BinaryData> ReadAync(EventAttachment attachment, CancellationToken cancellationToken)
+        /// <inheritdoc/>
+        public async Task<BinaryData> ReadAync(EventAttachment attachment, CancellationToken cancellationToken)
         {
-            var sasToken = attachment.Attachment;
-            // get the blob client from the sas token
-            var blobClient = new BlobClient(new Uri(sasToken));
-            // download the blob
-            var blobDownloadInfo = blobClient.Download(cancellationToken);
-            // return the blob data
-            return Task.FromResult(BinaryData.FromStream(blobDownloadInfo.Value.Content));
+            var blobClient = new BlobClient(new Uri(attachment.Attachment!));
+            var blobDownloadInfo = await blobClient.DownloadAsync(cancellationToken).ConfigureAwait(false);
+
+            return BinaryData.FromStream(blobDownloadInfo.Value.Content);
         }
 
         /// <summary>
@@ -74,20 +64,17 @@ namespace CoreEx.Azure.Storage
         public async Task<EventAttachment> WriteAsync(EventData @event, BinaryData attachmentData, CancellationToken cancellationToken)
         {
             if(_blobContainerClient == null)
-            {
-                throw new ArgumentNullException(nameof(_blobContainerClient), "BlobContainerClient must be initialized in order to write");
-            }
+                throw new InvalidOperationException($"The {nameof(BlobContainerClient)} must be passed in the constructor in order to write.");
 
             var blobName = @event.Id ?? Guid.NewGuid().ToString();
 
-            // if @event.tenantId is set, prepend to create a tenant specific folder
+            // Where @event.tenantId is set, prepend to create a tenant specific folder
             if(@event.TenantId != null)
-            {
                 blobName = $"{@event.TenantId}/{blobName}";
-            }
+
             var blobClient = _blobContainerClient.GetBlobClient(blobName);
-            var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddDays(SasExpirationInDays));
-            await blobClient.UploadAsync(attachmentData.ToStream(), cancellationToken);
+            var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.Add(Expiration));
+            await blobClient.UploadAsync(attachmentData.ToStream(), cancellationToken).ConfigureAwait(false);
 
             return new EventAttachment { Attachment = sasUri.ToString(), ContentType = ContentType };
         }

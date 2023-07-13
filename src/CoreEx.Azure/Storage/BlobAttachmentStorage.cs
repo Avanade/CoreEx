@@ -1,72 +1,58 @@
-﻿using Azure.Storage.Blobs;
+﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+
+using Azure.Storage.Blobs;
 using CoreEx.Events;
 using CoreEx.Events.Attachments;
 using System;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Azure.Storage
 {
     /// <summary>
-    /// This class is used to store event payloads as attachments in Azure Blob Storage
+    /// Provides the reading and writing of a <see cref="EventData.Value"/> attachment that exceeds the <see cref="MaxDataSize"/> as identified by a corresponding <see cref="EventAttachment"/> within 
+    /// <see href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction">Azure Blob Storage</see>.
     /// </summary>
     public class BlobAttachmentStorage : IAttachmentStorage
     {
         private readonly BlobContainerClient _blobContainerClient;
 
         /// <summary>
-        /// Creates a new instance of <see cref="BlobAttachmentStorage"/>
+        /// Initializes a new instance of <see cref="BlobAttachmentStorage"/> class.
         /// </summary>
-        /// <param name="blobContainerClient"></param>
-        public BlobAttachmentStorage(BlobContainerClient blobContainerClient)
-        {
-            _blobContainerClient = blobContainerClient;
-        }
+        /// <param name="blobContainerClient">The <see cref="BlobContainerClient"/>.</param>
+        public BlobAttachmentStorage(BlobContainerClient blobContainerClient) => _blobContainerClient = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
 
-        /// <summary>
-        /// The maximum size of the attachment data in bytes
-        /// </summary>
+        /// <inheritdoc/>
         public int MaxDataSize { get; set; }
 
         /// <summary>
-        /// The content type of the attachment
-        /// Defaults to application/json
+        /// Gets or sets the content type of the attachment. 
         /// </summary>
-        public string ContentType { get; set; } = "application/json";
+        /// <remarks>Defaults to <see cref="MediaTypeNames.Application.Json"/></remarks>
+        public string ContentType { get; set; } = MediaTypeNames.Application.Json;
 
-        /// <summary>
-        /// Reads the attachment data from Azure Blob Storage and returns the data
-        /// </summary>
-        /// <param name="attachment"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns>Attachment data as <see cref="BinaryData"/></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public Task<BinaryData> ReadAync(EventAttachment attachment, CancellationToken cancellationToken)
+        /// <inheritdoc/>
+        public async Task<BinaryData> ReadAync(EventAttachment attachment, CancellationToken cancellationToken)
         {
             var blobClient = _blobContainerClient.GetBlobClient(attachment.Attachment);
-            var blobDownloadInfo = blobClient.Download(cancellationToken);
-            
-            return Task.FromResult(BinaryData.FromStream(blobDownloadInfo.Value.Content));
+            var blobDownloadInfo = await blobClient.DownloadAsync(cancellationToken).ConfigureAwait(false);
+
+            return BinaryData.FromStream(blobDownloadInfo.Value.Content);
         }
 
-        /// <summary>
-        /// Writes the attachment data to Azure Blob Storage and returns a SAS token to the blob
-        /// </summary>
-        /// <param name="event"></param>
-        /// <param name="attachmentData"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns>Reference to Event Atttachment as <see cref="EventAttachment"/></returns>
+        /// <inheritdoc/>
         public async Task<EventAttachment> WriteAsync(EventData @event, BinaryData attachmentData, CancellationToken cancellationToken)
         {
             var blobName = @event.Id ?? Guid.NewGuid().ToString();
 
-            // if @event.tenantId is set, prepend to create a tenant specific folder
+            // Where @event.tenantId is set, prepend to create a tenant specific folder.
             if (@event.TenantId != null)
-            {
                 blobName = $"{@event.TenantId}/{blobName}";
-            }
+
             var blobClient = _blobContainerClient.GetBlobClient(blobName);
-            await blobClient.UploadAsync(attachmentData.ToStream(), cancellationToken);
+            await blobClient.UploadAsync(attachmentData.ToStream(), cancellationToken).ConfigureAwait(false);
 
             return new EventAttachment { Attachment = blobName, ContentType = ContentType };
         }
