@@ -151,7 +151,7 @@ namespace CoreEx.Azure.ServiceBus
                         unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id ?? string.Empty));
                     }
                 }
-            }, cancellationToken);
+            }, cancellationToken, nameof(SendAsync));
         }
 
         /// <summary>

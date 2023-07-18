@@ -84,7 +84,7 @@ namespace CoreEx.Database.SqlServer
                     .ParamWith(tenantId, $"@{DatabaseColumns.SessionContextTenantIdName}")
                     .ParamWith(userId, $"@{DatabaseColumns.SessionContextUserIdName}")
                     .NonQueryAsync(ct).ConfigureAwait(false);
-            }, cancellationToken);
+            }, cancellationToken, nameof(SetSqlSessionContextAsync));
         }
 
         /// <summary>

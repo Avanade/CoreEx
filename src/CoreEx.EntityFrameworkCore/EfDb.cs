@@ -67,10 +67,13 @@ namespace CoreEx.EntityFrameworkCore
 
         /// <inheritdoc/>
         public async Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() 
-            => (await GetWithResultAsync<T, TModel>(args, key, cancellationToken).ConfigureAwait(false)).Value;
+            => (await GetWithResultInternalAsync<T, TModel>(args, key, nameof(GetAsync), cancellationToken).ConfigureAwait(false)).Value;
             
         /// <inheritdoc/>
-        public async Task<Result<T?>> GetWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
+        public Task<Result<T?>> GetWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
+            => GetWithResultInternalAsync<T, TModel>(args, key, nameof(GetWithResultAsync), cancellationToken);
+
+        private async Task<Result<T?>> GetWithResultInternalAsync<T, TModel>(EfDbArgs args, CompositeKey key, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
         {
             var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), cancellationToken).ConfigureAwait(false);
             if (args.ClearChangeTrackerAfterGet)
@@ -81,14 +84,20 @@ namespace CoreEx.EntityFrameworkCore
 
             var result = Mapper.Map<T>(model, OperationTypes.Get);
             return (result is not null) ? Result<T?>.Ok(CleanUpResult(result)) : Result<T?>.Fail(new InvalidOperationException("Mapping from the EF model must not result in a null value."));
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken, memberName).ConfigureAwait(false);
 
         /// <inheritdoc/>
         public async Task<T> CreateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
-            => (await CreateWithResultAsync<T, TModel>(args, value, cancellationToken).ConfigureAwait(false)).Value;
+            => (await CreateWithResultInternalAsync<T, TModel>(args, value, nameof(CreateAsync), cancellationToken).ConfigureAwait(false)).Value;
 
         /// <inheritdoc/>
-        public async Task<Result<T>> CreateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
+        public Task<Result<T>> CreateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
+            => CreateWithResultInternalAsync<T, TModel>(args, value, nameof(CreateWithResultAsync), cancellationToken);
+
+        /// <summary>
+        /// Performs the create internal.
+        /// </summary>
+        private async Task<Result<T>> CreateWithResultInternalAsync<T, TModel>(EfDbArgs args, T value, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
             if (value == null)
@@ -111,15 +120,21 @@ namespace CoreEx.EntityFrameworkCore
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
                 return Result.Ok(CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, OperationTypes.Get)! : value));
-            }, cancellationToken).ConfigureAwait(false);
+            }, cancellationToken, memberName).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async Task<T> UpdateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
-            => (await UpdateWithResultAsync<T, TModel>(args, value, cancellationToken).ConfigureAwait(false)).Value;
+            => (await UpdateWithResultInternalAsync<T, TModel>(args, value, nameof(UpdateAsync), cancellationToken).ConfigureAwait(false)).Value;
 
         /// <inheritdoc/>
-        public async Task<Result<T>> UpdateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
+        public Task<Result<T>> UpdateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
+            => UpdateWithResultInternalAsync<T, TModel>(args, value, nameof(UpdateWithResultAsync), cancellationToken);
+
+        /// <summary>
+        /// Performs the update internal.
+        /// </summary>
+        private async Task<Result<T>> UpdateWithResultInternalAsync<T, TModel>(EfDbArgs args, T value, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
             if (value == null)
@@ -149,15 +164,21 @@ namespace CoreEx.EntityFrameworkCore
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
                 return Result.Ok(CleanUpResult(args.Refresh ? Mapper.Map<TModel, T>(model, Mapping.OperationTypes.Get)! : value));
-            }, cancellationToken).ConfigureAwait(false);
+            }, cancellationToken, memberName).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async Task DeleteAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
-            => (await DeleteWithResultAsync<T, TModel>(args, key, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+            => (await DeleteWithResultInternalAsync<T, TModel>(args, key, nameof(DeleteAsync), cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
         /// <inheritdoc/>
-        public async Task<Result> DeleteWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
+        public Task<Result> DeleteWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
+            => DeleteWithResultInternalAsync<T, TModel>(args, key, nameof(DeleteWithResultAsync), cancellationToken);
+
+        /// <summary>
+        /// Performs the delete internal.
+        /// </summary>
+        private async Task<Result> DeleteWithResultInternalAsync<T, TModel>(EfDbArgs args, CompositeKey key, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey where TModel : class, new()
         {
             CheckSaveArgs(args);
 
@@ -184,7 +205,7 @@ namespace CoreEx.EntityFrameworkCore
                     await DbContext.SaveChangesAsync(true, ct).ConfigureAwait(false);
 
                 return Result.Success;
-            }, cancellationToken).ConfigureAwait(false);
+            }, cancellationToken, memberName).ConfigureAwait(false);
         }
 
         /// <summary>
