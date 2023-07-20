@@ -16,10 +16,10 @@ namespace CoreEx.Database
     public class DatabaseInvoker : InvokerBase<IDatabase>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, IDatabase database, Func<TResult> func) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, IDatabase database, Func<InvokeArgs, TResult> func) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected override async Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, IDatabase database, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected override async Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, IDatabase database, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {

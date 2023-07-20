@@ -73,7 +73,7 @@ namespace CoreEx.EntityFrameworkCore
         public Task<Result<T?>> GetWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
             => GetWithResultInternalAsync<T, TModel>(args, key, nameof(GetWithResultAsync), cancellationToken);
 
-        private async Task<Result<T?>> GetWithResultInternalAsync<T, TModel>(EfDbArgs args, CompositeKey key, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (key, ct) =>
+        private async Task<Result<T?>> GetWithResultInternalAsync<T, TModel>(EfDbArgs args, CompositeKey key, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (_, key, ct) =>
         {
             var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), cancellationToken).ConfigureAwait(false);
             if (args.ClearChangeTrackerAfterGet)
@@ -106,7 +106,7 @@ namespace CoreEx.EntityFrameworkCore
             ChangeLog.PrepareCreated(value);
             Cleaner.ResetTenantId(value);
 
-            return await Invoker.InvokeAsync(this, args, value, async (args, value, ct) =>
+            return await Invoker.InvokeAsync(this, args, value, async (_, args, value, ct) =>
             {
                 TModel model = Mapper.Map<T, TModel>(value, Mapping.OperationTypes.Create);
                 if (model == null)
@@ -143,7 +143,7 @@ namespace CoreEx.EntityFrameworkCore
             ChangeLog.PrepareUpdated(value);
             Cleaner.ResetTenantId(value);
 
-            return await Invoker.InvokeAsync(this, args, value, async (args, value, ct) =>
+            return await Invoker.InvokeAsync(this, args, value, async (_, args, value, ct) =>
             {
                 // Check (find) if the entity exists.
                 var model = await DbContext.FindAsync<TModel>(GetEfKeys(value), ct).ConfigureAwait(false);
@@ -182,7 +182,7 @@ namespace CoreEx.EntityFrameworkCore
         {
             CheckSaveArgs(args);
 
-            return await Invoker.InvokeAsync(this, args, key, async (args, key, ct) =>
+            return await Invoker.InvokeAsync(this, args, key, async (_, args, key, ct) =>
             {
                 // A pre-read is required to get the row version for concurrency.
                 var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), ct).ConfigureAwait(false);

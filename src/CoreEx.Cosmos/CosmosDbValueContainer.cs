@@ -116,7 +116,7 @@ namespace CoreEx.Cosmos
         public CosmosDbValueModelQuery<TModel> ModelQuery(CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, dbArgs, query);
 
         /// <inheritdoc/>
-        public override Task<Result<T?>> GetWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (key, args, ct) =>
+        public override Task<Result<T?>> GetWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (_, key, args, ct) =>
         {
             try
             {
@@ -134,7 +134,7 @@ namespace CoreEx.Cosmos
         }, cancellationToken, nameof(GetWithResultAsync));
 
         /// <inheritdoc/>
-        public override Task<Result<T>> CreateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (v, args, ct) =>
+        public override Task<Result<T>> CreateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (_, v, args, ct) =>
         {
             var pk = GetPartitionKey(v);
             ChangeLog.PrepareCreated(v);
@@ -153,7 +153,7 @@ namespace CoreEx.Cosmos
         }, cancellationToken, nameof(CreateWithResultAsync));
 
         /// <inheritdoc/>
-        public override Task<Result<T>> UpdateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (v, args, ct) =>
+        public override Task<Result<T>> UpdateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (_, v, args, ct) =>
         {
             var key = GetCosmosId(v);
             var pk = GetPartitionKey(v);
@@ -189,7 +189,7 @@ namespace CoreEx.Cosmos
         }, cancellationToken, nameof(UpdateWithResultAsync));
 
         /// <inheritdoc/>
-        public override Task<Result> DeleteWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (key, args, ct) =>
+        public override Task<Result> DeleteWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (_, key, args, ct) =>
         {
             try
             {

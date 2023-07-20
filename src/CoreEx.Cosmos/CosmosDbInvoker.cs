@@ -16,10 +16,10 @@ namespace CoreEx.Cosmos
     public class CosmosDbInvoker : InvokerBase<ICosmosDb>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, ICosmosDb cosmos, Func<TResult> func) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, ICosmosDb cosmos, Func<InvokeArgs, TResult> func) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, ICosmosDb cosmos, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, ICosmosDb cosmos, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {

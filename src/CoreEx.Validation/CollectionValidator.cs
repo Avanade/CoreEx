@@ -70,7 +70,7 @@ namespace CoreEx.Validation
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
-            return ValidationInvoker.Current.InvokeAsync(this, async cancellationToken =>
+            return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
                 args ??= new ValidationArgs();
                 if (string.IsNullOrEmpty(args.FullyQualifiedEntityName))

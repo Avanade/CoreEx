@@ -15,7 +15,7 @@ namespace CoreEx.Solace.PubSub
     public class PubSubSenderInvoker : InvokerBase<PubSubSender>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, PubSubSender invoker, Func<TResult> func)
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, PubSubSender invoker, Func<InvokeArgs, TResult> func)
         {
             TransactionScope? txn = null;
             try
@@ -30,7 +30,7 @@ namespace CoreEx.Solace.PubSub
         }
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, PubSubSender invoker, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, PubSubSender invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             TransactionScope? txn = null;
             try

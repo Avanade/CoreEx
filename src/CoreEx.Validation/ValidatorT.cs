@@ -25,7 +25,7 @@ namespace CoreEx.Validation
         /// <inheritdoc/>
         public override Task<ValidationContext<TEntity>> ValidateAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
         {
-            return ValidationInvoker.Current.InvokeAsync(this, async cancellationToken =>
+            return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
                 var context = new ValidationContext<TEntity>(value, args ?? new ValidationArgs());
                 if (value is null)

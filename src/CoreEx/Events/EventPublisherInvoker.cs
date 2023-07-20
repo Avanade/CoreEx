@@ -21,10 +21,10 @@ namespace CoreEx.Events
         public static EventPublisherInvoker Current => CoreEx.ExecutionContext.GetService<EventPublisherInvoker>() ?? (_default ??= new EventPublisherInvoker());
 
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, EventPublisher invoker, Func<TResult> func) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, EventPublisher invoker, Func<InvokeArgs, TResult> func) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, EventPublisher invoker, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, EventPublisher invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             invokeArgs.Activity?.AddTag(InvokerEventSender, invoker.EventSender.GetType().FullName);
             return base.OnInvokeAsync(invokeArgs, invoker, func, cancellationToken);

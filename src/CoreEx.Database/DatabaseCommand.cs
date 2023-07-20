@@ -107,7 +107,7 @@ namespace CoreEx.Database
             if (multiSetList == null || multiSetList.Count == 0)
                 throw new ArgumentException($"At least one {nameof(IMultiSetArgs)} must be supplied.", nameof(multiSetArgs));
 
-            return Database.Invoker.InvokeAsync(Database, multiSetArgs, multiSetList, async (multiSetArgs, multiSetList, ct) =>
+            return Database.Invoker.InvokeAsync(Database, multiSetArgs, multiSetList, async (_, multiSetArgs, multiSetList, ct) =>
             {
                 // Create and execute the command. 
                 using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
@@ -291,7 +291,7 @@ namespace CoreEx.Database
         /// <summary>
         /// Executes a non-query command with a <see cref="Result{T}"/> internal.
         /// </summary>
-        private Task<Result<int>> NonQueryWithResultInternalAsync(Action<DbParameterCollection>? parameters, string memberName, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
+        private Task<Result<int>> NonQueryWithResultInternalAsync(Action<DbParameterCollection>? parameters, string memberName, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (_, parameters, ct) =>
         {
             using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
             parameters?.Invoke(cmd.Parameters);
@@ -340,7 +340,7 @@ namespace CoreEx.Database
         /// <summary>
         /// Executes the query and returns the first column of the first row in the result set returned by the query with a <see cref="Result{T}"/> internal.
         /// </summary>
-        private Task<Result<T>> ScalarWithResultInternalAsync<T>(Action<DbParameterCollection>? parameters, string memberName, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (parameters, ct) =>
+        private Task<Result<T>> ScalarWithResultInternalAsync<T>(Action<DbParameterCollection>? parameters, string memberName, CancellationToken cancellationToken = default) => Database.Invoker.InvokeAsync(Database, parameters, async (_, parameters, ct) =>
         {
             using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
             parameters?.Invoke(cmd.Parameters);
@@ -575,7 +575,7 @@ namespace CoreEx.Database
             if (mapper == null)
                 throw new ArgumentNullException(nameof(mapper));
 
-            return await Database.Invoker.InvokeAsync(Database, mapper, throwWhereMulti, stopAfterOneRow, async (mapper, throwWhereMulti, stopAfterOneRow, ct) =>
+            return await Database.Invoker.InvokeAsync(Database, mapper, throwWhereMulti, stopAfterOneRow, async (_, mapper, throwWhereMulti, stopAfterOneRow, ct) =>
             {
                 int i = 0;
 

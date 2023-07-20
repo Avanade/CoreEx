@@ -89,7 +89,7 @@ namespace CoreEx.Solace.PubSub
             if (events == null || !events.Any())
                 return Task.CompletedTask;
 
-            Invoker.Invoke(this, events, (events) =>
+            Invoker.Invoke(this, events, (_, events) =>
             {
                 var totalCount = events.Count();
                 Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);

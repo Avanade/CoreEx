@@ -52,7 +52,7 @@ namespace CoreEx.Validation
         /// <returns>A <see cref="ValueValidatorResult{TEntity, TProperty}"/>.</returns>
         public Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(T? value, string? name, string? jsonName, LText? text = null, bool throwOnError = false, CancellationToken cancellationToken = default)
         {
-            return ValidationInvoker.Current.InvokeAsync(this, async cancellationToken =>
+            return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
                 var vv = new ValidationValue<T>(null, value);
                 var ctx = new PropertyContext<ValidationValue<T>, T>(new ValidationContext<ValidationValue<T>>(vv,
@@ -88,7 +88,7 @@ namespace CoreEx.Validation
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
-            return ValidationInvoker.Current.InvokeAsync(this, async cancellationToken =>
+            return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
                 var vv = new ValidationValue<T>(context.Parent.Value, context.Value);
                 var vc = new ValidationContext<ValidationValue<T>>(vv, new ValidationArgs

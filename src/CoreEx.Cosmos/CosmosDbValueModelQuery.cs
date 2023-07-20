@@ -52,7 +52,7 @@ namespace CoreEx.Cosmos
         public IQueryable<CosmosDbValue<TModel>> AsQueryable() => AsQueryable(true, false);
 
         /// <inheritdoc/>
-        public override Task<Result> SelectQueryWithResultAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, coll, async (items, ct) =>
+        public override Task<Result> SelectQueryWithResultAsync<TColl>(TColl coll, CancellationToken cancellationToken = default) => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, coll, async (_, items, ct) =>
         {
             var q = AsQueryable(false, true);
 

@@ -74,7 +74,7 @@ namespace CoreEx.EntityFrameworkCore
         /// <summary>
         /// Manages the DbContext and underlying query construction and lifetime.
         /// </summary>
-        private async Task<Result<TResult?>> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, string memberName, CancellationToken cancellationToken) => await EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, async (efdb, query, args, ct) =>
+        private async Task<Result<TResult?>> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, string memberName, CancellationToken cancellationToken) => await EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, async (_, efdb, query, args, ct) =>
         {
             var dbSet = args.QueryNoTracking ? efdb.DbContext.Set<TModel>().AsNoTracking() : efdb.DbContext.Set<TModel>();
             return Result<TResult?>.Ok(await executeAsync((query == null) ? dbSet : query(dbSet), ct).ConfigureAwait(false));

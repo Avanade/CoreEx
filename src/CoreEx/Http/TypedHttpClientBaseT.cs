@@ -281,7 +281,7 @@ namespace CoreEx.Http
         {
             try
             {
-                return await TypedHttpClientInvoker.Current.InvokeAsync(this, async cancellationToken => await SendInternalAsync(request, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+                return await TypedHttpClientInvoker.Current.InvokeAsync(this, async (_, cancellationToken) => await SendInternalAsync(request, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             }
             finally
             {

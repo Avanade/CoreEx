@@ -90,7 +90,7 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="cancellationToken"><inheritdoc/></param>
         /// <remarks>Initially performs the <see cref="EventSerializer">serialization</see> for each queued event, then performs a single <see cref="EventSender">send</see> for all.</remarks>
-        public Task SendAsync(CancellationToken cancellationToken = default) => EventPublisherInvoker.Current.InvokeAsync(this, async cancellationToken =>
+        public Task SendAsync(CancellationToken cancellationToken = default) => EventPublisherInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
         {
             var list = new List<EventSendData>();
             while (_queue.TryDequeue(out var item))

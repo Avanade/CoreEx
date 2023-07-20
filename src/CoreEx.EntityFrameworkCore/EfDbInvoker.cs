@@ -16,10 +16,10 @@ namespace CoreEx.EntityFrameworkCore
     public class EfDbInvoker : InvokerBase<IEfDb>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, IEfDb efDb, Func<TResult> func) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, IEfDb efDb, Func<InvokeArgs, TResult> func) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, IEfDb efdb, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, IEfDb efdb, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             try
             {
