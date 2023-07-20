@@ -65,7 +65,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>This is, and must be, used by all methods that process an <see cref="HttpRequest"/> to ensure that the standardized before and after, success and error, handling occurs as required.</remarks>
-        public new Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified, CancellationToken cancellationToken = default)
+        public Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified, CancellationToken cancellationToken = default)
             => base.RunAsync(request, function, operationType, cancellationToken);
 
         /// <summary>
@@ -109,7 +109,7 @@ namespace CoreEx.AspNetCore.WebApis
                     return await CreateActionResultFromExceptionAsync(this, request.HttpContext, vr.ValidationException!, Settings, Logger, OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
 
                 return await function(new WebApiParam<TValue>(wap, vr.Value), ct).ConfigureAwait(false);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(RunAsync)).ConfigureAwait(false);
         }
 
         #region GetAsync
@@ -155,7 +155,7 @@ namespace CoreEx.AspNetCore.WebApis
             {
                 var result = await function(wap, ct).ConfigureAwait(false);
                 return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(GetAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -199,7 +199,7 @@ namespace CoreEx.AspNetCore.WebApis
             {
                 await function(wap, ct).ConfigureAwait(false);
                 return new ExtendedStatusCodeResult(statusCode) { Location = locationUri?.Invoke() };
-            }, operationType, cancellationToken).ConfigureAwait(false);                                                   
+            }, operationType, cancellationToken, nameof(PostAsync)).ConfigureAwait(false);                                                   
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 await function(wapv!, ct).ConfigureAwait(false);
                 return new ExtendedStatusCodeResult(statusCode) { Location = locationUri?.Invoke() };
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PostAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -339,7 +339,7 @@ namespace CoreEx.AspNetCore.WebApis
             {
                 var result = await function(wap, ct).ConfigureAwait(false);
                 return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: locationUri?.Invoke(result));
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PostAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -441,7 +441,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 var result = await function(wapv!, ct).ConfigureAwait(false);
                 return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: locationUri?.Invoke(result));
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PostAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -535,7 +535,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 await function(wapv!, ct).ConfigureAwait(false);
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PutAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -633,7 +633,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 var result = await function(wapv!, ct).ConfigureAwait(false);
                 return ValueContentResult.CreateResult(result, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PutAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -737,7 +737,7 @@ namespace CoreEx.AspNetCore.WebApis
                 // Update the value.
                 var result = await put(wapv!, ct).ConfigureAwait(false);
                 return ValueContentResult.CreateResult(result, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PutAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -809,7 +809,7 @@ namespace CoreEx.AspNetCore.WebApis
                 catch (NotFoundException) when (ConvertNotfoundToDefaultStatusCodeOnDelete) { /* Return default status code. */ }
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(DeleteAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -908,7 +908,7 @@ namespace CoreEx.AspNetCore.WebApis
                 }
 
                 return ValueContentResult.CreateResult(Value, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
         }
 
         #endregion

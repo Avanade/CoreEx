@@ -75,6 +75,6 @@ namespace CoreEx.Cosmos
                 Paging.TotalCount = (await q.CountAsync(cancellationToken).ConfigureAwait(false)).Resource;
 
             return Result.Success;
-        }, cancellationToken);
+        }, cancellationToken, nameof(SelectQueryWithResultAsync));
     }
 }

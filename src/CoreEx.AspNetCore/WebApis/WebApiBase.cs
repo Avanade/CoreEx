@@ -16,13 +16,14 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Mime;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.AspNetCore.WebApis
 {
     /// <summary>
-    /// Provides the base Web API execution encapsulation to <see cref="RunAsync(HttpRequest, Func{WebApiParam, CancellationToken, Task{IActionResult}}, OperationType, CancellationToken)"/> the underlying logic in a consistent manner.
+    /// Provides the base Web API execution encapsulation to <see cref="RunAsync"/> the underlying logic in a consistent manner.
     /// </summary>
     public abstract class WebApiBase
     {
@@ -93,8 +94,9 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="operationType">The <see cref="OperationType"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <remarks>This is, and must be, used by all methods that process an <see cref="HttpRequest"/> to ensure that the standardized before and after, success and error, handling occurs as required.</remarks>
-        protected async Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified, CancellationToken cancellationToken = default)
+        protected async Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -105,7 +107,7 @@ namespace CoreEx.AspNetCore.WebApis
             // Invoke the "actual" function via the pluggable invoker.
             ExecutionContext.OperationType = operationType;
             var wap = new WebApiParam(this, new WebApiRequestOptions(request), operationType);
-            return await Invoker.InvokeAsync(this, wap, (w, ct) => function(w, ct), wap, cancellationToken).ConfigureAwait(false);
+            return await Invoker.InvokeAsync(this, wap, (w, ct) => function(w, ct), wap, cancellationToken, memberName).ConfigureAwait(false);
         }
 
         /// <summary>

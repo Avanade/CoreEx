@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,19 +15,6 @@ namespace CoreEx.Invokers
     /// virtual methods being called to manage the underlying invocation; therefore, where overridding each should be overridden with the same logic. Where no result is specified this defaults to '<c>object?</c>' for the purposes of execution.</remarks>
     public abstract class InvokerBase<TInvoker>
     {
-        /// <summary>
-        /// Gets or sets the <see cref="ActivitySource"/> used for standardized (open-telemetry) tracing.
-        /// </summary>
-        public static ActivitySource ActivitySource { get; set; } = new ActivitySource(typeof(TInvoker).FullName ?? throw new InvalidOperationException("The TInvoker Type must have a FullName."));
-
-        /// <summary>
-        /// Creates the tracing <see cref="Activity.OperationName"/> by concatenating the <paramref name="invoker"/> and <paramref name="memberName"/>.
-        /// </summary>
-        /// <param name="invoker">The invoker.</param>
-        /// <param name="memberName">The calling member name.</param>
-        /// <returns>The <see cref="Activity.OperationName"/>.</returns>
-        internal static string CreateTracingOperationName(TInvoker invoker, string? memberName) => invoker is null ? memberName ?? nameof(Invoke) : $"{invoker.GetType().FullName}.{memberName ?? nameof(Invoke)}";
-
         /// <summary>
         /// Invokes a <paramref name="func"/> with a <typeparamref name="TResult"/> synchronously.
         /// </summary>
@@ -55,14 +41,14 @@ namespace CoreEx.Invokers
         /// </summary>
         private TResult TraceOnInvoke<TResult>(TInvoker invoker, Func<TResult> func, string? memberName)
         {
-            var ia = new InvokeArgs { Activity = ActivitySource.StartActivity(CreateTracingOperationName(invoker, memberName)), MemberName = memberName };
+            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName);
             try
             {
-                return OnInvoke(ia, invoker, func);
+                return ia.TraceResult(OnInvoke(ia, invoker, func));
             }
             finally
             {
-                ia.Activity?.Stop();
+                ia.Complete();
             }
         }
 
@@ -71,14 +57,14 @@ namespace CoreEx.Invokers
         /// </summary>
         private async Task<TResult> TraceOnInvokeAsync<TResult>(TInvoker invoker, Func<CancellationToken, Task<TResult>> func, string? memberName, CancellationToken cancellationToken)
         {
-            var ia = new InvokeArgs { Activity = ActivitySource.StartActivity(CreateTracingOperationName(invoker, memberName)), MemberName = memberName };
+            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName);
             try
             {
-                return await OnInvokeAsync(ia, invoker, func, cancellationToken).ConfigureAwait(false);
+                return ia.TraceResult(await OnInvokeAsync(ia, invoker, func, cancellationToken).ConfigureAwait(false));
             }
             finally
             {
-                ia.Activity?.Stop();
+                ia.Complete();
             }
         }
 
@@ -97,7 +83,7 @@ namespace CoreEx.Invokers
         /// Invokes an <paramref name="action"/> synchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="p1">TParameter 1 to pass through to the action.</param>
+        /// <param name="p1">Parameter 1 to pass through to the action.</param>
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public void Invoke<T1>(TInvoker invoker, T1 p1, Action<T1> action, [CallerMemberName] string? memberName = null)
@@ -208,7 +194,7 @@ namespace CoreEx.Invokers
         #region Async/NoResult
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="func">The function to invoke.</param>
@@ -218,7 +204,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async ct => { await func(ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">TParameter 1 to pass through to the function.</param>
@@ -229,7 +215,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async ct => { await func(p1, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
@@ -241,7 +227,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async ct => { await func(p1, p2, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
@@ -254,7 +240,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async ct => { await func(p1, p2, p3, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
@@ -272,7 +258,7 @@ namespace CoreEx.Invokers
         #region Async/Result
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="func">The function to invoke.</param>
@@ -283,7 +269,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), ct => func(ct), memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">TParameter 1 to pass through to the function.</param>
@@ -295,7 +281,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), ct => func(p1, ct), memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
@@ -308,7 +294,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), ct => func(p1, p2, ct), memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
@@ -322,7 +308,7 @@ namespace CoreEx.Invokers
             => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), ct => func(p1, p2, p3, ct), memberName, cancellationToken);
 
         /// <summary>
-        /// Invokes an <paramref name="func"/> synchronously.
+        /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
         /// <param name="invoker">The invoker.</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>

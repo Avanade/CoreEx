@@ -131,7 +131,7 @@ namespace CoreEx.Cosmos
                     .ThenAs(() => GetResponseValue(val));
             }
             catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return Result<T?>.None; }
-        }, cancellationToken);
+        }, cancellationToken, nameof(GetWithResultAsync));
 
         /// <inheritdoc/>
         public override Task<Result<T>> CreateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (v, args, ct) =>
@@ -150,7 +150,7 @@ namespace CoreEx.Cosmos
                     var resp = await Container.CreateItemAsync(cvm, pk, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
                     return GetResponseValue(resp)!;
                 });
-        }, cancellationToken);
+        }, cancellationToken, nameof(CreateWithResultAsync));
 
         /// <inheritdoc/>
         public override Task<Result<T>> UpdateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (v, args, ct) =>
@@ -186,7 +186,7 @@ namespace CoreEx.Cosmos
                     resp = await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
                     return GetResponseValue(resp)!;
                 });
-        }, cancellationToken);
+        }, cancellationToken, nameof(UpdateWithResultAsync));
 
         /// <inheritdoc/>
         public override Task<Result> DeleteWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (key, args, ct) =>
@@ -211,6 +211,6 @@ namespace CoreEx.Cosmos
                     });
             }
             catch (CosmosException cex) when (cex.StatusCode == System.Net.HttpStatusCode.NotFound) { return Result.NotFoundError(); }
-        }, cancellationToken);
+        }, cancellationToken, nameof(DeleteWithResultAsync));
     }
 }

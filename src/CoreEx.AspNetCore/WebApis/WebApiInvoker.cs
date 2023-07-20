@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreEx.AspNetCore.WebApis
 {
     /// <summary>
-    /// Provides pluggable invocation orchestration, logging and exception handling for <see cref="WebApiBase.RunAsync(Microsoft.AspNetCore.Http.HttpRequest, Func{WebApiParam, CancellationToken, Task{Microsoft.AspNetCore.Mvc.IActionResult}}, OperationType, CancellationToken)"/>.
+    /// Provides pluggable invocation orchestration, logging and exception handling for <see cref="WebApiBase.RunAsync"/>.
     /// </summary>
     public class WebApiInvoker : InvokerBase<WebApiBase, WebApiParam>
     {
@@ -30,10 +30,10 @@ namespace CoreEx.AspNetCore.WebApis
         public bool CatchAndHandleExceptions { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(WebApiBase invoker, Func<TResult> func, WebApiParam? args) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, WebApiBase invoker, Func<TResult> func, WebApiParam? args) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(WebApiBase owner, Func<CancellationToken, Task<TResult>> func, WebApiParam? param, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, WebApiBase owner, Func<CancellationToken, Task<TResult>> func, WebApiParam? param, CancellationToken cancellationToken)
         {
             if (param == null)
                 throw new ArgumentNullException(nameof(param));

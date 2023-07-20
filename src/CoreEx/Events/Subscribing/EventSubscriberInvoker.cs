@@ -18,18 +18,10 @@ namespace CoreEx.Events.Subscribing
         private const string LogFormat = "{Message} [Source: {Source}, Handling: {Handling}]";
 
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(IErrorHandling invoker, Func<TResult> func, ILogger? args) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, IErrorHandling invoker, Func<TResult> func, ILogger? args) => throw new NotSupportedException();
 
-        /// <summary>
-        /// Invokes the <paramref name="func"/> providing consistent <paramref name="errorHandling"/>.
-        /// </summary>
-        /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
-        /// <param name="errorHandling">The <see cref="IErrorHandling"/> configuration.</param>
-        /// <param name="func">The function to invoke.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The result.</returns>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(IErrorHandling errorHandling, Func<CancellationToken, Task<TResult>> func, ILogger? logger, CancellationToken cancellationToken)
+        /// <inheritdoc/>
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, IErrorHandling errorHandling, Func<CancellationToken, Task<TResult>> func, ILogger? logger, CancellationToken cancellationToken)
         {
             if (errorHandling is null) throw new ArgumentNullException(nameof(errorHandling));
             if (func is null) throw new ArgumentNullException(nameof(func));

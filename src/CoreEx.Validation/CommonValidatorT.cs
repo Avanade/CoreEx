@@ -50,28 +50,31 @@ namespace CoreEx.Validation
         /// <param name="throwOnError">Indicates to throw a <see cref="ValidationException"/> where an error was found.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>A <see cref="ValueValidatorResult{TEntity, TProperty}"/>.</returns>
-        public async Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(T? value, string? name, string? jsonName, LText? text = null, bool throwOnError = false, CancellationToken cancellationToken = default)
+        public Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(T? value, string? name, string? jsonName, LText? text = null, bool throwOnError = false, CancellationToken cancellationToken = default)
         {
-            var vv = new ValidationValue<T>(null, value);
-            var ctx = new PropertyContext<ValidationValue<T>, T>(new ValidationContext<ValidationValue<T>>(vv,
-                new ValidationArgs()), value, name ?? Name, jsonName ?? JsonName, text ?? PropertyExpression.ConvertToSentenceCase(name) ?? Text);
-
-            await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
-            var res = new ValueValidatorResult<ValidationValue<T>, T>(ctx);
-
-            if (ctx.Parent.FailureResult is null)
+            return ValidationInvoker.Current.InvokeAsync(this, async cancellationToken =>
             {
-                var result = await OnValidateAsync(ctx, cancellationToken).ConfigureAwait(false);
-                if (result.IsSuccess && _additionalAsync != null)
-                    result = await _additionalAsync(ctx, cancellationToken).ConfigureAwait(false);
+                var vv = new ValidationValue<T>(null, value);
+                var ctx = new PropertyContext<ValidationValue<T>, T>(new ValidationContext<ValidationValue<T>>(vv,
+                    new ValidationArgs()), value, name ?? Name, jsonName ?? JsonName, text ?? PropertyExpression.ConvertToSentenceCase(name) ?? Text);
 
-                ctx.Parent.SetFailureResult(result);
-            }
+                await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
+                var res = new ValueValidatorResult<ValidationValue<T>, T>(ctx);
 
-            if (throwOnError)
-                res.ThrowOnError();
+                if (ctx.Parent.FailureResult is null)
+                {
+                    var result = await OnValidateAsync(ctx, cancellationToken).ConfigureAwait(false);
+                    if (result.IsSuccess && _additionalAsync != null)
+                        result = await _additionalAsync(ctx, cancellationToken).ConfigureAwait(false);
 
-            return res;
+                    ctx.Parent.SetFailureResult(result);
+                }
+
+                if (throwOnError)
+                    res.ThrowOnError();
+
+                return res;
+            }, cancellationToken);
         }
 
         /// <summary>
@@ -80,33 +83,36 @@ namespace CoreEx.Validation
         /// <typeparam name="TEntity">The related entity <see cref="Type"/>.</typeparam>
         /// <param name="context">The related <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        internal async Task ValidateAsync<TEntity>(PropertyContext<TEntity, T> context, CancellationToken cancellationToken) where TEntity : class
+        internal Task ValidateAsync<TEntity>(PropertyContext<TEntity, T> context, CancellationToken cancellationToken) where TEntity : class
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
-            var vv = new ValidationValue<T>(context.Parent.Value, context.Value);
-            var vc = new ValidationContext<ValidationValue<T>>(vv, new ValidationArgs
+            return ValidationInvoker.Current.InvokeAsync(this, async cancellationToken =>
             {
-                Config = context.Parent.Config,
-                SelectedPropertyName = context.Name,
-                FullyQualifiedEntityName = context.Parent.FullyQualifiedEntityName,
-                FullyQualifiedJsonEntityName = context.Parent.FullyQualifiedJsonEntityName,
-                UseJsonNames = context.UseJsonName
-            });
-
-            var ctx = new PropertyContext<ValidationValue<T>, T>(vc, context.Value, context.Name, context.JsonName, context.Text);
-            await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
-
-            await (ctx.Parent.FailureResult ?? Result.Success)
-                .ThenAsync(() => OnValidateAsync(ctx, cancellationToken))
-                .WhenAsync(() => _additionalAsync != null, () => _additionalAsync!(ctx, cancellationToken))
-                .Match(ok: () =>
+                var vv = new ValidationValue<T>(context.Parent.Value, context.Value);
+                var vc = new ValidationContext<ValidationValue<T>>(vv, new ValidationArgs
                 {
-                    context.HasError = ctx.HasError;
-                    context.Parent.MergeResult(ctx.Parent);
-                }, fail: ex => context.Parent.SetFailureResult(Result.Fail(ex)))
-                .ConfigureAwait(false);
+                    Config = context.Parent.Config,
+                    SelectedPropertyName = context.Name,
+                    FullyQualifiedEntityName = context.Parent.FullyQualifiedEntityName,
+                    FullyQualifiedJsonEntityName = context.Parent.FullyQualifiedJsonEntityName,
+                    UseJsonNames = context.UseJsonName
+                });
+
+                var ctx = new PropertyContext<ValidationValue<T>, T>(vc, context.Value, context.Name, context.JsonName, context.Text);
+                await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
+
+                await (ctx.Parent.FailureResult ?? Result.Success)
+                    .ThenAsync(() => OnValidateAsync(ctx, cancellationToken))
+                    .WhenAsync(() => _additionalAsync != null, () => _additionalAsync!(ctx, cancellationToken))
+                    .Match(ok: () =>
+                    {
+                        context.HasError = ctx.HasError;
+                        context.Parent.MergeResult(ctx.Parent);
+                    }, fail: ex => context.Parent.SetFailureResult(Result.Fail(ex)))
+                    .ConfigureAwait(false);
+            }, cancellationToken);
         }
 
         /// <summary>

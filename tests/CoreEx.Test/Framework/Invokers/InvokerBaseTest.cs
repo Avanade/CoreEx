@@ -49,10 +49,10 @@ namespace CoreEx.Test.Framework.Invokers
 
             public bool After { get; set; }
 
-            protected async override Task<TResult> OnInvokeAsync<TResult>(InvokerBaseTest invoker, Func<System.Threading.CancellationToken, Task<TResult>> func, object? param, System.Threading.CancellationToken ct)
+            protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, InvokerBaseTest invoker, Func<System.Threading.CancellationToken, Task<TResult>> func, object? param, System.Threading.CancellationToken ct)
             {
                 Before = true;
-                var r = await base.OnInvokeAsync(invoker, func, param, ct).ConfigureAwait(false);
+                var r = await base.OnInvokeAsync(invokeArgs, invoker, func, param, ct).ConfigureAwait(false);
                 After = true;
                 return r;
             }

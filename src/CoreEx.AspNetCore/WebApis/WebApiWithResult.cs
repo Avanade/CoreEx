@@ -61,7 +61,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : ValueContentResult.CreateResult(result.Value, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: true, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(GetWithResultAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -107,7 +107,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : new ExtendedStatusCodeResult(statusCode) { Location = locationUri?.Invoke() };
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PostWithResultAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : new ExtendedStatusCodeResult(statusCode) { Location = locationUri?.Invoke() };
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PostWithResultAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -251,7 +251,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : ValueContentResult.CreateResult(result.Value, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: locationUri?.Invoke(result));
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PostWithResultAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -355,7 +355,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : ValueContentResult.CreateResult(result.Value, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: locationUri?.Invoke(result));
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PostWithResultAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -451,7 +451,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PutWithResultAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -551,7 +551,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : ValueContentResult.CreateResult(result.Value, statusCode, alternateStatusCode, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PutWithResultAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -658,7 +658,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, ct).ConfigureAwait(false)
                     : ValueContentResult.CreateResult(result.Value, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PutWithResultAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -707,7 +707,7 @@ namespace CoreEx.AspNetCore.WebApis
                 }
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(DeleteWithResultAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -810,7 +810,7 @@ namespace CoreEx.AspNetCore.WebApis
                 return result.IsFailure
                     ? await CreateActionResultFromExceptionAsync(this, request.HttpContext, result.Error, Settings, Logger, UnhandledExceptionAsync, cancellationToken).ConfigureAwait(false)
                     : ValueContentResult.CreateResult(result.Value, statusCode, null, JsonSerializer, wap.RequestOptions, checkForNotModified: false, location: null);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PatchWithResultAsync)).ConfigureAwait(false);
         }
 
         #endregion
