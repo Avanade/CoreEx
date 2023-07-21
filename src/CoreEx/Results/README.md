@@ -72,7 +72,7 @@ Method | Description
 
 The `Result` and `Result<T>` also support [implicit](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/user-defined-conversion-operators) conversion from an `Exception`.
 
-The following secondary failure methods are provided that enable the creation of a failure result with a specific _CoreEx_ error type. These [exceptions](../README.md/#exceptions) are used extensively within _CoreEx_ to both represent specific error types, and to enable related functionality as a result of the exception typically being thrown.
+The following secondary failure methods are provided that enable the creation of a failure result with a specific _CoreEx_ error type. These [exceptions](../README.md#exceptions) are used extensively within _CoreEx_ to both represent specific error types, and to enable related functionality as a result of the exception typically being thrown.
 
 Method | Description
 -|-

@@ -55,7 +55,7 @@ namespace CoreEx.Invokers
         public T With(Func<T, T> func)
         {
             var result = Result;
-            return result.IsSuccess ? Invoker.Invoke(Owner, () => func(result), Args) : result;
+            return result.IsSuccess ? Invoker.Invoke(Owner, _ => func(result), Args) : result;
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace CoreEx.Invokers
         public Task<T> WithAsync(Func<T, Task<T>> func)
         {
             var result = Result;
-            return result.IsSuccess ? Invoker.InvokeAsync(Owner, _ => func(result), Args, default) : Task.FromResult(result);
+            return result.IsSuccess ? Invoker.InvokeAsync(Owner, (_, __) => func(result), Args, default) : Task.FromResult(result);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace CoreEx.Invokers
         public U WithAs<U>(Func<T, U> func) where U : IResult
         {
             var result = Result;
-            return result.IsSuccess ? Invoker.Invoke(Owner, () => func(result), Args) : default!;
+            return result.IsSuccess ? Invoker.Invoke(Owner, _ => func(result), Args) : default!;
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace CoreEx.Invokers
         public async Task<U> WithAsAsync<U>(Func<T, Task<U>> func) where U : IResult
         {
             var result = Result;
-            return result.IsSuccess ? await Invoker.InvokeAsync(Owner, _ => func(result), Args, default).ConfigureAwait(false) : default!;
+            return result.IsSuccess ? await Invoker.InvokeAsync(Owner, (_, __) => func(result), Args, default).ConfigureAwait(false) : default!;
         }
     }
 }

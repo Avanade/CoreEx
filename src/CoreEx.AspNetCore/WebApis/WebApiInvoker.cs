@@ -30,10 +30,10 @@ namespace CoreEx.AspNetCore.WebApis
         public bool CatchAndHandleExceptions { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, WebApiBase invoker, Func<TResult> func, WebApiParam? args) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, WebApiBase invoker, Func<InvokeArgs, TResult> func, WebApiParam? args) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, WebApiBase owner, Func<CancellationToken, Task<TResult>> func, WebApiParam? param, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, WebApiBase owner, Func<InvokeArgs, CancellationToken, Task<TResult>> func, WebApiParam? param, CancellationToken cancellationToken)
         {
             if (param == null)
                 throw new ArgumentNullException(nameof(param));
@@ -58,7 +58,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 try
                 {
-                    var ar = await func(cancellationToken).ConfigureAwait(false);
+                    var ar = await func(invokeArgs, cancellationToken).ConfigureAwait(false);
                     owner.Logger.LogDebug("WebApi stopped; completed.");
                     return ar;
                 }

@@ -18,13 +18,14 @@ namespace CoreEx.Invokers
         private const string InvokerType = "invoker.type";
         private const string InvokerOwner = "invoker.owner";
         private const string InvokerMember = "invoker.member";
-        private const string InvokerState = "invoker.state";
+        private const string InvokerResult = "invoker.result";
         private const string InvokerFailure = "invoker.failure";
+        private const string CompleteState = "Complete";
         private const string SuccessState = "Success";
         private const string FailureState = "Failure";
         private const string ExceptionState = "Exception";
 
-        private IResult? _result;
+        private bool _isComplete;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InvokeArgs"/> struct.
@@ -70,10 +71,12 @@ namespace CoreEx.Invokers
         {
             if (Activity is not null)
             {
-                _result = result as IResult ?? Result.Success;
-                Activity.SetTag(InvokerState, _result.IsSuccess ? SuccessState : FailureState);
-                if (_result.IsFailure)
-                    Activity.SetTag(InvokerFailure, $"{_result.Error.Message} [{_result.Error.GetType().Name}]");
+                var ir = result as IResult;
+                Activity.SetTag(InvokerResult, ir is null ? CompleteState : (ir.IsSuccess ? SuccessState : FailureState));
+                if (ir is not null && ir.IsFailure)
+                    Activity.SetTag(InvokerFailure, $"{ir.Error.Message} [{ir.Error.GetType().Name}]");
+
+                _isComplete = true;
             }
 
             return result;
@@ -87,8 +90,8 @@ namespace CoreEx.Invokers
             if (Activity is not null)
             {
                 // Where no result then it can only be as a result of an exception.
-                if (_result is null)
-                    Activity.SetTag(InvokerState, ExceptionState);
+                if (!_isComplete)
+                    Activity.SetTag(InvokerResult, ExceptionState);
 
                 Activity.Stop();
             }

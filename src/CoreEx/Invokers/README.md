@@ -6,19 +6,39 @@ The `CoreEx.Invokers` namespace provides invocation capabilities.
 
 ## Motivation
 
-To enable a standardized approach to the invocation of logic enabling a means to add surrounding runtime execution logic decoupled from the initial implementation; enabling additional functionality (i.e. logging) to be added separately where desired.
+To enable a standardized approach to the invocation of logic enabling a means to add surrounding runtime execution logic decoupled from the initial implementation; enabling additional functionality to be added separately where desired (i.e. logging).
+
+By default the invoke represents a standardized [tracing/instrumentation](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-instrumentation-walkthroughs#add-basic-instrumentation) boundary.
 
 <br/>
 
 ## Base capabilities
 
-The [`InvokerBase<TInvoker>`](./InvokerBaseT.cs) and [`InvokerBase<TInvoker, TArgs>`](./InvokerBaseT2.cs) provide the base functionality to invoke an underlying `Action` or `Func` either synchronously or asynchronously. The virtual `OnInvokeAsync` method must be overridden to extend the functionality.
+The [`InvokerBase<TInvoker>`](./InvokerBaseT.cs) and [`InvokerBase<TInvoker, TArgs>`](./InvokerBaseT2.cs) provide the base functionality to invoke an underlying `Action` or `Func` either synchronously or asynchronously. The virtual `OnInvoke` (synchronous) and `OnInvokeAsync` (asynchronous) methods must be overridden to extend the functionality.
+
+<br/>
+
+### Instrumentation
+
+Internally an [`InvokeArgs`](./InvokeArgs.cs) is created to provide the context for the invocation. This is passed to the `Invoke` or `InvokeAsync` methods and provides access to an underlying [`Activity`](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activity) property.
+
+By default where tracing is enable the following standard properties are recorded:
+
+Property | Description
+-|-
+`invoker.type` | The .NET type name of the invoker.
+`invoker.owner` | The .NET type name of the invoker owner/caller.
+`invoker.member` | The .NET member name of the invoker.
+`invoker.result` | The result of the invocation. Where the result is an [`IResult`](../Results/IResult.cs) (see [Railway-oriented programming](../Results/README.md)) will be either `Success` or `Failure`; otherwise `Complete`. An unhandled exception will be `Exception` (not that the underlying exception details are not recorded).
+`invoker.failure` | Where the result is an `IResult` and its state is `IsFailure` then corresponding `Error.Message` is recorded.
+
+Additional tracing properties may be included where these specifically have been added.
 
 <br/>
 
 ### Usage
 
-The general usage pattern is to provide a concrete implementation, for example [`DatabaseInvoker`](../../CoreEx.Database/DatabaseInvoker.cs) and then leverage within application to invoke (wrap) key logic. To then enable runtime overridding, the owning class would allow an instance to be provided with the constructor (i.e. Dependency Injection), for example [`Database`](../../CoreEx.Database/Database.cs).
+The general usage pattern is to provide a concrete implementation, for example [`DatabaseInvoker`](../../CoreEx.Database/DatabaseInvoker.cs) and then leverage within application to invoke (wrap) key logic. To then enable runtime overridding, the owning class would allow an instance to be provided within the constructor (i.e. Dependency Injection), for example [`Database`](../../CoreEx.Database/Database.cs); or provide a static instance (i.e. Singleton), for example [`ValidationInvoker`](../Validation/ValidationInvoker.cs) via the `Current` property.
 
 <br/>
 

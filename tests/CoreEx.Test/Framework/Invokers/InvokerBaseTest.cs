@@ -12,7 +12,7 @@ namespace CoreEx.Test.Framework.Invokers
         public async Task Invoke_AsyncNoResult()
         {
             var i = new TestInvoker();
-            await i.InvokeAsync(this, async _ => { await Task.Delay(100); });
+            await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(100, ct); });
             Assert.IsTrue(i.Before);
             Assert.IsTrue(i.After);
         }
@@ -21,7 +21,7 @@ namespace CoreEx.Test.Framework.Invokers
         public async Task Invoke_AsyncWithResult()
         {
             var i = new TestInvoker();
-            Assert.AreEqual(88, await i.InvokeAsync(this, async _ => { await Task.Delay(100); return 88; }));
+            Assert.AreEqual(88, await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(100, ct); return 88; }));
             Assert.IsTrue(i.Before);
             Assert.IsTrue(i.After);
         }
@@ -32,7 +32,7 @@ namespace CoreEx.Test.Framework.Invokers
             var i = new TestInvoker();
             for (var j = 0; j < 1000; j++)
             {
-                await i.InvokeAsync(this, async _ => { await Task.Delay(0); return 88; });
+                await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(0, ct); return 88; });
             }
         }
 
@@ -40,7 +40,7 @@ namespace CoreEx.Test.Framework.Invokers
         public void Invoke_WithException()
         {
             var i = new TestInvoker();
-            Assert.ThrowsAsync<DivideByZeroException>(async () => await i.InvokeAsync(this, async ct => { await Task.Delay(0, ct); throw new DivideByZeroException(); }));
+            Assert.ThrowsAsync<DivideByZeroException>(async () => await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(0, ct); throw new DivideByZeroException(); }));
         }
 
         public class TestInvoker : InvokerBase<InvokerBaseTest, object?>
@@ -49,7 +49,7 @@ namespace CoreEx.Test.Framework.Invokers
 
             public bool After { get; set; }
 
-            protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, InvokerBaseTest invoker, Func<System.Threading.CancellationToken, Task<TResult>> func, object? param, System.Threading.CancellationToken ct)
+            protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, InvokerBaseTest invoker, Func<InvokeArgs, System.Threading.CancellationToken, Task<TResult>> func, object? param, System.Threading.CancellationToken ct)
             {
                 Before = true;
                 var r = await base.OnInvokeAsync(invokeArgs, invoker, func, param, ct).ConfigureAwait(false);

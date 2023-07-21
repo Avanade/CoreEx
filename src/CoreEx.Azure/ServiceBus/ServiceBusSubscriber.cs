@@ -113,7 +113,7 @@ namespace CoreEx.Azure.ServiceBus
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
-            return ServiceBusSubscriberInvoker.InvokeAsync(this, async ct =>
+            return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
                 // Deserialize the JSON into the selected type.
                 var @event = await DeserializeEventAsync(message, cancellationToken).ConfigureAwait(false);
@@ -171,7 +171,7 @@ namespace CoreEx.Azure.ServiceBus
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
-            return ServiceBusSubscriberInvoker.InvokeAsync(this, async ct =>
+            return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
                 // Deserialize the JSON into the selected type.
                 var @event = await DeserializeEventAsync(message, valueIsRequired, validator, cancellationToken).ConfigureAwait(false);

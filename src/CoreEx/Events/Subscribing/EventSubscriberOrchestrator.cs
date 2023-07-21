@@ -224,7 +224,7 @@ namespace CoreEx.Events.Subscribing
             if (subscriber is null) throw new ArgumentNullException(nameof(subscriber));
             if (@event is null) throw new ArgumentNullException(nameof(@event));
 
-            return await parent.EventSubscriberInvoker.InvokeAsync(subscriber, async (ct) =>
+            return await parent.EventSubscriberInvoker.InvokeAsync(subscriber, async (_, ct) =>
             {
                 var result = await subscriber!.ReceiveAsync(@event, args ??= new(), ct);
                 result.ThrowOnError();

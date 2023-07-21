@@ -22,10 +22,10 @@ namespace CoreEx.Azure.ServiceBus
         private const string SubscriberAbandonReasonPropertyName = "SubscriberAbandonReason";
 
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, EventSubscriberBase invoker, Func<TResult> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, EventSubscriberBase invoker, Func<InvokeArgs, TResult> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, EventSubscriberBase invoker, Func<CancellationToken, Task<TResult>> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, EventSubscriberBase invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args, CancellationToken cancellationToken)
         {
             if (args.Message == null)
                 throw new ArgumentNullException(nameof(args), $"The {nameof(ServiceBusReceivedMessage)} value is required.");
@@ -54,7 +54,7 @@ namespace CoreEx.Azure.ServiceBus
                 invoker.Logger.LogDebug("Received - Service Bus message '{Message}'.", args.Message.MessageId);
 
                 // Leverage the EventSubscriberInvoker to manage execution and standardized exception handling.
-                var result = await invoker.EventSubscriberInvoker.InvokeAsync(invoker, async (ct) =>
+                var result = await invoker.EventSubscriberInvoker.InvokeAsync(invoker, async (_, ct) =>
                 {
                     // Execute the logic.
                     return await base.OnInvokeAsync(invokeArgs, invoker, func, args, cancellationToken).ConfigureAwait(false);

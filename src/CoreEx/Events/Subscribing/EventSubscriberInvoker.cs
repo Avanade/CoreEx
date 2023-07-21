@@ -18,10 +18,10 @@ namespace CoreEx.Events.Subscribing
         private const string LogFormat = "{Message} [Source: {Source}, Handling: {Handling}]";
 
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, IErrorHandling invoker, Func<TResult> func, ILogger? args) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, IErrorHandling invoker, Func<InvokeArgs, TResult> func, ILogger? args) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, IErrorHandling errorHandling, Func<CancellationToken, Task<TResult>> func, ILogger? logger, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, IErrorHandling errorHandling, Func<InvokeArgs, CancellationToken, Task<TResult>> func, ILogger? logger, CancellationToken cancellationToken)
         {
             if (errorHandling is null) throw new ArgumentNullException(nameof(errorHandling));
             if (func is null) throw new ArgumentNullException(nameof(func));
@@ -30,7 +30,7 @@ namespace CoreEx.Events.Subscribing
             // Execute the subscriber logic.
             try
             {
-                return await func(cancellationToken).ConfigureAwait(false);
+                return await func(invokeArgs, cancellationToken).ConfigureAwait(false);
             }
             catch (EventSubscriberException) { throw; }
             catch (Exception ex) when (ex is IExtendedException eex)

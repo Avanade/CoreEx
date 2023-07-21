@@ -20,7 +20,7 @@ namespace CoreEx.Invokers
         /// </summary>
         /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
         /// <param name="invokeArgs">The <see cref="InvokeArgs"/>.</param>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The result.</returns>
         protected virtual TResult OnInvoke<TResult>(InvokeArgs invokeArgs, TInvoker invoker, Func<InvokeArgs, TResult> func) => func(invokeArgs);
@@ -30,14 +30,14 @@ namespace CoreEx.Invokers
         /// </summary>
         /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
         /// <param name="invokeArgs">The <see cref="InvokeArgs"/>.</param>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="func">The function to invoke.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The result.</returns>
         protected virtual Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, TInvoker invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken) => func(invokeArgs, cancellationToken);
 
         /// <summary>
-        /// Invoke the <see cref="OnInvoke{TResult}(InvokeArgs, TInvoker, Func{InvokeArgs, TResult})"/> with tracing.
+        /// Invoke the <see cref="OnInvoke"/> with tracing.
         /// </summary>
         private TResult TraceOnInvoke<TResult>(TInvoker invoker, Func<InvokeArgs, TResult> func, string? memberName)
         {
@@ -53,7 +53,7 @@ namespace CoreEx.Invokers
         }
 
         /// <summary>
-        /// Invoke the <see cref="OnInvokeAsync{TResult}(InvokeArgs, TInvoker, Func{InvokeArgs, CancellationToken, Task{TResult}}, CancellationToken)"/> with tracing.
+        /// Invoke the <see cref="OnInvokeAsync"/> with tracing.
         /// </summary>
         private async Task<TResult> TraceOnInvokeAsync<TResult>(TInvoker invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, string? memberName, CancellationToken cancellationToken)
         {
@@ -73,7 +73,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public void Invoke(TInvoker invoker, Action<InvokeArgs> action, [CallerMemberName] string? memberName = null)
@@ -82,7 +82,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the action.</param>
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
@@ -92,7 +92,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the action.</param>
         /// <param name="p2">Parameter 2 to pass through to the action.</param>
         /// <param name="action">The action to invoke.</param>
@@ -103,7 +103,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the action.</param>
         /// <param name="p2">Parameter 2 to pass through to the action.</param>
         /// <param name="p3">Parameter 3 to pass through to the action.</param>
@@ -115,7 +115,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the action.</param>
         /// <param name="p2">Parameter 2 to pass through to the action.</param>
         /// <param name="p3">Parameter 3 to pass through to the action.</param>
@@ -132,7 +132,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="func">The function to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <returns>The result.</returns>
@@ -142,7 +142,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">TParameter 1 to pass through to the function.</param>
         /// <param name="func">The function to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
@@ -153,7 +153,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="func">The function to invoke.</param>
@@ -165,7 +165,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="p3">Parameter 3 to pass through to the function.</param>
@@ -178,7 +178,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="p3">Parameter 3 to pass through to the function.</param>
@@ -196,7 +196,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="func">The function to invoke.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
@@ -206,7 +206,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">TParameter 1 to pass through to the function.</param>
         /// <param name="func">The function to invoke.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -217,7 +217,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="func">The function to invoke.</param>
@@ -229,7 +229,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="p3">Parameter 3 to pass through to the function.</param>
@@ -242,7 +242,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="p3">Parameter 3 to pass through to the function.</param>
@@ -260,7 +260,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="func">The function to invoke.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
@@ -271,7 +271,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">TParameter 1 to pass through to the function.</param>
         /// <param name="func">The function to invoke.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -283,7 +283,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="func">The function to invoke.</param>
@@ -296,7 +296,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="p3">Parameter 3 to pass through to the function.</param>
@@ -310,7 +310,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker (owner).</param>
         /// <param name="p1">Parameter 1 to pass through to the function.</param>
         /// <param name="p2">Parameter 2 to pass through to the function.</param>
         /// <param name="p3">Parameter 3 to pass through to the function.</param>
