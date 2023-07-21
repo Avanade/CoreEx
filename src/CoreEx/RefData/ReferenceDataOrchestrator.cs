@@ -260,15 +260,19 @@ namespace CoreEx.RefData
 
             var coll = await OnGetOrCreateAsync(type, (t, ct) =>
             {
-                Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
-                var ec = ExecutionContext.Current.CreateCopy();
-                var rdo = _asyncLocal.Value;
-
-                using var scope = ServiceProvider.CreateScope();
-                using (System.Threading.ExecutionContext.SuppressFlow())
+                return ReferenceDataOrchestratorInvoker.Current.Invoke(this, ia =>
                 {
-                    return Task.FromResult(Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ct)).GetAwaiter().GetResult());
-                }
+                    ia.Activity?.AddTag("refdata.cachetype", type.FullName);
+                    Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
+                    var ec = ExecutionContext.Current.CreateCopy();
+                    var rdo = _asyncLocal.Value;
+
+                    using var scope = ServiceProvider.CreateScope();
+                    using (System.Threading.ExecutionContext.SuppressFlow())
+                    {
+                        return Task.FromResult(Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ct)).GetAwaiter().GetResult());
+                    }
+                }, nameof(GetByTypeAsync));
             }, cancellationToken).ConfigureAwait(false);
 
             return coll ?? throw new InvalidOperationException($"The {nameof(IReferenceDataCollection)} returned for Type '{type.FullName}' from Provider '{providerType.FullName}' must not be null.");

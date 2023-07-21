@@ -84,23 +84,26 @@ namespace CoreEx.Hosting
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                // Create a scope in which to perform the execution.
-                using var scope = ServiceProvider.CreateScope();
-                CoreEx.ExecutionContext.Reset();
-
-                try
+                await ServiceInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
                 {
-                    if (!await ExecuteAsync(scope.ServiceProvider, cancellationToken).ConfigureAwait(false))
-                        return;
-                }
-                catch (Exception ex)
-                {
-                    if (ex is TaskCanceledException || (ex is AggregateException aex && aex.InnerException is TaskCanceledException))
-                        return;
+                    // Create a scope in which to perform the execution.
+                    using var scope = ServiceProvider.CreateScope();
+                    CoreEx.ExecutionContext.Reset();
 
-                    Logger.LogCritical(ex, "{ServiceName} failure as a result of an unexpected exception: {Error}", ServiceName, ex.Message);
-                    throw;
-                }
+                    try
+                    {
+                        if (!await ExecuteAsync(scope.ServiceProvider, cancellationToken).ConfigureAwait(false))
+                            return;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is TaskCanceledException || (ex is AggregateException aex && aex.InnerException is TaskCanceledException))
+                            return;
+
+                        Logger.LogCritical(ex, "{ServiceName} failure as a result of an unexpected exception: {Error}", ServiceName, ex.Message);
+                        throw;
+                    }
+                }, cancellationToken).ConfigureAwait(false);
             }
         }
 

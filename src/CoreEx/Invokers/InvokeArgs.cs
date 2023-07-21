@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Configuration;
 using CoreEx.Results;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -12,7 +14,7 @@ namespace CoreEx.Invokers
     /// </summary>
     public struct InvokeArgs
     {
-        private static readonly ConcurrentDictionary<Type, ActivitySource> _activitySources = new();
+        private static readonly ConcurrentDictionary<Type, (ActivitySource ActivitySource, bool IsTracingEnabled)> _invokerOptions = new();
 
         private const string NullName = "null";
         private const string InvokerType = "invoker.type";
@@ -39,11 +41,14 @@ namespace CoreEx.Invokers
         {
             try
             {
-                var activitySource = _activitySources.GetOrAdd(invokerType, type => new ActivitySource(type.FullName ?? NullName));
-                Activity = activitySource.StartActivity(ownerType is null ? memberName ?? NullName : $"{ownerType.FullName} -> {memberName ?? NullName}");
+                var options = _invokerOptions.GetOrAdd(invokerType, type => (new ActivitySource(type.FullName ?? NullName), IsTracingEnabled(invokerType)));
+                if (!options.IsTracingEnabled)
+                    return;
+
+                Activity = options.ActivitySource.StartActivity(ownerType is null ? memberName ?? NullName : $"{ownerType.FullName} -> {memberName ?? NullName}");
                 if (Activity is not null)
                 {
-                    Activity.SetTag(InvokerType, activitySource!.Name);
+                    Activity.SetTag(InvokerType, options.ActivitySource!.Name);
                     Activity.SetTag(InvokerOwner, ownerType?.FullName);
                     Activity.SetTag(InvokerMember, memberName);
                 }
@@ -53,6 +58,18 @@ namespace CoreEx.Invokers
                 // Continue; do not allow tracing to impact the execution.
                 Activity = null;
             }
+        }
+
+        /// <summary>
+        /// Determines whether tracing is enabled for the <paramref name="invokerType"/>.
+        /// </summary>
+        private static bool IsTracingEnabled(Type invokerType)
+        {
+            var settings = ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings(ExecutionContext.GetService<IConfiguration>());
+            if (settings.Configuration is null)
+                return true;
+
+            return settings.GetValue<bool?>($"Invokers:{invokerType.FullName}:TracingEnabled") ?? settings.GetValue<bool?>("Invokers:Default:TracingEnabled") ?? true;
         }
 
         /// <summary>
@@ -102,10 +119,10 @@ namespace CoreEx.Invokers
         /// </summary>
         public static void ReleaseAll()
         {
-            foreach (var item in _activitySources.ToArray())
+            foreach (var item in _invokerOptions.ToArray())
             {
-                if (_activitySources.TryRemove(item.Key, out var itemValue))
-                    itemValue.Dispose();
+                if (_invokerOptions.TryRemove(item.Key, out var options))
+                    options.ActivitySource?.Dispose();
             }
         }
     }
