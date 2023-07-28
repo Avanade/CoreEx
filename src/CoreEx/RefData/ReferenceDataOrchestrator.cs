@@ -3,6 +3,7 @@
 using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Entities;
+using CoreEx.Invokers;
 using CoreEx.Json;
 using CoreEx.RefData.Caching;
 using CoreEx.Wildcards;
@@ -32,6 +33,10 @@ namespace CoreEx.RefData
         /// Gets the error message where the <see cref="IReferenceData.Text"/> <see cref="Wildcard"/> value is invalid.
         /// </summary>
         public const string TextWildcardErrorMessage = "Text contains invalid or unsupported wildcard selection.";
+
+        private const string InvokerCacheType = "refdata.cachetype";
+        private const string InvokerCacheState = "refdata.cachestate";
+        private const string InvokerCacheCount = "refdata.cachecount";
 
         private static readonly AsyncLocal<ReferenceDataOrchestrator?> _asyncLocal = new();
 
@@ -262,7 +267,12 @@ namespace CoreEx.RefData
             {
                 return ReferenceDataOrchestratorInvoker.Current.Invoke(this, ia =>
                 {
-                    ia.Activity?.AddTag("refdata.cachetype", type.FullName);
+                    if (ia.Activity is not null)
+                    {
+                        ia.Activity.AddTag(InvokerCacheType, type.FullName);
+                        ia.Activity.AddTag(InvokerCacheState, "TaskRun");
+                    }
+
                     Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
                     var ec = ExecutionContext.Current.CreateCopy();
                     var rdo = _asyncLocal.Value;
@@ -270,7 +280,9 @@ namespace CoreEx.RefData
                     using var scope = ServiceProvider.CreateScope();
                     using (System.Threading.ExecutionContext.SuppressFlow())
                     {
-                        return Task.FromResult(Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ct)).GetAwaiter().GetResult());
+                        var task = Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ia, ct));
+                        task.Wait();
+                        return task;
                     }
                 }, nameof(GetByTypeAsync));
             }, cancellationToken).ConfigureAwait(false);
@@ -281,21 +293,38 @@ namespace CoreEx.RefData
         /// <summary>
         /// Performs the actual reference data load in a new thread context / scope.
         /// </summary>
-        private async Task<IReferenceDataCollection> GetByTypeInternalAsync(ReferenceDataOrchestrator? rdo, ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, CancellationToken cancellationToken)
+        private async Task<IReferenceDataCollection> GetByTypeInternalAsync(ReferenceDataOrchestrator? rdo, ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, InvokeArgs invokeArgs, CancellationToken cancellationToken)
         {
             _asyncLocal.Value = rdo;
 
             executionContext.ServiceProvider = scope.ServiceProvider;
             ExecutionContext.SetCurrent(executionContext);
 
-            var sw = Stopwatch.StartNew();
-            var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
-            var coll = (await provider.GetAsync(type, cancellationToken).ConfigureAwait(false)).Value;
-            coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
-            sw.Stop();
+            // Start related activity as this "work" is occuring on an unrelated different thread (by design to ensure complete separation).
+            var ria = invokeArgs.StartNewRelated(typeof(ReferenceDataOrchestratorInvoker), typeof(ReferenceDataOrchestrator), nameof(GetByTypeAsync));
+            try
+            {
+                if (ria.Activity is not null)
+                {
+                    ria.Activity.AddTag(InvokerCacheType, type.FullName);
+                    ria.Activity.AddTag(InvokerCacheState, "TaskWorker");
+                }
 
-            Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
-            return coll;
+                var sw = Stopwatch.StartNew();
+                var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
+                var coll = (await provider.GetAsync(type, cancellationToken).ConfigureAwait(false)).Value;
+                coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
+                sw.Stop();
+
+                Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
+                ria.Activity?.AddTag(InvokerCacheCount, coll.Count);
+
+                return ria.TraceResult(coll);
+            }
+            finally
+            {
+                ria.Complete();
+            }
         }
 
         /// <summary>

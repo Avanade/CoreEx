@@ -35,9 +35,10 @@ namespace CoreEx.Invokers
         /// <param name="invokerType">The invoker <see cref="Type"/> used to manage the activity sources.</param>
         /// <param name="ownerType">The invoking (owner) <see cref="Type"/> to include as part of the <see cref="Activity.OperationName"/>.</param>
         /// <param name="memberName">The calling member name.</param>
+        /// <param name="invokeArgs">The optional parent <see cref="InvokeArgs"/>.</param>
         /// <remarks>Creates the tracing <see cref="Activity.OperationName"/> by concatenating the invoking <paramref name="ownerType"/> (<see cref="Type.FullName"/>) and <paramref name="memberName"/> separated by '<c> -> </c>'. This is <i>not</i>
         /// meant to represent the fully-qualified member/method name.</remarks>
-        internal InvokeArgs(Type invokerType, Type? ownerType, string? memberName)
+        public InvokeArgs(Type invokerType, Type? ownerType, string? memberName, InvokeArgs? invokeArgs)
         {
             try
             {
@@ -45,12 +46,16 @@ namespace CoreEx.Invokers
                 if (!options.IsTracingEnabled)
                     return;
 
-                Activity = options.ActivitySource.StartActivity(ownerType is null ? memberName ?? NullName : $"{ownerType.FullName} -> {memberName ?? NullName}");
+                Activity = options.ActivitySource.CreateActivity(ownerType is null ? memberName ?? NullName : $"{ownerType.FullName} -> {memberName ?? NullName}", ActivityKind.Internal);
                 if (Activity is not null)
                 {
+                    if (invokeArgs.HasValue && invokeArgs.Value.Activity is not null)
+                        Activity.SetParentId(invokeArgs.Value.Activity!.TraceId, invokeArgs.Value.Activity.SpanId, invokeArgs.Value.Activity.ActivityTraceFlags);
+
                     Activity.SetTag(InvokerType, options.ActivitySource!.Name);
                     Activity.SetTag(InvokerOwner, ownerType?.FullName);
                     Activity.SetTag(InvokerMember, memberName);
+                    Activity.Start();
                 }
             }
             catch
@@ -84,7 +89,7 @@ namespace CoreEx.Invokers
         /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
         /// <param name="result">The result value.</param>
         /// <returns>The <paramref name="result"/>.</returns>
-        internal TResult TraceResult<TResult>(TResult result)
+        public TResult TraceResult<TResult>(TResult result)
         {
             if (Activity is not null)
             {
@@ -100,9 +105,9 @@ namespace CoreEx.Invokers
         }
 
         /// <summary>
-        /// Completes the <see cref="Activity"/> (if started).
+        /// Completes the <see cref="Activity"/> (where started).
         /// </summary>
-        internal void Complete()
+        public void Complete()
         {
             if (Activity is not null)
             {
@@ -113,6 +118,15 @@ namespace CoreEx.Invokers
                 Activity.Stop();
             }
         }
+
+        /// <summary>
+        /// Creates (and started) a new <see cref="InvokeArgs"/> instance for a related invocation.
+        /// </summary>
+        /// <param name="invokerType">The invoker <see cref="Type"/> used to manage the activity sources.</param>
+        /// <param name="ownerType">The invoking (owner) <see cref="Type"/> to include as part of the <see cref="Activity.OperationName"/>.</param>
+        /// <param name="memberName">The calling member name.</param>
+        /// <returns>The <see cref="InvokeArgs"/>.</returns>
+        public InvokeArgs StartNewRelated(Type invokerType, Type? ownerType, string? memberName) => new(invokerType, ownerType, memberName, this);
 
         /// <summary>
         /// Releases (disposes) all <see cref="ActivitySource"/> instances.

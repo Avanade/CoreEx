@@ -3,7 +3,7 @@
 Represents the **NuGet** versions.
 
 ## v3.3.0
-- *Enhancement:* [Distributed tracing](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-instrumentation-walkthroughs#best-practices) has been added via the `InvokerBase` set of classes throughout `CoreEx` to ensure coverage and consistency of implementation. A new `InvokeArgs` has been added to house the [`ActivitySource`](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activitysource) instance; this will also provide for furture extensions opportunities limiting future potential breaking changes.
+- *Enhancement:* [Distributed tracing](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-instrumentation-walkthroughs#best-practices) has been added via the `InvokerBase` set of classes throughout `CoreEx` to ensure coverage and consistency of implementation. A new `InvokeArgs` has been added to house the [`ActivitySource`](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activitysource) instance; this also provides for further extension opportunities limiting future potential breaking changes.
 
 ## v3.2.0
 - *Enhancement:* Added `ServiceBusReceiverActions` as a means to encapsulate the `ServiceBusReceivedMessage` and `ServiceBusReceiver` as a `ServiceBusMessageActions` equivalent to enable both the `ServiceBusSubscriber` and `ServiceBusOrchestratedSubscriber` to be leveraged outside of native Azure Functions.

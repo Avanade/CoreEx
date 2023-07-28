@@ -44,7 +44,7 @@ namespace CoreEx.Invokers
         /// </summary>
         private TResult TraceOnInvoke<TResult>(TInvoker invoker, Func<InvokeArgs, TResult> func, TArgs? args, string? memberName)
         {
-            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName);
+            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName, null);
             try
             {
                 return ia.TraceResult(OnInvoke(ia, invoker, func, args));
@@ -60,7 +60,7 @@ namespace CoreEx.Invokers
         /// </summary>
         private async Task<TResult> TraceOnInvokeAsync<TResult>(TInvoker invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, TArgs? args, string? memberName, CancellationToken cancellationToken)
         {
-            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName);
+            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName, null);
             try
             {
                 return ia.TraceResult(await OnInvokeAsync(ia, invoker, func, args, cancellationToken).ConfigureAwait(false));
