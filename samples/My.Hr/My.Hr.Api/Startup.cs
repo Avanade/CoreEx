@@ -59,9 +59,12 @@ public class Startup
 
         services.AddControllers();
 
-        services.AddOpenTelemetry().UseAzureMonitor();
-        services.Configure<AspNetCoreInstrumentationOptions>(options => options.RecordException = true);
-        services.ConfigureOpenTelemetryTracerProvider((sp, builder) => builder.AddSource("CoreEx.*"));
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
+        {
+            services.AddOpenTelemetry().UseAzureMonitor();
+            services.Configure<AspNetCoreInstrumentationOptions>(options => options.RecordException = true);
+            services.ConfigureOpenTelemetryTracerProvider((sp, builder) => builder.AddSource("CoreEx.*"));
+        }
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         services.AddEndpointsApiExplorer();
