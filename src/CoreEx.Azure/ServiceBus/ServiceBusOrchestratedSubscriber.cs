@@ -87,7 +87,7 @@ namespace CoreEx.Azure.ServiceBus
             if (messageActions == null)
                 throw new ArgumentNullException(nameof(messageActions));
 
-            return ServiceBusSubscriberInvoker.InvokeAsync(this, async ct =>
+            return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
                 // Get the event (without value as type unknown).
                 var @event = await DeserializeEventAsync(message, cancellationToken);

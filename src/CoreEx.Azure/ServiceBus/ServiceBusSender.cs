@@ -72,7 +72,7 @@ namespace CoreEx.Azure.ServiceBus
             if (events == null || !events.Any())
                 return Task.CompletedTask;
 
-            return Invoker.InvokeAsync(this, events, async (events, cancellationToken) =>
+            return Invoker.InvokeAsync(this, events, async (_, events, cancellationToken) =>
             {
                 var totalCount = events.Count();
                 Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);
@@ -151,7 +151,7 @@ namespace CoreEx.Azure.ServiceBus
                         unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id ?? string.Empty));
                     }
                 }
-            }, cancellationToken);
+            }, cancellationToken, nameof(SendAsync));
         }
 
         /// <summary>

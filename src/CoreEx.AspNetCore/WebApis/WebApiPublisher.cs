@@ -110,7 +110,7 @@ namespace CoreEx.AspNetCore.WebApis
                 await EventPublisher.SendAsync(cancellationToken).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PublishAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -200,7 +200,7 @@ namespace CoreEx.AspNetCore.WebApis
                 await EventPublisher.SendAsync(ct).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PublishAsync)).ConfigureAwait(false);
         }
 
         #endregion
@@ -280,7 +280,7 @@ namespace CoreEx.AspNetCore.WebApis
                 await EventPublisher.SendAsync(cancellationToken).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PublishWithResultAsync)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -374,7 +374,7 @@ namespace CoreEx.AspNetCore.WebApis
                 await EventPublisher.SendAsync(ct).ConfigureAwait(false);
 
                 return new ExtendedStatusCodeResult(statusCode);
-            }, operationType, cancellationToken).ConfigureAwait(false);
+            }, operationType, cancellationToken, nameof(PublishWithResultAsync)).ConfigureAwait(false);
         }
 
         #endregion

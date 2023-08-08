@@ -32,11 +32,14 @@ namespace CoreEx.Validation
         public T? Value { get => ValidationValue.Value; }
 
         /// <inheritdoc/>
-        public override async Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(CancellationToken cancellationToken = default)
+        public override Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(CancellationToken cancellationToken = default)
         {
-            var ctx = new PropertyContext<ValidationValue<T>, T>(new ValidationContext<ValidationValue<T>>(ValidationValue, new ValidationArgs()), Value, Name, JsonName, Text);
-            await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
-            return new ValueValidatorResult<ValidationValue<T>, T>(ctx);
+            return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
+            {
+                var ctx = new PropertyContext<ValidationValue<T>, T>(new ValidationContext<ValidationValue<T>>(ValidationValue, new ValidationArgs()), Value, Name, JsonName, Text);
+                await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
+                return new ValueValidatorResult<ValidationValue<T>, T>(ctx);
+            }, cancellationToken);
         }
     }
 }

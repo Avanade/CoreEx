@@ -23,31 +23,34 @@ namespace CoreEx.Validation
         private Func<ValidationContext<TEntity>, CancellationToken, Task<Result>>? _additionalAsync;
 
         /// <inheritdoc/>
-        public override async Task<ValidationContext<TEntity>> ValidateAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
+        public override Task<ValidationContext<TEntity>> ValidateAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
         {
-            var context = new ValidationContext<TEntity>(value, args ?? new ValidationArgs());
-            if (value is null)
+            return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
-                context.AddMessage(nameof(value), nameof(value), MessageType.Error, ValidatorStrings.MandatoryFormat, Validation.ValueTextDefault);
-                return context;
-            }
-
-            // Validate each of the property rules.
-            foreach (var rule in Rules)
-            {
-                await rule.ValidateAsync(context, cancellationToken).ConfigureAwait(false);
-
-                // Where in a failure state no further validation should be performed.
-                if (context.FailureResult.HasValue)
+                var context = new ValidationContext<TEntity>(value, args ?? new ValidationArgs());
+                if (value is null)
+                {
+                    context.AddMessage(nameof(value), nameof(value), MessageType.Error, ValidatorStrings.MandatoryFormat, Validation.ValueTextDefault);
                     return context;
-            }
+                }
 
-            var result = await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
-            if (result.IsSuccess && _additionalAsync != null)
-                result = await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
+                // Validate each of the property rules.
+                foreach (var rule in Rules)
+                {
+                    await rule.ValidateAsync(context, cancellationToken).ConfigureAwait(false);
 
-            context.SetFailureResult(result);
-            return context;
+                    // Where in a failure state no further validation should be performed.
+                    if (context.FailureResult.HasValue)
+                        return context;
+                }
+
+                var result = await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
+                if (result.IsSuccess && _additionalAsync != null)
+                    result = await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
+
+                context.SetFailureResult(result);
+                return context;
+            }, cancellationToken);
         }
 
         /// <summary>

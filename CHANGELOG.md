@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.3.0
+- *Enhancement:* [Distributed tracing](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-instrumentation-walkthroughs#best-practices) has been added via the `InvokerBase` set of classes throughout `CoreEx` to ensure coverage and consistency of implementation. A new `InvokeArgs` has been added to house the [`ActivitySource`](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activitysource) instance; this also provides for further extension opportunities limiting future potential breaking changes.
+
 ## v3.2.0
 - *Enhancement:* Added `ServiceBusReceiverActions` as a means to encapsulate the `ServiceBusReceivedMessage` and `ServiceBusReceiver` as a `ServiceBusMessageActions` equivalent to enable both the `ServiceBusSubscriber` and `ServiceBusOrchestratedSubscriber` to be leveraged outside of native Azure Functions.
 - *Enhancement:* Added support for [claim-check pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check) for large messages. `EventData.Value` serialization to be stored as an attachment in the likes of blob storage and then referenced (claim-check) from the actual message. A new `IAttachmentStorage` encapsulates the attachment behavior with the `IEventSerializer` implementations referencing as applicable; whereby separating this behavior from the `IEventSender` enabling greater consistency and reuse. Added `BlobAttachmentStorage` and `BlobSasAttachmentStorage` to support Azure blob storage.

@@ -3,6 +3,7 @@
 using CoreEx.Invokers;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Transactions;
 
 namespace CoreEx.Azure.ServiceBus
@@ -14,16 +15,16 @@ namespace CoreEx.Azure.ServiceBus
     public class ServiceBusSenderInvoker : InvokerBase<ServiceBusSender>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(ServiceBusSender invoker, Func<TResult> func) => throw new NotSupportedException();
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, ServiceBusSender invoker, Func<InvokeArgs, TResult> func) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        protected async override System.Threading.Tasks.Task<TResult> OnInvokeAsync<TResult>(ServiceBusSender invoker, Func<CancellationToken, System.Threading.Tasks.Task<TResult>> func, CancellationToken cancellationToken)
+        protected async override System.Threading.Tasks.Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, ServiceBusSender invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             TransactionScope? txn = null;
             try
             {
                 txn = new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled);
-                return await base.OnInvokeAsync(invoker, func, cancellationToken).ConfigureAwait(false);
+                return await base.OnInvokeAsync(invokeArgs, invoker, func, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

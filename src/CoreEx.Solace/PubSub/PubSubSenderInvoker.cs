@@ -15,13 +15,13 @@ namespace CoreEx.Solace.PubSub
     public class PubSubSenderInvoker : InvokerBase<PubSubSender>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(PubSubSender invoker, Func<TResult> func)
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, PubSubSender invoker, Func<InvokeArgs, TResult> func)
         {
             TransactionScope? txn = null;
             try
             {
                 txn = new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled);
-                return base.OnInvoke(invoker, func);
+                return base.OnInvoke(invokeArgs, invoker, func);
             }
             finally
             {
@@ -30,13 +30,13 @@ namespace CoreEx.Solace.PubSub
         }
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(PubSubSender invoker, Func<CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, PubSubSender invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
         {
             TransactionScope? txn = null;
             try
             {
                 txn = new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled);
-                return await base.OnInvokeAsync(invoker, func, cancellationToken).ConfigureAwait(false);
+                return await base.OnInvokeAsync(invokeArgs, invoker, func, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

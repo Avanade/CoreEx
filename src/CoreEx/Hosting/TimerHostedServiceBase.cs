@@ -161,7 +161,7 @@ namespace CoreEx.Hosting
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="Task"/> that represents the long running operations.</returns>
-        private async Task ScopedExecuteAsync(CancellationToken cancellationToken)
+        private Task ScopedExecuteAsync(CancellationToken cancellationToken) => ServiceInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
         {
             // Create a scope in which to perform the execution.
             using var scope = ServiceProvider.CreateScope();
@@ -179,7 +179,7 @@ namespace CoreEx.Hosting
                 Logger.LogCritical(ex, "{ServiceName} failure as a result of an unexpected exception: {Error}", ServiceName, ex.Message);
                 throw;
             }
-        }
+        }, cancellationToken);
 
         /// <summary>
         /// Triggered to perform the work as a result of the <see cref="Interval"/>.

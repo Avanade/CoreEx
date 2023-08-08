@@ -75,82 +75,85 @@ namespace CoreEx.Validation
         public LText? Text { get; set; }
 
         /// <inheritdoc/>
-        public override async Task<ValidationContext<TDict>> ValidateAsync(TDict? value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
+        public override Task<ValidationContext<TDict>> ValidateAsync(TDict? value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
-            args ??= new ValidationArgs();
-            if (string.IsNullOrEmpty(args.FullyQualifiedEntityName))
-                args.FullyQualifiedEntityName = Validation.ValueNameDefault;
-
-            if (string.IsNullOrEmpty(args.FullyQualifiedEntityName))
-                args.FullyQualifiedJsonEntityName = Validation.ValueNameDefault;
-
-            var context = new ValidationContext<TDict>(value, args);
-
-            var i = 0;
-            var hasNullKey = false;
-            var hasNullValue = false;
-            foreach (var item in value)
+            return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
-                i++;
+                args ??= new ValidationArgs();
+                if (string.IsNullOrEmpty(args.FullyQualifiedEntityName))
+                    args.FullyQualifiedEntityName = Validation.ValueNameDefault;
 
-                if (!AllowNullKeys && item.Key == null)
-                    hasNullKey = true;
+                if (string.IsNullOrEmpty(args.FullyQualifiedEntityName))
+                    args.FullyQualifiedJsonEntityName = Validation.ValueNameDefault;
 
-                if (!AllowNullValues && item.Value == null)
-                    hasNullValue = true;
+                var context = new ValidationContext<TDict>(value, args);
 
-                if (Item?.KeyValidator == null && Item?.ValueValidator == null)
-                    continue;
-
-                // Validate and merge.
-                var name = $"[{item.Key}]";
-
-                if (item.Key != null && Item?.KeyValidator != null)
+                var i = 0;
+                var hasNullKey = false;
+                var hasNullValue = false;
+                foreach (var item in value)
                 {
-                    var kc = new PropertyContext<TDict, KeyValuePair<TKey, TValue>>(context, item, name, name);
-                    var ka = kc.CreateValidationArgs();
-                    var kr = await Item.KeyValidator.ValidateAsync(item.Key, ka, cancellationToken).ConfigureAwait(false);
-                    context.MergeResult(kr);
-                    if (context.FailureResult is not null)
-                        return context;
+                    i++;
+
+                    if (!AllowNullKeys && item.Key == null)
+                        hasNullKey = true;
+
+                    if (!AllowNullValues && item.Value == null)
+                        hasNullValue = true;
+
+                    if (Item?.KeyValidator == null && Item?.ValueValidator == null)
+                        continue;
+
+                    // Validate and merge.
+                    var name = $"[{item.Key}]";
+
+                    if (item.Key != null && Item?.KeyValidator != null)
+                    {
+                        var kc = new PropertyContext<TDict, KeyValuePair<TKey, TValue>>(context, item, name, name);
+                        var ka = kc.CreateValidationArgs();
+                        var kr = await Item.KeyValidator.ValidateAsync(item.Key, ka, cancellationToken).ConfigureAwait(false);
+                        context.MergeResult(kr);
+                        if (context.FailureResult is not null)
+                            return context;
+                    }
+
+                    if (item.Value != null && Item?.ValueValidator != null)
+                    {
+                        var vc = new PropertyContext<TDict, KeyValuePair<TKey, TValue>>(context, item, name, name);
+                        var va = vc.CreateValidationArgs();
+                        var vr = await Item.ValueValidator.ValidateAsync(item.Value, va, cancellationToken).ConfigureAwait(false);
+                        context.MergeResult(vr);
+                        if (context.FailureResult is not null)
+                            return context;
+                    }
                 }
 
-                if (item.Value != null && Item?.ValueValidator != null)
-                {
-                    var vc = new PropertyContext<TDict, KeyValuePair<TKey, TValue>>(context, item, name, name);
-                    var va = vc.CreateValidationArgs();
-                    var vr = await Item.ValueValidator.ValidateAsync(item.Value, va, cancellationToken).ConfigureAwait(false);
-                    context.MergeResult(vr);
-                    if (context.FailureResult is not null)
-                        return context;
-                }
-            }
+                var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? Validation.ValueNameDefault);
+                if (hasNullKey)
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullKeyFormat, new object?[] { text.Value, null });
 
-            var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? Validation.ValueNameDefault);
-            if (hasNullKey)
-                context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullKeyFormat, new object?[] { text.Value, null });
+                if (hasNullValue)
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullValueFormat, new object?[] { text.Value, null });
 
-            if (hasNullValue)
-                context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullValueFormat, new object?[] { text.Value, null });
+                // Check the length/count.
+                if (i < MinCount)
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MinCountFormat, new object?[] { text.Value, null, MinCount });
+                else if (MaxCount.HasValue && i > MaxCount.Value)
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MaxCountFormat, new object?[] { text.Value, null, MaxCount });
 
-            // Check the length/count.
-            if (i < MinCount)
-                context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MinCountFormat, new object?[] { text.Value, null, MinCount });
-            else if (MaxCount.HasValue && i > MaxCount.Value)
-                context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MaxCountFormat, new object?[] { text.Value, null, MaxCount });
+                if (context.FailureResult is not null)
+                    return context;
 
-            if (context.FailureResult is not null)
+                var result = await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
+                if (result.IsSuccess && _additionalAsync != null)
+                    result = await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
+
+                context.SetFailureResult(result);
                 return context;
-
-            var result = await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
-            if (result.IsSuccess && _additionalAsync != null)
-                result = await _additionalAsync(context, cancellationToken).ConfigureAwait(false);
-
-            context.SetFailureResult(result);
-            return context;
+            }, cancellationToken);
         }
 
         /// <summary>

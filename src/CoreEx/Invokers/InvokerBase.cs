@@ -16,9 +16,9 @@ namespace CoreEx.Invokers
     public abstract class InvokerBase : InvokerBase<object, InvokerArgs>
     {
         /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(object owner, Func<TResult> func, InvokerArgs param)
+        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, object owner, Func<InvokeArgs, TResult> func, InvokerArgs args)
         {
-            InvokerArgs bia = param;
+            InvokerArgs bia = args;
             TransactionScope? txn = null;
             var ot = CoreEx.ExecutionContext.Current.OperationType;
             if (bia.OperationType.HasValue)
@@ -31,7 +31,7 @@ namespace CoreEx.Invokers
                     txn = new TransactionScope(bia.TransactionScopeOption, TransactionScopeAsyncFlowOption.Enabled);
 
                 // Invoke the underlying logic.
-                var result = func();
+                var result = func(invokeArgs);
 
                 // Where using Railway-oriented programming, rollback the transaction where a failure has occurred.
                 if (result is IResult r && r.IsFailure)
@@ -58,9 +58,9 @@ namespace CoreEx.Invokers
         }
 
         /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(object owner, Func<CancellationToken, Task<TResult>> func, InvokerArgs param, CancellationToken cancellationToken)
+        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, object owner, Func<InvokeArgs, CancellationToken, Task<TResult>> func, InvokerArgs args, CancellationToken cancellationToken)
         {
-            InvokerArgs bia = param;
+            InvokerArgs bia = args;
             TransactionScope? txn = null;
             var ot = CoreEx.ExecutionContext.Current.OperationType;
             if (bia.OperationType.HasValue)
@@ -73,7 +73,7 @@ namespace CoreEx.Invokers
                     txn = new TransactionScope(bia.TransactionScopeOption, TransactionScopeAsyncFlowOption.Enabled);
 
                 // Invoke the underlying logic.
-                var result = await func(cancellationToken).ConfigureAwait(false);
+                var result = await func(invokeArgs, cancellationToken).ConfigureAwait(false);
 
                 // Where using Railway-oriented programming, rollback the transaction where a failure has occurred.
                 if (result is IResult r && r.IsFailure)

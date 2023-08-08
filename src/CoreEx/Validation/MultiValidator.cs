@@ -53,7 +53,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="MultiValidatorResult"/>.</returns>
-        public async Task<MultiValidatorResult> ValidateAsync(CancellationToken cancellationToken = default)
+        public Task<MultiValidatorResult> ValidateAsync(CancellationToken cancellationToken = default) => ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
         {
             var res = new MultiValidatorResult();
 
@@ -72,7 +72,7 @@ namespace CoreEx.Validation
             }
 
             return res;
-        }
+        }, cancellationToken);
 
         /// <summary>
         /// Runs the validations.

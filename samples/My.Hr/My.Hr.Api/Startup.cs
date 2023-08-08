@@ -3,6 +3,9 @@ using CoreEx.Database;
 using CoreEx.DataBase.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
+using OpenTelemetry.Instrumentation.AspNetCore;
+using OpenTelemetry.Trace;
 
 namespace My.Hr.Api;
 
@@ -55,6 +58,13 @@ public class Startup
             .AddTypeActivatedCheck<SqlServerHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default!, timeout: TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
 
         services.AddControllers();
+
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
+        {
+            services.AddOpenTelemetry().UseAzureMonitor();
+            services.Configure<AspNetCoreInstrumentationOptions>(options => options.RecordException = true);
+            services.ConfigureOpenTelemetryTracerProvider((sp, builder) => builder.AddSource("CoreEx.*"));
+        }
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         services.AddEndpointsApiExplorer();

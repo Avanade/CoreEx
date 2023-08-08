@@ -20,7 +20,6 @@ namespace CoreEx.Solace.PubSub
     public class PubSubSender : IPubSubSender
     {
         private const string _unspecifiedQueueOrTopicName = "$default";
-        private const int PUBSUB_MAX_BATCH_SIZE = 50;
         private static PubSubSenderInvoker? _invoker;
 
         /// <summary>
@@ -78,13 +77,19 @@ namespace CoreEx.Solace.PubSub
         /// </summary>
         public string? DefaultQueueOrTopicName { get; set; }
 
+        /// <summary>
+        /// Gets or sets the maximum batch size for sending.
+        /// </summary>
+        /// <remarks>Defaults to <c>50</c>.</remarks>
+        public int MaxBatchSize { get; set; } = 50;
+
         /// <inheritdoc/>
         public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
         {
             if (events == null || !events.Any())
                 return Task.CompletedTask;
 
-            Invoker.Invoke(this, events, (events) =>
+            Invoker.Invoke(this, events, (_, events) =>
             {
                 var totalCount = events.Count();
                 Logger.LogDebug("{TotalCount} events in total are to be sent.", totalCount);
@@ -145,7 +150,7 @@ namespace CoreEx.Solace.PubSub
                         queue.Dequeue();
 
                         // Keep adding until done or max size reached for batch.
-                        while (queue.Count > 0 && messageBatch.Count < PUBSUB_MAX_BATCH_SIZE)
+                        while (queue.Count > 0 && messageBatch.Count < MaxBatchSize)
                         {
                             messageBatch.Add(queue.Peek().Message);
                             sentIds.Add(queue.Peek().Message.ApplicationMessageId);
@@ -181,7 +186,7 @@ namespace CoreEx.Solace.PubSub
                         unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id ?? string.Empty));
                     }
                 }
-            });
+            }, nameof(SendAsync));
 
             return Task.CompletedTask;
         }

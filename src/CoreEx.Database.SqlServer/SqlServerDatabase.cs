@@ -76,7 +76,7 @@ namespace CoreEx.Database.SqlServer
             if (string.IsNullOrEmpty(SessionContextStoredProcedure))
                 throw new InvalidOperationException("The SessionContextStoredProcedure property must have a value.");
 
-            return Invoker.InvokeAsync(this, username, timestamp, tenantId, userId, async (username, timestamp, tenantId, userId, ct) =>
+            return Invoker.InvokeAsync(this, username, timestamp, tenantId, userId, async (_, username, timestamp, tenantId, userId, ct) =>
             {
                 return await StoredProcedure(SessionContextStoredProcedure)
                     .Param($"@{DatabaseColumns.SessionContextUsernameName}", username ?? ExecutionContext.EnvironmentUserName)
@@ -84,7 +84,7 @@ namespace CoreEx.Database.SqlServer
                     .ParamWith(tenantId, $"@{DatabaseColumns.SessionContextTenantIdName}")
                     .ParamWith(userId, $"@{DatabaseColumns.SessionContextUserIdName}")
                     .NonQueryAsync(ct).ConfigureAwait(false);
-            }, cancellationToken);
+            }, cancellationToken, nameof(SetSqlSessionContextAsync));
         }
 
         /// <summary>
