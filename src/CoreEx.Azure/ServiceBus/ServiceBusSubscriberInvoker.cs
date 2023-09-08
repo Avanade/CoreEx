@@ -147,6 +147,10 @@ namespace CoreEx.Azure.ServiceBus
                 return true; // Keep throwing; i.e. bubble exception.
             }
 
+            // Where the unhandled handling is set to None then keep bubbling; do not dead-letter.
+            if (invoker.UnhandledHandling == Events.Subscribing.ErrorHandling.None)
+                return true; 
+
             // Dead-letter the unhandled exception.
             await DeadLetterExceptionAsync(invoker, message, messageActions, ErrorType.UnhandledError.ToString(), exception, cancellationToken).ConfigureAwait(false);
             return false;

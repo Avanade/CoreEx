@@ -208,19 +208,61 @@ namespace CoreEx.Test.TestFunction
         }
 
         [Test]
-        public async Task Unhandled_DeadLetter()
+        public async Task Unhandled_Throw_DeadLetter()
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
             var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
-            sbs.AbandonOnTransient = true;
+            sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.ThrowSubscriberException;
 
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new DivideByZeroException("Zero is bad dude!"));
 
             actions.AssertRenew(0);
             actions.AssertDeadLetter("UnhandledError", "Zero is bad dude!");
+        }
+
+        [Test]
+        public async Task Unhandled_None_Bubble()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var actions = test.CreateServiceBusMessageActions();
+            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+
+            var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
+            sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.None;
+
+            try
+            {
+                await sbs.ReceiveAsync(message, actions, (_, _) => throw new DivideByZeroException("Zero is bad dude!"));
+            }
+            catch (DivideByZeroException)
+            {
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($"Expected {nameof(DivideByZeroException)} but got {ex.GetType().Name}.");
+            }
+
+            actions.AssertRenew(0);
+            actions.AssertNone();
+        }
+
+        [Test]
+        public async Task Unhandled_ContinueAsSilent_Complete()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var actions = test.CreateServiceBusMessageActions();
+            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+
+            var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
+            sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.CompleteAsSilent;
+
+            await sbs.ReceiveAsync(message, actions, (_, _) => throw new DivideByZeroException("Zero is bad dude!"));
+
+            actions.AssertRenew(0);
+            actions.AssertComplete();
         }
     }
 }
