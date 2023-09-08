@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.3.1
+- *Fixed:* `ServiceBusSubscriber` was not correctly bubbling (not handling) exceptions where `UnhandledHandling` was set to `ErrorHandling.None`. Was incorrectly treating same as `ErrorHandling.ThrowSubscriberException` and automatically dead-lettering and continuing.
+
 ## v3.3.0
 - *Enhancement:* [Distributed tracing](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-instrumentation-walkthroughs#best-practices) has been added via the `InvokerBase` set of classes throughout `CoreEx` to ensure coverage and consistency of implementation. A new `InvokeArgs` has been added to house the [`ActivitySource`](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activitysource) instance; this also provides for further extension opportunities limiting future potential breaking changes.
 
