@@ -52,7 +52,7 @@ namespace CoreEx.Events.Subscribing
         public EventDataFormatter? EventDataFormatter { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to. Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.
+        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to. Defaults to <see cref="ErrorHandling.None"/>.
         /// </summary>
         public ErrorHandling NotSubscribedHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
 
