@@ -53,5 +53,14 @@ To get further insights into the processing of the messages an [`IEventSubscribe
 An example implementation for Azure Application Insights would be similar to as follows:
 
 ``` csharp
+public class AppInsightInstrumentation : EventSubscriberInstrumentationBase
+{
+    private readonly TelemetryClient _telemetryClient;
 
+    public AppInsightInstrumentation(TelemetryClient telemetryClient) 
+        => _telemetryClient = telemetryClient ?? throw new ArgumentNullException(nameof(telemetryClient));
+
+    public override void Instrument(ErrorHandling? errorHandling = null, Exception? exception = null)
+        => _telemetryClient.TrackEvent(GetInstrumentName("Subscriber", errorHandling, exception));
+}
 ```
