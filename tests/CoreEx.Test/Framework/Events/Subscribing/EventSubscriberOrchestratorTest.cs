@@ -103,7 +103,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         }
 
         [Test] public async Task Receive_Unhandled_None() => await ReceiveTest(null, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), false, message: "Unhandled exception.");
-        [Test] public async Task Receive_Unhandled_Exception() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.ThrowSubscriberException, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception.", ins: "Test.Error.UnhandledError");
+        [Test] public async Task Receive_Unhandled_Exception() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.Handle, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception.", ins: "Test.Error.UnhandledError");
         [Test] public async Task Receive_Unhandled_CompleteSilent() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.CompleteAsSilent, () => throw new System.NotImplementedException("Unhandled exception."), ins: "Test.Complete.UnhandledError");
 
         [Test] public async Task Receive_Unhandled_FailFast()
@@ -115,31 +115,31 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         }
 
         [Test] public async Task Receive_Security_None() => await ReceiveTest(null, () => throw new AuthenticationException(), typeof(AuthenticationException), false);
-        [Test] public async Task Receive_Security_Exception() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.ThrowSubscriberException, () => throw new AuthorizationException(), typeof(AuthorizationException), true, ins: "Test.Error.AuthorizationError");
-        [Test] public async Task Receive_Security_Retry() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.TransientRetry, () => throw new AuthorizationException(), typeof(AuthorizationException), true, true, ins: "Test.Transient.AuthorizationError");
+        [Test] public async Task Receive_Security_Exception() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.Handle, () => throw new AuthorizationException(), typeof(AuthorizationException), true, ins: "Test.Error.AuthorizationError");
+        [Test] public async Task Receive_Security_Retry() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.Retry, () => throw new AuthorizationException(), typeof(AuthorizationException), true, true, ins: "Test.Retry.AuthorizationError");
         [Test] public async Task Receive_Security_CompleteSilent() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.CompleteAsSilent, () => throw new AuthorizationException(), ins: "Test.Complete.AuthorizationError");
 
         [Test] public async Task Receive_InvalidData_None() => await ReceiveTest(null, () => throw new BusinessException(), typeof(BusinessException), false);
-        [Test] public async Task Receive_InvalidData_Exception() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.ThrowSubscriberException, () => throw new ConflictException(), typeof(ConflictException), true, ins: "Test.Error.ConflictError");
+        [Test] public async Task Receive_InvalidData_Exception() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.Handle, () => throw new ConflictException(), typeof(ConflictException), true, ins: "Test.Error.ConflictError");
         [Test] public async Task Receive_InvalidData_CompleteSilent() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.CompleteAsSilent, () => throw new DuplicateException(), ins: "Test.Complete.DuplicateError");
-        [Test] public async Task Receive_InvalidData_Exception_ValueIsRequired() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.ThrowSubscriberException, () => throw new DivideByZeroException(), typeof(ValidationException), true, message: "Invalid message; body was not provided, contained invalid JSON, or was incorrectly formatted: Value is required.", ed: new EventData<Employee>(), ins: "Test.Error.ValidationError");
+        [Test] public async Task Receive_InvalidData_Exception_ValueIsRequired() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.Handle, () => throw new DivideByZeroException(), typeof(ValidationException), true, message: "Invalid message; body was not provided, contained invalid JSON, or was incorrectly formatted: Value is required.", ed: new EventData<Employee>(), ins: "Test.Error.ValidationError");
 
         [Test] public async Task Receive_Concurrency_None() => await ReceiveTest(null, () => throw new ConcurrencyException(), typeof(ConcurrencyException), false);
-        [Test] public async Task Receive_Concurrency_Exception() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.ThrowSubscriberException, () => throw new ConcurrencyException(), typeof(ConcurrencyException), true, ins: "Test.Error.ConcurrencyError");
+        [Test] public async Task Receive_Concurrency_Exception() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.Handle, () => throw new ConcurrencyException(), typeof(ConcurrencyException), true, ins: "Test.Error.ConcurrencyError");
         [Test] public async Task Receive_Concurrency_CompleteSilent() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.CompleteAsSilent, () => throw new ConcurrencyException(), ins: "Test.Complete.ConcurrencyError");
 
         [Test] public async Task Receive_NotFound_None() => await ReceiveTest(null, () => throw new NotFoundException(), typeof(NotFoundException), false);
-        [Test] public async Task Receive_NotFound_Exception() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.ThrowSubscriberException, () => throw new NotFoundException(), typeof(NotFoundException), true, ins: "Test.Error.NotFoundError");
+        [Test] public async Task Receive_NotFound_Exception() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.Handle, () => throw new NotFoundException(), typeof(NotFoundException), true, ins: "Test.Error.NotFoundError");
         [Test] public async Task Receive_NotFound_CompleteSilent() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.CompleteAsSilent, () => throw new NotFoundException(), ins: "Test.Complete.NotFoundError");
 
         [Test] public async Task Receive_Transient_None() => await ReceiveTest(null, () => throw new TransientException(), typeof(TransientException), false, true);
-        [Test] public async Task Receive_Transient_Retry() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.TransientRetry, () => throw new TransientException(), typeof(TransientException), true, true, ins: "Test.Transient.TransientError");
-        [Test] public async Task Receive_Transient_Exception() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.ThrowSubscriberException, () => throw new TransientException(), typeof(TransientException), true, false, ins: "Test.Error.TransientError");
+        [Test] public async Task Receive_Transient_Retry() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.Retry, () => throw new TransientException(), typeof(TransientException), true, true, ins: "Test.Retry.TransientError");
+        [Test] public async Task Receive_Transient_Exception() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.Handle, () => throw new TransientException(), typeof(TransientException), true, false, ins: "Test.Error.TransientError");
         [Test] public async Task Receive_Transient_CompleteSilent() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.CompleteAsSilent, () => throw new TransientException(), ins: "Test.Complete.TransientError");
 
         [Test] public async Task Receive_DataConsistency_None() => await ReceiveTest(null, () => throw new DataConsistencyException(), typeof(DataConsistencyException), false, true);
-        [Test] public async Task Receive_DataConsistency_Retry() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.TransientRetry, () => throw new DataConsistencyException(), typeof(DataConsistencyException), true, true, ins: "Test.Transient.DataConsistencyError");
-        [Test] public async Task Receive_DataConsistency_Exception() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.ThrowSubscriberException, () => throw new DataConsistencyException(), typeof(DataConsistencyException), true, false, ins: "Test.Error.DataConsistencyError");
+        [Test] public async Task Receive_DataConsistency_Retry() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.Retry, () => throw new DataConsistencyException(), typeof(DataConsistencyException), true, true, ins: "Test.Retry.DataConsistencyError");
+        [Test] public async Task Receive_DataConsistency_Exception() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.Handle, () => throw new DataConsistencyException(), typeof(DataConsistencyException), true, false, ins: "Test.Error.DataConsistencyError");
         [Test] public async Task Receive_DataConsistency_CompleteSilent() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.CompleteAsSilent, () => throw new DataConsistencyException(), ins: "Test.Complete.DataConsistencyError");
 
         [Test] public async Task Receive_Success() => await ReceiveTest(null, () => { }, null, false, ins: "Test.Complete.Success");

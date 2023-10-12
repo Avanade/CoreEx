@@ -13,7 +13,7 @@ namespace CoreEx.Events.Subscribing
         private enum SubscriberResult
         {
             Complete,
-            Transient,
+            Retry,
             Error,
             Critical
         }
@@ -21,8 +21,8 @@ namespace CoreEx.Events.Subscribing
         /// <summary>
         /// Gets or sets the instrumentation name format.
         /// </summary>
-        /// <remarks>The '<c>{0}</c>' represents the supplied prefix, the '<c>{1}</c>' represents the result ('Complete', 'Transient', 'Error', 'Critical'), and the '<c>{2}</c>' represents the suffix ('Success' or corresponding error suffix).
-        /// <para>The following represent possible outcomes: '<c>Prefix.Complete.Success</c>', '<c>Prefix.Complete.NotSubscribed</c>', '<c>Prefix.Transient.AuthenticationError</c>', '<c>Prefix.Error.NotFoundError</c>', etc.</para></remarks>
+        /// <remarks>The '<c>{0}</c>' represents the supplied prefix, the '<c>{1}</c>' represents the result ('Complete', 'Retry', 'Error', 'Critical'), and the '<c>{2}</c>' represents the suffix ('Success' or corresponding error suffix).
+        /// <para>The following represent possible outcomes: '<c>Prefix.Complete.Success</c>', '<c>Prefix.Complete.NotSubscribed</c>', '<c>Prefix.Retry.AuthenticationError</c>', '<c>Prefix.Error.NotFoundError</c>', etc.</para></remarks>
         public string InstrumentationNameFormat { get; set; } = "{0}.{1}.{2}";
 
         /// <summary>
@@ -36,9 +36,9 @@ namespace CoreEx.Events.Subscribing
         public string ErrorResultText { get; set; } = nameof(SubscriberResult.Error);
 
         /// <summary>
-        /// Gets or sets the instrumentation result where considered transient (see <see cref="ErrorHandling.TransientRetry"/>).
+        /// Gets or sets the instrumentation result where a <see cref="ErrorHandling.Retry"/>.
         /// </summary>
-        public string TransientResultText { get; set; } = nameof(SubscriberResult.Transient);
+        public string RetryResultText { get; set; } = nameof(SubscriberResult.Retry);
 
         /// <summary>
         /// Gets or sets the instrumentation result where considered critical (see <see cref="ErrorHandling.CriticalFailFast"/>).
@@ -142,7 +142,7 @@ namespace CoreEx.Events.Subscribing
             var (result, resultText) = errorHandling switch
             {
                 null or ErrorHandling.CompleteAsSilent or ErrorHandling.CompleteWithInformation or ErrorHandling.CompleteWithWarning or ErrorHandling.CompleteWithError => (SubscriberResult.Complete, CompleteResultText),
-                ErrorHandling.TransientRetry => (SubscriberResult.Transient, TransientResultText),
+                ErrorHandling.Retry => (SubscriberResult.Retry, RetryResultText),
                 ErrorHandling.CriticalFailFast => (SubscriberResult.Critical, CriticalResultText),
                 _ => (SubscriberResult.Error, ErrorResultText)
             };

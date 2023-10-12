@@ -291,7 +291,7 @@ namespace CoreEx.Test.TestFunction
             var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
-            sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.ThrowSubscriberException;
+            sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.Handle;
 
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new DivideByZeroException("Zero is bad dude!"));
 

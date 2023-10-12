@@ -79,36 +79,36 @@ namespace CoreEx.Events
         /// <summary>
         /// Gets or sets the <see cref="ErrorHandling"/> where an <see cref="Exception"/> occurs during <see cref="EventData"/>/<see cref="EventData{T}"/> <see cref="IEventSerializer.DeserializeAsync(BinaryData, CancellationToken)"/>/<see cref="IEventSerializer.DeserializeAsync{T}(BinaryData, CancellationToken)"/>.
         /// </summary>
-        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
-        public ErrorHandling EventDataDeserializationErrorHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Handle"/>.</remarks>
+        public ErrorHandling EventDataDeserializationErrorHandling { get; set; } = ErrorHandling.Handle;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
-        public ErrorHandling UnhandledHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Handle"/>.</remarks>
+        public ErrorHandling UnhandledHandling { get; set; } = ErrorHandling.Handle;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
-        public ErrorHandling SecurityHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Handle"/>.</remarks>
+        public ErrorHandling SecurityHandling { get; set; } = ErrorHandling.Handle;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.TransientRetry"/>.</remarks>
-        public ErrorHandling TransientHandling { get; set; } = ErrorHandling.TransientRetry;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Retry"/>.</remarks>
+        public ErrorHandling TransientHandling { get; set; } = ErrorHandling.Retry;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
-        public ErrorHandling NotFoundHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Handle"/>.</remarks>
+        public ErrorHandling NotFoundHandling { get; set; } = ErrorHandling.Handle;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
-        public ErrorHandling ConcurrencyHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Handle"/>.</remarks>
+        public ErrorHandling ConcurrencyHandling { get; set; } = ErrorHandling.Handle;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
-        public ErrorHandling DataConsistencyHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Handle"/>.</remarks>
+        public ErrorHandling DataConsistencyHandling { get; set; } = ErrorHandling.Handle;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
-        public ErrorHandling InvalidDataHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+        /// <remarks>Defaults to <see cref="ErrorHandling.Handle"/>.</remarks>
+        public ErrorHandling InvalidDataHandling { get; set; } = ErrorHandling.Handle;
 
         /// <summary>
         /// Gets or sets the optional <see cref="IEventSubscriberInstrumentation"/>.

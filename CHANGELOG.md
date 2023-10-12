@@ -5,8 +5,9 @@ Represents the **NuGet** versions.
 ## v3.4.0
 - *Enhancement:* Added `IEventSubscriberInstrumentation` (and related `EventSubscriberInstrumentationBase`) to enable `EventSubscriberBase.Instrumentation` monitoring of the subscriber as applicable.
 - *Enhancement:* Previous `EventSubscriberInvoker` exception/error handling moved into individual subscribers for greater control; a new `ErrorHandler` added to encapsulate the consistent handling of the underlying exceptions/errors. This was internal and should have no impact.
+- *Enhancement:* `ErrorHandling.ThrowSubscriberException` renamed to `Handle` and `ErrorHandling.TransientRetry` renamed to `Retry`. Old names have been obsoleted and as such will generate a compile-time error where not corrected.
 - *Enhancement:* Added `DataConsistencyException` to support the throwing of possible data consistency issues; internally integrated throughout _CoreEx_.
-- *Enhancement:* Added `IDatabase.SqlStatementFromResource` support to enable simple access to SQL statements embedded as a resource within an assembly.
+- *Enhancement:* Added `IDatabase.SqlFromResource` support to enable simple access to SQL statements embedded as a resource within a specified assembly.
 - *Enhancement:* `Result.When*` methods updated to support _optional_ `otherwise` function to enable `if/then/else` scenarios (only invoked where `Result.IsSuccess`).
 
 ## v3.3.1

@@ -101,7 +101,7 @@ namespace CoreEx.Database
         /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
         /// <param name="assembly">The <see cref="Assembly"/> that contains the embedded resource; defaults to <see cref="Assembly.GetCallingAssembly"/>.</param>
         /// <returns>The <see cref="DatabaseCommand"/>.</returns>
-        DatabaseCommand SqlStatementFromResource(string resourceName, Assembly? assembly = null);
+        DatabaseCommand SqlFromResource(string resourceName, Assembly? assembly = null);
 
         /// <summary>
         /// Creates a SQL statement <see cref="DatabaseCommand"/> from the named embedded resource within the <see name="Assembly"/> inferred from the <typeparamref name="TResource"/> <see cref="Type"/>.
@@ -109,7 +109,7 @@ namespace CoreEx.Database
         /// <typeparam name="TResource">The <see cref="Type"/> to infer the <see cref="Assembly"/> that contains the embedded resource.</typeparam>
         /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
         /// <returns>The <see cref="DatabaseCommand"/>.</returns>
-        DatabaseCommand SqlStatementFromResource<TResource>(string resourceName);
+        DatabaseCommand SqlFromResource<TResource>(string resourceName);
 
         /// <summary>
         /// Invoked where a <see cref="DbException"/> has been thrown.

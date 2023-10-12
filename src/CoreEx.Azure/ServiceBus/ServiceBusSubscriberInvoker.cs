@@ -94,13 +94,25 @@ namespace CoreEx.Azure.ServiceBus
                 // Handle the exception based on the subscriber configuration.
                 var handling = ErrorHandler.DetermineErrorHandling(invoker, eex);
                 if (handling == ErrorHandling.None)
+                {
+                    invoker.Instrumentation?.Instrument(ErrorHandling.None, ex);
                     throw;
+                }
 
                 invoker.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), handling, invoker.Logger, invoker.Instrumentation);
             }
             catch (Exception ex) when (invoker.UnhandledHandling != ErrorHandling.None)
             {
                 invoker.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), invoker.UnhandledHandling, invoker.Logger, invoker.Instrumentation);
+            }
+            catch (Exception ex) when (invoker.UnhandledHandling == ErrorHandling.None)
+            {
+                invoker.Instrumentation?.Instrument(ErrorHandling.None, ex);
+                throw;
+            }
+            finally
+            {
+                OnAfterMessageProcessing(invoker, args.Message, null);
             }
 
             // Everything is good, so complete the message.
@@ -117,8 +129,11 @@ namespace CoreEx.Azure.ServiceBus
         private static async Task<bool> HandleExceptionAsync(EventSubscriberBase invoker, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Exception exception, CancellationToken cancellationToken)
         {
             // Handle a known exception type.
-            if (exception is IExtendedException eex)
+            if (exception is EventSubscriberException eex)
             {
+                if (eex.ErrorHandling == ErrorHandling.None)
+                    return true; // Keep throwing; i.e. bubble exception.
+
                 // Where not considered transient then dead-letter.
                 if (!eex.IsTransient)
                 {
@@ -136,7 +151,7 @@ namespace CoreEx.Azure.ServiceBus
                 }
 
                 // Where the exception is known then exception and stack trace need not be logged.
-                var ex = exception is EventSubscriberException esex && esex.HasInnerExtendedException ? null : exception;
+                var ex = eex.HasInnerExtendedException ? null : exception;
 
                 // Log the transient retry as a warning.
                 if (delay <= 0)
@@ -174,6 +189,10 @@ namespace CoreEx.Azure.ServiceBus
 
                 return true; // Keep throwing; i.e. bubble exception.
             }
+
+            // For the known exceptions it can be assumed that it only got this far because error handling for it was None so keep bubbling.
+            if (exception is IExtendedException)
+                return true;
 
             // Where the unhandled handling is set to None then keep bubbling; do not dead-letter.
             if (invoker.UnhandledHandling == ErrorHandling.None)

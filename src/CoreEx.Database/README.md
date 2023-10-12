@@ -60,7 +60,15 @@ Additionally, review the _Beef_ repo [sample](https://github.com/Avanade/Beef/bl
 
 ## Commands
 
-_CoreEx_ encapsulates an _ADO.NET_ [`DbCommand`](https://learn.microsoft.com/en-us/dotnet/api/system.data.common.dbcommand) within a [`DatabaseCommand`](./DatabaseCommand.cs); being either a `IDatabase.StoredProcedure` (see [`CommandType.StoredProcedure`](https://learn.microsoft.com/en-us/dotnet/api/system.data.commandtype#system-data-commandtype-storedprocedure)) or `IDatabase.SqlStatement` method passing the appropriate content.
+The _CoreEx_ [`IDatabase`](./IDatabase.cs) encapsulates an _ADO.NET_ [`DbCommand`](https://learn.microsoft.com/en-us/dotnet/api/system.data.common.dbcommand) within a [`DatabaseCommand`](./DatabaseCommand.cs); via the following methods:
+
+Method | Description
+-|-
+`StoredProcedure` | Creates a command for a stored procedure; (see [`CommandType.StoredProcedure`](https://learn.microsoft.com/en-us/dotnet/api/system.data.commandtype#system-data-commandtype-storedprocedure))
+`SqlStatement` | Creates a command for a SQL statement; (see [`CommandType.Text`](https://learn.microsoft.com/en-us/dotnet/api/system.data.commandtype#system-data-commandtype-text))
+`SqlFromResource` | Creates a command for a SQL statement within the specified embedded resource.
+
+or `IDatabase.SqlStatement` method passing the appropriate content.
 
 The following [`DatabaseCommand`](./DatabaseCommand.cs) methods provide additional capabilities. The query-based methods optionally leverage the rich [Mapping](#Mapping) capabilities.
 

@@ -126,12 +126,12 @@ namespace CoreEx.Database
             => new(this, CommandType.Text, sqlStatement ?? throw new ArgumentNullException(nameof(sqlStatement)));
 
         /// <inheritdoc/>
-        public DatabaseCommand SqlStatementFromResource(string resourceName, Assembly? assembly = null)
+        public DatabaseCommand SqlFromResource(string resourceName, Assembly? assembly = null)
             => SqlStatement(Abstractions.Resource.GetStreamReader(resourceName, assembly ?? Assembly.GetCallingAssembly()).ReadToEnd());
 
         /// <inheritdoc/>
-        public DatabaseCommand SqlStatementFromResource<TResource>(string resourceName)
-            => SqlStatementFromResource(resourceName, typeof(TResource).Assembly);
+        public DatabaseCommand SqlFromResource<TResource>(string resourceName)
+            => SqlFromResource(resourceName, typeof(TResource).Assembly);
 
         /// <inheritdoc/>
         public Result? HandleDbException(DbException dbex)

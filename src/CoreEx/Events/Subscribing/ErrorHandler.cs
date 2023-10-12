@@ -51,29 +51,30 @@ namespace CoreEx.Events.Subscribing
         /// <para>An <paramref name="errorHandling"/> value of <see cref="ErrorHandling.None"/> will result in a throw as it has already been converted into a <see cref="EventSubscriberException"/>; as such, <see cref="ErrorHandling.None"/> should generally be handled prior to invocation.</para></remarks>
         public void HandleError(EventSubscriberException eventSubscriberException, ErrorHandling errorHandling, ILogger logger, IEventSubscriberInstrumentation? instrumentation)
         {
+            // Set the configured error handling for the exception.
+            if (errorHandling != ErrorHandling.None)
+                eventSubscriberException.ErrorHandling = errorHandling;
+
             // Where the exception is known then exception and stack trace need not be logged.
             var ex = eventSubscriberException.HasInnerExtendedException ? null : eventSubscriberException;
 
             // Handle based on error handling configuration.
             switch (errorHandling)
             {
-                case ErrorHandling.TransientRetry:
+                case ErrorHandling.None:
+                case ErrorHandling.Handle:
+                    eventSubscriberException.IsTransient = false;
+                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
+                    throw eventSubscriberException;
+
+                case ErrorHandling.Retry:
                     eventSubscriberException.IsTransient = true;
                     instrumentation?.Instrument(errorHandling, eventSubscriberException);
                     throw eventSubscriberException;
 
-                case ErrorHandling.CriticalFailFast:
-                    eventSubscriberException.IsTransient = false;
+                case ErrorHandling.CompleteAsSilent:
                     instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    logger.LogCritical(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
-                    FailFast(eventSubscriberException);
-                    throw eventSubscriberException; // A backup in case FailFast does not function as expected; should _not_ get here!
-
-                case ErrorHandling.None:
-                case ErrorHandling.ThrowSubscriberException:
-                    eventSubscriberException.IsTransient = false;
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    throw eventSubscriberException;
+                    break;
 
                 case ErrorHandling.CompleteWithInformation:
                     instrumentation?.Instrument(errorHandling, eventSubscriberException);
@@ -90,9 +91,12 @@ namespace CoreEx.Events.Subscribing
                     logger.LogError(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
                     break;
 
-                case ErrorHandling.CompleteAsSilent:
+                case ErrorHandling.CriticalFailFast:
+                    eventSubscriberException.IsTransient = false;
                     instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    break;
+                    logger.LogCritical(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    FailFast(eventSubscriberException);
+                    throw eventSubscriberException; // A backup in case FailFast does not function as expected; should _not_ get here!
             }
         }
 
