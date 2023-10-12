@@ -109,9 +109,7 @@ namespace CoreEx.Azure.ServiceBus
                 }
 
                 // Execute subscriber receive with the event.
-                var success = await Orchestrator.ReceiveAsync(this, subscriber!, @event, args, cancellationToken).ConfigureAwait(false);
-                if (success)
-                    Logger.LogDebug("{Type} executed {Subscriber} successfully - Service Bus message '{Message}'.", GetType().Name, subscriber!.GetType().Name, message.MessageId);
+                await Orchestrator.ReceiveAsync(this, subscriber!, @event, args, cancellationToken).ConfigureAwait(false);
             }, (message, messageActions), cancellationToken);
         }
     }

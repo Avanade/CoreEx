@@ -3,6 +3,7 @@
 using Azure.Messaging.ServiceBus;
 using CoreEx.Abstractions;
 using CoreEx.Events;
+using CoreEx.Events.Subscribing;
 using CoreEx.Invokers;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
@@ -51,21 +52,7 @@ namespace CoreEx.Azure.ServiceBus
 
             try
             {
-                invoker.Logger.LogDebug("Received - Service Bus message '{Message}'.", args.Message.MessageId);
-
-                // Leverage the EventSubscriberInvoker to manage execution and standardized exception handling.
-                var result = await invoker.EventSubscriberInvoker.InvokeAsync(invoker, async (_, ct) =>
-                {
-                    // Execute the logic.
-                    return await base.OnInvokeAsync(invokeArgs, invoker, func, args, cancellationToken).ConfigureAwait(false);
-                }, invoker.Logger, cancellationToken).ConfigureAwait(false);
-
-                // Everything is good, so complete the message.
-                invoker.Logger.LogDebug("Completing - Service Bus message '{Message}'.", args.Message.MessageId);
-                await args.MessageActions.CompleteMessageAsync(args.Message, cancellationToken).ConfigureAwait(false);
-                invoker.Logger.LogDebug("Completed - Service Bus message '{Message}'.", args.Message.MessageId);
-
-                return result;
+                return await OnInvokeInternalAsync(invokeArgs, invoker, func, args, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -81,6 +68,47 @@ namespace CoreEx.Azure.ServiceBus
             {
                 scope?.Dispose();
             }
+        }
+
+        /// <summary>
+        /// Performs the internal service bus message processing and error handling.
+        /// </summary>
+        private async Task<TResult> OnInvokeInternalAsync<TResult>(InvokeArgs invokeArgs, EventSubscriberBase invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args, CancellationToken cancellationToken)
+        {
+            TResult result = default!;
+
+            try
+            {
+                invoker.Logger.LogDebug("Received - Service Bus message '{Message}'.", args.Message.MessageId);
+
+                // Leverage the EventSubscriberInvoker to manage execution and standardized exception handling.
+                result = await invoker.EventSubscriberInvoker.InvokeAsync(invoker, async (_, ct) =>
+                {
+                    // Execute the logic.
+                    return await base.OnInvokeAsync(invokeArgs, invoker, func, args, cancellationToken).ConfigureAwait(false);
+                }, cancellationToken).ConfigureAwait(false);
+            }
+            catch (EventSubscriberException) { throw; }
+            catch (Exception ex) when (ex is IExtendedException eex)
+            {
+                // Handle the exception based on the subscriber configuration.
+                var handling = ErrorHandler.DetermineErrorHandling(invoker, eex);
+                if (handling == ErrorHandling.None)
+                    throw;
+
+                invoker.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), handling, invoker.Logger, invoker.Instrumentation);
+            }
+            catch (Exception ex) when (invoker.UnhandledHandling != ErrorHandling.None)
+            {
+                invoker.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), invoker.UnhandledHandling, invoker.Logger, invoker.Instrumentation);
+            }
+
+            // Everything is good, so complete the message.
+            invoker.Logger.LogDebug("Completing - Service Bus message '{Message}'.", args.Message.MessageId);
+            await args.MessageActions.CompleteMessageAsync(args.Message, cancellationToken).ConfigureAwait(false);
+            invoker.Logger.LogDebug("Completed - Service Bus message '{Message}'.", args.Message.MessageId);
+
+            return result;
         }
 
         /// <summary>
@@ -148,7 +176,7 @@ namespace CoreEx.Azure.ServiceBus
             }
 
             // Where the unhandled handling is set to None then keep bubbling; do not dead-letter.
-            if (invoker.UnhandledHandling == Events.Subscribing.ErrorHandling.None)
+            if (invoker.UnhandledHandling == ErrorHandling.None)
                 return true; 
 
             // Dead-letter the unhandled exception.

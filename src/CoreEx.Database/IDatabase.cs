@@ -7,6 +7,7 @@ using CoreEx.Results;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Data.Common;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -93,6 +94,22 @@ namespace CoreEx.Database
         /// <param name="sqlStatement">The SQL statement.</param>
         /// <returns>The <see cref="DatabaseCommand"/>.</returns>
         DatabaseCommand SqlStatement(string sqlStatement);
+
+        /// <summary>
+        /// Creates a SQL statement <see cref="DatabaseCommand"/> from the named embedded resource within the specified <paramref name="assembly"/>.
+        /// </summary>
+        /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
+        /// <param name="assembly">The <see cref="Assembly"/> that contains the embedded resource; defaults to <see cref="Assembly.GetCallingAssembly"/>.</param>
+        /// <returns>The <see cref="DatabaseCommand"/>.</returns>
+        DatabaseCommand SqlStatementFromResource(string resourceName, Assembly? assembly = null);
+
+        /// <summary>
+        /// Creates a SQL statement <see cref="DatabaseCommand"/> from the named embedded resource within the <see name="Assembly"/> inferred from the <typeparamref name="TResource"/> <see cref="Type"/>.
+        /// </summary>
+        /// <typeparam name="TResource">The <see cref="Type"/> to infer the <see cref="Assembly"/> that contains the embedded resource.</typeparam>
+        /// <param name="resourceName">The embedded resource name (matches to the end of the fully qualifed resource name).</param>
+        /// <returns>The <see cref="DatabaseCommand"/>.</returns>
+        DatabaseCommand SqlStatementFromResource<TResource>(string resourceName);
 
         /// <summary>
         /// Invoked where a <see cref="DbException"/> has been thrown.

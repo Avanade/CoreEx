@@ -1,5 +1,6 @@
 ﻿using CoreEx.Azure.ServiceBus;
 using CoreEx.Events;
+using CoreEx.Results;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Functions;
 using Microsoft.Azure.WebJobs.ServiceBus;
@@ -37,6 +38,22 @@ namespace CoreEx.Test.TestFunction
         }
 
         [Test]
+        public void NoAbandonOnTransient_WithResult()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var actions = test.CreateServiceBusMessageActions();
+            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+
+            var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
+            sbs.AbandonOnTransient = false;
+
+            Assert.ThrowsAsync<EventSubscriberException>(() => sbs.ReceiveAsync(message, actions, (_, _) => Task.FromResult(Result.TransientError("Retry again please."))));
+
+            actions.AssertRenew(0);
+            actions.AssertNone();
+        }
+
+        [Test]
         public async Task AbandonOnTransient()
         {
             using var test = FunctionTester.Create<Startup>();
@@ -47,6 +64,25 @@ namespace CoreEx.Test.TestFunction
             sbs.AbandonOnTransient = true;
 
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
+
+            actions.AssertRenew(0);
+            actions.AssertAbandon();
+
+            Assert.IsNotNull(actions.PropertiesModified);
+            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+        }
+
+        [Test]
+        public async Task AbandonOnTransient_WithResult()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var actions = test.CreateServiceBusMessageActions();
+            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+
+            var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
+            sbs.AbandonOnTransient = true;
+
+            await sbs.ReceiveAsync(message, actions, (_, _) => Task.FromResult(Result.TransientError("Retry again please.")));
 
             actions.AssertRenew(0);
             actions.AssertAbandon();
@@ -68,6 +104,30 @@ namespace CoreEx.Test.TestFunction
 
             var sw = Stopwatch.StartNew();
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
+            sw.Stop();
+
+            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 950);
+
+            actions.AssertRenew(1);
+            actions.AssertAbandon();
+
+            Assert.IsNotNull(actions.PropertiesModified);
+            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+        }
+
+        [Test]
+        public async Task RetryDelay_DeliveryCount1_WithResult()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var actions = test.CreateServiceBusMessageActions();
+            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+
+            var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
+            sbs.AbandonOnTransient = true;
+            sbs.RetryDelay = TimeSpan.FromSeconds(1);
+
+            var sw = Stopwatch.StartNew();
+            await sbs.ReceiveAsync(message, actions, (_, _) => Task.FromResult(Result.TransientError("Retry again please.")));
             sw.Stop();
 
             Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 950);
@@ -202,6 +262,22 @@ namespace CoreEx.Test.TestFunction
             sbs.AbandonOnTransient = true;
 
             await sbs.ReceiveAsync(message, actions, (_, _) => Task.CompletedTask);
+
+            actions.AssertRenew(0);
+            actions.AssertComplete();
+        }
+
+        [Test]
+        public async Task Complete_Result()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var actions = test.CreateServiceBusMessageActions();
+            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
+
+            var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
+            sbs.AbandonOnTransient = true;
+
+            await sbs.ReceiveAsync(message, actions, (_, _) => Result.SuccessTask);
 
             actions.AssertRenew(0);
             actions.AssertComplete();

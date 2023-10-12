@@ -17,6 +17,7 @@ namespace CoreEx.Events
     public abstract class EventSubscriberBase : IErrorHandling
     {
         private static EventSubscriberInvoker? _invoker;
+        private ErrorHandler? _errorHandler;
 
         /// <summary>
         /// Gets the standard message error text.
@@ -103,7 +104,21 @@ namespace CoreEx.Events
 
         /// <inheritdoc/>
         /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
+        public ErrorHandling DataConsistencyHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+
+        /// <inheritdoc/>
+        /// <remarks>Defaults to <see cref="ErrorHandling.ThrowSubscriberException"/>.</remarks>
         public ErrorHandling InvalidDataHandling { get; set; } = ErrorHandling.ThrowSubscriberException;
+
+        /// <summary>
+        /// Gets or sets the optional <see cref="IEventSubscriberInstrumentation"/>.
+        /// </summary>
+        public IEventSubscriberInstrumentation? Instrumentation { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="ErrorHandler"/>.
+        /// </summary>
+        public ErrorHandler ErrorHandler { get => _errorHandler ??= new ErrorHandler(); set => _errorHandler = value; }
 
         /// <summary>
         /// Deserializes (<see cref="EventDataConverter"/>) the <paramref name="originatingMessage"/> into the specified <see cref="EventData"/> value containg metadata only. 
@@ -129,11 +144,11 @@ namespace CoreEx.Events
             }
             catch (Exception ex)
             {
-                EventSubscriberInvoker.HandleError(new EventSubscriberException($"{MessageErrorText} {ex.Message}", ex) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger);
+                ErrorHandler.HandleError(new EventSubscriberException($"{MessageErrorText} {ex.Message}", ex) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger, Instrumentation);
                 return null;
             }
 
-            EventSubscriberInvoker.HandleError(new EventSubscriberException(NullEventErrorText) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger);
+            ErrorHandler.HandleError(new EventSubscriberException(NullEventErrorText) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger, Instrumentation);
             return null;
         }
 
@@ -157,11 +172,11 @@ namespace CoreEx.Events
             }
             catch (Exception ex)
             {
-                EventSubscriberInvoker.HandleError(new EventSubscriberException($"{MessageErrorText} {ex.Message}", ex) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger);
+                ErrorHandler.HandleError(new EventSubscriberException($"{MessageErrorText} {ex.Message}", ex) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger, Instrumentation);
                 return null;
             }
 
-            EventSubscriberInvoker.HandleError(new EventSubscriberException(NullEventErrorText) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger);
+            ErrorHandler.HandleError(new EventSubscriberException(NullEventErrorText) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger, Instrumentation);
             return null;
         }
 
@@ -185,13 +200,13 @@ namespace CoreEx.Events
             }
             catch (Exception ex)
             {
-                EventSubscriberInvoker.HandleError(new EventSubscriberException($"{MessageErrorText} {ex.Message}", ex) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger);
+                ErrorHandler.HandleError(new EventSubscriberException($"{MessageErrorText} {ex.Message}", ex) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger, Instrumentation);
                 return null;
             }
 
             if (@event is null)
             {
-                EventSubscriberInvoker.HandleError(new EventSubscriberException(NullEventErrorText) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger);
+                ErrorHandler.HandleError(new EventSubscriberException(NullEventErrorText) { ExceptionSource = EventSubscriberExceptionSource.EventDataDeserialization }, EventDataDeserializationErrorHandling, Logger, Instrumentation);
                 return null;
             }
 
@@ -211,7 +226,7 @@ namespace CoreEx.Events
                 return @event;
 
             // Handle the validation exception.
-            EventSubscriberInvoker.HandleError(new EventSubscriberException(vex.Message, vex), EventSubscriberInvoker.DetermineErrorHandling(this, vex), Logger);
+            ErrorHandler.HandleError(new EventSubscriberException(vex.Message, vex), ErrorHandler.DetermineErrorHandling(this, vex), Logger, Instrumentation);
             return null;
         }
     }

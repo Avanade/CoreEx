@@ -53,6 +53,11 @@ namespace CoreEx.Abstractions
         TransientError = 9,
 
         /// <summary>
+        /// Indicates a Data Consistency error.
+        /// </summary>
+        DataConsistencyError = 10,
+
+        /// <summary>
         /// Indicates an unknown/unhandled error.
         /// </summary>
         UnhandledError = 88

@@ -107,7 +107,7 @@ namespace CoreEx.Invokers
         /// <summary>
         /// Completes the <see cref="Activity"/> (where started).
         /// </summary>
-        public void Complete()
+        public readonly void Complete()
         {
             if (Activity is not null)
             {
@@ -126,7 +126,7 @@ namespace CoreEx.Invokers
         /// <param name="ownerType">The invoking (owner) <see cref="Type"/> to include as part of the <see cref="Activity.OperationName"/>.</param>
         /// <param name="memberName">The calling member name.</param>
         /// <returns>The <see cref="InvokeArgs"/>.</returns>
-        public InvokeArgs StartNewRelated(Type invokerType, Type? ownerType, string? memberName) => new(invokerType, ownerType, memberName, this);
+        public readonly InvokeArgs StartNewRelated(Type invokerType, Type? ownerType, string? memberName) => new(invokerType, ownerType, memberName, this);
 
         /// <summary>
         /// Releases (disposes) all <see cref="ActivitySource"/> instances.

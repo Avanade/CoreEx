@@ -31,7 +31,7 @@ namespace CoreEx.Entities.Extended
         public string Name { get; }
 
         /// <inheritdoc/>
-        object? IPropertyValue.Value => Value;
+        readonly object? IPropertyValue.Value => Value;
 
         /// <summary>
         /// Gets the property value.
@@ -47,7 +47,7 @@ namespace CoreEx.Entities.Extended
         public void Clean() => SetValue(Cleaner.Clean(Value));
 
         /// <inheritdoc/>
-        public bool IsInitial => Cleaner.IsDefault(Value, DefaultValue);
+        public readonly bool IsInitial => Cleaner.IsDefault(Value, DefaultValue);
 
         /// <inheritdoc/>
         void IPropertyValue.SetValue(object? value) => SetValue((T)value!);
@@ -63,17 +63,17 @@ namespace CoreEx.Entities.Extended
         }
 
         /// <inheritdoc/>
-        bool IPropertyValue.AreEqual(IPropertyValue value) => AreEqual((PropertyValue<T>)value!);
+        readonly bool IPropertyValue.AreEqual(IPropertyValue value) => AreEqual((PropertyValue<T>)value!);
 
         /// <summary>
         /// Indicates whether the other <paramref name="propertyValue"/> is equal to this.
         /// </summary>
         /// <param name="propertyValue">The value to compare to.</param>
         /// <returns><c>true</c> indicates they are equal; otherwise, <c>false</c> for not equal.</returns>
-        public bool AreEqual(PropertyValue<T> propertyValue) => Value == null && propertyValue.Value == null || (Value == null ? propertyValue.Value!.Equals(Value) : Value.Equals(propertyValue.Value));
+        public readonly bool AreEqual(PropertyValue<T> propertyValue) => Value == null && propertyValue.Value == null || (Value == null ? propertyValue.Value!.Equals(Value) : Value.Equals(propertyValue.Value));
 
         /// <inheritdoc/>
-        public override int GetHashCode() => Value?.GetHashCode() ?? 0;
+        public override readonly int GetHashCode() => Value?.GetHashCode() ?? 0;
 
         /// <summary>
         /// Performs a copy or clone from the other <paramref name="propertyValue"/>.

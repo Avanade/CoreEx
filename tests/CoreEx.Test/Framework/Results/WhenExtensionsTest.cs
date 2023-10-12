@@ -93,5 +93,22 @@ namespace CoreEx.Test.Framework.Results
             Assert.AreEqual(0, AssertSuccess(Result.Go(2.2f).WhenFromAs<float, int>(_ => false, _ => new IToResultIntTest())));
             AssertFailure(Result<float>.NotFoundError().WhenFromAs<float, int>(_ => true, _ => { Assert.Fail(); return new IToResultIntTest(); }));
         }
+
+        [Test]
+        public void Sync_Otherwise()
+        {
+            int j = 0;
+            AssertSuccess(Result.Go().When(() => j == 0, () => { ++j; }, () => { j += 10; }));
+            Assert.AreEqual(1, j);
+
+            AssertSuccess(Result.Go().When(() => j == 0, () => { ++j; }, () => { j += 10; }));
+            Assert.AreEqual(11, j);
+
+            j = AssertSuccess(Result.Go(0).When(x => x == 0, x => ++x, x => x += 10));
+            Assert.AreEqual(1, j);
+
+            j = AssertSuccess(Result.Go(1).When(x => x == 0, x => ++x, x => x += 10));
+            Assert.AreEqual(11, j);
+        }
     }
 }

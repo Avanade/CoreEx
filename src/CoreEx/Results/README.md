@@ -117,7 +117,7 @@ Method | Description
 -|-
 [`Go()`](./ResultGo.cs), `GoAsync()`, `GoFrom()`, `GoFromAsync()` | Begins (starts) a new result chain.
 [`Then()`](./ThenExtensions.cs), `ThenAsync()`, `ThenAs()`, `ThenAsAsync()`, `ThenFrom()`, `ThenFromAsync()`, `ThenFromAs()`, `ThenFromAsAsync()` | Executes the specified function if the result is a success; otherwise, does nothing.
-[`When()`](./WhenExtensions.cs), `WhenAsync`, `WhenAs()`, `WhenAsAsync()`, `WhenFrom()`, `WhenFromAsync()`, `WhenFromAs()`, `WhenFromAsAsync()` | Executes the specified function if the result is a success and the corresponding condition evaluates to _true_; otherwise, does nothing.
+[`When()`](./WhenExtensions.cs), `WhenAsync`, `WhenAs()`, `WhenAsAsync()`, `WhenFrom()`, `WhenFromAsync()`, `WhenFromAs()`, `WhenFromAsAsync()` | Where the result is a success executes the specified function or optional otherwise function depending on corresponding condition evaluation (same as if/then/else); otherwise, does nothing.
 [`OnFailure()`](./OnFailureExtensions.cs), `OnFailureAsync()`, `OnFailureAs()`, `OnFailureAsAsync()`  | Executes the specified function if the result is a failure; otherwise, does nothing.
 [`Match()`](./MatchExtensions.cs), `MatchAsync()`, `MatchAs()`, `MatchAsAsync()` | Executes (matches) the _ok_ function when the result is a success; otherwise, invokes the corresponding _fail_ function.
 [`Any()`](./AnyExtensions.cs), `AnyAsync()`, `AnyAs()`, `AnyAsAsync()` | Executes the specified function regardless of the result state.

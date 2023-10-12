@@ -41,8 +41,17 @@ public class ServiceBusExecuteVerificationFunction
     }
 
     [FunctionName(nameof(ServiceBusExecuteVerificationFunction))]
-    [ExponentialBackoffRetry(3, "00:02:00", "00:30:00")]
     public Task RunAsync([ServiceBusTrigger("%" + nameof(HrSettings.VerificationQueueName) + "%", Connection = nameof(HrSettings.ServiceBusConnection))] ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
         => _subscriber.ReceiveAsync<EmployeeVerificationRequest>(message, messageActions, ed => _service.VerifyAndPublish(ed.Value), validator: new EmployeeVerificationValidator().Wrap());
 }
+```
+
+### Instrumentation
+
+To get further insights into the processing of the messages an [`IEventSubscriberInstrumentation`](../../CoreEx/Events/IEventSubscriberInstrumentation.cs) can be implemented. The corresponding `EventSubscriberBase.Instrumentation` property should be set during construction; typically performed during dependency injection. Determine whether the instrumentation instance should also be registered as a _singleton_.
+
+An example implementation for Azure Application Insights would be similar to as follows:
+
+``` csharp
+
 ```

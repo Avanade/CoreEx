@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using CoreEx.Abstractions;
 
 namespace CoreEx.Events.Subscribing
 {
@@ -172,7 +173,7 @@ namespace CoreEx.Events.Subscribing
             var esex = new EventSubscriberException(subscriber == null ? $"No corresponding Subscriber could be matched; {txt}" : $"More than one Subscriber was matched (ambiguous); {txt}")
                 { ExceptionSource = subscriber == null ? EventSubscriberExceptionSource.OrchestratorNotSubscribed : EventSubscriberExceptionSource.OrchestratorAmbiquousSubscriber };
 
-            parent.EventSubscriberInvoker.HandleError(esex, subscriber == null ? NotSubscribedHandling : AmbiquousSubscriberHandling, parent.Logger);
+            parent.ErrorHandler.HandleError(esex, subscriber == null ? NotSubscribedHandling : AmbiquousSubscriberHandling, parent.Logger, parent.Instrumentation);
 
             subscriber = null;
             valueType = null;
@@ -217,19 +218,37 @@ namespace CoreEx.Events.Subscribing
         /// <param name="event">The <see cref="EventData"/>.</param>
         /// <param name="args">The optional <see cref="EventSubscriberArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns><c>true</c> indicates that the subscriber executed successfully; otherwise, <c>false</c>.</returns>
-        public async virtual Task<bool> ReceiveAsync(EventSubscriberBase parent, IEventSubscriber subscriber, EventData @event, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+        public async virtual Task ReceiveAsync(EventSubscriberBase parent, IEventSubscriber subscriber, EventData @event, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
         {
             if (parent is null) throw new ArgumentNullException(nameof(parent));
             if (subscriber is null) throw new ArgumentNullException(nameof(subscriber));
             if (@event is null) throw new ArgumentNullException(nameof(@event));
 
-            return await parent.EventSubscriberInvoker.InvokeAsync(subscriber, async (_, ct) =>
+            try
             {
-                var result = await subscriber!.ReceiveAsync(@event, args ??= new(), ct);
-                result.ThrowOnError();
-                return true;
-            }, parent.Logger, cancellationToken).ConfigureAwait(false);
+                await parent.EventSubscriberInvoker.InvokeAsync(parent, async (_, ct) =>
+                {
+                    var result = await subscriber!.ReceiveAsync(@event, args ??= new(), ct);
+                    result.ThrowOnError();
+
+                    // Perform the complete/success instrumentation.
+                    parent.Instrumentation?.Instrument();
+                }, cancellationToken).ConfigureAwait(false);
+            }
+            catch (EventSubscriberException) { throw; } // This is considered as handled and should not be rethrown.
+            catch (Exception ex) when (ex is IExtendedException eex)
+            {
+                // Handle the exception based on the subscriber configuration.
+                var handling = ErrorHandler.DetermineErrorHandling(subscriber, eex);
+                if (handling == ErrorHandling.None)
+                    throw;
+
+                parent.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), handling, parent.Logger, parent.Instrumentation);
+            }
+            catch (Exception ex) when (subscriber.UnhandledHandling != ErrorHandling.None) // Where unhandled is none, just let the unhandled exception bubble up.
+            {
+                parent.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), subscriber.UnhandledHandling, parent.Logger, parent.Instrumentation);
+            }
         }
     }
 }

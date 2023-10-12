@@ -61,6 +61,7 @@ Exception | Description | HTTP Status | [`ErrorType`](./Abstractions/ErrorType.c
 [`BusinessException`](./BusinessException.cs) | Represents a **Business** exception whereby the message returned should be displayed directly to the consumer. | 400 BadRequest | 2 BusinessError 
 [`ConcurrencyException`](./ConcurrencyException.cs) | Represents a data **Concurrency** exception; generally as a result of an errant [ETag](./Entities/IETag.cs). | 412 PreconditionFailed | 4 ConcurrencyError 
 [`ConflictException`](./ConflictException.cs) | Represents a data **Conflict** exception; for example creating an entity that already exists. | 409 Conflict | 6 ConflictError 
+[`DataConsistencyException`](./DataConsistencyException.cs) | Represents a **Data Consistency** exception; for example where the operation would result in data consistency error; i.e. possible data corruption may occur. | 409 Conflict | 10 DataConsistencyError 
 [`DuplicateException`](./DuplicateException.cs) | Represents a **Duplicate** exception; for example updating a code on an entity where the value is already used. | 409 Conflict | 7 DuplicateError 
 [`NotFoundException`](./NotFoundException.cs) | Represents a **NotFound** exception; for example getting an entity that does not exist. | 404 NotFound | 5 NotFoundError 
 [`TransientException`](./TransientException.cs) | Represents a **Transient** exception; failed but is a candidate for a retry. | 503 ServiceUnavailable | 9 TransientError 

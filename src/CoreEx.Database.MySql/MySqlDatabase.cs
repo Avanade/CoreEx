@@ -62,6 +62,7 @@ namespace CoreEx.Database.MySql
                     case 56005: return Result.Fail(new NotFoundException(msg, sex));
                     case 56006: return Result.Fail(new ConflictException(msg, sex));
                     case 56007: return Result.Fail(new DuplicateException(msg, sex));
+                    case 56010: return Result.Fail(new DataConsistencyException(msg, sex));
 
                     default:
                         if (CheckSqlDuplicateErrorNumbers && SqlDuplicateErrorNumbers.Contains(sex.Number))

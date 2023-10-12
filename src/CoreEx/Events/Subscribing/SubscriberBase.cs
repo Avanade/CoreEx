@@ -40,8 +40,17 @@ namespace CoreEx.Events.Subscribing
         public virtual ErrorHandling ConcurrencyHandling => ErrorHandling.None;
 
         /// <inheritdoc/>
+        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.DataConsistencyHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling DataConsistencyHandling => ErrorHandling.None;
+
+        /// <inheritdoc/>
         /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.InvalidDataHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
         public virtual ErrorHandling InvalidDataHandling => ErrorHandling.None;
+
+        /// <summary>
+        /// Gets or sets the optional <see cref="IEventSubscriberInstrumentation"/>.
+        /// </summary>
+        public IEventSubscriberInstrumentation? Instrumentation { get; set; }
 
         /// <inheritdoc/>
         public abstract Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken);

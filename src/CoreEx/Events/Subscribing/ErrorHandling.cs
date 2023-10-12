@@ -5,13 +5,14 @@ using Microsoft.Extensions.Logging;
 namespace CoreEx.Events.Subscribing
 {
     /// <summary>
-    /// Provides the result error handling action.
+    /// Provides the result <see cref="ErrorHandler"/> options.
     /// </summary>
     public enum ErrorHandling
     {
         /// <summary>
         /// Indicates that when the corresponding <i>error</i> occurs the underlying <see cref="System.Exception"/> will continue to bubble up the stack unchanged (unhandled).
         /// </summary>
+        /// <remarks>Results in a <see cref="EventSubscriberException"/> where the <see cref="Abstractions.IExtendedException.IsTransient"/> property is set (overridden) to <c>false</c>.</remarks>
         None,
 
         /// <summary>
@@ -49,9 +50,9 @@ namespace CoreEx.Events.Subscribing
         CompleteWithError,
 
         /// <summary>
-        /// Indicates that when the corresponding <i>error</i> occurs the <see cref="EventSubscriberInvoker.FailFast(EventSubscriberException)"/> is invoked to immediately terminate the underlying process.
+        /// Indicates that when the corresponding <i>error</i> occurs the <see cref="ErrorHandler.FailFast(EventSubscriberException)"/> is invoked to immediately terminate the underlying process.
         /// </summary>
-        /// <remarks><i>Note:</i> this <b>must</b> be tested thoroughly by the developer to ensure that there are no negative side-effects of the process terminating; equally, the <see cref="EventSubscriberInvoker.FailFast(EventSubscriberException)"/>
+        /// <remarks><i>Note:</i> this <b>must</b> be tested thoroughly by the developer to ensure that there are no negative side-effects of the process terminating; equally, the <see cref="ErrorHandler.FailFast(EventSubscriberException)"/>
         /// may need to be overridden to achieve the desired outcome. Before termination the error will be logged as <see cref="LogLevel.Critical"/>.</remarks>
         CriticalFailFast
     }
