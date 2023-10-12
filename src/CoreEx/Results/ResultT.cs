@@ -195,6 +195,13 @@ namespace CoreEx.Results
         public static Result<T> ConcurrencyError(LText? message = default) => Result<T>.Fail(new ConcurrencyException(message));
 
         /// <summary>
+        /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="DataConsistencyException"/>.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+        public static Result<T> DataConsistencyError(LText? message = default) => Result<T>.Fail(new DataConsistencyException(message));
+
+        /// <summary>
         /// Creates a <see cref="Result{T}"/> with an <see cref="Error"/> (see <see cref="IsFailure"/>) of type <see cref="DuplicateException"/>.
         /// </summary>
         /// <param name="message">The error message.</param>

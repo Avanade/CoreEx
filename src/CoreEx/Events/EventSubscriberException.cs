@@ -10,6 +10,7 @@ namespace CoreEx.Events
     /// <summary>
     /// Represents an event subscriber <see cref="Exception"/> that implements <see cref="IExtendedException"/>, that also takes on the characterics of the <see cref="Exception.InnerException"/> where applicable.
     /// </summary>
+    /// <remarks>This is intended for internal <i>CoreEx</i> use only to manage <see cref="IEventSubscriber"/> errors/exceptions; throwing or catching directly may result in unintended side-effects.</remarks>
     public sealed class EventSubscriberException : Exception, IExtendedException
     {
         /// <summary>
@@ -40,6 +41,12 @@ namespace CoreEx.Events
         /// Indicates that there is an <see cref="Exception.InnerException"/> and that it implements <see cref="IExtendedException"/>.
         /// </summary>
         public bool HasInnerExtendedException => InnerException is IExtendedException;
+
+        /// <summary>
+        /// Gets or sets the <see cref="ErrorHandling"/> used when handling the error.
+        /// </summary>
+        /// <remarks>See <see cref="ErrorHandler.HandleError(EventSubscriberException, ErrorHandling, Microsoft.Extensions.Logging.ILogger, IEventSubscriberInstrumentation?)"/></remarks>
+        public ErrorHandling ErrorHandling { get; set; } = ErrorHandling.None;
 
         /// <summary>
         /// Gets the error type/reason.

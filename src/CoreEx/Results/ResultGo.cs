@@ -18,14 +18,14 @@ namespace CoreEx.Results
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by executing the <paramref name="action"/>.
         /// </summary>
-        /// <param name="action">The <see cref="Action"/> to invoke.</param>
+        /// <param name="action">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static Result Go(Action action) => Success.Then(action);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by executing the <paramref name="func"/>.
         /// </summary>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static Result Go(Func<Result> func) => Success.Then(func);
 
@@ -54,7 +54,7 @@ namespace CoreEx.Results
         /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<T> Go<T>(Func<T> func) => Result<T>.None.Then(_ => func());
 
@@ -62,7 +62,7 @@ namespace CoreEx.Results
         /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<T> Go<T>(Func<Result<T>> func) => Result<T>.None.Then(_ => func());
 
@@ -77,7 +77,7 @@ namespace CoreEx.Results
         /// Begins a new <see cref="Result{T}"/> chain with the specified <paramref name="value"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="value">The <see cref="Result{T}.Value"/>.</param>
+        /// <param name="value">The starting value.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<T> Go<T>(T value) => Go(() => Result<T>.Ok(value));
 
@@ -127,14 +127,14 @@ namespace CoreEx.Results
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by executing the <paramref name="func"/>.
         /// </summary>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static Task<Result> GoAsync(Func<Task> func) => Success.ThenAsync(func);
 
         /// <summary>
         /// Begins a new <see cref="Result"/> chain by executing the <paramref name="func"/>.
         /// </summary>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static Task<Result> GoAsync(Func<Task<Result>> func) => Success.ThenAsync(func);
 
@@ -163,7 +163,7 @@ namespace CoreEx.Results
         /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Task<Result<T>> GoAsync<T>(Func<Task<Result<T>>> func) => Result<T>.None.ThenAsync(async _ => await func().ConfigureAwait(false));
 
@@ -171,7 +171,7 @@ namespace CoreEx.Results
         /// Begins a new <see cref="Result{T}"/> chain by executing the <paramref name="func"/>.
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
-        /// <param name="func">The <see cref="Func{TResult}"/> to invoke.</param>
+        /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Task<Result<T>> GoAsync<T>(Func<Task<T>> func) => Result<T>.None.ThenAsync(async _ => await func().ConfigureAwait(false));
 
