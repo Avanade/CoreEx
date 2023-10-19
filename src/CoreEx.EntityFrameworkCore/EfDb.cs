@@ -243,7 +243,7 @@ namespace CoreEx.EntityFrameworkCore
         /// <inheritdoc/>
         public void With<T>(T with, Action action)
         {
-            if (Comparer<T>.Default.Compare(with, default!) != 0 && Comparer<T>.Default.Compare(with, default!) != 0)
+            if (with is not null && Comparer<T>.Default.Compare(with, default!) != 0)
             {
                 if (with is not string && with is System.Collections.IEnumerable ie && !ie.GetEnumerator().MoveNext())
                     return;

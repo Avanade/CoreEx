@@ -17,11 +17,11 @@ namespace CoreEx.Caching
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="cache">The <see cref="IRequestCache"/></param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="key">The key of the value to get or add.</param>
         /// <param name="addFactory">The factory function to create the <see cref="Result{T}"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>The caching is only performed where the corresponding results are all <see cref="IResult.IsSuccess"/>.</remarks>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result<T>> CacheGetOrAddAsync<T>(this Result result, IRequestCache cache, object? key, Func<Task<Result<T>>> addFactory)
             => CacheGetOrAddAsync(result, cache, new CompositeKey(key), addFactory);
 
@@ -30,11 +30,11 @@ namespace CoreEx.Caching
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="cache">The <see cref="IRequestCache"/></param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="key">The key of the value to get or add.</param>
         /// <param name="addFactory">The factory function to create the <see cref="Result{T}"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>The caching is only performed where the corresponding results are all <see cref="IResult.IsSuccess"/>.</remarks>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result<T>> CacheGetOrAddAsync<T>(this Result result, IRequestCache cache, CompositeKey key, Func<Task<Result<T>>> addFactory)
             => Task.FromResult(result).CacheGetOrAddAsync(cache, key, addFactory);
 
@@ -43,11 +43,11 @@ namespace CoreEx.Caching
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="cache">The <see cref="IRequestCache"/></param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="key">The key of the value to get or add.</param>
         /// <param name="addFactory">The factory function to create the <see cref="Result{T}"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>The caching is only performed where the corresponding results are all <see cref="IResult.IsSuccess"/>.</remarks>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result<T>> CacheGetOrAddAsync<T>(this Task<Result> result, IRequestCache cache, object? key, Func<Task<Result<T>>> addFactory)
             => CacheGetOrAddAsync(result, cache, new CompositeKey(key), addFactory);
 
@@ -56,11 +56,11 @@ namespace CoreEx.Caching
         /// </summary>
         /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result"/>.</param>
-        /// <param name="cache">The <see cref="IRequestCache"/></param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="key">The key of the value to get or add.</param>
         /// <param name="addFactory">The factory function to create the <see cref="Result{T}"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        /// <remarks>The caching is only performed where the corresponding results are all <see cref="IResult.IsSuccess"/>.</remarks>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static async Task<Result<T>> CacheGetOrAddAsync<T>(this Task<Result> result, IRequestCache cache, CompositeKey key, Func<Task<Result<T>>> addFactory)
         {
             if (cache == null) throw new ArgumentNullException(nameof(cache));
@@ -79,6 +79,152 @@ namespace CoreEx.Caching
                     return Result.Ok(v);
                 });
             });
+        }
+
+        /// <summary>
+        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/> which must be an <see cref="IEntityKey"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Result<T> CacheSet<T>(this Result<T> result, IRequestCache cache) where T : IEntityKey
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(r => { cache.SetValue(r); });
+        }
+
+        /// <summary>
+        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> using the specified <paramref name="key"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <param name="key">The key of the value to set.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Result<T> CacheSet<T>(this Result<T> result, IRequestCache cache, CompositeKey key)
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(r => { cache.SetValue(key, r); });
+        }
+
+        /// <summary>
+        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/> which must be an <see cref="IEntityKey"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Task<Result<T>> CacheSet<T>(this Task<Result<T>> result, IRequestCache cache) where T : IEntityKey
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(r => { cache.SetValue(r); });
+        }
+
+        /// <summary>
+        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> using the specified <paramref name="key"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <param name="key">The key of the value to set.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Task<Result<T>> CacheSet<T>(this Task<Result<T>> result, IRequestCache cache, CompositeKey key)
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(r => { cache.SetValue(key, r); });
+        }
+
+        /// <summary>
+        /// Removes the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/>.
+        /// </summary>
+        /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <param name="key">The key of the value to remove.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Result CacheRemove<T>(this Result result, IRequestCache cache, CompositeKey key)
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(() => { cache.Remove<T>(key); });
+        }
+
+        /// <summary>
+        /// Removes the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/>.
+        /// </summary>
+        /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <param name="key">The key of the value to remove.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Result CacheRemove<T>(this Result result, IRequestCache cache, object? key)
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(() => { cache.Remove<T>(key); });
+        }
+
+        /// <summary>
+        /// Removes the cached value associated with the specified <see cref="Type"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// </summary>
+        /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Result<T> CacheRemove<T>(this Result<T> result, IRequestCache cache) where T : IEntityKey
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : r.EntityKey); });
+        }
+
+        /// <summary>
+        /// Removes the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/>.
+        /// </summary>
+        /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <param name="key">The key of the value to remove.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Task<Result> CacheRemove<T>(this Task<Result> result, IRequestCache cache, CompositeKey key)
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(() => { cache.Remove<T>(key); });
+        }
+
+        /// <summary>
+        /// Removes the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/>.
+        /// </summary>
+        /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <param name="key">The key of the value to remove.</param>
+        /// <returns>The resulting <see cref="Result"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Task<Result> CacheRemove<T>(this Task<Result> result, IRequestCache cache, object? key)
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(() => { cache.Remove<T>(key); });
+        }
+
+        /// <summary>
+        /// Removes the cached value associated with the specified <see cref="Type"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// </summary>
+        /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="cache">The <see cref="IRequestCache"/>.</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
+        public static Task<Result<T>> CacheRemove<T>(this Task<Result<T>> result, IRequestCache cache) where T : IEntityKey
+        {
+            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : r.EntityKey); });
         }
     }
 }

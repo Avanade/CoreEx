@@ -80,6 +80,7 @@ Method | Description
 `AuthorizationError()` | Creates a failure result with the [`AuthorizationException`](../AuthorizationException.cs).
 `ConcurrencyError()` | Creates a failure result with the [`ConcurrencyException`](../ConcurrencyException.cs).
 `ConflictError()` | Creates a failure result with the [`ConflictException`](../ConflictException.cs).
+`DataConsistencyError` | Creates a failure result with the [`DataConsistencyException`](../DataConsistencyException.cs).
 `DuplicateError()` | Creates a failure result with the [`DuplicateException`](../DuplicateException.cs).
 `NotFoundError()` | Creates a failure result with the [`NotFoundException`](../NotFoundException.cs).
 `TransientError()` | Creates a failure result with the [`TransientException`](../TransientException.cs).
@@ -123,11 +124,11 @@ Method | Description
 [`Any()`](./AnyExtensions.cs), `AnyAsync()`, `AnyAs()`, `AnyAsAsync()` | Executes the specified function regardless of the result state.
 [`AsResult()`](./ResultsExtensions.cs), `AsResultAsync()` | Converts (binds) the `Result<T>` to a `Result` (i.e. loses the `Value`); or a `Result<T>` to a `Result<U>`.
 
-By convention methods that are named with the following have the following characteristics.
+By convention the methods above that are named with the following have the described characteristics.
 
 Convention | Description
 -|-
-`As` | Supports _explicit_ conversion between types to minimize unintentional data loss and/or unexpected side-effects.
+`As` | Supports _explicit_ [as-based](#as-based-conversion) conversion between types to minimize unintentional data loss and/or unexpected side-effects.
 `Async` | Supports asynchronous execution (versus synchronous). Note that all internal asynchronous executions are invoked with a [`ConfigureAwait(false)`](https://devblogs.microsoft.com/dotnet/configureawait-faq/#what-does-configureawaitfalse-do).
 `From` | Supports [`IToResult`](./IToResult.cs), [`IToResult<T>`](./IToResultT.cs) and [`ITypedToResult`](./ITypedToResult.cs) result conversion.
 
