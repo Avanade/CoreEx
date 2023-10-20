@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.RefData;
 using CoreEx.Results;
 
 namespace CoreEx.EntityFrameworkCore
@@ -232,6 +233,196 @@ namespace CoreEx.EntityFrameworkCore
         /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
         public static Task<Result> DeleteWithResultAsync<T, TModel>(this IEfDb efDb, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
             => efDb.DeleteWithResultAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), key, cancellationToken);
+
+        #endregion
+
+        #region With
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, string? with, Action<string> action) => efDb.With(with, () => action(with!));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, int? with, Action<int> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, int with, Action<int> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, short? with, Action<short> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, short with, Action<short> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, long? with, Action<long> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, long with, Action<long> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, decimal? with, Action<decimal> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, decimal with, Action<decimal> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, float? with, Action<float> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, float with, Action<float> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, double? with, Action<double> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, double with, Action<double> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, DateTime? with, Action<DateTime> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, DateTime with, Action<DateTime> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, TimeSpan? with, Action<TimeSpan> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, TimeSpan with, Action<TimeSpan> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, bool? with, Action<bool> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, bool with, Action<bool> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, char? with, Action<char> action) => efDb.With(with, () => action(with!.Value));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
+        /// </summary>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With(this IEfDb efDb, char with, Action<char> action) => efDb.With(with, () => action(with));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <param name="efDb"></param>
+        /// <param name="with"></param>
+        /// <param name="action"></param>
+        public static void With<TRef>(this IEfDb efDb, TRef? with, Action<TRef> action) where TRef : IReferenceData => efDb.With(with, () => action(with!));
+
+        /// <summary>
+        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
+        /// </summary>
+        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="with">The value with which to verify.</param>
+        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
+        public static void With<TRef>(this IEfDb efDb, ReferenceDataCodeList<TRef>? with, Action<ReferenceDataCodeList<TRef>> action) where TRef : class, IReferenceData, new() => efDb.With(with, () => action(with!));
 
         #endregion
     }

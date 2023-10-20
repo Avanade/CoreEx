@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.4.1
+- *Fixed:* The `IEfDb.With` fixed (as extension methods) to also support the `with` value being passed into the corresponding `Action<T>` to simplify usage (only a subset of common intrinsic types supported, both nullable and non-nullable overloads).
+- *Fixed:* Missing `Result.CacheSet` and `Result.CacheRemove` extension methods added to `CoreEx.Results` to fully enable `IRequestCaching` in addition to existing `Result.CacheGetOrAddAsync`.
+
 ## v3.4.0
 - *Enhancement:* Added `IEventSubscriberInstrumentation` (and related `EventSubscriberInstrumentationBase`) to enable `EventSubscriberBase.Instrumentation` monitoring of the subscriber as applicable.
 - *Enhancement:* Previous `EventSubscriberInvoker` exception/error handling moved into individual subscribers for greater control; a new `ErrorHandler` added to encapsulate the consistent handling of the underlying exceptions/errors. This was internal and should have no impact.
