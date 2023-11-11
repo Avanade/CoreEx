@@ -40,6 +40,28 @@ The unit [`MapperTest`](../../../tests/CoreEx.Test/Framework/Mapping/MapperTest.
 
 <br/>
 
+## Explicit implementation
+
+To explicity define the mapping logic the `OnMap` should be overridden, see example below:
+
+``` csharp
+public class ProductMapper : Mapper<Product, BackendProduct>
+{
+    protected override BackendProduct? OnMap(Product? s, BackendProduct? d, OperationTypes operationType)
+    {
+        if (s is null || d is null)
+            return d;
+
+        d.Code = s.Id!;
+        d.Description = s.Name;
+        d.RetailPrice = s.Price;
+        return d;
+    }
+}
+```
+
+<br/>
+
 ## Converters
 
 The [`IConverter`](./Converters/IConverter.cs) interface provides a standardized approach to value conversion. A number of [converters](./Converters) are provided for common conversion requirements.

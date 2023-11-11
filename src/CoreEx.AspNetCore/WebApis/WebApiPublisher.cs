@@ -3,6 +3,7 @@
 using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Json;
+using CoreEx.Mapping;
 using CoreEx.Results;
 using CoreEx.Validation;
 using Microsoft.AspNetCore.Http;
@@ -20,8 +21,11 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Provides the core <see cref="IEventPublisher"/> Web API execution encapsulation.
     /// </summary>
+    /// <remarks>Support to change/map request into a different published event type is also enabled where required (see also <seealso cref="Mapper"/>).</remarks>
     public class WebApiPublisher : WebApiBase
     {
+        private IMapper? _mapper;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WebApiPublisher"/> class.
         /// </summary>
@@ -38,6 +42,18 @@ namespace CoreEx.AspNetCore.WebApis
         /// Gets the <see cref="IEventPublisher"/>.
         /// </summary>
         public IEventPublisher EventPublisher { get; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="IMapper"/>.
+        /// </summary>
+        /// <remarks>Where not explicity set will attempt to use the <see cref="ExecutionContext.GetRequiredService{T}()"/> on first use; will throw an exception where not configured.
+        /// <para>This is required where one of the underlying publishing methods is invoked that enables mapping between request and event types and the corresponding <c>beforeEvent</c> parameter is <c>null</c>; 
+        /// i.e. the default behaviour is to perform a <see cref="IMapper.Map{TDestination}(object?, OperationTypes)"/> to enable.</para></remarks>
+        public IMapper Mapper
+        {
+            get => _mapper ??= ExecutionContext.GetRequiredService<IMapper>();
+            set => _mapper = value;
+        }
 
         #region PublishAsync
 
@@ -102,8 +118,9 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>> beforeEvent, Action<EventData>? eventModifier = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvent"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TValue"/> and <typeparamref name="TEventValue"/> types.</para></remarks>
+        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>>? beforeEvent = null, Action<EventData>? eventModifier = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
             => PublishAsync(request, null, beforeEvent, eventModifier, statusCode, operationType, validator, cancellationToken);
 
@@ -121,8 +138,9 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, string? eventName, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>> beforeEvent, Action<EventData>? eventModifier = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvent"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TValue"/> and <typeparamref name="TEventValue"/> types.</para></remarks>
+        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, string? eventName, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>>? beforeEvent = null, Action<EventData>? eventModifier = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
             => PublishInternalAsync(request, false, default!, eventName, beforeEvent, eventModifier, statusCode, operationType, validator, cancellationToken);
 
@@ -140,8 +158,9 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>> beforeEvent, Action<EventData>? eventModifier = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvent"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TValue"/> and <typeparamref name="TEventValue"/> types.</para></remarks>
+        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>>? beforeEvent = null, Action<EventData>? eventModifier = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
             => PublishAsync(request, value, null, beforeEvent, eventModifier, statusCode, operationType, validator, cancellationToken);
 
@@ -160,22 +179,20 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, TValue value, string? eventName, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>> beforeEvent, Action<EventData>? eventModifier = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvent"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TValue"/> and <typeparamref name="TEventValue"/> types.</para></remarks>
+        public Task<IActionResult> PublishAsync<TValue, TEventValue>(HttpRequest request, TValue value, string? eventName, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>>? beforeEvent = null, Action<EventData>? eventModifier = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
             => PublishInternalAsync(request, true, value, eventName, beforeEvent, eventModifier, statusCode, operationType, validator, cancellationToken);
 
         /// <summary>
         /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> that is to be published using the <see cref="EventPublisher"/>.
         /// </summary>
-        private async Task<IActionResult> PublishInternalAsync<TValue, TEventValue>(HttpRequest request, bool useValue, TValue value, string? eventName, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>> beforeEvent, Action<EventData>? eventModifier = null,
+        private async Task<IActionResult> PublishInternalAsync<TValue, TEventValue>(HttpRequest request, bool useValue, TValue value, string? eventName, Func<WebApiParam<TValue>, CancellationToken, Task<TEventValue>>? beforeEvent, Action<EventData>? eventModifier = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
-
-            if (beforeEvent is null)
-                throw new ArgumentNullException(nameof(beforeEvent));
 
             if (request.Method != HttpMethods.Post)
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PublishAsync)}.", nameof(request));
@@ -188,7 +205,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 var @event = new EventData
                 {
-                    Value = await beforeEvent(wapv!, ct).ConfigureAwait(false)
+                    Value = beforeEvent is null ? Mapper.Map<TValue, TEventValue>(wapv!.Value) : await beforeEvent(wapv!, ct).ConfigureAwait(false)
                 };
 
                 eventModifier?.Invoke(@event);
@@ -284,8 +301,9 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>> beforeEvents, Action<EventData>? eventModifier = null, int? maxCollSize = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvents"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TItem"/> and <typeparamref name="TEventItem"/> types.</para></remarks>
+        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>>? beforeEvents = null, Action<EventData>? eventModifier = null, int? maxCollSize = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null, CancellationToken cancellationToken = default) where TColl : IEnumerable<TItem>
             => PublishCollectionAsync<TColl, TItem, TEventItem>(request, null, beforeEvents, eventModifier, maxCollSize, statusCode, operationType, validator, cancellationToken);
 
@@ -305,8 +323,9 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, string? eventName, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>> beforeEvents, Action<EventData>? eventModifier = null, int? maxCollSize = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvents"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TItem"/> and <typeparamref name="TEventItem"/> types.</para></remarks>
+        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, string? eventName, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>>? beforeEvents = null, Action<EventData>? eventModifier = null, int? maxCollSize = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null, CancellationToken cancellationToken = default) where TColl : IEnumerable<TItem>
             => PublishCollectionInternalAsync<TColl, TItem, TEventItem>(request, false, default!, eventName, beforeEvents, eventModifier, maxCollSize, statusCode, operationType, validator, cancellationToken);
 
@@ -326,8 +345,9 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, TColl value, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>> beforeEvents, Action<EventData>? eventModifier = null, int? maxCollSize = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvents"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TItem"/> and <typeparamref name="TEventItem"/> types.</para></remarks>
+        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, TColl value, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>>? beforeEvents = null, Action<EventData>? eventModifier = null, int? maxCollSize = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null, CancellationToken cancellationToken = default) where TColl : IEnumerable<TItem>
             => PublishCollectionAsync<TColl, TItem, TEventItem>(request, value, null, beforeEvents, eventModifier, maxCollSize, statusCode, operationType, validator, cancellationToken);
 
@@ -348,26 +368,25 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
-        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, TColl value, string? eventName, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>> beforeEvents, Action<EventData>? eventModifier = null, int? maxCollSize = null,
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.
+        /// <para>Where the <paramref name="beforeEvents"/> is <c>null</c> then the <see cref="Mapper"/> will be used to map between the <typeparamref name="TItem"/> and <typeparamref name="TEventItem"/> types.</para></remarks>
+        public Task<IActionResult> PublishCollectionAsync<TColl, TItem, TEventItem>(HttpRequest request, TColl value, string? eventName, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>>? beforeEvents = null, Action<EventData>? eventModifier = null, int? maxCollSize = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null, CancellationToken cancellationToken = default) where TColl : IEnumerable<TItem>
             => PublishCollectionInternalAsync<TColl, TItem, TEventItem>(request, true, value, eventName, beforeEvents, eventModifier, maxCollSize, statusCode, operationType, validator, cancellationToken);
 
         /// <summary>
         /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TColl"/> where each item is to be published using the <see cref="EventPublisher"/>.
         /// </summary>
-        private async Task<IActionResult> PublishCollectionInternalAsync<TColl, TItem, TEventItem>(HttpRequest request, bool useValue, TColl value, string? eventName, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>> beforeEvents, Action<EventData>? eventModifier = null, int? maxCollSize = null,
+        private async Task<IActionResult> PublishCollectionInternalAsync<TColl, TItem, TEventItem>(HttpRequest request, bool useValue, TColl value, string? eventName, Func<WebApiParam<TColl>, CancellationToken, Task<IEnumerable<TEventItem>>>? beforeEvents, Action<EventData>? eventModifier = null, int? maxCollSize = null,
             HttpStatusCode statusCode = HttpStatusCode.Accepted, OperationType operationType = OperationType.Unspecified, IValidator<TColl>? validator = null, CancellationToken cancellationToken = default) where TColl : IEnumerable<TItem>
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (beforeEvents is null)
-                throw new ArgumentNullException(nameof(beforeEvents));
-
             if (request.Method != HttpMethods.Post)
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PublishAsync)}.", nameof(request));
 
+            // Fall back to a mapper where no explicit beforeEvents is specified.
             return await RunAsync(request, async (wap, ct) =>
             {
                 var (wapc, vex) = await ValidateValueAsync(wap, useValue, value, true, validator, cancellationToken).ConfigureAwait(false);
@@ -386,7 +405,21 @@ namespace CoreEx.AspNetCore.WebApis
                 if (count == 0)
                     return new AcceptedResult();
 
-                var items = await beforeEvents(wapc!, ct).ConfigureAwait(false);
+                IEnumerable<TEventItem> items;
+                if (beforeEvents is null)
+                {
+                    var coll = new List<TEventItem>();
+                    {
+                        foreach (var item in wapc.Value!)
+                        {
+                            coll.Add(Mapper.Map<TItem, TEventItem>(item)!);
+                        }
+                    }
+
+                    items = coll.AsEnumerable();
+                }
+                else
+                    items = await beforeEvents(wapc!, ct).ConfigureAwait(false);
 
                 foreach (var item in items)
                 {

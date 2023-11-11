@@ -8,6 +8,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.NUnit;
+using CoreEx.Mapping;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CoreEx.Test.Framework.WebApis
 {
@@ -51,6 +53,27 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
+        public void PublishAsync_Value_Mapper()
+        {
+            var imp = new InMemoryPublisher();
+            using var test = FunctionTester.Create<Startup>();
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
+                .ConfigureServices(sc => sc.AddMappers<WebApiPublisherTest>())
+                .Type<WebApiPublisher>()
+                .Run(f => f.PublishAsync<Product, BackendProduct>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }), "test"))
+                .ToActionResultAssertor()
+                .AssertAccepted();
+
+            var qn = imp.GetNames();
+            Assert.AreEqual(1, qn.Length);
+            Assert.AreEqual("test", qn[0]);
+
+            var ed = imp.GetEvents("test");
+            Assert.AreEqual(1, ed.Length);
+            ObjectComparer.Assert(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }, ed[0].Value);
+        }
+
+        [Test]
         public void PublishCollectionAsync_Success()
         {
             var products = new ProductCollection
@@ -77,6 +100,36 @@ namespace CoreEx.Test.Framework.WebApis
             ObjectComparer.Assert(products[0], ed[0].Value);
             ObjectComparer.Assert(products[1], ed[1].Value);
             ObjectComparer.Assert(products[2], ed[2].Value);
+        }
+
+        [Test]
+        public void PublishCollectionAsync_Success_Mapper()
+        {
+            var products = new ProductCollection
+            {
+                new Product { Id = "Xyz", Name = "Widget", Price = 9.95m },
+                new Product { Id = "Xyz2", Name = "Widget2", Price = 9.95m },
+                new Product { Id = "Xyz3", Name = "Widget3", Price = 9.95m }
+            };
+
+            var imp = new InMemoryPublisher();
+            using var test = FunctionTester.Create<Startup>();
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
+                .ConfigureServices(sc => sc.AddMappers<WebApiPublisherTest>())
+                .Type<WebApiPublisher>()
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product, BackendProduct>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
+                .ToActionResultAssertor()
+                .AssertAccepted();
+
+            var qn = imp.GetNames();
+            Assert.AreEqual(1, qn.Length);
+            Assert.AreEqual("test", qn[0]);
+
+            var ed = imp.GetEvents("test");
+            Assert.AreEqual(3, ed.Length);
+            ObjectComparer.Assert(new BackendProduct { Code = "Xyz", Description = "Widget", RetailPrice = 9.95m }, ed[0].Value);
+            ObjectComparer.Assert(new BackendProduct { Code = "Xyz2", Description = "Widget2", RetailPrice = 9.95m }, ed[1].Value);
+            ObjectComparer.Assert(new BackendProduct { Code = "Xyz3", Description = "Widget3", RetailPrice = 9.95m }, ed[2].Value);
         }
 
         [Test]
@@ -340,6 +393,21 @@ namespace CoreEx.Test.Framework.WebApis
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
+        }
+    }
+
+    // Demonnstrates a hard-coded mapper.
+    public class ProductMapper : Mapper<Product, BackendProduct>
+    {
+        protected override BackendProduct? OnMap(Product? s, BackendProduct? d, OperationTypes operationType)
+        {
+            if (s is null || d is null)
+                return d;
+
+            d.Code = s.Id!;
+            d.Description = s.Name;
+            d.RetailPrice = s.Price;
+            return d;
         }
     }
 }
