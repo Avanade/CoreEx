@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0;netstandard2.1</TargetFrameworks>
+    <RootNamespace>CoreEx.OData</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx .NET OData extras.</Title>
+    <Description>CoreEx .NET OData extras.</Description>
+    <PackageTags>coreex odata</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="Simple.OData.V4.Client" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+  </ItemGroup>
+
+</Project>

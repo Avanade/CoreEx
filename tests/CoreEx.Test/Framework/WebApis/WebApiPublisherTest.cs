@@ -51,7 +51,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishAsync_Coll_Success()
+        public void PublishCollectionAsync_Success()
         {
             var products = new ProductCollection
             {
@@ -64,7 +64,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -80,7 +80,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishAsync_Coll_Success_WithCorrelationId()
+        public void PublishCollectionAsync_Success_WithCorrelationId()
         {
             var products = new ProductCollection
             {
@@ -96,7 +96,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<ProductCollection, Product>(hr, "test"))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(hr, "test"))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -117,7 +117,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishAsync_Coll_SizeError()
+        public void PublishCollectionAsync_SizeError()
         {
             var products = new ProductCollection
             {
@@ -130,7 +130,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .Assert("The publish collection contains 3 items where only a maximum size of 2 is supported.");
@@ -156,7 +156,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishAsync_Coll_BeforeError()
+        public void PublishCollectionAsync_BeforeError()
         {
             var products = new ProductCollection
             {
@@ -169,7 +169,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => throw new BusinessException("Nope, nope!")))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => throw new BusinessException("Nope, nope!")))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .Assert("Nope, nope!");
@@ -215,7 +215,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishWithResultAsync_Coll_Success()
+        public void PublishCollectionWithResultAsync_Success()
         {
             var products = new ProductCollection
             {
@@ -228,7 +228,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
+                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -244,7 +244,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishWithResultAsync_Coll_Success_WithCorrelationId()
+        public void PublishCollectionWithResultAsync_Success_WithCorrelationId()
         {
             var products = new ProductCollection
             {
@@ -260,7 +260,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishWithResultAsync<ProductCollection, Product>(hr, "test"))
+                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(hr, "test"))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -281,7 +281,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishWithResultAsync_Coll_SizeError()
+        public void PublishCollectionWithResultAsync_SizeError()
         {
             var products = new ProductCollection
             {
@@ -294,7 +294,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
+                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .Assert("The publish collection contains 3 items where only a maximum size of 2 is supported.");
@@ -320,7 +320,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishWithResultAsync_Coll_BeforeError()
+        public void PublishCollectionWithResultAsync_BeforeError()
         {
             var products = new ProductCollection
             {
@@ -333,7 +333,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => Task.FromResult(Result.Fail("Nope, nope!"))))
+                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => Task.FromResult(Result.Fail("Nope, nope!"))))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .Assert("Nope, nope!");

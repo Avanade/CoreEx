@@ -11,7 +11,7 @@ namespace CoreEx.Mapping.Converters
     /// </summary>
     /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TId">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
-    public struct ReferenceDataIdConverter<TRef, TId> : IConverter<TRef?, TId> where TRef : IReferenceData, new()
+    public readonly struct ReferenceDataIdConverter<TRef, TId> : IConverter<TRef?, TId> where TRef : IReferenceData, new()
     {
         private readonly ValueConverter<TRef?, TId> _convertToDestination = new(s => s == null ? default! : (TId)s.Id!);
         private readonly ValueConverter<TId, TRef?> _convertToSource = new(d => ReferenceDataOrchestrator.ConvertFromId<TRef>(d));

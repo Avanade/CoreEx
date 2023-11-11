@@ -9,7 +9,7 @@ namespace CoreEx.Mapping.Converters
     /// Represents an <see cref="object"/> to JSON <see cref="string"/> converter.
     /// </summary>
     /// <typeparam name="T">The <see cref="object"/> <see cref="Type"/>.</typeparam>
-    public struct ObjectToJsonConverter<T> : IConverter<T?, string?>
+    public readonly struct ObjectToJsonConverter<T> : IConverter<T?, string?>
     {
         private readonly ValueConverter<T?, string?> _convertToDestination;
         private readonly ValueConverter<string?, T?> _convertToSource;

@@ -28,7 +28,7 @@ namespace CoreEx.Database
             catch (DbException dbex)
             {
                 var eresult = database.HandleDbException(dbex);
-                if (eresult.HasValue && eresult.Value.IsFailure)
+                if (eresult.HasValue && eresult.Value.IsFailure && eresult.Value.Error is CoreEx.Abstractions.IExtendedException)
                 {
                     var dresult = default(TResult);
                     if (dresult is IResult dir)

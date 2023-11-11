@@ -2,6 +2,21 @@
 
 Represents the **NuGet** versions.
 
+## v3.5.0
+- *Enhancement:* Update the `JsonFilterer` classes to support qualified (indexed) property names; all paths are standardized with the `$` prefix internally.
+- *Enhancement:* Added `JsonNode` extension methods `ApplyInclude` and `ApplyExclude` to simplify corresponding `JsonFilterer` usage.
+- *Enhancement:* Added `JsonElementComparer` to compare two `JsonElement` values (and typed values) and return the differences (`JsonElementComparerResult`). Additionally, the `JsonElementComparerResult.ToMergePatch` will create a corresponding `JsonNode` that represents an `application/merge-patch+json` representation of the differences.
+- *Enhancement:* Added `DateTimeToStringConverter` to enable the explicit formatting of a `DateTime` to a `string` and vice-versa.
+- *Enhancement:* Added `JsonObjectMapper` to enable explicit mapping of a `Type` (class) to a `JsonObject` and vice-versa (versus serialization). This enables property conversion, mapping and operation types to be specified, similar to other _CoreEx_ mapping capabilities.
+- *Enhancement:* Renamed `WebApiPublisher.PublishAsync<TColl, TItem>` to `WebApiPublisher.PublishCollectionAsync<TColl, TItem>` to be more explicit with respect to purpose and usage.
+- *Enhancement:* The `WebApiPublisher.PublishAsync` has had the `eventModifier` delegate parameter simplified to no longer include a value as this is already available via the `Value` property of the existing `EventData` parameter.
+- *Enhancement:* Added additional overloads to `WebApiPublisher.PublishAsync` and `WebApiPublisher.PublishCollectionAsync` to support the event publishing of a different (mapped) type where applicable; see `eventModifier` delegate parameter.
+- *Fixed:* The `Result.OnFailure*` methods corrected to pass in the `Error` versus the `Value` (previously throwing incorrect exception as a result). 
+- *Enhancement:* Added new `CoreEx.OData` project/package to support [OData](https://learn.microsoft.com/en-us/odata/overview) capabilities. Primarily encapsulates the open-source [`Simple.OData.Client`](https://github.com/simple-odata-client/Simple.OData.Client).
+	- _Note:_ this package has not been published as this is currently considered experimental; is subject to future change and/or removal.
+- *Enhancement:* Added new `CoreEx.Dataverse` project/package to support [Microsoft Dataverse](https://docs.microsoft.com/en-us/powerapps/developer/data-platform/choose-data-platform) (formerly known as Common Data Service or CDS) capabilities. Primarily encapsulates the [`ServiceClient`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.powerplatform.dataverse.client.serviceclient) and mappings to/from the _Dataverse_ entities.
+	- _Note:_ this package has not been published as this is currently considered experimental; is subject to future change and/or removal.
+
 ## v3.4.1
 - *Fixed:* The `IEfDb.With` fixed (as extension methods) to also support the `with` value being passed into the corresponding `Action<T>` to simplify usage (only a subset of common intrinsic types supported, both nullable and non-nullable overloads).
 - *Fixed:* Missing `Result.CacheSet` and `Result.CacheRemove` extension methods added to `CoreEx.Results` to fully enable `IRequestCaching` in addition to existing `Result.CacheGetOrAddAsync`.

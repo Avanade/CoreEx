@@ -21,7 +21,7 @@ namespace CoreEx.Abstractions
         public static Stream GetStream(string resourceName, Assembly? assembly = null)
         {
             assembly ??= Assembly.GetCallingAssembly();
-            var coll = assembly.GetManifestResourceNames().Where(x => x.EndsWith(resourceName, StringComparison.InvariantCultureIgnoreCase));
+            var coll = assembly.GetManifestResourceNames().Where(x => x.EndsWith(resourceName, StringComparison.OrdinalIgnoreCase));
             return coll.Count() switch
             {
                 0 => throw new ArgumentException($"No embedded resource ending with '{resourceName}' was found in {assembly.FullName}.", nameof(resourceName)),

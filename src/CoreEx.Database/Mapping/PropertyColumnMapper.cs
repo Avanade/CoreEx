@@ -123,7 +123,7 @@ namespace CoreEx.Database.Mapping
                 throw new InvalidOperationException($"The PropertyType '{PropertyType.Name}' must be a class to set a Mapper.");
 
             if (mapper.SourceType != typeof(TSourceProperty))
-                throw new ArgumentNullException($"The PropertyType '{PropertyType.Name}' and IDatabaseMapper.MappingType '{mapper.SourceType.Name}' must match.");
+                throw new ArgumentNullException($"The PropertyType '{PropertyType.Name}' and IDatabaseMapper.SourceType '{mapper.SourceType.Name}' must match.");
 
             if (IsPrimaryKey)
                 throw new InvalidOperationException("A Mapper can not be set for a primary key.");

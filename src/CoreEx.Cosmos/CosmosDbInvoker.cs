@@ -28,7 +28,7 @@ namespace CoreEx.Cosmos
             catch (CosmosException cex)
             {
                 var eresult = cosmos.HandleCosmosException(cex);
-                if (eresult.HasValue && eresult.Value.IsFailure)
+                if (eresult.HasValue && eresult.Value.IsFailure && eresult.Value.Error is CoreEx.Abstractions.IExtendedException)
                 {
                     var dresult = default(TResult);
                     if (dresult is IResult dir)

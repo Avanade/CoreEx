@@ -20,6 +20,6 @@ namespace CoreEx.Mapping.Converters
         public ValueConverter(Func<TSource, TDestination> converter) => _converter = converter ?? throw new ArgumentNullException(nameof(converter));
 
         /// <inheritdoc/>
-        public TDestination Convert(TSource source) => _converter(source);
+        public TDestination Convert(TSource source) => _converter is null ? throw new InvalidOperationException($"The {nameof(ValueConverter<TSource, TDestination>)} has not been initialized with an underlying converter correctly.") : _converter(source);
     }
 }
