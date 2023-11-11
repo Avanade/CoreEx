@@ -67,7 +67,7 @@ namespace CoreEx.AspNetCore.Http
             // Apply the ETag header.
             if (!string.IsNullOrEmpty(etag))
             {
-                if (httpRequest.Method.Equals(HttpMethod.Get.Method, StringComparison.InvariantCultureIgnoreCase) || httpRequest.Method.Equals(HttpMethod.Head.Method, StringComparison.InvariantCultureIgnoreCase))
+                if (httpRequest.Method.Equals(HttpMethod.Get.Method, StringComparison.OrdinalIgnoreCase) || httpRequest.Method.Equals(HttpMethod.Head.Method, StringComparison.OrdinalIgnoreCase))
                     httpRequest.Headers.Add(HeaderNames.IfNoneMatch, ETagGenerator.FormatETag(etag));
                 else
                     httpRequest.Headers.Add(HeaderNames.IfMatch, ETagGenerator.FormatETag(etag));

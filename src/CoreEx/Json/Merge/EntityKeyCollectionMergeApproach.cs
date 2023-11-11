@@ -8,7 +8,7 @@ namespace CoreEx.Json.Merge
     /// <summary>
     /// Defines the approach for a collection (see <see cref="ICollection"/>) that implements <see cref="ICompositeKeyCollection{T}"/>; being either <see cref="Replace"/> or <see cref="Merge"/>.
     /// </summary>
-    /// <remarks>The formal specification <see href="https://tools.ietf.org/html/rfc7396"/> explictlys state that an <see cref="System.Text.Json.JsonValueKind.Array"/> is to be a replacement operation. However, a <see cref="Merge"/> approach
+    /// <remarks>The formal specification <see href="https://tools.ietf.org/html/rfc7396"/> explictly states that an <see cref="System.Text.Json.JsonValueKind.Array"/> is to be a replacement operation. However, a <see cref="Merge"/> approach
     /// can be advantageous as it simplifies the manipulation of an <see cref="System.Text.Json.JsonValueKind.Array"/> without having to provide all content within.</remarks>
     public enum EntityKeyCollectionMergeApproach
     {

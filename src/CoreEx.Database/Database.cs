@@ -137,7 +137,7 @@ namespace CoreEx.Database
         public Result? HandleDbException(DbException dbex)
         {
             var result = OnDbException(dbex);
-            return !result.HasValue || result.Value.IsSuccess ? null : result;
+            return !result.HasValue || result.Value.IsSuccess ? Result.Fail(dbex) : result;
         }
 
         /// <summary>

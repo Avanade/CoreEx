@@ -37,7 +37,7 @@ namespace CoreEx.EntityFrameworkCore
                 else if (ex is TargetInvocationException tiex && tiex.InnerException is DbException dbex3)
                     eresult = efdb.Database.HandleDbException(dbex3);
 
-                if (eresult.HasValue && eresult.Value.IsFailure)
+                if (eresult.HasValue && eresult.Value.IsFailure && eresult.Value.Error is CoreEx.Abstractions.IExtendedException)
                 {
                     var dresult = default(TResult);
                     if (dresult is IResult dir)

@@ -28,7 +28,7 @@ namespace CoreEx.RefData
 
             foreach (var q in requestOptions.Request.Query.Where(x => !string.IsNullOrEmpty(x.Key)))
             {
-                if (string.Compare(q.Key, "names", StringComparison.InvariantCultureIgnoreCase) == 0)
+                if (string.Compare(q.Key, "names", StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     foreach (var v in SplitStringValues(q.Value.Where(x => !string.IsNullOrEmpty(x)).Distinct()!))
                     {

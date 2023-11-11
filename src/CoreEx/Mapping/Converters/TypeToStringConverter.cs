@@ -9,7 +9,8 @@ namespace CoreEx.Mapping.Converters
     /// Represents a <typeparamref name="T"/> to <see cref="string"/> conversion.
     /// </summary>
     /// <typeparam name="T">The <see cref="Type"/> to convert.</typeparam>
-    public struct TypeToStringConverter<T> : IConverter<T, string?>
+    /// <remarks>See also <see cref="StringToTypeConverter{T}"/>.</remarks>
+    public readonly struct TypeToStringConverter<T> : IConverter<T, string?>
     {
         private static readonly TypeConverter _typeConverter = TypeDescriptor.GetConverter(typeof(T));
         private static readonly ValueConverter<T, string?> _convertToDestination = new(s => s == null ? default! : _typeConverter.ConvertToInvariantString(s));
@@ -26,9 +27,9 @@ namespace CoreEx.Mapping.Converters
         public TypeToStringConverter() { }
 
         /// <inheritdoc/>
-        public IValueConverter<T, string?> ToDestination => _convertToDestination;
+        public readonly IValueConverter<T, string?> ToDestination => _convertToDestination;
 
         /// <inheritdoc/>
-        public IValueConverter<string?, T> ToSource => _convertToSource;
+        public readonly IValueConverter<string?, T> ToSource => _convertToSource;
     }
 }

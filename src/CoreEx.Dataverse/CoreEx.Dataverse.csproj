@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <RootNamespace>CoreEx.Dataverse</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx .NET Microsoft Dataverse extras.</Title>
+    <Description>CoreEx Microsoft Dataverse extras.</Description>
+    <PackageTags>coreex dataverse power-platform</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.14" />
+    <PackageReference Include="StrongNamer" Version="0.2.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+  </ItemGroup>
+</Project>

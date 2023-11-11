@@ -189,7 +189,7 @@ namespace CoreEx.Cosmos
             System.Net.HttpStatusCode.NotFound => Result.Fail(new NotFoundException(null, cex)),
             System.Net.HttpStatusCode.Conflict => Result.Fail(new DuplicateException(null, cex)),
             System.Net.HttpStatusCode.PreconditionFailed => Result.Fail(new ConcurrencyException(null, cex)),
-            _ => null!
+            _ => Result.Fail(cex)
         };
 
         /// <inheritdoc/>

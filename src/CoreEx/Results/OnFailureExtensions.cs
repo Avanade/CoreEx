@@ -15,11 +15,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="action">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result OnFailure(this Result result, Action action)
+        public static Result OnFailure(this Result result, Action<Exception> action)
         {
             ThrowIfNull(result, action, nameof(action));
             if (result.IsFailure)
-                action();
+                action(result.Error);
 
             return result;
         }
@@ -43,11 +43,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="action">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> OnFailure<T>(this Result<T> result, Action<T> action)
+        public static Result<T> OnFailure<T>(this Result<T> result, Action<Exception> action)
         {
             ThrowIfNull(result, action, nameof(action));
             if (result.IsFailure)
-                action(result.Value);
+                action(result.Error);
 
             return result;
         }
@@ -59,10 +59,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, T> func)
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<Exception, T> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? Result<T>.Ok(func(result.Value)) : result;
+            return result.IsFailure ? Result<T>.Ok(func(result.Error)) : result;
         }
 
         /// <summary>
@@ -72,10 +72,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, Result<T>> func)
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<Exception, Result<T>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value) : result;
+            return result.IsFailure ? func(result.Error) : result;
         }
 
         /// <summary>
@@ -111,11 +111,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="action">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result OnFailureAs<T>(this Result<T> result, Action<T> action)
+        public static Result OnFailureAs<T>(this Result<T> result, Action<Exception> action)
         {
             ThrowIfNull(result, action, nameof(action));
             if (result.IsFailure)
-                action(result.Value);
+                action(result.Error);
 
             return result.Bind();
         }
@@ -127,10 +127,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result OnFailureAs<T>(this Result<T> result, Func<T, Result> func)
+        public static Result OnFailureAs<T>(this Result<T> result, Func<Exception, Result> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value) : result.Bind<T>();
+            return result.IsFailure ? func(result.Error) : result.Bind();
         }
 
         /// <summary>
@@ -141,10 +141,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, U> func)
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<Exception, U> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? Result<U>.Ok(func(result.Value)) : result.Bind<T, U>();
+            return result.IsFailure ? Result<U>.Ok(func(result.Error)) : result.Bind<T, U>();
         }
 
         /// <summary>
@@ -155,10 +155,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, Result<U>> func)
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<Exception, Result<U>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value) : result.Bind<T, U>();
+            return result.IsFailure ? func(result.Error) : result.Bind<T, U>();
         }
 
         /* IToResult */
@@ -182,10 +182,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, ITypedToResult> func)
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<Exception, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value).ToResult<T>() : result;
+            return result.IsFailure ? func(result.Error).ToResult<T>() : result;
         }
 
         /// <summary>
@@ -195,10 +195,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<T> OnFailure<T>(this Result<T> result, Func<T, IToResult<T>> func)
+        public static Result<T> OnFailure<T>(this Result<T> result, Func<Exception, IToResult<T>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value).ToResult() : result;
+            return result.IsFailure ? func(result.Error).ToResult() : result;
         }
 
         /// <summary>
@@ -208,10 +208,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result OnFailureAs<T>(this Result<T> result, Func<T, IToResult> func)
+        public static Result OnFailureAs<T>(this Result<T> result, Func<Exception, IToResult> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value).ToResult() : result.Bind<T>();
+            return result.IsFailure ? func(result.Error).ToResult() : result.Bind<T>();
         }
 
         /// <summary>
@@ -248,10 +248,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, ITypedToResult> func)
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<Exception, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value).ToResult<U>() : result.Bind<T, U>();
+            return result.IsFailure ? func(result.Error).ToResult<U>() : result.Bind<T, U>();
         }
 
         /// <summary>
@@ -262,10 +262,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<T, IToResult<U>> func)
+        public static Result<U> OnFailureAs<T, U>(this Result<T> result, Func<Exception, IToResult<U>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? func(result.Value).ToResult() : result.Bind<T, U>();
+            return result.IsFailure ? func(result.Error).ToResult() : result.Bind<T, U>();
         }
 
         #endregion
@@ -278,7 +278,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="action">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailure(this Task<Result> result, Action action)
+        public static async Task<Result> OnFailure(this Task<Result> result, Action<Exception> action)
         {
             ThrowIfNull(result, action, nameof(action));
             var r = await result.ConfigureAwait(false);
@@ -305,11 +305,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="action">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Action<T> action)
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Action<Exception> action)
         {
             ThrowIfNull(result, action, nameof(action));
             var r = await result.ConfigureAwait(false);
-            return r.OnFailure(action);
+            return r.OnFailure<T>(action);
         }
 
         /// <summary>
@@ -319,7 +319,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, T> func)
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<Exception, T> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -333,7 +333,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, Result<T>> func)
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<Exception, Result<T>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -375,7 +375,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="action">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Action<T> action)
+        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Action<Exception> action)
         {
             ThrowIfNull(result, action, nameof(action));
             var r = await result.ConfigureAwait(false);
@@ -389,7 +389,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Func<T, Result> func)
+        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Func<Exception, Result> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -404,7 +404,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, U> func)
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<Exception, U> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -419,7 +419,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, Result<U>> func)
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<Exception, Result<U>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -448,7 +448,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<Exception, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -462,7 +462,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<T, IToResult<T>> func)
+        public static async Task<Result<T>> OnFailure<T>(this Task<Result<T>> result, Func<Exception, IToResult<T>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -476,7 +476,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Func<T, IToResult> func)
+        public static async Task<Result> OnFailureAs<T>(this Task<Result<T>> result, Func<Exception, IToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -519,7 +519,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, ITypedToResult> func)
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<Exception, ITypedToResult> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -534,7 +534,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<T, IToResult<U>> func)
+        public static async Task<Result<U>> OnFailureAs<T, U>(this Task<Result<T>> result, Func<Exception, IToResult<U>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -579,11 +579,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<Exception, Task> func)
         {
             ThrowIfNull(result, func);
             if (result.IsFailure)
-                await func(result.Value).ConfigureAwait(false);
+                await func(result.Error).ConfigureAwait(false);
 
             return result;
         }
@@ -595,10 +595,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<T>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<Exception, Task<T>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? Result<T>.Ok(await func(result.Value).ConfigureAwait(false)) : result;
+            return result.IsFailure ? Result<T>.Ok(await func(result.Error).ConfigureAwait(false)) : result;
         }
 
         /// <summary>
@@ -608,10 +608,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<Result<T>>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<Exception, Task<Result<T>>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? await func(result.Value).ConfigureAwait(false) : result;
+            return result.IsFailure ? await func(result.Error).ConfigureAwait(false) : result;
         }
 
         /// <summary>
@@ -647,11 +647,11 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<T, Task> func)
+        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<Exception, Task> func)
         {
             ThrowIfNull(result, func);
             if (result.IsFailure)
-                await func(result.Value).ConfigureAwait(false);
+                await func(result.Error).ConfigureAwait(false);
 
             return result.Bind();
         }
@@ -663,10 +663,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<T, Task<Result>> func)
+        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<Exception, Task<Result>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? await func(result.Value).ConfigureAwait(false) : result.Bind<T>();
+            return result.IsFailure ? await func(result.Error).ConfigureAwait(false) : result.Bind<T>();
         }
 
         /// <summary>
@@ -677,10 +677,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<U>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<Exception, Task<U>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? Result<U>.Ok(await func(result.Value).ConfigureAwait(false)) : result.Bind<T, U>();
+            return result.IsFailure ? Result<U>.Ok(await func(result.Error).ConfigureAwait(false)) : result.Bind<T, U>();
         }
 
         /// <summary>
@@ -691,10 +691,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<Result<U>>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<Exception, Task<Result<U>>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? await func(result.Value).ConfigureAwait(false) : result.Bind<T, U>();
+            return result.IsFailure ? await func(result.Error).ConfigureAwait(false) : result.Bind<T, U>();
         }
 
         /* IToResult */
@@ -718,10 +718,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<Exception, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult<T>() : result;
+            return result.IsFailure ? (await func(result.Error).ConfigureAwait(false)).ToResult<T>() : result;
         }
 
         /// <summary>
@@ -731,10 +731,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<T, Task<IToResult<T>>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Result<T> result, Func<Exception, Task<IToResult<T>>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result;
+            return result.IsFailure ? (await func(result.Error).ConfigureAwait(false)).ToResult() : result;
         }
 
         /// <summary>
@@ -744,10 +744,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<T, Task<IToResult>> func)
+        public static async Task<Result> OnFailureAsAsync<T>(this Result<T> result, Func<Exception, Task<IToResult>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result.Bind<T>();
+            return result.IsFailure ? (await func(result.Error).ConfigureAwait(false)).ToResult() : result.Bind<T>();
         }
 
         /// <summary>
@@ -784,10 +784,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<ITypedToResult>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<Exception, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult<U>() : result.Bind<T, U>();
+            return result.IsFailure ? (await func(result.Error).ConfigureAwait(false)).ToResult<U>() : result.Bind<T, U>();
         }
 
         /// <summary>
@@ -798,10 +798,10 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<T, Task<IToResult<U>>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Result<T> result, Func<Exception, Task<IToResult<U>>> func)
         {
             ThrowIfNull(result, func);
-            return result.IsFailure ? (await func(result.Value).ConfigureAwait(false)).ToResult() : result.Bind<T, U>();
+            return result.IsFailure ? (await func(result.Error).ConfigureAwait(false)).ToResult() : result.Bind<T, U>();
         }
 
         #endregion
@@ -841,7 +841,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <return>The resulting <see cref="Result{T}"/>.</return>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<Exception, Task> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -855,7 +855,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <return>The resulting <see cref="Result{T}"/>.</return>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<T>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<Exception, Task<T>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -869,7 +869,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <return>The resulting <see cref="Result{T}"/>.</return>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<Result<T>>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<Exception, Task<Result<T>>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -911,7 +911,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <return>The resulting <see cref="Result"/>.</return>
-        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<T, Task> func)
+        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<Exception, Task> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -925,7 +925,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <return>The resulting <see cref="Result"/>.</return>
-        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<T, Task<Result>> func)
+        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<Exception, Task<Result>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -940,7 +940,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <return>The resulting <see cref="Result{T}"/>.</return>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<U>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<Exception, Task<U>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -955,7 +955,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <return>The resulting <see cref="Result{T}"/>.</return>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<Result<U>>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<Exception, Task<Result<U>>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -984,7 +984,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<Exception, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -998,7 +998,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult<T>>> func)
+        public static async Task<Result<T>> OnFailureAsync<T>(this Task<Result<T>> result, Func<Exception, Task<IToResult<T>>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -1012,7 +1012,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<T, Task<IToResult>> func)
+        public static async Task<Result> OnFailureAsAsync<T>(this Task<Result<T>> result, Func<Exception, Task<IToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -1055,7 +1055,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<ITypedToResult>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<Exception, Task<ITypedToResult>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);
@@ -1070,7 +1070,7 @@ namespace CoreEx.Results
         /// <param name="result">The <see cref="Result"/>.</param>
         /// <param name="func">The function to invoke.</param>
         /// <returns>The resulting <see cref="Result"/>.</returns>
-        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<T, Task<IToResult<U>>> func)
+        public static async Task<Result<U>> OnFailureAsAsync<T, U>(this Task<Result<T>> result, Func<Exception, Task<IToResult<U>>> func)
         {
             ThrowIfNull(result, func);
             var r = await result.ConfigureAwait(false);

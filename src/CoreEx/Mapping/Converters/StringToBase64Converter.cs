@@ -7,7 +7,7 @@ namespace CoreEx.Mapping.Converters
     /// <summary>
     /// Represents a <see cref="string"/> to <see cref="byte"/> <see cref="Array"/> converter (uses <see cref="Convert.FromBase64String(string)"/> and <see cref="Convert.ToBase64String(byte[])"/>).
     /// </summary>
-    public struct StringToBase64Converter : IConverter<string?, byte[]?>
+    public readonly struct StringToBase64Converter : IConverter<string?, byte[]?>
     {
         private static readonly ValueConverter<string?, byte[]?> _convertToDestination = new(s => s == null ? null : Convert.FromBase64String(s));
         private static readonly ValueConverter<byte[]?, string?> _convertToSource = new(d => d == null ? null : Convert.ToBase64String(d));

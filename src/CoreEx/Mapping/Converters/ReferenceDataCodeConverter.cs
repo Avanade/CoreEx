@@ -9,7 +9,7 @@ namespace CoreEx.Mapping.Converters
     /// Represents an <see cref="IReferenceData"/> to <see cref="IReferenceData.Code"/> (<see cref="string"/>) converter.
     /// </summary>
     /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
-    public struct ReferenceDataCodeConverter<TRef> : IConverter<TRef?, string?> where TRef : IReferenceData, new()
+    public readonly struct ReferenceDataCodeConverter<TRef> : IConverter<TRef?, string?> where TRef : IReferenceData, new()
     {
         private readonly ValueConverter<TRef, string?> _convertToDestination = new(s => s?.Code);
         private readonly ValueConverter<string?, TRef> _convertToSource = new(d => ReferenceDataOrchestrator.ConvertFromCode<TRef>(d)!);

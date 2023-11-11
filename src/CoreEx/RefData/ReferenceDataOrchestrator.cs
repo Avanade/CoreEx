@@ -506,7 +506,7 @@ namespace CoreEx.RefData
             var tasks = new List<Task>();
             if (names != null)
             {
-                foreach (var name in names.Distinct(StringComparer.InvariantCultureIgnoreCase))
+                foreach (var name in names.Distinct(StringComparer.OrdinalIgnoreCase))
                 {
                     tasks.Add(GetByNameAsync(name, cancellationToken));
                 }
@@ -532,7 +532,7 @@ namespace CoreEx.RefData
             {
                 await PrefetchAsync(names, cancellationToken).ConfigureAwait(false);
 
-                foreach (var name in names.Where(ContainsName).Distinct(StringComparer.InvariantCultureIgnoreCase))
+                foreach (var name in names.Where(ContainsName).Distinct(StringComparer.OrdinalIgnoreCase))
                 {
                     mc.Add(new ReferenceDataMultiItem(_nameToType[name].Name, await GetWithFilterAsync(name, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false)));
                 }
