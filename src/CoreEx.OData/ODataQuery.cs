@@ -4,6 +4,7 @@ using CoreEx.Entities;
 using CoreEx.Mapping;
 using CoreEx.Results;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,38 +62,46 @@ namespace CoreEx.OData
         /// </summary>
         public PagingResult? Paging { get; private set; }
 
-        ///// <summary>
-        ///// Manages the underlying query construction and lifetime.
-        ///// </summary>
-        //private async readonly Task<Result<TModel>> ExecuteQueryAsync(Action<Soc.IBoundClient<TModel>> execute)
-        //{
-        //    ODataClient.Invoker.Invoke(ODataClient, ODataClient, CollectionName, _query, execute, (args, odata, collection, query, execute) =>
-        //    {
-        //        var q = odata.Client.For<TModel>(collection);
-        //        execute((query == null) ? q : query(q));
-        //    }, ODataClient);
-        //}
+        /// <summary>
+        /// Adds <see cref="PagingArgs"/> to the query.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+        /// <returns>The <see cref="ODataQuery{T, TModel}"/> to suport fluent-style method-chaining.</returns>
+        public ODataQuery<T, TModel> WithPaging(PagingArgs? paging)
+        {
+            Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds <see cref="PagingArgs"/> to the query.
+        /// </summary>
+        /// <param name="skip">The specified number of elements in a sequence to bypass.</param>
+        /// <param name="take">The specified number of contiguous elements from the start of a sequence.</param>
+        /// <returns>The <see cref="ODataQuery{T, TModel}"/> to suport fluent-style method-chaining.</returns>
+        public ODataQuery<T, TModel> WithPaging(long skip, long? take = null) => WithPaging(PagingArgs.CreateSkipAndTake(skip, take));
 
         /// <summary>
         /// Manages the underlying query construction and lifetime.
         /// </summary>
-        private async readonly Task<Result<TModel>> ExecuteQueryAsync(Func<Soc.IBoundClient<TModel>, CancellationToken, Task<Result<TModel>>> executeAsync, CancellationToken cancellationToken)
-            => await ODataClient.Invoker.InvokeAsync(ODataClient, ODataClient, CollectionName, _query, async (args, odata, collection, query, ct) =>
+        private async readonly Task<Result<TResult?>> ExecuteQueryAsync<TResult>(Func<Soc.IBoundClient<TModel>, CancellationToken, Task<TResult?>> executeAsync, string memeberName, CancellationToken cancellationToken)
+            => await ODataClient.Invoker.InvokeAsync(ODataClient, ODataClient, CollectionName, _query, async (args, odata, name, query, ct) =>
             {
-                var q = odata.Client.For<TModel>(collection);
+                var q = odata.Client.For<TModel>(name);
                 return await executeAsync((query == null) ? q : query(q), ct).ConfigureAwait(false);
-            }, ODataClient, cancellationToken);
- 
-        /// <summary>
-        /// Maps from the model to the value.
-        /// </summary>
-        private readonly T? MapToValue(TModel? model)
-        {
-            if (model is null)
-                return default;
+            }, ODataClient, cancellationToken, memeberName);
 
-            var result = Mapper.Map<T>(model, OperationTypes.Get);
-            return (result is not null) ? CleanUpResult(result) : throw new InvalidOperationException("Mapping from the OData model must not result in a null value.");
+        /// <summary>
+        /// Executes the query and maps.
+        /// </summary>
+        private async readonly Task<Result<T?>> ExecuteQueryAndMapAsync<TResult>(Func<Soc.IBoundClient<TModel>, CancellationToken, Task<TResult?>> executeAsync, string memeberName, CancellationToken cancellationToken)
+        {
+            var result = await ExecuteQueryAsync(executeAsync, memeberName, cancellationToken).ConfigureAwait(false);
+            if (result.IsFailure)
+                return result.AsResult();
+
+            var val = result.Value == null ? default! : Mapper.Map<T>(result.Value, Mapping.OperationTypes.Get);
+            return Args.CleanUpResult ? Cleaner.Clean(val) : val;
         }
 
         /// <summary>
@@ -105,17 +114,162 @@ namespace CoreEx.OData
         /// </summary>
         /// <returns>The single item.</returns>
         public async readonly Task<T> SelectSingleAsync(CancellationToken cancellationToken = default)
-             => (await SelectSingleWithResultAsync(cancellationToken).ConfigureAwait(false)).Value!;
+             => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).Single(), nameof(SelectSingleAsync), cancellationToken).ConfigureAwait(false))!;
 
         /// <summary>
         /// Selects a single item with a <see cref="Result{T}"/>.
         /// </summary>
         /// <returns>The single item.</returns>
-        public async readonly Task<Result<T>> SelectSingleWithResultAsync(CancellationToken cancellationToken = default) => MapToValue(await ExecuteQueryAsync(async (q, ct) =>
+        public async readonly Task<Result<T>> SelectSingleWithResultAsync(CancellationToken cancellationToken = default)
+            => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).Single(), nameof(SelectSingleWithResultAsync), cancellationToken).ConfigureAwait(false))!;
+
+        /// <summary>
+        /// Selects a single item or default.
+        /// </summary>
+        /// <returns>The single item or default.</returns>
+        public async readonly Task<T?> SelectSingleOrDefaultAsync(CancellationToken cancellationToken = default)
+             => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).SingleOrDefault()!, nameof(SelectSingleOrDefaultAsync), cancellationToken).ConfigureAwait(false))!;
+
+        /// <summary>
+        /// Selects a single item or default with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <returns>The single item or default.</returns>
+        public async readonly Task<Result<T?>> SelectSingleOrDefaultWithResultAsync(CancellationToken cancellationToken = default)
+            => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).SingleOrDefault()!, nameof(SelectSingleOrDefaultWithResultAsync), cancellationToken).ConfigureAwait(false))!;
+
+        /// <summary>
+        /// Selects first item.
+        /// </summary>
+        /// <returns>The first item.</returns>
+        public async readonly Task<T> SelectFirstAsync(CancellationToken cancellationToken = default)
+             => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).First(), nameof(SelectFirstAsync), cancellationToken).ConfigureAwait(false))!;
+
+        /// <summary>
+        /// Selects first item with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <returns>The first item.</returns>
+        public async readonly Task<Result<T>> SelectFirstWithResultAsync(CancellationToken cancellationToken = default)
+            => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).First(), nameof(SelectFirstWithResultAsync), cancellationToken).ConfigureAwait(false))!;
+
+        /// <summary>
+        /// Selects first item or default.
+        /// </summary>
+        /// <returns>The first item or default.</returns>
+        public async readonly Task<T?> SelectFirstOrDefaultAsync(CancellationToken cancellationToken = default)
+            => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).FirstOrDefault()!, nameof(SelectFirstOrDefaultAsync), cancellationToken).ConfigureAwait(false))!;
+
+        /// <summary>
+        /// Selects first item or default with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <returns>The first item or default.</returns>
+        public async readonly Task<Result<T?>> SelectFirstOrDefaultWithResultAsync(CancellationToken cancellationToken = default)
+            => (await ExecuteQueryAndMapAsync(async (q, ct) => (await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false)).FirstOrDefault()!, nameof(SelectFirstOrDefaultWithResultAsync), cancellationToken).ConfigureAwait(false))!;
+
+        /// <summary>
+        /// Executes the query command creating a <typeparamref name="TCollResult"/>.
+        /// </summary>
+        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
+        public async readonly Task<TCollResult> SelectResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
         {
-            var coll = await q.Skip(0).Top(2).FindEntriesAsync(ct).ConfigureAwait(false);
-            return coll.Single();
-        }, cancellationToken).ConfigureAwait(false))!;
-        
+            Paging = Paging,
+            Items = (await SelectQueryWithResultInternalAsync<TColl>(nameof(SelectResultAsync), cancellationToken).ConfigureAwait(false)).Value
+        };
+
+        /// <summary>
+        /// Executes the query command creating a <typeparamref name="TCollResult"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="TCollResult">The <see cref="ICollectionResult{TColl, TItem}"/> <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TColl">The <see cref="ICollection{T}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The resulting <typeparamref name="TCollResult"/>.</returns>
+        public async readonly Task<Result<TCollResult>> SelectResultWithResultAsync<TCollResult, TColl>(CancellationToken cancellationToken = default) where TCollResult : ICollectionResult<TColl, T>, new() where TColl : ICollection<T>, new() => new TCollResult
+        {
+            Paging = Paging,
+            Items = (await SelectQueryWithResultInternalAsync<TColl>(nameof(SelectResultWithResultAsync), cancellationToken).ConfigureAwait(false)).Value
+        };
+
+        /// <summary>
+        /// Executes the query command creating a resultant collection.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <returns>A resultant collection.</returns>
+        public async readonly Task<TColl> SelectQueryAsync<TColl>(CancellationToken cancellationToken = default) where TColl : ICollection<T>, new()
+            => (await SelectQueryWithResultInternalAsync<TColl>(nameof(SelectQueryAsync), cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <summary>
+        /// Executes the query command creating a resultant collection with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <returns>A resultant collection.</returns>
+        public readonly Task<Result<TColl>> SelectQueryWithResultAsync<TColl>(CancellationToken cancellationToken = default) where TColl : ICollection<T>, new()
+            => SelectQueryWithResultInternalAsync<TColl>(nameof(SelectQueryWithResultAsync), cancellationToken);
+
+        /// <summary>
+        /// Executes a query adding to the passed collection.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <param name="collection">The collection to add items to.</param>
+        /// <returns>The <paramref name="collection"/>.</returns>
+        public async readonly Task<TColl> SelectQueryAsync<TColl>(TColl collection, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+            => (await SelectQueryWithResultInternalAsync(collection, nameof(SelectQueryAsync), cancellationToken).ConfigureAwait(false)).Value;
+
+        /// <summary>
+        /// Executes a query adding to the passed collection with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <typeparam name="TColl">The collection <see cref="Type"/>.</typeparam>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <param name="collection">The collection to add items to.</param>
+        /// <returns>The <paramref name="collection"/>.</returns>
+        public readonly Task<Result<TColl>> SelectQueryWithResultAsync<TColl>(TColl collection, CancellationToken cancellationToken = default) where TColl : ICollection<T>
+            => SelectQueryWithResultInternalAsync(collection, nameof(SelectQueryWithResultAsync), cancellationToken);
+
+        /// <summary>
+        /// Executes the query command creating a resultant collection with a <see cref="Result{T}"/> internal.
+        /// </summary>
+        private async readonly Task<Result<TColl>> SelectQueryWithResultInternalAsync<TColl>(string memberName, CancellationToken cancellationToken) where TColl : ICollection<T>, new()
+        {
+            var coll = new TColl();
+            return await SelectQueryWithResultInternalAsync(coll, memberName, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes a query adding to the passed collection with a <see cref="Result{T}"/> internal.
+        /// </summary>
+        private async readonly Task<Result<TColl>> SelectQueryWithResultInternalAsync<TColl>(TColl collection, string memberName, CancellationToken cancellationToken) where TColl : ICollection<T>
+        {
+            if (collection == null)
+                throw new ArgumentNullException(nameof(collection));
+
+            var paging = Paging;
+            var mapper = Mapper;
+            var args = Args;
+
+            return await ExecuteQueryAsync(async (q, ct) =>
+            {
+                Soc.ODataFeedAnnotations ann = null!;
+
+                if (paging is not null)
+                {
+                    q = q.Skip(paging.Skip).Top(paging.Take);
+                    if (paging.IsGetCount && args.IsPagingGetCountSupported)
+                        ann = new Soc.ODataFeedAnnotations();
+                }
+
+                foreach (var item in await (ann is null ? q.FindEntriesAsync(ct) : q.FindEntriesAsync(ann, ct)).ConfigureAwait(false))
+                {
+                    var val = mapper.Map<TModel, T>(item, OperationTypes.Get) ?? throw new InvalidOperationException("Mapping from the ODATA model must not result in a null value.");
+                    collection.Add(args.CleanUpResult ? Cleaner.Clean(val) : val);
+                }
+
+                if (ann != null)
+                    paging!.TotalCount = ann.Count;
+
+                return Result<TColl>.Ok(collection);
+            }, memberName, cancellationToken).ConfigureAwait(false);
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System.Drawing;
 using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
@@ -10,6 +11,24 @@ namespace CoreEx.Entities
     [System.Diagnostics.DebuggerStepThrough]
     public class PagingResult : PagingArgs
     {
+        /// <summary>
+        /// Creates a <see cref="PagingArgs"/> for a specified page number and size.
+        /// </summary>
+        /// <param name="page">The <see cref="PagingArgs.Page"/> number.</param>
+        /// <param name="size">The page <see cref="Size"/> (defaults to <see cref="PagingArgs.DefaultTake"/>).</param>
+        /// <param name="isGetCount">Indicates whether to get the total count (see <see cref="TotalCount"/>) when performing the underlying query (defaults to <see cref="PagingArgs.DefaultIsGetCount"/> where <c>null</c>).</param>
+        /// <returns>The <see cref="PagingArgs"/>.</returns>
+        public static new PagingResult CreatePageAndSize(long page, long? size = null, bool? isGetCount = null) => new(PagingArgs.CreatePageAndSize(page, size, isGetCount));
+
+        /// <summary>
+        /// Creates a <see cref="PagingArgs"/> for a specified skip and take.
+        /// </summary>
+        /// <param name="skip">The <see cref="PagingArgs.Skip"/> value.</param>
+        /// <param name="take">The <see cref="PagingArgs.Take"/> value (defaults to <see cref="PagingArgs.DefaultTake"/>).</param>
+        /// <param name="isGetCount">Indicates whether to get the total count (see <see cref="TotalCount"/>) when performing the underlying query (defaults to <see cref="PagingArgs.DefaultIsGetCount"/> where <c>null</c>).</param>
+        /// <returns>The <see cref="PagingArgs"/>.</returns>
+        public static new PagingResult CreateSkipAndTake(long skip, long? take = null, bool? isGetCount = null) => new(PagingArgs.CreateSkipAndTake(skip, take, isGetCount));
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PagingResult"/> class from a <paramref name="pagingArgs"/> and optional <paramref name="totalCount"/>.
         /// </summary>

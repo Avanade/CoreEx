@@ -3,6 +3,7 @@ using CoreEx.Mapping;
 using CoreEx.OData;
 using NUnit.Framework;
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -55,6 +56,7 @@ namespace CoreEx.Test.Framework.ODatax
         {
             settings ??= new Soc.ODataClientSettings();
             settings.BaseUri = new Uri(_personUrl!);
+            settings.BeforeRequest = r => Console.WriteLine($"{r.Method} {r.RequestUri}");
             return new ODataClient(new Soc.ODataClient(settings), GetMapper());
         }
 
@@ -94,6 +96,92 @@ namespace CoreEx.Test.Framework.ODatax
             Assert.AreEqual("russellwhyte", result!.Id);
             Assert.AreEqual("Russell", result.FirstName);
             Assert.AreEqual("Whyte", result.LastName);
+
+            var result2 = (await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.UserName == "russellwhyte")).SelectSingleWithResultAsync(default)).Value;
+            Assert.IsNotNull(result2);
+            Assert.AreEqual("russellwhyte", result!.Id);
+            Assert.AreEqual("Russell", result.FirstName);
+            Assert.AreEqual("Whyte", result.LastName);
+        }
+
+        [Test]
+        public async Task B020_SelectFirstOrDefault()
+        {
+            var odata = GetPersonClient();
+            var result = await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "Russell")).SelectFirstAsync(default);
+            Assert.IsNotNull(result);
+            Assert.AreEqual("russellwhyte", result!.Id);
+            Assert.AreEqual("Russell", result.FirstName);
+            Assert.AreEqual("Whyte", result.LastName);
+
+            var result2 = (await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "Russell")).SelectFirstWithResultAsync(default)).Value;
+            Assert.IsNotNull(result2);
+            Assert.AreEqual("russellwhyte", result!.Id);
+            Assert.AreEqual("Russell", result.FirstName);
+            Assert.AreEqual("Whyte", result.LastName);
+
+            var result3 = await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "does-not-exist")).SelectFirstOrDefaultAsync(default);
+            Assert.IsNull(result3);
+
+            var result4 = (await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "does-not-exist")).SelectFirstOrDefaultWithResultAsync(default)).Value;
+            Assert.IsNull(result4);
+        }
+
+        [Test]
+        public async Task B030_SelectQueryWithResultAsync()
+        {
+            var odata = GetPersonClient();
+            var result = await odata.Query<Person, MPerson>("People").WithPaging(2, 3).SelectQueryWithResultAsync<PersonCollection>(default);
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual(3, result.Value!.Count);
+            Assert.AreEqual(new string[] { "Elaine", "Genevieve", "Georgina" }, result.Value.Select(x => x.FirstName).ToArray());
+        }
+
+        [Test]
+        public async Task B030_SelectResultWithResultAsync()
+        {
+            var odata = GetPersonClient();
+            var result = await odata.Query<Person, MPerson>("People").WithPaging(PagingArgs.CreateSkipAndTake(2, 3, true)).SelectResultWithResultAsync<PersonCollectionResult, PersonCollection>(default);
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual(3, result.Value!.Items.Count);
+            Assert.AreEqual(new string[] { "Elaine", "Genevieve", "Georgina" }, result.Value.Items.Select(x => x.FirstName).ToArray());
+            Assert.AreEqual(20, result.Value.Paging!.TotalCount);
+        }
+
+        [Test]
+        public async Task B040_SelectResultWithResultAsync_WildCards()
+        {
+            var odata = GetPersonClient();
+            var result = await odata.Query<Person, MPerson>("People", q => q.FilterWildcard(x => x.FirstName, "*s*")).WithPaging(PagingArgs.CreateSkipAndTake(2, 3, true)).SelectResultWithResultAsync<PersonCollectionResult, PersonCollection>(default);
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual(3, result.Value!.Items.Count);
+            Assert.AreEqual(new string[] { "Russell", "Sallie", "Sandy" }, result.Value.Items.Select(x => x.FirstName).ToArray());
+            Assert.AreEqual(7, result.Value.Paging!.TotalCount);
+
+            // Weird how Scott comes last as it is first when no paging is requested, but that is what is returned from the service <shrug_emoji/>.
+            result = await odata.Query<Person, MPerson>("People", q => q.FilterWildcard(x => x.FirstName, "s*")).WithPaging(PagingArgs.CreateSkipAndTake(2, 3, true)).SelectResultWithResultAsync<PersonCollectionResult, PersonCollection>(default);
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual(1, result.Value!.Items.Count);
+            Assert.AreEqual(new string[] { "Scott" }, result.Value.Items.Select(x => x.FirstName).ToArray());
+            Assert.AreEqual(3, result.Value.Paging!.TotalCount);
+        }
+
+        [Test]
+        public async Task B050_SelectQuery()
+        {
+            var odata = GetPersonClient();
+            var result = await odata.Query<Person, MPerson>("People", q => q.FilterWith((string)null!, x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
+            Assert.AreEqual(20, result.Count);
+
+            result = await odata.Query<Person, MPerson>("People", q => q.FilterWith("abc", x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
+            Assert.AreEqual(1, result.Count);
+
+            odata = GetPersonClient();
+            result = await odata.Query<Person, MPerson>("People", q => q.FilterWith((string)null!, x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
+            Assert.AreEqual(20, result.Count);
+
+            result = await odata.Query<Person, MPerson>("People", q => q.FilterWith("abc", x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
+            Assert.AreEqual(1, result.Count);
         }
 
         [Test]
@@ -207,6 +295,10 @@ namespace CoreEx.Test.Framework.ODatax
             Assert.AreEqual(HttpStatusCode.InternalServerError, ex!.Code);
         }
     }
+
+    public class PersonCollectionResult : CollectionResult<PersonCollection, Person> { }
+
+    public class PersonCollection : System.Collections.Generic.List<Person> { }
 
     public class Person : IIdentifier<string>
     {

@@ -50,7 +50,7 @@ namespace CoreEx.OData
         public bool PreReadOnDelete { get; set; } = false;
 
         /// <summary>
-        /// Indicates whether <see cref="CoreEx.Entities.PagingArgs.IsGetCount"/> is supported; i.e. does the OData endpoint support <c>$count=true</c>. Defaults to <c>true</c>.
+        /// Indicates whether <see cref="Entities.PagingArgs.IsGetCount"/> is supported; i.e. does the OData endpoint support <c>$count=true</c>. Defaults to <c>true</c>.
         /// </summary>
         public bool IsPagingGetCountSupported { get; set; } = true;
     }
