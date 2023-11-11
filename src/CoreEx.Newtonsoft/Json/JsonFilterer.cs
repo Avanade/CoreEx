@@ -67,7 +67,7 @@ namespace CoreEx.Newtonsoft.Json
         public static bool Apply(JToken json, IEnumerable<string>? paths, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
         {
             var maxDepth = 0;
-            var dict = Text.Json.JsonFilterer.CreateDictionary(paths, filter, comparison, ref maxDepth);
+            var dict = Text.Json.JsonFilterer.CreateDictionary(paths, filter, comparison, ref maxDepth, true);
 
             var filtered = false;
             if (maxDepth > 0)

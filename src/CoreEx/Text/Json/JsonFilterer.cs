@@ -101,7 +101,7 @@ namespace CoreEx.Text.Json
         public static bool Apply(JsonNode json, IEnumerable<string>? paths, JsonPropertyFilter filter = JsonPropertyFilter.Include, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
         {
             var maxDepth = 0;
-            var dict = CreateDictionary(paths, filter, comparison, ref maxDepth);
+            var dict = CreateDictionary(paths, filter, comparison, ref maxDepth, true);
 
             var filtered = false;
             if (maxDepth > 0)
@@ -120,12 +120,25 @@ namespace CoreEx.Text.Json
         /// <returns>The <see cref="Dictionary{TKey, TValue}"/>.</returns>
         /// <remarks>Where the <see cref="bool"/> is <c>true</c> this indicates the specified path; versus, <c>false</c> that indicates an intermediary path.</remarks>
         public static Dictionary<string, bool> CreateDictionary(IEnumerable<string>? paths, JsonPropertyFilter filter, StringComparison comparison, ref int maxDepth)
+            => CreateDictionary(paths, filter, comparison, ref maxDepth, false);
+
+        /// <summary>
+        /// Create a <see cref="Dictionary{TKey, TValue}"/> from the <paramref name="paths"/> and expands list with intermediary paths where <paramref name="filter"/> is <see cref="JsonPropertyFilter.Include"/>.
+        /// </summary>
+        /// <param name="paths">The list of JSON paths.</param>
+        /// <param name="filter">The <see cref="JsonPropertyFilter"/>.</param>
+        /// <param name="comparison">The paths <see cref="StringComparison"/>.</param>
+        /// <param name="maxDepth">The maximum hierarchy depth for all specified .</param>
+        /// <param name="prependRootPath">Indicates whether to prepend the <see cref="JsonRootPath"/> to each path.</param>
+        /// <returns>The <see cref="Dictionary{TKey, TValue}"/>.</returns>
+        /// <remarks>Where the <see cref="bool"/> is <c>true</c> this indicates the specified path; versus, <c>false</c> that indicates an intermediary path.</remarks>
+        public static Dictionary<string, bool> CreateDictionary(IEnumerable<string>? paths, JsonPropertyFilter filter, StringComparison comparison, ref int maxDepth, bool prependRootPath)
         {
             var dict = new Dictionary<string, bool>(StringComparer.FromComparison(comparison));
             paths ??= Array.Empty<string>();
 
             // Add each 'specified' path.
-            paths.ForEach(path => dict.TryAdd(PrependRootPath(path), true));
+            paths.ForEach(path => dict.TryAdd(prependRootPath ? PrependRootPath(path) : path, true));
 
             // Add each 'intermediary' path where applicable.
             if (filter == JsonPropertyFilter.Include)

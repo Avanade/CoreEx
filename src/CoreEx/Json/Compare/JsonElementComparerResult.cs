@@ -122,8 +122,8 @@ namespace CoreEx.Json.Compare
         {
             var maxDepth = 0;
             var state = new MergePatchState(
-                _differences is null ? null : JsonFilterer.CreateDictionary(_differences.Select(x => x.Path), JsonPropertyFilter.Include, StringComparison.Ordinal, ref maxDepth),
-                pathsToInclude.Length == 0 ? null : JsonFilterer.CreateDictionary(pathsToInclude, JsonPropertyFilter.Include, StringComparison.Ordinal, ref maxDepth));
+                _differences is null ? null : JsonFilterer.CreateDictionary(_differences.Select(x => x.Path), JsonPropertyFilter.Include, StringComparison.Ordinal, ref maxDepth, true),
+                pathsToInclude.Length == 0 ? null : JsonFilterer.CreateDictionary(pathsToInclude, JsonPropertyFilter.Include, StringComparison.Ordinal, ref maxDepth, true));
 
             switch (Right.ValueKind)
             {

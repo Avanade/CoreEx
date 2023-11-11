@@ -366,7 +366,7 @@ namespace CoreEx.Json.Compare
                 Result = result;
                 PathComparer = pathComparer ?? StringComparer.InvariantCultureIgnoreCase;
                 var maxDepth = 0;
-                PathsToIgnore = new(Text.Json.JsonFilterer.CreateDictionary(pathsToIgnore, JsonPropertyFilter.Exclude, StringComparison.Ordinal, ref maxDepth).Keys);
+                PathsToIgnore = new(Text.Json.JsonFilterer.CreateDictionary(pathsToIgnore, JsonPropertyFilter.Exclude, StringComparison.Ordinal, ref maxDepth, true).Keys);
             }
 
             /// <summary>
