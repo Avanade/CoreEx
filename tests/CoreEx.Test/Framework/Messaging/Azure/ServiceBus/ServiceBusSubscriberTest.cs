@@ -21,7 +21,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage<Product?>(null);
+            var message = test.CreateServiceBusMessageFromValue<Product?>(null);
 
             test.Type<ServiceBusSubscriber>()
                 .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => throw new InvalidOperationException("Should not get here.")))
@@ -36,7 +36,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new Product { Id = "A", Price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new Product { Id = "A", Price = 1.99m });
 
             test.Type<ServiceBusSubscriber>()
                 .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => throw new TransientException()))
@@ -50,7 +50,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new Product { Id = "A", Price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new Product { Id = "A", Price = 1.99m });
 
             test.Type<ServiceBusSubscriber>()
                 .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => throw new DivideByZeroException()))
@@ -65,7 +65,7 @@ namespace CoreEx.Test.Framework.Messaging.Azure.ServiceBus
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new Product { Id = "A", Price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new Product { Id = "A", Price = 1.99m });
 
             test.Type<ServiceBusSubscriber>()
                 .Run(s => s.ReceiveAsync<Product>(message, actionsMock.Object, (ed, _) => Task.CompletedTask))

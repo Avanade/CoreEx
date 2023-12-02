@@ -1,7 +1,6 @@
 ﻿using CoreEx.Events;
 using CoreEx.Events.Attachments;
 using CoreEx.TestFunction.Models;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -15,7 +14,7 @@ namespace CoreEx.Test.Framework.Events
     public class CloudEventSerializerTest
     {
         [Test]
-        public async Task SystemTextJson_Serialize_Deserialize1()
+        public async Task SystemTextJson_Serialize_Deserialize1() 
         {
             var es = new CoreEx.Text.Json.CloudEventSerializer() as IEventSerializer;
             var ed = CreateProductEvent1();

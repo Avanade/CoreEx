@@ -46,7 +46,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishAsync<Product>(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), "test"))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
+                .AssertContent("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
@@ -186,7 +186,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("The publish collection contains 3 items where only a maximum size of 2 is supported.");
+                .AssertContent("The publish collection contains 3 items where only a maximum size of 2 is supported.");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
@@ -202,7 +202,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "Xyz", Name = "Widget", Price = 9.95m }), "test", beforeEvent: (_, __) => throw new BusinessException("Nope, nope!")))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("Nope, nope!");
+                .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
@@ -225,7 +225,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => throw new BusinessException("Nope, nope!")))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("Nope, nope!");
+                .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
@@ -261,7 +261,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishWithResultAsync<Product>(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), "test"))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
+                .AssertContent("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
@@ -350,7 +350,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("The publish collection contains 3 items where only a maximum size of 2 is supported.");
+                .AssertContent("The publish collection contains 3 items where only a maximum size of 2 is supported.");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
@@ -366,7 +366,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishWithResultAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "Xyz", Name = "Widget", Price = 9.95m }), "test", beforeEvent: (_, __) => Task.FromResult(Result.Fail("Nope, nope!"))))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("Nope, nope!");
+                .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);
@@ -389,7 +389,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => Task.FromResult(Result.Fail("Nope, nope!"))))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("Nope, nope!");
+                .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
             Assert.AreEqual(0, qn.Length);

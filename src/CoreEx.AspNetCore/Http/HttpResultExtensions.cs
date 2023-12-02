@@ -15,7 +15,6 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
 using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.AspNetCore.Http
@@ -37,7 +36,7 @@ namespace CoreEx.AspNetCore.Http
         /// <param name="requestOptions">The <see cref="HttpRequestOptions"/>.</param>
         /// <returns>The <see cref="HttpRequest"/> to support fluent-style method-chaining.</returns>
         /// <remarks>This will automatically invoke <see cref="ApplyETag(HttpRequest, string)"/> where there is an <see cref="HttpRequestOptions.ETag"/> value.</remarks>
-        public static HttpRequest ApplyRequestOptions(this HttpRequest httpRequest, HttpRequestOptions requestOptions)
+        public static HttpRequest ApplyRequestOptions(this HttpRequest httpRequest, HttpRequestOptions? requestOptions)
         {
             if (httpRequest == null)
                 throw new ArgumentNullException(nameof(httpRequest));

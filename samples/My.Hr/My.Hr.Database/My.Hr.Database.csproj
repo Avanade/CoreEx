@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DbEx.SqlServer" Version="2.3.6" />
+    <PackageReference Include="DbEx.SqlServer" Version="2.3.12" />
     <PackageReference Include="Microsoft.Tye.Extensions.Configuration" Version="0.10.0-alpha.21420.1" />
   </ItemGroup>
 

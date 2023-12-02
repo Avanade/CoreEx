@@ -33,6 +33,10 @@ Package | Status | Source & documentation
 `CoreEx.Newtonsoft` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
 `CoreEx.Solace` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Solace.svg)](https://badge.fury.io/nu/CoreEx.Solace) | [Link](./src/CoreEx.Solace)
 `CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx.Validation)
+-- | -- | --
+`CoreEx.UnitTesting` | [![NuGet version](https://badge.fury.io/nu/CoreEx.UnitTesting.svg)](https://badge.fury.io/nu/CoreEx.UnitTesting) | [Link](./src/CoreEx.UnitTesting)
+`CoreEx.UnitTesting.NUnit` | [![NuGet version](https://badge.fury.io/nu/CoreEx.UnitTesting.NUnit.svg)](https://badge.fury.io/nu/CoreEx.UnitTesting.NUnit) | [Link](./src/CoreEx.UnitTesting)
+
 
 The included [change log](CHANGELOG.md) details all key changes per published version.
 

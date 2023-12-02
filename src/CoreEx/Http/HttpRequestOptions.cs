@@ -9,7 +9,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Web;
-using YamlDotNet.Core.Tokens;
 
 namespace CoreEx.Http
 {
@@ -95,7 +94,7 @@ namespace CoreEx.Http
         /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
         public HttpRequestOptions Include(params string[] fields)
         {
-            (IncludeFields ??= new List<string>()).AddRange(fields);
+            (IncludeFields ??= []).AddRange(fields);
             return this;
         }
 
@@ -106,7 +105,7 @@ namespace CoreEx.Http
         /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
         public HttpRequestOptions Exclude(params string[] fields)
         {
-            (ExcludeFields ??= new List<string>()).AddRange(fields);
+            (ExcludeFields ??= []).AddRange(fields);
             return this;
         }
 

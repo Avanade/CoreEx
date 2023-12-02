@@ -17,7 +17,7 @@ namespace CoreEx.Validation
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     public class ValidationContext<TEntity> : IValidationContext, IValidationResult<TEntity>
     {
-        private readonly Dictionary<string, MessageItem> _propertyMessages = new();
+        private readonly Dictionary<string, MessageItem> _propertyMessages = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationContext{TEntity}"/> class.
@@ -102,7 +102,7 @@ namespace CoreEx.Validation
         {
             if (Messages == null)
             {
-                Messages = new MessageItemCollection();
+                Messages = [];
                 Messages.CollectionChanged += Messages_CollectionChanged;
             }
 
@@ -269,7 +269,7 @@ namespace CoreEx.Validation
         public MessageItem AddError<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, LText format, params object[] values)
         {
             var pe = CreatePropertyExpression(propertyExpression);
-            return AddMessage(pe.Name, pe.JsonName, MessageType.Error, format, GetTextAndValue(pe).Concat(values).ToArray());
+            return AddMessage(pe.Name, pe.JsonName, MessageType.Error, format, [.. GetTextAndValue(pe), .. values]);
         }
 
         /// <summary>
@@ -298,7 +298,7 @@ namespace CoreEx.Validation
         public MessageItem AddWarning<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, LText format, params object[] values)
         {
             var pe = CreatePropertyExpression(propertyExpression);
-            return AddMessage(pe.Name, pe.JsonName, MessageType.Warning, format, GetTextAndValue(pe).Concat(values).ToArray());
+            return AddMessage(pe.Name, pe.JsonName, MessageType.Warning, format, [.. GetTextAndValue(pe), .. values]);
         }
 
         /// <summary>
@@ -327,7 +327,7 @@ namespace CoreEx.Validation
         public MessageItem AddInfo<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, LText format, params object[] values)
         {
             var pe = CreatePropertyExpression(propertyExpression);
-            return AddMessage(pe.Name, pe.JsonName, MessageType.Info, format, GetTextAndValue(pe).Concat(values).ToArray());
+            return AddMessage(pe.Name, pe.JsonName, MessageType.Info, format, [.. GetTextAndValue(pe), .. values]);
         }
 
         /// <summary>
@@ -468,7 +468,7 @@ namespace CoreEx.Validation
             if (!predicate((TProperty)tv[1]))
                 return false;
 
-            AddMessage(pe.Name, pe.JsonName, MessageType.Error, format, tv.Concat(values).ToArray());
+            AddMessage(pe.Name, pe.JsonName, MessageType.Error, format, [.. tv, .. values]);
             return true;
         }
 
@@ -492,7 +492,7 @@ namespace CoreEx.Validation
             if (!when)
                 return false;
 
-            AddMessage(pe.Name, pe.JsonName, MessageType.Error, format, tv.Concat(values).ToArray());
+            AddMessage(pe.Name, pe.JsonName, MessageType.Error, format, [.. tv, .. values]);
             return true;
         }
 

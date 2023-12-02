@@ -1,10 +1,10 @@
-﻿using Azure.Storage.Blobs.Models;
-using CoreEx.Results;
+﻿using CoreEx.Results;
 using CoreEx.TestFunction;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using UnitTestEx;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.Framework.Results
@@ -93,6 +93,7 @@ namespace CoreEx.Test.Framework.Results
 
             using var test = FunctionTester.Create<Startup>();
             var r = test.ReplaceHttpClientFactory(mcf)
+                .UseJsonSerializer(new CoreEx.Text.Json.JsonSerializer()) // Required as the Result type needs to be deserialized using CoreEx.
                 .Type<BackendHttpClient>()
                 .Run(hc => Result.GoFromAsync<Person>(async () => await hc.GetAsync<Person>("test")))
                 .AssertSuccess();
