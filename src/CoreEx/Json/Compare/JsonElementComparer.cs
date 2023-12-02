@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,7 +34,7 @@ namespace CoreEx.Json.Compare
         /// <param name="pathsToIgnore">Optional list of paths to exclude from the comparison. Qualified paths, that include indexing, are also supported.</param>
         /// <returns>The <see cref="JsonElementComparerResult"/>.</returns>
         public JsonElementComparerResult CompareValue<TLeft, TRight>(TLeft left, TRight right, params string[] pathsToIgnore)
-            =>  Compare(SerializeValue(Options.JsonSerializer, left, nameof(left)), SerializeValue(Options.JsonSerializer, right, nameof(right)), pathsToIgnore);
+            =>  Compare(SerializeValue(Options.JsonSerializer ??= JsonSerializer.Default, left, nameof(left)), SerializeValue(Options.JsonSerializer, right, nameof(right)), pathsToIgnore);
 
         /// <summary>
         /// Serialize the value to JSON.
@@ -192,10 +193,15 @@ namespace CoreEx.Json.Compare
                     {
                         state.Compare(l.Name, () =>
                         {
-                            if (right.TryGetProperty(l.Name, out var r))
+                            if (TryGetProperty(right, l.Name, out var r))
                                 Compare(l.Value, r, state);
                             else
+                            {
+                                if (l.Value.ValueKind == JsonValueKind.Null && Options.NullComparison == JsonElementComparison.Semantic)
+                                    return;
+
                                 state.AddDifference(left, right, JsonElementDifferenceType.RightNone);
+                            }
                         });
 
                         if (state.MaxDifferencesFound)
@@ -206,8 +212,13 @@ namespace CoreEx.Json.Compare
                     {
                         state.Compare(r.Name, () =>
                         {
-                            if (!left.TryGetProperty(r.Name, out _))
+                            if (!TryGetProperty(left, r.Name, out var _))
+                            {
+                                if (r.Value.ValueKind == JsonValueKind.Null && Options.NullComparison == JsonElementComparison.Semantic)
+                                    return;
+
                                 state.AddDifference(left, right, JsonElementDifferenceType.LeftNone);
+                            }
                         });
 
                         if (state.MaxDifferencesFound)
@@ -243,6 +254,12 @@ namespace CoreEx.Json.Compare
                     throw new InvalidOperationException($"Unexpected JsonValueKind {left.ValueKind}.");
             }
         }
+
+        /// <summary>
+        /// Performs the configured TryGetProperty; either exact or semantic.
+        /// </summary>
+        private bool TryGetProperty(JsonElement json, string propertyName, out JsonElement value)
+            => Options.PropertyNameComparer is null ? json.TryGetProperty(propertyName, out value) : json.TryGetProperty(propertyName, Options.PropertyNameComparer, out value);
 
         /// <inheritdoc/>
         public bool Equals(string? x, string? y)

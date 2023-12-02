@@ -2,6 +2,19 @@
 
 Represents the **NuGet** versions.
 
+## v3.6.0
+- *Enhancement:* `UnitTestEx` as of `v4.0.0` removed all dependencies to `CoreEx`, breaking a long-time circular reference challenge.  Added extension capabilities to enable existing behaviors. These extensions have been added within `CoreEx.UnitTesting` and `CoreEx.UnitTesting.NUnit` respectively; using `UnitTestEx` namespace to minimize breaking changes and clearly separate. The following will need to be corrected where applicable:
+  - Add `UnitTestEx` namespace where missing to enable new extension methods.  
+  - Replace existing `TestSetUp.Default.ExpectedEventsEnabled = true` with `TestSetUp.Default.EnableExpectedEvents()`; changed to a method as extension properties are not currently supported in C#.
+  - Replace existing `TestSetUp.Default.ExpectNoEvents = true` with `TestSetUp.Default.ExpectNoEvents()`; changed to a method as extension properties are not currently supported in C#.
+  - The existing `ApiTester.Agent` property has had to be made an extension method as follows:
+	- Before: `test.Agent<ContactAgent, Contact>().Expect...`
+	- After: `test.Agent().With<ContactAgent, Contact>().Expect...`
+  - The `ValidationTester` has _not_ been ported; but has been implemented using extension methods on the `GenericTester` as follows:
+	- Before: `ValidationTester.Create().ExpectErrors("").Run<XxxValidator, Xxx>(x);`
+	- After: `GenericTester.Create().ExpectErrors("").Validation().With<XxxValidator, Xxx>(x);`
+- *Enhancement:* Added `net8.0` support.
+
 ## v3.5.0
 - *Enhancement:* Update the `JsonFilterer` classes to support qualified (indexed) property names; all paths are standardized with the `$` prefix internally.
 - *Enhancement:* Added `JsonNode` extension methods `ApplyInclude` and `ApplyExclude` to simplify corresponding `JsonFilterer` usage.

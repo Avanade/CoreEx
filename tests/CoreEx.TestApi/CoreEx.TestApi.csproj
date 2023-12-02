@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\CoreEx.TestFunction\CoreEx.TestFunction.csproj" />
   </ItemGroup>

@@ -23,7 +23,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage<Product>(null!);
+            var message = test.CreateServiceBusMessageFromValue<Product>(null!);
 
             test.ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
@@ -38,7 +38,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage("<xml/>");
+            var message = test.CreateServiceBusMessageFromValue("<xml/>");
 
             test.ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
@@ -56,7 +56,7 @@ namespace CoreEx.Test.TestFunction
                 .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
 
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage("<xml/>");
+            var message = test.CreateServiceBusMessageFromValue("<xml/>");
 
             test.ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
@@ -71,7 +71,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new { id = "A", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", price = 1.99m });
 
             test.ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
@@ -89,7 +89,7 @@ namespace CoreEx.Test.TestFunction
                 .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
 
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new { id = "A", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", price = 1.99m });
 
             test.ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(f => f.RunAsync(message, actionsMock.Object))
@@ -108,7 +108,7 @@ namespace CoreEx.Test.TestFunction
 
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
@@ -128,7 +128,7 @@ namespace CoreEx.Test.TestFunction
 
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
@@ -149,7 +149,7 @@ namespace CoreEx.Test.TestFunction
 
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()
@@ -173,7 +173,7 @@ namespace CoreEx.Test.TestFunction
                 .ReplaceScoped<IEventSerializer, CoreEx.Newtonsoft.Json.EventDataSerializer>();
 
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             test.ReplaceHttpClientFactory(mcf)
                 .ServiceBusTrigger<ServiceBusTriggerFunction>()

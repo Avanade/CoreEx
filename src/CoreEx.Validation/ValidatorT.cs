@@ -216,7 +216,7 @@ namespace CoreEx.Validation
         {
             var p = PropertyExpression.Create(propertyExpression);
             throw new ValidationException(MessageItem.CreateErrorMessage(ValidationArgs.DefaultUseJsonNames ? p.JsonName : p.Name,
-                string.Format(System.Globalization.CultureInfo.CurrentCulture, format, new object[] { p.Text, propertyValue! }.Concat(values).ToArray())));
+                string.Format(System.Globalization.CultureInfo.CurrentCulture, format, [p.Text, propertyValue!, .. values])));
         }
     }
 }

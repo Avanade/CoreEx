@@ -14,6 +14,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
+using UnitTestEx;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
@@ -66,6 +67,7 @@ namespace CoreEx.Test.HealthChecks
             mcf.CreateClient("Test", "https://testing/").Request(HttpMethod.Head, "health").Respond.With(HttpStatusCode.ServiceUnavailable);
 
             using var test = FunctionTester.Create<Startup>()
+                .UseJsonSerializer(new CoreEx.Text.Json.JsonSerializer()) // Required as the Result type needs to be deserialized using CoreEx.
                 .ReplaceHttpClientFactory(mcf)
                 .ConfigureServices(sc => sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/")));
 
@@ -92,6 +94,7 @@ namespace CoreEx.Test.HealthChecks
                 .Respond.With(string.Empty, response: x => throw new Exception("Testing service is down"));
 
             using var test = FunctionTester.Create<Startup>()
+                .UseJsonSerializer(new CoreEx.Text.Json.JsonSerializer()) // Required as the Result type needs to be deserialized using CoreEx.
                 .ReplaceHttpClientFactory(mcf)
                 .ConfigureServices(sc => sc.AddHttpClient<TestHttpClient>("Test", c => c.BaseAddress = new Uri("https://testing/")));
 

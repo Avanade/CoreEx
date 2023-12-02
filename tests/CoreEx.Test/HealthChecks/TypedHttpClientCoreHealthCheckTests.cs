@@ -9,6 +9,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using NUnit.Framework;
+using UnitTestEx;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
@@ -24,7 +25,7 @@ namespace CoreEx.Test.HealthChecks
             var mcf = MockHttpClientFactory.Create();
             mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Head, string.Empty).Respond.With(statusCode: HttpStatusCode.OK);
             using var test = FunctionTester.Create<Startup>()
-                 .ReplaceHttpClientFactory(mcf);
+                .ReplaceHttpClientFactory(mcf);
             var mock = new Mock<IHealthCheck>();
 
             var context = new HealthCheckContext()
@@ -47,7 +48,8 @@ namespace CoreEx.Test.HealthChecks
             var mcf = MockHttpClientFactory.Create();
             mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Head, string.Empty).Respond.With(statusCode: HttpStatusCode.ServiceUnavailable);
             using var test = FunctionTester.Create<Startup>()
-                 .ReplaceHttpClientFactory(mcf);
+                .UseJsonSerializer(new CoreEx.Text.Json.JsonSerializer()) // Required as the Result type needs to be deserialized using CoreEx.
+                .ReplaceHttpClientFactory(mcf);
             var mock = new Mock<IHealthCheck>();
 
             var context = new HealthCheckContext()
@@ -68,10 +70,10 @@ namespace CoreEx.Test.HealthChecks
         {
             // Arrange
             var mcf = MockHttpClientFactory.Create();
-            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Head, String.Empty)
-            .Respond.With(string.Empty, response: x => throw new Exception("Sample API is down"));
+            mcf.CreateClient("Backend", "https://backend/").Request(HttpMethod.Head, string.Empty).Respond.With(string.Empty, response: x => throw new Exception("Sample API is down"));
             using var test = FunctionTester.Create<Startup>()
-                 .ReplaceHttpClientFactory(mcf);
+                .UseJsonSerializer(new CoreEx.Text.Json.JsonSerializer()) // Required as the Result type needs to be deserialized using CoreEx.
+                .ReplaceHttpClientFactory(mcf);
             var mock = new Mock<IHealthCheck>();
 
             var context = new HealthCheckContext()

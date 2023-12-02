@@ -32,7 +32,6 @@ namespace CoreEx.Validation
         /// <returns>The corresponding <see cref="Exception"/> (typically a <see cref="ValidationException"/>) where <see cref="HasErrors"/>; otherwise, <c>null</c>.</returns>
         Exception? ToException();
 
-
         /// <summary>
         /// Throws an <see cref="Exception"/> (typically a <see cref="ValidationException"/>) where <see cref="HasErrors"/>.
         /// </summary>

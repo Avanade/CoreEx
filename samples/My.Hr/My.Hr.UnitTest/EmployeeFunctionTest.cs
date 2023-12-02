@@ -53,7 +53,7 @@ namespace My.Hr.UnitTest
             test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{1.ToGuid()}"), 1.ToGuid()))
                 .AssertOK()
-                .Assert(new Employee
+                .AssertValue(new Employee
                 {
                     Id = 1.ToGuid(),
                     Email = "w.jones@org.com",
@@ -177,7 +177,7 @@ namespace My.Hr.UnitTest
             var v = test.HttpTrigger<EmployeeFunction>()
                 .Run(c => c.CreateAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "api/employees", e)))
                 .AssertCreated()
-                .Assert(e, "Id", "ETag")
+                .AssertValue(e, "Id", "ETag")
                 .AssertLocationHeader<Employee>(v => new Uri($"api/employees/{v!.Id}", UriKind.Relative))
                 .GetValue<Employee>();
 
@@ -185,7 +185,7 @@ namespace My.Hr.UnitTest
             test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{v!.Id}"), v.Id))
                 .AssertOK()
-                .Assert(v);
+                .AssertValue(v);
         }
 
         [Test]
@@ -247,14 +247,14 @@ namespace My.Hr.UnitTest
             v = test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.UpdateAsync(test.CreateJsonHttpRequest(HttpMethod.Put, $"api/employees/{v.Id}", v), v.Id))
                 .AssertOK()
-                .Assert(v, "ETag")
+                .AssertValue(v, "ETag")
                 .GetValue<Employee>()!;
 
             // Get again and check all.
             test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{v.Id}"), v.Id))
                 .AssertOK()
-                .Assert(v);
+                .AssertValue(v);
         }
 
         [Test]
@@ -327,7 +327,7 @@ namespace My.Hr.UnitTest
             // Patch it with errant etag.
             v.FirstName += "X";
 
-            var req = test.CreateHttpRequest(HttpMethod.Patch, $"api/employees/{v.Id}", $"{{ \"firstName\": \"{v.FirstName}\" }}", new CoreEx.Http.HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" }, HttpConsts.MergePatchMediaTypeName);
+            var req = test.CreateHttpRequest(HttpMethod.Patch, $"api/employees/{v.Id}", $"{{ \"firstName\": \"{v.FirstName}\" }}", HttpConsts.MergePatchMediaTypeName, new CoreEx.Http.HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" });
             test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.PatchAsync(req, v.Id))
                 .AssertPreconditionFailed();
@@ -347,18 +347,18 @@ namespace My.Hr.UnitTest
             // Patch it with errant etag.
             v.FirstName += "X";
 
-            var req = test.CreateHttpRequest(HttpMethod.Patch, $"api/employees/{v.Id}", $"{{ \"firstName\": \"{v.FirstName}\" }}", new CoreEx.Http.HttpRequestOptions { ETag = v.ETag }, HttpConsts.MergePatchMediaTypeName);
+            var req = test.CreateHttpRequest(HttpMethod.Patch, $"api/employees/{v.Id}", $"{{ \"firstName\": \"{v.FirstName}\" }}", HttpConsts.MergePatchMediaTypeName, new CoreEx.Http.HttpRequestOptions { ETag = v.ETag });
             v = test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.PatchAsync(req, v.Id))
                 .AssertOK()
-                .Assert(v, "ETag")
+                .AssertValue(v, "ETag")
                 .GetValue<Employee>()!;
 
             // Get again and check all.
             test.HttpTrigger<EmployeeFunction>()
                 .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{v.Id}"), v.Id))
                 .AssertOK()
-                .Assert(v);
+                .AssertValue(v);
         }
     }
 }

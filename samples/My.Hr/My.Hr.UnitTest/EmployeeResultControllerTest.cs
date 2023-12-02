@@ -56,7 +56,7 @@ namespace My.Hr.UnitTest
             test.Controller<EmployeeResultController>()
                 .Run(c => c.GetAsync(1.ToGuid()))
                 .AssertOK()
-                .Assert(new Employee
+                .AssertValue(new Employee
                 {
                     Id = 1.ToGuid(),
                     Email = "w.jones@org.com",
@@ -182,7 +182,7 @@ namespace My.Hr.UnitTest
             var v = test.Controller<EmployeeResultController>()
                 .Run(c => c.CreateAsync(null!), e)
                 .AssertCreated()
-                .Assert(e, "Id", "ETag")
+                .AssertValue(e, "Id", "ETag")
                 .AssertLocationHeader<Employee>(v => new Uri($"api/employees/{v!.Id}", UriKind.Relative))
                 .GetValue<Employee>();
 
@@ -190,7 +190,7 @@ namespace My.Hr.UnitTest
             test.Controller<EmployeeResultController>()
                 .Run(c => c.GetAsync(v!.Id))
                 .AssertOK()
-                .Assert(v);
+                .AssertValue(v);
         }
 
         [Test]
@@ -252,14 +252,14 @@ namespace My.Hr.UnitTest
             v = test.Controller<EmployeeResultController>()
                 .Run(c => c.UpdateAsync(v.Id, null!), v)
                 .AssertOK()
-                .Assert(v, "ETag")
+                .AssertValue(v, "ETag")
                 .GetValue<Employee>()!;
 
             // Get again and check all.
             test.Controller<EmployeeResultController>()
                 .Run(c => c.GetAsync(v.Id))
                 .AssertOK()
-                .Assert(v);
+                .AssertValue(v);
         }
 
         [Test]
@@ -333,7 +333,7 @@ namespace My.Hr.UnitTest
             v.FirstName += "X";
 
             test.Controller<EmployeeResultController>()
-                .RunContent(c => c.PatchAsync(v.Id, null!), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" }, HttpConsts.MergePatchMediaTypeName)
+                .RunContent(c => c.PatchAsync(v.Id, null!), $"{{ \"firstName\": \"{v.FirstName}\" }}", HttpConsts.MergePatchMediaTypeName, new HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" })
                 .AssertPreconditionFailed();
         }
 
@@ -352,16 +352,16 @@ namespace My.Hr.UnitTest
             v.FirstName += "X";
 
             v = test.Controller<EmployeeResultController>()
-                .RunContent(c => c.PatchAsync(v.Id, null!), $"{{ \"firstName\": \"{v.FirstName}\" }}", new HttpRequestOptions { ETag = v.ETag }, HttpConsts.MergePatchMediaTypeName)
+                .RunContent(c => c.PatchAsync(v.Id, null!), $"{{ \"firstName\": \"{v.FirstName}\" }}", HttpConsts.MergePatchMediaTypeName, new HttpRequestOptions { ETag = v.ETag })
                 .AssertOK()
-                .Assert(v, "ETag")
+                .AssertValue(v, "ETag")
                 .GetValue<Employee>()!;
 
             // Get again and check all.
             test.Controller<EmployeeResultController>()
                 .Run(c => c.GetAsync(v.Id))
                 .AssertOK()
-                .Assert(v);
+                .AssertValue(v);
         }
 
         [Test]

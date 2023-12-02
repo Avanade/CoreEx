@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -42,7 +43,7 @@ namespace CoreEx.Abstractions.Reflection
 
             var pe = Expression.Parameter(typeof(TEntity), "x");
 
-            foreach (var p in TypeReflector.GetProperties(typeof(TEntity)))
+            foreach (var p in TypeReflector.GetProperties(typeof(TEntity), Args.PropertyBindingFlags))
             {
                 var lex = Expression.Lambda(Expression.Property(pe, p), pe);
                 var pr = (IPropertyReflector)Activator.CreateInstance(typeof(PropertyReflector<,>).MakeGenericType(typeof(TEntity), p.PropertyType), Args, lex)!;
@@ -73,7 +74,7 @@ namespace CoreEx.Abstractions.Reflection
         public Dictionary<string, object?> Data { get => _data.Value; }
 
         /// <summary>
-        /// Adds a <see cref="PropertyReflector{TEntity, TProperty}"/> to the mapper.
+        /// Adds a <see cref="PropertyReflector{TEntity, TProperty}"/> to the reflector.
         /// </summary>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the entity property.</param>
@@ -111,10 +112,13 @@ namespace CoreEx.Abstractions.Reflection
         }
 
         /// <inheritdoc/>
+        public bool TryGetProperty(string name, [NotNullWhen(true)] out IPropertyReflector? property) => _properties.TryGetValue(name, out property);
+
+        /// <inheritdoc/>
         public IPropertyReflector GetProperty(string name)
         {
             _properties.TryGetValue(name, out var value);
-            return value!;
+            return value ?? throw new ArgumentException($"Property '{name}' not found for type '{Type.Name}'.", nameof(name));
         }
 
         /// <inheritdoc/>

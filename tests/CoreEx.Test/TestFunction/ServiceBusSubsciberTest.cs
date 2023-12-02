@@ -2,17 +2,10 @@
 using CoreEx.Events;
 using CoreEx.Results;
 using CoreEx.TestFunction;
-using CoreEx.TestFunction.Functions;
-using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 
@@ -26,7 +19,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = false;
@@ -42,7 +35,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = false;
@@ -58,7 +51,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -77,7 +70,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -96,7 +89,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -120,7 +113,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -144,7 +137,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -168,7 +161,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -193,7 +186,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -217,7 +210,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -237,7 +230,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -256,7 +249,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -272,7 +265,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.AbandonOnTransient = true;
@@ -288,7 +281,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.Handle;
@@ -304,7 +297,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.None;
@@ -330,7 +323,7 @@ namespace CoreEx.Test.TestFunction
         {
             using var test = FunctionTester.Create<Startup>();
             var actions = test.CreateServiceBusMessageActions();
-            var message = test.CreateServiceBusMessage(new { id = "A", name = "B", price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
             sbs.UnhandledHandling = Events.Subscribing.ErrorHandling.CompleteAsSilent;

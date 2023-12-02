@@ -9,18 +9,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using CoreEx.TestApi.Validation;
 
 namespace CoreEx.TestApi
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
-
-        public IConfiguration Configuration { get; }
-
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -31,6 +25,7 @@ namespace CoreEx.TestApi
                 .AddJsonSerializer()
                 .AddEventDataSerializer()
                 .AddNullEventPublisher()
+                .AddValidationTextProvider()
                 .AddScoped<WebApi, WebApi>();
 
             // Register the typed backend http client.
@@ -43,7 +38,8 @@ namespace CoreEx.TestApi
             // Register the underlying function services.
             services
                 .AddAutoMapper(typeof(ProductService).Assembly)
-                .AddScoped<ProductService>();
+                .AddScoped<ProductService>()
+                .AddScoped<ProductValidator>();
 
             services.AddControllers();
         }
