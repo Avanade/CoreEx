@@ -1,18 +1,17 @@
-﻿using CoreEx.Entities;
+﻿using CoreEx.AspNetCore.Http;
+using CoreEx.AspNetCore.WebApis;
+using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.Results;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
-using CoreEx.AspNetCore.WebApis;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.NUnit;
@@ -41,7 +40,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(Result.Ok("it-worked"))))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert("it-worked");
+                .AssertValue("it-worked");
         }
 
         [Test]
@@ -116,7 +115,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(Result.Ok(new PersonCollection())), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new PersonCollection());
+                .AssertValue(new PersonCollection());
         }
 
         [Test]
@@ -139,7 +138,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(Result.Ok(new PersonCollectionResult())), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(Array.Empty<object?>());
+                .AssertValue(Array.Empty<object?>());
         }
 
         [Test]
@@ -150,7 +149,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(Result.Ok(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } })), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
+                .AssertValue(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
         }
 
         [Test]
@@ -161,7 +160,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(Result.Ok(new PersonCollectionResult { Paging = new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20), Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } })), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
+                .AssertValue(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
 
             Assert.AreNotEqual(new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20), ((ValueContentResult)r.Result).PagingResult);
         }
@@ -174,13 +173,13 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(Result.Ok(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } })), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
+                .AssertValue(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
 
             var r2 = test.Type<WebApi>()
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=oranges"), r => Task.FromResult(Result.Ok(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } })), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
+                .AssertValue(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
 
             Assert.AreNotEqual(((ValueContentResult)r.Result).ETag, ((ValueContentResult)r2.Result).ETag);
         }
@@ -193,7 +192,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples&$fields=name"), r => Task.FromResult(Result.Ok(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } })), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new PersonCollection { new Person { Name = "Simon" } });
+                .AssertValue(new PersonCollection { new Person { Name = "Simon" } });
         }
 
         [Test]
@@ -204,7 +203,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples&$exclude=name"), r => Task.FromResult(Result.Ok(new PersonCollectionResult { Items = new PersonCollection { new Person { Id = 1, Name = "Simon" } } })), alternateStatusCode: HttpStatusCode.NoContent))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new PersonCollection { new Person { Id = 1 } });
+                .AssertValue(new PersonCollection { new Person { Id = 1 } });
         }
 
         [Test]
@@ -227,7 +226,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PostWithResultAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), r => Task.FromResult(Result.Ok(new Product { Id = "A", Name = "B", Price = 1.99m }))))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new Product { Id = "A", Name = "B", Price = 1.99m });
+                .AssertValue(new Product { Id = "A", Name = "B", Price = 1.99m });
         }
 
         [Test]
@@ -250,7 +249,7 @@ namespace CoreEx.Test.Framework.WebApis
                         r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, r.Value); return Task.FromResult(Result.Ok(new Product { Id = "Y", Name = "Z", Price = 3.01m })); }))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new Product { Id = "Y", Name = "Z", Price = 3.01m });
+                .AssertValue(new Product { Id = "Y", Name = "Z", Price = 3.01m });
         }
 
         [Test]
@@ -273,7 +272,7 @@ namespace CoreEx.Test.Framework.WebApis
                         r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, r.Value); return Task.FromResult(Result.Ok(new Product { Id = "Y", Name = "Z", Price = 3.01m })); }))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new Product { Id = "Y", Name = "Z", Price = 3.01m });
+                .AssertValue(new Product { Id = "Y", Name = "Z", Price = 3.01m });
         }
 
         [Test]
@@ -287,7 +286,7 @@ namespace CoreEx.Test.Framework.WebApis
                         simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("An 'If-Match' header is required for an HTTP PUT where the underlying entity supports concurrency (ETag).");
+                .AssertContent("An 'If-Match' header is required for an HTTP PUT where the underlying entity supports concurrency (ETag).");
         }
 
         [Test]
@@ -301,7 +300,7 @@ namespace CoreEx.Test.Framework.WebApis
                         simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("A concurrency error occurred; please refresh the data and try again.");
+                .AssertContent("A concurrency error occurred; please refresh the data and try again.");
         }
 
         [Test]
@@ -315,7 +314,7 @@ namespace CoreEx.Test.Framework.WebApis
                         simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new Product { Id = "Y", Name = "Z", Price = 3.99m });
+                .AssertValue(new Product { Id = "Y", Name = "Z", Price = 3.99m });
         }
 
         [Test]
@@ -357,7 +356,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(null!)), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .Assert(HttpStatusCode.UnsupportedMediaType)
-                .Assert("Unsupported 'Content-Type' for a PATCH; only JSON Merge Patch is supported using either: 'application/merge-patch+json' or 'application/json'.");
+                .AssertContent("Unsupported 'Content-Type' for a PATCH; only JSON Merge Patch is supported using either: 'application/merge-patch+json' or 'application/json'.");
         }
 
         [Test]
@@ -369,7 +368,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<PersonCollection?>.Ok(null!)), put: _ => Task.FromResult(Result<PersonCollection>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
+                .AssertContent("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
         }
 
         [Test]
@@ -381,7 +380,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<PersonCollection?>.Ok(null!)), put: _ => Task.FromResult(Result<PersonCollection>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
-                .Assert("'<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
+                .AssertContent("'<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
         }
 
         [Test]
@@ -393,7 +392,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person())), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
+                .AssertContent("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
         }
 
         [Test]
@@ -427,7 +426,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { ETag = "bbb" })), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("A concurrency error occurred; please refresh the data and try again.");
+                .AssertContent("A concurrency error occurred; please refresh the data and try again.");
         }
 
         [Test]
@@ -439,7 +438,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { ETag = "bbb" })), put: _ => Task.FromResult(Result<Person>.Ok(null!))))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("A concurrency error occurred; please refresh the data and try again.");
+                .AssertContent("A concurrency error occurred; please refresh the data and try again.");
         }
 
         [Test]
@@ -451,7 +450,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { ETag = "aaa" })), put: _ => throw new ConcurrencyException()))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("A concurrency error occurred; please refresh the data and try again.");
+                .AssertContent("A concurrency error occurred; please refresh the data and try again.");
         }
 
         [Test]
@@ -487,7 +486,7 @@ namespace CoreEx.Test.Framework.WebApis
                     put: p => { ObjectComparer.Assert(new Person { Name = "bobby", ETag = "aaa" }, p.Value); p.Value!.ETag = "bbb"; return Task.FromResult(Result.Ok(p.Value!)); }))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new Person { Name = "bobby", ETag = "bbb" })
+                .AssertValue(new Person { Name = "bobby", ETag = "bbb" })
                 .AssertETagHeader("bbb");
         }
 
@@ -500,7 +499,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result<Person>.Ok(null!)), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
+                .AssertContent("An 'If-Match' header is required for an HTTP PATCH where the underlying entity supports concurrency (ETag).");
         }
 
         [Test]
@@ -512,7 +511,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result<Person>.Ok(null!)), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertPreconditionFailed()
-                .Assert("A concurrency error occurred; please refresh the data and try again.");
+                .AssertContent("A concurrency error occurred; please refresh the data and try again.");
         }
 
         [Test]
@@ -524,7 +523,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchWithResultAsync(hr, get: _ => Task.FromResult(Result<Person?>.Ok(new Person { Id = 13, Name = "Deano" })), put: _ => Task.FromResult(Result.Ok(new Person { Id = 13, Name = "Gazza" })), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .Assert(new Person { Id = 13, Name = "Gazza" });
+                .AssertValue(new Person { Id = 13, Name = "Gazza" });
         }
 
         [Test]
@@ -537,7 +536,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         private static HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
-            => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, new HttpRequestOptions { ETag = etag }, HttpConsts.MergePatchMediaTypeName);
+            => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, HttpConsts.MergePatchMediaTypeName, hr => hr.ApplyRequestOptions(new HttpRequestOptions { ETag = etag }));
 
         private class Person : IIdentifier<int>, IETag
         {

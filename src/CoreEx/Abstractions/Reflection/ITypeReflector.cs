@@ -3,6 +3,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CoreEx.Abstractions.Reflection
 {
@@ -46,6 +47,14 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         /// <returns>A read-only <see cref="IPropertyReflector"/> collection.</returns>
         IReadOnlyCollection<IPropertyReflector> GetProperties();
+
+        /// <summary>
+        /// Gets the <see cref="IPropertyReflector"/> for the specified property name where it exists.
+        /// </summary>
+        /// <param name="name">The property name.</param>
+        /// <param name="property">The <see cref="IPropertyReflector"/> where property exists; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> where the property exists; otherwise, <c>false</c>.</returns>
+        bool TryGetProperty(string name, [NotNullWhen(true)] out IPropertyReflector? property);
 
         /// <summary>
         /// Gets the <see cref="IPropertyReflector"/> for the specified property name.

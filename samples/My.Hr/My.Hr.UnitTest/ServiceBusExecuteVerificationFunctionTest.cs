@@ -19,7 +19,7 @@ namespace My.Hr.UnitTest
             var test = FunctionTester.Create<Startup>();
             var imp = new InMemoryPublisher(test.Logger);
             var evr = new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" };
-            var sbm = test.CreateServiceBusMessage(evr);
+            var sbm = test.CreateServiceBusMessageFromValue(evr);
             var sba = new Mock<ServiceBusMessageActions>();
 
             var mcf = MockHttpClientFactory.Create();

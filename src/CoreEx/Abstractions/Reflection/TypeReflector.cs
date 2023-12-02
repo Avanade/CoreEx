@@ -22,8 +22,8 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns>The corresponding <see cref="PropertyInfo"/> <see cref="Array"/>.</returns>
         /// <remarks>The default <paramref name="bindingFlags"/> where not overridden are: <see cref="BindingFlags.Public"/>, <see cref="BindingFlags.GetProperty"/>, <see cref="BindingFlags.SetProperty"/> and <see cref="BindingFlags.Instance"/>.</remarks>
         public static PropertyInfo[] GetProperties(Type type, BindingFlags? bindingFlags = null)
-            => (type ?? throw new ArgumentNullException(nameof(type))).GetProperties(bindingFlags ?? BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance)
-                .Where(x => x.CanRead && x.CanWrite && x.GetIndexParameters().Length == 0).GroupBy(x => x.Name).Select(g => g.First()).ToArray();
+            => (type ?? throw new ArgumentNullException(nameof(type))).GetProperties(bindingFlags ?? (BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance))
+                .Where(x => x.GetIndexParameters().Length == 0).GroupBy(x => x.Name).Select(g => g.First()).ToArray();
 
         /// <summary>
         /// Gets the <see cref="PropertyInfo"/> for a <paramref name="type"/>.
@@ -38,8 +38,8 @@ namespace CoreEx.Abstractions.Reflection
             if (propertyName == null)
                 throw new ArgumentNullException(nameof(propertyName));
 
-            var pis = (type ?? throw new ArgumentNullException(nameof(type))).GetProperties(bindingFlags ?? BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance)
-                .Where(x => x.Name == propertyName && x.CanRead && x.CanWrite).ToArray();
+            var pis = (type ?? throw new ArgumentNullException(nameof(type))).GetProperties(bindingFlags ?? (BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance))
+                .Where(x => x.Name == propertyName).ToArray();
 
             return pis.Length switch
             {

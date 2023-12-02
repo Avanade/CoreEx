@@ -101,7 +101,7 @@ namespace CoreEx.Test.TestFunction
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertOK()
-                .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
+                .AssertValue(new Product { Id = "AX", Name = "BX", Price = 10.99m });
 
             mcf.VerifyAll();
         }
@@ -119,7 +119,7 @@ namespace CoreEx.Test.TestFunction
                 .HttpTrigger<HttpTriggerFunction>()
                 .Run(f => f.PutAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertOK()
-                .Assert(new Product { Id = "AX", Name = "BX", Price = 10.99m });
+                .AssertValue(new Product { Id = "AX", Name = "BX", Price = 10.99m });
 
             mcf.VerifyAll();
         }

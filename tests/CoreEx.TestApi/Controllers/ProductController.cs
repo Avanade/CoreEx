@@ -33,6 +33,7 @@ namespace CoreEx.TestApi.Controllers
         public Task<IActionResult> PutAsync(string id) => _webApi.PutAsync<Product, Product>(Request, r => _service.UpdateProductAsync(r.Value, id));
 
         [HttpDelete]
+        [Route("{id}")]
         public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteAsync(Request, _ => _service.DeleteProductAsync(id));
     }
 }

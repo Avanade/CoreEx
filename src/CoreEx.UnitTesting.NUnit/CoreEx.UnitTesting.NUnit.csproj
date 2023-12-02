@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+    <RootNamespace>UnitTestEx.NUnit</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx NUnit UnitTesting extras.</Title>
+    <Description>CoreEx NUnit UnitTesting (UnitTestEx) extras.</Description>
+    <PackageTags>coreex unittest unit-test test unittestex nunit</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="UnitTestEx.NUnit" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
+  </ItemGroup>
+
+</Project>

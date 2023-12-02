@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="6.11.0" />
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.0">
@@ -18,7 +18,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="UnitTestEx.NUnit" Version="3.0.0-preview1" />
+    <PackageReference Include="UnitTestEx.NUnit" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,9 +29,11 @@
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.OData\CoreEx.OData.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Solace\CoreEx.Solace.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />
+    <ProjectReference Include="..\CoreEx.TestApi\CoreEx.TestApi.csproj" />
     <ProjectReference Include="..\CoreEx.TestFunction\CoreEx.TestFunction.csproj" />
   </ItemGroup>
 

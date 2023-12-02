@@ -23,7 +23,7 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             Assert.NotNull(tr.GetProperty("ChangeLog"));
             Assert.NotNull(tr.GetProperty("Secret"));
             Assert.NotNull(tr.GetProperty("NickNames"));
-            Assert.IsNull(tr.GetProperty("Bananas"));
+            Assert.IsFalse(tr.TryGetProperty("Bananas", out var _));
 
             Assert.NotNull(tr.GetJsonProperty("id"));
             Assert.IsNull(tr.GetJsonProperty("Id"));
@@ -221,9 +221,14 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         }
     }
 
-    public class Person
+    public abstract class PersonBase
     {
-        public int Id { get; set; }
+        public abstract int Id { get; set; }
+    }
+
+    public class Person : PersonBase
+    {
+        public override int Id { get; set; }
         [Display(Name = "Fullname")]
         public string? Name { get; set; }
         [JsonPropertyName("gender")]

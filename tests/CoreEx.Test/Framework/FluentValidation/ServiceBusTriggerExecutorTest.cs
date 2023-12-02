@@ -18,7 +18,7 @@ namespace CoreEx.Test.Framework.FluentValidation
         {
             using var test = FunctionTester.Create<Startup>();
             var actionsMock = new Mock<ServiceBusMessageActions>();
-            var message = test.CreateServiceBusMessage(new Product { Id = "Zed", Name = "is dead", Price = 1.99m });
+            var message = test.CreateServiceBusMessageFromValue(new Product { Id = "Zed", Name = "is dead", Price = 1.99m });
 
             test.ServiceBusTrigger<ServiceBusTriggerFunction>()
                 .Run(s => s.RunAsync(message, actionsMock.Object))

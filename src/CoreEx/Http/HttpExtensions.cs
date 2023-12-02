@@ -62,7 +62,7 @@ namespace CoreEx.Http
         /// <param name="requestOptions">The <see cref="HttpRequestOptions"/>.</param>
         /// <returns>The <see cref="HttpRequestMessage"/> to support fluent-style method-chaining.</returns>
         /// <remarks>This will automatically invoke <see cref="ApplyETag(HttpRequestMessage, string)"/> where there is an <see cref="HttpRequestOptions.ETag"/> value.</remarks>
-        public static HttpRequestMessage ApplyRequestOptions(this HttpRequestMessage httpRequest, HttpRequestOptions requestOptions)
+        public static HttpRequestMessage ApplyRequestOptions(this HttpRequestMessage httpRequest, HttpRequestOptions? requestOptions)
         {
             if (httpRequest == null)
                 throw new ArgumentNullException(nameof(httpRequest));

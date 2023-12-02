@@ -4,6 +4,7 @@ using CoreEx.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Reflection;
 
 namespace CoreEx.Abstractions.Reflection
 {
@@ -72,5 +73,10 @@ namespace CoreEx.Abstractions.Reflection
         /// Defines the <see cref="StringComparer"/> for finding the property/JSON names (defaults to <see cref="StringComparer.Ordinal"/>).
         /// </summary>
         public StringComparer NameComparer { get; set; } = StringComparer.Ordinal;
+
+        /// <summary>
+        /// Gets or sets the <see cref="BindingFlags"/> override when getting the properties for the <see cref="Type"/>. Defaults to <c>null</c> (use the default).
+        /// </summary>
+        public BindingFlags? PropertyBindingFlags { get; set; }
     }
 }
