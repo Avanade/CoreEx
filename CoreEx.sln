@@ -79,9 +79,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Solace.Test", "tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.AspNetCore", "src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj", "{804FFA4D-D530-46A7-9ECD-D2D42987161E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Dataverse", "src\CoreEx.Dataverse\CoreEx.Dataverse.csproj", "{E7CF0E06-BDC3-49E5-AC52-D65894ED6AFF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.Dataverse", "src\CoreEx.Dataverse\CoreEx.Dataverse.csproj", "{E7CF0E06-BDC3-49E5-AC52-D65894ED6AFF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.OData", "src\CoreEx.OData\CoreEx.OData.csproj", "{2A31E887-0340-47D2-AF80-D88D2866C80E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreEx.OData", "src\CoreEx.OData\CoreEx.OData.csproj", "{2A31E887-0340-47D2-AF80-D88D2866C80E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
