@@ -4,6 +4,8 @@ using CoreEx.Abstractions.Reflection;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
 
 namespace CoreEx.Mapping
 {
@@ -49,6 +51,57 @@ namespace CoreEx.Mapping
         /// Indicates whether to convert empty collections to <c>null</c> where supported. Defaults to <c>true</c>.
         /// </summary>
         public bool ConvertEmptyCollectionsToNull { get; set; } = true;
+
+        /// <summary>
+        /// Register (adds) all the <see cref="IMapper{TSource, TDestination}"/> and <see cref="IBidirectionalMapper{TFrom, TTo}"/> types (instances) from the <see cref="Assembly"/> from the specified <typeparamref name="TAssembly"/> <see cref="Type"/>.
+        /// </summary>
+        /// <typeparam name="TAssembly">The <see cref="Assembly"/> <see cref="Type"/>.</typeparam>
+        public void Register<TAssembly>() => Register(typeof(TAssembly).Assembly);
+
+        /// <summary>
+        /// Register (adds) all <see cref="IMapper{TSource, TDestination}"/> and <see cref="IBidirectionalMapper{TFrom, TTo}"/> types (instances) from the specified <paramref name="assemblies"/>.
+        /// </summary>
+        /// <param name="assemblies">The assemblies.</param>
+        public void Register(params Assembly[] assemblies)
+        {
+            foreach (var assembly in assemblies.Distinct())
+            {
+                foreach (var match in from type in assembly.GetTypes()
+                                      where !type.IsAbstract && !type.IsGenericTypeDefinition
+                                      let interfaces = type.GetInterfaces()
+                                      let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMapper<,>))
+                                      let @interface = genericInterfaces.FirstOrDefault()
+                                      let sourceType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[0] : null
+                                      let destinationType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[1] : null
+                                      where @interface != null
+                                      select new { type, sourceType, destinationType })
+                {
+                    Register(match.sourceType, match.destinationType, (IMapperBase)Activator.CreateInstance(match.type)!);
+                }
+
+                foreach (var match in from type in assembly.GetTypes()
+                                      where !type.IsAbstract && !type.IsGenericTypeDefinition
+                                      let interfaces = type.GetInterfaces()
+                                      let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IBidirectionalMapper<,>))
+                                      let @interface = genericInterfaces.FirstOrDefault()
+                                      where @interface != null
+                                      select new { type })
+                {
+                    var bimapper = (IBidirectionalMapperBase)Activator.CreateInstance(match.type)!;
+                    _mappers.TryAdd((bimapper.MapperFromTo.SourceType, bimapper.MapperFromTo.DestinationType), bimapper.MapperFromTo);
+                    _mappers.TryAdd((bimapper.MapperToFrom.SourceType, bimapper.MapperToFrom.DestinationType), bimapper.MapperToFrom);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Perform the actual mapper registration and linking.
+        /// </summary>
+        private void Register(Type s, Type d, IMapperBase mapper)
+        {
+            mapper.Owner = this;
+            _mappers.TryAdd((s, d), mapper);
+        }
 
         /// <summary>
         /// Registers (adds) an individual <see cref="IMapper{TSource, TDestination}"/>.

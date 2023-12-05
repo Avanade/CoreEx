@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.6.1
+- *Enhancement:* Added `IBidirectionalMapper<TFrom, TTo>` to enable a single mapping capability that can support mapping both ways.
+- *Enhancement:* Added `IBidirectionalMapper<TFrom, TTo>` registration support to `Mapper.Register` and by extension `IServiceCollection.AddMappings`.
+- *Enhancement:* Added additional capabilities to `CoreEx.OData`; package now published (assume in pre-release status until advised otherwise).
+
 ## v3.6.0
 - *Enhancement:* `UnitTestEx` as of `v4.0.0` removed all dependencies to `CoreEx`, breaking a long-time circular reference challenge.  Added extension capabilities to enable existing behaviors. These extensions have been added within `CoreEx.UnitTesting` and `CoreEx.UnitTesting.NUnit` respectively; using `UnitTestEx` namespace to minimize breaking changes and clearly separate. The following will need to be corrected where applicable:
   - Add `UnitTestEx` namespace where missing to enable new extension methods.  

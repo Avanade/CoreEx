@@ -13,7 +13,7 @@ namespace CoreEx.Mapping
     /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
     public class Mapper<TSource, TDestination> : IMapper<TSource, TDestination> where TSource : class, new() where TDestination : class, new()
     {
-        private readonly List<(Action<MapperOptions, TSource, TDestination> action, OperationTypes types, Func<TSource, bool>? isSourceInitial, Action<TDestination>? initializeDestination)> _mappings = new();
+        private readonly List<(Action<MapperOptions, TSource, TDestination> action, OperationTypes types, Func<TSource, bool>? isSourceInitial, Action<TDestination>? initializeDestination)> _mappings = [];
         private Mapper? _mapper;
         private Func<TSource, bool>? _isSourceInitial;
         private Func<TDestination, bool>? _initializeDestination;

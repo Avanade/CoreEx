@@ -51,7 +51,7 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -63,7 +63,7 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
         /// <param name="value">The value to insert.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -75,7 +75,7 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
         /// <param name="value">The value to insert.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -87,7 +87,7 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -102,5 +102,22 @@ namespace CoreEx.OData
         /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned. A resulting <see cref="Result"/> that is <see cref="Result.IsSuccess"/> is not considered sensical; therefore, will result in the originating
         /// exception being thrown.</remarks>
         Result? HandleODataException(Soc.WebRequestException odex);
+
+        /// <summary>
+        /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="collectionName">The collection name.</param>
+        /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
+        ODataItemCollection<T> CreateItemCollection<T>(string collectionName) where T : class, new();
+
+        /// <summary>
+        /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
+        /// <param name="collectionName">The collection name.</param>
+        /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
+        ODataItemCollection<T> CreateItemCollection<T>(ODataArgs args, string collectionName) where T : class, new();
     }
 }

@@ -58,6 +58,7 @@ param(
         "src\CoreEx.Database.MySql",
         "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.Cosmos",
+        "src\CoreEx.OData",
         "src\CoreEx.FluentValidation",
         "src\CoreEx.Newtonsoft",
         "src\CoreEx.Validation",
