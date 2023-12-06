@@ -49,10 +49,30 @@ namespace CoreEx.OData.Mapping
         public OperationTypes OperationTypes { get; internal set; }
 
         /// <inheritdoc/>
+        public bool IsPrimaryKey { get; private set; }
+
+        /// <inheritdoc/>
         public IConverter? Converter { get; private set; }
 
         /// <inheritdoc/>
         public IODataMapper? Mapper { get; private set; }
+
+        /// <inheritdoc/>
+        void IPropertyColumnMapper.SetPrimaryKey()
+        {
+            if (Mapper != null) throw new InvalidOperationException("A primary key must not contain a Mapper.");
+            IsPrimaryKey = true;
+        }
+
+        /// <summary>
+        /// Sets the primary key (<see cref="IsPrimaryKey"/>).
+        /// </summary>
+        /// <returns>The <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to support fluent-style method-chaining.</returns>
+        public PropertyColumnMapper<TSource, TSourceProperty> SetPrimaryKey()
+        {
+            ((IPropertyColumnMapper)this).SetPrimaryKey();
+            return this;
+        }
 
         /// <inheritdoc/>
         void IPropertyColumnMapper.SetConverter(IConverter converter)

@@ -123,11 +123,7 @@ namespace CoreEx.Mapping
             return (TDestination)GetMapper(source.GetType(), typeof(TDestination)).Map(source, operationType)!;
         }
 
-        /// <summary>
-        /// Gets the mapper for the specified <paramref name="source"/> and <paramref name="destination"/> types.
-        /// </summary>
-        /// <param name="source">The source <see cref="Type"/>.</param>
-        /// <param name="destination">The destination <see cref="Type"/>.</param>
+        /// <inheritdoc/>
         public IMapperBase GetMapper(Type source, Type destination)
         { 
             if (_mappers.TryGetValue((source, destination), out var mapper))

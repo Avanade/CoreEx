@@ -203,6 +203,9 @@ namespace CoreEx.OData.Mapping
                     .MakeGenericMethod(p.PropertyType)
                     .Invoke(this, [lex, p.ColumnName, p.OperationTypes])!;
 
+                if (p.IsPrimaryKey)
+                    pmap.SetPrimaryKey();
+
                 if (p.Converter != null)
                     pmap.SetConverter(p.Converter);
 
@@ -261,9 +264,11 @@ namespace CoreEx.OData.Mapping
         /// <summary>
         /// <typeparamref name="TSource"/> to <see cref="ODataItem"/> mapper.
         /// </summary>
-        private class SourceToItemMapper(ODataMapper<TSource> parent) : Mapper<TSource, ODataItem>
+        private class SourceToItemMapper(ODataMapper<TSource> parent) : Mapper<TSource, ODataItem>, IODataKey
         {
             internal ODataMapper<TSource> Parent { get; } = parent;
+
+            public object[] GetODataKey(object value) => Parent.GetODataKey((TSource)value);
 
             protected override ODataItem? OnMap(TSource? source, ODataItem? destination, OperationTypes operationType)
             {
@@ -297,5 +302,29 @@ namespace CoreEx.OData.Mapping
 
         /// <inheritdoc/>
         IMapper<ODataItem, TSource> IBidirectionalMapper<TSource, ODataItem>.MapperToFrom => _mapperToFrom.Value;
+
+        /// <inheritdoc/>
+        public object[] GetODataKey(TSource value)
+        {
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
+            var km = _mappings.Where(x => x.IsPrimaryKey).ToArray();
+            if (km.Length == 0)
+                throw new InvalidOperationException("No primary key mappings have been defined.");
+
+            var oi = new ODataItem();
+            foreach (var p in km)
+            {
+                p.MapToOData(value, oi, OperationTypes.Any);
+            }
+
+            var key = new object[km.Length];
+            for (int i = 0; i < km.Length; i++)
+            {
+                key[i] = oi.Attributes[km[i].ColumnName];
+            }
+
+            return key;
+        }
     }
 }

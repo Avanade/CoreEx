@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
+using CoreEx.Invokers;
 using CoreEx.Mapping;
+using CoreEx.OData.Mapping;
 using CoreEx.Results;
 using System;
 using System.Collections.Generic;
@@ -77,6 +80,38 @@ namespace CoreEx.OData
         {
             return (await GetItemAsync(key, ct).ConfigureAwait(false))
                 .WhenAs<ODataItem?, T?>(entity => entity is null, _ => default!, entity => MapToValue(entity!));
+        }, Owner, cancellationToken);
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public async Task<Result<T>> UpdateWithResultAsync(T value, CancellationToken cancellationToken = default) => await Owner.Invoker.InvokeAsync(this, async (_, ct) =>
+        {
+            ODataItem item;
+            if (Args.PreReadOnUpdate)
+            {
+                if (Owner.Mapper.GetMapper(typeof(T), typeof(ODataItem)) is not IODataKey ik) 
+                    throw new InvalidOperationException($"No {nameof(IODataKey)} mapper has been registered for source '{typeof(T).FullName}' and destination '{typeof(ODataItem).FullName}' types.");
+
+                var key = ik.GetODataKey(value);
+                var get = (await GetItemAsync(key, ct).ConfigureAwait(false))
+                    .When(v => v is null, _ => Result.NotFoundError());
+
+                if (get.IsFailure)
+                    return get.AsResult();
+
+                item = Owner.Mapper.Map(value, get.Value, OperationTypes.Update)!;
+            }
+            else
+                item = Owner.Mapper.Map<T, ODataItem>(value, OperationTypes.Update)!;
+
+            var updated = await Owner.Client.For(CollectionName).Set(item.Attributes).UpdateEntryAsync(true, ct).ConfigureAwait(false);
+            return updated is null ? Result<T>.NotFoundError() : Result<T>.Ok(MapToValue(new ODataItem(updated)));
         }, Owner, cancellationToken);
 
         /// <summary>

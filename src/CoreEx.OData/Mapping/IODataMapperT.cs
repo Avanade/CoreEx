@@ -35,5 +35,12 @@ namespace CoreEx.OData.Mapping
         /// <param name="entity">The <see cref="ODataItem"/> to update from the <paramref name="value"/>.</param>
         /// <param name="operationType">The single <see cref="OperationTypes"/> value being performed to enable conditional execution where appropriate.</param>
         void MapToOData(TSource? value, ODataItem entity, OperationTypes operationType = OperationTypes.Unspecified);
+
+        /// <summary>
+        /// Gets the OData primary key from the <paramref name="value"/>.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The primary key.</returns>
+        object[] GetODataKey(TSource value);
     }
 }

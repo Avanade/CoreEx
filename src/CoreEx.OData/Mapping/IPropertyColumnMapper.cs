@@ -43,6 +43,16 @@ namespace CoreEx.OData.Mapping
         OperationTypes OperationTypes { get; }
 
         /// <summary>
+        /// Indicates whether the property forms part of the primary key. 
+        /// </summary>
+        bool IsPrimaryKey { get; }
+
+        /// <summary>
+        /// Sets the primary key (<see cref="IsPrimaryKey"/>).
+        /// </summary>
+        void SetPrimaryKey();
+
+        /// <summary>
         /// Gets the <see cref="IConverter"/> (used where a specific source and destination type conversion is required).
         /// </summary>
         IConverter? Converter { get; }
