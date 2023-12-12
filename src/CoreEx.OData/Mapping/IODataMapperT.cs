@@ -40,7 +40,8 @@ namespace CoreEx.OData.Mapping
         /// Gets the OData primary key from the <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <param name="operationType">The single <see cref="OperationTypes"/> value being performed to enable conditional execution where appropriate.</param>
         /// <returns>The primary key.</returns>
-        object[] GetODataKey(TSource value);
+        object[] GetODataKey(TSource value, OperationTypes operationType = OperationTypes.Unspecified);
     }
 }

@@ -20,7 +20,7 @@ namespace CoreEx.Dataverse.Mapping
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
     public class DataverseMapper<TSource> : IDataverseMapper<TSource>, IDataverseMapperMappings where TSource : class, new()
     {
-        private readonly List<IPropertyColumnMapper> _mappings = new();
+        private readonly List<IPropertyColumnMapper> _mappings = [];
         private readonly bool _implementsIIdentifier = typeof(IIdentifier).IsAssignableFrom(typeof(TSource));
 
         /// <summary>
@@ -97,8 +97,8 @@ namespace CoreEx.Dataverse.Mapping
                 var sex = Expression.Lambda(Expression.Property(spe, sp), spe);
                 typeof(DataverseMapper<TSource>)
                     .GetMethod(nameof(AutoProperty), BindingFlags.NonPublic | BindingFlags.Instance)!
-                    .MakeGenericMethod(new Type[] { sp.PropertyType })
-                    .Invoke(this, new object?[] { sex, null, OperationTypes.Any });
+                    .MakeGenericMethod([sp.PropertyType])
+                    .Invoke(this, [sex, null, OperationTypes.Any]);
             }
         }
 
@@ -200,7 +200,7 @@ namespace CoreEx.Dataverse.Mapping
                 var pmap = (IPropertyColumnMapper)type
                     .GetMethod("Property", BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)!
                     .MakeGenericMethod(p.PropertyType)
-                    .Invoke(this, new object?[] { lex, p.ColumnName, p.OperationTypes })!;
+                    .Invoke(this, [lex, p.ColumnName, p.OperationTypes])!;
 
                 if (p.IsPrimaryKey)
                     pmap.SetPrimaryKey(p.IsPrimaryKeyUseEntityIdentifier);

@@ -17,6 +17,11 @@ namespace CoreEx.Mapping
         private readonly ConcurrentDictionary<(Type, Type), IMapperBase> _mappers = new();
 
         /// <summary>
+        /// Gets an empty <see cref="IMapper"/>; i.e. one that does not perform any mapping and will always throw a <see cref="NotImplementedException"/> where a <c>Map</c> operation is invoked.
+        /// </summary>
+        public static EmptyMapper Empty { get; } = new EmptyMapper();
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Mapper"/> class.
         /// </summary>
         /// <remarks>Also, automatically registers the mapping Cartesian product between <see cref="Entities.ChangeLog"/> and <see cref="Entities.Extended.ChangeLogEx"/> (i.e. all combinations thereof).</remarks>
@@ -123,7 +128,13 @@ namespace CoreEx.Mapping
             return (TDestination)GetMapper(source.GetType(), typeof(TDestination)).Map(source, operationType)!;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the <see cref="IMapperBase"/> for the specified <paramref name="source"/> and <paramref name="destination"/> types as previously <see cref="Register{TSource, TDestination}(IMapper{TSource, TDestination})">registered</see>.
+        /// </summary>
+        /// <param name="source">The source <see cref="Type"/>.</param>
+        /// <param name="destination">The destination <see cref="Type"/>.</param>
+        /// <returns>The previously registered <see cref="IMapperBase"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown where not previously registered.</exception>
         public IMapperBase GetMapper(Type source, Type destination)
         { 
             if (_mappers.TryGetValue((source, destination), out var mapper))
@@ -148,12 +159,13 @@ namespace CoreEx.Mapping
         }
 
         /// <summary>
-        /// Gets the mapper for the <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> types.
+        /// Gets the <see cref="IMapper{TSource, TDestination}"/> for the specified <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> types as previously <see cref="Register{TSource, TDestination}(IMapper{TSource, TDestination})">registered</see>.
         /// </summary>
         /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
         /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
-        public IMapper<TSource, TDestination> GetMapper<TSource, TDestination>()
-            => (IMapper<TSource, TDestination>)GetMapper(typeof(TSource), typeof(TDestination));
+        /// <returns>The previously registered <see cref="IMapper{TSource, TDestination}"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown where not previously registered.</exception>
+        public IMapper<TSource, TDestination> GetMapper<TSource, TDestination>() => (IMapper<TSource, TDestination>)GetMapper(typeof(TSource), typeof(TDestination));
 
         /// <inheritdoc/>
         [return: NotNullIfNotNull(nameof(source))]
@@ -164,5 +176,28 @@ namespace CoreEx.Mapping
         [return: NotNullIfNotNull(nameof(source))]
         public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified)
             => GetMapper<TSource, TDestination>().Map(source, destination, operationType)!;
+
+        /// <summary>
+        /// Represents an empty <see cref="IMapper"/>; i.e. one that does not perform any mapping and will always throw a <see cref="NotImplementedException"/>.
+        /// </summary>
+        public class EmptyMapper : IMapper
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="EmptyMapper"/> class.
+            /// </summary>
+            internal EmptyMapper() { }
+
+            /// <inheritdoc/>
+            [return: NotNullIfNotNull(nameof(source))]
+            public TDestination? Map<TDestination>(object? source, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
+
+            /// <inheritdoc/>
+            [return: NotNullIfNotNull(nameof(source))]
+            public TDestination? Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
+
+            /// <inheritdoc/>
+            [return: NotNullIfNotNull(nameof(source))]
+            public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
+        }
     }
 }

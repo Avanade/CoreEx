@@ -13,6 +13,35 @@ namespace CoreEx.OData
     public class ODataItem
     {
         /// <summary>
+        /// Maps none or more <paramref name="items"/> into a corresponding <see cref="ODataItem"/> <see cref="IEnumerable{T}"/>.
+        /// </summary>
+        /// <param name="items">The OData items.</param>
+        /// <returns>The <see cref="ODataItem"/> <see cref="IEnumerable{T}"/>.</returns>
+        public static IEnumerable<ODataItem> MapODataItems(IEnumerable<IDictionary<string, object>> items)
+        {
+            foreach (var item in items)
+            {
+                yield return new ODataItem(item);
+            }
+        }
+
+        /// <summary>
+        /// Maps none or more <paramref name="items"/> into a corresponding <typeparamref name="T"/> <see cref="IEnumerable{T}"/> using the specified <paramref name="mapper"/>.
+        /// </summary>
+        /// <typeparam name="T">The resulting item <see cref="Type"/>.</typeparam>
+        /// <param name="mapper">The specific <see cref="IODataMapper{TSource}"/>.</param>
+        /// <param name="items">The OData items.</param>
+        /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.</param>
+        /// <returns>The <typeparamref name="T"/> <see cref="IEnumerable{T}"/>.</returns>
+        public static IEnumerable<T> MapODataItems<T>(IODataMapper<T> mapper, IEnumerable<IDictionary<string, object>> items, OperationTypes operationType = OperationTypes.Unspecified)
+        {
+            foreach (var item in MapODataItems(items))
+            {
+                yield return mapper.MapFromOData(item, operationType)!;
+            }
+        }
+
+        /// <summary>
         /// Creates an <see cref="ODataItem"/> from the specified <paramref name="value"/>.
         /// </summary>
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>

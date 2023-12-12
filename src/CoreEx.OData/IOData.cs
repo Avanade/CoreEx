@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.OData.Mapping;
 using CoreEx.Results;
 using System;
 using System.Threading;
@@ -65,7 +66,7 @@ namespace CoreEx.OData
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
         /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
-        /// <param name="value">The value to insert.</param>
+        /// <param name="value">The value to create.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (refreshed where specified).</returns>
         Task<Result<T>> CreateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
@@ -77,7 +78,7 @@ namespace CoreEx.OData
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
         /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
-        /// <param name="value">The value to insert.</param>
+        /// <param name="value">The value to update.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (refreshed where specified).</returns>
         Task<Result<T>> UpdateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
@@ -107,17 +108,10 @@ namespace CoreEx.OData
         /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <param name="collectionName">The collection name.</param>
-        /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
-        ODataItemCollection<T> CreateItemCollection<T>(string collectionName) where T : class, new();
-
-        /// <summary>
-        /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
+        /// <param name="mapper">The specific <see cref="IODataMapper{TSource}"/>.</param>
         /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
-        ODataItemCollection<T> CreateItemCollection<T>(ODataArgs args, string collectionName) where T : class, new();
+        ODataItemCollection<T> CreateItemCollection<T>(ODataArgs args, string collectionName, IODataMapper<T> mapper) where T : class, new();
     }
 }

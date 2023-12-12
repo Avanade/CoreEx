@@ -43,12 +43,5 @@ namespace CoreEx.Mapping
         /// <returns>The <paramref name="destination"/> value.</returns>
         [return: NotNullIfNotNull(nameof(source))]
         TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified);
-
-        /// <summary>
-        /// Gets the mapper for the specified <paramref name="source"/> and <paramref name="destination"/> types.
-        /// </summary>
-        /// <param name="source">The source <see cref="Type"/>.</param>
-        /// <param name="destination">The destination <see cref="Type"/>.</param>
-        IMapperBase GetMapper(Type source, Type destination);
     }
 }

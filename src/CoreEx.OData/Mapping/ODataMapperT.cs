@@ -17,7 +17,7 @@ namespace CoreEx.OData.Mapping
     /// Provides bidirectional mapping from a <typeparamref name="TSource"/> <see cref="Type"/> to an <see cref="ODataItem"/>.
     /// </summary>
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
-    public class ODataMapper<TSource> : IODataMapper<TSource>, IODataMapperMappings, IBidirectionalMapper<TSource, ODataItem> where TSource : class, new()
+    public class ODataMapper<TSource> : IODataMapper<TSource>, IBidirectionalMapper<TSource, ODataItem> where TSource : class, new()
     {
         private readonly List<IPropertyColumnMapper> _mappings = [];
         private readonly bool _implementsIIdentifier = typeof(IIdentifier).IsAssignableFrom(typeof(TSource));
@@ -40,9 +40,6 @@ namespace CoreEx.OData.Mapping
             _mapperToFrom = new Lazy<ItemToSourceMapper>(() => new ItemToSourceMapper(this));
         }
 
-        /// <inheritdoc/>
-        IEnumerable<IPropertyColumnMapper> IODataMapperMappings.Mappings => _mappings.AsEnumerable();
-
         /// <summary>
         /// Gets the <see cref="IPropertyColumnMapper"/> mappings.
         /// </summary>
@@ -61,8 +58,7 @@ namespace CoreEx.OData.Mapping
         {
             get
             {
-                if (propertyExpression == null)
-                    throw new ArgumentNullException(nameof(propertyExpression));
+                propertyExpression.ThrowIfNull(nameof(propertyExpression));
 
                 MemberExpression? me = null;
                 if (propertyExpression.Body.NodeType == ExpressionType.MemberAccess)
@@ -118,7 +114,7 @@ namespace CoreEx.OData.Mapping
             => Property(propertyExpression, columnName, operationTypes);
 
         /// <summary>
-        /// Adds a <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper.
+        /// Adds a <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="Map"/>).
         /// </summary>
         /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
@@ -131,6 +127,17 @@ namespace CoreEx.OData.Mapping
             AddMapping(pcm);
             return pcm;
         }
+
+        /// <summary>
+        /// Adds a <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="Property"/>).
+        /// </summary>
+        /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
+        /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
+        /// <param name="columnName">The <i>OData</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
+        /// <param name="operationTypes">The <see cref="CoreEx.Mapping.OperationTypes"/> selection to enable inclusion or exclusion of property.</param>
+        /// <returns>The <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/>.</returns>
+        public PropertyColumnMapper<TSource, TSourceProperty> Map<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes operationTypes = OperationTypes.Any)
+            => Property(propertyExpression, columnName, operationTypes);
 
         /// <summary>
         /// Validates and adds a new IPropertyColumnMapper.
@@ -148,7 +155,7 @@ namespace CoreEx.OData.Mapping
         }
 
         /// <summary>
-        /// Adds or updates <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper.
+        /// Adds or updates <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="HasMap"/>)
         /// </summary>
         /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
@@ -182,20 +189,32 @@ namespace CoreEx.OData.Mapping
         }
 
         /// <summary>
+        /// Adds or updates <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="HasProperty"/>).
+        /// </summary>
+        /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
+        /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
+        /// <param name="columnName">The <i>OData</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
+        /// <param name="operationTypes">The <see cref="CoreEx.Mapping.OperationTypes"/> selection to enable inclusion or exclusion of property.</param>
+        /// <param name="property">An <see cref="Action"/> enabling access to the created <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/>.</param>
+        /// <returns></returns>
+        /// <remarks>Where updating an existing the <paramref name="columnName"/> and <paramref name="operationTypes"/> where specified will override the previous values.</remarks>
+        public ODataMapper<TSource> HasMap<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes? operationTypes = null, Action<PropertyColumnMapper<TSource, TSourceProperty>>? property = null)
+            => HasProperty(propertyExpression, columnName, operationTypes, property);
+
+        /// <summary>
         /// Inherits the property mappings from the selected <paramref name="inheritMapper"/>.
         /// </summary>
         /// <typeparam name="T">The <paramref name="inheritMapper"/> source <see cref="Type"/>. Must inherit from <typeparamref name="TSource"/>.</typeparam>
-        /// <param name="inheritMapper">The <see cref="IODataMapper{T}"/> to inherit from. Must also implement <see cref="IODataMapperMappings"/>.</param>
+        /// <param name="inheritMapper">The <see cref="IODataMapper{T}"/> to inherit from.</param>
         public void InheritPropertiesFrom<T>(IODataMapper<T> inheritMapper) where T : class, new()
         {
-            if (inheritMapper == null) throw new ArgumentNullException(nameof(inheritMapper));
+            inheritMapper.ThrowIfNull(nameof(inheritMapper));
             if (!typeof(TSource).IsSubclassOf(typeof(T))) throw new ArgumentException($"Type {typeof(TSource).Name} must inherit from {typeof(T).Name}.", nameof(inheritMapper));
-            if (inheritMapper is not IODataMapperMappings inheritMappings) throw new ArgumentException($"Type {typeof(T).Name} must implement {typeof(IODataMapperMappings).Name} to copy the mappings.", nameof(inheritMapper));
 
             var pe = Expression.Parameter(typeof(TSource), "x");
             var type = typeof(ODataMapper<>).MakeGenericType(typeof(TSource));
 
-            foreach (var p in inheritMappings.Mappings)
+            foreach (var p in inheritMapper.Mappings)
             {
                 var lex = Expression.Lambda(Expression.Property(pe, p.PropertyName), pe);
                 var pmap = (IPropertyColumnMapper)type
@@ -217,7 +236,7 @@ namespace CoreEx.OData.Mapping
         /// <inheritdoc/>
         public void MapToOData(TSource? value, ODataItem entity, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            entity.ThrowIfNull(nameof(entity));
             if (value == null) return;
 
             foreach (var p in _mappings)
@@ -239,8 +258,7 @@ namespace CoreEx.OData.Mapping
         /// <inheritdoc/>
         public TSource? MapFromOData(ODataItem entity, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-
+            entity.ThrowIfNull(nameof(entity));
             var value = new TSource();
 
             foreach (var p in _mappings)
@@ -264,11 +282,9 @@ namespace CoreEx.OData.Mapping
         /// <summary>
         /// <typeparamref name="TSource"/> to <see cref="ODataItem"/> mapper.
         /// </summary>
-        private class SourceToItemMapper(ODataMapper<TSource> parent) : Mapper<TSource, ODataItem>, IODataKey
+        private class SourceToItemMapper(ODataMapper<TSource> parent) : Mapper<TSource, ODataItem>
         {
             internal ODataMapper<TSource> Parent { get; } = parent;
-
-            public object[] GetODataKey(object value) => Parent.GetODataKey((TSource)value);
 
             protected override ODataItem? OnMap(TSource? source, ODataItem? destination, OperationTypes operationType)
             {
@@ -304,9 +320,9 @@ namespace CoreEx.OData.Mapping
         IMapper<ODataItem, TSource> IBidirectionalMapper<TSource, ODataItem>.MapperToFrom => _mapperToFrom.Value;
 
         /// <inheritdoc/>
-        public object[] GetODataKey(TSource value)
+        public object[] GetODataKey(TSource value, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            value.ThrowIfNull(nameof(value));
 
             var km = _mappings.Where(x => x.IsPrimaryKey).ToArray();
             if (km.Length == 0)
@@ -315,7 +331,7 @@ namespace CoreEx.OData.Mapping
             var oi = new ODataItem();
             foreach (var p in km)
             {
-                p.MapToOData(value, oi, OperationTypes.Any);
+                p.MapToOData(value, oi, operationType);
             }
 
             var key = new object[km.Length];

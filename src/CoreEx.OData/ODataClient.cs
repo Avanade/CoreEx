@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.OData.Mapping;
 using CoreEx.Results;
 using System;
 using System.Net;
@@ -15,18 +16,19 @@ namespace CoreEx.OData
     /// Provides the <b>OData</b> client functionality.
     /// </summary>
     /// <param name="client">The <see cref="Soc.ODataClient"/>.</param>
-    /// <param name="mapper">The <see cref="IMapper"/>.</param>
+    /// <param name="mapper">The <see cref="IMapper"/>; defaults to <see cref="Mapper.Empty"/>.</param>
     /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="ODataInvoker"/>.</param>
-    public class ODataClient(Soc.ODataClient client, IMapper mapper, ODataInvoker? invoker = null) : IOData
+    /// <remarks>Where <paramref name="mapper"/> is not specified then <see cref="Mapper.Empty"/> will be used. Note that an <see cref="IMapper"/> will be required where performing any operations outside of any <see cref="ODataItemCollection{T}"/> (being untyped).</remarks>
+    public class ODataClient(Soc.ODataClient client, IMapper? mapper = null, ODataInvoker? invoker = null) : IOData
     {
         /// <inheritdoc/>
-        public Soc.ODataClient Client { get; } = client ?? throw new ArgumentNullException(nameof(client));
+        public Soc.ODataClient Client { get; } = client.ThrowIfNull(nameof(client));
 
         /// <inheritdoc/>
         public ODataInvoker Invoker { get; } = invoker ?? new ODataInvoker();
 
         /// <inheritdoc/>
-        public IMapper Mapper { get; } = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        public IMapper Mapper { get; } = mapper ?? CoreEx.Mapping.Mapper.Empty;
 
         /// <inheritdoc/>
         public ODataArgs Args { get; set; } = new ODataArgs();
@@ -46,7 +48,11 @@ namespace CoreEx.OData
         public async Task<Result<T>> CreateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, async (_, ct) =>
         {
             ChangeLog.PrepareCreated(value);
+            Cleaner.ResetTenantId(value);
+
             var model = Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
+            Cleaner.ResetTenantId(model);
+
             var created = await Client.For<TModel>(collectionName).Set(model).InsertEntryAsync(true, ct).ConfigureAwait(false);
             return MapToValue<T, TModel>(args, created);
         }, this, cancellationToken);
@@ -55,6 +61,7 @@ namespace CoreEx.OData
         public async Task<Result<T>> UpdateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, async (_, ct) =>
         {
             ChangeLog.PrepareUpdated(value);
+            Cleaner.ResetTenantId(value);
             TModel model;
 
             if (args.PreReadOnUpdate)
@@ -79,9 +86,11 @@ namespace CoreEx.OData
         {
             if (args.PreReadOnDelete)
             {
-                var get = await GetModelAsync<TModel>(args, collectionName, key, ct).ConfigureAwait(false);
-                if (get.IsFailure || get.Value is null)
-                    return Result.Success;
+                var get = await Result.GoAsync(GetModelAsync<TModel>(args, collectionName, key, ct))
+                    .When(model => model is null, _ => Result.NotFoundError()).ConfigureAwait(false);
+
+                if (get.IsFailure)
+                    return get.AsResult();
             }
 
             await Client.For<TModel>(collectionName).Key(key.Args).DeleteEntryAsync(ct).ConfigureAwait(false);
@@ -133,9 +142,6 @@ namespace CoreEx.OData
         };
 
         /// <inheritdoc/>
-        public ODataItemCollection<T> CreateItemCollection<T>(string collectionName) where T : class, new() => CreateItemCollection<T>(new ODataArgs(Args), collectionName);
-
-        /// <inheritdoc/>
-        public ODataItemCollection<T> CreateItemCollection<T>(ODataArgs args, string collectionName) where T : class, new() => new(this, args, collectionName);
+        public ODataItemCollection<T> CreateItemCollection<T>(ODataArgs args, string collectionName, IODataMapper<T> mapper) where T : class, new() => new(this, args, collectionName, mapper);
     }
 }

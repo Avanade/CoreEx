@@ -77,8 +77,7 @@ namespace CoreEx.OData.Mapping
         /// <inheritdoc/>
         void IPropertyColumnMapper.SetConverter(IConverter converter)
         {
-            if (converter == null)
-                throw new ArgumentNullException(nameof(converter));
+            converter.ThrowIfNull(nameof(converter));
 
             if (Mapper != null)
                 throw new InvalidOperationException("The Mapper and Converter cannot be both set; only one is permissible.");
@@ -104,8 +103,7 @@ namespace CoreEx.OData.Mapping
         /// <inheritdoc/>
         void IPropertyColumnMapper.SetMapper(IODataMapper mapper)
         {
-            if (mapper == null)
-                throw new ArgumentNullException(nameof(mapper));
+            mapper.ThrowIfNull(nameof(mapper));
 
             if (Converter != null)
                 throw new InvalidOperationException("The Mapper and Converter cannot be both set; only one is permissible.");
@@ -177,7 +175,9 @@ namespace CoreEx.OData.Mapping
                 pval = (TSourceProperty?)Mapper.MapFromOData(entity, operationType);
             else
             {
-                if (Converter is null)
+                if (!entity.Attributes.ContainsKey(ColumnName))
+                    pval = _propertyExpression.GetDefault();
+                else if (Converter is null)
                     pval = (TSourceProperty)entity[ColumnName]!;
                 else
                     pval = (TSourceProperty)Converter.ConvertToSource(entity[ColumnName])!;
