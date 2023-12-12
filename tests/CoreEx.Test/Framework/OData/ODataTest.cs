@@ -205,6 +205,7 @@ namespace CoreEx.Test.Framework.ODatax
         public async Task D010_Update_NotFound()
         {
             var odata = GetPersonClient();
+            odata.Args = new ODataArgs { PreReadOnUpdate = false };
             var result = await odata.GetWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
 
             result.Value!.Id = "russellwhyteeeee";
@@ -274,9 +275,10 @@ namespace CoreEx.Test.Framework.ODatax
             var result2 = await odata.GetWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
             Assert.IsNull(result2.Value);
 
-            // Idempotent :-)
+            // Pre-read will determine not found :-)
             result = await odata.DeleteWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
-            Assert.IsTrue(result.IsSuccess);
+            Assert.IsTrue(result.IsFailure);
+            Assert.IsInstanceOf<NotFoundException>(result.Error);
         }
 
         [Test]
@@ -290,9 +292,36 @@ namespace CoreEx.Test.Framework.ODatax
             var result2 = await odata.GetWithResultAsync<Person, MPerson>("People", "ronaldmundy", default);
             Assert.IsNull(result2.Value);
 
-            // Idempotent, but alas :-(
+            // Alas, arguably this endpoint should return not found :-(
             var ex = Assert.ThrowsAsync<Soc.WebRequestException>(async () => await odata.DeleteWithResultAsync<Person, MPerson>("People", "ronaldmundy", default));
             Assert.AreEqual(HttpStatusCode.InternalServerError, ex!.Code);
+        }
+
+        [Test]
+        public async Task F010_Collection_CRD()
+        {
+            var odata = GetPersonClient();
+            var ocoll = odata.CreateItemCollection("People", new PersonMapper());
+            var result = await ocoll.CreateWithResultAsync(new Person { Id = "barbsmith", FirstName = "Barbara", LastName = "Smith" });
+            Assert.IsTrue(result.IsSuccess);
+
+            var result2 = await ocoll.GetWithResultAsync("barbsmith");
+            Assert.IsNotNull(result2.Value);
+            Assert.AreEqual("barbsmith", result2.Value!.Id);
+            Assert.AreEqual("Barbara", result2.Value.FirstName);
+            Assert.AreEqual("Smith", result2.Value.LastName);
+
+            result2 = await ocoll.GetWithResultAsync("barbsmith");
+            Assert.IsNotNull(result2.Value);
+            Assert.AreEqual("barbsmith", result2.Value!.Id);
+            Assert.AreEqual("Barbara", result2.Value.FirstName);
+            Assert.AreEqual("Smith", result2.Value.LastName);
+
+            var result3 = await ocoll.DeleteWithResultAsync("barbsmith");
+            Assert.IsTrue(result.IsSuccess);
+
+            result2 = await ocoll.GetWithResultAsync("barbsmith");
+            Assert.IsNull(result2.Value);
         }
     }
 
@@ -312,6 +341,16 @@ namespace CoreEx.Test.Framework.ODatax
         public string? UserName { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+    }
+
+    public class PersonMapper : OData.Mapping.ODataMapper<Person>
+    {
+        public PersonMapper()
+        {
+            Map(x => x.Id, "UserName").SetPrimaryKey();
+            Map(x => x.FirstName);
+            Map(x => x.LastName);
+        }
     }
 
     public class Product : IIdentifier<int>

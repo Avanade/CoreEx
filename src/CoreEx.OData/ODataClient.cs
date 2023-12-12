@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.OData.Mapping;
 using CoreEx.Results;
 using System;
 using System.Net;
@@ -14,29 +15,20 @@ namespace CoreEx.OData
     /// <summary>
     /// Provides the <b>OData</b> client functionality.
     /// </summary>
-    public class ODataClient : IOData
+    /// <param name="client">The <see cref="Soc.ODataClient"/>.</param>
+    /// <param name="mapper">The <see cref="IMapper"/>; defaults to <see cref="Mapper.Empty"/>.</param>
+    /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="ODataInvoker"/>.</param>
+    /// <remarks>Where <paramref name="mapper"/> is not specified then <see cref="Mapper.Empty"/> will be used. Note that an <see cref="IMapper"/> will be required where performing any operations outside of any <see cref="ODataItemCollection{T}"/> (being untyped).</remarks>
+    public class ODataClient(Soc.ODataClient client, IMapper? mapper = null, ODataInvoker? invoker = null) : IOData
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ODataClient"/> class.
-        /// </summary>
-        /// <param name="client">The <see cref="Soc.ODataClient"/>.</param>
-        /// <param name="mapper">The <see cref="IMapper"/>.</param>
-        /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="ODataInvoker"/>.</param>
-        public ODataClient(Soc.ODataClient client, IMapper mapper, ODataInvoker? invoker = null)
-        {
-            Client = client ?? throw new ArgumentNullException(nameof(client));
-            Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            Invoker = invoker ?? new ODataInvoker();
-        }
+        /// <inheritdoc/>
+        public Soc.ODataClient Client { get; } = client.ThrowIfNull(nameof(client));
 
         /// <inheritdoc/>
-        public Soc.ODataClient Client { get; }
+        public ODataInvoker Invoker { get; } = invoker ?? new ODataInvoker();
 
         /// <inheritdoc/>
-        public ODataInvoker Invoker { get; }
-
-        /// <inheritdoc/>
-        public IMapper Mapper { get; }
+        public IMapper Mapper { get; } = mapper ?? CoreEx.Mapping.Mapper.Empty;
 
         /// <inheritdoc/>
         public ODataArgs Args { get; set; } = new ODataArgs();
@@ -49,22 +41,27 @@ namespace CoreEx.OData
         public async Task<Result<T?>> GetWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, async(_, ct) =>
         {
             return (await GetModelAsync<TModel>(args, collectionName, key, ct).ConfigureAwait(false))
-                .WhenAs(model => model is null, _ => default!, model => MapToValue<T, TModel>(model!));
+                .WhenAs(model => model is null, _ => default!, model => MapToValue<T, TModel>(args, model!));
         }, this, cancellationToken);
 
         /// <inheritdoc/>
         public async Task<Result<T>> CreateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, async (_, ct) =>
         {
             ChangeLog.PrepareCreated(value);
+            Cleaner.ResetTenantId(value);
+
             var model = Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
+            Cleaner.ResetTenantId(model);
+
             var created = await Client.For<TModel>(collectionName).Set(model).InsertEntryAsync(true, ct).ConfigureAwait(false);
-            return MapToValue<T, TModel>(created);
+            return MapToValue<T, TModel>(args, created);
         }, this, cancellationToken);
 
         /// <inheritdoc/>
         public async Task<Result<T>> UpdateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, async (_, ct) =>
         {
             ChangeLog.PrepareUpdated(value);
+            Cleaner.ResetTenantId(value);
             TModel model;
 
             if (args.PreReadOnUpdate)
@@ -81,7 +78,7 @@ namespace CoreEx.OData
                 model = Mapper.Map<T, TModel>(value, OperationTypes.Update)!;
 
             var updated = await Client.For<TModel>(collectionName).Key(value.EntityKey.Args).Set(model).UpdateEntryAsync(true, ct).ConfigureAwait(false);
-            return updated is null ? Result<T>.NotFoundError() : Result<T>.Ok(MapToValue<T, TModel>(updated));
+            return updated is null ? Result<T>.NotFoundError() : Result<T>.Ok(MapToValue<T, TModel>(args, updated));
         }, this, cancellationToken);
 
         /// <inheritdoc/>
@@ -89,9 +86,11 @@ namespace CoreEx.OData
         {
             if (args.PreReadOnDelete)
             {
-                var get = await GetModelAsync<TModel>(args, collectionName, key, ct).ConfigureAwait(false);
-                if (get.IsFailure || get.Value is null)
-                    return Result.Success;
+                var get = await Result.GoAsync(GetModelAsync<TModel>(args, collectionName, key, ct))
+                    .When(model => model is null, _ => Result.NotFoundError()).ConfigureAwait(false);
+
+                if (get.IsFailure)
+                    return get.AsResult();
             }
 
             await Client.For<TModel>(collectionName).Key(key.Args).DeleteEntryAsync(ct).ConfigureAwait(false);
@@ -108,22 +107,22 @@ namespace CoreEx.OData
                 return Result.Go(await Client.For<TModel>(collectionName).Key(key.Args).FindEntryAsync(cancellationToken).ConfigureAwait(false))
                     .WhenAs<TModel, TModel?>(model => model is null || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value), _ => args.NullOnNotFound ? default! : Result.NotFoundError(), model => model);
             }
-            catch (Soc.WebRequestException odex) when (odex.Code == System.Net.HttpStatusCode.NotFound && args.NullOnNotFound) { return default!; }
+            catch (Soc.WebRequestException odex) when (odex.Code == HttpStatusCode.NotFound && args.NullOnNotFound) { return default!; }
         }
 
         /// <summary>
         /// Maps from the model to the value.
         /// </summary>
-        private T MapToValue<T, TModel>(TModel model) where T : class, IEntityKey, new() where TModel : class, new()
+        private T MapToValue<T, TModel>(ODataArgs args, TModel model) where T : class, IEntityKey, new() where TModel : class, new()
         {
             var result = Mapper.Map<T>(model, OperationTypes.Get);
-            return (result is not null) ? CleanUpResult(result) : throw new InvalidOperationException("Mapping from the OData model must not result in a null value.");
+            return (result is not null) ? CleanUpResult(args, result) : throw new InvalidOperationException("Mapping from the OData model must not result in a null value.");
         }
 
         /// <summary>
         /// Cleans up the result where specified within the args.
         /// </summary>
-        private T CleanUpResult<T>(T value) => Args.CleanUpResult ? Cleaner.Clean(value) : value;
+        internal static T CleanUpResult<T>(ODataArgs args, T value) => args.CleanUpResult ? Cleaner.Clean(value) : value;
 
         /// <inheritdoc/>
         public Result? HandleODataException(Soc.WebRequestException odex) => OnCosmosException(odex);
@@ -141,5 +140,8 @@ namespace CoreEx.OData
             HttpStatusCode.PreconditionFailed => Result.Fail(new ConcurrencyException(null, odex)),
             _ => Result.Fail(odex)
         };
+
+        /// <inheritdoc/>
+        public ODataItemCollection<T> CreateItemCollection<T>(ODataArgs args, string collectionName, IODataMapper<T> mapper) where T : class, new() => new(this, args, collectionName, mapper);
     }
 }

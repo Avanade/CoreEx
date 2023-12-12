@@ -131,6 +131,12 @@ namespace CoreEx.Abstractions.Reflection
         /// <inheritdoc/>
         object? IPropertyExpression.GetDefault() => default;
 
+        /// <summary>
+        /// Gets the default value.
+        /// </summary>
+        /// <returns></returns>
+        public TProperty? GetDefault() => default;
+
         /// <inheritdoc/>
         object? IPropertyExpression.GetValue(object? entity) => GetValue((TEntity)entity!);
 

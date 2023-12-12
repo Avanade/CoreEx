@@ -42,7 +42,8 @@ namespace CoreEx.OData
         /// <summary>
         /// Indicates whether a pre-read (<b>Get</b>) should be performed prior to an <b>Update</b> operation to ensure that the entity exists before attempting. Defaults to <c>false</c>.
         /// </summary>
-        public bool PreReadOnUpdate { get; set; } = false;
+        /// <remarks>A pre-read will ensure that <b>only</b> an update can occur; otherwise, an <i>upsert</i> may occur (dependent on system capability).</remarks>
+        public bool PreReadOnUpdate { get; set; } = true;
 
         /// <summary>
         /// Indicates whether a pre-read (<b>Get</b>) should be performed prior to a <b>Delete</b> operation to ensure that the entity exists before attempting. Defaults to <c>false</c>.

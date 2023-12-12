@@ -3,7 +3,6 @@
 using CoreEx.Abstractions.Reflection;
 using CoreEx.Entities;
 using CoreEx.Mapping;
-using Microsoft.Xrm.Sdk;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -12,32 +11,39 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace CoreEx.Dataverse.Mapping
+namespace CoreEx.OData.Mapping
 {
     /// <summary>
-    /// Provides mapping from a <typeparamref name="TSource"/> <see cref="Type"/> and <i>Dataverse</i> <see cref="Entity"/>.
+    /// Provides bidirectional mapping from a <typeparamref name="TSource"/> <see cref="Type"/> to an <see cref="ODataItem"/>.
     /// </summary>
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
-    public class DataverseMapper<TSource> : IDataverseMapper<TSource>, IDataverseMapperMappings where TSource : class, new()
+    public class ODataMapper<TSource> : IODataMapper<TSource>, IBidirectionalMapper<TSource, ODataItem> where TSource : class, new()
     {
         private readonly List<IPropertyColumnMapper> _mappings = [];
         private readonly bool _implementsIIdentifier = typeof(IIdentifier).IsAssignableFrom(typeof(TSource));
+        private readonly Lazy<SourceToItemMapper> _mapperFromTo;
+        private readonly Lazy<ItemToSourceMapper> _mapperToFrom;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DataverseMapper{TSource}"/> class.
+        /// Initializes a new instance of the <see cref="ODataMapper{TSource}"/> class.
         /// </summary>
         /// <param name="autoMap">Indicates whether the entity should automatically map all public get/set properties, where the property and column names are all assumed to share the same name.</param>
         /// <param name="ignoreSrceProperties">An array of source property names to ignore.</param>
-        public DataverseMapper(bool autoMap = false, params string[] ignoreSrceProperties)
+        public ODataMapper(bool autoMap = false, params string[] ignoreSrceProperties)
         {
             if (typeof(TSource) == typeof(string)) throw new InvalidOperationException("TSource must not be a String.");
 
             if (autoMap)
                 AutomagicallyMap(ignoreSrceProperties);
+
+            _mapperFromTo = new Lazy<SourceToItemMapper>(() => new SourceToItemMapper(this));
+            _mapperToFrom = new Lazy<ItemToSourceMapper>(() => new ItemToSourceMapper(this));
         }
 
-        /// <inheritdoc/>
-        IEnumerable<IPropertyColumnMapper> IDataverseMapperMappings.Mappings => _mappings.AsEnumerable();
+        /// <summary>
+        /// Gets the <see cref="IPropertyColumnMapper"/> mappings.
+        /// </summary>
+        public IEnumerable<IPropertyColumnMapper> Mappings => _mappings.AsEnumerable();
 
         /// <inheritdoc/>
         public IPropertyColumnMapper this[string propertyName] => TryGetProperty(propertyName, out var pcm) ? pcm : throw new ArgumentException($"Property '{propertyName}' does not exist.", nameof(propertyName));
@@ -52,8 +58,7 @@ namespace CoreEx.Dataverse.Mapping
         {
             get
             {
-                if (propertyExpression == null)
-                    throw new ArgumentNullException(nameof(propertyExpression));
+                propertyExpression.ThrowIfNull(nameof(propertyExpression));
 
                 MemberExpression? me = null;
                 if (propertyExpression.Body.NodeType == ExpressionType.MemberAccess)
@@ -95,7 +100,7 @@ namespace CoreEx.Dataverse.Mapping
                 // Create the lambda expression for the property and add to the mapper.
                 var spe = Expression.Parameter(typeof(TSource), "x");
                 var sex = Expression.Lambda(Expression.Property(spe, sp), spe);
-                typeof(DataverseMapper<TSource>)
+                typeof(ODataMapper<TSource>)
                     .GetMethod(nameof(AutoProperty), BindingFlags.NonPublic | BindingFlags.Instance)!
                     .MakeGenericMethod([sp.PropertyType])
                     .Invoke(this, [sex, null, OperationTypes.Any]);
@@ -106,22 +111,14 @@ namespace CoreEx.Dataverse.Mapping
         /// Adds a <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper with additiional auto-logic.
         /// </summary>
         private PropertyColumnMapper<TSource, TSourceProperty> AutoProperty<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes operationTypes = OperationTypes.Any)
-        {
-            var pcm  = Property(propertyExpression, columnName, operationTypes);
-
-            // Automatically set primary key where IIdentifier.
-            if (_implementsIIdentifier && pcm.PropertyName == nameof(IIdentifier.Id))
-                pcm.SetPrimaryKey(pcm.PropertyType == typeof(Guid) || pcm.PropertyType == typeof(Guid?) || pcm.PropertyType == typeof(string));
-
-            return pcm;
-        }
+            => Property(propertyExpression, columnName, operationTypes);
 
         /// <summary>
-        /// Adds a <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper.
+        /// Adds a <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="Map"/>).
         /// </summary>
         /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
-        /// <param name="columnName">The <i>Dataverse</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
+        /// <param name="columnName">The <i>OData</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
         /// <param name="operationTypes">The <see cref="CoreEx.Mapping.OperationTypes"/> selection to enable inclusion or exclusion of property.</param>
         /// <returns>The <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/>.</returns>
         public PropertyColumnMapper<TSource, TSourceProperty> Property<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes operationTypes = OperationTypes.Any)
@@ -130,6 +127,17 @@ namespace CoreEx.Dataverse.Mapping
             AddMapping(pcm);
             return pcm;
         }
+
+        /// <summary>
+        /// Adds a <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="Property"/>).
+        /// </summary>
+        /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
+        /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
+        /// <param name="columnName">The <i>OData</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
+        /// <param name="operationTypes">The <see cref="CoreEx.Mapping.OperationTypes"/> selection to enable inclusion or exclusion of property.</param>
+        /// <returns>The <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/>.</returns>
+        public PropertyColumnMapper<TSource, TSourceProperty> Map<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes operationTypes = OperationTypes.Any)
+            => Property(propertyExpression, columnName, operationTypes);
 
         /// <summary>
         /// Validates and adds a new IPropertyColumnMapper.
@@ -147,16 +155,16 @@ namespace CoreEx.Dataverse.Mapping
         }
 
         /// <summary>
-        /// Adds or updates <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper.
+        /// Adds or updates <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="HasMap"/>)
         /// </summary>
         /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
         /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
-        /// <param name="columnName">The <i>Dataverse</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
+        /// <param name="columnName">The <i>OData</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
         /// <param name="operationTypes">The <see cref="CoreEx.Mapping.OperationTypes"/> selection to enable inclusion or exclusion of property.</param>
         /// <param name="property">An <see cref="Action"/> enabling access to the created <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/>.</param>
         /// <returns></returns>
         /// <remarks>Where updating an existing the <paramref name="columnName"/> and <paramref name="operationTypes"/> where specified will override the previous values.</remarks>
-        public DataverseMapper<TSource> HasProperty<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes? operationTypes = null, Action<PropertyColumnMapper<TSource, TSourceProperty>>? property = null)
+        public ODataMapper<TSource> HasProperty<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes? operationTypes = null, Action<PropertyColumnMapper<TSource, TSourceProperty>>? property = null)
         {
             var tmp = new PropertyColumnMapper<TSource, TSourceProperty>(propertyExpression, columnName, operationTypes ?? OperationTypes.Any);
             var pcm = _mappings.Where(x => x.PropertyName == tmp.PropertyName).OfType<PropertyColumnMapper<TSource, TSourceProperty>>().SingleOrDefault();
@@ -181,20 +189,32 @@ namespace CoreEx.Dataverse.Mapping
         }
 
         /// <summary>
+        /// Adds or updates <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/> to the mapper (same as <see cref="HasProperty"/>).
+        /// </summary>
+        /// <typeparam name="TSourceProperty">The source property <see cref="Type"/>.</typeparam>
+        /// <param name="propertyExpression">The <see cref="Expression"/> to reference the source property.</param>
+        /// <param name="columnName">The <i>OData</i> column name. Defaults to <paramref name="propertyExpression"/> name.</param>
+        /// <param name="operationTypes">The <see cref="CoreEx.Mapping.OperationTypes"/> selection to enable inclusion or exclusion of property.</param>
+        /// <param name="property">An <see cref="Action"/> enabling access to the created <see cref="PropertyColumnMapper{TSource, TSourceProperty}"/>.</param>
+        /// <returns></returns>
+        /// <remarks>Where updating an existing the <paramref name="columnName"/> and <paramref name="operationTypes"/> where specified will override the previous values.</remarks>
+        public ODataMapper<TSource> HasMap<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> propertyExpression, string? columnName = null, OperationTypes? operationTypes = null, Action<PropertyColumnMapper<TSource, TSourceProperty>>? property = null)
+            => HasProperty(propertyExpression, columnName, operationTypes, property);
+
+        /// <summary>
         /// Inherits the property mappings from the selected <paramref name="inheritMapper"/>.
         /// </summary>
         /// <typeparam name="T">The <paramref name="inheritMapper"/> source <see cref="Type"/>. Must inherit from <typeparamref name="TSource"/>.</typeparam>
-        /// <param name="inheritMapper">The <see cref="IDataverseMapper{T}"/> to inherit from. Must also implement <see cref="IDataverseMapperMappings"/>.</param>
-        public void InheritPropertiesFrom<T>(IDataverseMapper<T> inheritMapper) where T : class, new()
+        /// <param name="inheritMapper">The <see cref="IODataMapper{T}"/> to inherit from.</param>
+        public void InheritPropertiesFrom<T>(IODataMapper<T> inheritMapper) where T : class, new()
         {
-            if (inheritMapper == null) throw new ArgumentNullException(nameof(inheritMapper));
+            inheritMapper.ThrowIfNull(nameof(inheritMapper));
             if (!typeof(TSource).IsSubclassOf(typeof(T))) throw new ArgumentException($"Type {typeof(TSource).Name} must inherit from {typeof(T).Name}.", nameof(inheritMapper));
-            if (inheritMapper is not IDataverseMapperMappings inheritMappings) throw new ArgumentException($"Type {typeof(T).Name} must implement {typeof(IDataverseMapperMappings).Name} to copy the mappings.", nameof(inheritMapper));
 
             var pe = Expression.Parameter(typeof(TSource), "x");
-            var type = typeof(DataverseMapper<>).MakeGenericType(typeof(TSource));
+            var type = typeof(ODataMapper<>).MakeGenericType(typeof(TSource));
 
-            foreach (var p in inheritMappings.Mappings)
+            foreach (var p in inheritMapper.Mappings)
             {
                 var lex = Expression.Lambda(Expression.Property(pe, p.PropertyName), pe);
                 var pmap = (IPropertyColumnMapper)type
@@ -203,7 +223,7 @@ namespace CoreEx.Dataverse.Mapping
                     .Invoke(this, [lex, p.ColumnName, p.OperationTypes])!;
 
                 if (p.IsPrimaryKey)
-                    pmap.SetPrimaryKey(p.IsPrimaryKeyUseEntityIdentifier);
+                    pmap.SetPrimaryKey();
 
                 if (p.Converter != null)
                     pmap.SetConverter(p.Converter);
@@ -214,50 +234,113 @@ namespace CoreEx.Dataverse.Mapping
         }
 
         /// <inheritdoc/>
-        public void MapToDataverse(TSource? value, Entity entity, OperationTypes operationType = OperationTypes.Unspecified)
+        public void MapToOData(TSource? value, ODataItem entity, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            entity.ThrowIfNull(nameof(entity));
             if (value == null) return;
 
             foreach (var p in _mappings)
             {
-                p.MapToDataverse(value, entity, operationType);
+                p.MapToOData(value, entity, operationType);
             }
 
-            OnMapToDataverse(value, entity, operationType);
+            OnMapToOData(value, entity, operationType);
         }
 
         /// <summary>
-        /// Extension opportunity when performing a <see cref="MapToDataverse(TSource, Entity, OperationTypes)"/>.
+        /// Extension opportunity when performing a <see cref="MapToOData(TSource, ODataItem, OperationTypes)"/>.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <param name="entity">The <see cref="Entity"/> to update from the <paramref name="value"/>.</param>
+        /// <param name="entity">The <see cref="ODataItem"/> to update from the <paramref name="value"/>.</param>
         /// <param name="operationType">The single <see cref="OperationTypes"/> value being performed to enable conditional execution where appropriate.</param>
-        protected virtual void OnMapToDataverse(TSource value, Entity entity, OperationTypes operationType) { }
+        protected virtual void OnMapToOData(TSource value, ODataItem entity, OperationTypes operationType) { }
 
         /// <inheritdoc/>
-        public TSource? MapFromDataverse(Entity entity, OperationTypes operationType = OperationTypes.Unspecified)
+        public TSource? MapFromOData(ODataItem entity, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-
+            entity.ThrowIfNull(nameof(entity));
             var value = new TSource();
 
             foreach (var p in _mappings)
             {
-                p.MapFromDataverse(entity, value, operationType);
+                p.MapFromOData(entity, value, operationType);
             }
 
-            value = OnMapFromDataverse(value, entity, operationType);
+            value = OnMapFromOData(value, entity, operationType);
             return (value != null && value is IInitial ii && ii.IsInitial) ? null : value;
         }
 
         /// <summary>
-        /// Extension opportunity when performing a <see cref="MapFromDataverse(Entity, OperationTypes)"/>.
+        /// Extension opportunity when performing a <see cref="MapFromOData(ODataItem, OperationTypes)"/>.
         /// </summary>
         /// <param name="value">The source value.</param>
-        /// <param name="entity">The <see cref="Entity"/>.</param>
+        /// <param name="entity">The <see cref="ODataItem"/>.</param>
         /// <param name="operationType">The single <see cref="OperationTypes"/> value being performed to enable conditional execution where appropriate.</param>
         /// <returns>The source value.</returns>
-        protected virtual TSource? OnMapFromDataverse(TSource value, Entity entity, OperationTypes operationType) => value;
+        protected virtual TSource? OnMapFromOData(TSource value, ODataItem entity, OperationTypes operationType) => value;
+
+        /// <summary>
+        /// <typeparamref name="TSource"/> to <see cref="ODataItem"/> mapper.
+        /// </summary>
+        private class SourceToItemMapper(ODataMapper<TSource> parent) : Mapper<TSource, ODataItem>
+        {
+            internal ODataMapper<TSource> Parent { get; } = parent;
+
+            protected override ODataItem? OnMap(TSource? source, ODataItem? destination, OperationTypes operationType)
+            {
+                if (source is null)
+                    return default;
+
+                destination ??= new ODataItem();
+                Parent.MapToOData(source, destination, operationType);
+                return destination;
+            }
+        }
+
+        /// <summary>
+        /// <see cref="ODataItem"/> to <typeparamref name="TSource"/> mapper.
+        /// </summary>
+        private class ItemToSourceMapper(ODataMapper<TSource> parent) : Mapper<ODataItem, TSource>
+        {
+            internal ODataMapper<TSource> Parent { get; } = parent;
+
+            protected override TSource? OnMap(ODataItem? source, TSource? destination, OperationTypes operationType)
+            {
+                if (source is null)
+                    return default;
+
+                return Parent.MapFromOData(source, operationType);
+            }
+        }
+
+        /// <inheritdoc/>
+        IMapper<TSource, ODataItem> IBidirectionalMapper<TSource, ODataItem>.MapperFromTo => _mapperFromTo.Value;
+
+        /// <inheritdoc/>
+        IMapper<ODataItem, TSource> IBidirectionalMapper<TSource, ODataItem>.MapperToFrom => _mapperToFrom.Value;
+
+        /// <inheritdoc/>
+        public object[] GetODataKey(TSource value, OperationTypes operationType = OperationTypes.Unspecified)
+        {
+            value.ThrowIfNull(nameof(value));
+
+            var km = _mappings.Where(x => x.IsPrimaryKey).ToArray();
+            if (km.Length == 0)
+                throw new InvalidOperationException("No primary key mappings have been defined.");
+
+            var oi = new ODataItem();
+            foreach (var p in km)
+            {
+                p.MapToOData(value, oi, operationType);
+            }
+
+            var key = new object[km.Length];
+            for (int i = 0; i < km.Length; i++)
+            {
+                key[i] = oi.Attributes[km[i].ColumnName];
+            }
+
+            return key;
+        }
     }
 }

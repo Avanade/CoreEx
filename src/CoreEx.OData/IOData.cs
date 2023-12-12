@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.OData.Mapping;
 using CoreEx.Results;
 using System;
 using System.Threading;
@@ -51,7 +52,7 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -63,9 +64,9 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
-        /// <param name="value">The value to insert.</param>
+        /// <param name="value">The value to create.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (refreshed where specified).</returns>
         Task<Result<T>> CreateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
@@ -75,9 +76,9 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
-        /// <param name="value">The value to insert.</param>
+        /// <param name="value">The value to update.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value (refreshed where specified).</returns>
         Task<Result<T>> UpdateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
@@ -87,7 +88,7 @@ namespace CoreEx.OData
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="Args"/>.</param>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
         /// <param name="collectionName">The collection name.</param>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -102,5 +103,15 @@ namespace CoreEx.OData
         /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned. A resulting <see cref="Result"/> that is <see cref="Result.IsSuccess"/> is not considered sensical; therefore, will result in the originating
         /// exception being thrown.</remarks>
         Result? HandleODataException(Soc.WebRequestException odex);
+
+        /// <summary>
+        /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
+        /// <param name="collectionName">The collection name.</param>
+        /// <param name="mapper">The specific <see cref="IODataMapper{TSource}"/>.</param>
+        /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
+        ODataItemCollection<T> CreateItemCollection<T>(ODataArgs args, string collectionName, IODataMapper<T> mapper) where T : class, new();
     }
 }

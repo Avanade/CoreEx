@@ -43,7 +43,6 @@ namespace CoreEx.RefData
         private readonly object _lock = new();
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
-        private readonly SemaphoreSlim _primarySemaphore = new(1, 1);
         private readonly ConcurrentDictionary<object, SemaphoreSlim> _semaphores = new();
         private readonly Lazy<ILogger> _logger;
         private readonly Lazy<SettingsBase?> _settings;

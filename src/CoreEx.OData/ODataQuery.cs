@@ -100,7 +100,7 @@ namespace CoreEx.OData
             if (result.IsFailure)
                 return result.AsResult();
 
-            var val = result.Value == null ? default! : Mapper.Map<T>(result.Value, Mapping.OperationTypes.Get);
+            var val = result.Value == null ? default! : Mapper.Map<T>(result.Value, OperationTypes.Get);
             return Args.CleanUpResult ? Cleaner.Clean(val) : val;
         }
 

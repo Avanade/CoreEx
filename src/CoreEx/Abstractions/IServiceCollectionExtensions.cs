@@ -14,7 +14,6 @@ using CoreEx.Mapping;
 using CoreEx.RefData;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -318,7 +317,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
         public static IServiceCollection AddMappers<TAssembly>(this IServiceCollection services)
-            => AddMappers(services, new Assembly[] { typeof(TAssembly).Assembly });
+            => AddMappers(services, [typeof(TAssembly).Assembly]);
 
         /// <summary>
         /// Registers all the <see cref="IMapper{TSource, TDestination}"/>(s) from the specified <paramref name="assemblies"/> into a new <see cref="Mapper"/> that is then registered as a singleton service.
@@ -329,24 +328,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddMappers(this IServiceCollection services, params Assembly[] assemblies)
         {
             var mapper = new Mapper();
-            var mi = typeof(Mapper).GetMethod(nameof(Mapper.Register), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)!;
-
-            foreach (var assembly in assemblies.Distinct())
-            {
-                foreach (var match in from type in assembly.GetTypes()
-                                      where !type.IsAbstract && !type.IsGenericTypeDefinition
-                                      let interfaces = type.GetInterfaces()
-                                      let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMapper<,>))
-                                      let @interface = genericInterfaces.FirstOrDefault()
-                                      let sourceType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[0] : null
-                                      let destinationType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[1] : null
-                                      where @interface != null
-                                      select new { type, sourceType, destinationType })
-                {
-                    mi.MakeGenericMethod(match.sourceType, match.destinationType).Invoke(mapper, new object[] { Activator.CreateInstance(match.type)! });
-                }
-            }
-
+            mapper.Register(assemblies);
             return services.AddSingleton<IMapper>(mapper);
         }
     }

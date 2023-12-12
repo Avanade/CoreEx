@@ -2,10 +2,11 @@
 
 using CoreEx.Http;
 using CoreEx.Invokers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,21 +36,20 @@ namespace CoreEx.AspNetCore.WebApis
         /// <inheritdoc/>
         protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, WebApiBase owner, Func<InvokeArgs, CancellationToken, Task<TResult>> func, WebApiParam? param, CancellationToken cancellationToken)
         {
-            if (param == null)
-                throw new ArgumentNullException(nameof(param));
+            param = param.ThrowIfNull();
 
             // Get and override the correlation-id.
             foreach (var name in owner.GetCorrelationIdNames())
             {
                 if (param.Request.Headers.TryGetValue(name, out var values))
                 {
-                    owner.ExecutionContext.CorrelationId = values.First()!;
+                    owner.ExecutionContext.CorrelationId = values[0]!;
                     break;
                 }
             }
 
             // Set correlation-id for the response.
-            param.Request.HttpContext.Response.Headers.Add(HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId);
+            param.Request.HttpContext.Response.Headers.Append(HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId);
 
             // Start logging scope and begin work.
             using (owner.Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId } }))

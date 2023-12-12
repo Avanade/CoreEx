@@ -1,4 +1,4 @@
-# CoreEx
+# CoreEx.Database
 
 The `CoreEx.Database` namespace provides extended [_ADO.NET_](https://learn.microsoft.com/en-Us/dotnet/framework/data/adonet/) capabilities. 
 

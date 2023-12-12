@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.OData.Mapping;
 using CoreEx.Results;
 using System;
 using System.Threading;
@@ -314,7 +315,7 @@ namespace CoreEx.OData
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        public static Task<Result> DeletDeleteWithResultAsynceAsync<T, TModel>(this IOData odata, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
+        public static Task<Result> DeleteWithResultAsync<T, TModel>(this IOData odata, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
             => odata.DeleteWithResultAsync<T, TModel>(null, key, cancellationToken);
 
         /// <summary>
@@ -342,6 +343,44 @@ namespace CoreEx.OData
         /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
         public static Task<Result> DeleteWithResultAsync<T, TModel>(this IOData odata, string? collectionName, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
             => odata.DeleteWithResultAsync<T, TModel>(new ODataArgs(odata.Args), collectionName, key, cancellationToken);
+
+        #endregion
+
+        #region CreateItemCollection
+
+        /// <summary>
+        /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TMapper">The <see cref="IODataMapper{TSource}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="odata">The <see cref="IOData"/>.</param>
+        /// <param name="collectionName">The collection name.</param>
+        /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
+        public static ODataItemCollection<T> CreateItemCollection<T, TMapper>(this IOData odata, string collectionName) where T : class, new() where TMapper : IODataMapper<T>, new()
+            => odata.CreateItemCollection(collectionName, new TMapper());
+
+        /// <summary>
+        /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TMapper">The <see cref="IODataMapper{TSource}"/> <see cref="Type"/>.</typeparam>
+        /// <param name="args">The <see cref="ODataArgs"/>.</param>
+        /// <param name="odata">The <see cref="IOData"/>.</param>
+        /// <param name="collectionName">The collection name.</param>
+        /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
+        public static ODataItemCollection<T> CreateItemCollection<T, TMapper>(this IOData odata, ODataArgs args, string collectionName) where T : class, new() where TMapper : IODataMapper<T>, new()
+            => odata.CreateItemCollection(args, collectionName, new TMapper());
+
+        /// <summary>
+        /// Creates an untyped <see cref="ODataItemCollection{T}"/> for the specified <paramref name="collectionName"/>.
+        /// </summary>
+        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
+        /// <param name="odata">The <see cref="IOData"/>.</param>
+        /// <param name="collectionName">The collection name.</param>
+        /// <param name="mapper">The specific <see cref="IODataMapper{TSource}"/>.</param>
+        /// <returns>The <see cref="ODataItemCollection{T}"/>.</returns>
+        public static ODataItemCollection<T> CreateItemCollection<T>(this IOData odata, string collectionName, IODataMapper<T> mapper) where T : class, new()
+            => odata.CreateItemCollection(new ODataArgs(odata.Args), collectionName, mapper);
 
         #endregion
     }
