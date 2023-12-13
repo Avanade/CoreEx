@@ -14,7 +14,8 @@ namespace CoreEx.RefData.Extended
     /// <summary>
     /// Represents the extended <see cref="IReferenceData"/> <see cref="EntityBase"/> base implementation.
     /// </summary>
-    /// <remarks>The <see cref="Id"/> can only be of type <see cref="int"/>, <see cref="long"/>, <see cref="string"/> and <see cref="Guid"/>.</remarks>
+    /// <remarks>The <see cref="Id"/> can only be of type <see cref="int"/>, <see cref="long"/>, <see cref="string"/> and <see cref="Guid"/>.
+    /// <para>This implementation is fully-featured and is generally intended for usage within backend services.</para></remarks>
     [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActive = {IsActive}")]
     public class ReferenceDataBaseEx<TId, TSelf> : EntityBase, IReferenceData<TId> where TId : IComparable<TId>, IEquatable<TId> where TSelf : ReferenceDataBaseEx<TId, TSelf>, new()
     {
@@ -40,7 +41,7 @@ namespace CoreEx.RefData.Extended
         }
 
         /// <inheritdoc/>
-        Type IIdentifier.IdType { get => typeof(TId); }
+        Type IIdentifier.IdType => typeof(TId);
 
         /// <inheritdoc/>
         object? IIdentifier.Id { get => Id; set => Id = (TId)value!; }

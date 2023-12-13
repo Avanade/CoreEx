@@ -7,15 +7,16 @@ using System.Diagnostics;
 namespace CoreEx.RefData
 {
     /// <summary>
-    /// Represents the <see cref="IReferenceData"/> implementation.
+    /// Represents the basic <see cref="IReferenceData"/> implementation.
     /// </summary>
+    /// <remarks>For a fully-featured implementation see <see cref="Extended.ReferenceDataBaseEx{TId, TSelf}"/>.</remarks>
     [DebuggerDisplay("Id = {Id}, Code = {Code}, Text = {Text}, IsActive = {IsActive}")]
     public abstract class ReferenceDataBase : IReferenceData
     {
-        private Type _idType = null!;
+        private bool _isValid = true;
 
         /// <inheritdoc/>
-        Type IIdentifier.IdType => _idType;
+        Type IIdentifier.IdType => throw new NotImplementedException();
         
         /// <inheritdoc/>
         public object? Id { get; set; }
@@ -45,12 +46,12 @@ namespace CoreEx.RefData
         public string? ETag { get; set; }
 
         /// <inheritdoc/>
-        public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString()!;
+        bool IReferenceData.IsValid => _isValid;
 
-        /// <summary>
-        /// Sets the underlying <see cref="IIdentifier.IdType"/>.
-        /// </summary>
-        /// <param name="type">The <see cref="IIdentifier.IdType"/>.</param>
-        protected void SetIdType(Type type) => _idType = type;
+        /// <inheritdoc/>
+        void IReferenceData.SetInvalid() => _isValid = false;
+
+        /// <inheritdoc/>
+        public override string ToString() => Text ?? Code ?? Id?.ToString() ?? base.ToString()!;
     }
 }

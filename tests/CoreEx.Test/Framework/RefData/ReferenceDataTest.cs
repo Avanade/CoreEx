@@ -45,6 +45,14 @@ namespace CoreEx.Test.Framework.RefData
             Assert.AreEqual("XX", r.Text);
 
             Assert.AreEqual(typeof(int), ((IIdentifier)r).IdType);
+
+            var ir = (IReferenceData)r;
+            Assert.IsTrue(ir.IsValid);
+            ir.SetInvalid();
+            Assert.IsFalse(ir.IsValid);
+            Assert.AreSame(ir.IdType, typeof(int));
+
+            Assert.AreEqual("{\"id\":1,\"code\":\"X\",\"text\":\"XX\"}", new CoreEx.Text.Json.ReferenceDataContentJsonSerializer().Serialize(r));
         }
 
         [Test]
