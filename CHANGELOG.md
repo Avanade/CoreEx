@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.6.2
+- *Enhancement:* Added `Converter.Create<TSource, TDestionation>` to enable a simple one-off `IConverter<TSource, TDestionation>` implementation to be created.
+- *Fixed:* The `IReferenceData.SetInvalid` method corrected to throw `NotImplementedException` where not explicitly implemented.
+- *Fixed:* The `ReferenceDataBase` updated to handle the `IsValid` and `SetInvalid` functionality correctly.
+
 ## v3.6.1
 - *Enhancement:* Added `IBidirectionalMapper<TFrom, TTo>` to enable a single mapping capability that can support mapping both ways.
 - *Enhancement:* Added `IBidirectionalMapper<TFrom, TTo>` registration support to `Mapper.Register` and by extension `IServiceCollection.AddMappings`.

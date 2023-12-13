@@ -60,7 +60,7 @@ namespace CoreEx.RefData
         /// Overrides the standard <see cref="IsValid"/> check and flags the <see cref="ReferenceDataBaseEx{TId, TSelf}"/> as <b>Invalid</b>.
         /// </summary>
         /// <remarks>Will result in <see cref="IsActive"/> set to <c>false</c>. Once set to invalid it can not be changed; i.e. there is not an means to set back to valid.</remarks>
-        void SetInvalid() { }
+        void SetInvalid() => throw new NotImplementedException("Either explicity override this functionality or leverage the ReferenceDataBaseEx class that enables.");
 
         /// <summary>
         /// Gets the underlying mapping dictionary.
@@ -83,7 +83,7 @@ namespace CoreEx.RefData
         /// <param name="name">The mapping name.</param>
         /// <param name="value">The mapping value.</param>
         /// <remarks>A <paramref name="value"/> with the default value will not be set; assumed in this case that no mapping exists.</remarks>
-        public void SetMapping<T>(string name, T? value) where T : IComparable<T?>, IEquatable<T?> => throw new NotImplementedException();
+        public void SetMapping<T>(string name, T? value) where T : IComparable<T?>, IEquatable<T?> => throw new NotImplementedException("Either explicity override this functionality or leverage the ReferenceDataBaseEx class that enables.");
 
         /// <summary>
         /// Gets a mapping value for the <see cref="ReferenceDataBaseEx{TId, TSelf}"/> for the specified <paramref name="name"/>.
