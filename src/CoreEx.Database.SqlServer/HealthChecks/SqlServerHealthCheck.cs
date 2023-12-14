@@ -67,7 +67,7 @@ namespace CoreEx.DataBase.HealthChecks
                 }
             }
 
-            _innerHealthCheck ??= new global::HealthChecks.SqlServer.SqlServerHealthCheck(_sqlConnectionString, HEALTH_QUERY);
+            _innerHealthCheck ??= new global::HealthChecks.SqlServer.SqlServerHealthCheck(new global::HealthChecks.SqlServer.SqlServerHealthCheckOptions { ConnectionString = _sqlConnectionString, CommandText = HEALTH_QUERY });
 
             try
             {

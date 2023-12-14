@@ -12,10 +12,6 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="StrongNamer" Version="0.2.5" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 

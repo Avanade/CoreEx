@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.6.3
+- *Fixed:* All related package dependencies updated to latest.
+
 ## v3.6.2
 - *Enhancement:* Added `Converter.Create<TSource, TDestionation>` to enable a simple one-off `IConverter<TSource, TDestionation>` implementation to be created.
 - *Fixed:* The `IReferenceData.SetInvalid` method corrected to throw `NotImplementedException` where not explicitly implemented.
