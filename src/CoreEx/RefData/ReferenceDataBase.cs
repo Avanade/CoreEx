@@ -34,7 +34,7 @@ namespace CoreEx.RefData
         public int SortOrder { get; set; }
 
         /// <inheritdoc/>
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
         /// <inheritdoc/>
         public DateTime? StartDate { get; set; }
