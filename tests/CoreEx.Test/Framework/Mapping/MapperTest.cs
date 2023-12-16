@@ -1,5 +1,6 @@
 ﻿using CoreEx.Entities;
 using CoreEx.Mapping;
+using CoreEx.Validation.Clauses;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -721,6 +722,23 @@ namespace CoreEx.Test.Framework.Mapping
             Assert.That(cd2.Id, Is.EqualTo(88));
             Assert.That(cd2.Name, Is.EqualTo("Dave"));
             Assert.That(cd2.ExtraDetail, Is.EqualTo("read all about it"));
+        }
+
+        [Test]
+        public void CustomMapper()
+        {
+            var m = new Mapper<PersonA, PersonB>((s, d, t) =>
+            {
+                d ??= new PersonB();
+                Mapper.WhenCreate(t, () => d!.ID = s?.Id ?? 0);
+                return d;
+            });
+
+            var d = m.Map(new PersonA { Id = 88, Name = "blah" }, null, OperationTypes.Create);
+            Assert.AreEqual(88, d!.ID);
+
+            d = m.Map(new PersonA { Id = 88, Name = "blah" }, null, OperationTypes.Update);
+            Assert.AreEqual(0, d!.ID);
         }
 
         public class PersonAMapper : Mapper<PersonA, PersonB>

@@ -14,9 +14,22 @@ namespace CoreEx.Mapping
     public class Mapper<TSource, TDestination> : IMapper<TSource, TDestination> where TSource : class, new() where TDestination : class, new()
     {
         private readonly List<(Action<MapperOptions, TSource, TDestination> action, OperationTypes types, Func<TSource, bool>? isSourceInitial, Action<TDestination>? initializeDestination)> _mappings = [];
+        private readonly Func<TSource?, TDestination?, OperationTypes, TDestination?>? _onMap;
         private Mapper? _mapper;
         private Func<TSource, bool>? _isSourceInitial;
         private Func<TDestination, bool>? _initializeDestination;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Mapper{TSource, TDestination}"/> class.
+        /// </summary>
+        public Mapper() { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Mapper{TSource, TDestination}"/> class with an <paramref name="onMap"/> function.
+        /// </summary>
+        /// <param name="onMap">The mapping function.</param>
+        /// <remarks>Provides a simple means to create an instance with <see cref="OnMap(TSource?, TDestination?, OperationTypes)"/> logic specified within the constructor; versus, having to inherit to implement.</remarks>
+        public Mapper(Func<TSource?, TDestination?, OperationTypes, TDestination?> onMap) => _onMap = onMap.ThrowIfNull(nameof(onMap));
 
         /// <inheritdoc/>
         public Mapper Owner
@@ -260,15 +273,15 @@ namespace CoreEx.Mapping
         /// <param name="source">The source.</param>
         /// <param name="destination">The destination.</param>
         /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        internal virtual TDestination? Map(TSource? source, TDestination? destination, OperationTypes operationType)
+        public virtual TDestination? Map(TSource? source, TDestination? destination, OperationTypes operationType)
         {
             if (source is null && destination is null)
-                return OnMap(source, destination, operationType);
+                return OnMapInternal(source, destination, operationType);
 
             if (source is null && destination is not null)
             {
                 destination = default;
-                return OnMap(source, destination, operationType);
+                return OnMapInternal(source, destination, operationType);
             }
 
             if (destination is not null)
@@ -279,6 +292,14 @@ namespace CoreEx.Mapping
             {
                 action(new MapperOptions(Owner, operationType), source!, destination);
             }
+
+            return OnMapInternal(source, destination, operationType);
+        }
+
+        private TDestination? OnMapInternal(TSource? source, TDestination? destination, OperationTypes operationType)
+        {
+            if (_onMap is not null)
+                destination = _onMap(source, destination, operationType);
 
             return OnMap(source, destination, operationType);
         }
