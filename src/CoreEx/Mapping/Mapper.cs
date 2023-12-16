@@ -199,5 +199,63 @@ namespace CoreEx.Mapping
             [return: NotNullIfNotNull(nameof(source))]
             public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
         }
+
+        /// <summary>
+        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.Get"/> then the action is invoked.
+        /// </summary>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <param name="action">The action to invoke.</param>
+        public static void WhenGet(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Get, operationType, action);
+
+        /// <summary>
+        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.Create"/> then the action is invoked.
+        /// </summary>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <param name="action">The action to invoke.</param>
+        public static void WhenCreate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Create, operationType, action);
+
+        /// <summary>
+        /// When <paramref name="operationType"/> is an <see cref="OperationTypes.Update"/> then the action is invoked.
+        /// </summary>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <param name="action">The action to invoke.</param>
+        public static void WhenUpdate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Update, operationType, action);
+
+        /// <summary>
+        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.Delete"/> then the action is invoked.
+        /// </summary>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <param name="action">The action to invoke.</param>
+        public static void WhenDelete(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Delete, operationType, action);
+
+        /// <summary>
+        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.AnyExceptGet"/> then the action is invoked.
+        /// </summary>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <param name="action">The action to invoke.</param>
+        public static void WhenAnyExceptGet(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.AnyExceptGet, operationType, action);
+
+        /// <summary>
+        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.AnyExceptCreate"/> then the action is invoked.
+        /// </summary>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <param name="action">The action to invoke.</param>
+        public static void WhenAnyExceptCreate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.AnyExceptCreate, operationType, action);
+
+        /// <summary>
+        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.AnyExceptUpdate"/> then the action is invoked.
+        /// </summary>
+        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
+        /// <param name="action">The action to invoke.</param>
+        public static void WhenAnyExceptUpdate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.AnyExceptUpdate, operationType, action);
+
+        /// <summary>
+        /// When the <paramref name="operationType"/> matches the <paramref name="expectedOperationTypes"/> then the <paramref name="action"/> is invoked.
+        /// </summary>
+        private static void WhenOperationType(OperationTypes expectedOperationTypes, OperationTypes operationType, Action action)
+        {
+            if (expectedOperationTypes.HasFlag(operationType))
+                action?.Invoke();
+        }
     }
 }

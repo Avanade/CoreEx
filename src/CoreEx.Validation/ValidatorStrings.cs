@@ -191,6 +191,12 @@ namespace CoreEx.Validation
         public static LText EmailFormat { get; set; } = new("CoreEx.Validation.EmailFormat");
 
         /// <summary>
+        /// Gets or sets the format string for when no (none) value is to be specified.
+        /// </summary>
+        /// <remarks>Defaults to: '<c>{0} must not be specified.</c>'.</remarks>
+        public static LText NoneFormat { get; set; } = new("CoreEx.Validation.NoneFormat");
+
+        /// <summary>
         /// Gets or sets the string for the <see cref="Entities.IPrimaryKey.PrimaryKey"/> literal.
         /// </summary>
         /// <remarks>Defaults to: '<c>Primary Key</c>'</remarks>

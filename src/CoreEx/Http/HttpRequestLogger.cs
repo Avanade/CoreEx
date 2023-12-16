@@ -114,7 +114,7 @@ namespace CoreEx.Http
                     }
                     else
                     {
-                        _logger.LogError("Unexpected HTTP Response in {Time} {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode})",
+                        _logger.LogDebug("Unsuccessful HTTP Response in {Time} {HttpRequestHost} {HttpStatusCodeText} ({HttpStatusCode})",
                             operationTime,
                             request.RequestUri?.Host,
                             response.StatusCode,

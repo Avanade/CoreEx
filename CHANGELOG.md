@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.7.0
+- *Enhancement:* The `Mapper<TSource, TDestination>` has a new constructor override to enable the specification of the mapping (`OnMap` equivalent) logic.
+- *Enhancement:* The `Mapper` has had `When*` helper methods added to aid the specification of the mapping logic depending on the `OperationTypes` (singular) being performed.
+- *Enhancement:* A new `NoneRule` validation has been added to ensure that a value is none (i.e. must be its default value). 
+
 ## v3.6.3
 - *Fixed:* All related package dependencies updated to latest.
 
