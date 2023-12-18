@@ -741,6 +741,35 @@ namespace CoreEx.Test.Framework.Mapping
             Assert.AreEqual(0, d!.ID);
         }
 
+        [Test]
+        public void BidirectionalMapper()
+        {
+            var bm = new BidirectionalMapper<PersonA, PersonB>((s, d, _) =>
+            {
+                d ??= new PersonB();
+                d.ID = s?.Id ?? 0;
+                return d;
+            }, (s, d, _) =>
+            {
+                d ??= new PersonA();
+                d.Id = s?.ID ?? 0;
+                return d;
+            });
+
+            var pa = new PersonA { Id = 99, Name = "blah" };
+            var pb = bm.Map(pa);
+            var pa2 = bm.Map(pb);
+            Assert.AreEqual(99, pa2.Id);
+
+            var m = new Mapper();
+            m.Register(bm);
+
+            pa = new PersonA { Id = 88, Name = "blah" };
+            pb = m.Map<PersonB>(pa);
+            pa2 = m.Map<PersonA>(pb);
+            Assert.AreEqual(88, pa2.Id);
+        }
+
         public class PersonAMapper : Mapper<PersonA, PersonB>
         {
             public PersonAMapper()

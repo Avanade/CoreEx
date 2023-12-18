@@ -3,7 +3,7 @@
 namespace CoreEx.Mapping
 {
     /// <summary>
-    /// Provides a bidirectional mapper that encapsulates two <see cref="IMapperBase"/>'s; one for each direction.
+    /// Enables a bidirectional mapper that encapsulates two <see cref="IMapperBase"/>'s; one for each direction.
     /// </summary>
     public interface IBidirectionalMapperBase
     {

@@ -566,7 +566,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<Result<TValue>>> get, Func<WebApiParam<TValue>, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false) where TValue : class
             => PutWithResultAsync(request, (p, _) => get(p), (p, _) => put(p), statusCode, operationType, validator, simulatedConcurrency, CancellationToken.None);
 
@@ -583,7 +583,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result<TValue>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false, CancellationToken cancellationToken = default) where TValue : class
             => PutWithResultInternalAsync(request, false, default!, get, put, statusCode, operationType, validator, simulatedConcurrency, cancellationToken);
 
@@ -600,7 +600,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
         /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam, Task<Result<TValue>>> get, Func<WebApiParam<TValue>, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false) where TValue : class
             => PutWithResultAsync(request, value, (p, _) => get(p), (p, _) => put(p), statusCode, operationType, validator, simulatedConcurrency, CancellationToken.None);
 
@@ -618,14 +618,14 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="simulatedConcurrency">Indicates whether simulated concurrency (ETag) checking/generation is performed as underlying data source does not support.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
-        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam, CancellationToken, Task<Result<TValue>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+        public Task<IActionResult> PutWithResultAsync<TValue>(HttpRequest request, TValue value, Func<WebApiParam, CancellationToken, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false, CancellationToken cancellationToken = default) where TValue : class
             => PutWithResultInternalAsync(request, true, value, get, put, statusCode, operationType, validator, simulatedConcurrency, cancellationToken);
 
         /// <summary>
         /// Performs a <see cref="HttpMethods.Put"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> returning a corresponding response value (with a <see cref="Result{T}"/>).
         /// </summary>
-        private async Task<IActionResult> PutWithResultInternalAsync<TValue>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam, CancellationToken, Task<Result<TValue>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
+        private async Task<IActionResult> PutWithResultInternalAsync<TValue>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam, CancellationToken, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false, CancellationToken cancellationToken = default) where TValue : class
         {
             if (request == null)

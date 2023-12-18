@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.7.1
+- *Fixed*: The `WebApi.PutWithResultAsync` methods that support `get` function parameter have had the result nullability corrected.
+- *Fixed*: The `BidirectionalMapper<TFrom, TTo>` has been added to further simplify the specification of a bidirectional mapping capability.
+
 ## v3.7.0
 - *Enhancement:* The `Mapper<TSource, TDestination>` has a new constructor override to enable the specification of the mapping (`OnMap` equivalent) logic.
 - *Enhancement:* The `Mapper` has had `When*` helper methods added to aid the specification of the mapping logic depending on the `OperationTypes` (singular) being performed.

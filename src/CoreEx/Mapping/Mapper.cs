@@ -118,6 +118,21 @@ namespace CoreEx.Mapping
         public void Register<TSource, TDestination>(IMapper<TSource, TDestination> mapper)
             => _mappers.TryAdd(((mapper ?? throw new ArgumentNullException(nameof(mapper))).SourceType, mapper.DestinationType), mapper.Adjust(x => x.Owner = this));
 
+        /// <summary>
+        /// Registers (adds) an individual <see cref="IBidirectionalMapper{TSource, TDestination}"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
+        /// <param name="bidirectionalMapper">The see cref="IBidirectionalMapper{TSource, TDestination}"/>.</param>
+        /// <remarks>Where an attempt is made to add a mapper for a <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> more than once only the first will succeed; no exception will be thrown for subsequent adds.</remarks>
+        public void Register<TSource, TDestination>(IBidirectionalMapper<TSource, TDestination> bidirectionalMapper)
+        {
+            var mapperFromTo = bidirectionalMapper.ThrowIfNull(nameof(bidirectionalMapper)).MapperFromTo.Adjust(x => x.Owner = this);
+            var mapperToFrom = bidirectionalMapper.MapperToFrom.Adjust(x => x.Owner = this);
+            _mappers.TryAdd((mapperFromTo.SourceType, mapperFromTo.DestinationType), mapperFromTo);
+            _mappers.TryAdd((mapperToFrom.SourceType, mapperToFrom.DestinationType), mapperToFrom);
+        }
+
         /// <inheritdoc/>
         [return: NotNullIfNotNull(nameof(source))]
         public TDestination? Map<TDestination>(object? source, OperationTypes operationType = OperationTypes.Unspecified)
