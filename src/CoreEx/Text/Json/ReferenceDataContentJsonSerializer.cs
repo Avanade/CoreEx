@@ -11,7 +11,8 @@ namespace CoreEx.Text.Json
     /// Provides the JSON Serialize and Deserialize implementation to allow <see cref="IReferenceData"/> types to serialize contents.
     /// </summary>
     /// <remarks>Generally, <see cref="IReferenceData"/> types will serialize the <see cref="IReferenceData.Code"/> as the value; this allows for full <see cref="IReferenceData"/> contents to be serialized.</remarks>
-    public class ReferenceDataContentJsonSerializer : JsonSerializer, IReferenceDataContentJsonSerializer
+    /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>. Defaults to <see cref="DefaultOptions"/>.</param>
+    public class ReferenceDataContentJsonSerializer(Stj.JsonSerializerOptions? options = null) : JsonSerializer(options ?? DefaultOptions), IReferenceDataContentJsonSerializer
     {
         /// <summary>
         /// Gets or sets the default <see cref="Stj.JsonSerializerOptions"/> without <see cref="CollectionResultConverterFactory"/> to allow <see cref="IReferenceData"/> types to serialize contents.
@@ -22,7 +23,7 @@ namespace CoreEx.Text.Json
         ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c></description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DictionaryKeyPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.PropertyNamingPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
-        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/> and <see cref="CollectionResultConverterFactory"/>.</description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/>, <see cref="CollectionResultConverterFactory"/> and <see cref="ResultConverterFactory"/>.</description></item>
         /// </list>
         /// </remarks>
         public static new Stj.JsonSerializerOptions DefaultOptions { get; set; } = new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
@@ -31,13 +32,7 @@ namespace CoreEx.Text.Json
             WriteIndented = false,
             DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
             PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
-            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new CollectionResultConverterFactory(), new ReferenceDataMultiCollectionConverterFactory(), new ResultConverterFactory() }
+            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new CollectionResultConverterFactory(), new ResultConverterFactory() }
         };
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
-        /// </summary>
-        /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>. Defaults to <see cref="DefaultOptions"/>.</param>
-        public ReferenceDataContentJsonSerializer(Stj.JsonSerializerOptions? options = null) : base(options ?? DefaultOptions) { }
     }
 }

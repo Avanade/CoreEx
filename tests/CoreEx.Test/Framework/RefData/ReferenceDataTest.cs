@@ -604,18 +604,18 @@ namespace CoreEx.Test.Framework.RefData
             var mc = o.GetNamedAsync(new string[] { "state", "bananas", "suburb" }).GetAwaiter().GetResult();
             Assert.NotNull(mc);
             Assert.AreEqual(2, mc.Count);
-            Assert.AreEqual("State", mc[0].Name);
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc[0].Items.Select(x => x.Code));
-            Assert.AreEqual("Suburb", mc[1].Name);
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+            var mc1 = mc["State"];
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc1.Select(x => x.Code));
+            var mc2 = mc["Suburb"];
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
 
             mc = o.GetNamedAsync(new string[] { "state", "bananas", "suburb" }, includeInactive: true).GetAwaiter().GetResult();
             Assert.NotNull(mc);
             Assert.AreEqual(2, mc.Count);
-            Assert.AreEqual("State", mc[0].Name);
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "XX", "SC", "WA"}, mc[0].Items.Select(x => x.Code));
-            Assert.AreEqual("Suburb", mc[1].Name);
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+            mc1 = mc["State"];
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "XX", "SC", "WA"}, mc1.Select(x => x.Code));
+            mc2 = mc["Suburb"];
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
         }
 
         [Test]
@@ -628,28 +628,28 @@ namespace CoreEx.Test.Framework.RefData
             var mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
             Assert.NotNull(mc);
             Assert.AreEqual(2, mc.Count);
-            Assert.AreEqual("State", mc[0].Name);
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc[0].Items.Select(x => x.Code));
-            Assert.AreEqual("Suburb", mc[1].Name);
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+            var mc1 = mc["State"];
+            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc1.Select(x => x.Code));
+            var mc2 = mc["Suburb"];
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
 
             hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/ref?state=co,il&suburb&state=xx");
             mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
             Assert.NotNull(mc);
             Assert.AreEqual(2, mc.Count);
-            Assert.AreEqual("State", mc[0].Name);
-            Assert.AreEqual(new string[] { "CO", "IL" }, mc[0].Items.Select(x => x.Code));
-            Assert.AreEqual("Suburb", mc[1].Name);
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc[1].Items.Select(x => x.Code));
+            mc1 = mc["State"];
+            Assert.AreEqual(new string[] { "CO", "IL" }, mc1.Select(x => x.Code));
+            mc2 = mc["Suburb"];
+            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
 
             hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/ref?state=co,il&suburb=h&state=xx&include-inactive&bananas");
             mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
             Assert.NotNull(mc);
             Assert.AreEqual(2, mc.Count);
-            Assert.AreEqual("State", mc[0].Name);
-            Assert.AreEqual(new string[] { "CO", "IL", "XX" }, mc[0].Items.Select(x => x.Code));
-            Assert.AreEqual("Suburb", mc[1].Name);
-            Assert.AreEqual(new string[] { "H" }, mc[1].Items.Select(x => x.Code));
+            mc1 = mc["State"];
+            Assert.AreEqual(new string[] { "CO", "IL", "XX" }, mc1.Select(x => x.Code));
+            mc2 = mc["Suburb"];
+            Assert.AreEqual(new string[] { "H" }, mc2.Select(x => x.Code));
         }
 
         [Test]

@@ -521,11 +521,11 @@ namespace CoreEx.RefData
         /// <param name="names">The reference data names.</param>
         /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsActive"/> equal <c>false</c>) entries.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="ReferenceDataMultiCollection"/>.</returns>
+        /// <returns>The <see cref="ReferenceDataMultiDictionary"/>.</returns>
         /// <remarks>Will return an empty collection where no <paramref name="names"/> are specified.</remarks>
-        public async Task<ReferenceDataMultiCollection> GetNamedAsync(IEnumerable<string> names, bool includeInactive = false, CancellationToken cancellationToken = default)
+        public async Task<ReferenceDataMultiDictionary> GetNamedAsync(IEnumerable<string> names, bool includeInactive = false, CancellationToken cancellationToken = default)
         {
-            var mc = new ReferenceDataMultiCollection();
+            var mc = new ReferenceDataMultiDictionary();
 
             if (names != null)
             {
@@ -533,7 +533,7 @@ namespace CoreEx.RefData
 
                 foreach (var name in names.Where(ContainsName).Distinct(StringComparer.OrdinalIgnoreCase))
                 {
-                    mc.Add(new ReferenceDataMultiItem(_nameToType[name].Name, await GetWithFilterAsync(name, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false)));
+                    mc.Add(_nameToType[name].Name, await GetWithFilterAsync(name, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false));
                 }
             }
 
@@ -546,11 +546,11 @@ namespace CoreEx.RefData
         /// <param name="namesAndCodes">The reference data names and related codes.</param>
         /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsActive"/> equal <c>false</c>) entries.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="ReferenceDataMultiCollection"/>.</returns>
+        /// <returns>The <see cref="ReferenceDataMultiDictionary"/>.</returns>
         /// <remarks>Will return an empty collection where no <paramref name="namesAndCodes"/> are specified.</remarks>
-        public async Task<ReferenceDataMultiCollection> GetNamedAsync(IEnumerable<KeyValuePair<string, List<string>>> namesAndCodes, bool includeInactive = false, CancellationToken cancellationToken = default)
+        public async Task<ReferenceDataMultiDictionary> GetNamedAsync(IEnumerable<KeyValuePair<string, List<string>>> namesAndCodes, bool includeInactive = false, CancellationToken cancellationToken = default)
         {
-            var mc = new ReferenceDataMultiCollection();
+            var mc = new ReferenceDataMultiDictionary();
 
             if (namesAndCodes != null)
             {
@@ -558,7 +558,7 @@ namespace CoreEx.RefData
 
                 foreach (var kvp in namesAndCodes.Where(x => ContainsName(x.Key)))
                 {
-                    mc.Add(new ReferenceDataMultiItem(_nameToType[kvp.Key].Name, await GetWithFilterAsync(kvp.Key, codes: kvp.Value, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false)));
+                    mc.Add(_nameToType[kvp.Key].Name, await GetWithFilterAsync(kvp.Key, codes: kvp.Value, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false));
                 }
             }
 

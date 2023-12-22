@@ -31,6 +31,7 @@ Package | Status | Source & documentation
 `CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx.EntityFrameworkCore)
 `CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [Link](./src/CoreEx.FluentValidation)
 `CoreEx.Newtonsoft` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
+`CoreEx.OData` | [![NuGet version](https://badge.fury.io/nu/CoreEx.OData.svg)](https://badge.fury.io/nu/CoreEx.OData) | [Link](./src/CoreEx.OData)
 `CoreEx.Solace` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Solace.svg)](https://badge.fury.io/nu/CoreEx.Solace) | [Link](./src/CoreEx.Solace)
 `CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx.Validation)
 -- | -- | --
@@ -59,8 +60,7 @@ These other _Avanade_ repositories leverage _CoreEx_:
 Repo | Description
 -|-
 [Beef](https://github.com/Avanade/beef) | Code-generation capabilities to support the industrialization of API development leveraging `CoreEx` as the primary runtime framework (_Beef_ version `v5+`).
-[DbEx](https://github.com/Avanade/dbex) | DbEx provides database extensions for DbUp-inspired database migrations.
-[UnitTestEx](https://github.com/Avanade/unittestex) | Provides .NET testing extensions to the most popular testing frameworks (MSTest, NUnit and Xunit).
+[DbEx](https://github.com/Avanade/dbex) | Provides database extensions for DbUp-inspired database migrations.
 [NTangle](https://github.com/Avanade/ntangle) | Change Data Capture (CDC) code generation tool and runtime.
 
 <br/>
