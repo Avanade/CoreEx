@@ -281,7 +281,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.Type<WebApi>()
                 .Run(f => f.PutWithResultAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest", new { id = "A", name = "B", price = 2.99m }),
-                        r => Task.FromResult(Result.Ok(new Product { Id = "A", Name = "B", Price = 1.99m })),
+                        r => Task.FromResult<Result<Product?>>(Result.Ok<Product?>(new Product { Id = "A", Name = "B", Price = 1.99m })),
                         r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 2.99m }, r.Value); return Task.FromResult(Result.Ok(new Product { Id = "Y", Name = "Z", Price = 3.99m })); },
                         simulatedConcurrency: true))
                 .ToActionResultAssertor()
@@ -295,7 +295,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.Type<WebApi>()
                 .Run(f => f.PutWithResultAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest", new { id = "A", name = "B", price = 2.99m }, new HttpRequestOptions { ETag = "bbb" }),
-                        r => Task.FromResult(Result.Ok(new Product { Id = "A", Name = "B", Price = 1.99m })),
+                        r => Task.FromResult<Result<Product?>>(Result.Ok<Product?>(new Product { Id = "A", Name = "B", Price = 1.99m })),
                         r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 2.99m }, r.Value); return Task.FromResult(Result.Ok(new Product { Id = "Y", Name = "Z", Price = 3.99m })); },
                         simulatedConcurrency: true))
                 .ToActionResultAssertor()
@@ -309,7 +309,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.Type<WebApi>()
                 .Run(f => f.PutWithResultAsync(test.CreateJsonHttpRequest(HttpMethod.Put, "https://unittest", new { id = "A", name = "B", price = 2.99m }, new HttpRequestOptions { ETag = "98Oe+fRzgTuVae59mLwf0Mj+iKySTlgUxEQt18huJZg=" }),
-                        r => Task.FromResult(Result.Ok(new Product { Id = "A", Name = "B", Price = 1.99m })),
+                        r => Task.FromResult<Result<Product?>>(Result.Ok<Product?>(new Product { Id = "A", Name = "B", Price = 1.99m })),
                         r => { ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 2.99m }, r.Value); return Task.FromResult(Result.Ok(new Product { Id = "Y", Name = "Z", Price = 3.99m })); },
                         simulatedConcurrency: true))
                 .ToActionResultAssertor()

@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.7.2
+- *Fixed*: The `ReferenceDataMultiCollection` and `ReferenceDataMultiItem` have been replaced with the `ReferenceDataMultiDictionary` as existing resulted in an unintended format with which to return the data. This fix also removed the need for the `ReferenceDataMultiCollectionConverterFactory` as custom serialization for this is no longer required.
+
 ## v3.7.1
 - *Fixed*: The `WebApi.PutWithResultAsync` methods that support `get` function parameter have had the result nullability corrected.
 - *Fixed*: The `BidirectionalMapper<TFrom, TTo>` has been added to further simplify the specification of a bidirectional mapping capability.

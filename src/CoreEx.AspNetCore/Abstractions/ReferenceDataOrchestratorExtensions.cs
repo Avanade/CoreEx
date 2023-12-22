@@ -20,9 +20,9 @@ namespace CoreEx.RefData
         /// <param name="orchestrator">The <see cref="ReferenceDataOrchestrator"/>.</param>
         /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="ReferenceDataMultiCollection"/>.</returns>
+        /// <returns>The <see cref="ReferenceDataMultiDictionary"/>.</returns>
         /// <remarks>The reference data names and codes are specified as part of the query string. Either '<c>?names=RefA,RefB,RefX</c>' or <c>?RefA,RefB=CodeA,CodeB,RefX=CodeX</c> or any combination thereof.</remarks>
-        public static Task<ReferenceDataMultiCollection> GetNamedAsync(this ReferenceDataOrchestrator orchestrator, WebApiRequestOptions requestOptions, CancellationToken cancellationToken = default)
+        public static Task<ReferenceDataMultiDictionary> GetNamedAsync(this ReferenceDataOrchestrator orchestrator, WebApiRequestOptions requestOptions, CancellationToken cancellationToken = default)
         {
             var dict = new Dictionary<string, List<string>>();
 
@@ -32,7 +32,7 @@ namespace CoreEx.RefData
                 {
                     foreach (var v in SplitStringValues(q.Value.Where(x => !string.IsNullOrEmpty(x)).Distinct()!))
                     {
-                        dict.TryAdd(v, new List<string>());
+                        dict.TryAdd(v, []);
                     }
                 }
                 else
