@@ -115,8 +115,11 @@ namespace CoreEx.Http
         {
             var skip = ParseLongValue(TryGetHeaderValue(response, HttpConsts.PagingSkipHeaderName, out var vs) ? vs : null);
             var page = skip.HasValue ? null : ParseLongValue(TryGetHeaderValue(response, HttpConsts.PagingPageNumberHeaderName, out var vpn) ? vpn : null);
+            var token = TryGetHeaderValue(response, HttpConsts.PagingTokenHeaderName, out var vtk) ? vtk : null;
 
-            if (skip.HasValue)
+            if (!string.IsNullOrEmpty(token))
+                result = new PagingResult(PagingArgs.CreateTokenAndTake(token, ParseLongValue(TryGetHeaderValue(response, HttpConsts.PagingTakeHeaderName, out var vt) ? vt : null)));
+            else if (skip.HasValue)
                 result = new PagingResult(PagingArgs.CreateSkipAndTake(skip.Value, ParseLongValue(TryGetHeaderValue(response, HttpConsts.PagingTakeHeaderName, out var vt) ? vt : null)));
             else if (page.HasValue)
                 result = new PagingResult(PagingArgs.CreatePageAndSize(page.Value, ParseLongValue(TryGetHeaderValue(response, HttpConsts.PagingPageSizeHeaderName, out var vps) ? vps : null)));

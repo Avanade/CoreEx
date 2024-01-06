@@ -114,6 +114,6 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("http://host:5050/test/xyz", UriKind.Absolute) }));
         }
 
-        private EventData Create(string? subject, string? type, string? action) => new EventData { Subject = subject, Type = type, Action = action };
+        private EventData Create(string? subject, string? type, string? action) => new() { Subject = subject, Type = type, Action = action };
     }
 }

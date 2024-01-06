@@ -208,6 +208,33 @@ namespace CoreEx.Test.Framework.Http
         }
 
         [Test]
+        public void Get_SuccessWithCollectionResultAndTokenPaging()
+        {
+            var pc = new ProductCollection { new Product { Id = "abc", Name = "banana", Price = 0.99m }, new Product { Id = "def", Name = "apple", Price = 0.49m } };
+
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Get, "product").Respond.WithJson(pc, HttpStatusCode.OK, r =>
+            {
+                r.Headers.Add(HttpConsts.PagingTokenHeaderName, "token");
+                r.Headers.Add(HttpConsts.PagingTakeHeaderName, "25");
+                r.Headers.Add(HttpConsts.PagingTotalCountHeaderName, "1000");
+            });
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ReplaceHttpClientFactory(mcf)
+                .Type<BackendHttpClient>()
+                .Run(f => f.GetAsync<ProductCollectionResult>("product"))
+                .AssertSuccess();
+
+            Assert.IsTrue(r.Result.IsSuccess);
+            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            ObjectComparer.Assert(new ProductCollectionResult { Items = pc, Paging = new PagingResult(PagingArgs.CreateTokenAndTake("token", 25), 1000) }, r.Result.Value);
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
         public void Post_Success()
         {
             var mcf = MockHttpClientFactory.Create();

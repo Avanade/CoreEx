@@ -3,7 +3,6 @@
 using CoreEx.Abstractions;
 using CoreEx.AspNetCore.Http;
 using CoreEx.Entities;
-using CoreEx.Http;
 using CoreEx.Json;
 using CoreEx.Results;
 using Microsoft.AspNetCore.Http;
@@ -21,9 +20,10 @@ using System.Threading.Tasks;
 namespace CoreEx.AspNetCore.WebApis
 {
     /// <summary>
-    /// Represents a <see cref="ContentResult"/> with a JSON serialized value.
+    /// Represents an <see cref="ExtendedContentResult"/> with a JSON serialized value.
     /// </summary>
-    /// <remarks>This contains extended functionality to manage the setting of response headers related to <see cref="ETag"/>, <see cref="PagingResult"/> and <see cref="Location"/>.</remarks>
+    /// <remarks>This contains extended functionality to manage the setting of response headers related to <see cref="ETag"/>, <see cref="PagingResult"/> and <see cref="Location"/>.
+    /// <para>The <see cref="CreateResult{T}"/> and <see cref="TryCreateValueContentResult{T}"/> will return the value as-is where it is an instance of <see cref="IActionResult"/>; i.e. will bypass all related functionality.</para></remarks>
     public sealed class ValueContentResult : ExtendedContentResult
     {
         /// <summary>
@@ -75,7 +75,7 @@ namespace CoreEx.AspNetCore.WebApis
         }
 
         /// <summary>
-        /// Creates the <see cref="IActionResult"/> as either <see cref="ValueContentResult"/> or <see cref="StatusCodeResult"/> as per <see cref="TryCreateValueContentResult"/>.
+        /// Creates the <see cref="IActionResult"/> as either <see cref="ValueContentResult"/> or <see cref="StatusCodeResult"/> as per <see cref="TryCreateValueContentResult"/>; unless <paramref name="value"/> is an instance of <see cref="IActionResult"/> which will return as-is.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="statusCode">The primary status code where there is a value.</param>
@@ -86,10 +86,10 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="location">The <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/>.</returns>
         public static IActionResult CreateResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location)
-            => TryCreateValueContentResult(value, statusCode, alternateStatusCode, jsonSerializer, requestOptions, checkForNotModified, location, out var vcr, out var ar) ? vcr! : ar!;
+            => TryCreateValueContentResult(value, statusCode, alternateStatusCode, jsonSerializer, requestOptions, checkForNotModified, location, out var pr, out var ar) ? pr! : ar!;
 
         /// <summary>
-        /// Try and create a <see cref="ValueContentResult"/>; otherwise, a <see cref="StatusCodeResult"/>.
+        /// Try and create an <see cref="IActionResult"/> as either <see cref="ValueContentResult"/> or <see cref="StatusCodeResult"/> as per <see cref="TryCreateValueContentResult"/>; unless <paramref name="value"/> is an instance of <see cref="IActionResult"/> which will return as-is.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="statusCode">The primary status code where there is a value.</param>
@@ -98,13 +98,21 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
         /// <param name="checkForNotModified">Indicates whether to check for <see cref="HttpStatusCode.NotModified"/> by comparing request and response <see cref="IETag.ETag"/> values.</param>
         /// <param name="location">The <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
-        /// <param name="valueContentResult">The <see cref="ValueContentResult"/> where created.</param>
-        /// <param name="alternateResult">The alternate result where <paramref name="valueContentResult"/> not created.</param>
-        /// <returns><c>true</c> indicates that the <paramref name="valueContentResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
-        public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out ValueContentResult? valueContentResult, out StatusCodeResult? alternateResult)
+        /// <param name="primaryResult">The <see cref="IActionResult"/> where created.</param>
+        /// <param name="alternateResult">The alternate result where no <paramref name="primaryResult"/>.</param>
+        /// <returns><c>true</c> indicates that the <paramref name="primaryResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
+        public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out IActionResult? primaryResult, out IActionResult? alternateResult)
         {
             if (value is Results.IResult)
                 throw new ArgumentException($"The {nameof(value)} must not implement {nameof(Results.IResult)}; the underlying {nameof(Results.IResult.Value)} must be unwrapped before invoking.", nameof(value));
+
+            // Where already an IActionResult then return as-is.
+            if (value is IActionResult iar)
+            {
+                primaryResult = iar;
+                alternateResult = null;
+                return true;
+            }
 
             object? val;
             PagingResult? paging;
@@ -126,7 +134,7 @@ namespace CoreEx.AspNetCore.WebApis
             {
                 if (alternateStatusCode.HasValue)
                 {
-                    valueContentResult = null;
+                    primaryResult = null;
                     alternateResult = new StatusCodeResult((int)alternateStatusCode);
                     return false;
                 }
@@ -163,13 +171,13 @@ namespace CoreEx.AspNetCore.WebApis
             // Check for not-modified and return status accordingly.
             if (checkForNotModified && etag == requestOptions.ETag)
             {
-                valueContentResult = null;
+                primaryResult = null;
                 alternateResult = new StatusCodeResult((int)HttpStatusCode.NotModified);
                 return false;
             }
 
             // Create and return the ValueContentResult.
-            valueContentResult = new ValueContentResult(json, statusCode, etag, paging, location);
+            primaryResult = new ValueContentResult(json, statusCode, etag, paging, location);
             alternateResult = null;
             return true;
         }

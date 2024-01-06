@@ -43,6 +43,11 @@ namespace CoreEx.Http
         public static string PagingTakeHeaderName { get; set; } = "x-paging-take";
 
         /// <summary>
+        /// Gets or sets the header name for the <see cref="PagingResult"/> <see cref="PagingArgs.Token"/>.
+        /// </summary>
+        public static string PagingTokenHeaderName { get; set; } = "x-paging-token";
+
+        /// <summary>
         /// Gets or sets the header name for the <see cref="PagingResult"/> <see cref="PagingResult.TotalCount"/>.
         /// </summary>
         public static string PagingTotalCountHeaderName { get; set; } = "x-paging-total-count";
@@ -97,6 +102,11 @@ namespace CoreEx.Http
         public static string PagingArgsTakeQueryStringName { get; set; } = "$take";
 
         /// <summary>
+        /// Gets or sets the <see cref="HttpRequestOptions.Paging"/> <see cref="PagingArgs.Token"/> query string name.
+        /// </summary>
+        public static string PagingArgsTokenQueryStringName { get; set; } = "$token";
+
+        /// <summary>
         /// Gets or sets the <see cref="HttpRequestOptions.Paging"/> <see cref="PagingArgs.IsGetCount"/> query string name.
         /// </summary>
         public static string PagingArgsCountQueryStringName { get; set; } = "$count";
@@ -129,7 +139,12 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Take"/> query string names.
         /// </summary>
-        public static List<string> PagingArgsTakeQueryStringNames { get; set; } = new List<string>(new string[] { "$take", "$top", "$size", "$pageSize", "$limit", "paging-take", "paging-size" });
+        public static List<string> PagingArgsTakeQueryStringNames { get; set; } = new List<string>(new string[] { "$take", "$top", "$size", "$pageSize", "$limit", "paging-take", "paging-size", "paging-limit" });
+
+        /// <summary>
+        /// Gets or sets the list of possible <see cref="PagingArgs.Take"/> query string names.
+        /// </summary>
+        public static List<string> PagingArgsTokenQueryStringNames { get; set; } = new List<string>(new string[] { "$token", "$after", "$cursor", "paging-token", "paging-after", "paging-cursor" });
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.IsGetCount"/> query string names.

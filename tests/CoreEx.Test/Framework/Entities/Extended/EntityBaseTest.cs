@@ -797,7 +797,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             Assert.AreNotEqual(pd.GetHashCode(), pxd.GetHashCode());
         }
 
-        private DateTime CreateDateTime() => new DateTime(2000, 01, 01, 12, 45, 59);
+        private DateTime CreateDateTime() => new(2000, 01, 01, 12, 45, 59);
 
         public class Person : EntityBase, CoreEx.Entities.IPrimaryKey
         {
@@ -809,7 +809,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             public int Age { get => _age; set => SetValue(ref _age, value); }
             public ChangeLogEx? ChangeLog { get => _changeLog; set => SetValue(ref _changeLog, value); }
 
-            public CoreEx.Entities.CompositeKey PrimaryKey => new CoreEx.Entities.CompositeKey(Name);
+            public CoreEx.Entities.CompositeKey PrimaryKey => new(Name);
 
             protected override IEnumerable<IPropertyValue> GetPropertyValues()
             {

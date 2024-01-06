@@ -55,6 +55,12 @@ namespace CoreEx.Http
         public string QueryStringNamePagingArgsTake { get; set; } = HttpConsts.PagingArgsTakeQueryStringName;
 
         /// <summary>
+        /// Gets or sets the <see cref="Paging"/> <see cref="PagingArgs.Token"/> query string name.
+        /// </summary>
+        /// <remarks>Defaults to <see cref="HttpConsts.PagingArgsTokenQueryStringName"/>.</remarks>
+        public string QueryStringNamePagingArgsToken { get; set; } = HttpConsts.PagingArgsTokenQueryStringName;
+
+        /// <summary>
         /// Gets or sets the <see cref="Paging"/> <see cref="PagingArgs.IsGetCount"/> query string name.
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpConsts.PagingArgsCountQueryStringName"/>.</remarks>
@@ -152,15 +158,23 @@ namespace CoreEx.Http
 
             if (Paging != null)
             {
-                if (Paging.IsSkipTake)
+                switch (Paging.Option)
                 {
-                    AddNameValuePair(sb, QueryStringNamePagingArgsSkip, Paging.Skip.ToString(), false);
-                    AddNameValuePair(sb, QueryStringNamePagingArgsTake, Paging.Take.ToString(), false);
-                }
-                else
-                {
-                    AddNameValuePair(sb, QueryStringNamePagingArgsPage, Paging.Page?.ToString() ?? 1.ToString(), false);
-                    AddNameValuePair(sb, QueryStringNamePagingArgsSize, Paging.Size.ToString(), false);
+                    case PagingOption.SkipAndTake:
+                        AddNameValuePair(sb, QueryStringNamePagingArgsSkip, Paging.Skip?.ToString(), false);
+                        AddNameValuePair(sb, QueryStringNamePagingArgsTake, Paging.Take.ToString(), false);
+                        break;
+
+                    case PagingOption.PageAndSize:
+                        AddNameValuePair(sb, QueryStringNamePagingArgsPage, Paging.Page?.ToString() ?? 1.ToString(), false);
+                        AddNameValuePair(sb, QueryStringNamePagingArgsSize, Paging.Size.ToString(), false);
+                        break;
+
+                    default:
+                        AddNameValuePair(sb, QueryStringNamePagingArgsToken, Paging.Token, false);
+                        AddNameValuePair(sb, QueryStringNamePagingArgsTake, Paging.Take.ToString(), false);
+                        break;
+
                 }
 
                 if (Paging.IsGetCount)
@@ -183,9 +197,9 @@ namespace CoreEx.Http
             if (!string.IsNullOrEmpty(UrlQueryString))
             {
                 if (qs is null)
-                    return UrlQueryString.StartsWith("?") ? UrlQueryString : $"?{(UrlQueryString.StartsWith("&") ? UrlQueryString[1..] : UrlQueryString)}";
+                    return UrlQueryString.StartsWith('?') ? UrlQueryString : $"?{(UrlQueryString.StartsWith('&') ? UrlQueryString[1..] : UrlQueryString)}";
                 else
-                    return $"{qs}{(UrlQueryString.StartsWith("&") ? UrlQueryString : $"&{UrlQueryString}")}";
+                    return $"{qs}{(UrlQueryString.StartsWith('&') ? UrlQueryString : $"&{UrlQueryString}")}";
             }
             else
                 return qs;

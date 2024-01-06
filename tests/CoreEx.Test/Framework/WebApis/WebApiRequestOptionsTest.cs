@@ -38,7 +38,7 @@ namespace CoreEx.Test.Framework.WebApis
             var ro = new HttpRequestOptions { ETag = "etag-value", IncludeText = true, IncludeInactive = true, Paging = PagingArgs.CreateSkipAndTake(20, 25, true), UrlQueryString = "fruit=apples" }.Include("fielda", "fieldb").Exclude("fieldc");
             
             hr.ApplyRequestOptions(ro);
-            Assert.NotNull("?$skip=20&$take=25&$count=true&$fields=fielda,fieldb&$exclude=fieldc&$text=true&$inactive=true&fruit=apples", hr.QueryString.Value);
+            Assert.AreEqual("?$skip=20&$take=25&$count=true&$fields=fielda,fieldb&$exclude=fieldc&$text=true&$inactive=true&fruit=apples", hr.QueryString.Value);
 
             var wro = hr.GetRequestOptions();
 
@@ -51,6 +51,32 @@ namespace CoreEx.Test.Framework.WebApis
             Assert.AreEqual(new string[] { "fieldc" }, wro.ExcludeFields);
             Assert.NotNull(wro.Paging);
             Assert.AreEqual(20, wro.Paging!.Skip);
+            Assert.AreEqual(25, wro.Paging.Take);
+            Assert.IsTrue(wro.Paging.IsGetCount);
+        }
+
+
+        [Test]
+        public void GetRequestOptions_Configured_TokenPaging()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest");
+            var ro = new HttpRequestOptions { ETag = "etag-value", IncludeText = true, IncludeInactive = true, Paging = PagingArgs.CreateTokenAndTake("token", 25, true), UrlQueryString = "fruit=apples" }.Include("fielda", "fieldb").Exclude("fieldc");
+
+            hr.ApplyRequestOptions(ro);
+            Assert.AreEqual("?$token=token&$take=25&$count=true&$fields=fielda,fieldb&$exclude=fieldc&$text=true&$inactive=true&fruit=apples", hr.QueryString.Value);
+
+            var wro = hr.GetRequestOptions();
+
+            Assert.NotNull(wro);
+            Assert.AreSame(hr, wro.Request);
+            Assert.AreEqual("etag-value", wro.ETag);
+            Assert.IsTrue(wro.IncludeText);
+            Assert.IsTrue(wro.IncludeInactive);
+            Assert.AreEqual(new string[] { "fielda", "fieldb" }, wro.IncludeFields);
+            Assert.AreEqual(new string[] { "fieldc" }, wro.ExcludeFields);
+            Assert.NotNull(wro.Paging);
+            Assert.AreEqual("token", wro.Paging!.Token);
             Assert.AreEqual(25, wro.Paging.Take);
             Assert.IsTrue(wro.Paging.IsGetCount);
         }

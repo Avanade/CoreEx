@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace CoreEx.Entities
 {
     /// <summary>
-    /// Represents either position-based paging being (<see cref="Page"/> and <see cref="Size"/>), or <see cref="Skip"/> and <see cref="Take"/>. The <see cref="DefaultTake"/> and <see cref="MaxTake"/> (and <see cref="DefaultIsGetCount"/>) 
+    /// Represents position-based paging being a) <see cref="Page"/> and <see cref="Size"/>, b) <see cref="Skip"/> and <see cref="Take"/>, or c) <see cref="Token"/> and <see cref="Take"/>. The <see cref="DefaultTake"/> and <see cref="MaxTake"/> (and <see cref="DefaultIsGetCount"/>) 
     /// are static settings to encourage page-size consistency, as well as limit the maximum value possible. 
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
@@ -86,6 +86,20 @@ namespace CoreEx.Entities
         };
 
         /// <summary>
+        /// Creates a <see cref="PagingArgs"/> for a specified token and take.
+        /// </summary>
+        /// <param name="token">The <see cref="Token"/> to use to get the next page of elements.</param>
+        /// <param name="take">The <see cref="Take"/> value (defaults to <see cref="DefaultTake"/>).</param>
+        /// <param name="isGetCount">Indicates whether to get the total count (see <see cref="PagingResult.TotalCount"/>) when performing the underlying query (defaults to <see cref="DefaultIsGetCount"/> where <c>null</c>).</param>
+        /// <returns>The <see cref="PagingArgs"/>.</returns>
+        public static PagingArgs CreateTokenAndTake(string token, long? take = null, bool? isGetCount = null) => new ()
+        {
+            Token = token.ThrowIfNullOrEmpty(),
+            Take = !take.HasValue || take.Value< 1 ? DefaultTake : (take.Value > MaxTake? MaxTake : take.Value),
+            IsGetCount = isGetCount == null ? DefaultIsGetCount : isGetCount.Value
+        };
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PagingArgs"/> class with default <see cref="Skip"/> and <see cref="Take"/>.
         /// </summary>
         public PagingArgs()
@@ -116,21 +130,25 @@ namespace CoreEx.Entities
         public long? Page { get; internal protected set; }
 
         /// <summary>
-        /// Indicates whether the paging was created with a <see cref="Skip"/> and <see cref="Take"/> (see <see cref="CreateSkipAndTake(long, long?, bool?)"/>); versus <see cref="Page"/> and <see cref="Size"/> (see <see cref="CreatePageAndSize(long, long?, bool?)"/>).
+        /// Gets the specified number of elements in a sequence to bypass.
         /// </summary>
-        [JsonIgnore]
-        public bool IsSkipTake => Page == null;
+        public long? Skip { get; internal protected set; }
 
         /// <summary>
-        /// Gets the page size (see <see cref="Take"/>).
+        /// Gets the token to use to get the next page of elements (see <see cref="CreateTokenAndTake(string?, long?, bool?)"/>).
+        /// </summary>
+        public string? Token { get; internal protected set; }
+
+        /// <summary>
+        /// Indicates the <see cref="PagingOption"/>.
+        /// </summary>
+        public PagingOption Option => Page is not null ? PagingOption.PageAndSize : (Token is not null ? PagingOption.TokenAndTake : PagingOption.SkipAndTake);
+
+        /// <summary>
+        /// Gets the page size (synonym for <see cref="Take"/>).
         /// </summary>
         [JsonIgnore]
         public long Size => Take;
-
-        /// <summary>
-        /// Gets the specified number of elements in a sequence to bypass.
-        /// </summary>
-        public long Skip { get; internal protected set; }
 
         /// <summary>
         /// Gets the specified number of contiguous elements from the start of a sequence.
@@ -144,6 +162,9 @@ namespace CoreEx.Entities
         /// <returns>The <see cref="PagingArgs"/> instance to support fluent-style method chaining.</returns>
         public PagingArgs OverrideSkip(long skip)
         {
+            if (Option == PagingOption.TokenAndTake)
+                throw new InvalidOperationException($"Cannot override {nameof(Skip)} where {nameof(Option)} is {nameof(PagingOption.TokenAndTake)}.");
+
             if (skip == Skip)
                 return this;
 

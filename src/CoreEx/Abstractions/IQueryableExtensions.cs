@@ -19,7 +19,16 @@ namespace System.Linq
         /// <param name="query">The query.</param>
         /// <param name="paging">The <see cref="PagingArgs"/>.</param>
         /// <returns>The query.</returns>
-        public static IQueryable<T> WithPaging<T>(this IQueryable<T> query, PagingArgs? paging) => paging == null ? query.WithPaging(0, null) : query.WithPaging(paging.Skip, paging.Take);
+        public static IQueryable<T> WithPaging<T>(this IQueryable<T> query, PagingArgs? paging)
+        {
+            if (paging is null)
+                return query.WithPaging(0, null);
+
+            if (paging.Option == PagingOption.TokenAndTake)
+                throw new ArgumentException("PagingArgs.Option must not be PagingOption.TokenAndTake.", nameof(paging));
+
+            return query.WithPaging(paging.Skip!.Value, paging.Take);
+        }
 
         /// <summary>
         /// Adds paging to the query using the specified <paramref name="skip"/> and <paramref name="take"/>.

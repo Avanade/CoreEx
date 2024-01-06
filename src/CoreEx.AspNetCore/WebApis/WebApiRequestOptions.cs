@@ -109,16 +109,19 @@ namespace CoreEx.AspNetCore.WebApis
             long? skip = HttpExtensions.ParseLongValue(GetNamedQueryString(query, HttpConsts.PagingArgsSkipQueryStringNames));
             long? take = HttpExtensions.ParseLongValue(GetNamedQueryString(query, HttpConsts.PagingArgsTakeQueryStringNames));
             long? page = skip.HasValue ? null : HttpExtensions.ParseLongValue(GetNamedQueryString(query, HttpConsts.PagingArgsPageQueryStringNames));
+            string? token = GetNamedQueryString(query, HttpConsts.PagingArgsTokenQueryStringNames);
             bool isGetCount = HttpExtensions.ParseBoolValue(GetNamedQueryString(query, HttpConsts.PagingArgsCountQueryStringNames));
 
-            if (skip == null && take == null && page == null && !isGetCount)
+            if (skip == null && take == null && page == null && string.IsNullOrEmpty(token) && !isGetCount)
                 return null;
 
             PagingArgs paging;
-            if (skip == null && page == null)
-                paging = (take.HasValue) ? PagingArgs.CreateSkipAndTake(0, take) : new PagingArgs();
+            if (!string.IsNullOrEmpty(token))
+                paging = PagingArgs.CreateTokenAndTake(token, take);
+            else if (skip == null && page == null)
+                paging = take.HasValue ? PagingArgs.CreateSkipAndTake(0, take) : new PagingArgs();
             else
-                paging = (skip.HasValue) ? PagingArgs.CreateSkipAndTake(skip.Value, take) : PagingArgs.CreatePageAndSize(page == null ? 0 : page.Value, take);
+                paging = skip.HasValue ? PagingArgs.CreateSkipAndTake(skip.Value, take) : PagingArgs.CreatePageAndSize(page == null ? 0 : page.Value, take);
 
             paging.IsGetCount = isGetCount;
             return paging;

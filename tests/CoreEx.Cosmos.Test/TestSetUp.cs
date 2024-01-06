@@ -85,7 +85,7 @@ namespace CoreEx.Cosmos.Test
             await db.Persons1.ImportBatchAsync(jdr);
             await db.Persons2.ImportBatchAsync(jdr);
             await db.Persons3.ImportValueBatchAsync(jdr);
-            await db.ImportValueBatchAsync("Persons3", new Person1[] { new Person1 { Id = 100.ToGuid().ToString() } }); // Add other random "type" to Person3.
+            await db.ImportValueBatchAsync("Persons3", new Person1[] { new() { Id = 100.ToGuid().ToString() } }); // Add other random "type" to Person3.
 
             jdr = JsonDataReader.ParseYaml<CosmosDb>("RefData.yaml", new JsonDataReaderArgs(new Text.Json.ReferenceDataContentJsonSerializer()));
             await db.ImportValueBatchAsync("RefData", jdr, new Type[] { typeof(Gender) });

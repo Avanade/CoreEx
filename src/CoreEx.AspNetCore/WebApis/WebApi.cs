@@ -21,24 +21,18 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Provides the core (<see cref="HttpMethods.Get"/>, <see cref="HttpMethods.Post"/>, <see cref="HttpMethods.Put"/> and <see cref="HttpMethods.Delete"/>) Web API execution encapsulation.
     /// </summary>
-    public partial class WebApi : WebApiBase
+    /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    /// <param name="invoker">The <see cref="WebApiInvoker"/>; defaults where not specified.</param>
+    /// <param name="jsonMergePatch">The <see cref="IJsonMergePatch"/> to support the <see cref="HttpMethods.Patch"/> operations.</param>
+    public partial class WebApi(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApi> logger, WebApiInvoker? invoker = null, IJsonMergePatch? jsonMergePatch = null) : WebApiBase(executionContext, settings, jsonSerializer, logger, invoker)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WebApi"/> class.
-        /// </summary>
-        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="invoker">The <see cref="WebApiInvoker"/>; defaults where not specified.</param>
-        /// <param name="jsonMergePatch">The <see cref="IJsonMergePatch"/> to support the <see cref="HttpMethods.Patch"/> operations.</param>
-        public WebApi(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApi> logger, WebApiInvoker? invoker = null, IJsonMergePatch? jsonMergePatch = null)
-            : base(executionContext, settings, jsonSerializer, logger, invoker) => JsonMergePatch = jsonMergePatch;
-
         /// <summary>
         /// Gets the <see cref="IJsonMergePatch"/>.
         /// </summary>
-        public IJsonMergePatch? JsonMergePatch { get; }
+        public IJsonMergePatch? JsonMergePatch { get; } = jsonMergePatch;
 
         /// <summary>
         /// Indicates whether to convert a <see cref="NotFoundException"/> to the default <see cref="HttpStatusCode"/> on delete (see <see cref="DeleteAsync(HttpRequest, Func{WebApiParam, CancellationToken, Task}, HttpStatusCode, OperationType, CancellationToken)"/>.

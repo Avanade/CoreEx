@@ -67,7 +67,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_Entity()
         {
-            Foo? foo = new Foo();
+            Foo? foo = new();
             var v1 = await foo.Validate("value").Mandatory().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 

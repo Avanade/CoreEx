@@ -5,6 +5,7 @@ using CoreEx.TestFunction.Services;
 using CoreEx.TestFunction.Validators;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using System;
 
 namespace CoreEx.TestApi.Controllers
 {
@@ -35,5 +36,9 @@ namespace CoreEx.TestApi.Controllers
         [HttpDelete]
         [Route("{id}")]
         public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteAsync(Request, _ => _service.DeleteProductAsync(id));
+
+        [HttpGet]
+        [Route("{id}/catalogue")]
+        public Task<IActionResult> GetCatalogueAsync(string id) => _webApi.GetAsync<FileContentResult>(Request, _ => _service.GetCatalogueAsync(id));
     }
 }

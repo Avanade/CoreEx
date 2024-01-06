@@ -248,7 +248,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_Property_NoKeys_ListNull()
         {
-            var td = new TestData { NoKeys = new List<SubData> { new SubData() } };
+            var td = new TestData { NoKeys = new List<SubData> { new() } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"nokeys\": null }"), ref td));
             Assert.IsNull(td!.Values);
         }
@@ -256,7 +256,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_Property_NoKeys_ListEmpty()
         {
-            var td = new TestData { NoKeys = new List<SubData> { new SubData() } };
+            var td = new TestData { NoKeys = new List<SubData> { new() } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"nokeys\": [ ] }"), ref td));
             Assert.IsNotNull(td!.NoKeys);
             Assert.AreEqual(0, td.NoKeys!.Count);
@@ -265,7 +265,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_Property_NoKeys_List()
         {
-            var td = new TestData { NoKeys = new List<SubData> { new SubData() } };
+            var td = new TestData { NoKeys = new List<SubData> { new() } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"nokeys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, { }, null ] }"), ref td));
             Assert.IsNotNull(td!.NoKeys);
             Assert.AreEqual(3, td.NoKeys!.Count);
@@ -284,7 +284,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_Property_Keys_ListNull()
         {
-            var td = new TestData { Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } } };
+            var td = new TestData { Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"keys\": null }"), ref td));
 
             Assert.IsNull(td!.Keys);
@@ -293,7 +293,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_Property_Keys_ListEmpty()
         {
-            var td = new TestData { Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } } };
+            var td = new TestData { Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"keys\": [ ] }"), ref td));
 
             Assert.IsNotNull(td!.Keys);
@@ -303,7 +303,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_Property_Keys_Null()
         {
-            var td = new TestData { Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } } };
+            var td = new TestData { Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"keys\": [ null ] }"), ref td));
 
             Assert.IsNotNull(td!.Keys);
@@ -314,7 +314,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_Property_Keys_Replace()
         {
-            var td = new TestData { Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } } };
+            var td = new TestData { Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"keys\": [ { \"code\": \"abc\" }, { \"code\": \"uvw\", \"text\": \"xyz\" } ] }"), ref td));
 
             Assert.IsNotNull(td!.Keys);
@@ -329,7 +329,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_Property_Keys_NoChanges()
         {
             // Note, although technically no changes, there is no means to verify without specific equality checking, so is seen as a change.
-            var td = new TestData { Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } } };
+            var td = new TestData { Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } } };
             Assert.IsTrue(new JsonMergePatch().Merge(BinaryData.FromString("{ \"keys\": [ { \"code\": \"abc\", \"text\": \"def\" } ] }"), ref td));
 
             Assert.IsNotNull(td!.Keys);
@@ -790,7 +790,7 @@ namespace CoreEx.Test.Framework.Json.Merge
 
             for (int i = 0; i < 1000; i++)
             {
-                var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
+                var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
                 new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge, DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString(text), ref td);
             }
         }
@@ -805,7 +805,7 @@ namespace CoreEx.Test.Framework.Json.Merge
 
             for (int i = 0; i < 1000; i++)
             {
-                var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new KeyData { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
+                var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
                 jmp.Merge(BinaryData.FromString(text), ref td);
             }
         }
@@ -919,7 +919,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         [Test]
         public void Merge_RootArray_Complex()
         {
-            var arr = new SubData[] { new SubData { Code = "a", Text = "aa" }, new SubData { Code = "b", Text = "bb" } };
+            var arr = new SubData[] { new() { Code = "a", Text = "aa" }, new() { Code = "b", Text = "bb" } };
             var jmp = new JsonMergePatch();
 
             // No equality checker so will appear as changed - is a replacement.
