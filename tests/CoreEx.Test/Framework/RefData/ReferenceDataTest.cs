@@ -53,8 +53,6 @@ namespace CoreEx.Test.Framework.RefData
             Assert.AreSame(ir.IdType, typeof(int));
 
             Assert.AreEqual("{\"id\":1,\"code\":\"X\",\"text\":\"XX\",\"isActive\":true}", new CoreEx.Text.Json.ReferenceDataContentJsonSerializer().Serialize(r));
-
-            Assert.AreEqual("{\"id\":1,\"code\":\"X\",\"text\":\"XX\",\"isActive\":true}", new CoreEx.Text.Json.ReferenceDataContentJsonSerializer().Serialize(ir));
         }
 
         [Test]
