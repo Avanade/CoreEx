@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.8.1
+- *Fixed*: The `CoreEx.Text.JsonSerializer` has been updated to cache the _indented_ option correctly.
+- *Fixed*: The `ReferenceDataOrchestator` updated to use the correct serializer for `ETag` generation. 
+
 ## v3.8.0
 - *Enhancement*: The `ValueContentResult.CreateResult` has been updated to return the resulting value as-is where is an instance of `IActionResult`; otherwise, converts `value` to a `ValueContentResult` (previous behavior).
 - *Enhancement*: The `PagingArgs` has been extended to support `Token`; being a continuation token to enable paging to be performed where the underlying data source does not support skip/take-style paging.

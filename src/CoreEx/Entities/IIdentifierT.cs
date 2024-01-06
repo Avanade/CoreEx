@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -21,6 +22,7 @@ namespace CoreEx.Entities
         new TId? Id { get; set; }
 
         /// <inheritdoc/>
+        [JsonIgnore]
         Type IIdentifier.IdType => typeof(TId);
     }
 }

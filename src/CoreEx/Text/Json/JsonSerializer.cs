@@ -14,11 +14,8 @@ namespace CoreEx.Text.Json
     /// <summary>
     /// Provides the <see cref="Stj.JsonSerializer"/> encapsulated implementation.
     /// </summary>
-    /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>. Defaults to <see cref="DefaultOptions"/>.</param>
-    public class JsonSerializer(Stj.JsonSerializerOptions? options = null) : IJsonSerializer
+    public class JsonSerializer : IJsonSerializer
     {
-        private Stj.JsonSerializerOptions? _indentedOptions;
-
         /// <summary>
         /// Gets or sets the default <see cref="Stj.JsonSerializerOptions"/>.
         /// </summary>
@@ -41,6 +38,16 @@ namespace CoreEx.Text.Json
         };
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
+        /// </summary>
+        /// <param name="options">The <see cref="Stj.JsonSerializerOptions"/>. Defaults to <see cref="DefaultOptions"/>.</param>
+        public JsonSerializer(Stj.JsonSerializerOptions? options = null)
+        {
+            Options = options ?? DefaultOptions;
+            IndentedOptions = new Stj.JsonSerializerOptions(Options) { WriteIndented = true };
+        }
+
+        /// <summary>
         /// Gets the underlying serializer configuration settings/options.
         /// </summary>
         object IJsonSerializer.Options => Options;
@@ -48,14 +55,19 @@ namespace CoreEx.Text.Json
         /// <summary>
         /// Gets the <see cref="Stj.JsonSerializerOptions"/>.
         /// </summary>
-        public Stj.JsonSerializerOptions Options { get; } = options ?? DefaultOptions;
+        public Stj.JsonSerializerOptions Options { get; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="Stj.JsonSerializerOptions"/> with <see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>true</c>.
+        /// </summary>
+        public Stj.JsonSerializerOptions? IndentedOptions { get; }
 
         /// <inheritdoc/>
         public string Serialize<T>(T value, JsonWriteFormat? format = null) => SerializeToBinaryData(value, format).ToString();
 
         /// <inheritdoc/>
         public BinaryData SerializeToBinaryData<T>(T value, JsonWriteFormat? format = null) 
-            => new(Stj.JsonSerializer.SerializeToUtf8Bytes(value, format == null ? Options : (_indentedOptions ??= new Stj.JsonSerializerOptions(Options) { WriteIndented = format.Value == JsonWriteFormat.Indented })));
+            => new(Stj.JsonSerializer.SerializeToUtf8Bytes(value, format == null || format.Value == JsonWriteFormat.None ? Options : IndentedOptions));
 
         /// <inheritdoc/>
         public object? Deserialize(string json) => Stj.JsonSerializer.Deserialize<dynamic>(json, Options);
