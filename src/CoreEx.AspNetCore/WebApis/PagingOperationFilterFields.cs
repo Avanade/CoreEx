@@ -38,6 +38,11 @@ namespace CoreEx.AspNetCore.WebApis
         Count = 16,
 
         /// <summary>
+        /// Indicates to include <see cref="PagingArgs.Token"/> field (named <see cref="HttpConsts.PagingArgsTokenQueryStringName"/>).
+        /// </summary>
+        Token = 32,
+
+        /// <summary>
         /// Indicates to include <see cref="Skip"/> and <see cref="Take"/> fields.
         /// </summary>
         SkipTake = Skip | Take,
@@ -58,8 +63,18 @@ namespace CoreEx.AspNetCore.WebApis
         PageSizeCount = Page | Size | Count,
 
         /// <summary>
+        /// Indicates to include <see cref="Token"/> and <see cref="Take"/> fields.
+        /// </summary>
+        TokenTake = Token | Take,
+
+        /// <summary>
+        /// Indicates to include <see cref="Token"/>, <see cref="Take"/> and <see cref="Count"/> fields.
+        /// </summary>
+        TokenTakeCount = Token | Size | Count,
+
+        /// <summary>
         /// Indicates to include all fields.
         /// </summary>
-        All = Skip | Take | Page | Size | Count
+        All = Skip | Take | Page | Size | Count | Token
     }
 }

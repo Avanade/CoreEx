@@ -50,6 +50,17 @@ namespace CoreEx.Test.Framework.UnitTesting
                 .AssertNoContent();
         }
 
+        [Test]
+        public void Catalogue()
+        {
+            var test = ApiTester.Create<Startup>();
+            var x = test.Agent().With<ProductAgent>()
+                .Run(a => a.CatalogueAsync("abc"))
+                .AssertOK()
+                .AssertContentTypePlainText()
+                .AssertContent("Catalog for 'abc'.");
+        }
+
         public class ProductAgent : CoreEx.Http.TypedHttpClientBase<ProductAgent>
         {
             public ProductAgent(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, SettingsBase settings, ILogger<ProductAgent> logger)
@@ -63,6 +74,9 @@ namespace CoreEx.Test.Framework.UnitTesting
 
             public Task<HttpResult<Product>> UpdateAsync(Product value, string id, CoreEx.Http.HttpRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
                 => PutAsync<Product, Product>("products/{id}", value, requestOptions: requestOptions, args: new IHttpArg[] { new HttpArg<string>("id", id) }, cancellationToken: cancellationToken);
+
+            public Task<HttpResult> CatalogueAsync(string id, CoreEx.Http.HttpRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+                => GetAsync("products/{id}/catalogue", requestOptions: requestOptions, args: new IHttpArg[] { new HttpArg<string>("id", id) }, cancellationToken: cancellationToken);
         }
     }
 }

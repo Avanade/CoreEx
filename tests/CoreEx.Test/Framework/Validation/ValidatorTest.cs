@@ -445,7 +445,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Coll_Validator_MaxCount()
         {
             var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()));
-            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "aaa" }, new TestItem { Id = "B", Text = "bbb" }, new TestItem { Id = "C", Text = "ccc" } };
+            var tc = new List<TestItem> { new() { Id = "A", Text = "aaa" }, new() { Id = "B", Text = "bbb" }, new() { Id = "C", Text = "ccc" } };
 
             var r = await vxc.ValidateAsync(tc);
 
@@ -466,7 +466,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Coll_Validator_MinCount()
         {
             var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 3, item: CollectionRuleItem.Create(new TestItemValidator()));
-            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "A" }, new TestItem { Id = "B", Text = "B" } };
+            var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
 
             var r = await vxc.ValidateAsync(tc);
 
@@ -481,7 +481,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Coll_Validator_Duplicate()
         {
             var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
-            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "A" }, new TestItem { Id = "A", Text = "A" } };
+            var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "A", Text = "A" } };
 
             var r = await vxc.ValidateAsync(tc);
 
@@ -496,7 +496,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Coll_Validator_OK()
         {
             var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
-            var tc = new List<TestItem> { new TestItem { Id = "A", Text = "A" }, new TestItem { Id = "B", Text = "B" } };
+            var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
 
             var r = await vxc.ValidateAsync(tc);
 

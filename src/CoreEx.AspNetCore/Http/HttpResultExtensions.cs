@@ -150,15 +150,22 @@ namespace CoreEx.AspNetCore.Http
             if (paging == null)
                 return;
 
-            if (paging.IsSkipTake)
+            switch (paging.Option)
             {
-                headers[HttpConsts.PagingSkipHeaderName] = paging.Skip.ToString(CultureInfo.InvariantCulture);
-                headers[HttpConsts.PagingTakeHeaderName] = paging.Take.ToString(CultureInfo.InvariantCulture);
-            }
-            else
-            {
-                headers[HttpConsts.PagingPageNumberHeaderName] = paging.Page!.Value.ToString(CultureInfo.InvariantCulture);
-                headers[HttpConsts.PagingPageSizeHeaderName] = paging.Take.ToString(CultureInfo.InvariantCulture);
+                case PagingOption.SkipAndTake:
+                    headers[HttpConsts.PagingSkipHeaderName] = paging.Skip!.Value.ToString(CultureInfo.InvariantCulture);
+                    headers[HttpConsts.PagingTakeHeaderName] = paging.Take.ToString(CultureInfo.InvariantCulture);
+                    break;
+
+                case PagingOption.PageAndSize:
+                    headers[HttpConsts.PagingPageNumberHeaderName] = paging.Page!.Value.ToString(CultureInfo.InvariantCulture);
+                    headers[HttpConsts.PagingPageSizeHeaderName] = paging.Take.ToString(CultureInfo.InvariantCulture);
+                    break;
+
+                default:
+                    headers[HttpConsts.PagingTokenHeaderName] = paging.Token;
+                    headers[HttpConsts.PagingTakeHeaderName] = paging.Take.ToString(CultureInfo.InvariantCulture);
+                    break;
             }
 
             if (paging.TotalCount.HasValue)

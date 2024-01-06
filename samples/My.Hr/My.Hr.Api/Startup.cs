@@ -62,7 +62,7 @@ public class Startup
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
         {
             services.AddOpenTelemetry().UseAzureMonitor();
-            services.Configure<AspNetCoreInstrumentationOptions>(options => options.RecordException = true);
+            //services.Configure<AspNetCoreInstrumentationOptions>(options => options.RecordException = true);
             services.ConfigureOpenTelemetryTracerProvider((sp, builder) => builder.AddSource("CoreEx.*"));
         }
 
@@ -73,7 +73,7 @@ public class Startup
             var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
             options.OperationFilter<AcceptsBodyOperationFilter>();  // Needed to support AcceptsBodyAttribue where body parameter not explicitly defined.
-            options.OperationFilter<PagingOperationFilter>(PagingOperationFilterFields.PageSizeCount);  // Needed to support PagingAttribue where PagingArgs parameter not explicitly defined.
+            options.OperationFilter<PagingOperationFilter>(PagingOperationFilterFields.TokenTake);  // Needed to support PagingAttribue where PagingArgs parameter not explicitly defined.
         });
     }
 

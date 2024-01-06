@@ -74,11 +74,11 @@ namespace CoreEx.Json.Data
         ///   <item><see cref="IReferenceData.SortOrder"/> with function '<c>i => i + 1</c>' (increment by 1 from 1).</item>
         /// </list>
         /// </para></remarks>
-        public Dictionary<string, Func<int, object?>> RefDataColumnDefaults { get; } = new Dictionary<string, Func<int, object?>>();
+        public Dictionary<string, Func<int, object?>> RefDataColumnDefaults { get; } = [];
 
         /// <summary>
         /// Gets the runtime parameters.
         /// </summary>
-        public Dictionary<string, object?> Parameters { get; } = new();
+        public Dictionary<string, object?> Parameters { get; } = [];
     }
 }

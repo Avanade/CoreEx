@@ -266,14 +266,14 @@ namespace CoreEx.Test.Framework.Wildcards
         {
             return new List<Person>
             {
-                new Person { First = "Amy", Last = "Johnson" },
-                new Person { First = "Jenny", Last = "Smith" },
-                new Person { First = "Gerry", Last = "McQuire" },
-                new Person { First = "Gary", Last = "Lawson" },
-                new Person { First = "Simon", Last = "Reynolds" },
-                new Person { First = "Amanada", Last = "Gray" },
-                new Person { First = "B", Last = "P" },
-                new Person { First = null, Last = null }
+                new() { First = "Amy", Last = "Johnson" },
+                new() { First = "Jenny", Last = "Smith" },
+                new() { First = "Gerry", Last = "McQuire" },
+                new() { First = "Gary", Last = "Lawson" },
+                new() { First = "Simon", Last = "Reynolds" },
+                new() { First = "Amanada", Last = "Gray" },
+                new() { First = "B", Last = "P" },
+                new() { First = null, Last = null }
             };
         }
 

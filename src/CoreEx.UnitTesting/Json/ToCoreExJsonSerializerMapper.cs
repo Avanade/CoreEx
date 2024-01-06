@@ -11,15 +11,10 @@ namespace UnitTestEx.Json
     /// Provides a wrapper for <see cref="IJsonSerializer"/> to <see cref="CoreEx.Json.IJsonSerializer"/>.
     /// </summary>
     /// <remarks>Only the compatible capabilities have been implemented.</remarks>
-    public class ToCoreExJsonSerializerMapper : CoreEx.Json.IJsonSerializer
+    /// <param name="testJsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+    public class ToCoreExJsonSerializerMapper(IJsonSerializer testJsonSerializer) : CoreEx.Json.IJsonSerializer
     {
-        private readonly IJsonSerializer _testJsonSerializer;
-
-        /// <summary>
-        /// Initializes a new <see cref="ToCoreExJsonSerializerMapper"/> instance.
-        /// </summary>
-        /// <param name="testJsonSerializer">The <see cref="UnitTestEx.Json.IJsonSerializer"/>.</param>
-        public ToCoreExJsonSerializerMapper(IJsonSerializer testJsonSerializer) => _testJsonSerializer = testJsonSerializer ?? throw new ArgumentNullException(nameof(testJsonSerializer));
+        private readonly IJsonSerializer _testJsonSerializer = testJsonSerializer ?? throw new ArgumentNullException(nameof(testJsonSerializer));
 
         /// <inheritdoc/>
         public object Options => _testJsonSerializer.Options;

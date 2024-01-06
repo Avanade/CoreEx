@@ -254,7 +254,10 @@ namespace CoreEx.OData
 
                 if (paging is not null)
                 {
-                    q = q.Skip(paging.Skip).Top(paging.Take);
+                    if (paging.Option == PagingOption.TokenAndTake)
+                        throw new InvalidOperationException("PagingOption.TokenAndTake is not supported for OData.");
+
+                    q = q.Skip(paging.Skip!.Value).Top(paging.Take);
                     if (paging.IsGetCount && args.IsPagingGetCountSupported)
                         ann = new Soc.ODataFeedAnnotations();
                 }

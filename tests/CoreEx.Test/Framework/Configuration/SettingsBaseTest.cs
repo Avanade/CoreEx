@@ -30,8 +30,8 @@ namespace CoreEx.Test.Framework.Configuration
         private IConfiguration CreateTestConfiguration()
         {
             Environment.SetEnvironmentVariable("this_is_a_unittest_underscore__key", "underscoreValue");
-            ConfigurationBuilder builder = new ConfigurationBuilder();
-            Dictionary<string, string> testSettings = new Dictionary<string, string>()
+            ConfigurationBuilder builder = new();
+            Dictionary<string, string> testSettings = new()
             {
                 {"SomethingGlobal", "foo"},
                 {"prefix1/key1", "value1"},

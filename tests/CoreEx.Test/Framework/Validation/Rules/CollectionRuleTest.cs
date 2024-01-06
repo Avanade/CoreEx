@@ -71,7 +71,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v1 = await new TestItem[0].Validate("value").Collection(item: CollectionRuleItem.Create(iv)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            v1 = await new TestItem[] { new TestItem() }.Validate("value").Collection(item: CollectionRuleItem.Create(iv)).ValidateAsync();
+            v1 = await new TestItem[] { new() }.Validate("value").Collection(item: CollectionRuleItem.Create(iv)).ValidateAsync();
             Assert.IsTrue(v1.HasErrors);
             Assert.AreEqual(1, v1.Messages!.Count);
             Assert.AreEqual("Identifier is required.", v1.Messages[0].Text);
@@ -98,7 +98,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_Item_Null()
         {
-            var v1 = await new List<TestItem?> { new TestItem() }.Validate("value").Collection().ValidateAsync();
+            var v1 = await new List<TestItem?> { new() }.Validate("value").Collection().ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
             v1 = await new List<TestItem?>() { null }.Validate("value").Collection().ValidateAsync();
@@ -120,7 +120,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v1 = await new TestItem[0].Validate("value").Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck(x => x.Id)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var tis = new TestItem[] { new TestItem { Id = "ABC", Text = "Abc" }, new TestItem { Id = "DEF", Text = "Def" }, new TestItem { Id = "GHI", Text = "Ghi" } };
+            var tis = new TestItem[] { new() { Id = "ABC", Text = "Abc" }, new() { Id = "DEF", Text = "Def" }, new() { Id = "GHI", Text = "Ghi" } };
 
             v1 = await tis.Validate("value").Collection(item:  CollectionRuleItem.Create(iv).DuplicateCheck(x => x.Id)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -142,7 +142,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v1 = await new TestItem2[0].Validate("value").Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck()).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var tis = new TestItem2[] { new TestItem2 { Part1 = "ABC", Part2 = 1, Text = "Abc" }, new TestItem2 { Part1 = "DEF", Part2 = 1, Text = "Def" }, new TestItem2 { Part1 = "GHI", Part2 = 1, Text = "Ghi" } };
+            var tis = new TestItem2[] { new() { Part1 = "ABC", Part2 = 1, Text = "Abc" }, new() { Part1 = "DEF", Part2 = 1, Text = "Def" }, new() { Part1 = "GHI", Part2 = 1, Text = "Ghi" } };
 
             v1 = await tis.Validate("value").Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck()).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -164,7 +164,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v1 = await new TestItem[0].Validate("value").Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var tis = new TestItem[] { new TestItem { Id = "ABC", Text = "Abc" }, new TestItem { Id = "DEF", Text = "Def" }, new TestItem { Id = "GHI", Text = "Ghi" } };
+            var tis = new TestItem[] { new() { Id = "ABC", Text = "Abc" }, new() { Id = "DEF", Text = "Def" }, new() { Id = "GHI", Text = "Ghi" } };
 
             v1 = await tis.Validate("value").Collection(item: CollectionRuleItem.Create(iv).DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -184,7 +184,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v1 = await new TestItem3[0].Validate("value").Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var tis = new TestItem3[] { new TestItem3 { Id = 1.ToGuid() }, new TestItem3 { Id = 2.ToGuid() }, new TestItem3 { Id = 3.ToGuid() } };
+            var tis = new TestItem3[] { new() { Id = 1.ToGuid() }, new() { Id = 2.ToGuid() }, new() { Id = 3.ToGuid() } };
 
             v1 = await tis.Validate("value").Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
@@ -208,7 +208,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v1 = await new TestItem3[0].Validate("value").Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);
 
-            var tis = new TestItem3[] { new TestItem3 { Id = Guid.Empty }, new TestItem3 { Id = 2.ToGuid() }, new TestItem3 { Id = Guid.Empty } };
+            var tis = new TestItem3[] { new() { Id = Guid.Empty }, new() { Id = 2.ToGuid() }, new() { Id = Guid.Empty } };
 
             v1 = await tis.Validate("value").Collection(item: CollectionRuleItem.Create<TestItem3>().DuplicateCheck(true)).ValidateAsync();
             Assert.IsFalse(v1.HasErrors);

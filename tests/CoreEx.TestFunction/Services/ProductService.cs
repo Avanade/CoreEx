@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using CoreEx.TestFunction.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CoreEx.TestFunction.Services
@@ -52,6 +54,12 @@ namespace CoreEx.TestFunction.Services
         {
             _logger.LogInformation($"Deleting product {id}.");
             return Task.CompletedTask;
+        }
+
+        public Task<FileContentResult> GetCatalogueAsync(string id)
+        {
+            var fcr = new FileContentResult(Encoding.ASCII.GetBytes($"Catalog for '{id}'."), "text/plain");
+            return Task.FromResult(fcr);
         }
     }
 }

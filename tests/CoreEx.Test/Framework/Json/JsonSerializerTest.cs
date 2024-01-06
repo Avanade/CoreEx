@@ -94,7 +94,7 @@ namespace CoreEx.Test.Framework.Json
         [Test]
         public void SystemTextJson_TryApplyFilter_JsonString()
         {
-            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new Address { Street = "One", City = "First" }, new Address { Street = "Two", City = "Second" } } };
+            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new() { Street = "One", City = "First" }, new() { Street = "Two", City = "Second" } } };
 
             var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out string json, JsonPropertyFilter.Exclude));
@@ -122,7 +122,7 @@ namespace CoreEx.Test.Framework.Json
         [Test]
         public void SystemTextJson_TryApplyFilter_JsonObject()
         {
-            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new Address { Street = "One", City = "First" }, new Address { Street = "Two", City = "Second" } } };
+            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new() { Street = "One", City = "First" }, new() { Street = "Two", City = "Second" } } };
 
             var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out object json, JsonPropertyFilter.Exclude));
@@ -337,7 +337,7 @@ namespace CoreEx.Test.Framework.Json
         [Test]
         public void NewtonsoftJson_TryApplyFilter_JsonString()
         {
-            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new Address { Street = "One", City = "First" }, new Address { Street = "Two", City = "Second" } } };
+            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new() { Street = "One", City = "First" }, new() { Street = "Two", City = "Second" } } };
 
             var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out string json, JsonPropertyFilter.Exclude));
@@ -365,7 +365,7 @@ namespace CoreEx.Test.Framework.Json
         [Test]
         public void NewtonsoftJson_TryApplyFilter_JsonObject()
         {
-            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new Address { Street = "One", City = "First" }, new Address { Street = "Two", City = "Second" } } };
+            var p = new Person { FirstName = "John", LastName = "Smith", Addresses = new List<Address> { new() { Street = "One", City = "First" }, new() { Street = "Two", City = "Second" } } };
 
             var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
             Assert.IsTrue(js.TryApplyFilter(p, new string[] { "LastName", "Addresses.City", "LastName" }, out object json, JsonPropertyFilter.Exclude));

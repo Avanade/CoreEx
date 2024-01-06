@@ -85,13 +85,13 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             var pr = tr.GetProperty("Addresses");
             Assert.IsNotNull(pr.GetTypeReflector());
 
-            var a = new List<Address> { new Address { Street = "s", City = "c" } };
+            var a = new List<Address> { new() { Street = "s", City = "c" } };
             var p = new Person { Addresses = a };
 
             var a2 = (List<Address>)pr.PropertyExpression.GetValue(p)!;
             Assert.AreEqual("s", a2[0].Street);
 
-            pr.PropertyExpression.SetValue(p, new List<Address> { new Address { Street = "s2", City = "c2" } });
+            pr.PropertyExpression.SetValue(p, new List<Address> { new() { Street = "s2", City = "c2" } });
             Assert.AreEqual("s2", p.Addresses[0].Street);
 
             pr.PropertyExpression.SetValue(p, null!);
@@ -196,10 +196,10 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             Assert.IsTrue(pr.Compare(new List<Address>(), new List<Address>()));
 
             // No equality check for Address, so will all fail.
-            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, new List<Address> { new Address() }));
-            Assert.IsFalse(pr.Compare(null, new List<Address> { new Address() }));
-            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, null));
-            Assert.IsFalse(pr.Compare(new List<Address> { new Address() }, new List<Address> { new Address(), new Address() }));
+            Assert.IsFalse(pr.Compare(new List<Address> { new() }, new List<Address> { new() }));
+            Assert.IsFalse(pr.Compare(null, new List<Address> { new() }));
+            Assert.IsFalse(pr.Compare(new List<Address> { new() }, null));
+            Assert.IsFalse(pr.Compare(new List<Address> { new() }, new List<Address> { new(), new() }));
         }
 
         [Test]

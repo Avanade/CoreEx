@@ -30,7 +30,7 @@ namespace CoreEx.Json.Data
 
         private class YamlNodeTypeResolver : INodeTypeResolver
         {
-            private static readonly string[] boolValues = { "true", "false" };
+            private static readonly string[] boolValues = ["true", "false"];
 
             /// <inheritdoc/>
             bool INodeTypeResolver.Resolve(NodeEvent? nodeEvent, ref Type currentType)
@@ -184,7 +184,7 @@ namespace CoreEx.Json.Data
                         var item = Deserialize<T>(jd);
                         if (item != null)
                         {
-                            (items ??= new List<T>()).Add(item);
+                            (items ??= []).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(typeof(T), item, jd, items.Count - 1);
@@ -217,7 +217,7 @@ namespace CoreEx.Json.Data
                         var item = Deserialize(type, jd);
                         if (item != null)
                         {
-                            (items ??= new List<object>()).Add(item);
+                            (items ??= []).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
                             ChangeLog.PrepareCreated(item, _executionContext);
                             PrepareReferenceData(type, item, jd, items.Count - 1);
@@ -303,7 +303,7 @@ namespace CoreEx.Json.Data
             var str = je.GetString();
             if (!string.IsNullOrEmpty(str) && str.Length > 1 && str[0] == '^')
             {
-                if (str.StartsWith("^(") && str.EndsWith(")"))
+                if (str.StartsWith("^(") && str.EndsWith(')'))
                 {
                     var val = GetRuntimeValue(_args.Parameters, str[2..^1]);
                     if (val == null)
@@ -408,7 +408,7 @@ namespace CoreEx.Json.Data
             var part = parts[0];
             if (part.EndsWith("()"))
             {
-                var mi = type.GetMethod(part[0..^2], Array.Empty<Type>());
+                var mi = type.GetMethod(part[0..^2], []);
                 if (mi == null || mi.GetParameters().Length != 0)
                     return (null, $"Runtime value parameter '{param}' is invalid; specified method '{part}' is invalid.");
 

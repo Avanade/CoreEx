@@ -10,7 +10,7 @@ namespace CoreEx.Test.Framework.Mapping.Converters
     public class TypeToStringConverterTest
     {
         private const string GuidString = "382c74c3-721d-4f34-80e5-57657b6cbc27";
-        private readonly Guid GuidValue = new Guid(GuidString);
+        private readonly Guid GuidValue = new(GuidString);
 
         [Test]
         public void Convert()

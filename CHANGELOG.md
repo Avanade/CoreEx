@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.8.0
+- *Enhancement*: The `ValueContentResult.CreateResult` has been updated to return the resulting value as-is where is an instance of `IActionResult`; otherwise, converts `value` to a `ValueContentResult` (previous behavior).
+- *Enhancement*: The `PagingArgs` has been extended to support `Token`; being a continuation token to enable paging to be performed where the underlying data source does not support skip/take-style paging.
+
 ## v3.7.2
 - *Fixed*: The `ReferenceDataMultiCollection` and `ReferenceDataMultiItem` have been replaced with the `ReferenceDataMultiDictionary` as existing resulted in an unintended format with which to return the data. This fix also removed the need for the `ReferenceDataMultiCollectionConverterFactory` as custom serialization for this is no longer required.
 
