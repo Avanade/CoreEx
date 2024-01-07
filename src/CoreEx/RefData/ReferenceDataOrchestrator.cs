@@ -312,7 +312,7 @@ namespace CoreEx.RefData
                 var sw = Stopwatch.StartNew();
                 var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
                 var coll = (await provider.GetAsync(type, cancellationToken).ConfigureAwait(false)).Value;
-                coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IJsonSerializer>(), coll)!;
+                coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IReferenceDataContentJsonSerializer>(), coll)!;
                 sw.Stop();
 
                 Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);

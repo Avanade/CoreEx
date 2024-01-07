@@ -41,9 +41,6 @@ namespace CoreEx.RefData.Extended
         }
 
         /// <inheritdoc/>
-        Type IIdentifier.IdType => typeof(TId);
-
-        /// <inheritdoc/>
         object? IIdentifier.Id { get => Id; set => Id = (TId)value!; }
 
         /// <inheritdoc/>
