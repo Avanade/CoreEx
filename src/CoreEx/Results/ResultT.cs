@@ -14,7 +14,7 @@ namespace CoreEx.Results
     /// <typeparam name="T">The <see cref="Value"/> <see cref="Type"/>.</typeparam>
     [DebuggerStepThrough]
     [DebuggerDisplay("{ToDebuggerString()}")]
-    public readonly struct Result<T> : IResult<T>
+    public readonly struct Result<T> : IResult<T>, IEquatable<Result<T>>
     {
         /// <summary>
         /// Gets the <see cref="IsSuccess"/> <see cref="Result{T}"/> with a default <see cref="Value"/>.
@@ -235,6 +235,29 @@ namespace CoreEx.Results
         /// <param name="message">The error message.</param>
         /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
         public static Result<T> AuthorizationError(LText? message = default) => Result<T>.Fail(new AuthorizationException(message));
+
+        #endregion
+
+        #region Equality
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is Result<T> r && Equals(r);
+
+        /// <inheritdoc/>
+        public bool Equals(Result<T> other) => IsSuccess ? (other.IsSuccess && EqualityComparer<T>.Default.Equals(Value, other.Value)) : (IsFailure == other.IsFailure && Error.GetType() == other.Error.GetType() && Error.ToString() == other.Error.ToString());
+
+        /// <summary>
+        /// Indicates whether the current <see cref="Result"/> is equal to another <see cref="Result"/>.
+        /// </summary>
+        public static bool operator ==(Result<T> left, Result<T> right) => left.Equals(right);
+
+        /// <summary>
+        /// Indicates whether the current <see cref="Result"/> is not equal to another <see cref="Result"/>.
+        /// </summary>
+        public static bool operator !=(Result<T> left, Result<T> right) => !(left == right);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => HashCode.Combine(IsSuccess, IsSuccess ? (Value?.GetHashCode() ?? 0) : 0, IsFailure ? Error.GetHashCode() : 0);
 
         #endregion
     }

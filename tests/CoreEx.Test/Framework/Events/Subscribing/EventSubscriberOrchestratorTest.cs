@@ -209,7 +209,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
                 {
                     Assert.That(eventSubscriberException, Is.True, "Should be an EventSubscriberException!");
                     Assert.That(esex.IsTransient, Is.EqualTo(isTransient));
-                    Assert.That(esex.InnerException, Is.Not.Null.And.TypeOf(exceptionType));
+                    Assert.That(esex.InnerException, Is.Not.Null.And.TypeOf(exceptionType!));
                 });
                 if (message != null)
                     Assert.That(esex.Message, Is.Not.Null.And.EqualTo(message));
@@ -219,7 +219,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
                 Assert.Multiple(() =>
                 {
                     Assert.That(eventSubscriberException, Is.False, "Should not be an EventSubscriberException!");
-                    Assert.That(ex, Is.Not.Null.And.TypeOf(exceptionType));
+                    Assert.That(ex, Is.Not.Null.And.TypeOf(exceptionType!));
                 });
                 if (message != null)
                     Assert.That(ex.Message, Is.Not.Null.And.EqualTo(message));

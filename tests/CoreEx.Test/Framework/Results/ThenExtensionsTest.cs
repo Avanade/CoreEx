@@ -1,5 +1,4 @@
 ﻿using CoreEx.Results;
-using CoreEx.Validation;
 using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
@@ -9,16 +8,16 @@ namespace CoreEx.Test.Framework.Results
     [TestFixture]
     public class ThenExtensionsTest
     {
-        public static void AssertSuccess(Result result) => Assert.True(result.IsSuccess);
-        public static void AssertFailure(Result result) => Assert.True(result.IsFailure);
+        internal static void AssertSuccess(Result result) => Assert.That(result.IsSuccess, Is.True);
+        internal static void AssertFailure(Result result) => Assert.That(result.IsFailure, Is.True);
 
-        public static T AssertSuccess<T>(Result<T> result)
+        internal static T AssertSuccess<T>(Result<T> result)
         {
-            Assert.True(result.IsSuccess);
+            Assert.That(result.IsSuccess, Is.True);
             return result.Value;
         }
 
-        public static void AssertFailure<T>(Result<T> result) => Assert.True(result.IsFailure);
+        internal static void AssertFailure<T>(Result<T> result) => Assert.That(result.IsFailure, Is.True);
 
 
         [Test]

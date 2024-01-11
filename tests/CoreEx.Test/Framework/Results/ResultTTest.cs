@@ -148,13 +148,21 @@ namespace CoreEx.Test.Framework.Results
         {
             var r1 = Result<int>.Fail(new BusinessException());
             var r2 = Result<int>.Fail(new BusinessException());
-            Assert.That(r2, Is.Not.EqualTo(r1));
+            Assert.That(r2, Is.EqualTo(r1));
         }
 
         [Test]
         public void Compare_Two_Different_Failures()
         {
             var r1 = Result<int>.Fail(new BusinessException());
+            var r2 = Result<int>.Fail(new BusinessException("Test"));
+            Assert.That(r2, Is.Not.EqualTo(r1));
+        }
+
+        [Test]
+        public void Compare_Two_Different_Type_Failures()
+        {
+            var r1 = Result<int>.Fail(new ValidationException("Test"));
             var r2 = Result<int>.Fail(new BusinessException("Test"));
             Assert.That(r2, Is.Not.EqualTo(r1));
         }

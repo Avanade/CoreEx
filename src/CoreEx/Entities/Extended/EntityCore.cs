@@ -137,7 +137,7 @@ namespace CoreEx.Entities.Extended
         /// </summary>
         private PropertyChangedEventHandler GetValue_PropertyChanged(string propertyName)
         {
-            _propertyEventHandlers ??= new Dictionary<string, PropertyChangedEventHandler>();
+            _propertyEventHandlers ??= [];
 
             if (!_propertyEventHandlers.ContainsKey(propertyName))
                 _propertyEventHandlers.Add(propertyName, (sender, e) => TriggerPropertyChanged(propertyName));

@@ -11,7 +11,7 @@ namespace CoreEx.Test.Framework.Entities
         public void DefaultKey()
         {
             var ck = new CompositeKey();
-            Assert.IsEmpty(ck.Args);
+            Assert.That(ck.Args, Is.Empty);
             Assert.Multiple(() =>
             {
                 Assert.That(ck.IsInitial, Is.True);

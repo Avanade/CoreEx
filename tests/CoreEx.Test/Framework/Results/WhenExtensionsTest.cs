@@ -8,16 +8,16 @@ namespace CoreEx.Test.Framework.Results
     [TestFixture]
     public class WhenExtensionsTest
     {
-        public void AssertSuccess(Result result) => Assert.True(result.IsSuccess);
-        public void AssertFailure(Result result) => Assert.True(result.IsFailure);
+        internal static void AssertSuccess(Result result) => Assert.That(result.IsSuccess, Is.True);
+        internal static void AssertFailure(Result result) => Assert.That(result.IsFailure, Is.True);
 
-        public T AssertSuccess<T>(Result<T> result)
+        internal static T AssertSuccess<T>(Result<T> result)
         {
-            Assert.True(result.IsSuccess);
+            Assert.That(result.IsSuccess, Is.True);
             return result.Value;
         }
 
-        public void AssertFailure<T>(Result<T> result) => Assert.True(result.IsFailure);
+        internal static void AssertFailure<T>(Result<T> result) => Assert.That(result.IsFailure, Is.True);
 
         [Test]
         public void Sync()

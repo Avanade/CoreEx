@@ -30,7 +30,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             ta.Text = null;
             ta.DateTime = null;
             ta.Description = null;
-            Assert.IsEmpty(ta.Code);
+            Assert.That(ta.Code, Is.Empty);
             Assert.Multiple(() =>
             {
                 Assert.That(ta.Text, Is.Null);

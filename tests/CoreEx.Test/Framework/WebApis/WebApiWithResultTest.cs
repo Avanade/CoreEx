@@ -162,7 +162,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertOK()
                 .AssertValue(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
 
-            Assert.That(((ValueContentResult)r.Result).PagingResult, Is.Not.EqualTo(new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20)));
+            Assert.That(((ValueContentResult)r.Result).PagingResult, Is.EqualTo(new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20)));
         }
 
         [Test]

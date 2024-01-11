@@ -10,8 +10,8 @@ namespace CoreEx.Entities
     /// Represents position-based paging being a) <see cref="Page"/> and <see cref="Size"/>, b) <see cref="Skip"/> and <see cref="Take"/>, or c) <see cref="Token"/> and <see cref="Take"/>. The <see cref="DefaultTake"/> and <see cref="MaxTake"/> (and <see cref="DefaultIsGetCount"/>) 
     /// are static settings to encourage page-size consistency, as well as limit the maximum value possible. 
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    public class PagingArgs
+    //[System.Diagnostics.DebuggerStepThrough]
+    public class PagingArgs : IEquatable<PagingArgs>
     {
         private static long? _defaultTake;
         private static long? _maxTake;
@@ -115,12 +115,10 @@ namespace CoreEx.Entities
         /// <param name="pagingArgs">The <see cref="PagingArgs"/> to copy from.</param>
         public PagingArgs(PagingArgs pagingArgs)
         {
-            if (pagingArgs == null)
-                throw new ArgumentNullException(nameof(pagingArgs));
-
-            Skip = pagingArgs.Skip;
+            Skip = pagingArgs.ThrowIfNull().Skip;
             Take = pagingArgs.Take;
             Page = pagingArgs.Page;
+            Token = pagingArgs.Token;
             IsGetCount = pagingArgs.IsGetCount;
         }
 
@@ -188,5 +186,28 @@ namespace CoreEx.Entities
         /// </summary>
         [JsonPropertyName("count")]
         public bool IsGetCount { get; set; } = false;
+
+        #region Equality
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is PagingArgs pa && Equals(pa);
+
+        /// <inheritdoc/>
+        public bool Equals(PagingArgs? other) => other is not null && Skip == other.Skip && Take == other.Take && Page == other.Page && Token == other.Token && IsGetCount == other.IsGetCount;
+
+        /// <summary>
+        /// Indicates whether the current <see cref="PagingArgs"/> is equal to another <see cref="PagingArgs"/>.
+        /// </summary>
+        public static bool operator ==(PagingArgs? left, PagingArgs? right) => (left is null && right is null) || (left is not null && right is not null && left.Equals(right));
+
+        /// <summary>
+        /// Indicates whether the current <see cref="PagingArgs"/> is not equal to another <see cref="PagingArgs"/>.
+        /// </summary>
+        public static bool operator !=(PagingArgs? left, PagingArgs? right) => !(left == right);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => HashCode.Combine(Skip, Take, Page, Token, IsGetCount);
+
+        #endregion
     }
 }

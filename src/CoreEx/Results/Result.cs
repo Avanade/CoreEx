@@ -15,7 +15,7 @@ namespace CoreEx.Results
     /// </summary>
     [DebuggerStepThrough]
     [DebuggerDisplay("{ToDebuggerString()}")]
-    public readonly partial struct Result : IResult
+    public readonly partial struct Result : IResult, IEquatable<Result>
     {
         /// <summary>
         /// Gets the <see cref="IsSuccess"/> <see cref="Result"/>.
@@ -97,8 +97,7 @@ namespace CoreEx.Results
         /// <remarks>This is a helper method to simplify code where an <paramref name="action"/> should be invoked followed immediately by returning a corresponding <see cref="Success"/> to complete/conclude.</remarks>
         public static Result Done(Action action)
         {
-            if (action == null) throw new ArgumentNullException(nameof(action));
-            action();
+            action.ThrowIfNull(nameof(action))();
             return Success;
         }
 
@@ -217,6 +216,29 @@ namespace CoreEx.Results
         /// <param name="message">The error message.</param>
         /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
         public static Result AuthorizationError(LText? message = default) => new AuthorizationException(message);
+
+        #endregion
+
+        #region Equality
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is Result r && Equals(r);
+
+        /// <inheritdoc/>
+        public bool Equals(Result other) => IsSuccess ? other.IsSuccess : (IsFailure == other.IsFailure && Error.GetType() == other.Error.GetType() && Error.ToString() == other.Error.ToString());
+
+        /// <summary>
+        /// Indicates whether the current <see cref="Result"/> is equal to another <see cref="Result"/>.
+        /// </summary>
+        public static bool operator ==(Result left, Result right) => left.Equals(right);
+
+        /// <summary>
+        /// Indicates whether the current <see cref="Result"/> is not equal to another <see cref="Result"/>.
+        /// </summary>
+        public static bool operator !=(Result left, Result right) => !(left == right);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => HashCode.Combine(IsSuccess, IsFailure ? Error.GetHashCode() : 0);
 
         #endregion
     }
