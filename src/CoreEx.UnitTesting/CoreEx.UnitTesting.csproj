@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     <RootNamespace>UnitTestEx</RootNamespace>
     <Product>CoreEx</Product>
     <Title>CoreEx UnitTesting extras.</Title>
@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
-    <PackageReference Include="UnitTestEx" Version="4.0.1" />
+    <PackageReference Include="UnitTestEx" Version="4.1.0" />
   </ItemGroup>
 
 </Project>

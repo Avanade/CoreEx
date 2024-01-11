@@ -114,8 +114,11 @@ namespace CoreEx.Test.Framework.Azure.ServiceBus
 
             var edc = new ServiceBusReceivedMessageEventDataConverter(es);
             var e = await edc.ConvertFromAsync(rm, null, default);
-            Assert.That(e.Value, Is.Not.Null.And.EqualTo("Blah"));
-            Assert.That(m.Subject, Is.EqualTo("xxx"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(e.Value, Is.Not.Null.And.EqualTo("Blah"));
+                Assert.That(m.Subject, Is.EqualTo("xxx"));
+            });
         }
 
         [Test]
@@ -131,8 +134,11 @@ namespace CoreEx.Test.Framework.Azure.ServiceBus
 
             var edc = new ServiceBusReceivedMessageEventDataConverter(es);
             var e = await edc.ConvertFromAsync(rm, typeof(string), default);
-            Assert.That(e.Value, Is.Not.Null.And.EqualTo("Blah"));
-            Assert.That(m.Subject, Is.EqualTo("xxx"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(e.Value, Is.Not.Null.And.EqualTo("Blah"));
+                Assert.That(m.Subject, Is.EqualTo("xxx"));
+            });
         }
 
         [Test]
@@ -178,30 +184,42 @@ namespace CoreEx.Test.Framework.Azure.ServiceBus
         private static void AssertServiceBusMessage(Az.ServiceBusMessage? m)
         {
             Assert.That(m, Is.Not.Null);
-            Assert.That(m!.MessageId, Is.EqualTo("123"));
-            Assert.That(m.Subject, Is.EqualTo("xxx"));
-            Assert.That(m.ApplicationProperties.TryGetValue(nameof(EventData.Action), out var a), Is.True);
-            Assert.That(a, Is.EqualTo("yyy"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(m!.MessageId, Is.EqualTo("123"));
+                Assert.That(m.Subject, Is.EqualTo("xxx"));
+                Assert.That(m.ApplicationProperties.TryGetValue(nameof(EventData.Action), out var a), Is.True);
+                Assert.That(a, Is.EqualTo("yyy"));
+            });
         }
 
         private static void AssertEventData(EventData e)
         {
             Assert.That(e, Is.Not.Null);
-            Assert.That(e.Id, Is.EqualTo("123"));
-            Assert.That(e.Subject, Is.EqualTo("xxx"));
-            Assert.That(e.Action, Is.EqualTo("yyy"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(e.Id, Is.EqualTo("123"));
+                Assert.That(e.Subject, Is.EqualTo("xxx"));
+                Assert.That(e.Action, Is.EqualTo("yyy"));
+            });
         }
 
         private static void AssertEventData(EventData<Product> ep)
         {
             Assert.That(ep, Is.Not.Null);
-            Assert.That(ep.Id, Is.EqualTo("123"));
-            Assert.That(ep.Subject, Is.EqualTo("xxx"));
-            Assert.That(ep.Action, Is.EqualTo("yyy"));
-            Assert.That(ep.Value, Is.Not.Null);
-            Assert.That(ep.Value.Id, Is.EqualTo("X"));
-            Assert.That(ep.Value.Name, Is.EqualTo("Xxx"));
-            Assert.That(ep.Value.Price, Is.EqualTo(9.99m));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ep.Id, Is.EqualTo("123"));
+                Assert.That(ep.Subject, Is.EqualTo("xxx"));
+                Assert.That(ep.Action, Is.EqualTo("yyy"));
+                Assert.That(ep.Value, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(ep.Value.Id, Is.EqualTo("X"));
+                Assert.That(ep.Value.Name, Is.EqualTo("Xxx"));
+                Assert.That(ep.Value.Price, Is.EqualTo(9.99m));
+            });
         }
     }
 }

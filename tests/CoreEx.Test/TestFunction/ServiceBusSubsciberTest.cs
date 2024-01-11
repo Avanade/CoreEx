@@ -18,7 +18,7 @@ namespace CoreEx.Test.TestFunction
         public void NoAbandonOnTransient()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -34,7 +34,7 @@ namespace CoreEx.Test.TestFunction
         public void NoAbandonOnTransient_WithResult()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -50,7 +50,7 @@ namespace CoreEx.Test.TestFunction
         public async Task AbandonOnTransient()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -61,15 +61,18 @@ namespace CoreEx.Test.TestFunction
             actions.AssertRenew(0);
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task AbandonOnTransient_WithResult()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -80,15 +83,18 @@ namespace CoreEx.Test.TestFunction
             actions.AssertRenew(0);
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task RetryDelay_DeliveryCount1()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -99,20 +105,23 @@ namespace CoreEx.Test.TestFunction
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 950);
+            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(950));
 
-            actions.AssertRenew(1);
+            actions.AssertRenew(0); // Renew is no longer supported; hence 0.
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task RetryDelay_DeliveryCount1_WithResult()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -123,20 +132,23 @@ namespace CoreEx.Test.TestFunction
             await sbs.ReceiveAsync(message, actions, (_, _) => Task.FromResult(Result.TransientError("Retry again please.")));
             sw.Stop();
 
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 950);
+            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(950));
 
-            actions.AssertRenew(1);
+            actions.AssertRenew(0); // Renew is no longer supported; hence 0.
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task RetryDelay_DeliveryCount2()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -147,20 +159,23 @@ namespace CoreEx.Test.TestFunction
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 1950);
+            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(1950));
 
-            actions.AssertRenew(1);
+            actions.AssertRenew(0); // Renew is no longer supported; hence 0.
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task RetryDelay_DeliveryCount2_WithMax()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -172,20 +187,23 @@ namespace CoreEx.Test.TestFunction
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 1050);
+            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(1050));
 
-            actions.AssertRenew(1);
+            actions.AssertRenew(0); // Renew is no longer supported; hence 0.
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task RetryDelay_DeliveryCount2_WithMaxOnly()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -196,20 +214,23 @@ namespace CoreEx.Test.TestFunction
             await sbs.ReceiveAsync(message, actions, (_, _) => throw new TransientException("Retry again please."));
             sw.Stop();
 
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 550);
+            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(550));
 
-            actions.AssertRenew(1);
+            actions.AssertRenew(0); // Renew is no longer supported; hence 0.
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task MaxDeliveryCount_LessThan()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 2);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -221,15 +242,18 @@ namespace CoreEx.Test.TestFunction
             actions.AssertRenew(0);
             actions.AssertAbandon();
 
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.AreEqual(actions.PropertiesModified!["SubscriberAbandonReason"], "Retry again please.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.PropertiesModified, Is.Not.Null);
+                Assert.That(actions.PropertiesModified!["SubscriberAbandonReason"], Is.EqualTo("Retry again please."));
+            });
         }
 
         [Test]
         public async Task MaxDeliveryCount_EqualTo()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -240,15 +264,15 @@ namespace CoreEx.Test.TestFunction
 
             actions.AssertRenew(0);
             actions.AssertDeadLetter("MaxDeliveryCountExceeded", "Message could not be consumed after 3 attempts (as defined by ServiceBusSubscriber).");
-            Assert.IsNotNull(actions.PropertiesModified);
-            Assert.IsNotNull(actions.PropertiesModified!["SubscriberException"]);
+            Assert.That(actions.PropertiesModified, Is.Not.Null);
+            Assert.That(actions.PropertiesModified!["SubscriberException"], Is.Not.Null);
         }
 
         [Test]
         public async Task Complete()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -264,7 +288,7 @@ namespace CoreEx.Test.TestFunction
         public async Task Complete_Result()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m }, m => m.Header.DeliveryCount = 3);
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -280,7 +304,7 @@ namespace CoreEx.Test.TestFunction
         public async Task Unhandled_Throw_DeadLetter()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -296,7 +320,7 @@ namespace CoreEx.Test.TestFunction
         public async Task Unhandled_None_Bubble()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();
@@ -322,7 +346,7 @@ namespace CoreEx.Test.TestFunction
         public async Task Unhandled_ContinueAsSilent_Complete()
         {
             using var test = FunctionTester.Create<Startup>();
-            var actions = test.CreateServiceBusMessageActions();
+            var actions = test.CreateWebJobsServiceBusMessageActions();
             var message = test.CreateServiceBusMessageFromValue(new { id = "A", name = "B", price = 1.99m });
 
             var sbs = test.Services.GetRequiredService<ServiceBusSubscriber>();

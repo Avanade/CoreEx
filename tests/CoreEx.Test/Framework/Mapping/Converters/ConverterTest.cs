@@ -9,8 +9,11 @@ namespace CoreEx.Test.Framework.Mapping.Converters
         public void Convert()
         {
             var converter = CoreEx.Mapping.Converters.Converter.Create<string, int>(s => int.Parse(s), i => i.ToString());
-            Assert.AreEqual(123, converter.ToDestination.Convert("123"));
-            Assert.AreEqual("123", converter.ToSource.Convert(123));
+            Assert.Multiple(() =>
+            {
+                Assert.That(converter.ToDestination.Convert("123"), Is.EqualTo(123));
+                Assert.That(converter.ToSource.Convert(123), Is.EqualTo("123"));
+            });
         }
     }
 }

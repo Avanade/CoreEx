@@ -15,7 +15,7 @@ namespace CoreEx.Test.Framework.Caching
             rc.SetValue("a", 88);
 
             var r = await Result.Go().CacheGetOrAddAsync(rc, "a", () => Task.FromResult(Result.Go(99)));
-            Assert.AreEqual(88, r.Value);
+            Assert.That(r.Value, Is.EqualTo(88));
         }
 
         [Test]
@@ -25,7 +25,7 @@ namespace CoreEx.Test.Framework.Caching
             rc.SetValue("b", 88);
 
             var r = await Result.Go().CacheGetOrAddAsync(rc, "a", () => Task.FromResult(Result.Go(99)));
-            Assert.AreEqual(99, r.Value);
+            Assert.That(r.Value, Is.EqualTo(99));
         }
 
         [Test]
@@ -35,7 +35,7 @@ namespace CoreEx.Test.Framework.Caching
             rc.SetValue("a", 88);
 
             var r = await Result.Fail("bad").CacheGetOrAddAsync(rc, "a", () => Task.FromResult(Result.Go(99)));
-            Assert.IsTrue(r.IsFailure);
+            Assert.That(r.IsFailure, Is.True);
         }
 
         [Test]
@@ -45,7 +45,7 @@ namespace CoreEx.Test.Framework.Caching
             rc.SetValue("b", 88);
 
             var r = await Result.Go().CacheGetOrAddAsync(rc, "a", () => Task.FromResult(Result<int>.Fail("bad")));
-            Assert.IsTrue(r.IsFailure);
+            Assert.That(r.IsFailure, Is.True);
         }
     }
 }

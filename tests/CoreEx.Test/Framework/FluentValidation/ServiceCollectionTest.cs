@@ -19,18 +19,21 @@ namespace CoreEx.Test.Framework.FluentValidation
 
             var sp = sc.BuildServiceProvider();
 
-            Assert.IsNotNull(sp.GetService<ProductValidator>());
-            Assert.IsNull(sp.GetService<FV.IValidator<Product>>());
-            Assert.IsNull(sp.GetService<CoreEx.Validation.IValidator<Product>>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(sp.GetService<ProductValidator>(), Is.Not.Null);
+                Assert.That(sp.GetService<FV.IValidator<Product>>(), Is.Null);
+                Assert.That(sp.GetService<CoreEx.Validation.IValidator<Product>>(), Is.Null);
+            });
 
             var pv = sp.GetRequiredService<ProductValidator>();
             var cv = pv.Wrap();
 
             var rs = await cv.ValidateAsync(new Product());
-            Assert.IsTrue(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.True);
 
             rs = await cv.ValidateAsync(new Product { Id = "XXX", Name = "Blah", Price = 1.5m });
-            Assert.IsFalse(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.False);
         }
 
         [Test]
@@ -41,21 +44,24 @@ namespace CoreEx.Test.Framework.FluentValidation
 
             var sp = sc.BuildServiceProvider();
 
-            Assert.IsNotNull(sp.GetService<ProductValidator>());
-            Assert.IsNotNull(sp.GetService<FV.IValidator<Product>>());
-            Assert.IsNotNull(sp.GetService<CoreEx.Validation.IValidator<Product>>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(sp.GetService<ProductValidator>(), Is.Not.Null);
+                Assert.That(sp.GetService<FV.IValidator<Product>>(), Is.Not.Null);
+                Assert.That(sp.GetService<CoreEx.Validation.IValidator<Product>>(), Is.Not.Null);
+            });
 
             var iv = sp.GetRequiredService<CoreEx.Validation.IValidator<Product>>();
-            Assert.IsNotNull(iv);
+            Assert.That(iv, Is.Not.Null);
 
             var pv = sp.GetRequiredService<ProductValidator>();
             var cv = pv.Wrap();
 
             var rs = await cv.ValidateAsync(new Product());
-            Assert.IsTrue(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.True);
 
             rs = await cv.ValidateAsync(new Product { Id = "XXX", Name = "Blah", Price = 1.5m });
-            Assert.IsFalse(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.False);
         }
 
         [Test]
@@ -67,7 +73,7 @@ namespace CoreEx.Test.Framework.FluentValidation
             var sp = sc.BuildServiceProvider();
 
             var pv = FluentValidator.Create<ProductValidator>(sp);
-            Assert.IsNotNull(pv);
+            Assert.That(pv, Is.Not.Null);
         }
 
         [Test]
@@ -79,9 +85,9 @@ namespace CoreEx.Test.Framework.FluentValidation
             var sp = sc.BuildServiceProvider();
 
             var pv = FluentValidator.Create<FV.IValidator<Product>>(sp);
-            Assert.IsNotNull(pv);
+            Assert.That(pv, Is.Not.Null);
 
-            Assert.NotNull(pv.Wrap());
+            Assert.That(pv.Wrap(), Is.Not.Null);
         }
 
         [Test]
@@ -93,10 +99,10 @@ namespace CoreEx.Test.Framework.FluentValidation
             var sp = sc.BuildServiceProvider();
 
             var rs = await new Product().Validate().Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
-            Assert.IsTrue(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.True);
 
             rs = await new Product { Id = "XXX", Name = "Blah", Price = 1.5m }.Validate().Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
-            Assert.IsFalse(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.False);
         }
 
         [Test]
@@ -108,10 +114,10 @@ namespace CoreEx.Test.Framework.FluentValidation
             var sp = sc.BuildServiceProvider();
 
             var rs = await new Product().Validate().Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
-            Assert.IsTrue(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.True);
 
             rs = await new Product { Id = "XXX", Name = "Blah", Price = 1.5m }.Validate().Mandatory().Interop(() => FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
-            Assert.IsFalse(rs.HasErrors);
+            Assert.That(rs.HasErrors, Is.False);
         }
     }
 }

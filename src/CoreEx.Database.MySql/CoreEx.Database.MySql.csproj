@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="8.2.0" />
-    <PackageReference Include="StrongNamer" Version="0.2.5" />
   </ItemGroup>
 
   <ItemGroup>

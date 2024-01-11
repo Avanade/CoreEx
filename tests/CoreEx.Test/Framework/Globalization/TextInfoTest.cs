@@ -8,15 +8,15 @@ namespace CoreEx.Test.Framework.Globalization
     public class TextInfoTest
     {
         [Test]
-        public void ToCasing_None() => Assert.AreEqual("AbCd", CultureInfo.InvariantCulture.TextInfo.ToCasing("AbCd", TextInfoCasing.None));
+        public void ToCasing_None() => Assert.That(CultureInfo.InvariantCulture.TextInfo.ToCasing("AbCd", TextInfoCasing.None), Is.EqualTo("AbCd"));
 
         [Test]
-        public void ToCasing_Lower() => Assert.AreEqual("abcd", CultureInfo.InvariantCulture.TextInfo.ToCasing("AbCd", TextInfoCasing.Lower));
+        public void ToCasing_Lower() => Assert.That(CultureInfo.InvariantCulture.TextInfo.ToCasing("AbCd", TextInfoCasing.Lower), Is.EqualTo("abcd"));
 
         [Test]
-        public void ToCasing_Upper() => Assert.AreEqual("ABCD", CultureInfo.InvariantCulture.TextInfo.ToCasing("AbCd", TextInfoCasing.Upper));
+        public void ToCasing_Upper() => Assert.That(CultureInfo.InvariantCulture.TextInfo.ToCasing("AbCd", TextInfoCasing.Upper), Is.EqualTo("ABCD"));
 
         [Test]
-        public void ToCasing_Title() => Assert.AreEqual("The Quick BROWN Fox.", CultureInfo.InvariantCulture.TextInfo.ToCasing("the qUick BROWN fox.", TextInfoCasing.Title));
+        public void ToCasing_Title() => Assert.That(CultureInfo.InvariantCulture.TextInfo.ToCasing("the qUick BROWN fox.", TextInfoCasing.Title), Is.EqualTo("The Quick BROWN Fox."));
     }
 }

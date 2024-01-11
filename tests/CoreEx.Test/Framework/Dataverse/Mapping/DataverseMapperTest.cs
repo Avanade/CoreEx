@@ -20,13 +20,16 @@ namespace CoreEx.Test.Framework.Dataverse.Mapping
             var entity = new Entity("Person");
             pdm.MapToDataverse(p, entity);
 
-            Assert.AreEqual(1.ToGuid(), entity.Id);
-            Assert.AreEqual(0, entity.KeyAttributes.Count);
-            Assert.AreEqual(4, entity.Attributes.Count);
-            Assert.AreEqual("Bob", entity.GetAttributeValue<string>("name"));
-            Assert.AreEqual("sss", entity.GetAttributeValue<string>("Street"));
-            Assert.AreEqual("ccc", entity.GetAttributeValue<string>("town"));
-            Assert.AreEqual("{\"street\":\"ttt\",\"city\":\"ddd\"}", entity.GetAttributeValue<string>("Address2"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(entity.Id, Is.EqualTo(1.ToGuid()));
+                Assert.That(entity.KeyAttributes, Is.Empty);
+                Assert.That(entity.Attributes, Has.Count.EqualTo(4));
+                Assert.That(entity.GetAttributeValue<string>("name"), Is.EqualTo("Bob"));
+                Assert.That(entity.GetAttributeValue<string>("Street"), Is.EqualTo("sss"));
+                Assert.That(entity.GetAttributeValue<string>("town"), Is.EqualTo("ccc"));
+                Assert.That(entity.GetAttributeValue<string>("Address2"), Is.EqualTo("{\"street\":\"ttt\",\"city\":\"ddd\"}"));
+            });
 
             //OrganizationRequest req = new OrganizationRequest();
             //PublicClientApplicationBuilder appBuilder = PublicClientApplicationBuilder.Create("clientId");
@@ -44,12 +47,15 @@ namespace CoreEx.Test.Framework.Dataverse.Mapping
 
             var p = pdm.MapFromDataverse(entity)!;
 
-            Assert.AreEqual(1.ToGuid().ToString(), p.Id);
-            Assert.AreEqual("Bob", p.Name);
-            Assert.AreEqual("sss", p.Address?.Street);
-            Assert.AreEqual("ccc", p.Address?.City);
-            Assert.AreEqual("ttt", p.Address2?.Street);
-            Assert.AreEqual("ddd", p.Address2?.City);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.Id, Is.EqualTo(1.ToGuid().ToString()));
+                Assert.That(p.Name, Is.EqualTo("Bob"));
+                Assert.That(p.Address?.Street, Is.EqualTo("sss"));
+                Assert.That(p.Address?.City, Is.EqualTo("ccc"));
+                Assert.That(p.Address2?.Street, Is.EqualTo("ttt"));
+                Assert.That(p.Address2?.City, Is.EqualTo("ddd"));
+            });
         }
     }
 

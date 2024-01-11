@@ -31,10 +31,13 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync("test"))
                 .AssertSuccess();
 
-            Assert.IsFalse(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.BadRequest, r.Result.StatusCode);
-            Assert.IsNull(r.Result.ErrorCode);
-            Assert.IsNull(r.Result.ErrorType);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.False);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+                Assert.That(r.Result.ErrorCode, Is.Null);
+                Assert.That(r.Result.ErrorType, Is.Null);
+            });
 
             try
             {
@@ -43,11 +46,14 @@ namespace CoreEx.Test.Framework.Http
             }
             catch (ValidationException vex)
             {
-                Assert.NotNull(vex.Messages);
-                Assert.AreEqual(1, vex.Messages!.Count);
-                Assert.AreEqual("Name", vex.Messages[0].Property);
-                Assert.AreEqual("'Name' must not be empty.", vex.Messages[0].Text);
-                Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
+                Assert.That(vex.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(vex.Messages[0].Property, Is.EqualTo("Name"));
+                    Assert.That(vex.Messages[0].Text, Is.EqualTo("'Name' must not be empty."));
+                    Assert.That(vex.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                });
             }
             catch
             {
@@ -76,14 +82,17 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync("test"))
                 .AssertSuccess();
 
-            Assert.IsFalse(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.BadRequest, r.Result.StatusCode);
-            Assert.AreEqual(1, r.Result.ErrorCode);
-            Assert.AreEqual("ValidationError", r.Result.ErrorType);
-            Assert.AreEqual("Serious error occurred.", r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.False);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+                Assert.That(r.Result.ErrorCode, Is.EqualTo(1));
+                Assert.That(r.Result.ErrorType, Is.EqualTo("ValidationError"));
+                Assert.That(r.Result.Content, Is.EqualTo("Serious error occurred."));
+            });
 
             var vex = Assert.Throws<ValidationException>(() => r.Result.ThrowOnError());
-            Assert.AreEqual("Serious error occurred.", vex!.Message);
+            Assert.That(vex!.Message, Is.EqualTo("Serious error occurred."));
             Assert.Throws<HttpRequestException>(() => r.Result.ThrowOnError(false));
 
             mcf.VerifyAll();
@@ -106,11 +115,14 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync("test"))
                 .AssertSuccess();
 
-            Assert.IsFalse(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.BadRequest, r.Result.StatusCode);
-            Assert.AreEqual(2, r.Result.ErrorCode);
-            Assert.AreEqual("BusinessError", r.Result.ErrorType);
-            Assert.AreEqual("Serious error occurred.", r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.False);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+                Assert.That(r.Result.ErrorCode, Is.EqualTo(2));
+                Assert.That(r.Result.ErrorType, Is.EqualTo("BusinessError"));
+                Assert.That(r.Result.Content, Is.EqualTo("Serious error occurred."));
+            });
 
             Assert.Throws<BusinessException>(() => r.Result.ThrowOnError());
             Assert.Throws<HttpRequestException>(() => r.Result.ThrowOnError(false));
@@ -131,9 +143,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync("test"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.AreEqual("test-content", r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.EqualTo("test-content"));
+            });
 
             mcf.VerifyAll();
         }
@@ -151,8 +166,11 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync<Product>("product/abc"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            });
             ObjectComparer.Assert(new Product { Id = "abc", Name = "banana", Price = 0.99m }, r.Result.Value);
 
             mcf.VerifyAll();
@@ -173,8 +191,11 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync<ProductCollectionResult>("product"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            });
             ObjectComparer.Assert(new ProductCollectionResult { Items = pc }, r.Result.Value);
 
             mcf.VerifyAll();
@@ -200,8 +221,11 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync<ProductCollectionResult>("product"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            });
             ObjectComparer.Assert(new ProductCollectionResult { Items = pc, Paging = new PagingResult(PagingArgs.CreateSkipAndTake(100, 25), 1000) }, r.Result.Value);
 
             mcf.VerifyAll();
@@ -227,8 +251,11 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.GetAsync<ProductCollectionResult>("product"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            });
             ObjectComparer.Assert(new ProductCollectionResult { Items = pc, Paging = new PagingResult(PagingArgs.CreateTokenAndTake("token", 25), 1000) }, r.Result.Value);
 
             mcf.VerifyAll();
@@ -247,9 +274,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PostAsync("test"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.AreEqual("test-content", r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.EqualTo("test-content"));
+            });
 
             mcf.VerifyAll();
         }
@@ -267,9 +297,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PostAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m }))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.AreEqual("test-content", r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.EqualTo("test-content"));
+            });
 
             mcf.VerifyAll();
         }
@@ -287,8 +320,11 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PostAsync<Product>("test"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            });
             ObjectComparer.Assert(new Product { Id = "abc", Name = "banana", Price = 0.99m }, r.Result.Value);
 
             mcf.VerifyAll();
@@ -307,8 +343,11 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PostAsync<BackendProduct, Product>("test", new BackendProduct { Code = "def", Description = "apple", RetailPrice = 0.49m }))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            });
             ObjectComparer.Assert(new Product { Id = "abc", Name = "banana", Price = 0.99m }, r.Result.Value);
 
             mcf.VerifyAll();
@@ -327,9 +366,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PutAsync("test", new Product { Id = "abc", Name = "banana", Price = 0.99m }))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.AreEqual("test-content", r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.EqualTo("test-content"));
+            });
 
             mcf.VerifyAll();
         }
@@ -347,8 +389,11 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PutAsync<BackendProduct, Product>("test", new BackendProduct { Code = "def", Description = "apple", RetailPrice = 0.49m }))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            });
             ObjectComparer.Assert(new Product { Id = "abc", Name = "banana", Price = 0.99m }, r.Result.Value);
 
             mcf.VerifyAll();
@@ -367,9 +412,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.DeleteAsync("test/1"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.IsNull(r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.Null);
+            });
 
             mcf.VerifyAll();
         }
@@ -387,9 +435,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.HeadAsync("test/1"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.IsNull(r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.Null);
+            });
 
             mcf.VerifyAll();
         }
@@ -407,9 +458,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.HeadAsync("?name=bob"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.IsNull(r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.Null);
+            });
 
             mcf.VerifyAll();
         }
@@ -427,9 +481,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.HeadAsync("?name=bob", new HttpRequestOptions { IncludeText = true }))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.IsNull(r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.Null);
+            });
 
             mcf.VerifyAll();
         }
@@ -447,9 +504,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PatchAsync("test/1", HttpPatchOption.MergePatch, "{\"name\":\"jenny\"}"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.IsNull(r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.Null);
+            });
 
             mcf.VerifyAll();
         }
@@ -467,9 +527,12 @@ namespace CoreEx.Test.Framework.Http
                 .Run(f => f.PatchAsync("test/1", HttpPatchOption.JsonPatch, "{\"name\":\"jenny\"}"))
                 .AssertSuccess();
 
-            Assert.IsTrue(r.Result.IsSuccess);
-            Assert.AreEqual(HttpStatusCode.OK, r.Result.StatusCode);
-            Assert.IsNull(r.Result.Content);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Result.IsSuccess, Is.True);
+                Assert.That(r.Result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(r.Result.Content, Is.Null);
+            });
 
             mcf.VerifyAll();
         }
@@ -507,9 +570,12 @@ namespace CoreEx.Test.Framework.Http
             var res = await thc.GetAsync("test");
 
             Assert.That(res, Is.Not.Null);
-            Assert.That(res.IsSuccess, Is.True);
-            Assert.That(res.Content, Is.EqualTo("test-content"));
-            Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.IsSuccess, Is.True);
+                Assert.That(res.Content, Is.EqualTo("test-content"));
+                Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+            });
 
             mcf.VerifyAll();
         }
@@ -529,9 +595,12 @@ namespace CoreEx.Test.Framework.Http
                 .Result;
 
             Assert.That(res, Is.Not.Null);
-            Assert.That(res.IsSuccess, Is.True);
-            Assert.That(res.Content, Is.EqualTo("test-content"));
-            Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.IsSuccess, Is.True);
+                Assert.That(res.Content, Is.EqualTo("test-content"));
+                Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+            });
 
             mcf.VerifyAll();
         }
@@ -544,8 +613,11 @@ namespace CoreEx.Test.Framework.Http
                 TypedMappedHttpClient.OnDefaultOptionsConfiguration = null;
                 TypedHttpClient.OnDefaultOptionsConfiguration = x => x.EnsureSuccess();
 
-                Assert.IsNotNull(TypedHttpClient.OnDefaultOptionsConfiguration);
-                Assert.IsNull(TypedMappedHttpClient.OnDefaultOptionsConfiguration);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(TypedHttpClient.OnDefaultOptionsConfiguration, Is.Not.Null);
+                    Assert.That(TypedMappedHttpClient.OnDefaultOptionsConfiguration, Is.Null);
+                });
 
                 var mcf = MockHttpClientFactory.Create();
                 var mc = mcf.CreateClient("Backend", "https://backend/");
@@ -553,14 +625,17 @@ namespace CoreEx.Test.Framework.Http
 
                 var thc = mcf.GetHttpClient("Backend")!.CreateTypedClient(onBeforeRequest: (req, ct) => { req.Headers.MaxForwards = 88; return Task.CompletedTask; });
 
-                Assert.IsTrue(thc.SendOptions.ShouldEnsureSuccess);
+                Assert.That(thc.SendOptions.ShouldEnsureSuccess, Is.True);
 
                 var res = await thc.GetAsync("test");
 
                 Assert.That(res, Is.Not.Null);
-                Assert.That(res.IsSuccess, Is.True);
-                Assert.That(res.Content, Is.EqualTo("test-content"));
-                Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(res.IsSuccess, Is.True);
+                    Assert.That(res.Content, Is.EqualTo("test-content"));
+                    Assert.That(res.Request!.Headers.MaxForwards, Is.EqualTo(88));
+                });
 
                 mcf.VerifyAll();
             }
@@ -586,38 +661,50 @@ namespace CoreEx.Test.Framework.Http
             var res = await thc.GetAsync<int>("test");
 
             Assert.That(res, Is.Not.Null);
-            Assert.That(res.IsSuccess, Is.False);
-            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(res.ErrorType, Is.Null);
-            Assert.That(res.ErrorCode, Is.Null);
-            Assert.That(res.WillResultInNullAsNotFound, Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.IsSuccess, Is.False);
+                Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+                Assert.That(res.ErrorType, Is.Null);
+                Assert.That(res.ErrorCode, Is.Null);
+                Assert.That(res.WillResultInNullAsNotFound, Is.False);
+            });
             Assert.Throws<NotFoundException>(() => _ = res.Value);
 
             res.NullOnNotFoundResponse = true;
-            Assert.That(res.IsSuccess, Is.True);
-            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-            Assert.That(res.ErrorType, Is.Null);
-            Assert.That(res.ErrorCode, Is.Null);
-            Assert.That(res.WillResultInNullAsNotFound, Is.True);
-            Assert.That(res.Value, Is.EqualTo(0));
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.IsSuccess, Is.True);
+                Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+                Assert.That(res.ErrorType, Is.Null);
+                Assert.That(res.ErrorCode, Is.Null);
+                Assert.That(res.WillResultInNullAsNotFound, Is.True);
+                Assert.That(res.Value, Is.EqualTo(0));
+            });
 
             res = await thc.GetAsync<int>("test");
-            Assert.That(res.NullOnNotFoundResponse, Is.False);
-            Assert.That(res.IsSuccess, Is.True);
-            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(res.ErrorType, Is.Null);
-            Assert.That(res.ErrorCode, Is.Null);
-            Assert.That(res.WillResultInNullAsNotFound, Is.False);
-            Assert.That(res.Value, Is.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.NullOnNotFoundResponse, Is.False);
+                Assert.That(res.IsSuccess, Is.True);
+                Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(res.ErrorType, Is.Null);
+                Assert.That(res.ErrorCode, Is.Null);
+                Assert.That(res.WillResultInNullAsNotFound, Is.False);
+                Assert.That(res.Value, Is.EqualTo(1));
+            });
 
             res = await thc.NullOnNotFound().GetAsync<int>("test");
-            Assert.That(res.NullOnNotFoundResponse, Is.True);
-            Assert.That(res.IsSuccess, Is.True);
-            Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(res.ErrorType, Is.Null);
-            Assert.That(res.ErrorCode, Is.Null);
-            Assert.That(res.WillResultInNullAsNotFound, Is.False);
-            Assert.That(res.Value, Is.EqualTo(2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.NullOnNotFoundResponse, Is.True);
+                Assert.That(res.IsSuccess, Is.True);
+                Assert.That(res.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(res.ErrorType, Is.Null);
+                Assert.That(res.ErrorCode, Is.Null);
+                Assert.That(res.WillResultInNullAsNotFound, Is.False);
+                Assert.That(res.Value, Is.EqualTo(2));
+            });
         }
 
         [Test]
@@ -644,7 +731,7 @@ namespace CoreEx.Test.Framework.Http
 
             res = await thc.GetAsync("test");
             r = res.ToResult();
-            Assert.AreEqual(CoreEx.Results.Result.Success, r);
+            Assert.That(r, Is.EqualTo(CoreEx.Results.Result.Success));
         }
 
         [Test]
@@ -672,7 +759,7 @@ namespace CoreEx.Test.Framework.Http
 
             res = await thc.GetAsync<int>("test");
             r = res.ToResult();
-            Assert.AreEqual(2, r.Value);
+            Assert.That(r.Value, Is.EqualTo(2));
 
             res = await thc.GetAsync<int>("test");
             r = res.ToResult();

@@ -16,46 +16,52 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate_MinLength()
         {
             var v1 = await "Abc".Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await "Ab".Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await "A".Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must be at least 2 characters in length.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be at least 2 characters in length."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await string.Empty.Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await ((string?)null).Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
         public async Task Validate_MaxLength()
         {
             var v1 = await "Abc".Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await "Abcde".Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await "Abcdef".Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must not exceed 5 characters in length.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must not exceed 5 characters in length."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await string.Empty.Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await ((string?)null).Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
@@ -63,20 +69,23 @@ namespace CoreEx.Test.Framework.Validation.Rules
         {
             var r = new Regex("[a-zA-Z]$");
             var v1 = await "Abc".Validate("value").String(r).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await "123".Validate("value").String(r).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is invalid."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await string.Empty.Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await ((string?)null).Validate("value").String(2, 5).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
     }
 }

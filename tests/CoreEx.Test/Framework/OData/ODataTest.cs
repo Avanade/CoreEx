@@ -21,12 +21,12 @@ namespace CoreEx.Test.Framework.ODatax
         {
             using var hc = new HttpClient();
             var response = hc.GetAsync("https://services.odata.org/TripPinRESTierService/").Result;
-            Assert.IsTrue(response.IsSuccessStatusCode);
+            Assert.That(response.IsSuccessStatusCode, Is.True);
 
             _personUrl = response.RequestMessage!.RequestUri!.ToString();
         }
 
-        public static IMapper GetMapper()
+        internal static IMapper GetMapper()
         {
             var mapper = new Mapper();
             mapper.Register(new Mapper<Product, MProduct>()
@@ -52,7 +52,7 @@ namespace CoreEx.Test.Framework.ODatax
             return mapper;
         }
 
-        public static ODataClient GetPersonClient(Soc.ODataClientSettings? settings = null)
+        internal static ODataClient GetPersonClient(Soc.ODataClientSettings? settings = null)
         {
             settings ??= new Soc.ODataClientSettings();
             settings.BaseUri = new Uri(_personUrl!);
@@ -65,7 +65,7 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.GetWithResultAsync<Person, MPerson>("People", "invalid_key", default);
-            Assert.IsNull(result.Value);
+            Assert.That(result.Value, Is.Null);
         }
 
         [Test]
@@ -73,7 +73,7 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient(new Soc.ODataClientSettings { IgnoreResourceNotFoundException = true });
             var result = await odata.GetWithResultAsync<Person, MPerson>("People", "invalid_key", default);
-            Assert.IsNull(result.Value);
+            Assert.That(result.Value, Is.Null);
         }
 
         [Test]
@@ -81,10 +81,13 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.GetWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
-            Assert.IsNotNull(result.Value);
-            Assert.AreEqual("russellwhyte", result.Value!.Id);
-            Assert.AreEqual("Russell", result.Value.FirstName);
-            Assert.AreEqual("Whyte", result.Value.LastName);
+            Assert.That(result.Value, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Value.Id, Is.EqualTo("russellwhyte"));
+                Assert.That(result.Value.FirstName, Is.EqualTo("Russell"));
+                Assert.That(result.Value.LastName, Is.EqualTo("Whyte"));
+            });
         }
 
         [Test]
@@ -92,16 +95,22 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.UserName == "russellwhyte")).SelectSingleAsync(default);
-            Assert.IsNotNull(result);
-            Assert.AreEqual("russellwhyte", result!.Id);
-            Assert.AreEqual("Russell", result.FirstName);
-            Assert.AreEqual("Whyte", result.LastName);
+            Assert.That(result, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Id, Is.EqualTo("russellwhyte"));
+                Assert.That(result.FirstName, Is.EqualTo("Russell"));
+                Assert.That(result.LastName, Is.EqualTo("Whyte"));
+            });
 
             var result2 = (await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.UserName == "russellwhyte")).SelectSingleWithResultAsync(default)).Value;
-            Assert.IsNotNull(result2);
-            Assert.AreEqual("russellwhyte", result!.Id);
-            Assert.AreEqual("Russell", result.FirstName);
-            Assert.AreEqual("Whyte", result.LastName);
+            Assert.That(result2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result2!.Id, Is.EqualTo("russellwhyte"));
+                Assert.That(result2.FirstName, Is.EqualTo("Russell"));
+                Assert.That(result2.LastName, Is.EqualTo("Whyte"));
+            });
         }
 
         [Test]
@@ -109,22 +118,28 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "Russell")).SelectFirstAsync(default);
-            Assert.IsNotNull(result);
-            Assert.AreEqual("russellwhyte", result!.Id);
-            Assert.AreEqual("Russell", result.FirstName);
-            Assert.AreEqual("Whyte", result.LastName);
+            Assert.That(result, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Id, Is.EqualTo("russellwhyte"));
+                Assert.That(result.FirstName, Is.EqualTo("Russell"));
+                Assert.That(result.LastName, Is.EqualTo("Whyte"));
+            });
 
             var result2 = (await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "Russell")).SelectFirstWithResultAsync(default)).Value;
-            Assert.IsNotNull(result2);
-            Assert.AreEqual("russellwhyte", result!.Id);
-            Assert.AreEqual("Russell", result.FirstName);
-            Assert.AreEqual("Whyte", result.LastName);
+            Assert.That(result2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result2!.Id, Is.EqualTo("russellwhyte"));
+                Assert.That(result2.FirstName, Is.EqualTo("Russell"));
+                Assert.That(result2.LastName, Is.EqualTo("Whyte"));
+            });
 
             var result3 = await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "does-not-exist")).SelectFirstOrDefaultAsync(default);
-            Assert.IsNull(result3);
+            Assert.That(result3, Is.Null);
 
             var result4 = (await odata.Query<Person, MPerson>("People", q => q.Filter(p => p.FirstName == "does-not-exist")).SelectFirstOrDefaultWithResultAsync(default)).Value;
-            Assert.IsNull(result4);
+            Assert.That(result4, Is.Null);
         }
 
         [Test]
@@ -132,9 +147,12 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.Query<Person, MPerson>("People").WithPaging(2, 3).SelectQueryWithResultAsync<PersonCollection>(default);
-            Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(3, result.Value!.Count);
-            Assert.AreEqual(new string[] { "Elaine", "Genevieve", "Georgina" }, result.Value.Select(x => x.FirstName).ToArray());
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Value, Has.Count.EqualTo(3));
+                Assert.That(result.Value.Select(x => x.FirstName).ToArray(), Is.EqualTo(new string[] { "Elaine", "Genevieve", "Georgina" }));
+            });
         }
 
         [Test]
@@ -142,10 +160,13 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.Query<Person, MPerson>("People").WithPaging(PagingArgs.CreateSkipAndTake(2, 3, true)).SelectResultWithResultAsync<PersonCollectionResult, PersonCollection>(default);
-            Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(3, result.Value!.Items.Count);
-            Assert.AreEqual(new string[] { "Elaine", "Genevieve", "Georgina" }, result.Value.Items.Select(x => x.FirstName).ToArray());
-            Assert.AreEqual(20, result.Value.Paging!.TotalCount);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Value.Items, Has.Count.EqualTo(3));
+                Assert.That(result.Value.Items.Select(x => x.FirstName).ToArray(), Is.EqualTo(new string[] { "Elaine", "Genevieve", "Georgina" }));
+                Assert.That(result.Value.Paging!.TotalCount, Is.EqualTo(20));
+            });
         }
 
         [Test]
@@ -153,17 +174,23 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.Query<Person, MPerson>("People", q => q.FilterWildcard(x => x.FirstName, "*s*")).WithPaging(PagingArgs.CreateSkipAndTake(2, 3, true)).SelectResultWithResultAsync<PersonCollectionResult, PersonCollection>(default);
-            Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(3, result.Value!.Items.Count);
-            Assert.AreEqual(new string[] { "Russell", "Sallie", "Sandy" }, result.Value.Items.Select(x => x.FirstName).ToArray());
-            Assert.AreEqual(7, result.Value.Paging!.TotalCount);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Value.Items, Has.Count.EqualTo(3));
+                Assert.That(result.Value.Items.Select(x => x.FirstName).ToArray(), Is.EqualTo(new string[] { "Russell", "Sallie", "Sandy" }));
+                Assert.That(result.Value.Paging!.TotalCount, Is.EqualTo(7));
+            });
 
             // Weird how Scott comes last as it is first when no paging is requested, but that is what is returned from the service <shrug_emoji/>.
             result = await odata.Query<Person, MPerson>("People", q => q.FilterWildcard(x => x.FirstName, "s*")).WithPaging(PagingArgs.CreateSkipAndTake(2, 3, true)).SelectResultWithResultAsync<PersonCollectionResult, PersonCollection>(default);
-            Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(1, result.Value!.Items.Count);
-            Assert.AreEqual(new string[] { "Scott" }, result.Value.Items.Select(x => x.FirstName).ToArray());
-            Assert.AreEqual(3, result.Value.Paging!.TotalCount);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Value.Items, Has.Count.EqualTo(1));
+                Assert.That(result.Value.Items.Select(x => x.FirstName).ToArray(), Is.EqualTo(new string[] { "Scott" }));
+                Assert.That(result.Value.Paging!.TotalCount, Is.EqualTo(3));
+            });
         }
 
         [Test]
@@ -171,17 +198,17 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.Query<Person, MPerson>("People", q => q.FilterWith((string)null!, x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
-            Assert.AreEqual(20, result.Count);
+            Assert.That(result, Has.Count.EqualTo(20));
 
             result = await odata.Query<Person, MPerson>("People", q => q.FilterWith("abc", x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
-            Assert.AreEqual(1, result.Count);
+            Assert.That(result, Has.Count.EqualTo(1));
 
             odata = GetPersonClient();
             result = await odata.Query<Person, MPerson>("People", q => q.FilterWith((string)null!, x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
-            Assert.AreEqual(20, result.Count);
+            Assert.That(result, Has.Count.EqualTo(20));
 
             result = await odata.Query<Person, MPerson>("People", q => q.FilterWith("abc", x => x.FirstName == "Scott")).SelectQueryAsync<PersonCollection>();
-            Assert.AreEqual(1, result.Count);
+            Assert.That(result, Has.Count.EqualTo(1));
         }
 
         [Test]
@@ -189,16 +216,22 @@ namespace CoreEx.Test.Framework.ODatax
         {
             var odata = GetPersonClient();
             var result = await odata.CreateWithResultAsync<Person, MPerson>("People", new Person { Id = "bobsmith", FirstName = "Bob", LastName = "Smith" }, default);
-            Assert.IsNotNull(result.Value);
-            Assert.AreEqual("bobsmith", result.Value!.Id);
-            Assert.AreEqual("Bob", result.Value.FirstName);
-            Assert.AreEqual("Smith", result.Value.LastName);
+            Assert.That(result.Value, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Value.Id, Is.EqualTo("bobsmith"));
+                Assert.That(result.Value.FirstName, Is.EqualTo("Bob"));
+                Assert.That(result.Value.LastName, Is.EqualTo("Smith"));
+            });
 
             var result2 = await odata.GetWithResultAsync<Person, MPerson>("People", "bobsmith", default);
-            Assert.IsNotNull(result2.Value);
-            Assert.AreEqual("bobsmith", result2.Value!.Id);
-            Assert.AreEqual("Bob", result2.Value.FirstName);
-            Assert.AreEqual("Smith", result2.Value.LastName);
+            Assert.That(result2.Value, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result2.Value.Id, Is.EqualTo("bobsmith"));
+                Assert.That(result2.Value.FirstName, Is.EqualTo("Bob"));
+                Assert.That(result2.Value.LastName, Is.EqualTo("Smith"));
+            });
         }
 
         [Test]
@@ -212,7 +245,7 @@ namespace CoreEx.Test.Framework.ODatax
             result.Value.FirstName = "Russell2";
 
             var ex = Assert.ThrowsAsync<Soc.WebRequestException>(async () => await odata.UpdateWithResultAsync<Person, MPerson>("People", result.Value, default));
-            Assert.AreEqual(HttpStatusCode.InternalServerError, ex!.Code);
+            Assert.That(ex!.Code, Is.EqualTo(HttpStatusCode.InternalServerError));
         }
 
         [Test]
@@ -226,8 +259,11 @@ namespace CoreEx.Test.Framework.ODatax
             result.Value.FirstName = "Russell2";
             var result2 = await odata.UpdateWithResultAsync<Person, MPerson>("People", result.Value, default);
 
-            Assert.IsTrue(result2.IsFailure);
-            Assert.IsInstanceOf<NotFoundException>(result2.Error);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result2.IsFailure, Is.True);
+                Assert.That(result2.Error, Is.InstanceOf<NotFoundException>());
+            });
         }
 
         [Test]
@@ -241,7 +277,7 @@ namespace CoreEx.Test.Framework.ODatax
             result.Value.FirstName = "Russell2";
 
             var ex = Assert.ThrowsAsync<Soc.WebRequestException>(async () => await odata.UpdateWithResultAsync<Person, MPerson>("People", result.Value, default));
-            Assert.AreEqual(HttpStatusCode.InternalServerError, ex!.Code);
+            Assert.That(ex!.Code, Is.EqualTo(HttpStatusCode.InternalServerError));
         }
 
         [Test]
@@ -252,16 +288,22 @@ namespace CoreEx.Test.Framework.ODatax
 
             result.Value!.FirstName = "Russell2";
             var result2 = await odata.UpdateWithResultAsync<Person, MPerson>("People", result.Value, default);
-            Assert.IsNotNull(result2.Value);
-            Assert.AreEqual("russellwhyte", result2.Value!.Id);
-            Assert.AreEqual("Russell2", result2.Value.FirstName);
-            Assert.AreEqual("Whyte", result2.Value.LastName);
+            Assert.That(result2.Value, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result2.Value!.Id, Is.EqualTo("russellwhyte"));
+                Assert.That(result2.Value.FirstName, Is.EqualTo("Russell2"));
+                Assert.That(result2.Value.LastName, Is.EqualTo("Whyte"));
+            });
 
             result = await odata.GetWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
-            Assert.IsNotNull(result.Value);
-            Assert.AreEqual("russellwhyte", result.Value!.Id);
-            Assert.AreEqual("Russell2", result.Value.FirstName);
-            Assert.AreEqual("Whyte", result.Value.LastName);
+            Assert.That(result.Value, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Value!.Id, Is.EqualTo("russellwhyte"));
+                Assert.That(result.Value.FirstName, Is.EqualTo("Russell2"));
+                Assert.That(result.Value.LastName, Is.EqualTo("Whyte"));
+            });
         }
 
         [Test]
@@ -270,15 +312,18 @@ namespace CoreEx.Test.Framework.ODatax
             var odata = GetPersonClient();
             odata.Args = new ODataArgs { PreReadOnDelete = true };
             var result = await odata.DeleteWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
-            Assert.IsTrue(result.IsSuccess);
+            Assert.That(result.IsSuccess, Is.True);
 
             var result2 = await odata.GetWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
-            Assert.IsNull(result2.Value);
+            Assert.That(result2.Value, Is.Null);
 
             // Pre-read will determine not found :-)
             result = await odata.DeleteWithResultAsync<Person, MPerson>("People", "russellwhyte", default);
-            Assert.IsTrue(result.IsFailure);
-            Assert.IsInstanceOf<NotFoundException>(result.Error);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error, Is.InstanceOf<NotFoundException>());
+            });
         }
 
         [Test]
@@ -287,14 +332,14 @@ namespace CoreEx.Test.Framework.ODatax
             var odata = GetPersonClient();
             odata.Args = new ODataArgs { PreReadOnDelete = false };
             var result = await odata.DeleteWithResultAsync<Person, MPerson>("People", "ronaldmundy", default);
-            Assert.IsTrue(result.IsSuccess);
+            Assert.That(result.IsSuccess, Is.True);
 
             var result2 = await odata.GetWithResultAsync<Person, MPerson>("People", "ronaldmundy", default);
-            Assert.IsNull(result2.Value);
+            Assert.That(result2.Value, Is.Null);
 
             // Alas, arguably this endpoint should return not found :-(
             var ex = Assert.ThrowsAsync<Soc.WebRequestException>(async () => await odata.DeleteWithResultAsync<Person, MPerson>("People", "ronaldmundy", default));
-            Assert.AreEqual(HttpStatusCode.InternalServerError, ex!.Code);
+            Assert.That(ex!.Code, Is.EqualTo(HttpStatusCode.InternalServerError));
         }
 
         [Test]
@@ -303,25 +348,31 @@ namespace CoreEx.Test.Framework.ODatax
             var odata = GetPersonClient();
             var ocoll = odata.CreateItemCollection("People", new PersonMapper());
             var result = await ocoll.CreateWithResultAsync(new Person { Id = "barbsmith", FirstName = "Barbara", LastName = "Smith" });
-            Assert.IsTrue(result.IsSuccess);
+            Assert.That(result.IsSuccess, Is.True);
 
             var result2 = await ocoll.GetWithResultAsync("barbsmith");
-            Assert.IsNotNull(result2.Value);
-            Assert.AreEqual("barbsmith", result2.Value!.Id);
-            Assert.AreEqual("Barbara", result2.Value.FirstName);
-            Assert.AreEqual("Smith", result2.Value.LastName);
+            Assert.That(result2.Value, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result2.Value.Id, Is.EqualTo("barbsmith"));
+                Assert.That(result2.Value.FirstName, Is.EqualTo("Barbara"));
+                Assert.That(result2.Value.LastName, Is.EqualTo("Smith"));
+            });
 
             result2 = await ocoll.GetWithResultAsync("barbsmith");
-            Assert.IsNotNull(result2.Value);
-            Assert.AreEqual("barbsmith", result2.Value!.Id);
-            Assert.AreEqual("Barbara", result2.Value.FirstName);
-            Assert.AreEqual("Smith", result2.Value.LastName);
+            Assert.That(result2.Value, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result2.Value.Id, Is.EqualTo("barbsmith"));
+                Assert.That(result2.Value.FirstName, Is.EqualTo("Barbara"));
+                Assert.That(result2.Value.LastName, Is.EqualTo("Smith"));
+            });
 
             var result3 = await ocoll.DeleteWithResultAsync("barbsmith");
-            Assert.IsTrue(result.IsSuccess);
+            Assert.That(result3.IsSuccess, Is.True);
 
             result2 = await ocoll.GetWithResultAsync("barbsmith");
-            Assert.IsNull(result2.Value);
+            Assert.That(result2.Value, Is.Null);
         }
     }
 

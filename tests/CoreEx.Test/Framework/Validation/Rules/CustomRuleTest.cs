@@ -16,11 +16,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate()
         {
             var v1 = await "Abc".Validate("value").Custom(x => { x.CreateErrorMessage("Test"); return Result.Success; }).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Test", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Test"));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
     }
 }

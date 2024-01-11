@@ -28,7 +28,7 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<USState[]>()!;
 
-            Assert.AreEqual(50, v.Length);
+            Assert.That(v, Has.Length.EqualTo(50));
         }
 
         [Test]
@@ -41,8 +41,8 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<USState[]>()!;
 
-            Assert.AreEqual(2, v.Length);
-            Assert.AreEqual(new string[] { "CO", "WA" }, v.Select(x => x.Code));
+            Assert.That(v, Has.Length.EqualTo(2));
+            Assert.That(v.Select(x => x.Code), Is.EqualTo(new string[] { "CO", "WA" }));
         }
 
         [Test]
@@ -55,9 +55,9 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<USState[]>()!;
 
-            Assert.AreEqual(8, v.Length);
+            Assert.That(v, Has.Length.EqualTo(8));
             var x = v.Select(x => x.Code);
-            Assert.AreEqual(new string[] { "CA", "CO", "FL", "GA", "NY", "NC", "ND", "OR" }, v.Select(x => x.Code));
+            Assert.That(v.Select(x => x.Code), Is.EqualTo(new string[] { "CA", "CO", "FL", "GA", "NY", "NC", "ND", "OR" }));
         }
 
         [Test]
@@ -85,7 +85,7 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<Gender[]>()!;
 
-            Assert.AreEqual(3, v.Length);
+            Assert.That(v, Has.Length.EqualTo(3));
         }
 
         [Test]

@@ -26,9 +26,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
 
             eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteAsSilent };
-            Assert.IsFalse(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.IsNull(subscriber);
-            Assert.IsNull(valueType);
+            Assert.Multiple(() =>
+            {
+                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.False);
+                Assert.That(subscriber, Is.Null);
+                Assert.That(valueType, Is.Null);
+            });
         }
 
         [Test]
@@ -42,9 +45,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
 
             eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteAsSilent };
-            Assert.IsFalse(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.IsNull(subscriber);
-            Assert.IsNull(valueType);
+            Assert.Multiple(() =>
+            {
+                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.False);
+                Assert.That(subscriber, Is.Null);
+                Assert.That(valueType, Is.Null);
+            });
         }
 
         [Test]
@@ -54,9 +60,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
             var eso = new EventSubscriberOrchestrator().AddSubscriber<ModifySubscriber>().AddSubscriber<DeleteSubscriber>();
-            Assert.IsTrue(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.That(subscriber, Is.Not.Null.And.TypeOf<ModifySubscriber>());
-            Assert.That(valueType, Is.Not.Null.And.EqualTo(typeof(Employee)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.True);
+                Assert.That(subscriber, Is.Not.Null.And.TypeOf<ModifySubscriber>());
+                Assert.That(valueType, Is.Not.Null.And.EqualTo(typeof(Employee)));
+            });
         }
 
         [Test]
@@ -66,9 +75,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
             var eso = new EventSubscriberOrchestrator().AddSubscriber<ModifySubscriber>().AddSubscriber<DeleteSubscriber>();
-            Assert.IsTrue(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.That(subscriber, Is.Not.Null.And.TypeOf<DeleteSubscriber>());
-            Assert.That(valueType, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.True);
+                Assert.That(subscriber, Is.Not.Null.And.TypeOf<DeleteSubscriber>());
+                Assert.That(valueType, Is.Null);
+            });
         }
 
         [Test]
@@ -82,9 +94,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorAmbiquousSubscriber));
 
             eso = new EventSubscriberOrchestrator() { AmbiquousSubscriberHandling = ErrorHandling.CompleteAsSilent }.AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>();
-            Assert.IsFalse(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.That(subscriber, Is.Null);
-            Assert.That(valueType, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.False);
+                Assert.That(subscriber, Is.Null);
+                Assert.That(valueType, Is.Null);
+            });
         }
 
         [Test]
@@ -95,11 +110,14 @@ namespace CoreEx.Test.Framework.Events.Subscribing
 
             var eso = new EventSubscriberOrchestrator().AddSubscriber<OthersSubscriber>();
             var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.other", Type = "blah.blah", Action = "created", Key = "XXX" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
 
-            Assert.IsTrue(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.other", Type = "blah.blah", Action = "created", Key = "KEY" }, new EventSubscriberArgs(), out var subscriber2, out var valueType2));
-            Assert.That(subscriber2, Is.Not.Null.And.TypeOf<OthersSubscriber>());
-            Assert.That(valueType2, Is.Null);
+                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.other", Type = "blah.blah", Action = "created", Key = "KEY" }, new EventSubscriberArgs(), out var subscriber2, out var valueType2), Is.True);
+                Assert.That(subscriber2, Is.Not.Null.And.TypeOf<OthersSubscriber>());
+                Assert.That(valueType2, Is.Null);
+            });
         }
 
         [Test] public async Task Receive_Unhandled_None() => await ReceiveTest(null, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), false, message: "Unhandled exception.");
@@ -175,7 +193,7 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var eso = new EventSubscriberOrchestrator().AddSubscriber<ModifySubscriber>().AddSubscriber<DeleteSubscriber>();
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
-            Assert.IsTrue(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs(), out var subscriber, out var _));
+            Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs(), out var subscriber, out var _), Is.True);
 
             setAction?.Invoke(ms);
             ms.Action = () => receiveAction();
@@ -183,20 +201,26 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             try
             {
                 await eso.ReceiveAsync(ees, subscriber!, ed ?? new EventData<Employee> { Value = new Employee { Id = 1, Name = "Bob" } }, new EventSubscriberArgs());
-                Assert.IsNull(exceptionType, "Expected an exception!");
+                Assert.That(exceptionType, Is.Null, "Expected an exception!");
             }
             catch (EventSubscriberException esex)
             {
-                Assert.IsTrue(eventSubscriberException, "Should be an EventSubscriberException!");
-                Assert.That(esex.IsTransient, Is.EqualTo(isTransient));
-                Assert.That(esex.InnerException, Is.Not.Null.And.TypeOf(exceptionType));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(eventSubscriberException, Is.True, "Should be an EventSubscriberException!");
+                    Assert.That(esex.IsTransient, Is.EqualTo(isTransient));
+                    Assert.That(esex.InnerException, Is.Not.Null.And.TypeOf(exceptionType));
+                });
                 if (message != null)
                     Assert.That(esex.Message, Is.Not.Null.And.EqualTo(message));
             }
             catch (System.Exception ex)
             {
-                Assert.IsFalse(eventSubscriberException, "Should not be an EventSubscriberException!");
-                Assert.That(ex, Is.Not.Null.And.TypeOf(exceptionType));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(eventSubscriberException, Is.False, "Should not be an EventSubscriberException!");
+                    Assert.That(ex, Is.Not.Null.And.TypeOf(exceptionType));
+                });
                 if (message != null)
                     Assert.That(ex.Message, Is.Not.Null.And.EqualTo(message));
             }
@@ -214,9 +238,9 @@ namespace CoreEx.Test.Framework.Events.Subscribing
 
             var status = ((TestInstrumentation)ees.Instrumentation!).Status;
             if (ins is null)
-                Assert.IsNull(status);
+                Assert.That(status, Is.Null);
             else
-                Assert.AreEqual(ins, status);
+                Assert.That(status, Is.EqualTo(ins));
         }
 
         [EventSubscriber("my.hr.employee", "created", "updated")]

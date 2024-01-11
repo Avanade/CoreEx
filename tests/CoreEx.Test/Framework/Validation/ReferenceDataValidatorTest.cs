@@ -21,36 +21,45 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Validate_Null()
         {
             var r = await new ReferenceDataValidator<Gender>().ValidateAsync(null!);
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Value is required.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("value", r.Messages[0].Property);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Value is required."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
         public async Task Validate_Empty()
         {
             var r = await GenderValidator.Default.ValidateAsync(new Gender());
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(3, r.Messages!.Count);
-            Assert.AreEqual("Id", r.Messages[0].Property);
-            Assert.AreEqual("Code", r.Messages[1].Property);
-            Assert.AreEqual("Text", r.Messages[2].Property);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(3));
+                Assert.That(r.Messages![0].Property, Is.EqualTo("Id"));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("Code"));
+                Assert.That(r.Messages[2].Property, Is.EqualTo("Text"));
+            });
         }
 
         [Test]
         public async Task Validate_Dates()
         {
             var r = await GenderValidator.Default.ValidateAsync(new Gender { Id = 1, Code = "X", Text = "XX", StartDate = new DateTime(2000, 01, 01), EndDate = new DateTime(1950, 01, 01) });
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("End Date must be greater than or equal to Start Date.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("EndDate", r.Messages[0].Property);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("End Date must be greater than or equal to Start Date."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("EndDate"));
+            });
         }
     }
 }

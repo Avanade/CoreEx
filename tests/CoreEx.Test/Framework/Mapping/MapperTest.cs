@@ -22,8 +22,11 @@ namespace CoreEx.Test.Framework.Mapping
             m.Register(pm);
 
             var p2 = m.Map<PersonB>(new PersonA { Id = 1, Name = "Bob" });
-            Assert.That(p2.ID, Is.EqualTo(1));
-            Assert.That(p2.Text, Is.EqualTo("Bob"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(p2.ID, Is.EqualTo(1));
+                Assert.That(p2.Text, Is.EqualTo("Bob"));
+            });
         }
 
         [Test]
@@ -43,8 +46,11 @@ namespace CoreEx.Test.Framework.Mapping
             var pbc = m.Map<PersonBCollection>(pac);
 
             Assert.That(pbc, Has.Count.EqualTo(1));
-            Assert.That(pbc[0].ID, Is.EqualTo(1));
-            Assert.That(pbc[0].Text, Is.EqualTo("Bob"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(pbc[0].ID, Is.EqualTo(1));
+                Assert.That(pbc[0].Text, Is.EqualTo("Bob"));
+            });
         }
 
         [Test]
@@ -61,8 +67,11 @@ namespace CoreEx.Test.Framework.Mapping
             var pbc = m.Map<PersonBCollection>(pac);
 
             Assert.That(pbc, Has.Count.EqualTo(1));
-            Assert.That(pbc[0].ID, Is.EqualTo(1));
-            Assert.That(pbc[0].Text, Is.EqualTo("Bob"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(pbc[0].ID, Is.EqualTo(1));
+                Assert.That(pbc[0].Text, Is.EqualTo("Bob"));
+            });
         }
 
         [Test]
@@ -80,12 +89,18 @@ namespace CoreEx.Test.Framework.Mapping
             var pbc2 = m.Map(pac, pbc);
 
             Assert.That(pbc, Has.Count.EqualTo(1));
-            Assert.That(pbc[0].ID, Is.EqualTo(1));
-            Assert.That(pbc[0].Text, Is.EqualTo("Bob"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(pbc[0].ID, Is.EqualTo(1));
+                Assert.That(pbc[0].Text, Is.EqualTo("Bob"));
 
-            Assert.That(pbc2, Has.Count.EqualTo(1));
-            Assert.That(pbc2[0].ID, Is.EqualTo(1));
-            Assert.That(pbc2[0].Text, Is.EqualTo("Bob"));
+                Assert.That(pbc2, Has.Count.EqualTo(1));
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(pbc2[0].ID, Is.EqualTo(1));
+                Assert.That(pbc2[0].Text, Is.EqualTo("Bob"));
+            });
         }
 
         [Test]
@@ -132,20 +147,26 @@ namespace CoreEx.Test.Framework.Mapping
             var r = m.Map<Model>(c);
 
             Assert.That(r, Is.Not.Null);
-            Assert.That(r.Id, Is.EqualTo(88));
-            Assert.That(r.Name, Is.EqualTo("Brian"));
-            Assert.That(r.Street, Is.EqualTo("Main"));
-            Assert.That(r.City, Is.EqualTo("Wellington"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(88));
+                Assert.That(r.Name, Is.EqualTo("Brian"));
+                Assert.That(r.Street, Is.EqualTo("Main"));
+                Assert.That(r.City, Is.EqualTo("Wellington"));
+            });
 
             // Try with Address of null - map into should null-ify!
             c.Address = null;
             m.Map(c, r);
 
             Assert.That(r, Is.Not.Null);
-            Assert.That(r.Id, Is.EqualTo(88));
-            Assert.That(r.Name, Is.EqualTo("Brian"));
-            Assert.That(r.Street, Is.Null);
-            Assert.That(r.City, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(88));
+                Assert.That(r.Name, Is.EqualTo("Brian"));
+                Assert.That(r.Street, Is.Null);
+                Assert.That(r.City, Is.Null);
+            });
         }
 
         [Test]
@@ -173,21 +194,27 @@ namespace CoreEx.Test.Framework.Mapping
             var r = m.Map<Model>(c);
 
             Assert.That(r, Is.Not.Null);
-            Assert.That(r.Id, Is.EqualTo(88));
-            Assert.That(r.Name, Is.EqualTo("Brian"));
-            Assert.That(r.Street, Is.EqualTo("Main"));
-            Assert.That(r.City, Is.EqualTo("Wellington"));
-            Assert.That(r.Other, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(88));
+                Assert.That(r.Name, Is.EqualTo("Brian"));
+                Assert.That(r.Street, Is.EqualTo("Main"));
+                Assert.That(r.City, Is.EqualTo("Wellington"));
+                Assert.That(r.Other, Is.Null);
+            });
 
             c = new Contact { Id = 88, Name = "Brian", Address = new Address { Street = "Main", City = "Wellington", Other = new Other { Value = "Blah" } } };
             r = m.Map<Model>(c);
 
             Assert.That(r, Is.Not.Null);
-            Assert.That(r.Id, Is.EqualTo(88));
-            Assert.That(r.Name, Is.EqualTo("Brian"));
-            Assert.That(r.Street, Is.EqualTo("Main"));
-            Assert.That(r.City, Is.EqualTo("Wellington"));
-            Assert.That(r.Other, Is.EqualTo("Blah"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(88));
+                Assert.That(r.Name, Is.EqualTo("Brian"));
+                Assert.That(r.Street, Is.EqualTo("Main"));
+                Assert.That(r.City, Is.EqualTo("Wellington"));
+                Assert.That(r.Other, Is.EqualTo("Blah"));
+            });
         }
 
         [Test]
@@ -229,17 +256,23 @@ namespace CoreEx.Test.Framework.Mapping
             var em = m.Map<EmployeeModel>(e);
 
             Assert.That(em, Is.Not.Null);
-            Assert.That(em.Name, Is.EqualTo("Tim"));
-            Assert.That(em.Reason, Is.Null);
-            Assert.That(em.Date, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(em.Name, Is.EqualTo("Tim"));
+                Assert.That(em.Reason, Is.Null);
+                Assert.That(em.Date, Is.Null);
+            });
 
             em = new EmployeeModel { Name = "Tom", Reason = "Because", Date = DateTime.UtcNow };
             em = m.Map(e, em);
 
             Assert.That(em, Is.Not.Null);
-            Assert.That(em.Name, Is.EqualTo("Tim"));
-            Assert.That(em.Reason, Is.Null);
-            Assert.That(em.Date, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(em.Name, Is.EqualTo("Tim"));
+                Assert.That(em.Reason, Is.Null);
+                Assert.That(em.Date, Is.Null);
+            });
         }
 
         [Test]
@@ -267,17 +300,23 @@ namespace CoreEx.Test.Framework.Mapping
             var em = m.Map<EmployeeModel>(e);
 
             Assert.That(em, Is.Not.Null);
-            Assert.That(em.Name, Is.EqualTo("Tim"));
-            Assert.That(em.Reason, Is.Null);
-            Assert.That(em.Date, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(em.Name, Is.EqualTo("Tim"));
+                Assert.That(em.Reason, Is.Null);
+                Assert.That(em.Date, Is.Null);
+            });
 
             em = new EmployeeModel { Name = "Tom", Reason = "Because", Date = DateTime.UtcNow };
             em = m.Map(e, em);
 
             Assert.That(em, Is.Not.Null);
-            Assert.That(em.Name, Is.EqualTo("Tim"));
-            Assert.That(em.Reason, Is.Null);
-            Assert.That(em.Date, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(em.Name, Is.EqualTo("Tim"));
+                Assert.That(em.Reason, Is.Null);
+                Assert.That(em.Date, Is.Null);
+            });
         }
 
         [Test]
@@ -299,17 +338,23 @@ namespace CoreEx.Test.Framework.Mapping
             var em = m.Map<EmployeeModel>(e);
 
             Assert.That(em, Is.Not.Null);
-            Assert.That(em.Name, Is.EqualTo("Tim"));
-            Assert.That(em.Reason, Is.Null);
-            Assert.That(em.Date, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(em.Name, Is.EqualTo("Tim"));
+                Assert.That(em.Reason, Is.Null);
+                Assert.That(em.Date, Is.Null);
+            });
 
             em = new EmployeeModel { Name = "Tom", Reason = "Because", Date = DateTime.UtcNow };
             em = m.Map(e, em);
 
             Assert.That(em, Is.Not.Null);
-            Assert.That(em.Name, Is.EqualTo("Tim"));
-            Assert.That(em.Reason, Is.Null);
-            Assert.That(em.Date, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(em.Name, Is.EqualTo("Tim"));
+                Assert.That(em.Reason, Is.Null);
+                Assert.That(em.Date, Is.Null);
+            });
         }
 
         [Test]
@@ -332,11 +377,17 @@ namespace CoreEx.Test.Framework.Mapping
             var c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+            });
 
             // Try with all properties of Address are default - should not touch as condition not true.
             r.Street = null;
@@ -344,9 +395,12 @@ namespace CoreEx.Test.Framework.Mapping
             c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Null);
+            });
         }
 
         [Test]
@@ -369,11 +423,17 @@ namespace CoreEx.Test.Framework.Mapping
             var c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+            });
 
             // Try with all properties of Address are default - should not touch as condition not true.
             r.Street = null;
@@ -381,11 +441,17 @@ namespace CoreEx.Test.Framework.Mapping
             c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.Null);
-            Assert.That(c.Address!.City, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.Null);
+                Assert.That(c.Address!.City, Is.Null);
+            });
         }
 
         [Test]
@@ -408,11 +474,17 @@ namespace CoreEx.Test.Framework.Mapping
             var c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+            });
 
             // Try with all properties of Address are default - should nullify as all are initial.
             r.Street = null;
@@ -420,9 +492,12 @@ namespace CoreEx.Test.Framework.Mapping
             c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Null);
+            });
         }
 
         [Test]
@@ -451,33 +526,48 @@ namespace CoreEx.Test.Framework.Mapping
             var c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
-            Assert.That(c.Address!.Other, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+                Assert.That(c.Address!.Other, Is.Null);
+            });
 
             // Other expands as it now has a value.
             r = new Model { Id = 88, Name = "Brian", Street = "Main", City = "Wellington", Other = "Blah" };
             c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
-            Assert.That(c.Address!.Other, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+                Assert.That(c.Address!.Other, Is.Not.Null);
+            });
             Assert.That(c.Address!.Other!.Value, Is.EqualTo("Blah"));
 
             // Other will not expand as the Address is not specified; data must flow along expand branch.
             r = new Model { Id = 88, Name = "Brian", Street = null, City = null, Other = "Blah" };
             c = m.Map<Contact>(r);
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Null);
+            });
         }
 
         [Test]
@@ -535,36 +625,54 @@ namespace CoreEx.Test.Framework.Mapping
             var c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
-            Assert.That(c.Address!.Other, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+                Assert.That(c.Address!.Other, Is.Null);
+            });
 
             // Other expands as it now has a value.
             r = new Model { Id = 88, Name = "Brian", Street = "Main", City = "Wellington", Other = "Blah" };
             c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
-            Assert.That(c.Address!.Other, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+                Assert.That(c.Address!.Other, Is.Not.Null);
+            });
             Assert.That(c.Address!.Other!.Value, Is.EqualTo("Blah"));
 
             // Other *will* expand as the Address has the Other in the condition.
             r = new Model { Id = 88, Name = "Brian", Street = null, City = null, Other = "Blah" };
             c = m.Map<Contact>(r);
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.Null);
-            Assert.That(c.Address!.City, Is.Null);
-            Assert.That(c.Address!.Other, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.Null);
+                Assert.That(c.Address!.City, Is.Null);
+                Assert.That(c.Address!.Other, Is.Not.Null);
+            });
             Assert.That(c.Address!.Other!.Value, Is.EqualTo("Blah"));
         }
 
@@ -588,19 +696,28 @@ namespace CoreEx.Test.Framework.Mapping
             var c = m.Map<Contact>(r);
 
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Not.Null);
-            Assert.That(c.Address!.Street, Is.EqualTo("Main"));
-            Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
-            Assert.That(c.Address!.Other, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Address!.Street, Is.EqualTo("Main"));
+                Assert.That(c.Address!.City, Is.EqualTo("Wellington"));
+                Assert.That(c.Address!.Other, Is.Null);
+            });
 
             r = new Contact { Id = 88, Name = "Brian", Address = null };
             c = m.Map<Contact>(r);
             Assert.That(c, Is.Not.Null);
-            Assert.That(c.Id, Is.EqualTo(88));
-            Assert.That(c.Name, Is.EqualTo("Brian"));
-            Assert.That(c.Address, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c.Id, Is.EqualTo(88));
+                Assert.That(c.Name, Is.EqualTo("Brian"));
+                Assert.That(c.Address, Is.Null);
+            });
         }
 
         [Test]
@@ -613,17 +730,23 @@ namespace CoreEx.Test.Framework.Mapping
 
             var cl2 = m.Map<ChangeLog>(cl, OperationTypes.Create);
             Assert.That(cl2, Is.Not.Null);
-            Assert.That(cl2.CreatedBy, Is.Not.Null);
-            Assert.That(cl2.CreatedDate, Is.Not.Null);
-            Assert.That(cl2.UpdatedBy, Is.Null);
-            Assert.That(cl2.UpdatedDate, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(cl2.CreatedBy, Is.Not.Null);
+                Assert.That(cl2.CreatedDate, Is.Not.Null);
+                Assert.That(cl2.UpdatedBy, Is.Null);
+                Assert.That(cl2.UpdatedDate, Is.Null);
+            });
 
             cl2 = m.Map<ChangeLog>(cl, OperationTypes.Update);
             Assert.That(cl2, Is.Not.Null);
-            Assert.That(cl2.CreatedBy, Is.Null);
-            Assert.That(cl2.CreatedDate, Is.Null);
-            Assert.That(cl2.UpdatedBy, Is.Not.Null);
-            Assert.That(cl2.UpdatedDate, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(cl2.CreatedBy, Is.Null);
+                Assert.That(cl2.CreatedDate, Is.Null);
+                Assert.That(cl2.UpdatedBy, Is.Not.Null);
+                Assert.That(cl2.UpdatedDate, Is.Not.Null);
+            });
         }
 
         [Test]
@@ -645,13 +768,19 @@ namespace CoreEx.Test.Framework.Mapping
             var c2 = m.Map<Contact>(c, OperationTypes.Create);
 
             Assert.That(c2, Is.Not.Null);
-            Assert.That(c2.Id, Is.EqualTo(88));
-            Assert.That(c2.Name, Is.EqualTo("Dave"));
-            Assert.That(c2.ChangeLog, Is.Not.Null);
-            Assert.That(c2.ChangeLog!.CreatedBy, Is.Not.Null);
-            Assert.That(c2.ChangeLog.CreatedDate, Is.Not.Null);
-            Assert.That(c2.ChangeLog.UpdatedBy, Is.Null);
-            Assert.That(c2.ChangeLog.UpdatedDate, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(c2.Id, Is.EqualTo(88));
+                Assert.That(c2.Name, Is.EqualTo("Dave"));
+                Assert.That(c2.ChangeLog, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(c2.ChangeLog!.CreatedBy, Is.Not.Null);
+                Assert.That(c2.ChangeLog.CreatedDate, Is.Not.Null);
+                Assert.That(c2.ChangeLog.UpdatedBy, Is.Null);
+                Assert.That(c2.ChangeLog.UpdatedDate, Is.Null);
+            });
         }
 
         [Test]
@@ -674,9 +803,12 @@ namespace CoreEx.Test.Framework.Mapping
             var cd2 = m.Map<ContactDetail>(cd);
 
             Assert.That(cd2, Is.Not.Null);
-            Assert.That(cd2.Id, Is.EqualTo(88));
-            Assert.That(cd2.Name, Is.EqualTo("Dave"));
-            Assert.That(cd2.ExtraDetail, Is.EqualTo("read all about it"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(cd2.Id, Is.EqualTo(88));
+                Assert.That(cd2.Name, Is.EqualTo("Dave"));
+                Assert.That(cd2.ExtraDetail, Is.EqualTo("read all about it"));
+            });
         }
 
         [Test]
@@ -699,9 +831,12 @@ namespace CoreEx.Test.Framework.Mapping
             var cd2 = m.Map<ContactDetail>(cd);
 
             Assert.That(cd2, Is.Not.Null);
-            Assert.That(cd2.Id, Is.EqualTo(88));
-            Assert.That(cd2.Name, Is.EqualTo("Dave"));
-            Assert.That(cd2.ExtraDetail, Is.EqualTo("read all about it"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(cd2.Id, Is.EqualTo(88));
+                Assert.That(cd2.Name, Is.EqualTo("Dave"));
+                Assert.That(cd2.ExtraDetail, Is.EqualTo("read all about it"));
+            });
         }
 
         [Test]
@@ -719,9 +854,12 @@ namespace CoreEx.Test.Framework.Mapping
             var cd2 = m.Map<ContactDetail>(cd);
 
             Assert.That(cd2, Is.Not.Null);
-            Assert.That(cd2.Id, Is.EqualTo(88));
-            Assert.That(cd2.Name, Is.EqualTo("Dave"));
-            Assert.That(cd2.ExtraDetail, Is.EqualTo("read all about it"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(cd2.Id, Is.EqualTo(88));
+                Assert.That(cd2.Name, Is.EqualTo("Dave"));
+                Assert.That(cd2.ExtraDetail, Is.EqualTo("read all about it"));
+            });
         }
 
         [Test]
@@ -735,10 +873,10 @@ namespace CoreEx.Test.Framework.Mapping
             });
 
             var d = m.Map(new PersonA { Id = 88, Name = "blah" }, null, OperationTypes.Create);
-            Assert.AreEqual(88, d!.ID);
+            Assert.That(d!.ID, Is.EqualTo(88));
 
             d = m.Map(new PersonA { Id = 88, Name = "blah" }, null, OperationTypes.Update);
-            Assert.AreEqual(0, d!.ID);
+            Assert.That(d!.ID, Is.EqualTo(0));
         }
 
         [Test]
@@ -759,7 +897,7 @@ namespace CoreEx.Test.Framework.Mapping
             var pa = new PersonA { Id = 99, Name = "blah" };
             var pb = bm.Map(pa);
             var pa2 = bm.Map(pb);
-            Assert.AreEqual(99, pa2.Id);
+            Assert.That(pa2.Id, Is.EqualTo(99));
 
             var m = new Mapper();
             m.Register(bm);
@@ -767,7 +905,7 @@ namespace CoreEx.Test.Framework.Mapping
             pa = new PersonA { Id = 88, Name = "blah" };
             pb = m.Map<PersonB>(pa);
             pa2 = m.Map<PersonA>(pb);
-            Assert.AreEqual(88, pa2.Id);
+            Assert.That(pa2.Id, Is.EqualTo(88));
         }
 
         public class PersonAMapper : Mapper<PersonA, PersonB>

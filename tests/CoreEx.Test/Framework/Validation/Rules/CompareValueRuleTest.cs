@@ -15,24 +15,30 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate()
         {
             var v1 = await 1.Validate("value").CompareValue(CompareOperator.Equal, 1).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await 1.Validate("value").CompareValue(CompareOperator.Equal, 2).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must be equal to 2.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be equal to 2."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await 1.Validate("value").CompareValue(CompareOperator.GreaterThan, 0).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await 1.Validate("value").CompareValue(CompareOperator.GreaterThan, 2, "Two").ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must be greater than Two.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be greater than Two."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -40,14 +46,17 @@ namespace CoreEx.Test.Framework.Validation.Rules
         {
             int? v = 1;
             var v1 = await v.Validate("value").CompareValue(CompareOperator.Equal, 1).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await v.Validate("value").CompareValue(CompareOperator.Equal, 2).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must be equal to 2.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be equal to 2."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
     }
 }

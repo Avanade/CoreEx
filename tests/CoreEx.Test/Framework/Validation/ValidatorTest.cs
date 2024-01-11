@@ -25,17 +25,20 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.CountB, p => p.Mandatory().CompareValue(CompareOperator.GreaterThan, 10))
                 .ValidateAsync(new TestData { CountB = 0 });
 
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
 
-            Assert.AreEqual(2, r.Messages!.Count);
-            Assert.AreEqual("Text is required.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+                Assert.That(r.Messages!, Has.Count.EqualTo(2));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Text is required."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
 
-            Assert.AreEqual("Count B must be greater than 10.", r.Messages[1].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
-            Assert.AreEqual("CountB", r.Messages[1].Property);
+                Assert.That(r.Messages[1].Text, Is.EqualTo("Count B must be greater than 10."));
+                Assert.That(r.Messages[1].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("CountB"));
+            });
         }
 
         [Test]
@@ -49,41 +52,50 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.CountB, p => p.Mandatory().CompareValue(CompareOperator.GreaterThan, 10))
                 .ValidateAsync(new TestData { CountB = 0 });
 
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
 
-            Assert.AreEqual(2, r.Messages!.Count);
-            Assert.AreEqual("Text is required.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+                Assert.That(r.Messages!, Has.Count.EqualTo(2));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Text is required."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
 
-            Assert.AreEqual("Count B must be greater than 10.", r.Messages[1].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
-            Assert.AreEqual("CountB", r.Messages[1].Property);
+                Assert.That(r.Messages[1].Text, Is.EqualTo("Count B must be greater than 10."));
+                Assert.That(r.Messages[1].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("CountB"));
+            });
         }
 
         [Test]
         public async Task Ruleset_UsingValidatorClass()
         {
             var r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "A", Text = "X" });
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
+            });
 
             r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "A", Text = "A" });
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
 
             r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "B", Text = "X" });
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
+            });
 
             r = await new TestItemValidator().ValidateAsync(new TestItem { Id = "B", Text = "B" });
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
         }
 
         [Test]
@@ -100,24 +112,30 @@ namespace CoreEx.Test.Framework.Validation
                 });
 
             var r = await v.ValidateAsync(new TestItem { Id = "A", Text = "X" });
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
+            });
 
             r = await v.ValidateAsync(new TestItem { Id = "A", Text = "A" });
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
 
             r = await v.ValidateAsync(new TestItem { Id = "B", Text = "X" });
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
+            });
 
             r = await v.ValidateAsync(new TestItem { Id = "B", Text = "B" });
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
         }
 
         [Test]
@@ -135,16 +153,19 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Override_OnValidate_WithCheckPredicate()
         {
             var r = await new TestItemValidator2().ValidateAsync(new TestItem(), new ValidationArgs { UseJsonNames = true });
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(2, r.Messages!.Count);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(2));
 
-            Assert.AreEqual("Identifier is invalid.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("id", r.Messages[0].Property);
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Identifier is invalid."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("id"));
 
-            Assert.AreEqual("Description must not exceed 10 item(s).", r.Messages[1].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
-            Assert.AreEqual("Text", r.Messages[1].Property);
+                Assert.That(r.Messages[1].Text, Is.EqualTo("Description must not exceed 10 item(s)."));
+                Assert.That(r.Messages[1].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("Text"));
+            });
         }
 
         [Test]
@@ -158,12 +179,14 @@ namespace CoreEx.Test.Framework.Validation
                     return Task.FromResult(Result.Success);
                 }).ValidateAsync(new TestItem());
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-
-            Assert.AreEqual("Description must not exceed 10 item(s).", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Description must not exceed 10 item(s)."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
+            });
         }
 
         [Test]
@@ -178,8 +201,11 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vx.ValidateAsync(new TestItem { Id = "YYY", Text = "XXXXX" });
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(2, r.Messages!.Count);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(2));
+            });
         }
 
         [Test]
@@ -190,8 +216,11 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.Item, (p) => p.Mandatory())
                 .ValidateAsync(new TestEntity { Items = null });
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(2, r.Messages!.Count);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(2));
+            });
         }
 
         [Test]
@@ -199,13 +228,16 @@ namespace CoreEx.Test.Framework.Validation
         {
             var v = Validator.Create<TestDataString>().HasProperty(x => x.Name, p => p.Mandatory().String(10));
             var r = await v.ValidateAsync(new TestDataString("a"));
-            Assert.IsNotNull(r);
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
 
             r = await v.ValidateAsync(new TestDataString(null!));
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Name is required.", r.Messages[0].Text);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Name is required."));
+            });
         }
 
         public class TestItemValidator : Validator<TestItem>
@@ -296,13 +328,16 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.Items, p => p.Collection(item: CollectionRuleItem.Create(v).DuplicateCheck(y => y.Id)))
                 .ValidateAsync(e);
 
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
 
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Items contains duplicates; Identifier 'ABC' specified more than once.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Items", r.Messages[0].Property);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Items contains duplicates; Identifier 'ABC' specified more than once."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Items"));
+            });
         }
 
         [Test]
@@ -315,9 +350,12 @@ namespace CoreEx.Test.Framework.Validation
             }
             catch (ValidationException vex)
             {
-                Assert.AreEqual("Some text.", vex.Messages![0].Text);
-                Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-                Assert.AreEqual("Id", vex.Messages[0].Property);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(vex.Messages![0].Text, Is.EqualTo("Some text."));
+                    Assert.That(vex.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                    Assert.That(vex.Messages[0].Property, Is.EqualTo("Id"));
+                });
             }
         }
 
@@ -331,9 +369,12 @@ namespace CoreEx.Test.Framework.Validation
             }
             catch (ValidationException vex)
             {
-                Assert.AreEqual("Identifier XXX ZZZ Stuff.", vex.Messages![0].Text);
-                Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-                Assert.AreEqual("Id", vex.Messages[0].Property);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(vex.Messages![0].Text, Is.EqualTo("Identifier XXX ZZZ Stuff."));
+                    Assert.That(vex.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                    Assert.That(vex.Messages[0].Property, Is.EqualTo("Id"));
+                });
             }
         }
 
@@ -356,9 +397,12 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.Value, p => p.Mandatory().Custom(TestInjectValueValidate))
                 .ValidateAsync(new TestInject { Text = "X", Value = new TestInjectChild { Code = 5 } });
 
-            Assert.AreEqual(1, vx.Messages!.Count);
-            Assert.AreEqual("Code must be greater than 10.", vx.Messages[0].Text);
-            Assert.AreEqual("Value.Code", vx.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vx.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vx.Messages![0].Text, Is.EqualTo("Code must be greater than 10."));
+                Assert.That(vx.Messages[0].Property, Is.EqualTo("Value.Code"));
+            });
         }
 
         private Result TestInjectValueValidate(PropertyContext<TestInject, object?> context)
@@ -387,11 +431,14 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.AmountA, p => p.Common(vc))
                 .ValidateAsync(ti);
 
-            Assert.IsFalse(vx.HasErrors);
-            Assert.AreEqual("XYZ", ti.Text);
-            Assert.AreEqual(1, ti.CountA);
-            Assert.AreEqual(20, ti.CountB);
-            Assert.AreEqual(100, ti.AmountA);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vx.HasErrors, Is.False);
+                Assert.That(ti.Text, Is.EqualTo("XYZ"));
+                Assert.That(ti.CountA, Is.EqualTo(1));
+                Assert.That(ti.CountB, Is.EqualTo(20));
+                Assert.That(ti.AmountA, Is.EqualTo(100));
+            });
         }
 
         public class Employee
@@ -449,17 +496,20 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxc.ValidateAsync(tc);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(3, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual("value[0].Text", r.Messages[0].Property);
-            Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
-            Assert.AreEqual("Description is invalid.", r.Messages[1].Text);
-            Assert.AreEqual("value[1].Text", r.Messages[1].Property);
-            Assert.AreEqual(MessageType.Error, r.Messages[2].Type);
-            Assert.AreEqual("Value must not exceed 2 item(s).", r.Messages[2].Text);
-            Assert.AreEqual("value", r.Messages[2].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(3));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value[0].Text"));
+                Assert.That(r.Messages[1].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[1].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("value[1].Text"));
+                Assert.That(r.Messages[2].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[2].Text, Is.EqualTo("Value must not exceed 2 item(s)."));
+                Assert.That(r.Messages[2].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -470,11 +520,14 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxc.ValidateAsync(tc);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value must have at least 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("value", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Value must have at least 3 item(s)."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -485,11 +538,14 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxc.ValidateAsync(tc);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value contains duplicates; Identifier 'A' specified more than once.", r.Messages[0].Text);
-            Assert.AreEqual("value", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Value contains duplicates; Identifier 'A' specified more than once."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -500,7 +556,7 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxc.ValidateAsync(tc);
 
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
         }
 
         [Test]
@@ -511,7 +567,7 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxc.ValidateAsync(ic);
 
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
         }
 
         [Test]
@@ -522,11 +578,14 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxc.ValidateAsync(ic);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value must not exceed 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("value", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Value must not exceed 3 item(s)."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -537,17 +596,20 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxd.ValidateAsync(tc);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(3, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Description is invalid.", r.Messages[0].Text);
-            Assert.AreEqual("value[k1].Text", r.Messages[0].Property);
-            Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
-            Assert.AreEqual("Description is invalid.", r.Messages[1].Text);
-            Assert.AreEqual("value[k2].Text", r.Messages[1].Property);
-            Assert.AreEqual(MessageType.Error, r.Messages[2].Type);
-            Assert.AreEqual("Value must not exceed 2 item(s).", r.Messages[2].Text);
-            Assert.AreEqual("value", r.Messages[2].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(3));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value[k1].Text"));
+                Assert.That(r.Messages[1].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[1].Text, Is.EqualTo("Description is invalid."));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("value[k2].Text"));
+                Assert.That(r.Messages[2].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[2].Text, Is.EqualTo("Value must not exceed 2 item(s)."));
+                Assert.That(r.Messages[2].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -558,11 +620,14 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxd.ValidateAsync(tc);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value must have at least 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("value", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Value must have at least 3 item(s)."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -573,7 +638,7 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxd.ValidateAsync(tc);
 
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
         }
 
         [Test]
@@ -584,7 +649,7 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxd.ValidateAsync(id);
 
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r.HasErrors, Is.False);
         }
 
         [Test]
@@ -595,11 +660,14 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxd.ValidateAsync(id);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Value must not exceed 3 item(s).", r.Messages[0].Text);
-            Assert.AreEqual("value", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Value must not exceed 3 item(s)."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -612,11 +680,14 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await vxd.ValidateAsync(tc);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Key must not exceed 2 characters in length.", r.Messages[0].Text);
-            Assert.AreEqual("value[k2x]", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Key must not exceed 2 characters in length."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value[k2x]"));
+            });
         }
 
         [Test]
@@ -643,63 +714,84 @@ namespace CoreEx.Test.Framework.Validation
         public void Required()
         {
             var vex = Assert.Throws<ValidationException>(() => 0.Required());
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("0 is required.", vex.Messages[0].Text);
-            Assert.AreEqual("0", vex.Messages[0].Property);
+            Assert.That(vex, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vex!.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vex.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(vex.Messages[0].Text, Is.EqualTo("0 is required."));
+                Assert.That(vex.Messages[0].Property, Is.EqualTo("0"));
+            });
 
             var count = 0;
             vex = Assert.Throws<ValidationException>(() => count.Required());
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Count is required.", vex.Messages[0].Text);
-            Assert.AreEqual("count", vex.Messages[0].Property);
+            Assert.That(vex, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vex!.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vex.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(vex.Messages[0].Text, Is.EqualTo("Count is required."));
+                Assert.That(vex.Messages[0].Property, Is.EqualTo("count"));
+            });
 
             vex = Assert.Throws<ValidationException>(() => 0.Required("count"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Count is required.", vex.Messages[0].Text);
-            Assert.AreEqual("count", vex.Messages[0].Property);
+            Assert.That(vex, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vex!.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vex.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(vex.Messages[0].Text, Is.EqualTo("Count is required."));
+                Assert.That(vex.Messages[0].Property, Is.EqualTo("count"));
+            });
 
             vex = Assert.Throws<ValidationException>(() => 0.Required("count", "Counter"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Counter is required.", vex.Messages[0].Text);
-            Assert.AreEqual("count", vex.Messages[0].Property);
+            Assert.That(vex, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vex!.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vex.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(vex.Messages[0].Text, Is.EqualTo("Counter is required."));
+                Assert.That(vex.Messages[0].Property, Is.EqualTo("count"));
+            });
 
             vex = Assert.Throws<ValidationException>(() => 0.Required("numberOfPlayers"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Number Of Players is required.", vex.Messages[0].Text);
-            Assert.AreEqual("numberOfPlayers", vex.Messages[0].Property);
+            Assert.That(vex, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vex!.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vex.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(vex.Messages[0].Text, Is.EqualTo("Number Of Players is required."));
+                Assert.That(vex.Messages[0].Property, Is.EqualTo("numberOfPlayers"));
+            });
 
             vex = Assert.Throws<ValidationException>(() => 0.Required("id"));
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("Identifier is required.", vex.Messages[0].Text);
-            Assert.AreEqual("id", vex.Messages[0].Property);
+            Assert.That(vex, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vex!.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vex.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(vex.Messages[0].Text, Is.EqualTo("Identifier is required."));
+                Assert.That(vex.Messages[0].Property, Is.EqualTo("id"));
+            });
 
             vex = Assert.Throws<ValidationException>(() => 0.Required());
-            Assert.NotNull(vex);
-            Assert.NotNull(vex!.Messages);
-            Assert.AreEqual(1, vex.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, vex.Messages[0].Type);
-            Assert.AreEqual("0 is required.", vex.Messages[0].Text);
-            Assert.AreEqual("0", vex.Messages[0].Property);
+            Assert.That(vex, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(vex!.Messages, Is.Not.Null);
+                Assert.That(vex.Messages!, Has.Count.EqualTo(1));
+                Assert.That(vex.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(vex.Messages[0].Text, Is.EqualTo("0 is required."));
+                Assert.That(vex.Messages[0].Property, Is.EqualTo("0"));
 
-            Assert.AreEqual(123, 123.Required());
+                Assert.That(123.Required(), Is.EqualTo(123));
+            });
         }
 
         [Test]
@@ -709,14 +801,17 @@ namespace CoreEx.Test.Framework.Validation
             var v = new Employee { FirstName = "Speedy", LastName = "Fasti", Birthdate = new DateTime(1999, 10, 22), Salary = 51000m, WorkingYears = 20 };
 
             var r = await ev.ValidateAsync(v).ConfigureAwait(false);
-            Assert.NotNull(r);
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
 
             v.Salary += 88000;
             r = await ev.ValidateAsync(v).ConfigureAwait(false);
-            Assert.NotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.FailureResult, Is.Not.Null);
+            });
             Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<ConflictException>());
 
             Assert.Throws<ConflictException>(() => r.ThrowOnError());
@@ -765,24 +860,29 @@ namespace CoreEx.Test.Framework.Validation
             var v = new TeamLeader { Person = new Employee { FirstName = "Speedy", LastName = "Fasti", Birthdate = new DateTime(1999, 10, 22), Salary = 51000m, WorkingYears = 20 }, TeamName = "Bananas" };
 
             var r = await tlv.ValidateAsync(v).ConfigureAwait(false);
-            Assert.NotNull(r);
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
 
             v.TeamName += " and Oranges and Apples and Kiwi Fruit";
             r = await tlv.ValidateAsync(v).ConfigureAwait(false);
-            Assert.NotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Team Name must not exceed 20 characters in length.", r.Messages[0].Text);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Team Name must not exceed 20 characters in length."));
+            });
 
             v.Person.Salary += 88000;
             r = await tlv.ValidateAsync(v).ConfigureAwait(false);
-            Assert.NotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.FailureResult, Is.Not.Null);
+            });
             Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<ConflictException>());
-
         }
     }
 }

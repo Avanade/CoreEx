@@ -15,14 +15,17 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate()
         {
             var v1 = await ((AbcOption)1).Validate("value").Enum().ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await ((AbcOption)88).Validate("value").Enum().ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is invalid.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is invalid."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -32,19 +35,22 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v = new Validator<AbcClass>().HasProperty(x => x.Option, p => p.Enum());
 
             var v1 = await v.ValidateAsync(ac);
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             ac.Option = AbcOption.B;
             v1 = await v.ValidateAsync(ac);
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             ac.Option = ((AbcOption)404);
             v1 = await v.ValidateAsync(ac);
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Option is invalid.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Option", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Option is invalid."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("Option"));
+            });
         }
 
         public class AbcClass
@@ -59,19 +65,22 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var v = new Validator<AbcClassN>().HasProperty(x => x.Option, p => p.Enum());
 
             var v1 = await v.ValidateAsync(ac);
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             ac.Option = AbcOption.B;
             v1 = await v.ValidateAsync(ac);
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             ac.Option = ((AbcOption)404);
             v1 = await v.ValidateAsync(ac);
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Option is invalid.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("Option", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Option is invalid."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("Option"));
+            });
         }
 
         public class AbcClassN

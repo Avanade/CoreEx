@@ -19,8 +19,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.CloudEventSerializer() as IEventSerializer;
             var ed = CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -36,13 +36,16 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.CloudEventSerializer(ef) as IEventSerializer;
             var ed = CreateProductEvent2();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent2, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2, "Type", "Source");
-            Assert.AreEqual(new Uri("null", UriKind.Relative), ed2.Source);
-            Assert.AreEqual("coreex.testfunction.models.product", ed2.Type);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.EqualTo(new Uri("null", UriKind.Relative)));
+                Assert.That(ed2.Type, Is.EqualTo("coreex.testfunction.models.product"));
+            });
         }
 
         [Test]
@@ -51,8 +54,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.CloudEventSerializer() { AttachmentStorage = CreateEventStorage("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", 10) } as IEventSerializer;
             var ed = CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1Attachement, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1Attachement));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -62,7 +65,7 @@ namespace CoreEx.Test.Framework.Events
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
+            Assert.That(ed3.Value?.ToString(), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
         }
 
         [Test]
@@ -71,8 +74,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.CloudEventSerializer() { AttachmentStorage = CreateEventStorage("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", 1000) } as IEventSerializer;
             var ed = CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -82,7 +85,7 @@ namespace CoreEx.Test.Framework.Events
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
+            Assert.That(ed3.Value?.ToString(), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
         }
 
         [Test]
@@ -91,8 +94,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Newtonsoft.Json.CloudEventSerializer() as IEventSerializer;
             var ed = CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -105,13 +108,16 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Newtonsoft.Json.CloudEventSerializer(ef) as IEventSerializer;
             var ed = CreateProductEvent2();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent2, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2, "Type", "Source");
-            Assert.AreEqual(new Uri("null", UriKind.Relative), ed2.Source);
-            Assert.AreEqual("coreex.testfunction.models.product", ed2.Type);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.EqualTo(new Uri("null", UriKind.Relative)));
+                Assert.That(ed2.Type, Is.EqualTo("coreex.testfunction.models.product"));
+            });
         }
 
         internal static EventData<Product> CreateProductEvent1() => new()
@@ -159,7 +165,7 @@ namespace CoreEx.Test.Framework.Events
 
             public Task<EventAttachment> WriteAsync(EventData @event, BinaryData attachmentData, CancellationToken cancellationToken)
             {
-                Assert.AreEqual(_data.ToString(), attachmentData.ToString());
+                Assert.That(attachmentData.ToString(), Is.EqualTo(_data.ToString()));
                 return Task.FromResult(new EventAttachment { Attachment = "bananas.json", ContentType = "application/json" });
             }
         }

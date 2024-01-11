@@ -17,19 +17,22 @@ namespace CoreEx.Test.Framework.Database.Mapping
             var dpc = new CoreEx.Database.DatabaseParameterCollection(new SqlServerDatabase(() => null!));
             pdm.MapToDb(p, dpc);
 
-            Assert.AreEqual(5, dpc.Count);
-            Assert.AreEqual("@PersonId", dpc[0].ParameterName);
-            Assert.AreEqual(88, dpc[0].Value);
-            Assert.AreEqual("@firstname", dpc[1].ParameterName);
-            Assert.AreEqual("Bob", dpc[1].Value);
-            Assert.AreEqual("@Street", dpc[2].ParameterName);
-            Assert.AreEqual("sss", dpc[2].Value);
-            Assert.AreEqual("@City", dpc[3].ParameterName);
-            Assert.AreEqual("ccc", dpc[3].Value);
-            Assert.AreEqual("@Address2", dpc[4].ParameterName);
-            Assert.AreEqual("{\"street\":\"ttt\",\"city\":\"ddd\"}", dpc[4].Value);
+            Assert.That(dpc, Has.Count.EqualTo(5));
+            Assert.Multiple(() =>
+            {
+                Assert.That(dpc[0].ParameterName, Is.EqualTo("@PersonId"));
+                Assert.That(dpc[0].Value, Is.EqualTo(88));
+                Assert.That(dpc[1].ParameterName, Is.EqualTo("@firstname"));
+                Assert.That(dpc[1].Value, Is.EqualTo("Bob"));
+                Assert.That(dpc[2].ParameterName, Is.EqualTo("@Street"));
+                Assert.That(dpc[2].Value, Is.EqualTo("sss"));
+                Assert.That(dpc[3].ParameterName, Is.EqualTo("@City"));
+                Assert.That(dpc[3].Value, Is.EqualTo("ccc"));
+                Assert.That(dpc[4].ParameterName, Is.EqualTo("@Address2"));
+                Assert.That(dpc[4].Value, Is.EqualTo("{\"street\":\"ttt\",\"city\":\"ddd\"}"));
 
-            Assert.AreEqual("name", pdm[x => x.Name].ColumnName);
+                Assert.That(pdm[x => x.Name].ColumnName, Is.EqualTo("name"));
+            });
         }
     }
 

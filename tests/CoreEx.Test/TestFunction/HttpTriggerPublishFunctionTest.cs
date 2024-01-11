@@ -26,7 +26,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
 
-            Assert.AreEqual(0, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Is.Empty);
         }
 
         [Test]
@@ -41,7 +41,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: '<' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 0.");
 
-            Assert.AreEqual(0, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Is.Empty);
         }
 
         [Test]
@@ -56,7 +56,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Unexpected character encountered while parsing value: <. Path '', line 0, position 0.");
 
-            Assert.AreEqual(0, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Is.Empty);
         }
 
         [Test]
@@ -71,7 +71,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: The JSON value could not be converted to System.Decimal. Path: $.price | LineNumber: 0 | BytePositionInLine: 17.");
 
-            Assert.AreEqual(0, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Is.Empty);
         }
 
         [Test]
@@ -87,7 +87,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertBadRequest()
                 .AssertErrors("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Could not convert string to decimal: xx.xx. Path 'price', line 1, position 17.");
 
-            Assert.AreEqual(0, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Is.Empty);
         }
 
         [Test]
@@ -102,7 +102,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertBadRequest()
                 .AssertErrors(new ApiError("Name", "'Name' must not be empty."));
 
-            Assert.AreEqual(0, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Is.Empty);
         }
 
         [Test]
@@ -118,7 +118,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertBadRequest()
                 .AssertErrors(new ApiError("Name", "'Name' must not be empty."));
 
-            Assert.AreEqual(0, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Is.Empty);
         }
 
         [Test]
@@ -132,10 +132,10 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertAccepted();
 
-            Assert.AreEqual(1, imp.GetNames().Length);
-            Assert.AreEqual("test-queue", imp.GetNames().First());
+            Assert.That(imp.GetNames(), Has.Length.EqualTo(1));
+            Assert.That(imp.GetNames().First(), Is.EqualTo("test-queue"));
             var events = imp.GetEvents("test-queue");
-            Assert.AreEqual(1, events.Count());
+            Assert.That(events.Count(), Is.EqualTo(1));
             ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, events[0].Value);
         }
 
@@ -151,10 +151,10 @@ namespace CoreEx.Test.TestFunction
                 .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
                 .AssertAccepted();
 
-            Assert.AreEqual(1, imp.GetNames().Length);
-            Assert.AreEqual("test-queue", imp.GetNames().First());
+            Assert.That(imp.GetNames(), Has.Length.EqualTo(1));
+            Assert.That(imp.GetNames().First(), Is.EqualTo("test-queue"));
             var events = imp.GetEvents("test-queue");
-            Assert.AreEqual(1, events.Count());
+            Assert.That(events.Count(), Is.EqualTo(1));
             ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, events[0].Value);
         }
     }

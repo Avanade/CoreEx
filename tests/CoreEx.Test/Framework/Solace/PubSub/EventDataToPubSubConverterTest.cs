@@ -77,9 +77,12 @@ namespace CoreEx.Test.Framework.Solace.PubSub
         private static void AssertPubSubMessage(IMessage m)
         {
             Assert.That(m, Is.Not.Null);
-            Assert.That(m!.ApplicationMessageId, Is.EqualTo("123"));
-            Assert.That(m.UserPropertyMap.GetString("Subject"), Is.EqualTo("xxx"));
-            Assert.That(m.UserPropertyMap.GetString("Action"), Is.EqualTo("yyy"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(m!.ApplicationMessageId, Is.EqualTo("123"));
+                Assert.That(m.UserPropertyMap.GetString("Subject"), Is.EqualTo("xxx"));
+                Assert.That(m.UserPropertyMap.GetString("Action"), Is.EqualTo("yyy"));
+            });
         }
     }
 }
