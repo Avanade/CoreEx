@@ -23,13 +23,14 @@ namespace CoreEx.Events
         private const string PartitionKeyName = "partitionkey";
         private const string TenantIdName = "tenantid";
         private const string ETagName = "etag";
+        private const string KeyName = "key";
 
         /// <summary>
         /// Gets the list of reserved attribute names.
         /// </summary>
-        /// <remarks>The reserved names are as follows: '<c>id</c>', '<c>time</c>', '<c>type</c>', '<c>source</c>', '<c>subject</c>', '<c>action</c>', '<c>correlationid</c>', '<c>tenantid</c>', '<c>etag</c>', '<c>partitionkey</c>'. Also,
+        /// <remarks>The reserved names are as follows: '<c>id</c>', '<c>time</c>', '<c>type</c>', '<c>source</c>', '<c>subject</c>', '<c>action</c>', '<c>correlationid</c>', '<c>tenantid</c>', '<c>etag</c>', '<c>partitionkey</c>', '<c>key</c>'. Also,
         /// an attribute name must consist of lowercase letters and digits only; any that contain other characters will be ignored.</remarks>
-        public static string[] ReservedNames { get; } = new string[] { "id", "time", "type", "source", SubjectName, ActionName, CorrelationIdName, TenantIdName, ETagName, PartitionKeyName };
+        public static string[] ReservedNames { get; } = new string[] { "id", "time", "type", "source", SubjectName, ActionName, CorrelationIdName, TenantIdName, ETagName, PartitionKeyName, KeyName };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudEventSerializerBase"/> class.
@@ -142,6 +143,9 @@ namespace CoreEx.Events
             if (TryGetExtensionAttribute(cloudEvent, ETagName, out val))
                 @event.ETag = val;
 
+            if (TryGetExtensionAttribute(cloudEvent, KeyName, out val))
+                @event.Key = val;
+
             foreach (var att in cloudEvent.ExtensionAttributes)
             {
                 if (!ReservedNames.Contains(att.Name) && TryGetExtensionAttribute(cloudEvent, att.Name, out val))
@@ -211,6 +215,7 @@ namespace CoreEx.Events
             SetExtensionAttribute(ce, PartitionKeyName, @event.PartitionKey);
             SetExtensionAttribute(ce, TenantIdName, @event.TenantId);
             SetExtensionAttribute(ce, ETagName, @event.ETag);
+            SetExtensionAttribute(ce, KeyName, @event.Key);
 
             if (@event.Attributes != null)
             {

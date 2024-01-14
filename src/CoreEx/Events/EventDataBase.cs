@@ -13,7 +13,7 @@ namespace CoreEx.Events
     /// </summary>
     public abstract class EventDataBase : IIdentifier<string>, ITenantId, IPartitionKey, IETag
     {
-        private IDictionary<string, object?>? _internal;
+        private Dictionary<string, object?>? _internal;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EventData"/> class.
@@ -134,7 +134,7 @@ namespace CoreEx.Events
         /// </summary>
         /// <remarks>It is recommened to use the <see cref="Attributes"/> for the purposes of publishing and sending of additional data.</remarks>
         [JsonIgnore()]
-        public IDictionary<string, object?> Internal => _internal ??= new Dictionary<string, object?>();
+        public IDictionary<string, object?> Internal => _internal ??= [];
 
         /// <summary>
         /// Indicates whether there are any items within the <see cref="Internal"/> dictionary.

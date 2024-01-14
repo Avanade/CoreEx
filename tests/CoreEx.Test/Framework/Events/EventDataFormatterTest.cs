@@ -3,6 +3,7 @@ using CoreEx.Events;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using System;
+using System.Text.Json.Serialization;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.Framework.Events
@@ -178,11 +179,44 @@ namespace CoreEx.Test.Framework.Events
             Assert.That(ed.ETag, Is.EqualTo("0rk/Eu4Si62XCw/qDYxqLh9fhNR/4rrAijmAigS0NDM="));
         }
 
+        [Test]
+        public void FormattableValue()
+        {
+            var ed = new EventData { Value = new SalesOrderItem { OrderNo = "X400", ItemNo = 10, ProductId = "abc" } };
+            var ef = new EventDataFormatter();
+            ef.Format(ed);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Key, Is.EqualTo("X400,10"));
+                Assert.That(ed.HasAttributes, Is.True);
+                Assert.That(ed.Attributes!["_SessionId"], Is.EqualTo("abc"));
+            });
+        }
+
         internal class Person : IETag
         {
             public string? Name { get; set; }
 
             public string? ETag { get; set; }
+        }
+
+        internal class SalesOrderItem : IPrimaryKey, IEventDataFormatter
+        {
+            public string? OrderNo { get; set; }
+
+            public int ItemNo { get; set; }
+
+            public string? ProductId { get; set; }
+
+            [JsonIgnore]
+            public CompositeKey PrimaryKey => new CompositeKey(OrderNo, ItemNo);
+
+            void IEventDataFormatter.Format(EventData eventData)
+            {
+                var p = (SalesOrderItem)eventData.Value!;
+                eventData.AddAttribute("_SessionId", p.ProductId!);
+            }
         }
     }
 }

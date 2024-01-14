@@ -154,6 +154,12 @@ namespace CoreEx.Events
             @event.Id ??= Guid.NewGuid().ToString();
             @event.Timestamp ??= DateTimeOffset.UtcNow;
 
+            if (PropertySelection.HasFlag(EventDataProperty.Key))
+            {
+                if (@event.Key is null && value is not null && value is IEntityKey ek)
+                    @event.Key = ek.EntityKey.ToString(KeySeparatorCharacter);
+            }
+
             if (PropertySelection.HasFlag(EventDataProperty.Subject))
             {
                 if (@event.Subject == null && SubjectDefaultToValueTypeName && value != null)
@@ -239,6 +245,9 @@ namespace CoreEx.Events
 
             if (!PropertySelection.HasFlag(EventDataProperty.Key))
                 @event.Key = null;
+
+            if (@event.Value is not null && @event.Value is IEventDataFormatter formattable)
+                formattable.Format(@event);
         }
 
         /// <summary>

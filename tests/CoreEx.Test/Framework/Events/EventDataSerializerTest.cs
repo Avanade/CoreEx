@@ -268,11 +268,11 @@ namespace CoreEx.Test.Framework.Events
             ObjectComparer.Assert(new EventData<Product>(), ed2);
         }
 
-        private const string CloudEvent1 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
+        private const string CloudEvent1 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"key\":\"A\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
 
-        private const string CloudEvent2 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\"}";
+        private const string CloudEvent2 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"key\":\"A\"}";
 
-        private const string CloudEvent1Attachment = "{\"value\":{\"contentType\":\"application/json\",\"attachment\":\"bananas.json\"},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
+        private const string CloudEvent1Attachment = "{\"value\":{\"contentType\":\"application/json\",\"attachment\":\"bananas.json\"},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"key\":\"A\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
 
     }
 }

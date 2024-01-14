@@ -297,6 +297,45 @@ namespace CoreEx.Test.Framework.Json
             });
         }
 
+        [Test]
+        public void SystemTextJson_Serialize_CompositeKey()
+        {
+            var js = new CoreEx.Text.Json.JsonSerializer() as IJsonSerializer;
+
+            var ck = CompositeKey.Empty;
+            var json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("null"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
+            });
+
+            ck = new CompositeKey((int?)null);
+            json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("[null]"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
+            });
+
+            ck = new CompositeKey(88);
+            json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("[{\"int\":88}]"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
+            });
+
+            ck = new CompositeKey("text", 'x', short.MinValue, int.MinValue, long.MinValue, ushort.MaxValue, uint.MaxValue, long.MaxValue, Guid.Parse("8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc"),
+    new DateTime(1970, 01, 22, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 01, 22, 20, 59, 43, DateTimeKind.Utc), new DateTimeOffset(2000, 01, 22, 20, 59, 43, TimeSpan.FromHours(-8)));
+            json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("[{\"string\":\"text\"},{\"char\":\"x\"},{\"short\":-32768},{\"int\":-2147483648},{\"long\":-9223372036854775808},{\"ushort\":65535},{\"uint\":4294967295},{\"long\":9223372036854775807},{\"guid\":\"8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc\"},{\"datetime\":\"1970-01-22T00:00:00\"},{\"datetime\":\"2000-01-22T20:59:43Z\"},{\"datetimeoffset\":\"2000-01-22T20:59:43-08:00\"}]"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
+            });
+        }
+
         #endregion
 
         #region NewtonsoftJson
@@ -609,6 +648,45 @@ namespace CoreEx.Test.Framework.Json
                 Assert.That(pcr.Paging, Is.Null);
                 Assert.That(pcr.Items[0].FirstName, Is.EqualTo("Jane"));
                 Assert.That(pcr.Items[1].FirstName, Is.EqualTo("John"));
+            });
+        }
+
+        [Test]
+        public void Newtonsoft_Serialize_CompositeKey()
+        {
+            var js = new CoreEx.Newtonsoft.Json.JsonSerializer() as IJsonSerializer;
+
+            var ck = CompositeKey.Empty;
+            var json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("null"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
+            });
+
+            ck = new CompositeKey((int?)null);
+            json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("[null]"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
+            });
+
+            ck = new CompositeKey(88);
+            json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("[{\"int\":88}]"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
+            });
+
+            ck = new CompositeKey("text", 'x', short.MinValue, int.MinValue, long.MinValue, ushort.MaxValue, uint.MaxValue, long.MaxValue, Guid.Parse("8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc"),
+    new DateTime(1970, 01, 22, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 01, 22, 20, 59, 43, DateTimeKind.Utc), new DateTimeOffset(2000, 01, 22, 20, 59, 43, TimeSpan.FromHours(-8)));
+            json = js.Serialize(ck);
+            Assert.Multiple(() =>
+            {
+                Assert.That(json, Is.EqualTo("[{\"string\":\"text\"},{\"char\":\"x\"},{\"short\":-32768},{\"int\":-2147483648},{\"long\":-9223372036854775808},{\"ushort\":65535},{\"uint\":4294967295},{\"long\":9223372036854775807},{\"guid\":\"8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc\"},{\"datetime\":\"1970-01-22T00:00:00\"},{\"datetime\":\"2000-01-22T20:59:43Z\"},{\"datetimeoffset\":\"2000-01-22T20:59:43-08:00\"}]"));
+                Assert.That(js.Deserialize<CompositeKey>(json), Is.EqualTo(ck));
             });
         }
 

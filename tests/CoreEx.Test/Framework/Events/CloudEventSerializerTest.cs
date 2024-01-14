@@ -133,7 +133,8 @@ namespace CoreEx.Test.Framework.Events
             PartitionKey = "pid",
             ETag = "etag",
             Attributes = new Dictionary<string, string> { { "fruit", "bananas" } },
-            Value = new Product { Id = "A", Name = "B", Price = 1.99m }
+            Value = new Product { Id = "A", Name = "B", Price = 1.99m },
+            Key = "A"
         };
 
         internal static EventData<Product> CreateProductEvent2() => new()
@@ -141,14 +142,15 @@ namespace CoreEx.Test.Framework.Events
             Id = "id",
             Timestamp = new DateTime(2022, 02, 22, 22, 02, 22, DateTimeKind.Utc),
             Value = new Product { Id = "A", Name = "B", Price = 1.99m },
-            CorrelationId = "cid"
+            CorrelationId = "cid",
+            Key = "A"
         };
 
-        private const string CloudEvent1 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
+        private const string CloudEvent1 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"key\":\"A\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
 
-        private const string CloudEvent2 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"correlationid\":\"cid\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
+        private const string CloudEvent2 = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"correlationid\":\"cid\",\"key\":\"A\",\"datacontenttype\":\"application/json\",\"data\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}}";
 
-        private const string CloudEvent1Attachement = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"contentType\":\"application/json\",\"attachment\":\"bananas.json\"}}";
+        private const string CloudEvent1Attachement = "{\"specversion\":\"1.0\",\"id\":\"id\",\"time\":\"2022-02-22T22:02:22Z\",\"type\":\"product.created\",\"source\":\"product/a\",\"subject\":\"product\",\"action\":\"created\",\"correlationid\":\"cid\",\"partitionkey\":\"pid\",\"tenantid\":\"tid\",\"etag\":\"etag\",\"key\":\"A\",\"fruit\":\"bananas\",\"datacontenttype\":\"application/json\",\"data\":{\"contentType\":\"application/json\",\"attachment\":\"bananas.json\"}}";
 
         internal static EventStorage CreateEventStorage(string? data = null, int? max = null) => new(data) { MaxDataSize = max ?? 100000 };
 

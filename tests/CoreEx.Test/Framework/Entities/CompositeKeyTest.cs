@@ -80,7 +80,7 @@ namespace CoreEx.Test.Framework.Entities
         public void KeyToString_And_CreateFromString()
         {
             var ck = new CompositeKey();
-            Assert.That(ck.ToString(), Is.EqualTo(string.Empty));
+            Assert.That(ck.ToString(), Is.Null);
             ck = CompositeKey.CreateFromString(ck.ToString());
             Assert.That(ck.Args, Has.Length.EqualTo(0));
 
@@ -170,6 +170,17 @@ namespace CoreEx.Test.Framework.Entities
                 Assert.That(ck.Args[1], Is.EqualTo("b"));
                 Assert.That(ck.Args[2], Is.EqualTo("c"));
             });
+
+            ck = new CompositeKey("a,a", "b,b", "c,c");
+            Assert.That(ck.ToString(), Is.EqualTo("a\\u002ca,b\\u002cb,c\\u002cc"));
+            ck = CompositeKey.CreateFromString<string, string, string>(ck.ToString());
+            Assert.That(ck.Args, Has.Length.EqualTo(3));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.Args[0], Is.EqualTo("a,a"));
+                Assert.That(ck.Args[1], Is.EqualTo("b,b"));
+                Assert.That(ck.Args[2], Is.EqualTo("c,c"));
+            });
         }
 
         [Test]
@@ -198,7 +209,7 @@ namespace CoreEx.Test.Framework.Entities
             Assert.That(ck, Is.EqualTo(new CompositeKey(88)));
 
             ck = new CompositeKey((int?)null);
-            Assert.That(ck.ToJsonString(), Is.EqualTo("[{}]"));
+            Assert.That(ck.ToJsonString(), Is.EqualTo("[null]"));
             ck = CompositeKey.CreateFromJson(ck.ToJsonString());
             Assert.That(ck, Is.EqualTo(new CompositeKey((int?)null)));
 
@@ -210,7 +221,7 @@ namespace CoreEx.Test.Framework.Entities
             ck = new CompositeKey("text", 'x', short.MinValue, int.MinValue, long.MinValue, ushort.MaxValue, uint.MaxValue, long.MaxValue, Guid.Parse("8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc"),
                 new DateTime(1970, 01, 22, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 01, 22, 20, 59, 43, DateTimeKind.Utc), new DateTimeOffset(2000, 01, 22, 20, 59, 43, TimeSpan.FromHours(-8)));
 
-            Assert.That(ck.ToJsonString(), Is.EqualTo("[{\"string\":\"text\"},{\"char\":\"x\"},{\"short\":-32768},{\"int\":-2147483648},{\"long\":-9223372036854775808},{\"ushort\":65535},{\"uint\":4294967295},{\"long\":9223372036854775807},{\"guid\":\"8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc\"},{\"date\":\"1970-01-22T00:00:00\"},{\"date\":\"2000-01-22T20:59:43Z\"},{\"offset\":\"2000-01-22T20:59:43-08:00\"}]"));
+            Assert.That(ck.ToJsonString(), Is.EqualTo("[{\"string\":\"text\"},{\"char\":\"x\"},{\"short\":-32768},{\"int\":-2147483648},{\"long\":-9223372036854775808},{\"ushort\":65535},{\"uint\":4294967295},{\"long\":9223372036854775807},{\"guid\":\"8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc\"},{\"datetime\":\"1970-01-22T00:00:00\"},{\"datetime\":\"2000-01-22T20:59:43Z\"},{\"datetimeoffset\":\"2000-01-22T20:59:43-08:00\"}]"));
 
             var ck2 = ck;
             ck = CompositeKey.CreateFromJson(ck.ToJsonString());
@@ -220,10 +231,10 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void KeyDeserializeErrors()
         {
-            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("{}"));
-            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("[[]]"));
-            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("[{\"xxx\":1}]"));
-            Assert.Throws<ArgumentException>(() => CompositeKey.CreateFromJson("[{\"int\":\"x\"}]"));
+            Assert.Throws<System.Text.Json.JsonException>(() => CompositeKey.CreateFromJson("{}"));
+            Assert.Throws<System.Text.Json.JsonException>(() => CompositeKey.CreateFromJson("[[]]"));
+            Assert.Throws<System.Text.Json.JsonException>(() => CompositeKey.CreateFromJson("[{\"xxx\":1}]"));
+            Assert.Throws<System.Text.Json.JsonException>(() => CompositeKey.CreateFromJson("[{\"int\":\"x\"}]"));
         }
     }
 }

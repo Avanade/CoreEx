@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
-using CoreEx.RefData;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -28,7 +27,8 @@ namespace CoreEx.Newtonsoft.Json
         ///  <item><description><see cref="JsonSerializerSettings.NullValueHandling"/> = <see cref="NullValueHandling.Ignore"/>.</description></item>
         ///  <item><description><see cref="JsonSerializerSettings.Formatting"/> = <see cref="Formatting.None"/>.</description></item>
         ///  <item><description><see cref="JsonSerializerSettings.ContractResolver"/> = <see cref="ContractResolver.Default"/>.</description></item>
-        ///  <item><description><see cref="JsonSerializerSettings.Converters"/> = <see cref="Nsj.Converters.StringEnumConverter"/>, <see cref="ReferenceDataJsonConverter"/>, <see cref="CollectionResultJsonConverter"/>.</description></item>
+        ///  <item><description><see cref="JsonSerializerSettings.Converters"/> = <see cref="Nsj.Converters.StringEnumConverter"/>, <see cref="ReferenceDataJsonConverter"/>, <see cref="CollectionResultJsonConverter"/>
+        ///  and <see cref="CompositeKeyJsonConverter"/>.</description></item>
         /// </list>
         /// </remarks>
         public static JsonSerializerSettings DefaultSettings { get; set; } = new JsonSerializerSettings
@@ -37,7 +37,7 @@ namespace CoreEx.Newtonsoft.Json
             NullValueHandling = NullValueHandling.Ignore,
             Formatting = Formatting.None,
             ContractResolver = ContractResolver.Default,
-            Converters = { new Nsj.Converters.StringEnumConverter(), new ReferenceDataJsonConverter(), new CollectionResultJsonConverter() }
+            Converters = { new Nsj.Converters.StringEnumConverter(), new ReferenceDataJsonConverter(), new CollectionResultJsonConverter(), new CompositeKeyJsonConverter() }
         };
 
         /// <summary>
