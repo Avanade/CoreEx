@@ -94,7 +94,7 @@ namespace My.Hr.UnitTest
             using var test = ApiTester.Create<Startup>().UseJsonSerializer(new ReferenceDataContentJsonSerializer().ToUnitTestEx());
 
             var r = test.Controller<ReferenceDataController>()
-                .Run(c => c.GetNamed(), new HttpRequestOptions { UrlQueryString = "gender&usstate" })
+                .Run(c => c.GetNamed(), requestOptions: new HttpRequestOptions { UrlQueryString = "gender&usstate" })
                 .AssertOK();
         }
     }

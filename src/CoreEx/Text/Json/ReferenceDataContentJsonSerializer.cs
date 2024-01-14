@@ -23,7 +23,7 @@ namespace CoreEx.Text.Json
         ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c></description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DictionaryKeyPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.PropertyNamingPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
-        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/>, <see cref="CollectionResultConverterFactory"/> and <see cref="ResultConverterFactory"/>.</description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/>, <see cref="CollectionResultConverterFactory"/>, <see cref="ResultConverterFactory"/> and <see cref="ReferenceDataMultiDictionaryConverterFactory"/>.</description></item>
         /// </list>
         /// </remarks>
         public static new Stj.JsonSerializerOptions DefaultOptions { get; set; } = new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
@@ -32,7 +32,7 @@ namespace CoreEx.Text.Json
             WriteIndented = false,
             DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
             PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
-            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new CollectionResultConverterFactory(), new ResultConverterFactory() }
+            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new CollectionResultConverterFactory(), new ResultConverterFactory(), new ReferenceDataMultiDictionaryConverterFactory() }
         };
     }
 }
