@@ -18,48 +18,36 @@ namespace CoreEx.Azure.ServiceBus
     /// </summary>
     /// <remarks>See <see cref="EventSendDataToServiceBusConverter"/> for details of automatic <see cref="ServiceBusMessage.SessionId"/> and <see cref="ServiceBusMessage.TimeToLive"/> allocation.
     /// <para>Note, that any <see cref="EventDataBase.Attributes"/> where the <see cref="KeyValuePair{TKey, TValue}.Key"/> starts with an underscore character ('<c>_</c>') will <i>not</i> be included in the <see cref="ServiceBusMessage.ApplicationProperties"/>.</para></remarks>
-    public class ServiceBusSender : IServiceBusSender
+    /// <param name="client">The underlying <see cref="ServiceBusClient"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    /// <param name="invoker">The optional <see cref="ServiceBusSenderInvoker"/>.</param>
+    /// <param name="converter">The optional <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.</param>
+    public class ServiceBusSender(ServiceBusClient client, SettingsBase settings, ILogger<ServiceBusSender> logger, ServiceBusSenderInvoker? invoker = null, IValueConverter<EventSendData, ServiceBusMessage>? converter = null) : IServiceBusSender
     {
         private const string _unspecifiedQueueOrTopicName = "$default";
         private static ServiceBusSenderInvoker? _invoker;
-        private readonly ServiceBusClient _client;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceBusSender"/> class.
-        /// </summary>
-        /// <param name="client">The underlying <see cref="ServiceBusClient"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="invoker">The optional <see cref="ServiceBusSenderInvoker"/>.</param>
-        /// <param name="converter">The optional <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.</param>
-        public ServiceBusSender(ServiceBusClient client, SettingsBase settings, ILogger<ServiceBusSender> logger, ServiceBusSenderInvoker? invoker = null, IValueConverter<EventSendData, ServiceBusMessage>? converter = null)
-        {
-            _client = client ?? throw new ArgumentNullException(nameof(client), "Verify dependency injection configuration and if service bus connection string for publisher was correctly defined.");
-            Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            Invoker = invoker ?? (_invoker ??= new ServiceBusSenderInvoker());
-            Converter = converter ?? new EventSendDataToServiceBusConverter();
-        }
+        private readonly ServiceBusClient _client = client ?? throw new ArgumentNullException(nameof(client), "Verify dependency injection configuration and if service bus connection string for publisher was correctly defined.");
 
         /// <summary>
         /// Gets the <see cref="SettingsBase"/>.
         /// </summary>
-        protected SettingsBase Settings { get; }
+        protected SettingsBase Settings { get; } = settings ?? throw new ArgumentNullException(nameof(settings));
 
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
-        protected ILogger Logger { get; }
+        protected ILogger Logger { get; } = logger ?? throw new ArgumentNullException(nameof(logger));
 
         /// <summary>
         /// Gets the <see cref="ServiceBusSenderInvoker"/>.
         /// </summary>
-        protected ServiceBusSenderInvoker Invoker { get; }
+        protected ServiceBusSenderInvoker Invoker { get; } = invoker ?? (_invoker ??= new ServiceBusSenderInvoker());
 
         /// <summary>
         /// Gets the <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="ServiceBusMessage"/>.
         /// </summary>
-        protected IValueConverter<EventSendData, ServiceBusMessage> Converter { get; }
+        protected IValueConverter<EventSendData, ServiceBusMessage> Converter { get; } = converter ?? new EventSendDataToServiceBusConverter();
 
         /// <summary>
         /// Gets or sets the default queue or topic name used by <see cref="SendAsync(IEnumerable{EventSendData}, CancellationToken)"/> where <see cref="EventSendData.Destination"/> is <c>null</c>.

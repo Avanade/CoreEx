@@ -20,13 +20,13 @@ namespace CoreEx.RefData
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class.
         /// </summary>
-        public ReferenceDataCodeList() => _codes = new();
+        public ReferenceDataCodeList() => _codes = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class with a reference to an external <see cref="IReferenceData.Code"/> list.
         /// </summary>
         /// <param name="codes">A reference to the external <see cref="IReferenceData.Code"/> list; it is this list that will be maintained by this collection. Changes made to the referenced list will bypass <see cref="INotifyCollectionChanged"/>.</param>
-        public ReferenceDataCodeList(ref List<string?>? codes) => _codes = codes ?? new();
+        public ReferenceDataCodeList(ref List<string?>? codes) => _codes = codes ?? [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class with a list of items.

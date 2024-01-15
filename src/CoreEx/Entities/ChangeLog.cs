@@ -50,10 +50,7 @@ namespace CoreEx.Entities
         /// <returns>A new or updated <see cref="ChangeLog"/> with <c>Created</c> properties set.</returns>
         public static IChangeLogAudit PrepareCreated(IChangeLogAudit changeLog, ExecutionContext? executionContext = null)
         {
-            if (changeLog is null)
-                throw new ArgumentNullException(nameof(changeLog));
-
-            changeLog.CreatedBy = GetUsername(executionContext);
+            changeLog.ThrowIfNull(nameof(changeLog)).CreatedBy = GetUsername(executionContext);
             changeLog.CreatedDate = GetTimestamp(executionContext);
             return changeLog;
         }
@@ -67,7 +64,7 @@ namespace CoreEx.Entities
         /// <remarks>Creates or updates the <see cref="ChangeLog"/> where <paramref name="value"/> implements <see cref="IChangeLog"/>.</remarks>
         public static void PrepareUpdated<T>(T value, ExecutionContext? executionContext = null)
         {
-            if (value != null && value is IChangeLogAuditLog cl)
+            if (value is not null && value is IChangeLogAuditLog cl)
                 cl.ChangeLogAudit = PrepareUpdated(cl.ChangeLogAudit ?? new ChangeLog(), executionContext);
         }
 
@@ -79,10 +76,7 @@ namespace CoreEx.Entities
         /// <returns>A new or updated <see cref="ChangeLog"/> with <c>Updated</c> properties set.</returns>
         public static IChangeLogAudit PrepareUpdated(IChangeLogAudit changeLog, ExecutionContext? executionContext = null)
         {
-            if (changeLog is null)
-                throw new ArgumentNullException(nameof(changeLog));
-
-            changeLog.UpdatedBy = GetUsername(executionContext);
+            changeLog.ThrowIfNull(nameof(changeLog)).UpdatedBy = GetUsername(executionContext);
             changeLog.UpdatedDate = GetTimestamp(executionContext);
             return changeLog;
         }

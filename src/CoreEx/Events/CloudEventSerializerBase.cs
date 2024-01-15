@@ -30,7 +30,7 @@ namespace CoreEx.Events
         /// </summary>
         /// <remarks>The reserved names are as follows: '<c>id</c>', '<c>time</c>', '<c>type</c>', '<c>source</c>', '<c>subject</c>', '<c>action</c>', '<c>correlationid</c>', '<c>tenantid</c>', '<c>etag</c>', '<c>partitionkey</c>', '<c>key</c>'. Also,
         /// an attribute name must consist of lowercase letters and digits only; any that contain other characters will be ignored.</remarks>
-        public static string[] ReservedNames { get; } = new string[] { "id", "time", "type", "source", SubjectName, ActionName, CorrelationIdName, TenantIdName, ETagName, PartitionKeyName, KeyName };
+        public static string[] ReservedNames { get; } = ["id", "time", "type", "source", SubjectName, ActionName, CorrelationIdName, TenantIdName, ETagName, PartitionKeyName, KeyName];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudEventSerializerBase"/> class.
@@ -105,11 +105,8 @@ namespace CoreEx.Events
         /// <inheritdoc/>
         public async Task<EventData> DeserializeAsync(BinaryData eventData, Type valueType, CancellationToken cancellationToken = default)
         {
-            if (valueType == null)
-                throw new ArgumentNullException(nameof(valueType));
-
-            var mi = GetType().GetMethod(nameof(DeserializeAsync), 1, new Type[] { typeof(BinaryData), typeof(CancellationToken) })!;
-            dynamic task = mi.MakeGenericMethod(valueType).Invoke(this, new object[] { eventData, cancellationToken })!;
+            var mi = GetType().GetMethod(nameof(DeserializeAsync), 1, [typeof(BinaryData), typeof(CancellationToken)])!;
+            dynamic task = mi.MakeGenericMethod(valueType.ThrowIfNull(nameof(valueType))).Invoke(this, new object[] { eventData, cancellationToken })!;
             return await task.ConfigureAwait(false);
         }
 
@@ -177,20 +174,14 @@ namespace CoreEx.Events
         /// <inheritdoc/>
         public Task<BinaryData> SerializeAsync(EventData @event, CancellationToken cancellationToken = default)
         {
-            if (@event == null)
-                throw new ArgumentNullException(nameof(@event));
-
-            @event = @event.Copy();
+            @event = @event.ThrowIfNull(nameof(@event)).Copy();
             return SerializeToCloudEventAsync(@event, cancellationToken);
         }
 
         /// <inheritdoc/>
         public Task<BinaryData> SerializeAsync<T>(EventData<T> @event, CancellationToken cancellationToken = default)
         {
-            if (@event == null)
-                throw new ArgumentNullException(nameof(@event));
-
-            @event = @event.Copy();
+            @event = @event.ThrowIfNull(nameof(@event)).Copy();
             return SerializeToCloudEventAsync(@event, cancellationToken);
         }
 

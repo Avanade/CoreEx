@@ -22,7 +22,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<U> Bind<T, U>(this Result<T> result, Func<T, Result<U>> func)
         {
-            if (func is null) throw new ArgumentNullException(nameof(func));
+            func.ThrowIfNull(nameof(func));
             return result.IsSuccess ? func(result.Value) : new Result<U>(result.Error!);
         }
 
@@ -46,7 +46,7 @@ namespace CoreEx.Results
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static Result<T> Bind<T>(this Result result, Func<Result<T>> func)
         {
-            if (func is null) throw new ArgumentNullException(nameof(func));
+            func.ThrowIfNull(nameof(func));
             return result.IsSuccess ? func() : new Result<T>(result.Error!);
         }
 

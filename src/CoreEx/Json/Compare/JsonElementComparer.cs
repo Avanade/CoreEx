@@ -13,18 +13,13 @@ namespace CoreEx.Json.Compare
     /// Provides a <see cref="JsonElement"/> comparer where property order is not significant.
     /// </summary>
     /// <remarks>Influenced by <see href="https://stackoverflow.com/questions/60580743/what-is-equivalent-in-jtoken-deepequals-in-system-text-json"/>.</remarks>
-    public sealed class JsonElementComparer : IEqualityComparer<JsonElement>, IEqualityComparer<string>
+    /// <param name="options">The <see cref="JsonElementComparerOptions"/>; defaults to <see cref="JsonElementComparerOptions.Default"/>.</param>
+    public sealed class JsonElementComparer(JsonElementComparerOptions? options = null) : IEqualityComparer<JsonElement>, IEqualityComparer<string>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonElementComparer"/> class.
-        /// </summary>
-        /// <param name="options">The <see cref="JsonElementComparerOptions"/>; defaults to <see cref="JsonElementComparerOptions.Default"/>.</param>
-        public JsonElementComparer(JsonElementComparerOptions? options = null) => Options = options ?? JsonElementComparerOptions.Default;
-
         /// <summary>
         /// Gets the <see cref="JsonElementComparerOptions"/>.
         /// </summary>
-        public JsonElementComparerOptions Options { get; }
+        public JsonElementComparerOptions Options { get; } = options ?? JsonElementComparerOptions.Default;
 
         /// <summary>
         /// Compare two object values for equality; each value is JSON-serialized (uses <see cref="JsonSerializer.Default"/>) and then compared.
@@ -314,7 +309,7 @@ namespace CoreEx.Json.Compare
         /// <summary>
         /// Computes the hash code.
         /// </summary>
-        private void ComputeHashCode(JsonElement json, ref HashCode hash)
+        private static void ComputeHashCode(JsonElement json, ref HashCode hash)
         {
             hash.Add(json.ValueKind);
 

@@ -60,7 +60,7 @@ namespace CoreEx.Entities.Extended
         /// Raises the <see cref="PropertyChanged"/> event only (<see cref="OnPropertyChanged"/>).
         /// </summary>
         /// <param name="propertyName">The property name.</param>
-        protected void RaisePropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? throw new ArgumentNullException(nameof(propertyName))));
+        protected void RaisePropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName.ThrowIfNull(nameof(propertyName))));
 
         /// <summary>
         /// Gets a property value (automatically instantiating new where current value is null).
@@ -80,8 +80,7 @@ namespace CoreEx.Entities.Extended
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
         protected bool SetValue<T>(ref T propertyValue, T setValue, bool immutable = false, T @default = default!, [CallerMemberName] string? propertyName = null)
         { 
-            if (string.IsNullOrEmpty(propertyName))
-                throw new ArgumentNullException(nameof(propertyName));
+            propertyName.ThrowIfNullOrEmpty(nameof(propertyName));
 
             lock (_lock)
             {
@@ -158,8 +157,7 @@ namespace CoreEx.Entities.Extended
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
         protected bool SetValue(ref string? propertyValue, string? setValue, StringTrim trim, StringTransform transform = StringTransform.UseDefault, StringCase casing = StringCase.UseDefault, bool immutable = false, [CallerMemberName] string? propertyName = null)
         {
-            if (string.IsNullOrEmpty(propertyName))
-                throw new ArgumentNullException(nameof(propertyName));
+            propertyName.ThrowIfNullOrEmpty(nameof(propertyName));
 
             lock (_lock)
             {
@@ -219,8 +217,7 @@ namespace CoreEx.Entities.Extended
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
         protected bool SetValue(ref DateTime propertyValue, DateTime setValue, DateTimeTransform transform = DateTimeTransform.UseDefault, bool immutable = false, [CallerMemberName] string? propertyName = null)
         {
-            if (string.IsNullOrEmpty(propertyName))
-                throw new ArgumentNullException(nameof(propertyName));
+            propertyName.ThrowIfNullOrEmpty(nameof(propertyName));
 
             lock (_lock)
             {
@@ -251,8 +248,7 @@ namespace CoreEx.Entities.Extended
         /// <returns><c>true</c> indicates that the property value changed; otherwise, <c>false</c>.</returns>
         protected bool SetValue(ref DateTime? propertyValue, DateTime? setValue, DateTimeTransform transform, bool immutable = false, [CallerMemberName] string? propertyName = null)
         {
-            if (string.IsNullOrEmpty(propertyName))
-                throw new ArgumentNullException(nameof(propertyName));
+            propertyName.ThrowIfNullOrEmpty(nameof(propertyName));
 
             lock (_lock)
             {

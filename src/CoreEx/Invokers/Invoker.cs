@@ -34,7 +34,7 @@ namespace CoreEx.Invokers
         /// <param name="task">The async <see cref="Task"/>.</param>
         /// <remarks>The general guidance is to avoid sync over async as this may result in deadlock, so please consider all options before using. There are many <see href="https://stackoverflow.com/questions/5095183/how-would-i-run-an-async-taskt-method-synchronously">articles</see>
         /// written discussing this subject; however, if sync over async is needed this method provides a consistent approach to perform. This implementation has been inspired by <see href="https://www.ryadel.com/en/asyncutil-c-helper-class-async-method-sync-result-wait/"/>.</remarks>
-        public static void RunSync(Func<Task> task) => _taskFactory.StartNew(task ?? throw new ArgumentNullException(nameof(task))).Unwrap().GetAwaiter().GetResult();
+        public static void RunSync(Func<Task> task) => _taskFactory.StartNew(task.ThrowIfNull(nameof(task))).Unwrap().GetAwaiter().GetResult();
 
         /// <summary>
         /// Executes an async <see cref="Task"/> sychronously with a result.
@@ -44,6 +44,6 @@ namespace CoreEx.Invokers
         /// <returns>The resulting value.</returns>
         /// <remarks>The general guidance is to avoid sync over async as this may result in deadlock, so please consider all options before using. There are many <see href="https://stackoverflow.com/questions/5095183/how-would-i-run-an-async-taskt-method-synchronously">articles</see>
         /// written discussing this subject; however, if sync over async is needed this method provides a consistent approach to perform. This implementation has been inspired by <see href="https://www.ryadel.com/en/asyncutil-c-helper-class-async-method-sync-result-wait/"/>.</remarks>
-        public static T RunSync<T>(Func<Task<T>> task) => _taskFactory.StartNew(task ?? throw new ArgumentNullException(nameof(task))).Unwrap().GetAwaiter().GetResult();
+        public static T RunSync<T>(Func<Task<T>> task) => _taskFactory.StartNew(task.ThrowIfNull(nameof(task))).Unwrap().GetAwaiter().GetResult();
     }
 }

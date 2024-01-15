@@ -14,7 +14,7 @@ namespace CoreEx.Abstractions.Reflection
     /// <summary>
     /// Provides access to the common property expression capabilities.
     /// </summary>
-    public static class PropertyExpression
+    public static partial class PropertyExpression
     {
         private static IMemoryCache? _fallbackCache;
 
@@ -23,7 +23,11 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         public const string SentenceCaseWordSplitPattern = "([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))";
 
+#if NET8_0_OR_GREATER
+        private readonly static Lazy<Regex> _regex = new(SentenceRegex);
+#else
         private readonly static Lazy<Regex> _regex = new(() => new Regex(SentenceCaseWordSplitPattern, RegexOptions.CultureInvariant | RegexOptions.Compiled));
+#endif
 
         /// <summary>
         /// Gets the <see cref="IMemoryCache"/>.
@@ -40,7 +44,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns>A <see cref="PropertyExpression{TEntity, TProperty}"/> which contains (in order) the compiled <see cref="System.Func{TEntity, TProperty}"/>, member name and resulting property text.</returns>
         /// <remarks>Caching is used to improve performance; subsequent calls will return the corresponding cached value.</remarks>
         public static PropertyExpression<TEntity, TProperty> Create<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, IJsonSerializer? jsonSerializer = null)
-            => PropertyExpression<TEntity, TProperty>.CreateInternal(propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression)), DetermineJsonSerializer(jsonSerializer));
+            => PropertyExpression<TEntity, TProperty>.CreateInternal(propertyExpression.ThrowIfNull(nameof(propertyExpression)), DetermineJsonSerializer(jsonSerializer));
 
         /// <summary>
         /// Gets the <see cref="PropertyExpression{TEntity, TProperty}"/> from the cache.
@@ -132,6 +136,14 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         /// <remarks>Defaults with the following entry: '<c>Id</c>'.
         /// <para>For example a value of '<c>EmployeeId</c>' would return just '<c>Employee</c>'.</para></remarks>
-        public static List<string> SentenceCaseLastWordRemovals { get; set; } = new() { "Id" };
+        public static List<string> SentenceCaseLastWordRemovals { get; set; } = ["Id"];
+
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Provides the compiled <see cref="Regex"/> for splitting strings into a sentence of words.
+        /// </summary>
+        [GeneratedRegex(SentenceCaseWordSplitPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+        private static partial Regex SentenceRegex();
+#endif
     }
 }

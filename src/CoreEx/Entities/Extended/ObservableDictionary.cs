@@ -23,7 +23,7 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableDictionary{TKey, TValue}"/> with the default <see cref="IEqualityComparer{T}"/> for the type of the key.
         /// </summary>
-        public ObservableDictionary() => _dict = new();
+        public ObservableDictionary() => _dict = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableDictionary{TKey, TValue}"/> with the specified <paramref name="comparer"/>.

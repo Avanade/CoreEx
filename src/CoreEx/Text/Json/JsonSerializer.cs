@@ -103,10 +103,7 @@ namespace CoreEx.Text.Json
         /// <inheritdoc/>
         bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, [NotNullWhen(true)] out string? jsonName)
         {
-            if (memberInfo == null)
-                throw new ArgumentNullException(nameof(memberInfo));
-
-            var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>();
+            var ji = memberInfo.ThrowIfNull(nameof(memberInfo)).GetCustomAttribute<JsonIgnoreAttribute>();
             if (ji != null)
             {
                 jsonName = null;

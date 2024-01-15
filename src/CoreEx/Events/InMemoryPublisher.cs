@@ -15,26 +15,16 @@ namespace CoreEx.Events
     /// Provides an in-memory publisher which can be used for the likes of testing.
     /// </summary>
     /// <remarks>Where a <see cref="ILogger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
-    public class InMemoryPublisher : EventPublisher
+    /// <param name="logger">The optional <see cref="ILogger"/> for logging the events (each <see cref="EventData"/>).</param>
+    /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/> for the logging. Defaults to <see cref="JsonSerializer.Default"/></param>
+    /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>; defaults where not specified.</param>
+    /// <param name="eventSerializer">The optional <see cref="IEventSerializer"/>. Defaults to <see cref="Text.Json.EventDataSerializer"/>.</param>
+    public class InMemoryPublisher(ILogger? logger = null, IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null, IEventSerializer? eventSerializer = null) : EventPublisher(eventDataFormatter, eventSerializer ?? new Text.Json.EventDataSerializer(), new InMemorySender())
     {
-        private readonly ILogger? _logger;
-        private readonly IJsonSerializer _jsonSerializer;
+        private readonly ILogger? _logger = logger;
+        private readonly IJsonSerializer _jsonSerializer = jsonSerializer ?? Json.JsonSerializer.Default;
         private readonly ConcurrentDictionary<string, ConcurrentQueue<EventData>> _dict = new();
         private const string NullName = "!@#$%";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InMemoryPublisher"/> class.
-        /// </summary>
-        /// <param name="logger">The optional <see cref="ILogger"/> for logging the events (each <see cref="EventData"/>).</param>
-        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/> for the logging. Defaults to <see cref="JsonSerializer.Default"/></param>
-        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>; defaults where not specified.</param>
-        /// <param name="eventSerializer">The optional <see cref="IEventSerializer"/>. Defaults to <see cref="Text.Json.EventDataSerializer"/>.</param>
-        public InMemoryPublisher(ILogger? logger = null, IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null, IEventSerializer? eventSerializer = null)
-            : base(eventDataFormatter, eventSerializer ?? new Text.Json.EventDataSerializer(), new InMemorySender())
-        {
-            _logger = logger;
-            _jsonSerializer = jsonSerializer ?? Json.JsonSerializer.Default;
-        }
 
         /// <inheritdoc/>
         protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData, CancellationToken cancellationToken)
@@ -70,7 +60,7 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <returns>The corresponding events.</returns>
-        public EventData[] GetEvents(string? name = null) => _dict.TryGetValue(name ?? NullName, out var queue) ? queue.ToArray() : Array.Empty<EventData>();
+        public EventData[] GetEvents(string? name = null) => _dict.TryGetValue(name ?? NullName, out var queue) ? [.. queue] : Array.Empty<EventData>();
 
         /// <summary>
         /// Resets (clears) the in-memory state.

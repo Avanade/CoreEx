@@ -11,18 +11,13 @@ namespace CoreEx.RefData.Caching
     /// </summary>
     /// <remarks>See <see href="https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/RefData/README.md#cache-policy-configuration">cache policy configuration</see> for more information.
     /// <para>Where the <see cref="SettingsBase"/> has not been configured, then the default behaviour sets the following: <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> = 2 hours, and <see cref="ICacheEntry.SlidingExpiration"/> = 30 minutes.</para></remarks>
-    public class SettingsBasedCacheEntry : ICacheEntryConfig
+    /// <param name="settings">The <see cref="IServiceProvider"/>.</param>
+    public class SettingsBasedCacheEntry(SettingsBase? settings) : ICacheEntryConfig
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SettingsBasedCacheEntry"/> class using the <paramref name="settings"/>.
-        /// </summary>
-        /// <param name="settings">The <see cref="IServiceProvider"/>.</param>
-        public SettingsBasedCacheEntry(SettingsBase? settings) => Settings = settings;
-
         /// <summary>
         /// Gets the optional <see cref="SettingsBase"/>.
         /// </summary>
-        public SettingsBase? Settings { get; }
+        public SettingsBase? Settings { get; } = settings;
 
         /// <summary>
         /// Gets the cache key to be used (defaults to <paramref name="type"/>).

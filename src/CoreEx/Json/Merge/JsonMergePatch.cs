@@ -54,11 +54,8 @@ namespace CoreEx.Json.Merge
         /// <inheritdoc/>
         public bool Merge<T>(BinaryData json, ref T? value)
         {
-            if (json == null)
-                throw new ArgumentNullException(nameof(json));
-
             // Parse the JSON.
-            var j = ParseJson<T>(json);
+            var j = ParseJson<T>(json.ThrowIfNull(nameof(json)));
 
             // Perform the root merge patch.
             return MergeRoot(j.JsonElement, j.Value, ref value);
@@ -67,14 +64,10 @@ namespace CoreEx.Json.Merge
         /// <inheritdoc/>
         public async Task<(bool HasChanges, T? Value)> MergeAsync<T>(BinaryData json, Func<T?, CancellationToken, Task<T?>> getValue, CancellationToken cancellationToken = default)
         {
-            if (json == null)
-                throw new ArgumentNullException(nameof(json));
-
-            if (getValue == null)
-                throw new ArgumentNullException(nameof(getValue));
+            getValue.ThrowIfNull(nameof(getValue));
 
             // Parse the JSON.
-            var j = ParseJson<T>(json); 
+            var j = ParseJson<T>(json.ThrowIfNull(nameof(json))); 
 
             // Get the value.
             T? value = await getValue(j.Value, cancellationToken).ConfigureAwait(false);
@@ -88,14 +81,10 @@ namespace CoreEx.Json.Merge
         /// <inheritdoc/>
         public async Task<Result<(bool HasChanges, T Value)>> MergeWithResultAsync<T>(BinaryData json, Func<T, CancellationToken, Task<Result<T>>> getValue, CancellationToken cancellationToken = default)
         {
-            if (json == null)
-                throw new ArgumentNullException(nameof(json));
-
-            if (getValue == null)
-                throw new ArgumentNullException(nameof(getValue));
+            getValue.ThrowIfNull(nameof(getValue));
 
             // Parse the JSON.
-            var j = ParseJson<T>(json);
+            var j = ParseJson<T>(json.ThrowIfNull(nameof(json)));
 
             // Get the value.
             var result = await getValue(j.Value!, cancellationToken).ConfigureAwait(false);

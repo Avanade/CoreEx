@@ -27,7 +27,7 @@ namespace CoreEx.Http
         /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/>.</param>
         protected HttpResultBase(HttpResponseMessage response, BinaryData? content)
         {
-            Response = response ?? throw new ArgumentNullException(nameof(response));
+            Response = response.ThrowIfNull(nameof(response));
             BinaryContent = content;
 
             _errorType = new Lazy<string?>(() =>

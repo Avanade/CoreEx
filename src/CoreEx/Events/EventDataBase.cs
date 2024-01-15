@@ -103,7 +103,7 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
-        public void AddAttribute(string key, string value) => (Attributes ??= new Dictionary<string, string>()).Add(key, value ?? throw new ArgumentNullException(nameof(value)));
+        public void AddAttribute(string key, string value) => (Attributes ??= new Dictionary<string, string>()).Add(key, value.ThrowIfNull(nameof(value)));
 
         /// <summary>
         /// Determines whether the <see cref="Attributes"/> contain an attribute with the specified <paramref name="key"/>. 
@@ -148,7 +148,7 @@ namespace CoreEx.Events
         /// <param name="event">The <see cref="EventDataBase"/> to copy from.</param>
         public void CopyMetadata(EventDataBase @event)
         {
-            Id = (@event ?? throw new ArgumentNullException(nameof(@event))).Id;
+            Id = (@event.ThrowIfNull(nameof(@event))).Id;
             Timestamp = @event.Timestamp;
             Subject = @event.Subject;
             Action = @event.Action;

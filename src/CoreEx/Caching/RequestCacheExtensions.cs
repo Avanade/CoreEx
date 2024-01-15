@@ -20,7 +20,7 @@ namespace CoreEx.Caching
         /// <param name="key">The key of the value to get.</param>
         /// <param name="value">The cached value where found; otherwise, the default value for the <see cref="Type"/>.</param>
         /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        public static bool TryGetValue<T>(this IRequestCache cache, IEntityKey key, out T? value) => cache.TryGetValue((key ?? throw new ArgumentNullException(nameof(key))).EntityKey, out value);
+        public static bool TryGetValue<T>(this IRequestCache cache, IEntityKey key, out T? value) => cache.TryGetValue((key.ThrowIfNull(nameof(key))).EntityKey, out value);
 
         /// <summary>
         /// Gets the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/> (converted to a <see cref="CompositeKey"/>).
@@ -42,8 +42,7 @@ namespace CoreEx.Caching
         /// <returns>The cached value (existing or new).</returns>
         public static async Task<T?> GetOrAddAsync<T>(this IRequestCache cache, CompositeKey key, Func<Task<T?>> addFactory)
         {
-            if (addFactory == null)
-                throw new ArgumentNullException(nameof(addFactory));
+            addFactory.ThrowIfNull(nameof(addFactory));
 
             if (cache.TryGetValue<T>(key, out var value))
                 return value;
@@ -90,7 +89,7 @@ namespace CoreEx.Caching
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="key">The key of the value to remove.</param>
         /// <returns><c>true</c> where found and removed; otherwise, <c>false</c>.</returns>
-        public static bool Remove<T>(this IRequestCache cache, IEntityKey key) => cache.Remove<T>((key ?? throw new ArgumentNullException(nameof(key))).EntityKey);
+        public static bool Remove<T>(this IRequestCache cache, IEntityKey key) => cache.Remove<T>((key.ThrowIfNull(nameof(key))).EntityKey);
 
         /// <summary>
         /// Removes the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/> (converted to a <see cref="CompositeKey"/>).

@@ -18,7 +18,7 @@ namespace CoreEx.Hosting
         public static IHostBuilder ConfigureHostStartup<TStartup>(this IHostBuilder hostBuilder) where TStartup : class, IHostStartup, new()
         {
             var startup = new TStartup();
-            return hostBuilder.ConfigureAppConfiguration(startup.ConfigureAppConfiguration)
+            return hostBuilder.ThrowIfNull(nameof(hostBuilder)).ConfigureAppConfiguration(startup.ConfigureAppConfiguration)
                 .ConfigureHostConfiguration(startup.ConfigureHostConfiguration)
                 .ConfigureServices((hbc, sc) => startup.ConfigureServices(sc));
         }

@@ -8,16 +8,11 @@ namespace CoreEx.Configuration
     /// Provides the common deployment information setting. 
     /// </summary>
     /// <remarks>This class should be inherited to add additional properties where required.</remarks>
-    public class DeploymentInfo
+    /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
+    public class DeploymentInfo(IConfiguration? configuration)
     {
         private const string Unspecified = "<unspecified>";
-        private readonly IConfiguration? _configuration;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DeploymentInfo"/> class.
-        /// </summary>
-        /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
-        public DeploymentInfo(IConfiguration? configuration) => _configuration = configuration;
+        private readonly IConfiguration? _configuration = configuration;
 
         /// <summary>
         /// Gets the username who performed the deployment.

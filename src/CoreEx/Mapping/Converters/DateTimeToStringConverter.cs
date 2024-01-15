@@ -35,7 +35,7 @@ namespace CoreEx.Mapping.Converters
         /// <param name="transform">The optional <see cref="DateTimeTransform"/> to be performed on the <see cref="DateTime"/>.</param>
         public DateTimeToStringConverter(string format, IFormatProvider? formatProvider = null, DateTimeStyles style = DateTimeStyles.None, DateTimeTransform transform = DateTimeTransform.None)
         {
-            format = format ?? throw new ArgumentNullException(nameof(format));
+            format = format.ThrowIfNull(nameof(format));
             formatProvider ??= CultureInfo.InvariantCulture.DateTimeFormat;
             _convertToDestination = new(s => Cleaner.Clean(s, transform)?.ToString(format, formatProvider));
             _convertToSource = new(d => d == null ? null : Cleaner.Clean(DateTime.ParseExact(d, format, formatProvider, style), transform));

@@ -94,7 +94,7 @@ namespace CoreEx.RefData
         /// <param name="cacheEntryConfig">The <see cref="ICacheEntryConfig"/>. Defaults to new <see cref="SettingsBasedCacheEntry"/> instance.</param>
         public ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache = null, ICacheEntryConfig? cacheEntryConfig = null)
         {
-            ServiceProvider = serivceProvider ?? throw new ArgumentNullException(nameof(serivceProvider));
+            ServiceProvider = serivceProvider.ThrowIfNull(nameof(serivceProvider));
             Cache = cache ?? new MemoryCache(new MemoryCacheOptions());
             CacheEntryConfig = cacheEntryConfig ?? new SettingsBasedCacheEntry(ServiceProvider.GetService<SettingsBase>());
             _logger = new Lazy<ILogger>(ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>);
@@ -259,7 +259,7 @@ namespace CoreEx.RefData
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
         public async Task<IReferenceDataCollection?> GetByTypeAsync(Type type, CancellationToken cancellationToken = default)
         {
-            if (!_typeToProvider.TryGetValue(type ?? throw new ArgumentNullException(nameof(type)), out var providerType))
+            if (!_typeToProvider.TryGetValue(type.ThrowIfNull(nameof(type)), out var providerType))
                 return null;
 
             var coll = await OnGetOrCreateAsync(type, (t, ct) =>
@@ -403,7 +403,7 @@ namespace CoreEx.RefData
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
         public IReferenceDataCollection? GetByName(string name)
-            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByType(type) : null;
+            => _nameToType.TryGetValue(name.ThrowIfNull(nameof(name)), out var type) ? GetByType(type) : null;
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
@@ -411,7 +411,7 @@ namespace CoreEx.RefData
         /// <param name="name">The reference data name.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
         public IReferenceDataCollection GetByNameRequired(string name)
-             => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeRequired(type) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
+             => _nameToType.TryGetValue(name.ThrowIfNull(nameof(name)), out var type) ? GetByTypeRequired(type) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
@@ -420,7 +420,7 @@ namespace CoreEx.RefData
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
         public Task<IReferenceDataCollection?> GetByNameAsync(string name, CancellationToken cancellationToken = default) 
-            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeAsync(type, cancellationToken) : Task.FromResult<IReferenceDataCollection?>(null);
+            => _nameToType.TryGetValue(name.ThrowIfNull(nameof(name)), out var type) ? GetByTypeAsync(type, cancellationToken) : Task.FromResult<IReferenceDataCollection?>(null);
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="System.Reflection.MemberInfo.Name"/>). 
@@ -429,7 +429,7 @@ namespace CoreEx.RefData
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
         public Task<IReferenceDataCollection> GetByNameRequiredAsync(string name, CancellationToken cancellationToken = default) 
-            => _nameToType.TryGetValue(name ?? throw new ArgumentNullException(nameof(name)), out var type) ? GetByTypeRequiredAsync(type, cancellationToken) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
+            => _nameToType.TryGetValue(name.ThrowIfNull(nameof(name)), out var type) ? GetByTypeRequiredAsync(type, cancellationToken) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
         /// <summary>
         /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> <see cref="Type"/> applying the <paramref name="codes"/> and <paramref name="text"/> filter.

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using CoreEx.Wildcards;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -26,10 +27,9 @@ namespace System.Linq
             if (sequence == null)
                 return sequence!;
 
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
+            action.ThrowIfNull(nameof(action));
 
-            foreach (TItem element in sequence ?? throw new ArgumentNullException(nameof(sequence)))
+            foreach (TItem element in sequence.ThrowIfNull(nameof(sequence)))
             {
                 action(element);
             }
@@ -49,10 +49,9 @@ namespace System.Linq
             if (sequence == null)
                 return sequence!;
 
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
+            action.ThrowIfNull(nameof(action));
 
-            foreach (TItem element in sequence ?? throw new ArgumentNullException(nameof(sequence)))
+            foreach (TItem element in sequence.ThrowIfNull(nameof(sequence)))
             {
                 await action(element).ConfigureAwait(false);
             }
@@ -85,10 +84,8 @@ namespace System.Linq
         public static void ToCollection<TColl, TItem>(this IEnumerable<TItem> sequence, TColl coll)
             where TColl : ICollection<TItem>
         {
-            if (coll == null)
-                throw new ArgumentNullException(nameof(coll));
-
-            sequence.ForEach(item => coll.Add(item));
+            coll.ThrowIfNull(nameof(coll));
+            sequence.ForEach(coll.Add);
         }
 
         /// <summary>
@@ -115,11 +112,8 @@ namespace System.Linq
         public static IEnumerable<TElement> WhereWildcard<TElement>(this IEnumerable<TElement> query, Func<TElement, string?> property, string? text, bool ignoreCase = true, bool checkForNull = true, Wildcard? wildcard = null)
             where TElement : class
         {
-            if (query == null)
-                throw new ArgumentNullException(nameof(query));
-
-            if (property == null)
-                throw new ArgumentNullException(nameof(property));
+            query.ThrowIfNull(nameof(query));
+            property.ThrowIfNull(nameof(property));
 
             var wc = wildcard ?? Wildcard.Default ?? Wildcard.MultiAll;
             var wr = wc.Parse(text).ThrowOnError();

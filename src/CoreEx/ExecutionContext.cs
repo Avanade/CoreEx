@@ -58,7 +58,7 @@ namespace CoreEx
             if (HasCurrent)
                 throw new InvalidOperationException("The SetCurrent method can only be used where there is no Current instance.");
 
-            _asyncLocal.Value = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
+            _asyncLocal.Value = executionContext.ThrowIfNull(nameof(executionContext));
         }
 
         /// <summary>
@@ -94,9 +94,7 @@ namespace CoreEx
         /// <returns>The corresponding instance.</returns>
         public static object? GetService(Type type)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-
+            type.ThrowIfNull(nameof(type));
             if (HasCurrent && Current.ServiceProvider != null)
                 return Current.ServiceProvider.GetService(type);
 
@@ -110,9 +108,7 @@ namespace CoreEx
         /// <returns>The corresponding instance.</returns>
         public static object GetRequiredService(Type type)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-
+            type.ThrowIfNull(nameof(type));
             if (HasCurrent && Current.ServiceProvider != null)
                 return Current.ServiceProvider.GetRequiredService(type);
 
@@ -239,9 +235,7 @@ namespace CoreEx
         /// <remarks>This method is intended to be overridden; this implementation always returns <see cref="Result.AuthorizationError"/>.</remarks>
         public virtual Result UserIsAuthorized(string permission)
         {
-            if (string.IsNullOrEmpty(permission))
-                throw new ArgumentNullException(nameof(permission));
-
+            permission.ThrowIfNullOrEmpty(nameof(permission));
             return Result.AuthorizationError();
         }
 
@@ -254,12 +248,8 @@ namespace CoreEx
         /// <remarks>This method is intended to be overridden; this implementation always returns <see cref="Result.AuthorizationError"/>.</remarks>
         public virtual Result UserIsAuthorized(string entity, string action)
         {
-            if (string.IsNullOrEmpty(entity))
-                throw new ArgumentNullException(nameof(entity));
-
-            if (string.IsNullOrEmpty(action))
-                throw new ArgumentNullException(nameof(action));
-
+            entity.ThrowIfNullOrEmpty(nameof(entity));
+            action.ThrowIfNullOrEmpty(nameof(action));
             return Result.AuthorizationError();
         }
 

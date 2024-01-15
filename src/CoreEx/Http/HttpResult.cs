@@ -26,10 +26,10 @@ namespace CoreEx.Http
         /// <returns>The <see cref="HttpResult"/>.</returns>
         public static async Task<HttpResult> CreateAsync(HttpResponseMessage response, CancellationToken cancellationToken = default)
 #if NETSTANDARD2_1
-            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), 
+            => new HttpResult(response.ThrowIfNull(nameof(response)), 
                 response.Content == null || response.Content.Headers.ContentLength == 0 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false)));
 #else
-            => new HttpResult(response ?? throw new ArgumentNullException(nameof(response)), 
+            => new HttpResult(response.ThrowIfNull(nameof(response)), 
                 response.Content == null || response.Content.Headers.ContentLength == 0 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false)));
 #endif
 
@@ -43,10 +43,10 @@ namespace CoreEx.Http
         public static async Task<HttpResult<T>> CreateAsync<T>(HttpResponseMessage response, IJsonSerializer? jsonSerializer = default, CancellationToken cancellationToken = default)
         {
 #if NETSTANDARD2_1
-            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
+            var content = (response.ThrowIfNull(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
                 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false));
 #else
-            var content = (response ?? throw new ArgumentNullException(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
+            var content = (response.ThrowIfNull(nameof(response))).Content == null || response.Content.Headers.ContentLength == 0 
                 ? null : new BinaryData(await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false));
 #endif
 

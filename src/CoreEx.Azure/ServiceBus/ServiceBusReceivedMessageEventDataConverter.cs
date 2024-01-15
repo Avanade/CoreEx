@@ -13,18 +13,13 @@ namespace CoreEx.Azure.ServiceBus
     /// <summary>
     /// Converts a <see cref="ServiceBusReceivedMessage"/> to an <see cref="EventData"/> or <see cref="EventData{T}"/>.
     /// </summary>
-    public class ServiceBusReceivedMessageEventDataConverter : IEventDataConverter<ServiceBusReceivedMessage>
+    /// <param name="eventSerializer">The  <see cref="IEventSerializer"/> to deserialize the <see cref="BinaryData"/> into the corresponding <see cref="EventData"/> or <see cref="EventData{T}"/>.</param>
+    public class ServiceBusReceivedMessageEventDataConverter(IEventSerializer? eventSerializer = null) : IEventDataConverter<ServiceBusReceivedMessage>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceBusReceivedMessageEventDataConverter"/> class.
-        /// </summary>
-        /// <param name="eventSerializer">The  <see cref="IEventSerializer"/> to deserialize the <see cref="BinaryData"/> into the corresponding <see cref="EventData"/> or <see cref="EventData{T}"/>.</param>
-        public ServiceBusReceivedMessageEventDataConverter(IEventSerializer? eventSerializer = null) => EventSerializer = eventSerializer ?? ExecutionContext.GetService<IEventSerializer>() ?? new EventDataSerializer();
-
         /// <summary>
         /// Gets the <see cref="IEventSerializer"/> to deserialize the <see cref="BinaryData"/> into the corresponding <see cref="EventData"/> or <see cref="EventData{T}"/>.
         /// </summary>
-        protected IEventSerializer EventSerializer { get; }
+        protected IEventSerializer EventSerializer { get; } = eventSerializer ?? ExecutionContext.GetService<IEventSerializer>() ?? new EventDataSerializer();
 
         /// <inheritdoc/>
         /// <exception cref="NotSupportedException">This method is not supported.</exception>

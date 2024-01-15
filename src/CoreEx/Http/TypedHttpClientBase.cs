@@ -27,7 +27,7 @@ namespace CoreEx.Http
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>..</param>
         public TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null)
         {
-            Client = client ?? throw new ArgumentNullException(nameof(client));
+            Client = client.ThrowIfNull(nameof(client));
             JsonSerializer = jsonSerializer ?? CoreEx.Json.JsonSerializer.Default;
         }
 

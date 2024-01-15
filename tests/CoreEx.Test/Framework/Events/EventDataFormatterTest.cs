@@ -210,7 +210,7 @@ namespace CoreEx.Test.Framework.Events
             public string? ProductId { get; set; }
 
             [JsonIgnore]
-            public CompositeKey PrimaryKey => new CompositeKey(OrderNo, ItemNo);
+            public CompositeKey PrimaryKey => new(OrderNo, ItemNo);
 
             void IEventDataFormatter.Format(EventData eventData)
             {

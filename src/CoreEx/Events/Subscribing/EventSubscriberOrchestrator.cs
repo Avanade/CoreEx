@@ -16,9 +16,10 @@ namespace CoreEx.Events.Subscribing
     /// <see cref="EventSubscriberAttribute"/>(s) defined enabling the processing of multiple subscribers.
     /// </summary>
     /// <remarks>Additionally, <see cref="NotSubscribedHandling"/> (and alike) can be defined to further manage the processing of events/messages, both expected and unexpected.</remarks>
-    public class EventSubscriberOrchestrator
+    /// <param name="serviceProvider">The optional <see cref="IServiceProvider"/> (where not specified will attempt to use <see cref="ExecutionContext.GetRequiredService{T}"/>, etc).</param>
+    public class EventSubscriberOrchestrator(IServiceProvider? serviceProvider = null)
     {
-        private readonly List<(IEnumerable<EventSubscriberAttribute> Attributes, Type SubscriberType, Type? ValueType)> _subscribers = new();
+        private readonly List<(IEnumerable<EventSubscriberAttribute> Attributes, Type SubscriberType, Type? ValueType)> _subscribers = [];
 
         /// <summary>
         /// Gets all the <see cref="SubscriberBase"/> types for a given <typeparamref name="TAssembly"/> that have at least one <see cref="EventSubscriberAttribute"/>.
@@ -35,15 +36,9 @@ namespace CoreEx.Events.Subscribing
                 select type).ToArray();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventSubscriberOrchestrator"/> class.
-        /// </summary>
-        /// <param name="serviceProvider">The optional <see cref="IServiceProvider"/> (where not specified will attempt to use <see cref="ExecutionContext.GetRequiredService{T}"/>, etc).</param>
-        public EventSubscriberOrchestrator(IServiceProvider? serviceProvider = null) => ServiceProvider = serviceProvider;
-
-        /// <summary>
         /// Gets the <see cref="IServiceProvider"/>.
         /// </summary>
-        protected IServiceProvider? ServiceProvider { get; }
+        protected IServiceProvider? ServiceProvider { get; } = serviceProvider;
 
         /// <summary>
         /// Gets or sets the optional <see cref="EventDataFormatter"/>.
@@ -163,8 +158,8 @@ namespace CoreEx.Events.Subscribing
         /// <exception cref="EventSubscriberException"></exception>
         public bool TryMatchSubscriber(EventSubscriberBase parent, EventData @event, EventSubscriberArgs args, out IEventSubscriber? subscriber, out Type? valueType)
         {
-            if (parent == null) throw new ArgumentNullException(nameof(parent));
-            if (@event == null) throw new ArgumentNullException(nameof(@event));
+            parent.ThrowIfNull(nameof(parent));
+            @event.ThrowIfNull(nameof(@event));
 
             if (TryMatchSubscriberInternal(@event, args, out subscriber, out valueType))
                 return true;
@@ -220,15 +215,15 @@ namespace CoreEx.Events.Subscribing
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public async virtual Task ReceiveAsync(EventSubscriberBase parent, IEventSubscriber subscriber, EventData @event, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
         {
-            if (parent is null) throw new ArgumentNullException(nameof(parent));
-            if (subscriber is null) throw new ArgumentNullException(nameof(subscriber));
-            if (@event is null) throw new ArgumentNullException(nameof(@event));
+            parent.ThrowIfNull(nameof(parent));
+            subscriber.ThrowIfNull(nameof(subscriber));
+            @event.ThrowIfNull(nameof(@event));
 
             try
             {
                 await parent.EventSubscriberInvoker.InvokeAsync(parent, async (_, ct) =>
                 {
-                    var result = await subscriber!.ReceiveAsync(@event, args ??= new(), ct);
+                    var result = await subscriber!.ReceiveAsync(@event, args ??= [], ct);
                     result.ThrowOnError();
 
                     // Perform the complete/success instrumentation.

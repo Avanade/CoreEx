@@ -116,7 +116,7 @@ namespace CoreEx.Mapping
         /// <param name="mapper">The <see cref="IMapper{TSource, TDestination}"/>.</param>
         /// <remarks>Where an attempt is made to add a mapper for a <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> more than once only the first will succeed; no exception will be thrown for subsequent adds.</remarks>
         public void Register<TSource, TDestination>(IMapper<TSource, TDestination> mapper)
-            => _mappers.TryAdd(((mapper ?? throw new ArgumentNullException(nameof(mapper))).SourceType, mapper.DestinationType), mapper.Adjust(x => x.Owner = this));
+            => _mappers.TryAdd(((mapper.ThrowIfNull(nameof(mapper))).SourceType, mapper.DestinationType), mapper.Adjust(x => x.Owner = this));
 
         /// <summary>
         /// Registers (adds) an individual <see cref="IBidirectionalMapper{TSource, TDestination}"/>.

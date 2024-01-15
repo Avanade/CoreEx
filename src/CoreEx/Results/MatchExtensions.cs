@@ -428,9 +428,9 @@ namespace CoreEx.Results
         /// </summary>
         private static void MatchThrowIfNull(object result, object ok, object fail)
         {
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            if (ok == null) throw new ArgumentNullException(nameof(ok));
-            if (fail == null) throw new ArgumentNullException(nameof(fail));
+            result.ThrowIfNull(nameof(result));
+            ok.ThrowIfNull(nameof(ok));
+            fail.ThrowIfNull(nameof(fail));
         }
 
         #endregion

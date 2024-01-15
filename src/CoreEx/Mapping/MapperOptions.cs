@@ -16,7 +16,7 @@ namespace CoreEx.Mapping
         /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.</param>
         public MapperOptions(Mapper mapper, OperationTypes operationType)
         {
-            Owner = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            Owner = mapper.ThrowIfNull(nameof(mapper));
             OperationType = operationType;
         }
 

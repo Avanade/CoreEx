@@ -52,8 +52,7 @@ namespace CoreEx.Mapping
         /// <param name="initializeDestination">The action to initialize the destination as a result of a <see cref="Flatten"/> where the source property is <c>null</c>.</param>
         public Mapper<TSource, TDestination> Map(Action<TSource, TDestination> map, OperationTypes operationTypes = OperationTypes.Any, Func<TSource, bool>? isSourceInitial = null, Action<TDestination>? initializeDestination = null)
         {
-            if (map is null)
-                throw new ArgumentNullException(nameof(map));
+            map.ThrowIfNull(nameof(map));
 
             void action(MapperOptions o, TSource s, TDestination d) => map(s, d);
 
@@ -70,10 +69,7 @@ namespace CoreEx.Mapping
         /// <param name="initializeDestination">The action to initialize the destination as a result of a <see cref="Flatten"/> where the source property is <c>null</c>.</param>
         public Mapper<TSource, TDestination> Map(Action<MapperOptions, TSource, TDestination> map, OperationTypes operationTypes = OperationTypes.Any, Func<TSource, bool>? isSourceInitial = null, Action<TDestination>? initializeDestination = null)
         {
-            if (map is null)
-                throw new ArgumentNullException(nameof(map));
-
-            _mappings.Add((map, operationTypes, isSourceInitial, initializeDestination));
+            _mappings.Add((map.ThrowIfNull(nameof(map)), operationTypes, isSourceInitial, initializeDestination));
             return this;
         }
 
@@ -218,7 +214,7 @@ namespace CoreEx.Mapping
             if (_isSourceInitial != null)
                 throw new ArgumentException($"{nameof(IsSourceInitial)} cannot be invoked more than once.", nameof(isSourceInitial));
 
-            _isSourceInitial = isSourceInitial ?? throw new ArgumentNullException(nameof(isSourceInitial));
+            _isSourceInitial = isSourceInitial.ThrowIfNull(nameof(isSourceInitial));
             return this;
         }
 
@@ -251,7 +247,7 @@ namespace CoreEx.Mapping
             if (_initializeDestination != null)
                 throw new ArgumentException($"{nameof(InitializeDestination)} cannot be invoked more than once.", nameof(initializeDestination));
 
-            _initializeDestination = initializeDestination ?? throw new ArgumentNullException(nameof(initializeDestination));
+            _initializeDestination = initializeDestination.ThrowIfNull(nameof(initializeDestination));
             return this;
         }
 
@@ -296,6 +292,9 @@ namespace CoreEx.Mapping
             return OnMapInternal(source, destination, operationType);
         }
 
+        /// <summary>
+        /// Performs the internal mapping logic.
+        /// </summary>
         private TDestination? OnMapInternal(TSource? source, TDestination? destination, OperationTypes operationType)
         {
             if (_onMap is not null)

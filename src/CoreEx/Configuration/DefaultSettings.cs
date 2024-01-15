@@ -9,12 +9,6 @@ namespace CoreEx.Configuration
     /// Provides a <i>default</i> <see cref="SettingsBase"/> implementation with no <i>prefixes</i> defined.
     /// </summary>
     /// <remarks>This is essentially just a light-weight wrapper over <see cref="IConfiguration"/>.</remarks>
-    public class DefaultSettings : SettingsBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DefaultSettings"/> class.
-        /// </summary>
-        /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
-        public DefaultSettings(IConfiguration? configuration = null) : base(configuration, prefixes: Array.Empty<string>()) { }
-    }
+    /// <param name="configuration">The <see cref="IConfiguration"/>.</param>
+    public class DefaultSettings(IConfiguration? configuration = null) : SettingsBase(configuration, prefixes: Array.Empty<string>()) { }
 }

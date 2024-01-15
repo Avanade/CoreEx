@@ -20,7 +20,7 @@ namespace CoreEx.Json.Mapping
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
     public class JsonObjectMapper<TSource> : IJsonObjectMapper<TSource>, IJsonObjectMapperMappings where TSource : class, new()
     {
-        private readonly List<IPropertyJsonMapper> _mappings = new();
+        private readonly List<IPropertyJsonMapper> _mappings = [];
         private readonly bool _implementsIIdentifier = typeof(IIdentifier).IsAssignableFrom(typeof(TSource));
 
         /// <summary>
@@ -59,11 +59,8 @@ namespace CoreEx.Json.Mapping
         {
             get
             {
-                if (propertyExpression == null)
-                    throw new ArgumentNullException(nameof(propertyExpression));
-
                 MemberExpression? me = null;
-                if (propertyExpression.Body.NodeType == ExpressionType.MemberAccess)
+                if (propertyExpression.ThrowIfNull(nameof(propertyExpression)).Body.NodeType == ExpressionType.MemberAccess)
                     me = propertyExpression.Body as MemberExpression;
                 else if (propertyExpression.Body.NodeType == ExpressionType.Convert)
                 {
@@ -104,8 +101,8 @@ namespace CoreEx.Json.Mapping
                 var sex = Expression.Lambda(Expression.Property(spe, sp), spe);
                 typeof(JsonObjectMapper<TSource>)
                     .GetMethod(nameof(AutoProperty), BindingFlags.NonPublic | BindingFlags.Instance)!
-                    .MakeGenericMethod(new Type[] { sp.PropertyType })
-                    .Invoke(this, new object?[] { sex, null, OperationTypes.Any });
+                    .MakeGenericMethod([sp.PropertyType])
+                    .Invoke(this, [sex, null, OperationTypes.Any]);
             }
         }
 
@@ -194,7 +191,7 @@ namespace CoreEx.Json.Mapping
         /// <param name="inheritMapper">The <see cref="IJsonObjectMapper{T}"/> to inherit from. Must also implement <see cref="IJsonObjectMapperMappings"/>.</param>
         public void InheritPropertiesFrom<T>(IJsonObjectMapper<T> inheritMapper) where T : class, new()
         {
-            if (inheritMapper == null) throw new ArgumentNullException(nameof(inheritMapper));
+            inheritMapper.ThrowIfNull(nameof(inheritMapper));
             if (!typeof(TSource).IsSubclassOf(typeof(T))) throw new ArgumentException($"Type {typeof(TSource).Name} must inherit from {typeof(T).Name}.", nameof(inheritMapper));
             if (inheritMapper is not IJsonObjectMapperMappings inheritMappings) throw new ArgumentException($"Type {typeof(T).Name} must implement {typeof(IJsonObjectMapperMappings).Name} to copy the mappings.", nameof(inheritMapper));
 
@@ -207,7 +204,7 @@ namespace CoreEx.Json.Mapping
                 var pmap = (IPropertyJsonMapper)type
                     .GetMethod("Property", BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)!
                     .MakeGenericMethod(p.PropertyType)
-                    .Invoke(this, new object?[] { lex, p.JsonName, p.OperationTypes })!;
+                    .Invoke(this, [lex, p.JsonName, p.OperationTypes])!;
 
                 if (p.IsPrimaryKey)
                     pmap.SetPrimaryKey();
@@ -223,7 +220,7 @@ namespace CoreEx.Json.Mapping
         /// <inheritdoc/>
         public void MapToJson(TSource? value, JsonObject json, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (json == null) throw new ArgumentNullException(nameof(json));
+            json.ThrowIfNull(nameof(json));
             if (value == null) return;
 
             foreach (var p in _mappings)
@@ -245,8 +242,7 @@ namespace CoreEx.Json.Mapping
         /// <inheritdoc/>
         public TSource? MapFromJson(JsonObject json, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (json == null) throw new ArgumentNullException(nameof(json));
-
+            json.ThrowIfNull(nameof(json));
             var value = new TSource();
 
             foreach (var p in _mappings)

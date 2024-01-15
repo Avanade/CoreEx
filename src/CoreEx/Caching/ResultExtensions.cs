@@ -63,8 +63,8 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static async Task<Result<T>> CacheGetOrAddAsync<T>(this Task<Result> result, IRequestCache cache, CompositeKey key, Func<Task<Result<T>>> addFactory)
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
-            if (addFactory == null) throw new ArgumentNullException(nameof(addFactory));
+            cache.ThrowIfNull(nameof(cache));
+            addFactory.ThrowIfNull(nameof(addFactory));
 
             var r = await result.ConfigureAwait(false);
             return await r.ThenAsAsync(async () =>
@@ -91,7 +91,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Result<T> CacheSet<T>(this Result<T> result, IRequestCache cache) where T : IEntityKey
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.SetValue(r); });
         }
 
@@ -106,7 +106,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Result<T> CacheSet<T>(this Result<T> result, IRequestCache cache, CompositeKey key)
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.SetValue(key, r); });
         }
 
@@ -120,7 +120,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result<T>> CacheSet<T>(this Task<Result<T>> result, IRequestCache cache) where T : IEntityKey
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.SetValue(r); });
         }
 
@@ -135,7 +135,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result<T>> CacheSet<T>(this Task<Result<T>> result, IRequestCache cache, CompositeKey key)
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.SetValue(key, r); });
         }
 
@@ -150,7 +150,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Result CacheRemove<T>(this Result result, IRequestCache cache, CompositeKey key)
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(() => { cache.Remove<T>(key); });
         }
 
@@ -165,7 +165,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Result CacheRemove<T>(this Result result, IRequestCache cache, object? key)
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(() => { cache.Remove<T>(key); });
         }
 
@@ -179,7 +179,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Result<T> CacheRemove<T>(this Result<T> result, IRequestCache cache) where T : IEntityKey
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : r.EntityKey); });
         }
 
@@ -194,7 +194,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result> CacheRemove<T>(this Task<Result> result, IRequestCache cache, CompositeKey key)
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(() => { cache.Remove<T>(key); });
         }
 
@@ -209,7 +209,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result> CacheRemove<T>(this Task<Result> result, IRequestCache cache, object? key)
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(() => { cache.Remove<T>(key); });
         }
 
@@ -223,7 +223,7 @@ namespace CoreEx.Caching
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
         public static Task<Result<T>> CacheRemove<T>(this Task<Result<T>> result, IRequestCache cache) where T : IEntityKey
         {
-            if (cache == null) throw new ArgumentNullException(nameof(cache));
+            cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : r.EntityKey); });
         }
     }

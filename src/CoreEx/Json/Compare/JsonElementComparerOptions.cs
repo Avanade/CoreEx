@@ -20,7 +20,7 @@ namespace CoreEx.Json.Compare
         public static JsonElementComparerOptions Default
         {
             get => _default ??= new();
-            set => _default = value ?? throw new ArgumentNullException(nameof(value));
+            set => _default = value.ThrowIfNull(nameof(value));
         }
 
         /// <summary>

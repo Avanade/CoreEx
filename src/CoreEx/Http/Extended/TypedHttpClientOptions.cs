@@ -32,7 +32,7 @@ namespace CoreEx.Http.Extended
         /// <param name="defaultOptions">Optional default <see cref="TypedHttpClientOptions"/> to copy from; also copied as a result of a <see cref="Reset"/>.</param>
         public TypedHttpClientOptions(SettingsBase settings, TypedHttpClientOptions? defaultOptions = null)
         {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _settings = settings.ThrowIfNull(nameof(settings));
             _defaultOptions = defaultOptions;
             if (_defaultOptions is not null)
                 Reset();
@@ -46,7 +46,7 @@ namespace CoreEx.Http.Extended
         internal TypedHttpClientOptions(ITypedHttpClientOptions owner, SettingsBase settings)
         {
             _owner = owner;
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _settings = settings.ThrowIfNull(nameof(settings));
             CheckDefaultNotBeingUpdatedInSendMode();
         }
 
@@ -133,7 +133,7 @@ namespace CoreEx.Http.Extended
         public TypedHttpClientOptions WithCustomRetryPolicy(PolicyBuilder<HttpResponseMessage> retryPolicy)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
-            CustomRetryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
+            CustomRetryPolicy = retryPolicy.ThrowIfNull(nameof(retryPolicy));
             return this;
         }
 

@@ -16,7 +16,8 @@ namespace CoreEx.Newtonsoft.Json
     /// <summary>
     /// Provides the <see cref="Nsj.JsonSerializer"/> encapsulated implementation.
     /// </summary>
-    public class JsonSerializer : IJsonSerializer
+    /// <param name="settings">The <see cref="JsonSerializerSettings"/>. Defaults to <see cref="DefaultSettings"/>.</param>
+    public class JsonSerializer(JsonSerializerSettings? settings = null) : IJsonSerializer
     {
         /// <summary>
         /// Gets or sets the default <see cref="JsonSerializerSettings"/>.
@@ -41,12 +42,6 @@ namespace CoreEx.Newtonsoft.Json
         };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
-        /// </summary>
-        /// <param name="settings">The <see cref="JsonSerializerSettings"/>. Defaults to <see cref="DefaultSettings"/>.</param>
-        public JsonSerializer(JsonSerializerSettings? settings = null) => Settings = settings ?? DefaultSettings;
-
-        /// <summary>
         /// Gets the underlying serializer configuration settings/options.
         /// </summary>
         object IJsonSerializer.Options => Settings;
@@ -54,7 +49,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <summary>
         /// Gets the <see cref="JsonSerializerSettings"/>.
         /// </summary>
-        public JsonSerializerSettings Settings { get; }
+        public JsonSerializerSettings Settings { get; } = settings ?? DefaultSettings;
 
         /// <inheritdoc/>
         public string Serialize<T>(T value, JsonWriteFormat? format = null) => SerializeToBinaryData(value, format).ToString();
@@ -110,10 +105,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <inheritdoc/>
         bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, [NotNullWhen(true)] out string? jsonName)
         {
-            if (memberInfo == null)
-                throw new ArgumentNullException(nameof(memberInfo));
-
-            var sji = memberInfo.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>(true);
+            var sji = memberInfo.ThrowIfNull(nameof(memberInfo)).GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>(true);
             if (sji != null)
             {
                 jsonName = null;

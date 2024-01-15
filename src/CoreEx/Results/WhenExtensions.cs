@@ -1556,9 +1556,9 @@ namespace CoreEx.Results
         /// </summary>
         private static void ThrowIfNull(object result, object condition, object func, string? name = null)
         {
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            if (condition == null) throw new ArgumentNullException(nameof(condition));
-            if (func == null) throw new ArgumentNullException(name ?? nameof(func));
+            result.ThrowIfNull(nameof(result));
+            condition.ThrowIfNull(nameof(condition));
+            func.ThrowIfNull(name ?? nameof(func));
         }
     }
 }

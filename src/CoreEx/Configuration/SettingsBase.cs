@@ -19,7 +19,7 @@ namespace CoreEx.Configuration
     public abstract class SettingsBase
     {
         private readonly ThreadLocal<bool> _isReflectionCall = new();
-        private readonly List<string> _prefixes = new();
+        private readonly List<string> _prefixes = [];
         private readonly Dictionary<string, PropertyInfo> _allProperties;
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace CoreEx.Configuration
             Configuration = configuration;
             Deployment = new DeploymentInfo(configuration);
 
-            foreach (var prefix in prefixes ?? throw new ArgumentNullException(nameof(prefixes)))
+            foreach (var prefix in prefixes.ThrowIfNull(nameof(prefixes)))
             {
                 if (string.IsNullOrEmpty(prefix))
                     throw new ArgumentException("Prefixes cannot be null or empty.", nameof(prefixes));
@@ -59,19 +59,18 @@ namespace CoreEx.Configuration
         /// '<c>Product/Foo</c>', '<c>Common/Foo</c>', '<c>Foo</c>' (no prefix), then finally the <paramref name="defaultValue"/> will be returned.</remarks>
         public T GetValue<T>([CallerMemberName] string key = "", T defaultValue = default!)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
+            key.ThrowIfNullOrEmpty(nameof(key));
 
             if (Configuration == null)
                 return defaultValue;
 
-            // do not allow recursive calls to go too deep
-            if (_allProperties.ContainsKey(key) && !_isReflectionCall.Value)
+            // Do not allow recursive calls to go too deep
+            if (_allProperties.TryGetValue(key, out PropertyInfo? pi) && !_isReflectionCall.Value)
             {
                 try
                 {
                     _isReflectionCall.Value = true;
-                    return _allProperties[key].GetValue(this) is T value ? value : defaultValue;
+                    return pi.GetValue(this) is T value ? value : defaultValue;
                 }
                 finally
                 {
@@ -133,9 +132,7 @@ namespace CoreEx.Configuration
         /// <exception cref="ArgumentException">Thrown where the <paramref name="key"/> has not been configured.</exception>
         public T GetRequiredValue<T>([CallerMemberName] string key = "")
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
-
+            key.ThrowIfNullOrEmpty(nameof(key));
             if (Configuration == null)
                 throw new InvalidOperationException("An IConfiguration instance is required where GetRequiredValue is used.");
 

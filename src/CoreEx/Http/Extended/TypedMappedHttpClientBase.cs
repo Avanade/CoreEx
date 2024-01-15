@@ -16,24 +16,19 @@ namespace CoreEx.Http.Extended
     /// Represents a typed <see cref="HttpClient"/> base wrapper with request/response <see cref="Mapper"/> support.
     /// </summary>
     /// <typeparam name="TSelf">The self <see cref="Type"/> for support fluent-style method-chaining.</typeparam>
-    public abstract class TypedMappedHttpClientBase<TSelf> : TypedHttpClientBase<TSelf>, ITypedMappedHttpClient where TSelf : TypedMappedHttpClientBase<TSelf>
+    /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
+    /// <param name="mapper">The <see cref="IMapper"/>.</param>
+    /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+    /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    public abstract class TypedMappedHttpClientBase<TSelf>(HttpClient client, IMapper mapper, IJsonSerializer jsonSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<TypedMappedHttpClientBase<TSelf>> logger)
+        : TypedHttpClientBase<TSelf>(client, jsonSerializer, executionContext, settings, logger), ITypedMappedHttpClient where TSelf : TypedMappedHttpClientBase<TSelf>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TypedHttpClientCore{TBase}"/>.
-        /// </summary>
-        /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-        /// <param name="mapper">The <see cref="IMapper"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public TypedMappedHttpClientBase(HttpClient client, IMapper mapper, IJsonSerializer jsonSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<TypedMappedHttpClientBase<TSelf>> logger)
-            : base(client, jsonSerializer, executionContext, settings, logger) => Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-
         /// <summary>
         /// Gets the <see cref="IMapper"/>.
         /// </summary>
-        public IMapper Mapper { get; }
+        public IMapper Mapper { get; } = mapper.ThrowIfNull(nameof(mapper));
 
         /// <summary>
         /// Maps the <typeparamref name="TResponseHttp"/> value to the <typeparamref name="TResponse"/> <see cref="Type"/>.

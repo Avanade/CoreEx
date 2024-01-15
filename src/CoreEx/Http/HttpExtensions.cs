@@ -64,8 +64,7 @@ namespace CoreEx.Http
         /// <remarks>This will automatically invoke <see cref="ApplyETag(HttpRequestMessage, string)"/> where there is an <see cref="HttpRequestOptions.ETag"/> value.</remarks>
         public static HttpRequestMessage ApplyRequestOptions(this HttpRequestMessage httpRequest, HttpRequestOptions? requestOptions)
         {
-            if (httpRequest == null)
-                throw new ArgumentNullException(nameof(httpRequest));
+            httpRequest.ThrowIfNull(nameof(httpRequest));
 
             if (requestOptions == null)
                 return httpRequest;

@@ -131,14 +131,14 @@ namespace CoreEx.Test.Framework.Events
             });
 
             var ed4 = ep.CreateValueEvent(new Person2 { PrimaryKey = new CompositeKey("a", "b") }, "sub", "act");
+            Assert.That(ed4, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(ed4, Is.Not.Null);
-                Assert.That(ed3.Source, Is.Null);
+                Assert.That(ed4.Source, Is.Null);
+                Assert.That(ed4.Subject, Is.EqualTo("sub"));
+                Assert.That(ed4.Action, Is.EqualTo("act"));
+                Assert.That(ed4.Key, Is.EqualTo("a|b"));
             });
-            Assert.That(ed4.Subject, Is.EqualTo("sub"));
-            Assert.That(ed4.Action, Is.EqualTo("act"));
-            Assert.That(ed4.Key, Is.EqualTo("a|b"));
         }
 
         [Test]

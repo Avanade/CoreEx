@@ -9,21 +9,12 @@ namespace CoreEx.RefData.Caching
     /// Enables fixed expiration <see cref="ReferenceDataOrchestrator"/> <see cref="ICacheEntry"/> configuration capabilities.
     /// </summary>
     /// <remarks>Provides a consistent fixed expiration for all cache entries.</remarks>
-    public sealed class FixedExpirationCacheEntry : ICacheEntryConfig
+    /// <param name="absoluteExpirationRelativeToNow">The <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> value.</param>
+    /// <param name="slidingExpiration">The <see cref="ICacheEntry.SlidingExpiration"/> value.</param>
+    public sealed class FixedExpirationCacheEntry(TimeSpan? absoluteExpirationRelativeToNow = null, TimeSpan? slidingExpiration = null) : ICacheEntryConfig
     {
-        private readonly TimeSpan? _absoluteExpirationRelativeToNow;
-        private readonly TimeSpan? _slidingExpiration;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FixedExpirationCacheEntry"/> using only the specified <paramref name="absoluteExpirationRelativeToNow"/> and <paramref name="slidingExpiration"/>.
-        /// </summary>
-        /// <param name="absoluteExpirationRelativeToNow">The <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/> value.</param>
-        /// <param name="slidingExpiration">The <see cref="ICacheEntry.SlidingExpiration"/> value.</param>
-        public FixedExpirationCacheEntry(TimeSpan? absoluteExpirationRelativeToNow = null, TimeSpan? slidingExpiration = null)
-        {
-            _absoluteExpirationRelativeToNow = absoluteExpirationRelativeToNow;
-            _slidingExpiration = slidingExpiration;
-        }
+        private readonly TimeSpan? _absoluteExpirationRelativeToNow = absoluteExpirationRelativeToNow;
+        private readonly TimeSpan? _slidingExpiration = slidingExpiration;
 
         /// <summary>
         /// Provides an opportunity to the maintain the <see cref="ICacheEntry"/> data prior to the cache <i>create</i> function being invoked (as a result of <see cref="ReferenceDataOrchestrator.OnGetOrCreateAsync"/>).

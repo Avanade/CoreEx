@@ -1,7 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using System;
-
 namespace CoreEx.Localization
 {
     /// <summary>

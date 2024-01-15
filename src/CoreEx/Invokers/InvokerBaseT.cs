@@ -77,7 +77,7 @@ namespace CoreEx.Invokers
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public void Invoke(TInvoker invoker, Action<InvokeArgs> action, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke<object?>(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(ia); return null!; }, memberName);
+            => TraceOnInvoke<object?>(invoker.ThrowIfNull(nameof(invoker)), ia => { (action.ThrowIfNull(nameof(action))).Invoke(ia); return null!; }, memberName);
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -87,7 +87,7 @@ namespace CoreEx.Invokers
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public void Invoke<T1>(TInvoker invoker, T1 p1, Action<InvokeArgs, T1> action, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke<object?>(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(ia, p1); return null!; }, memberName);
+            => TraceOnInvoke<object?>(invoker.ThrowIfNull(nameof(invoker)), ia => { (action.ThrowIfNull(nameof(action))).Invoke(ia, p1); return null!; }, memberName);
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -98,7 +98,7 @@ namespace CoreEx.Invokers
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public void Invoke<T1, T2>(TInvoker invoker, T1 p1, T2 p2, Action<InvokeArgs, T1, T2> action, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke<object?>(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(ia, p1, p2); return null!; }, memberName);
+            => TraceOnInvoke<object?>(invoker.ThrowIfNull(nameof(invoker)), ia => { (action.ThrowIfNull(nameof(action))).Invoke(ia, p1, p2); return null!; }, memberName);
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -110,7 +110,7 @@ namespace CoreEx.Invokers
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public void Invoke<T1, T2, T3>(TInvoker invoker, T1 p1, T2 p2, T3 p3, Action<InvokeArgs, T1, T2, T3> action, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke<object?>(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(ia, p1, p2, p3); return null!; }, memberName);
+            => TraceOnInvoke<object?>(invoker.ThrowIfNull(nameof(invoker)), ia => { (action.ThrowIfNull(nameof(action))).Invoke(ia, p1, p2, p3); return null!; }, memberName);
 
         /// <summary>
         /// Invokes an <paramref name="action"/> synchronously.
@@ -123,7 +123,7 @@ namespace CoreEx.Invokers
         /// <param name="action">The action to invoke.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public void Invoke<T1, T2, T3, T4>(TInvoker invoker, T1 p1, T2 p2, T3 p3, T4 p4, Action<InvokeArgs, T1, T2, T3, T4> action, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke<object?>(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => { (action ?? throw new ArgumentNullException(nameof(action))).Invoke(ia, p1, p2, p3, p4); return null!; }, memberName);
+            => TraceOnInvoke<object?>(invoker.ThrowIfNull(nameof(invoker)), ia => { (action.ThrowIfNull(nameof(action))).Invoke(ia, p1, p2, p3, p4); return null!; }, memberName);
 
         #endregion
 
@@ -137,7 +137,7 @@ namespace CoreEx.Invokers
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <returns>The result.</returns>
         public TResult Invoke<TResult>(TInvoker invoker, Func<InvokeArgs, TResult> func, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => func(ia), memberName);
+            => TraceOnInvoke(invoker.ThrowIfNull(nameof(invoker)), ia => func(ia), memberName);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -148,7 +148,7 @@ namespace CoreEx.Invokers
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, TResult>(TInvoker invoker, T1 p1, Func<InvokeArgs, T1, TResult> func, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => func(ia, p1), memberName);
+            => TraceOnInvoke(invoker.ThrowIfNull(nameof(invoker)), ia => func(ia, p1), memberName);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -160,7 +160,7 @@ namespace CoreEx.Invokers
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, T2, TResult>(TInvoker invoker, T1 p1, T2 p2, Func<InvokeArgs, T1, T2, TResult> func, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => func(ia, p1, p2), memberName);
+            => TraceOnInvoke(invoker.ThrowIfNull(nameof(invoker)), ia => func(ia, p1, p2), memberName);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -173,7 +173,7 @@ namespace CoreEx.Invokers
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, T2, T3, TResult>(TInvoker invoker, T1 p1, T2 p2, T3 p3, Func<InvokeArgs, T1, T2, T3, TResult> func, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => func(ia, p1, p2, p3), memberName);
+            => TraceOnInvoke(invoker.ThrowIfNull(nameof(invoker)), ia => func(ia, p1, p2, p3), memberName);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> synchronously.
@@ -187,7 +187,7 @@ namespace CoreEx.Invokers
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <returns>The result.</returns>
         public TResult Invoke<T1, T2, T3, T4, TResult>(TInvoker invoker, T1 p1, T2 p2, T3 p3, T4 p4, Func<InvokeArgs, T1, T2, T3, T4, TResult> func, [CallerMemberName] string? memberName = null)
-            => TraceOnInvoke(invoker ?? throw new ArgumentNullException(nameof(invoker)), ia => func(ia, p1, p2, p3, p4), memberName);
+            => TraceOnInvoke(invoker.ThrowIfNull(nameof(invoker)), ia => func(ia, p1, p2, p3, p4), memberName);
 
         #endregion
 
@@ -201,7 +201,7 @@ namespace CoreEx.Invokers
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task InvokeAsync(TInvoker invoker, Func<InvokeArgs, CancellationToken, Task> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async (ia, ct) => { await func(ia, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), async (ia, ct) => { await func(ia, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -212,7 +212,7 @@ namespace CoreEx.Invokers
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task InvokeAsync<T1>(TInvoker invoker, T1 p1, Func<InvokeArgs, T1, CancellationToken, Task> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async (ia, ct) => { await func(ia, p1, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), async (ia, ct) => { await func(ia, p1, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -224,7 +224,7 @@ namespace CoreEx.Invokers
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task InvokeAsync<T1, T2>(TInvoker invoker, T1 p1, T2 p2, Func<InvokeArgs, T1, T2, CancellationToken, Task> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async (ia, ct) => { await func(ia, p1, p2, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), async (ia, ct) => { await func(ia, p1, p2, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -237,7 +237,7 @@ namespace CoreEx.Invokers
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task InvokeAsync<T1, T2, T3>(TInvoker invoker, T1 p1, T2 p2, T3 p3, Func<InvokeArgs, T1, T2, T3, CancellationToken, Task> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async (ia, ct) => { await func(ia, p1, p2, p3, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), async (ia, ct) => { await func(ia, p1, p2, p3, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -251,7 +251,7 @@ namespace CoreEx.Invokers
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task InvokeAsync<T1, T2, T3, T4>(TInvoker invoker, T1 p1, T2 p2, T3 p3, T4 p4, Func<InvokeArgs, T1, T2, T3, T4, CancellationToken, Task> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), async (ia, ct) => { await func(ia, p1, p2, p3, p4, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), async (ia, ct) => { await func(ia, p1, p2, p3, p4, ct).ConfigureAwait(false); return (object?)null!; }, memberName, cancellationToken);
 
         #endregion
 
@@ -266,7 +266,7 @@ namespace CoreEx.Invokers
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         /// <returns>The result.</returns>
         public Task<TResult> InvokeAsync<TResult>(TInvoker invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), (ia, ct) => func(ia, ct), memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), (ia, ct) => func(ia, ct), memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -278,7 +278,7 @@ namespace CoreEx.Invokers
         /// <returns>The result.</returns>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task<TResult> InvokeAsync<T1, TResult>(TInvoker invoker, T1 p1, Func<InvokeArgs, T1, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), (ia, ct) => func(ia, p1, ct), memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), (ia, ct) => func(ia, p1, ct), memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -291,7 +291,7 @@ namespace CoreEx.Invokers
         /// <returns>The result.</returns>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task<TResult> InvokeAsync<T1, T2, TResult>(TInvoker invoker, T1 p1, T2 p2, Func<InvokeArgs, T1, T2, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), (ia, ct) => func(ia, p1, p2, ct), memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), (ia, ct) => func(ia, p1, p2, ct), memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -305,7 +305,7 @@ namespace CoreEx.Invokers
         /// <returns>The result.</returns>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task<TResult> InvokeAsync<T1, T2, T3, TResult>(TInvoker invoker, T1 p1, T2 p2, T3 p3, Func<InvokeArgs, T1, T2, T3, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), (ia, ct) => func(ia, p1, p2, p3, ct), memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), (ia, ct) => func(ia, p1, p2, p3, ct), memberName, cancellationToken);
 
         /// <summary>
         /// Invokes an <paramref name="func"/> asynchronously.
@@ -320,7 +320,7 @@ namespace CoreEx.Invokers
         /// <returns>The result.</returns>
         /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
         public Task<TResult> InvokeAsync<T1, T2, T3, T4, TResult>(TInvoker invoker, T1 p1, T2 p2, T3 p3, T4 p4, Func<InvokeArgs, T1, T2, T3, T4, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
-            => TraceOnInvokeAsync(invoker ?? throw new ArgumentNullException(nameof(invoker)), (ia, ct) => func(ia, p1, p2, p3, p4, ct), memberName, cancellationToken);
+            => TraceOnInvokeAsync(invoker.ThrowIfNull(nameof(invoker)), (ia, ct) => func(ia, p1, p2, p3, p4, ct), memberName, cancellationToken);
 
         #endregion
     }

@@ -14,9 +14,13 @@ namespace CoreEx.Text.Json
     /// <summary>
     /// Provides a means to apply a filter to include or exclude JSON properties (in effect removing the unwanted properties).
     /// </summary>
-    public static class JsonFilterer
+    public static partial class JsonFilterer
     {
+#if NET8_0_OR_GREATER
+        private static readonly Regex _regex = IndexesRegex();
+#else
         private static readonly Regex _regex = new(@"\[(.*?)\]", RegexOptions.Compiled);
+#endif
 
         /// <summary>
         /// Gets the standard JSON root path.
@@ -28,7 +32,7 @@ namespace CoreEx.Text.Json
         /// </summary>
         /// <param name="path">The JSON path.</param>
         /// <returns>The resulting JSON path.</returns>
-        public static string PrependRootPath(string path) => string.IsNullOrEmpty(path) ? JsonRootPath : (!path.StartsWith(JsonRootPath) ? (path.StartsWith("[") ? $"{JsonRootPath}{path}" : $"{JsonRootPath}.{path}") : path);
+        public static string PrependRootPath(string path) => string.IsNullOrEmpty(path) ? JsonRootPath : (!path.StartsWith(JsonRootPath) ? (path.StartsWith('[') ? $"{JsonRootPath}{path}" : $"{JsonRootPath}.{path}") : path);
 
         /// <summary>
         /// Removes all indexes from the specified <paramref name="input"/> JSON path.
@@ -81,10 +85,7 @@ namespace CoreEx.Text.Json
         /// <returns><c>true</c> indicates that at least one JSON node was filtered (removed); otherwise, <c>false</c> for no changes.</returns>
         public static bool TryApply<T>(T value, IEnumerable<string>? paths, out JsonNode json, JsonPropertyFilter filter = JsonPropertyFilter.Include, JsonSerializerOptions? options = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
-            json =  System.Text.Json.JsonSerializer.SerializeToNode(value, options)!;
+            json =  System.Text.Json.JsonSerializer.SerializeToNode(value.ThrowIfNull(), options)!;
             preFilterInspector?.Invoke(new JsonPreFilterInspector(json));
 
             return Apply(json, paths, filter, comparison);
@@ -247,5 +248,13 @@ namespace CoreEx.Text.Json
 
             return false;
         }
+
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Provides the generated <see cref="Regex"/> for <see cref="TryRemovePathIndexes"/>.
+        /// </summary>
+        [GeneratedRegex(@"\[(.*?)\]", RegexOptions.Compiled)]
+        private static partial Regex IndexesRegex();
+#endif
     }
 }

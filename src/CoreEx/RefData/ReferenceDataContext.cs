@@ -32,7 +32,7 @@ namespace CoreEx.RefData
         /// <returns>The contextual validation date.</returns>
         public DateTime? this[Type type]
         {
-            get => (_coll.TryGetValue(type ?? throw new ArgumentNullException(nameof(type)), out var date) ? date : Date) ?? Date;
+            get => (_coll.TryGetValue(type.ThrowIfNull(nameof(type)), out var date) ? date : Date) ?? Date;
             set => _coll.AddOrUpdate(type, Cleaner.Clean(value, DateTimeTransform.DateOnly), (_, __) => Cleaner.Clean(value, DateTimeTransform.DateOnly));
         }
 

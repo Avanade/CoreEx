@@ -43,7 +43,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns>A <see cref="PropertyExpression{TEntity, TProperty}"/> which contains (in order) the compiled <see cref="System.Func{TEntity, TProperty}"/>, member name and resulting property text.</returns>
         internal static PropertyExpression<TEntity, TProperty> CreateInternal(Expression<Func<TEntity, TProperty>> propertyExpression, IJsonSerializer jsonSerializer)
         {
-            if ((propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression))).Body.NodeType != ExpressionType.MemberAccess)
+            if ((propertyExpression.ThrowIfNull(nameof(propertyExpression))).Body.NodeType != ExpressionType.MemberAccess)
                 throw new InvalidOperationException("Only Member access expressions are supported.");
 
             var cache = PropertyExpression.Cache;
@@ -160,10 +160,7 @@ namespace CoreEx.Abstractions.Reflection
             if (_setValue == null)
                 throw new InvalidOperationException($"Property '{Name}' does not support a set (write) operation.");
 
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
-
-            _setValue(entity, value!);
+            _setValue(entity.ThrowIfNull(nameof(entity)), value!);
         }
     }
 }

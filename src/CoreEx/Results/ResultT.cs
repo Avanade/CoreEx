@@ -34,7 +34,7 @@ namespace CoreEx.Results
         /// Initializes a new <see cref="IsFailure"/> instance of the <see cref="Result{T}"/> with a corresponding <paramref name="error"/>.
         /// </summary>
         /// <param name="error">The error represented as an <see cref="Exception"/>.</param>
-        public Result(Exception error) => _error = error ?? throw new ArgumentNullException(nameof(error));
+        public Result(Exception error) => _error = error.ThrowIfNull(nameof(error));
 
         /// <inheritdoc/>
         object? IResult.Value => Value;
