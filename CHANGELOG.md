@@ -8,6 +8,7 @@ Represents the **NuGet** versions.
 - *Enhancement*: Upgraded `UnitTestEx` dependency to `4.0.2` to enable _isolated_ function testing.
 - *Enhancement*: Enabled `IJsonSerializer` support for `CompositeKey` JSON serialization/deserialization.
 - *Enhancement*: Added `IEventDataFormatter` which when implemented by the value set as the `EventData.Value` allows additional formatting to be applied by the `EventDataFormatter`.
+- *Enhancement*: Added `IsMapNullIfNull` to `BidirectionalMapper` that indicates whether to map `null` source value to a corresponding `null` destination automatically.
 - *Fixed*: Added `ReferenceDataMultiDictionaryConverterFactory` to ensure each `IReferenceDataCollection` is serialized correctly according to its underlying type.
 - *Fixed*: `EventDataFormatter` and `CloudEventSerializerBase` updated to correctly set the `Key` property where applicable.
 - *Internal:* Upgraded `NUnit` dependency to `4.0.1` for all `CoreEx` unit test; also, all unit tests now leverage the [_NUnit constraint model_](https://docs.nunit.org/articles/nunit/writing-tests/assertions/assertion-models/constraint.html) testing approach.
