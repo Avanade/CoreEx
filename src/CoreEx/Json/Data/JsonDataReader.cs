@@ -139,7 +139,7 @@ namespace CoreEx.Json.Data
         /// </summary>
         private JsonDataReader(JsonDocument json, JsonDataReaderArgs? args, bool disposeDocument)
         {
-            _jsonDocument = json ?? throw new ArgumentNullException(nameof(json));
+            _jsonDocument = json.ThrowIfNull(nameof(json));
             try
             {
                 if (_jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
@@ -349,7 +349,7 @@ namespace CoreEx.Json.Data
         public static object? GetRuntimeValue(IDictionary<string, object?> parameters, string key)
         {
             // Check against known values and runtime parameters.
-            if ((parameters ?? throw new ArgumentNullException(nameof(parameters))).TryGetValue(key ?? throw new ArgumentNullException(nameof(key)), out object? dval))
+            if ((parameters.ThrowIfNull(nameof(parameters))).TryGetValue(key.ThrowIfNull(nameof(key)), out object? dval))
                 return dval;
 
             // Try instantiating as defined.

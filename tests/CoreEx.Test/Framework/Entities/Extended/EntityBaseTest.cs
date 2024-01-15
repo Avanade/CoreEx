@@ -15,11 +15,14 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var cl = new ChangeLogEx { CreatedBy = "username  ", CreatedDate = CreateDateTime() };
             var co = cl.Clone();
 
-            Assert.IsNotNull(co);
-            Assert.AreEqual("username", co.CreatedBy);
-            Assert.AreEqual(CreateDateTime(), co.CreatedDate);
-            Assert.IsNull(co.UpdatedBy);
-            Assert.IsNull(co.UpdatedDate);
+            Assert.That(co, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(co.CreatedBy, Is.EqualTo("username"));
+                Assert.That(co.CreatedDate, Is.EqualTo(CreateDateTime()));
+                Assert.That(co.UpdatedBy, Is.Null);
+                Assert.That(co.UpdatedDate, Is.Null);
+            });
         }
 
         [Test]
@@ -29,10 +32,13 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var cl2 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) };
             cl1.CopyFrom(cl2);
 
-            Assert.AreEqual("username", cl1.CreatedBy);
-            Assert.AreEqual(CreateDateTime(), cl1.CreatedDate);
-            Assert.AreEqual("username2", cl1.UpdatedBy);
-            Assert.AreEqual(CreateDateTime().AddDays(1), cl1.UpdatedDate);
+            Assert.Multiple(() =>
+            {
+                Assert.That(cl1.CreatedBy, Is.EqualTo("username"));
+                Assert.That(cl1.CreatedDate, Is.EqualTo(CreateDateTime()));
+                Assert.That(cl1.UpdatedBy, Is.EqualTo("username2"));
+                Assert.That(cl1.UpdatedDate, Is.EqualTo(CreateDateTime().AddDays(1)));
+            });
         }
 
         [Test]
@@ -41,16 +47,16 @@ namespace CoreEx.Test.Framework.Entities.Extended
             ChangeLogEx? cl2 = null;
 
             var cl1 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            Assert.IsFalse(cl1.Equals(cl2));
+            Assert.That(cl1, Is.Not.EqualTo(cl2));
 
             cl2 = (ChangeLogEx)cl1.Clone();
-            Assert.IsTrue(cl1.Equals(cl2));
+            Assert.That(cl1, Is.EqualTo(cl2));
 
             cl2.CreatedBy = "username2";
-            Assert.IsFalse(cl1.Equals(cl2));
+            Assert.That(cl1, Is.Not.EqualTo(cl2));
 
             ChangeLogEx cl3 = cl1;
-            Assert.IsTrue(cl3.Equals(cl1));
+            Assert.That(cl3, Is.EqualTo(cl1));
         }
 
         [Test]
@@ -59,19 +65,19 @@ namespace CoreEx.Test.Framework.Entities.Extended
             ChangeLogEx? cl1 = null;
             ChangeLogEx? cl2 = null;
 
-            Assert.IsTrue(cl1 == cl2);
+            Assert.That(cl1, Is.EqualTo(cl2));
 
             cl1 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            Assert.IsFalse(cl1 == cl2);
+            Assert.That(cl1, Is.Not.EqualTo(cl2));
 
             cl2 = (ChangeLogEx)cl1.Clone();
-            Assert.IsTrue(cl1 == cl2);
+            Assert.That(cl1, Is.EqualTo(cl2));
 
             cl2.CreatedBy = "username2";
-            Assert.IsFalse(cl1 == cl2);
+            Assert.That(cl1, Is.Not.EqualTo(cl2));
 
             ChangeLogEx cl3 = cl1;
-            Assert.IsTrue(cl3 == cl1);
+            Assert.That(cl3, Is.EqualTo(cl1));
         }
 
         [Test]
@@ -79,49 +85,49 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             var cl1 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
             var cl2 = (ChangeLogEx)cl1.Clone();
-            Assert.AreEqual(cl1.GetHashCode(), cl2.GetHashCode());
+            Assert.That(cl2.GetHashCode(), Is.EqualTo(cl1.GetHashCode()));
 
             cl2.CreatedBy = "username2";
-            Assert.AreNotEqual(cl1.GetHashCode(), cl2.GetHashCode());
+            Assert.That(cl2.GetHashCode(), Is.Not.EqualTo(cl1.GetHashCode()));
         }
 
         [Test]
         public void ChangeLog_IsInitial()
         {
             var cl = new ChangeLogEx();
-            Assert.IsTrue(cl.IsInitial);
+            Assert.That(cl.IsInitial, Is.True);
 
             cl.UpdatedBy = "username";
-            Assert.IsFalse(cl.IsInitial);
+            Assert.That(cl.IsInitial, Is.False);
 
             cl.UpdatedBy = null;
-            Assert.IsTrue(cl.IsInitial);
+            Assert.That(cl.IsInitial, Is.True);
 
             cl.UpdatedDate = CreateDateTime();
-            Assert.IsFalse(cl.IsInitial);
+            Assert.That(cl.IsInitial, Is.False);
         }
 
         [Test]
         public void ChangleLog_AcceptChanges()
         {
             var cl = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            Assert.IsTrue(cl.IsChanged);
+            Assert.That(cl.IsChanged, Is.True);
 
             cl.AcceptChanges();
-            Assert.IsFalse(cl.IsChanged);
+            Assert.That(cl.IsChanged, Is.False);
 
             cl.UpdatedBy = "username";
-            Assert.IsTrue(cl.IsChanged);
+            Assert.That(cl.IsChanged, Is.True);
         }
 
         [Test]
         public void ChangeLog_MakeReadonly()
         {
             var cl = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            Assert.IsFalse(cl.IsReadOnly);
+            Assert.That(cl.IsReadOnly, Is.False);
 
             cl.MakeReadOnly();
-            Assert.IsTrue(cl.IsReadOnly);
+            Assert.That(cl.IsReadOnly, Is.True);
 
             Assert.Throws<InvalidOperationException>(() => cl.UpdatedBy = "username");
         }
@@ -132,13 +138,16 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var po = (Person)p.Clone();
 
-            Assert.IsNotNull(po);
-            Assert.AreEqual("dave", po.Name);
-            Assert.AreEqual(30, po.Age);
-            Assert.AreEqual("username", po.ChangeLog!.CreatedBy);
-            Assert.AreEqual(CreateDateTime(), po.ChangeLog.CreatedDate);
-            Assert.IsNull(po.ChangeLog.UpdatedBy);
-            Assert.IsNull(po.ChangeLog.UpdatedDate);
+            Assert.That(po, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(po.Name, Is.EqualTo("dave"));
+                Assert.That(po.Age, Is.EqualTo(30));
+                Assert.That(po.ChangeLog!.CreatedBy, Is.EqualTo("username"));
+                Assert.That(po.ChangeLog.CreatedDate, Is.EqualTo(CreateDateTime()));
+                Assert.That(po.ChangeLog.UpdatedBy, Is.Null);
+                Assert.That(po.ChangeLog.UpdatedDate, Is.Null);
+            });
         }
 
         [Test]
@@ -149,12 +158,15 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             p1.CopyFrom(p2);
 
-            Assert.AreEqual("sarah", p1.Name);
-            Assert.AreEqual(29, p1.Age); 
-            Assert.AreEqual("username", p1.ChangeLog.CreatedBy);
-            Assert.AreEqual(CreateDateTime(), p1.ChangeLog.CreatedDate);
-            Assert.AreEqual("username2", p1.ChangeLog.UpdatedBy);
-            Assert.AreEqual(CreateDateTime().AddDays(1), p1.ChangeLog.UpdatedDate);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p1.Name, Is.EqualTo("sarah"));
+                Assert.That(p1.Age, Is.EqualTo(29));
+                Assert.That(p1.ChangeLog.CreatedBy, Is.EqualTo("username"));
+                Assert.That(p1.ChangeLog.CreatedDate, Is.EqualTo(CreateDateTime()));
+                Assert.That(p1.ChangeLog.UpdatedBy, Is.EqualTo("username2"));
+                Assert.That(p1.ChangeLog.UpdatedDate, Is.EqualTo(CreateDateTime().AddDays(1)));
+            });
         }
 
         [Test]
@@ -165,16 +177,22 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             p1.CopyFrom(p2);
 
-            Assert.AreEqual("sarah", p1.Name);
-            Assert.AreEqual(29, p1.Age);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p1.Name, Is.EqualTo("sarah"));
+                Assert.That(p1.Age, Is.EqualTo(29));
+            });
 
             p1.Name = "ivan";
             p1.Age = 55;
 
             p2.CopyFrom(p1);
-            Assert.AreEqual("ivan", p2.Name);
-            Assert.AreEqual(55, p2.Age);
-            Assert.AreEqual(100000, p2.Salary);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p2.Name, Is.EqualTo("ivan"));
+                Assert.That(p2.Age, Is.EqualTo(55));
+                Assert.That(p2.Salary, Is.EqualTo(100000));
+            });
         }
 
         [Test]
@@ -183,22 +201,22 @@ namespace CoreEx.Test.Framework.Entities.Extended
             Person? p2 = null;
 
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            Assert.IsFalse(p1.Equals(p2));
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2 = (Person)p1.Clone();
-            Assert.IsTrue(p1.Equals(p2));
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.ChangeLog!.CreatedBy = "username2";
-            Assert.IsFalse(p1.Equals(p2));
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2.ChangeLog.CreatedBy = "username";
-            Assert.IsTrue(p1.Equals(p2));
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.Name = "mike";
-            Assert.IsFalse(p1.Equals(p2));
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             Person p3 = p1;
-            Assert.IsTrue(p3.Equals(p1));
+            Assert.That(p3, Is.EqualTo(p1));
         }
 
         [Test]
@@ -207,22 +225,22 @@ namespace CoreEx.Test.Framework.Entities.Extended
             Person? p2 = null;
 
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            Assert.IsFalse(p1 == p2);
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2 = (Person)p1.Clone();
-            Assert.IsTrue(p1 == p2);
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.ChangeLog!.CreatedBy = "username2";
-            Assert.IsFalse(p1 == p2);
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2.ChangeLog.CreatedBy = "username";
-            Assert.IsTrue(p1 == p2);
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.Name = "mike";
-            Assert.IsFalse(p1 == p2);
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             Person p3 = p1;
-            Assert.IsTrue(p3 == p1);
+            Assert.That(p3, Is.EqualTo(p1));
         }
 
         [Test]
@@ -230,61 +248,73 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = (Person)p1.Clone();
-            Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.EqualTo(p1.GetHashCode()));
 
             p1.Name = "mike";
-            Assert.AreNotEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.Not.EqualTo(p1.GetHashCode()));
 
             p1.Name = "dave";
-            Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.EqualTo(p1.GetHashCode()));
 
             p1.ChangeLog.CreatedBy = "username2";
-            Assert.AreNotEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.Not.EqualTo(p1.GetHashCode()));
         }
 
         [Test]
         public void Person_IsInitial()
         {
             var p = new Person();
-            Assert.IsTrue(p.IsInitial);
+            Assert.That(p.IsInitial, Is.True);
 
             p.Name = "mike";
-            Assert.IsFalse(p.IsInitial);
+            Assert.That(p.IsInitial, Is.False);
 
             p.Name = null;
-            Assert.IsTrue(p.IsInitial);
+            Assert.That(p.IsInitial, Is.True);
 
             p.ChangeLog = new ChangeLogEx { UpdatedDate = CreateDateTime() };
-            Assert.IsFalse(p.IsInitial);
+            Assert.That(p.IsInitial, Is.False);
 
             p.ChangeLog.UpdatedDate = null;
-            Assert.IsFalse(p.IsInitial);
+            Assert.That(p.IsInitial, Is.False);
 
             p.CleanUp();
-            Assert.IsTrue(p.IsInitial);
+            Assert.That(p.IsInitial, Is.True);
         }
 
         [Test]
         public void Person_AcceptChanges()
         {
             var p = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            Assert.IsTrue(p.IsChanged);
-            Assert.IsTrue(p.ChangeLog.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.True);
+                Assert.That(p.ChangeLog.IsChanged, Is.True);
+            });
 
             p.AcceptChanges();
-            Assert.IsFalse(p.IsChanged);
+            Assert.That(p.IsChanged, Is.False);
 
             p.Name = "julie";
-            Assert.IsTrue(p.IsChanged);
-            Assert.IsFalse(p.ChangeLog.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.True);
+                Assert.That(p.ChangeLog.IsChanged, Is.False);
+            });
 
             p.AcceptChanges();
-            Assert.IsFalse(p.IsChanged);
-            Assert.IsFalse(p.ChangeLog.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.False);
+                Assert.That(p.ChangeLog.IsChanged, Is.False);
+            });
 
             p.ChangeLog.CreatedBy = "username2";
-            Assert.IsTrue(p.ChangeLog.IsChanged);
-            Assert.IsTrue(p.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.ChangeLog.IsChanged, Is.True);
+                Assert.That(p.IsChanged, Is.True);
+            });
         }
 
         [Test]
@@ -294,44 +324,59 @@ namespace CoreEx.Test.Framework.Entities.Extended
             p.AcceptChanges();
             var cl1 = p.ChangeLog;
             var cl2 = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            Assert.IsFalse(p.IsChanged);
-            Assert.IsFalse(p.ChangeLog.IsChanged);
-            Assert.IsFalse(cl1.IsChanged);
-            Assert.IsTrue(cl2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.False);
+                Assert.That(p.ChangeLog.IsChanged, Is.False);
+                Assert.That(cl1.IsChanged, Is.False);
+                Assert.That(cl2.IsChanged, Is.True);
+            });
 
             p.ChangeLog = cl2;
-            Assert.IsTrue(p.IsChanged);
-            Assert.IsTrue(p.ChangeLog.IsChanged);
-            Assert.IsFalse(cl1.IsChanged);
-            Assert.IsTrue(cl2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.True);
+                Assert.That(p.ChangeLog.IsChanged, Is.True);
+                Assert.That(cl1.IsChanged, Is.False);
+                Assert.That(cl2.IsChanged, Is.True);
+            });
 
             p.AcceptChanges();
-            Assert.IsFalse(p.IsChanged);
-            Assert.IsFalse(p.ChangeLog.IsChanged);
-            Assert.IsFalse(cl1.IsChanged);
-            Assert.IsFalse(cl2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.False);
+                Assert.That(p.ChangeLog.IsChanged, Is.False);
+                Assert.That(cl1.IsChanged, Is.False);
+                Assert.That(cl2.IsChanged, Is.False);
+            });
 
             cl1.UpdatedBy = "username";
-            Assert.IsFalse(p.IsChanged);
-            Assert.IsFalse(p.ChangeLog.IsChanged);
-            Assert.IsTrue(cl1.IsChanged);
-            Assert.IsFalse(cl2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.False);
+                Assert.That(p.ChangeLog.IsChanged, Is.False);
+                Assert.That(cl1.IsChanged, Is.True);
+                Assert.That(cl2.IsChanged, Is.False);
+            });
 
             cl2.UpdatedBy = "username";
-            Assert.IsTrue(p.IsChanged);
-            Assert.IsTrue(p.ChangeLog.IsChanged);
-            Assert.IsTrue(cl1.IsChanged);
-            Assert.IsTrue(cl2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.IsChanged, Is.True);
+                Assert.That(p.ChangeLog.IsChanged, Is.True);
+                Assert.That(cl1.IsChanged, Is.True);
+                Assert.That(cl2.IsChanged, Is.True);
+            });
         }
 
         [Test]
         public void Person_MakeReadonly()
         {
             var cl = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() };
-            Assert.IsFalse(cl.IsReadOnly);
+            Assert.That(cl.IsReadOnly, Is.False);
 
             cl.MakeReadOnly();
-            Assert.IsTrue(cl.IsReadOnly);
+            Assert.That(cl.IsReadOnly, Is.True);
 
             Assert.Throws<InvalidOperationException>(() => cl.UpdatedBy = "username");
         }
@@ -364,14 +409,17 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var po = (PersonEx)p.Clone();
 
-            Assert.IsNotNull(po);
-            Assert.AreEqual("dave", po.Name);
-            Assert.AreEqual(30, po.Age);
-            Assert.AreEqual(1m, po.Salary);
-            Assert.AreEqual("username", po.ChangeLog!.CreatedBy);
-            Assert.AreEqual(CreateDateTime(), po.ChangeLog.CreatedDate);
-            Assert.IsNull(po.ChangeLog.UpdatedBy);
-            Assert.IsNull(po.ChangeLog.UpdatedDate);
+            Assert.That(po, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(po.Name, Is.EqualTo("dave"));
+                Assert.That(po.Age, Is.EqualTo(30));
+                Assert.That(po.Salary, Is.EqualTo(1m));
+                Assert.That(po.ChangeLog!.CreatedBy, Is.EqualTo("username"));
+                Assert.That(po.ChangeLog.CreatedDate, Is.EqualTo(CreateDateTime()));
+                Assert.That(po.ChangeLog.UpdatedBy, Is.Null);
+                Assert.That(po.ChangeLog.UpdatedDate, Is.Null);
+            });
         }
 
         [Test]
@@ -382,13 +430,16 @@ namespace CoreEx.Test.Framework.Entities.Extended
 
             p1.CopyFrom(p2);
 
-            Assert.AreEqual("sarah", p1.Name);
-            Assert.AreEqual(29, p1.Age);
-            Assert.AreEqual(2m, p1.Salary);
-            Assert.AreEqual("username", p1.ChangeLog.CreatedBy);
-            Assert.AreEqual(CreateDateTime(), p1.ChangeLog.CreatedDate);
-            Assert.AreEqual("username2", p1.ChangeLog.UpdatedBy);
-            Assert.AreEqual(CreateDateTime().AddDays(1), p1.ChangeLog.UpdatedDate);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p1.Name, Is.EqualTo("sarah"));
+                Assert.That(p1.Age, Is.EqualTo(29));
+                Assert.That(p1.Salary, Is.EqualTo(2m));
+                Assert.That(p1.ChangeLog.CreatedBy, Is.EqualTo("username"));
+                Assert.That(p1.ChangeLog.CreatedDate, Is.EqualTo(CreateDateTime()));
+                Assert.That(p1.ChangeLog.UpdatedBy, Is.EqualTo("username2"));
+                Assert.That(p1.ChangeLog.UpdatedDate, Is.EqualTo(CreateDateTime().AddDays(1)));
+            });
         }
 
         [Test]
@@ -397,28 +448,28 @@ namespace CoreEx.Test.Framework.Entities.Extended
             PersonEx? p2 = null;
 
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            Assert.IsFalse(p1.Equals(p2));
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2 = (PersonEx)p1.Clone();
-            Assert.IsTrue(p1.Equals(p2));
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.ChangeLog!.CreatedBy = "username2";
-            Assert.IsFalse(p1.Equals(p2));
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2.ChangeLog.CreatedBy = "username";
-            Assert.IsTrue(p1.Equals(p2));
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.Name = "mike";
-            Assert.IsFalse(p1.Equals(p2));
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2.Name = "dave";
-            Assert.IsTrue(p1.Equals(p2));
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.Salary = 2m;
-            Assert.IsFalse(p1.Equals(p2));
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             Person p3 = p1;
-            Assert.IsTrue(p3.Equals(p1));
+            Assert.That(p3, Is.EqualTo(p1));
         }
 
         [Test]
@@ -427,28 +478,28 @@ namespace CoreEx.Test.Framework.Entities.Extended
             PersonEx? p2 = null;
 
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
-            Assert.IsFalse(p1 == p2);
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2 = (PersonEx)p1.Clone();
-            Assert.IsTrue(p1 == p2);
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.ChangeLog!.CreatedBy = "username2";
-            Assert.IsFalse(p1 == p2);
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2.ChangeLog.CreatedBy = "username";
-            Assert.IsTrue(p1 == p2);
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.Name = "mike";
-            Assert.IsFalse(p1 == p2);
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             p2.Name = "dave";
-            Assert.IsTrue(p1 == p2);
+            Assert.That(p1, Is.EqualTo(p2));
 
             p2.Salary = 2m;
-            Assert.IsFalse(p1 == p2);
+            Assert.That(p1, Is.Not.EqualTo(p2));
 
             Person p3 = p1;
-            Assert.IsTrue(p3 == p1);
+            Assert.That(p3, Is.EqualTo(p1));
         }
 
         [Test]
@@ -456,50 +507,50 @@ namespace CoreEx.Test.Framework.Entities.Extended
         {
             var p1 = new PersonEx { Name = "dave", Age = 30, Salary = 1m, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = (PersonEx)p1.Clone();
-            Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.EqualTo(p1.GetHashCode()));
 
             p1.Name = "mike";
-            Assert.AreNotEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.Not.EqualTo(p1.GetHashCode()));
 
             p1.Name = "dave";
-            Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.EqualTo(p1.GetHashCode()));
 
             p1.Salary = 2m;
-            Assert.AreNotEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.Not.EqualTo(p1.GetHashCode()));
 
             p1.Salary = 1m;
-            Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.EqualTo(p1.GetHashCode()));
 
             p1.ChangeLog.CreatedBy = "username2";
-            Assert.AreNotEqual(p1.GetHashCode(), p2.GetHashCode());
+            Assert.That(p2.GetHashCode(), Is.Not.EqualTo(p1.GetHashCode()));
         }
 
         [Test]
         public void PersonEx_IsInitial()
         {
             var p = new PersonEx();
-            Assert.IsTrue(p.IsInitial);
+            Assert.That(p.IsInitial, Is.True);
 
             p.Salary = 0m;
-            Assert.IsFalse(p.IsInitial);
+            Assert.That(p.IsInitial, Is.False);
 
             p.Salary = null;
-            Assert.IsTrue(p.IsInitial);
+            Assert.That(p.IsInitial, Is.True);
 
             p.Name = "mike";
-            Assert.IsFalse(p.IsInitial);
+            Assert.That(p.IsInitial, Is.False);
 
             p.Name = null;
-            Assert.IsTrue(p.IsInitial);
+            Assert.That(p.IsInitial, Is.True);
 
             p.ChangeLog = new ChangeLogEx { UpdatedDate = CreateDateTime() };
-            Assert.IsFalse(p.IsInitial);
+            Assert.That(p.IsInitial, Is.False);
 
             p.ChangeLog.UpdatedDate = null;
-            Assert.IsFalse(p.IsInitial);
+            Assert.That(p.IsInitial, Is.False);
 
             p.CleanUp();
-            Assert.IsTrue(p.IsInitial);
+            Assert.That(p.IsInitial, Is.True);
         }
 
         [Test]
@@ -510,12 +561,15 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var pc = new PersonCollection { p1, p2 };
 
             var pc2 = (PersonCollection)pc.Clone();
-            Assert.IsNotNull(pc2);
-            Assert.AreEqual(2, pc2.Count);
-            Assert.IsFalse(ReferenceEquals(pc2[0], p1));
-            Assert.IsFalse(ReferenceEquals(pc2[1], p2));
-            Assert.AreEqual(pc2[0], p1);
-            Assert.AreEqual(pc2[1], p2);
+            Assert.That(pc2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pc2, Has.Count.EqualTo(2));
+                Assert.That(ReferenceEquals(pc2[0], p1), Is.False);
+                Assert.That(ReferenceEquals(pc2[1], p2), Is.False);
+                Assert.That(p1, Is.EqualTo(pc2[0]));
+                Assert.That(p2, Is.EqualTo(pc2[1]));
+            });
         }
 
         [Test]
@@ -525,18 +579,17 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
 
-            Assert.IsFalse(pc.Equals(null));
-            Assert.IsTrue(pc!.Equals(pc));
+            Assert.That(pc, Is.Not.EqualTo(null));
 
             var pc2 = (PersonCollection)pc.Clone();
-            Assert.IsTrue(pc.Equals(pc2));
+            Assert.That(pc, Is.EqualTo(pc2));
             pc2.Add(new Person { Name = "john", Age = 35 });
-            Assert.IsFalse(pc.Equals(pc2));
+            Assert.That(pc, Is.Not.EqualTo(pc2));
 
             pc2 = (PersonCollection)pc.Clone();
-            Assert.IsTrue(pc.Equals(pc2));
+            Assert.That(pc, Is.EqualTo(pc2));
             pc2[1].Name = "jenny";
-            Assert.IsFalse(pc.Equals(pc2));
+            Assert.That(pc, Is.Not.EqualTo(pc2));
         }
 
         [Test]
@@ -547,18 +600,18 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var pc = new PersonCollection { p1, p2 };
             var pc2 = pc;
 
-            Assert.IsFalse(pc == null);
-            Assert.IsTrue(pc == pc2);
+            Assert.That(pc, Is.Not.EqualTo(null));
+            Assert.That(pc, Is.EqualTo(pc2));
 
             pc2 = (PersonCollection)pc!.Clone();
-            Assert.IsTrue(pc == pc2);
+            Assert.That(pc, Is.EqualTo(pc2));
             pc2.Add(new Person { Name = "john", Age = 35 });
-            Assert.IsFalse(pc == pc2);
+            Assert.That(pc, Is.Not.EqualTo(pc2));
 
             pc2 = (PersonCollection)pc.Clone();
-            Assert.IsTrue(pc == pc2);
+            Assert.That(pc, Is.EqualTo(pc2));
             pc2[1].Name = "jenny";
-            Assert.IsFalse(pc == pc2);
+            Assert.That(pc, Is.Not.EqualTo(pc2));
         }
 
         [Test]
@@ -568,10 +621,10 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             var pc2 = (PersonCollection)pc.Clone();
-            Assert.AreEqual(pc.GetHashCode(), pc2.GetHashCode());
+            Assert.That(pc2.GetHashCode(), Is.EqualTo(pc.GetHashCode()));
 
             pc2[0].ChangeLog!.CreatedBy = "username2";
-            Assert.AreNotEqual(pc.GetHashCode(), pc2.GetHashCode());
+            Assert.That(pc2.GetHashCode(), Is.Not.EqualTo(pc.GetHashCode()));
         }
 
         [Test]
@@ -580,32 +633,47 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1 };
-            Assert.IsTrue(pc.IsChanged);
-            Assert.IsTrue(pc[0].IsChanged);
-            Assert.IsTrue(pc[0].ChangeLog!.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pc.IsChanged, Is.True);
+                Assert.That(pc[0].IsChanged, Is.True);
+                Assert.That(pc[0].ChangeLog!.IsChanged, Is.True);
+            });
 
             pc.AcceptChanges();
-            Assert.IsFalse(pc.IsChanged);
-            Assert.IsFalse(pc[0].IsChanged);
-            Assert.IsFalse(pc[0].ChangeLog!.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pc.IsChanged, Is.False);
+                Assert.That(pc[0].IsChanged, Is.False);
+                Assert.That(pc[0].ChangeLog!.IsChanged, Is.False);
+            });
 
             pc.Add(p2);
-            Assert.IsTrue(pc.IsChanged);
-            Assert.IsFalse(pc[0].IsChanged);
-            Assert.IsFalse(pc[0].ChangeLog!.IsChanged);
-            Assert.IsTrue(pc[1].IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pc.IsChanged, Is.True);
+                Assert.That(pc[0].IsChanged, Is.False);
+                Assert.That(pc[0].ChangeLog!.IsChanged, Is.False);
+                Assert.That(pc[1].IsChanged, Is.True);
+            });
 
             pc.AcceptChanges();
-            Assert.IsFalse(pc.IsChanged);
-            Assert.IsFalse(pc[0].IsChanged);
-            Assert.IsFalse(pc[0].ChangeLog!.IsChanged);
-            Assert.IsFalse(pc[1].IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pc.IsChanged, Is.False);
+                Assert.That(pc[0].IsChanged, Is.False);
+                Assert.That(pc[0].ChangeLog!.IsChanged, Is.False);
+                Assert.That(pc[1].IsChanged, Is.False);
+            });
 
             pc[0].ChangeLog!.CreatedBy = "username2";
-            Assert.IsTrue(pc.IsChanged);
-            Assert.IsTrue(pc[0].IsChanged);
-            Assert.IsTrue(pc[0].ChangeLog!.IsChanged);
-            Assert.IsFalse(pc[1].IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pc.IsChanged, Is.True);
+                Assert.That(pc[0].IsChanged, Is.True);
+                Assert.That(pc[0].ChangeLog!.IsChanged, Is.True);
+                Assert.That(pc[1].IsChanged, Is.False);
+            });
         }
 
         [Test]
@@ -614,13 +682,13 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
-            Assert.IsTrue(pc.IsChanged);
+            Assert.That(pc.IsChanged, Is.True);
 
             pc.AcceptChanges();
-            Assert.IsFalse(pc.IsChanged);
+            Assert.That(pc.IsChanged, Is.False);
 
             pc.Clear();
-            Assert.IsTrue(pc.IsChanged);
+            Assert.That(pc.IsChanged, Is.True);
         }
 
         [Test]
@@ -630,23 +698,26 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1 };
             pc.MakeReadOnly();
-            Assert.IsTrue(pc.IsReadOnly);
-            Assert.IsTrue(pc[0].IsReadOnly);
-            Assert.IsTrue(pc[0].ChangeLog!.IsReadOnly);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pc.IsReadOnly, Is.True);
+                Assert.That(pc[0].IsReadOnly, Is.True);
+                Assert.That(pc[0].ChangeLog!.IsReadOnly, Is.True);
+            });
             Assert.Throws<InvalidOperationException>(() => pc.Add(p2));
-            Assert.AreEqual(1, pc.Count);
+            Assert.That(pc, Has.Count.EqualTo(1));
 
             Assert.Throws<InvalidOperationException>(() => pc.Clear());
-            Assert.AreEqual(1, pc.Count);
+            Assert.That(pc, Has.Count.EqualTo(1));
 
             Assert.Throws<InvalidOperationException>(() => pc.Remove(p1));
-            Assert.AreEqual(1, pc.Count);
+            Assert.That(pc, Has.Count.EqualTo(1));
 
             Assert.Throws<InvalidOperationException>(() => pc.RemoveAt(0));
-            Assert.AreEqual(1, pc.Count);
+            Assert.That(pc, Has.Count.EqualTo(1));
 
             Assert.Throws<InvalidOperationException>(() => pc[0] = p2);
-            Assert.AreEqual(1, pc.Count);
+            Assert.That(pc, Has.Count.EqualTo(1));
         }
 
         [Test]
@@ -657,19 +728,19 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var pc = new PersonCollection { p1, p2 };
 
             var pi = pc.GetByKey();
-            Assert.IsNull(pi);
+            Assert.That(pi, Is.Null);
 
             pi = pc.GetByKey("dave");
-            Assert.AreEqual(pi, p1);
+            Assert.That(p1, Is.EqualTo(pi));
 
             pi = pc.GetByKey("bazza");
-            Assert.IsNull(pi);
+            Assert.That(pi, Is.Null);
 
             pi = pc.GetByKey(p1.PrimaryKey);
-            Assert.AreEqual(pi, p1);
+            Assert.That(p1, Is.EqualTo(pi));
 
             pi = pc.GetByKey(new CompositeKey("bazza"));
-            Assert.IsNull(pi);
+            Assert.That(pi, Is.Null);
         }
 
         [Test]
@@ -681,15 +752,15 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var pc = new PersonCollection { p1, p2, p3 };
 
             pc.RemoveByKey("rebecca");
-            Assert.AreEqual(3, pc.Count);
-            Assert.AreEqual("dave", pc[0].Name);
+            Assert.That(pc, Has.Count.EqualTo(3));
+            Assert.That(pc[0].Name, Is.EqualTo("dave"));
 
             pc.RemoveByKey("dave");
-            Assert.AreEqual(1, pc.Count);
-            Assert.AreEqual("mary", pc[0].Name);
+            Assert.That(pc, Has.Count.EqualTo(1));
+            Assert.That(pc[0].Name, Is.EqualTo("mary"));
 
             pc.RemoveByKey("mary");
-            Assert.AreEqual(0, pc.Count);
+            Assert.That(pc, Is.Empty);
         }
 
         [Test]
@@ -700,16 +771,16 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p3 = new Person { Name = "dave", Age = 40 };
             var pc = new PersonCollection { p1, p2, p3 };
 
-            Assert.IsTrue(pc.IsAnyDuplicates());
+            Assert.That(pc.IsAnyDuplicates(), Is.True);
 
             pc.Remove(p3);
-            Assert.IsFalse(pc.IsAnyDuplicates());
+            Assert.That(pc.IsAnyDuplicates(), Is.False);
 
             pc = new PersonCollection { null!, null! };
-            Assert.IsTrue(pc.IsAnyDuplicates());
+            Assert.That(pc.IsAnyDuplicates(), Is.True);
 
             pc.RemoveAt(0);
-            Assert.IsFalse(pc.IsAnyDuplicates());
+            Assert.That(pc.IsAnyDuplicates(), Is.False);
         }
 
         [Test]
@@ -719,15 +790,18 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p2 = new Person { Name = "mary", Age = 25 };
             var pc = new PersonCollection { p1, p2 };
             var pcr = new PersonCollectionResult(pc);
-            Assert.AreSame(pcr.Items, pc);
+            Assert.That(pc, Is.SameAs(pcr.Items));
 
             var pc2 = (PersonCollection)pcr;
-            Assert.AreSame(pc, pc2);
+            Assert.That(pc2, Is.SameAs(pc));
 
             var pcr2 = (PersonCollectionResult)pcr.Clone();
-            Assert.IsFalse(ReferenceEquals(pcr2, pcr));
-            Assert.IsTrue(pcr2.Equals(pcr));
-            Assert.IsTrue(pcr2 == pcr);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ReferenceEquals(pcr2, pcr), Is.False);
+                Assert.That(pcr2, Is.EqualTo(pcr));
+            });
+            Assert.That(pcr2, Is.EqualTo(pcr));
         }
 
         [Test]
@@ -736,31 +810,40 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p1 = new Person { Name = "dave", Age = 30, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime() } };
             var p2 = new Person { Name = "mary", Age = 25 };
             var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
-            Assert.IsTrue(pd.IsChanged);
+            Assert.That(pd.IsChanged, Is.True);
 
             pd.AcceptChanges();
-            Assert.IsFalse(pd.IsChanged);
-            Assert.IsFalse(p1.IsChanged);
-            Assert.IsFalse(p2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pd.IsChanged, Is.False);
+                Assert.That(p1.IsChanged, Is.False);
+                Assert.That(p2.IsChanged, Is.False);
+            });
 
             p1.ChangeLog.CreatedDate = p1.ChangeLog.CreatedDate.Value.AddMinutes(1);
-            Assert.IsTrue(pd.IsChanged);
-            Assert.IsTrue(p1.IsChanged);
-            Assert.IsFalse(p2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pd.IsChanged, Is.True);
+                Assert.That(p1.IsChanged, Is.True);
+                Assert.That(p2.IsChanged, Is.False);
+            });
 
             pd.AcceptChanges();
-            Assert.IsFalse(pd.IsChanged);
-            Assert.IsFalse(p1.IsChanged);
-            Assert.IsFalse(p2.IsChanged);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pd.IsChanged, Is.False);
+                Assert.That(p1.IsChanged, Is.False);
+                Assert.That(p2.IsChanged, Is.False);
+            });
 
             pd.Remove("mary");
-            Assert.IsTrue(pd.IsChanged);
+            Assert.That(pd.IsChanged, Is.True);
 
             pd.AcceptChanges();
-            Assert.IsFalse(pd.IsChanged);
+            Assert.That(pd.IsChanged, Is.False);
 
             pd.Remove("mary");
-            Assert.IsFalse(pd.IsChanged);
+            Assert.That(pd.IsChanged, Is.False);
         }
 
         [Test]
@@ -770,7 +853,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var p2 = new Person { Name = "mary", Age = 25 };
             var pd = new PersonDictionary { { "dave", p1 }, { "mary", p2 } };
             pd.MakeReadOnly();
-            Assert.IsTrue(pd.IsReadOnly);
+            Assert.That(pd.IsReadOnly, Is.True);
 
             Assert.Throws<InvalidOperationException>(() => pd.Clear());
             Assert.Throws<InvalidOperationException>(() => pd.Remove("mary"));
@@ -789,15 +872,21 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var px2 = new Person { Name = "mary", Age = 25 };
             var pxd = new PersonDictionary { { "dave", px1 }, { "mary", px2 } };
 
-            Assert.IsTrue(pd == pxd);
-            Assert.AreEqual(pd.GetHashCode(), pxd.GetHashCode());
+            Assert.Multiple(() =>
+            {
+                Assert.That(pd, Is.EqualTo(pxd));
+                Assert.That(pxd.GetHashCode(), Is.EqualTo(pd.GetHashCode()));
+            });
 
             px2.Name += "X";
-            Assert.IsFalse(pd == pxd);
-            Assert.AreNotEqual(pd.GetHashCode(), pxd.GetHashCode());
+            Assert.Multiple(() =>
+            {
+                Assert.That(pd, Is.Not.EqualTo(pxd));
+                Assert.That(pxd.GetHashCode(), Is.Not.EqualTo(pd.GetHashCode()));
+            });
         }
 
-        private DateTime CreateDateTime() => new(2000, 01, 01, 12, 45, 59);
+        private static DateTime CreateDateTime() => new(2000, 01, 01, 12, 45, 59);
 
         public class Person : EntityBase, CoreEx.Entities.IPrimaryKey
         {

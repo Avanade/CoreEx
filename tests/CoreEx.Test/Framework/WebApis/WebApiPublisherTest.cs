@@ -28,11 +28,11 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(1, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(1));
             ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, ed[0].Value);
         }
 
@@ -49,7 +49,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
 
         [Test]
@@ -65,11 +65,11 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(1, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(1));
             ObjectComparer.Assert(new BackendProduct { Code = "A", Description = "B", RetailPrice = 1.99m }, ed[0].Value);
         }
 
@@ -92,11 +92,11 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(3, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(3));
             ObjectComparer.Assert(products[0], ed[0].Value);
             ObjectComparer.Assert(products[1], ed[1].Value);
             ObjectComparer.Assert(products[2], ed[2].Value);
@@ -122,11 +122,11 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(3, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(3));
             ObjectComparer.Assert(new BackendProduct { Code = "Xyz", Description = "Widget", RetailPrice = 9.95m }, ed[0].Value);
             ObjectComparer.Assert(new BackendProduct { Code = "Xyz2", Description = "Widget2", RetailPrice = 9.95m }, ed[1].Value);
             ObjectComparer.Assert(new BackendProduct { Code = "Xyz3", Description = "Widget3", RetailPrice = 9.95m }, ed[2].Value);
@@ -154,19 +154,22 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(3, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(3));
             ObjectComparer.Assert(products[0], ed[0].Value);
             ObjectComparer.Assert(products[1], ed[1].Value);
             ObjectComparer.Assert(products[2], ed[2].Value);
 
-            // Assert the known correlation id.
-            Assert.AreEqual("corr-id", ed[0].CorrelationId);
-            Assert.AreEqual("corr-id", ed[1].CorrelationId);
-            Assert.AreEqual("corr-id", ed[2].CorrelationId);
+            Assert.Multiple(() =>
+            {
+                // Assert the known correlation id.
+                Assert.That(ed[0].CorrelationId, Is.EqualTo("corr-id"));
+                Assert.That(ed[1].CorrelationId, Is.EqualTo("corr-id"));
+                Assert.That(ed[2].CorrelationId, Is.EqualTo("corr-id"));
+            });
         }
 
         [Test]
@@ -189,7 +192,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("The publish collection contains 3 items where only a maximum size of 2 is supported.");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
 
         [Test]
@@ -205,7 +208,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
 
         [Test]
@@ -228,7 +231,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
 
         [Test]
@@ -243,11 +246,11 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(1, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(1));
             ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, ed[0].Value);
         }
 
@@ -264,7 +267,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
 
         [Test]
@@ -286,11 +289,11 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(3, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(3));
             ObjectComparer.Assert(products[0], ed[0].Value);
             ObjectComparer.Assert(products[1], ed[1].Value);
             ObjectComparer.Assert(products[2], ed[2].Value);
@@ -318,19 +321,22 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertAccepted();
 
             var qn = imp.GetNames();
-            Assert.AreEqual(1, qn.Length);
-            Assert.AreEqual("test", qn[0]);
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
 
             var ed = imp.GetEvents("test");
-            Assert.AreEqual(3, ed.Length);
+            Assert.That(ed, Has.Length.EqualTo(3));
             ObjectComparer.Assert(products[0], ed[0].Value);
             ObjectComparer.Assert(products[1], ed[1].Value);
             ObjectComparer.Assert(products[2], ed[2].Value);
 
-            // Assert the known correlation id.
-            Assert.AreEqual("corr-id", ed[0].CorrelationId);
-            Assert.AreEqual("corr-id", ed[1].CorrelationId);
-            Assert.AreEqual("corr-id", ed[2].CorrelationId);
+            Assert.Multiple(() =>
+            {
+                // Assert the known correlation id.
+                Assert.That(ed[0].CorrelationId, Is.EqualTo("corr-id"));
+                Assert.That(ed[1].CorrelationId, Is.EqualTo("corr-id"));
+                Assert.That(ed[2].CorrelationId, Is.EqualTo("corr-id"));
+            });
         }
 
         [Test]
@@ -353,7 +359,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("The publish collection contains 3 items where only a maximum size of 2 is supported.");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
 
         [Test]
@@ -369,7 +375,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
 
         [Test]
@@ -392,7 +398,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertContent("Nope, nope!");
 
             var qn = imp.GetNames();
-            Assert.AreEqual(0, qn.Length);
+            Assert.That(qn, Is.Empty);
         }
     }
 

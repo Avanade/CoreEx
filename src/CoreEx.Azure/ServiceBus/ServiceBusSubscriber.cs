@@ -2,12 +2,12 @@
 
 using Azure.Messaging.ServiceBus;
 using CoreEx.Abstractions;
+using CoreEx.Azure.ServiceBus.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
 using CoreEx.Results;
 using CoreEx.Validation;
-using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
@@ -120,7 +120,7 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
-                UpdateEventSubscriberArgsWithServiceBusMessage(args ??= new(), message, messageActions);
+                UpdateEventSubscriberArgsWithServiceBusMessage(args ??= [], message, messageActions);
                 if (afterReceive != null)
                     await afterReceive(@event!, args).ConfigureAwait(false);
 
@@ -181,7 +181,7 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
-                UpdateEventSubscriberArgsWithServiceBusMessage(args ??= new(), message, messageActions);
+                UpdateEventSubscriberArgsWithServiceBusMessage(args ??= [], message, messageActions);
                 if (afterReceive != null)
                     await afterReceive(@event!, args).ConfigureAwait(false);
 

@@ -15,40 +15,46 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate_String()
         {
             var v1 = await "XXX".Validate("value").None().ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must not be specified.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must not be specified."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await ((string?)null).Validate("value").None().ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await (string.Empty).Validate("value").None().ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
         }
 
         [Test]
         public async Task Validate_Int32()
         {
             var v1 = await (123).Validate("value").None().ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must not be specified.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must not be specified."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await (0).Validate("value").None().ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             var v2 = await ((int?)123).Validate("value").None().ValidateAsync();
-            Assert.IsTrue(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.True);
 
             v2 = await ((int?)0).Validate("value").None().ValidateAsync();
-            Assert.IsTrue(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.True);
 
             v2 = await ((int?)null).Validate("value").None().ValidateAsync();
-            Assert.IsFalse(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.False);
         }
 
         public class Foo
@@ -61,15 +67,18 @@ namespace CoreEx.Test.Framework.Validation.Rules
         {
             Foo? foo = new();
             var v1 = await foo.Validate("value").None().ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must not be specified.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must not be specified."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             foo = null;
             v1 = await foo.Validate("value").None().ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
     }
 }

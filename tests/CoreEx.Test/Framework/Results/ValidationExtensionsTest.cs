@@ -37,7 +37,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_Success_Entity_ValidationContext_Valid()
         {
             var r = await Result.Ok(new Person { Name = "Tom", Age = 18 }).ValidateAsync(() => _personValidator);
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
@@ -58,7 +58,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_Success_Entity_IValidationResult_Valid()
         {
             var r = await Result.Ok(new Person { Name = "Tom", Age = 18 }).ValidateAsync(_personValidator);
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
@@ -79,7 +79,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_Success_Other_Value()
         {
             var r = await Result.Go().ValidatesAsync(1, v => v.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
@@ -104,7 +104,7 @@ namespace CoreEx.Test.Framework.Results
                     .ThenAsync(v => v.Validate().Entity(_personValidator).ValidateAsync());
             });
 
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
@@ -112,7 +112,7 @@ namespace CoreEx.Test.Framework.Results
         {
             var value = new Person { Name = "Tom", Age = 18 };
             var r = await Result.Go().ValidateAsync(() => MultiValidator.Create().Add(value.Validate().Mandatory().Entity(_personValidator)));
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
@@ -128,7 +128,7 @@ namespace CoreEx.Test.Framework.Results
         {
             var value = new Person { Name = "Tom", Age = 18 };
             var r = await Result.Go(value).ValidateAsync(p => MultiValidator.Create().Add(p.Validate().Mandatory().Entity(_personValidator)));
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]

@@ -21,7 +21,7 @@ namespace CoreEx.Events
         /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
         protected EventDataSerializerBase(IJsonSerializer jsonSerializer, EventDataFormatter? eventDataFormatter)
         {
-            JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            JsonSerializer = jsonSerializer.ThrowIfNull(nameof(jsonSerializer));
             EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
         }
 
@@ -73,9 +73,7 @@ namespace CoreEx.Events
         /// <inheritdoc/>
         public async Task<EventData> DeserializeAsync(BinaryData eventData, Type valueType, CancellationToken cancellationToken = default)
         {
-            if (valueType == null)
-                throw new ArgumentNullException(nameof(valueType));
-
+            valueType.ThrowIfNull(nameof(valueType));
             var (Attachment, Data) = await DeserializeAttachmentAsync(eventData, cancellationToken).ConfigureAwait(false);
             var edvt = typeof(EventData<>).MakeGenericType(valueType);
             EventData ed;

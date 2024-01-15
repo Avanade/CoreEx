@@ -16,16 +16,16 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions().Include("fielda", "fieldb").Exclude("fieldc");
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$fields=fielda,fieldb&$exclude=fieldc", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$fields=fielda,fieldb&$exclude=fieldc"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?id=123");
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?id=123");
             ro.Exclude("<app& le>");
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc,%3capp%26+le%3e", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?id=123&$fields=fielda,fieldb&$exclude=fieldc,%3capp%26+le%3e"));
         }
 
         [Test]
@@ -34,22 +34,22 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { Paging = PagingArgs.CreateSkipAndTake(20, 25) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$skip=20&$take=25", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$skip=20&$take=25"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             ro = new HttpRequestOptions() { Paging = PagingArgs.CreateSkipAndTake(20, 25, true) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$skip=20&$take=25&$count=true", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$skip=20&$take=25&$count=true"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             ro = new HttpRequestOptions() { Paging = PagingArgs.CreatePageAndSize(2, 25) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$page=2&$size=25", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$page=2&$size=25"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             ro = new HttpRequestOptions() { Paging = PagingArgs.CreatePageAndSize(2, 25, true) };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$page=2&$size=25&$count=true", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$page=2&$size=25&$count=true"));
         }
 
         [Test]
@@ -58,51 +58,72 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { ETag = "abc" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual(0, hr.Headers.IfMatch.Count);
-            Assert.AreEqual(1, hr.Headers.IfNoneMatch.Count);
-            Assert.AreEqual("\"abc\"", hr.Headers.IfNoneMatch.First().Tag);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Headers.IfMatch, Is.Empty);
+                Assert.That(hr.Headers.IfNoneMatch, Has.Count.EqualTo(1));
+            });
+            Assert.That(hr.Headers.IfNoneMatch.First().Tag, Is.EqualTo("\"abc\""));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             ro = new HttpRequestOptions() { ETag = "\"abc\"" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual(0, hr.Headers.IfMatch.Count);
-            Assert.AreEqual(1, hr.Headers.IfNoneMatch.Count);
-            Assert.AreEqual("\"abc\"", hr.Headers.IfNoneMatch.First().Tag);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Headers.IfMatch, Is.Empty);
+                Assert.That(hr.Headers.IfNoneMatch, Has.Count.EqualTo(1));
+            });
+            Assert.That(hr.Headers.IfNoneMatch.First().Tag, Is.EqualTo("\"abc\""));
 
             hr = new HttpRequestMessage(HttpMethod.Head, "https://unittest/testing");
             ro = new HttpRequestOptions() { ETag = "abc" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual(0, hr.Headers.IfMatch.Count);
-            Assert.AreEqual(1, hr.Headers.IfNoneMatch.Count);
-            Assert.AreEqual("\"abc\"", hr.Headers.IfNoneMatch.First().Tag);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Headers.IfMatch, Is.Empty);
+                Assert.That(hr.Headers.IfNoneMatch, Has.Count.EqualTo(1));
+            });
+            Assert.That(hr.Headers.IfNoneMatch.First().Tag, Is.EqualTo("\"abc\""));
 
             hr = new HttpRequestMessage(HttpMethod.Post, "https://unittest/testing");
             ro = new HttpRequestOptions() { ETag = "abc" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual(1, hr.Headers.IfMatch.Count);
-            Assert.AreEqual(0, hr.Headers.IfNoneMatch.Count);
-            Assert.AreEqual("\"abc\"", hr.Headers.IfMatch.First().Tag);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Headers.IfMatch, Has.Count.EqualTo(1));
+                Assert.That(hr.Headers.IfNoneMatch, Is.Empty);
+            });
+            Assert.That(hr.Headers.IfMatch.First().Tag, Is.EqualTo("\"abc\""));
 
             hr = new HttpRequestMessage(HttpMethod.Put, "https://unittest/testing");
             ro = new HttpRequestOptions() { ETag = "abc" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual(1, hr.Headers.IfMatch.Count);
-            Assert.AreEqual(0, hr.Headers.IfNoneMatch.Count);
-            Assert.AreEqual("\"abc\"", hr.Headers.IfMatch.First().Tag);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Headers.IfMatch, Has.Count.EqualTo(1));
+                Assert.That(hr.Headers.IfNoneMatch, Is.Empty);
+            });
+            Assert.That(hr.Headers.IfMatch.First().Tag, Is.EqualTo("\"abc\""));
 
             hr = new HttpRequestMessage(HttpMethod.Patch, "https://unittest/testing");
             ro = new HttpRequestOptions() { ETag = "abc" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual(1, hr.Headers.IfMatch.Count);
-            Assert.AreEqual(0, hr.Headers.IfNoneMatch.Count);
-            Assert.AreEqual("\"abc\"", hr.Headers.IfMatch.First().Tag);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Headers.IfMatch, Has.Count.EqualTo(1));
+                Assert.That(hr.Headers.IfNoneMatch, Is.Empty);
+            });
+            Assert.That(hr.Headers.IfMatch.First().Tag, Is.EqualTo("\"abc\""));
 
             hr = new HttpRequestMessage(HttpMethod.Delete, "https://unittest/testing");
             ro = new HttpRequestOptions() { ETag = "abc" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual(1, hr.Headers.IfMatch.Count);
-            Assert.AreEqual(0, hr.Headers.IfNoneMatch.Count);
-            Assert.AreEqual("\"abc\"", hr.Headers.IfMatch.First().Tag);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Headers.IfMatch, Has.Count.EqualTo(1));
+                Assert.That(hr.Headers.IfNoneMatch, Is.Empty);
+            });
+            Assert.That(hr.Headers.IfMatch.First().Tag, Is.EqualTo("\"abc\""));
         }
 
         [Test]
@@ -111,7 +132,7 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?fruit=apple");
             var ro = new HttpRequestOptions() { IncludeText = true };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?fruit=apple&$text=true", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?fruit=apple&$text=true"));
         }
 
         [Test]
@@ -120,7 +141,7 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { IncludeInactive = true };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?$inactive=true", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$inactive=true"));
         }
 
         [Test]
@@ -129,12 +150,12 @@ namespace CoreEx.Test.Framework.Http
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { UrlQueryString = "fruit=apple" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?fruit=apple", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?fruit=apple"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing?fruit=banana");
             ro = new HttpRequestOptions() { UrlQueryString = "fruit=apple" };
             hr.ApplyRequestOptions(ro);
-            Assert.AreEqual("https://unittest/testing?fruit=banana&fruit=apple", hr.RequestUri!.AbsoluteUri);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?fruit=banana&fruit=apple"));
         }
     }
 }

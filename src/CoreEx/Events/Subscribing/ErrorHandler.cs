@@ -21,7 +21,7 @@ namespace CoreEx.Events.Subscribing
         /// <param name="exception">The <see cref="Exception"/>.</param>
         /// <returns>The <see cref="ErrorHandling"/>.</returns>
         public static ErrorHandling DetermineErrorHandling(IErrorHandling errorHandling, Exception exception)
-            => (exception ?? throw new ArgumentNullException(nameof(exception))) is IExtendedException eex ? DetermineErrorHandling(errorHandling, eex) : errorHandling.UnhandledHandling;
+            => (exception.ThrowIfNull(nameof(exception))) is IExtendedException eex ? DetermineErrorHandling(errorHandling, eex) : errorHandling.UnhandledHandling;
 
         /// <summary>
         /// Determines the <see cref="ErrorHandling"/> based on the <paramref name="errorHandling"/> and <paramref name="extendedException"/>.
@@ -29,7 +29,7 @@ namespace CoreEx.Events.Subscribing
         /// <param name="errorHandling">The <see cref="IErrorHandling"/> configuration.</param>
         /// <param name="extendedException">The <see cref="IExtendedException"/>.</param>
         /// <returns>The <see cref="ErrorHandling"/>.</returns>
-        public static ErrorHandling DetermineErrorHandling(IErrorHandling errorHandling, IExtendedException extendedException) => (extendedException ?? throw new ArgumentNullException(nameof(extendedException))).ErrorCode switch
+        public static ErrorHandling DetermineErrorHandling(IErrorHandling errorHandling, IExtendedException extendedException) => (extendedException.ThrowIfNull(nameof(extendedException))).ErrorCode switch
         {
             (int)ErrorType.AuthenticationError or (int)ErrorType.AuthorizationError => errorHandling.SecurityHandling,
             (int)ErrorType.BusinessError or (int)ErrorType.ConflictError or (int)ErrorType.DuplicateError or (int)ErrorType.ValidationError => errorHandling.InvalidDataHandling,

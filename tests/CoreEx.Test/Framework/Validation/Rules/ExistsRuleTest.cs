@@ -15,64 +15,82 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate_Value()
         {
             var v1 = await 123.Validate("value").Exists(x => true).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
             
             v1 = await 123.Validate("value").Exists(x => false).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is not found; a valid value is required."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await 123.Validate("value").Exists(true).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await 123.Validate("value").Exists(false).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is not found; a valid value is required."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await 123.Validate("value").ExistsAsync((_, __) => Task.FromResult(true)).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await 123.Validate("value").ExistsAsync((_, __) => Task.FromResult(false)).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is not found; a valid value is required."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await 123.Validate("value").ExistsAsync((_, __) => Task.FromResult<object?>(new object())).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await 123.Validate("value").ExistsAsync((_, __) => Task.FromResult((object?)null)).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is not found; a valid value is required."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
-            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK))).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK), __)).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound))).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound), __)).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is not found; a valid value is required."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
-            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync<int>(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK))).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync<int>(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK), cancellationToken: __)).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync<int>(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound))).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value is not found; a valid value is required.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            v1 = await 123.Validate("value").AgentExistsAsync((_, __) => CoreEx.Http.HttpResult.CreateAsync<int>(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound), cancellationToken: __)).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value is not found; a valid value is required."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
     }
 }

@@ -29,7 +29,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// Checks that the <see cref="IServiceCollection"/> is not null.
         /// </summary>
-        private static IServiceCollection CheckServices(IServiceCollection services) => services ?? throw new ArgumentNullException(nameof(services));
+        private static IServiceCollection CheckServices(IServiceCollection services) => services.ThrowIfNull(nameof(services));
 
         /// <summary>
         /// Removes all items from the <see cref="IServiceCollection"/> for the specified <typeparamref name="TService"/>.

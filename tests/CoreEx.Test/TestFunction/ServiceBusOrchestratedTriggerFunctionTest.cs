@@ -51,7 +51,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertSuccess();
 
             actionsMock.Verify(m => m.CompleteMessageAsync(message, default), Times.Once);
-            Assert.IsTrue(NoValueSubscriber.EventIds.Contains(101.ToGuid().ToString()));
+            Assert.That(NoValueSubscriber.EventIds.Contains(101.ToGuid().ToString()), Is.True);
         }
 
         [Test]
@@ -96,7 +96,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertSuccess();
 
             actionsMock.Verify(m => m.CompleteMessageAsync(message, default), Times.Once);
-            Assert.IsTrue(ProductSubscriber.EventIds.Contains(201.ToGuid().ToString()));
+            Assert.That(ProductSubscriber.EventIds.Contains(201.ToGuid().ToString()), Is.True);
         }
 
         [Test]
@@ -111,7 +111,7 @@ namespace CoreEx.Test.TestFunction
                 .AssertException<EventSubscriberException>("Sony Playstation 5 is currently not permissable; please try again later.");
 
             actionsMock.VerifyNoOtherCalls();
-            Assert.IsTrue(ProductSubscriber.EventIds.Contains(202.ToGuid().ToString()));
+            Assert.That(ProductSubscriber.EventIds.Contains(202.ToGuid().ToString()), Is.True);
         }
     }
 

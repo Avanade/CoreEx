@@ -17,8 +17,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -31,13 +31,16 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer(), ef) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent2();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent2, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2, "Type", "Source");
-            Assert.AreEqual(new Uri("null", UriKind.Relative), ed2.Source);
-            Assert.AreEqual("coreex.testfunction.models.product", ed2.Type);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.EqualTo(new Uri("null", UriKind.Relative)));
+                Assert.That(ed2.Type, Is.EqualTo("coreex.testfunction.models.product"));
+            });
         }
 
         [Test]
@@ -47,8 +50,8 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped) { Value = ped.Value };
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -58,7 +61,7 @@ namespace CoreEx.Test.Framework.Events
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
+            Assert.That(ed3.Value?.ToString(), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
         }
 
         [Test]
@@ -68,7 +71,7 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
+            Assert.That(bd, Is.Not.Null);
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -83,8 +86,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = true } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(new EventData<Product> { Value = ed.Value }, ed2);
@@ -97,7 +100,7 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
+            Assert.That(bd, Is.Not.Null);
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(new EventData<Product>(), ed2);
@@ -110,8 +113,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = false, AttachmentStorage = CloudEventSerializerTest.CreateEventStorage("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", 10) } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1Attachment, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1Attachment));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -124,8 +127,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = false, AttachmentStorage = CloudEventSerializerTest.CreateEventStorage("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", 100) } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -138,8 +141,8 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped) { Value = ped.Value };
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1Attachment, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1Attachment));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -149,7 +152,7 @@ namespace CoreEx.Test.Framework.Events
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
+            Assert.That(ed3.Value?.ToString(), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
         }
 
         [Test]
@@ -159,8 +162,8 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped) { Value = ped.Value };
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -170,7 +173,7 @@ namespace CoreEx.Test.Framework.Events
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ed3.Value?.ToString());
+            Assert.That(ed3.Value?.ToString(), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
         }
 
         [Test]
@@ -179,8 +182,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -193,13 +196,16 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer(), ef) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent2();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent2, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2, "Type", "Source");
-            Assert.AreEqual(new Uri("null", UriKind.Relative), ed2.Source);
-            Assert.AreEqual("coreex.testfunction.models.product", ed2.Type);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.EqualTo(new Uri("null", UriKind.Relative)));
+                Assert.That(ed2.Type, Is.EqualTo("coreex.testfunction.models.product"));
+            });
         }
 
         [Test]
@@ -209,15 +215,15 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped) { Value = ped.Value };
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual(CloudEvent1, bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo(CloudEvent1));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
 
             var ed3 = await es.DeserializeAsync(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed3, "Value");
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", ((Nsj.Linq.JToken)ed3.Value!).ToString(Nsj.Formatting.None));
+            Assert.That(((Nsj.Linq.JToken)ed3.Value!).ToString(Nsj.Formatting.None), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
         }
 
         [Test]
@@ -227,7 +233,7 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
+            Assert.That(bd, Is.Not.Null);
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(ed, ed2);
@@ -242,8 +248,8 @@ namespace CoreEx.Test.Framework.Events
             var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = true } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent1();
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
-            Assert.AreEqual("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}", bd.ToString());
+            Assert.That(bd, Is.Not.Null);
+            Assert.That(bd.ToString(), Is.EqualTo("{\"id\":\"A\",\"name\":\"B\",\"price\":1.99}"));
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(new EventData<Product> { Value = ed.Value }, ed2);
@@ -256,17 +262,17 @@ namespace CoreEx.Test.Framework.Events
             var ped = CloudEventSerializerTest.CreateProductEvent1();
             var ed = new EventData(ped);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
-            Assert.IsNotNull(bd);
+            Assert.That(bd, Is.Not.Null);
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(new EventData<Product>(), ed2);
         }
 
-        private const string CloudEvent1 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
+        private const string CloudEvent1 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"key\":\"A\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
 
-        private const string CloudEvent2 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\"}";
+        private const string CloudEvent2 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"type\":\"coreex.testfunction.models.product\",\"source\":\"null\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"key\":\"A\"}";
 
-        private const string CloudEvent1Attachment = "{\"value\":{\"contentType\":\"application/json\",\"attachment\":\"bananas.json\"},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
+        private const string CloudEvent1Attachment = "{\"value\":{\"contentType\":\"application/json\",\"attachment\":\"bananas.json\"},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"key\":\"A\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";
 
     }
 }

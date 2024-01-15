@@ -44,7 +44,7 @@ namespace CoreEx.Validation
         /// <exception cref="ValidationException">Thrown where a validation error(s) occurs.</exception>
         public static async Task<T?> ValidateValueAsync<T>(this T value, IValidator<T> validator, CancellationToken cancellationToken = default) where T : class
         {
-            (await (validator ?? throw new ArgumentNullException(nameof(validator))).ValidateAsync(value, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+            (await (validator.ThrowIfNull(nameof(validator))).ValidateAsync(value, cancellationToken).ConfigureAwait(false)).ThrowOnError();
             return value;
         }
 
@@ -76,8 +76,8 @@ namespace CoreEx.Validation
         /// <returns>The resulting <see cref="IResult"/></returns>
         public static TResult Requires<TResult, T>(this TResult result, Func<T> value, string name, LText? text = null) where TResult : IResult
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
-            if (string.IsNullOrEmpty(name)) throw new ArgumentNullException(nameof(name));
+            value.ThrowIfNull(nameof(value));
+            name.ThrowIfNullOrEmpty(nameof(name));
 
             if (result.IsSuccess && Comparer<T>.Default.Compare(value(), default!) == 0)
                 return (TResult)result.ToFailure(new ValidationException(MessageItem.CreateErrorMessage(name, MandatoryFormat, text ?? name.ToSentenceCase()!)));
@@ -123,7 +123,7 @@ namespace CoreEx.Validation
         /// <remarks>Where the <see cref="IValidationResult"/> <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
         public static async Task<Result<T>> ValidateAsync<T>(this Result<T> result, Func<IValidator<T>> validator, CancellationToken cancellationToken = default) where T : class
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
@@ -144,7 +144,7 @@ namespace CoreEx.Validation
         /// <remarks>Where the <see cref="IValidationResult"/> <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
         public static async Task<Result<T>> ValidateAsync<T>(this Task<Result<T>> result, Func<IValidator<T>> validator, CancellationToken cancellationToken = default) where T : class
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
@@ -165,7 +165,7 @@ namespace CoreEx.Validation
         /// <remarks>Where the <see cref="IValidationResult"/> <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
         public static async Task<Result<T>> ValidateAsync<T>(this Result<T> result, IValidator<T> validator, CancellationToken cancellationToken = default) where T : class
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
@@ -185,7 +185,7 @@ namespace CoreEx.Validation
         /// <remarks>Where the <see cref="IValidationResult"/> <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
         public static async Task<Result<T>> ValidateAsync<T>(this Task<Result<T>> result, IValidator<T> validator, CancellationToken cancellationToken = default) where T : class
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
@@ -203,7 +203,7 @@ namespace CoreEx.Validation
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> ValidateAsync(this Result result, Func<MultiValidator> multiValidator, CancellationToken cancellationToken = default)
         {
-            if (multiValidator == null) throw new ArgumentNullException(nameof(multiValidator));
+            multiValidator.ThrowIfNull(nameof(multiValidator));
 
             return await result.ThenAsync(async () =>
             {
@@ -222,7 +222,7 @@ namespace CoreEx.Validation
         /// <returns>The resulting <see cref="Result"/>.</returns>
         public static async Task<Result> ValidateAsync(this Task<Result> result, Func<MultiValidator> multiValidator, CancellationToken cancellationToken = default)
         {
-            if (multiValidator == null) throw new ArgumentNullException(nameof(multiValidator));
+            multiValidator.ThrowIfNull(nameof(multiValidator));
 
             return await result.ThenAsync(async () =>
             {
@@ -242,7 +242,7 @@ namespace CoreEx.Validation
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static async Task<Result<T>> ValidateAsync<T>(this Result<T> result, Func<T, MultiValidator> multiValidator, CancellationToken cancellationToken = default)
         {
-            if (multiValidator == null) throw new ArgumentNullException(nameof(multiValidator));
+            multiValidator.ThrowIfNull(nameof(multiValidator));
 
             return await result.ThenAsync(async v =>
             {
@@ -262,7 +262,7 @@ namespace CoreEx.Validation
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         public static async Task<Result<T>> ValidateAsync<T>(this Task<Result<T>> result, Func<T, MultiValidator> multiValidator, CancellationToken cancellationToken = default)
         {
-            if (multiValidator == null) throw new ArgumentNullException(nameof(multiValidator));
+            multiValidator.ThrowIfNull(nameof(multiValidator));
 
             return await result.ThenAsync(async v =>
             {

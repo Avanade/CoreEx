@@ -70,8 +70,7 @@ namespace CoreEx.RefData
         /// implements <see cref="IReadOnly"/> then <see cref="IReadOnly.MakeReadOnly"/> will be invoked during the add.</remarks>
         public void Add(TRef item)
         {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item));
+            item.ThrowIfNull(nameof(item));
 
             if (item.Id == null)
                 throw new ArgumentException("Id must not be null.", nameof(item));
@@ -92,7 +91,7 @@ namespace CoreEx.RefData
 
                 if (item.HasMappings)
                 {
-                    _mappingsDict ??= new();
+                    _mappingsDict ??= [];
 
                     // Make sure there are no duplicates.
                     foreach (var map in item.Mappings!)
@@ -218,7 +217,7 @@ namespace CoreEx.RefData
         public List<TRef> GetItems(ReferenceDataSortOrder? sortOrder = null, bool? isActive = null, bool? isValid = null)
         {
             if (_rdcId.IsEmpty)
-                return new List<TRef>();
+                return [];
 
             var list = from rd in _rdcId.Values select rd;
             if (isActive != null)

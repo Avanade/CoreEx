@@ -19,24 +19,33 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var j = 0;
             od.CollectionChanged += (_, e) =>
             {
-                Assert.AreEqual(NotifyCollectionChangedAction.Add, e.Action);
-                Assert.AreEqual(1, e.NewItems!.Count);
-                Assert.AreEqual(new KeyValuePair<string, int>("A", 88), e.NewItems[0]);
-                Assert.IsNull(e.OldItems);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+                    Assert.That(e.NewItems!, Has.Count.EqualTo(1));
+                });
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.NewItems![0], Is.EqualTo(new KeyValuePair<string, int>("A", 88)));
+                    Assert.That(e.OldItems, Is.Null);
+                });
                 i++;
             };
             od.PropertyChanged += (_, e) =>
             {
-                Assert.AreEqual("Count", e.PropertyName);
+                Assert.That(e.PropertyName, Is.EqualTo("Count"));
                 j++;
             };
 
             od.Add("a", 88);
-            Assert.AreEqual(1, i);
-            Assert.AreEqual(88, od["a"]);
-            Assert.IsTrue(od.TryGetValue("a", out var v));
-            Assert.AreEqual(88, v);
-            Assert.AreEqual(1, j);
+            Assert.Multiple(() =>
+            {
+                Assert.That(i, Is.EqualTo(1));
+                Assert.That(od["a"], Is.EqualTo(88));
+                Assert.That(od.TryGetValue("a", out var v), Is.True);
+                Assert.That(v, Is.EqualTo(88));
+                Assert.That(j, Is.EqualTo(1));
+            });
         }
 
         [Test]
@@ -47,24 +56,33 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var j = 0;
             od.CollectionChanged += (_, e) =>
             {
-                Assert.AreEqual(NotifyCollectionChangedAction.Add, e.Action);
-                Assert.AreEqual(1, e.NewItems!.Count);
-                Assert.AreEqual(new KeyValuePair<string, int>("A", 88), e.NewItems[0]);
-                Assert.IsNull(e.OldItems);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+                    Assert.That(e.NewItems!, Has.Count.EqualTo(1));
+                });
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.NewItems![0], Is.EqualTo(new KeyValuePair<string, int>("A", 88)));
+                    Assert.That(e.OldItems, Is.Null);
+                });
                 i++;
             };
             od.PropertyChanged += (_, e) =>
             {
-                Assert.AreEqual("Count", e.PropertyName);
+                Assert.That(e.PropertyName, Is.EqualTo("Count"));
                 j++;
             };
 
             od["a"] = 88;
-            Assert.AreEqual(1, i);
-            Assert.AreEqual(88, od["a"]);
-            Assert.IsTrue(od.TryGetValue("a", out var v));
-            Assert.AreEqual(88, v);
-            Assert.AreEqual(1, j);
+            Assert.Multiple(() =>
+            {
+                Assert.That(i, Is.EqualTo(1));
+                Assert.That(od["a"], Is.EqualTo(88));
+                Assert.That(od.TryGetValue("a", out var v), Is.True);
+                Assert.That(v, Is.EqualTo(88));
+                Assert.That(j, Is.EqualTo(1));
+            });
         }
 
         [Test]
@@ -77,25 +95,34 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var j = 0;
             od.CollectionChanged += (_, e) =>
             {
-                Assert.AreEqual(NotifyCollectionChangedAction.Replace, e.Action);
-                Assert.AreEqual(1, e.OldItems!.Count);
-                Assert.AreEqual(new KeyValuePair<string, int>("A", 99), e.OldItems[0]);
-                Assert.AreEqual(1, e.NewItems!.Count);
-                Assert.AreEqual(new KeyValuePair<string, int>("A", 88), e.NewItems[0]);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.Action, Is.EqualTo(NotifyCollectionChangedAction.Replace));
+                    Assert.That(e.OldItems!, Has.Count.EqualTo(1));
+                });
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.OldItems![0], Is.EqualTo(new KeyValuePair<string, int>("A", 99)));
+                    Assert.That(e.NewItems!, Has.Count.EqualTo(1));
+                });
+                Assert.That(e.NewItems![0], Is.EqualTo(new KeyValuePair<string, int>("A", 88)));
                 i++;
             };
             od.PropertyChanged += (_, e) =>
             {
-                Assert.AreEqual("Count", e.PropertyName);
+                Assert.That(e.PropertyName, Is.EqualTo("Count"));
                 j++;
             };
 
             od["a"] = 88;
-            Assert.AreEqual(1, i);
-            Assert.AreEqual(88, od["a"]);
-            Assert.IsTrue(od.TryGetValue("a", out var v));
-            Assert.AreEqual(88, v);
-            Assert.AreEqual(1, j);
+            Assert.Multiple(() =>
+            {
+                Assert.That(i, Is.EqualTo(1));
+                Assert.That(od["a"], Is.EqualTo(88));
+                Assert.That(od.TryGetValue("a", out var v), Is.True);
+                Assert.That(v, Is.EqualTo(88));
+                Assert.That(j, Is.EqualTo(1));
+            });
         }
 
         [Test]
@@ -108,24 +135,33 @@ namespace CoreEx.Test.Framework.Entities.Extended
             var j = 0;
             od.CollectionChanged += (_, e) =>
             {
-                Assert.AreEqual(NotifyCollectionChangedAction.Remove, e.Action);
-                Assert.AreEqual(1, e.OldItems!.Count);
-                Assert.AreEqual(new KeyValuePair<string, int>("A", 99), e.OldItems[0]);
-                Assert.IsNull(e.NewItems);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+                    Assert.That(e.OldItems!, Has.Count.EqualTo(1));
+                });
+                Assert.Multiple(() =>
+                {
+                    Assert.That(e.OldItems![0], Is.EqualTo(new KeyValuePair<string, int>("A", 99)));
+                    Assert.That(e.NewItems, Is.Null);
+                });
                 i++;
             };
             od.PropertyChanged += (_, e) =>
             {
-                Assert.AreEqual("Count", e.PropertyName);
+                Assert.That(e.PropertyName, Is.EqualTo("Count"));
                 j++;
             };
 
             od.Remove("a");
-            Assert.AreEqual(1, i);
+            Assert.That(i, Is.EqualTo(1));
             Assert.Throws<KeyNotFoundException>(() => { var x = od["a"]; });
-            Assert.IsFalse(od.TryGetValue("a", out var v));
-            Assert.AreEqual(0, v);
-            Assert.AreEqual(1, j);
+            Assert.Multiple(() =>
+            {
+                Assert.That(od.TryGetValue("a", out var v), Is.False);
+                Assert.That(v, Is.EqualTo(0));
+                Assert.That(j, Is.EqualTo(1));
+            });
         }
 
         [Test]
@@ -141,39 +177,54 @@ namespace CoreEx.Test.Framework.Entities.Extended
             {
                 if (i == 0)
                 {
-                    Assert.AreEqual(NotifyCollectionChangedAction.Remove, e.Action);
-                    Assert.AreEqual(2, e.OldItems!.Count);
-                    Assert.AreEqual(new KeyValuePair<string, int>("A", 99), e.OldItems[0]);
-                    Assert.AreEqual(new KeyValuePair<string, int>("B", 98), e.OldItems[1]);
-                    Assert.IsNull(e.NewItems);
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(e.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+                        Assert.That(e.OldItems!, Has.Count.EqualTo(2));
+                    });
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(e.OldItems![0], Is.EqualTo(new KeyValuePair<string, int>("A", 99)));
+                        Assert.That(e.OldItems![1], Is.EqualTo(new KeyValuePair<string, int>("B", 98)));
+                        Assert.That(e.NewItems, Is.Null);
+                    });
                 }
                 else
                 {
-                    Assert.AreEqual(NotifyCollectionChangedAction.Reset, e.Action);
-                    Assert.IsNull(e.OldItems);
-                    Assert.IsNull(e.NewItems);
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(e.Action, Is.EqualTo(NotifyCollectionChangedAction.Reset));
+                        Assert.That(e.OldItems, Is.Null);
+                        Assert.That(e.NewItems, Is.Null);
+                    });
                 }
 
                 i++;
             };
             od.PropertyChanged += (_, e) =>
             {
-                Assert.AreEqual("Count", e.PropertyName);
+                Assert.That(e.PropertyName, Is.EqualTo("Count"));
                 j++;
             };
 
             od.Clear();
-            Assert.AreEqual(2, i);
+            Assert.That(i, Is.EqualTo(2));
             Assert.Throws<KeyNotFoundException>(() => { var x = od["a"]; });
-            Assert.IsFalse(od.TryGetValue("a", out var v));
-            Assert.AreEqual(0, v);
-            Assert.AreEqual(1, j);
+            Assert.Multiple(() =>
+            {
+                Assert.That(od.TryGetValue("a", out var v), Is.False);
+                Assert.That(v, Is.EqualTo(0));
+                Assert.That(j, Is.EqualTo(1));
+            });
 
             // A subsequent clear should not raise any events.
             i = j = 0;
             od.Clear();
-            Assert.AreEqual(0, i);
-            Assert.AreEqual(0, j);
+            Assert.Multiple(() =>
+            {
+                Assert.That(i, Is.EqualTo(0));
+                Assert.That(j, Is.EqualTo(0));
+            });
         }
     }
 }

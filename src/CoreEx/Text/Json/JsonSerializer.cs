@@ -25,7 +25,8 @@ namespace CoreEx.Text.Json
         ///  <item><description><see cref="Stj.JsonSerializerOptions.WriteIndented"/> = <c>false</c>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.DictionaryKeyPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
         ///  <item><description><see cref="Stj.JsonSerializerOptions.PropertyNamingPolicy"/> = <see cref="SubstituteNamingPolicy.Substitute"/>.</description></item>
-        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/>, <see cref="ReferenceDataConverterFactory"/> and <see cref="CollectionResultConverterFactory"/>.</description></item>
+        ///  <item><description><see cref="Stj.JsonSerializerOptions.Converters"/> = <see cref="JsonStringEnumConverter"/>, <see cref="ExceptionConverterFactory"/>, <see cref="ReferenceDataConverterFactory"/>,
+        ///  <see cref="CollectionResultConverterFactory"/>, <see cref="ResultConverterFactory"/> and <see cref="CompositeKeyConverterFactory"/>.</description></item>
         /// </list>
         /// </remarks>
         public static Stj.JsonSerializerOptions DefaultOptions { get; set; } = new Stj.JsonSerializerOptions(Stj.JsonSerializerDefaults.Web)
@@ -34,7 +35,7 @@ namespace CoreEx.Text.Json
             WriteIndented = false,
             DictionaryKeyPolicy = SubstituteNamingPolicy.Substitute,
             PropertyNamingPolicy = SubstituteNamingPolicy.Substitute,
-            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new ReferenceDataConverterFactory(), new CollectionResultConverterFactory(), new ResultConverterFactory() }
+            Converters = { new JsonStringEnumConverter(), new ExceptionConverterFactory(), new ReferenceDataConverterFactory(), new CollectionResultConverterFactory(), new ResultConverterFactory(), new CompositeKeyConverterFactory() }
         };
 
         /// <summary>
@@ -102,10 +103,7 @@ namespace CoreEx.Text.Json
         /// <inheritdoc/>
         bool IJsonSerializer.TryGetJsonName(MemberInfo memberInfo, [NotNullWhen(true)] out string? jsonName)
         {
-            if (memberInfo == null)
-                throw new ArgumentNullException(nameof(memberInfo));
-
-            var ji = memberInfo.GetCustomAttribute<JsonIgnoreAttribute>();
+            var ji = memberInfo.ThrowIfNull(nameof(memberInfo)).GetCustomAttribute<JsonIgnoreAttribute>();
             if (ji != null)
             {
                 jsonName = null;

@@ -36,23 +36,30 @@ namespace CoreEx.Test.Framework.RefData
             r.Code = "X";
             r.Text = "XX";
 
-            Assert.AreEqual(1, r.Id);
-            Assert.AreEqual(1, ((ReferenceDataBase<int>)r).Id);
-            Assert.AreEqual(1, ((ReferenceDataBase)r).Id);
-            Assert.AreEqual(1, ((IReferenceData)r).Id);
-            Assert.AreEqual(1, ((IIdentifier)r).Id);
-            Assert.AreEqual("X", r.Code);
-            Assert.AreEqual("XX", r.Text);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(1));
+                Assert.That(((ReferenceDataBase<int>)r).Id, Is.EqualTo(1));
+                Assert.That(((ReferenceDataBase)r).Id, Is.EqualTo(1));
+                Assert.That(((IReferenceData)r).Id, Is.EqualTo(1));
+                Assert.That(((IIdentifier)r).Id, Is.EqualTo(1));
+                Assert.That(r.Code, Is.EqualTo("X"));
+                Assert.That(r.Text, Is.EqualTo("XX"));
 
-            Assert.AreEqual(typeof(int), ((IIdentifier)r).IdType);
+                Assert.That(((IIdentifier)r).IdType, Is.EqualTo(typeof(int)));
+            });
 
             var ir = (IReferenceData)r;
-            Assert.IsTrue(ir.IsValid);
-            ir.SetInvalid();
-            Assert.IsFalse(ir.IsValid);
-            Assert.AreSame(ir.IdType, typeof(int));
+            Assert.That(ir.IsValid, Is.True);
 
-            Assert.AreEqual("{\"id\":1,\"code\":\"X\",\"text\":\"XX\",\"isActive\":true}", new CoreEx.Text.Json.ReferenceDataContentJsonSerializer().Serialize(r));
+            ir.SetInvalid();
+            Assert.Multiple(() =>
+            {
+                Assert.That(ir.IsValid, Is.False);
+                Assert.That(typeof(int), Is.SameAs(ir.IdType));
+            });
+
+            Assert.That(new CoreEx.Text.Json.ReferenceDataContentJsonSerializer().Serialize(r), Is.EqualTo("{\"id\":1,\"code\":\"X\",\"text\":\"XX\",\"isActive\":true}"));
         }
 
         [Test]
@@ -63,12 +70,15 @@ namespace CoreEx.Test.Framework.RefData
             r.Code = "X";
             r.Text = "XX";
 
-            Assert.AreEqual(1, r.Id);
-            Assert.AreEqual(1, ((IReferenceData)r).Id);
-            Assert.AreEqual(1, ((ReferenceDataBaseEx<int, RefData>)r).Id);
-            Assert.AreEqual(1, ((IIdentifier)r).Id);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(1));
+                Assert.That(((IReferenceData)r).Id, Is.EqualTo(1));
+                Assert.That(((ReferenceDataBaseEx<int, RefData>)r).Id, Is.EqualTo(1));
+                Assert.That(((IIdentifier)r).Id, Is.EqualTo(1));
 
-            Assert.AreEqual(typeof(int), ((IIdentifier)r).IdType);
+                Assert.That(((IIdentifier)r).IdType, Is.EqualTo(typeof(int)));
+            });
 
             // Immutable.
             Assert.Throws<InvalidOperationException>(() => r.Id = 2);
@@ -76,22 +86,28 @@ namespace CoreEx.Test.Framework.RefData
             r.Text = "YY";
 
             var r2 = r;
-            Assert.IsTrue(r == r2);
+            Assert.That(r, Is.EqualTo(r2));
 
             r2 = (RefData)r.Clone();
-            Assert.IsTrue(r == r2);
-            Assert.IsTrue(r.Equals(r2));
-            Assert.IsTrue(r.Equals((object)r2));
-            Assert.AreEqual(r.GetHashCode(), r2.GetHashCode());
+            Assert.That(r, Is.EqualTo(r2));
+            Assert.That(r, Is.EqualTo(r2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r, Is.EqualTo((object)r2));
+                Assert.That(r2.GetHashCode(), Is.EqualTo(r.GetHashCode()));
+            });
 
             r2 = new RefData { Id = 1, Code = "X", Text = "XXXX" };
-            Assert.IsFalse(r == r2);
-            Assert.IsFalse(r.Equals(r2));
-            Assert.IsFalse(r.Equals((object)r2));
-            Assert.AreNotEqual(r.GetHashCode(), r2.GetHashCode());
+            Assert.That(r, Is.Not.EqualTo(r2));
+            Assert.That(r, Is.Not.EqualTo(r2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r, Is.Not.EqualTo((object)r2));
+                Assert.That(r2.GetHashCode(), Is.Not.EqualTo(r.GetHashCode()));
+            });
 
             r.MakeReadOnly();
-            Assert.IsTrue(r.IsReadOnly);
+            Assert.That(r.IsReadOnly, Is.True);
             Assert.Throws<InvalidOperationException>(() => r.Text = "XXXXX");
         }
 
@@ -117,22 +133,28 @@ namespace CoreEx.Test.Framework.RefData
             r.EndDate = r.EndDate.Value.AddDays(1);
 
             var r2 = r;
-            Assert.IsTrue(r == r2);
+            Assert.That(r, Is.EqualTo(r2));
 
             r2 = (RefDataEx)r.Clone();
-            Assert.IsTrue(r == r2);
-            Assert.IsTrue(r.Equals(r2));
-            Assert.IsTrue(r.Equals((object)r2));
-            Assert.AreEqual(r.GetHashCode(), r2.GetHashCode());
+            Assert.That(r, Is.EqualTo(r2));
+            Assert.That(r, Is.EqualTo(r2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r, Is.EqualTo((object)r2));
+                Assert.That(r2.GetHashCode(), Is.EqualTo(r.GetHashCode()));
+            });
 
             r2 = new RefDataEx { Id = "@", Code = "X", Text = "XX", Description = "XXX", IsActive = true, StartDate = new DateTime(2020, 01, 01), EndDate = new DateTime(2021, 12, 31) };
-            Assert.IsFalse(r == r2);
-            Assert.IsFalse(r.Equals(r2));
-            Assert.IsFalse(r.Equals((object)r2));
-            Assert.AreNotEqual(r.GetHashCode(), r2.GetHashCode());
+            Assert.That(r, Is.Not.EqualTo(r2));
+            Assert.That(r, Is.Not.EqualTo(r2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r, Is.Not.EqualTo((object)r2));
+                Assert.That(r2.GetHashCode(), Is.Not.EqualTo(r.GetHashCode()));
+            });
 
             r.MakeReadOnly();
-            Assert.IsTrue(r.IsReadOnly);
+            Assert.That(r.IsReadOnly, Is.True);
             Assert.Throws<InvalidOperationException>(() => r.Text = "Bananas");
             Assert.Throws<InvalidOperationException>(() => r.IsActive = true);
         }
@@ -141,32 +163,41 @@ namespace CoreEx.Test.Framework.RefData
         public void Exercise_RefDataEx_Mappings()
         {
             var r = new RefDataEx();
-            Assert.IsTrue(r.IsInitial);
-            Assert.IsFalse(r.HasMappings);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsInitial, Is.True);
+                Assert.That(r.HasMappings, Is.False);
+            });
 
             r.SetMapping("X", 1);
-            Assert.IsFalse(r.IsInitial);
-            Assert.IsTrue(r.HasMappings);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsInitial, Is.False);
+                Assert.That(r.HasMappings, Is.True);
 
-            Assert.IsTrue(r.TryGetMapping("X", out int val));
-            Assert.AreEqual(1, val);
-            Assert.AreEqual(1, r.GetMapping<int>("X"));
+                Assert.That(r.TryGetMapping("X", out int val), Is.True);
+                Assert.That(val, Is.EqualTo(1));
+                Assert.That(r.GetMapping<int>("X"), Is.EqualTo(1));
+            });
 
             var r2 = (RefDataEx)r.Clone();
-            Assert.IsTrue(r2.HasMappings);
-            Assert.IsTrue(r2.TryGetMapping("X", out val));
-            Assert.AreEqual(1, val);
-            Assert.AreEqual(1, r2.GetMapping<int>("X"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r2.HasMappings, Is.True);
+                Assert.That(r2.TryGetMapping("X", out int val), Is.True);
+                Assert.That(val, Is.EqualTo(1));
+                Assert.That(r2.GetMapping<int>("X"), Is.EqualTo(1));
+            });
 
             r2 = new RefDataEx();
             r2.SetMapping("X", 1);
-            Assert.IsTrue(r == r2);
+            Assert.That(r, Is.EqualTo(r2));
 
             r2.SetMapping("Y", 2);
-            Assert.IsFalse(r == r2);
+            Assert.That(r, Is.Not.EqualTo(r2));
 
             r.MakeReadOnly();
-            Assert.IsTrue(r.IsReadOnly);
+            Assert.That(r.IsReadOnly, Is.True);
             Assert.Throws<InvalidOperationException>(() => r.SetMapping("Y", 2));
         }
 
@@ -174,39 +205,63 @@ namespace CoreEx.Test.Framework.RefData
         public void IsValid_IsActive()
         {
             var rd = new RefDataEx();
-            Assert.IsTrue(rd.IsActive);
-            Assert.IsTrue(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.True);
+                Assert.That(rd.IsValid, Is.True);
+            });
 
             rd.IsActive = false;
-            Assert.IsFalse(rd.IsActive);
-            Assert.IsTrue(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.False);
+                Assert.That(rd.IsValid, Is.True);
+            });
 
             rd.IsActive = true;
             rd.EndDate = new DateTime(2000, 01, 01);
-            Assert.IsFalse(rd.IsActive);
-            Assert.IsTrue(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.False);
+                Assert.That(rd.IsValid, Is.True);
+            });
 
             rd.EndDate = null;
-            Assert.IsTrue(rd.IsActive);
-            Assert.IsTrue(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.True);
+                Assert.That(rd.IsValid, Is.True);
+            });
 
             rd.StartDate = DateTime.UtcNow.AddDays(20);
-            Assert.IsFalse(rd.IsActive);
-            Assert.IsTrue(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.False);
+                Assert.That(rd.IsValid, Is.True);
+            });
 
             rd.StartDate = DateTime.UtcNow.AddDays(-20);
             rd.EndDate = DateTime.UtcNow.AddDays(20);
-            Assert.IsTrue(rd.IsActive);
-            Assert.IsTrue(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.True);
+                Assert.That(rd.IsValid, Is.True);
+            });
 
             // Set invalid explicitly; makes it inactive; can not reset.
             ((IReferenceData)rd).SetInvalid();
-            Assert.IsFalse(rd.IsActive);
-            Assert.IsFalse(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.False);
+                Assert.That(rd.IsValid, Is.False);
+            });
 
             rd.IsActive = true;
-            Assert.IsFalse(rd.IsActive);
-            Assert.IsFalse(rd.IsValid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rd.IsActive, Is.False);
+                Assert.That(rd.IsValid, Is.False);
+            });
         }
 
         [Test]
@@ -221,11 +276,11 @@ namespace CoreEx.Test.Framework.RefData
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
             var rd = new RefDataEx { IsActive = true };
-            Assert.IsTrue(rd.IsValid);
+            Assert.That(rd.IsValid, Is.True);
 
             rd.StartDate = new DateTime(1999, 01, 01);
             rd.EndDate = new DateTime(1999, 12, 31);
-            Assert.IsTrue(rd.IsValid);
+            Assert.That(rd.IsValid, Is.True);
         }
 
         [Test]
@@ -240,33 +295,36 @@ namespace CoreEx.Test.Framework.RefData
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
             var rd = new RefDataEx { IsActive = true};
-            Assert.IsTrue(rd.IsValid);
+            Assert.That(rd.IsValid, Is.True);
 
             rd.StartDate = new DateTime(1999, 01, 01);
             rd.EndDate = new DateTime(1999, 12, 31);
-            Assert.IsTrue(rd.IsValid);
+            Assert.That(rd.IsValid, Is.True);
         }
 
         [Test]
         public void Casting_FromRefData()
         {
-            Assert.AreEqual(0, (int)(RefData)null!);
-            Assert.AreEqual(null, (string?)(RefData)null!);
-            Assert.AreEqual(0, (int)new RefData());
-            Assert.AreEqual(null, (string?)new RefData());
-            Assert.AreEqual(1, (int)new RefData { Id = 1, Code = "X", Text = "XX" });
-            Assert.AreEqual("X", (string?)new RefData { Id = 1, Code = "X", Text = "XX" });
-            Assert.AreEqual(0, (int)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" });
-            Assert.AreEqual("XX", (string?)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" });
+            Assert.Multiple(() =>
+            {
+                Assert.That((int)(RefData)null!, Is.EqualTo(0));
+                Assert.That((string?)(RefData)null!, Is.EqualTo(null));
+                Assert.That((int)new RefData(), Is.EqualTo(0));
+                Assert.That((string?)new RefData(), Is.EqualTo(null));
+                Assert.That((int)new RefData { Id = 1, Code = "X", Text = "XX" }, Is.EqualTo(1));
+                Assert.That((string?)new RefData { Id = 1, Code = "X", Text = "XX" }, Is.EqualTo("X"));
+                Assert.That((int)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" }, Is.EqualTo(0));
+                Assert.That((string?)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" }, Is.EqualTo("XX"));
 
-            Assert.AreEqual(null, (int?)(RefDataEx)null!);
-            Assert.AreEqual(null, (string?)(RefDataEx)null!);
-            Assert.AreEqual(null, (int?)new RefDataEx());
-            Assert.AreEqual(null, (string?)new RefDataEx());
-            Assert.AreEqual(1, (int?)new RefData { Id = 1, Code = "X", Text = "XX" });
-            Assert.AreEqual("X", (string?)new RefData { Id = 1, Code = "X", Text = "XX" });
-            Assert.AreEqual(null, (int?)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" });
-            Assert.AreEqual("XX", (string?)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" });
+                Assert.That((int?)(RefDataEx)null!, Is.EqualTo(null));
+                Assert.That((string?)(RefDataEx)null!, Is.EqualTo(null));
+                Assert.That((int?)new RefDataEx(), Is.EqualTo(null));
+                Assert.That((string?)new RefDataEx(), Is.EqualTo(null));
+                Assert.That((int?)new RefData { Id = 1, Code = "X", Text = "XX" }, Is.EqualTo(1));
+                Assert.That((string?)new RefData { Id = 1, Code = "X", Text = "XX" }, Is.EqualTo("X"));
+                Assert.That((int?)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" }, Is.EqualTo(null));
+                Assert.That((string?)new RefDataEx { Id = "X", Code = "XX", Text = "XXX" }, Is.EqualTo("XX"));
+            });
         }
 
         [Test]
@@ -279,13 +337,16 @@ namespace CoreEx.Test.Framework.RefData
 
             var r = new RefDataEx { Id = "X", Code = "XX" };
             rc.Add(r);
-            Assert.AreEqual(1, rc.Count);
-            Assert.AreSame(r, rc["XX"]);
-            Assert.AreSame(r, rc["xx"]);
-            Assert.AreSame(r, rc.GetByCode("XX"));
-            Assert.AreSame(r, rc.GetByCode("xx"));
-            Assert.AreSame(r, rc.GetById("X"));
-            Assert.IsTrue(r.IsReadOnly);
+            Assert.That(rc, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc["XX"], Is.SameAs(r));
+                Assert.That(rc["xx"], Is.SameAs(r));
+                Assert.That(rc.GetByCode("XX"), Is.SameAs(r));
+                Assert.That(rc.GetByCode("xx"), Is.SameAs(r));
+                Assert.That(rc.GetById("X"), Is.SameAs(r));
+                Assert.That(r.IsReadOnly, Is.True);
+            });
 
             Assert.Throws<ArgumentException>(() => rc.Add(r))!.Message.Should().StartWith("Item already exists within the collection.");
             Assert.Throws<ArgumentException>(() => rc.Add(new RefDataEx { Id = "X", Code = "YY" }))!.Message.Should().StartWith("Item with Id 'X' already exists within the collection.");
@@ -294,66 +355,75 @@ namespace CoreEx.Test.Framework.RefData
 
             r = new RefDataEx { Id = "Y", Code = "YY" };
             rc.Add(r);
-            Assert.AreEqual(2, rc.Count);
-            Assert.AreSame(r, rc["YY"]);
-            Assert.AreSame(r, rc["yy"]);
-            Assert.AreSame(r, rc.GetByCode("YY"));
-            Assert.AreSame(r, rc.GetByCode("yy"));
-            Assert.AreSame(r, rc.GetById("Y"));
-            Assert.IsTrue(r.IsReadOnly);
+            Assert.That(rc, Has.Count.EqualTo(2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc["YY"], Is.SameAs(r));
+                Assert.That(rc["yy"], Is.SameAs(r));
+                Assert.That(rc.GetByCode("YY"), Is.SameAs(r));
+                Assert.That(rc.GetByCode("yy"), Is.SameAs(r));
+                Assert.That(rc.GetById("Y"), Is.SameAs(r));
+                Assert.That(r.IsReadOnly, Is.True);
+            });
         }
 
         [Test]
         public void Collection_Lists()
         {
             var rc = new RefDataCollection { new RefData { Id = 1, Code = "Z", Text = "A", SortOrder = 2 }, new RefData { Id = 2, Code = "A", Text = "B", IsActive = false, SortOrder = 4 }, new RefData { Id = 3, Code = "Y", Text = "D", SortOrder = 1 }, new RefData { Id = 4, Code = "B", Text = "C", SortOrder = 3 } };
-            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 2, 3, 4 }));
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 2, 4, 3, 1 }));
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 2, 4, 3 }));
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 3, 1, 4, 2 }));
+            });
 
             rc.SortOrder = ReferenceDataSortOrder.Id;
-            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 2, 3, 4 }));
             rc.SortOrder = ReferenceDataSortOrder.Code;
-            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 2, 4, 3, 1 }));
             rc.SortOrder = ReferenceDataSortOrder.Text;
-            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 2, 4, 3 }));
             rc.SortOrder = ReferenceDataSortOrder.SortOrder;
-            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 3, 1, 4, 2 }));
 
             rc.SortOrder = ReferenceDataSortOrder.Id;
-            Assert.AreEqual(new int[] { 1, 3, 4 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 3, 4 }));
             rc.SortOrder = ReferenceDataSortOrder.Code;
-            Assert.AreEqual(new int[] { 4, 3, 1 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 4, 3, 1 }));
             rc.SortOrder = ReferenceDataSortOrder.Text;
-            Assert.AreEqual(new int[] { 1, 4, 3 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 4, 3 }));
             rc.SortOrder = ReferenceDataSortOrder.SortOrder;
-            Assert.AreEqual(new int[] { 3, 1, 4 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 3, 1, 4 }));
 
             ((IReferenceData)rc.GetById(1)!).SetInvalid();
 
             rc.SortOrder = ReferenceDataSortOrder.Id;
-            Assert.AreEqual(new int[] { 2, 3, 4 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 2, 3, 4 }));
             rc.SortOrder = ReferenceDataSortOrder.Code;
-            Assert.AreEqual(new int[] { 2, 4, 3 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 2, 4, 3 }));
             rc.SortOrder = ReferenceDataSortOrder.Text;
-            Assert.AreEqual(new int[] { 2, 4, 3 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 2, 4, 3 }));
             rc.SortOrder = ReferenceDataSortOrder.SortOrder;
-            Assert.AreEqual(new int[] { 3, 4, 2 }, rc.AllList.Select(x => x.Id).ToArray());
+            Assert.That(rc.AllList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 3, 4, 2 }));
 
             rc.SortOrder = ReferenceDataSortOrder.Id;
-            Assert.AreEqual(new int[] { 3, 4 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 3, 4 }));
             rc.SortOrder = ReferenceDataSortOrder.Code;
-            Assert.AreEqual(new int[] { 4, 3 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 4, 3 }));
             rc.SortOrder = ReferenceDataSortOrder.Text;
-            Assert.AreEqual(new int[] { 4, 3 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 4, 3 }));
             rc.SortOrder = ReferenceDataSortOrder.SortOrder;
-            Assert.AreEqual(new int[] { 3, 4 }, rc.ActiveList.Select(x => x.Id).ToArray());
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc.ActiveList.Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 3, 4 }));
 
-            Assert.AreEqual(new int[] { 1, 2, 3, 4 }, rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 2, 4, 3, 1 }, rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 1, 2, 4, 3 }, rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray());
-            Assert.AreEqual(new int[] { 3, 1, 4, 2 }, rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray());
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.Id, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 2, 3, 4 }));
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.Code, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 2, 4, 3, 1 }));
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.Text, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 1, 2, 4, 3 }));
+                Assert.That(rc.GetItems(ReferenceDataSortOrder.SortOrder, null, null).Select(x => x.Id).ToArray(), Is.EqualTo(new int[] { 3, 1, 4, 2 }));
+            });
         }
 
         [Test]
@@ -365,28 +435,40 @@ namespace CoreEx.Test.Framework.RefData
             r.SetMapping("SAP", 4300);
 
             rc.Add(r);
-            Assert.IsTrue(rc.ContainsMapping("D365", "A-1"));
-            Assert.IsTrue(rc.ContainsMapping("SAP", 4300));
-            Assert.IsFalse(rc.ContainsMapping("OTHER", Guid.NewGuid()));
-            Assert.AreSame(r, rc.GetByMapping("D365", "A-1"));
-            Assert.AreSame(r, rc.GetByMapping("SAP", 4300));
-            Assert.IsNull(rc.GetByMapping("OTHER", Guid.NewGuid()));
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc.ContainsMapping("D365", "A-1"), Is.True);
+                Assert.That(rc.ContainsMapping("SAP", 4300), Is.True);
+                Assert.That(rc.ContainsMapping("OTHER", Guid.NewGuid()), Is.False);
+                Assert.That(rc.GetByMapping("D365", "A-1"), Is.SameAs(r));
+                Assert.That(rc.GetByMapping("SAP", 4300), Is.SameAs(r));
+                Assert.That(rc.GetByMapping("OTHER", Guid.NewGuid()), Is.Null);
+                Assert.That(rc.TryGetByMapping("SAP", 4300, out RefData? r2), Is.True);
+                Assert.That(r2, Is.SameAs(r));
+            });
 
-            Assert.IsTrue(rc.TryGetByMapping("SAP", 4300, out RefData? r2));
-            Assert.AreSame(r, r2);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc.TryGetByMapping("OTHER", Guid.NewGuid(), out RefData? r2), Is.False);
+                Assert.That(r2, Is.Null);
+            });
 
-            Assert.IsFalse(rc.TryGetByMapping("OTHER", Guid.NewGuid(), out r2));
-            Assert.IsNull(r2);
+            var r2 = new RefData { Id = 2, Code = "B" };
+            Assert.Multiple(() =>
+            {
+                r2.SetMapping("D365", "A-2");
+                r2.SetMapping("SAP", 4301);
+                rc.Add(r2);
+            });
 
-            r2 = new RefData { Id = 2, Code = "B" };
-            r2.SetMapping("D365", "A-2");
-            r2.SetMapping("SAP", 4301);
-            rc.Add(r2);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc.ContainsMapping("D365", "A-1"), Is.True);
+                Assert.That(rc.ContainsMapping("D365", "A-2"), Is.True);
 
-            Assert.IsTrue(rc.ContainsMapping("D365", "A-1"));
-            Assert.IsTrue(rc.ContainsMapping("D365", "A-2"));
-            Assert.AreSame(r, rc.GetByMapping("D365", "A-1"));
-            Assert.AreSame(r2, rc.GetByMapping("D365", "A-2"));
+                Assert.That(rc.GetByMapping("D365", "A-1"), Is.SameAs(r));
+                Assert.That(rc.GetByMapping("D365", "A-2"), Is.SameAs(r2));
+            });
 
             var r3 = new RefData { Id = 3, Code = "C" };
             r3.SetMapping("D365", "A-2");
@@ -407,30 +489,42 @@ namespace CoreEx.Test.Framework.RefData
 
             Assert.Throws<InvalidOperationException>(() => o.Register<RefDataProvider>())!.Message.Should().StartWith("Type 'CoreEx.Test.Framework.RefData.RefData' cannot be added as name 'RefData' already associated with previously added Type 'CoreEx.Test.Framework.RefData.RefData'.");
 
-            Assert.IsInstanceOf(typeof(RefDataCollection), o[typeof(RefData)]);
-            Assert.IsInstanceOf(typeof(RefDataExCollection), o[typeof(RefDataEx)]);
-            Assert.IsNull(o[typeof(string)]);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o[typeof(RefData)], Is.InstanceOf(typeof(RefDataCollection)));
+                Assert.That(o[typeof(RefDataEx)], Is.InstanceOf(typeof(RefDataExCollection)));
+                Assert.That(o[typeof(string)], Is.Null);
 
-            Assert.IsInstanceOf(typeof(RefDataCollection), o["refdata"]);
-            Assert.IsInstanceOf(typeof(RefDataExCollection), o[nameof(RefDataEx)]);
-            Assert.IsNull(o["bananas"]);
+                Assert.That(o["refdata"], Is.InstanceOf(typeof(RefDataCollection)));
+                Assert.That(o[nameof(RefDataEx)], Is.InstanceOf(typeof(RefDataExCollection)));
+                Assert.That(o["bananas"], Is.Null);
+            });
 
             // Simulate access.
-            Assert.AreEqual(1, o[typeof(RefData)]!.GetByCode("A")!.Id);
-            Assert.AreEqual("BB", o[typeof(RefDataEx)]!.GetByCode("BBB")!.Id);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o[typeof(RefData)]!.GetByCode("A")!.Id, Is.EqualTo(1));
+                Assert.That(o[typeof(RefDataEx)]!.GetByCode("BBB")!.Id, Is.EqualTo("BB"));
+            });
 
             // Provider not wired up to execution context should not throw an exception; all will be invalid.
             var r = (RefData)1;
-            Assert.IsNotNull(r);
-            Assert.AreEqual(1, r.Id);
-            Assert.AreEqual(null, r.Code);
-            Assert.IsFalse(r.IsValid);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(1));
+                Assert.That(r.Code, Is.EqualTo(null));
+                Assert.That(r.IsValid, Is.False);
+            });
 
             r = (RefData)"A";
-            Assert.IsNotNull(r);
-            Assert.AreEqual(0, r.Id);
-            Assert.AreEqual("A", r.Code);
-            Assert.IsFalse(r.IsValid);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Id, Is.EqualTo(0));
+                Assert.That(r.Code, Is.EqualTo("A"));
+                Assert.That(r.IsValid, Is.False);
+            });
         }
 
         [Test]
@@ -457,20 +551,29 @@ namespace CoreEx.Test.Framework.RefData
                 r2 = (RefData)"C";
             }
 
-            Assert.IsNotNull(r);
-            Assert.AreEqual(1, r!.Id);
-            Assert.AreEqual("A", r.Code);
-            Assert.IsTrue(r.IsValid);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r!.Id, Is.EqualTo(1));
+                Assert.That(r.Code, Is.EqualTo("A"));
+                Assert.That(r.IsValid, Is.True);
 
-            Assert.IsNotNull(r1);
-            Assert.AreEqual(2, r1!.Id);
-            Assert.AreEqual("B", r1.Code);
-            Assert.IsTrue(r1.IsValid);
+                Assert.That(r1, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(r1!.Id, Is.EqualTo(2));
+                Assert.That(r1.Code, Is.EqualTo("B"));
+                Assert.That(r1.IsValid, Is.True);
 
-            Assert.IsNotNull(r2);
-            Assert.AreEqual(0, r2!.Id);
-            Assert.AreEqual("C", r2.Code);
-            Assert.IsFalse(r2.IsValid);
+                Assert.That(r2, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(r2!.Id, Is.EqualTo(0));
+                Assert.That(r2.Code, Is.EqualTo("C"));
+                Assert.That(r2.IsValid, Is.False);
+            });
         }
 
         [Test]
@@ -505,24 +608,33 @@ namespace CoreEx.Test.Framework.RefData
         public void SidList()
         {
             var sl = new ReferenceDataCodeList<RefData>("A", "B");
-            Assert.AreEqual("A", sl[0].Code);
-            Assert.AreEqual(0, sl[0].Id);
-            Assert.AreEqual("B", sl[1].Code);
-            Assert.AreEqual(0, sl[1].Id);
+            Assert.Multiple(() =>
+            {
+                Assert.That(sl[0].Code, Is.EqualTo("A"));
+                Assert.That(sl[0].Id, Is.EqualTo(0));
+                Assert.That(sl[1].Code, Is.EqualTo("B"));
+                Assert.That(sl[1].Id, Is.EqualTo(0));
+            });
 
             var sids = new System.Collections.Generic.List<string?>() { "A" };
             sl = new ReferenceDataCodeList<RefData>(ref sids);
-            Assert.AreEqual(1, sl.Count);
-            Assert.AreEqual("A", sl[0].Code);
-            Assert.AreEqual(0, sl[0].Id);
+            Assert.That(sl, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sl[0].Code, Is.EqualTo("A"));
+                Assert.That(sl[0].Id, Is.EqualTo(0));
+            });
 
             sids!.Add("B");
-            Assert.AreEqual(2, sl.Count);
-            Assert.AreEqual("A", sl[0].Code);
-            Assert.AreEqual(0, sl[0].Id);
-            Assert.AreEqual("B", sl[1].Code);
-            Assert.AreEqual(0, sl[1].Id);
-            Assert.IsTrue(sl.HasInvalidItems);
+            Assert.That(sl, Has.Count.EqualTo(2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sl[0].Code, Is.EqualTo("A"));
+                Assert.That(sl[0].Id, Is.EqualTo(0));
+                Assert.That(sl[1].Code, Is.EqualTo("B"));
+                Assert.That(sl[1].Id, Is.EqualTo(0));
+                Assert.That(sl.HasInvalidItems, Is.True);
+            });
 
             IServiceCollection sc = new ServiceCollection();
             sc.AddLogging();
@@ -535,24 +647,33 @@ namespace CoreEx.Test.Framework.RefData
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            Assert.AreEqual(2, sl.Count);
-            Assert.AreEqual("A", sl[0].Code);
-            Assert.AreEqual(1, sl[0].Id);
-            Assert.AreEqual("B", sl[1].Code);
-            Assert.AreEqual(2, sl[1].Id);
-            Assert.IsFalse(sl.HasInvalidItems);
+            Assert.That(sl, Has.Count.EqualTo(2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sl[0].Code, Is.EqualTo("A"));
+                Assert.That(sl[0].Id, Is.EqualTo(1));
+                Assert.That(sl[1].Code, Is.EqualTo("B"));
+                Assert.That(sl[1].Id, Is.EqualTo(2));
+                Assert.That(sl.HasInvalidItems, Is.False);
+            });
 
             sids = new System.Collections.Generic.List<string?>() { "A" };
             sl = new ReferenceDataCodeList<RefData>(ref sids);
-            Assert.AreEqual(1, sl.Count);
+            Assert.That(sl, Has.Count.EqualTo(1));
 
             sl.Add((RefData)"B");
-            Assert.AreEqual(2, sl.Count);
-            Assert.AreEqual(2, sids!.Count);
-            Assert.AreEqual(new string?[] { "A", "B" }, sids);
+            Assert.Multiple(() =>
+            {
+                Assert.That(sl, Has.Count.EqualTo(2));
+                Assert.That(sids!, Has.Count.EqualTo(2));
+                Assert.Multiple(() =>
+            {
+                Assert.That(sids, Is.EqualTo(new string?[] { "A", "B" }));
+            });
 
-            Assert.AreEqual(new int[] { 1, 2 }, sl.ToIdList<int>());
-            Assert.AreEqual(new string?[] { "A", "B" }, sl.ToCodeList());
+                Assert.That(sl.ToIdList<int>(), Is.EqualTo(new int[] { 1, 2 }));
+                Assert.That(sl.ToCodeList(), Is.EqualTo(new string?[] { "A", "B" }));
+            });
         }
 
         [Test]
@@ -570,20 +691,23 @@ namespace CoreEx.Test.Framework.RefData
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
             var o = scope.ServiceProvider.GetRequiredService<ReferenceDataOrchestrator>();
 
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, o.GetWithFilterAsync<State>().GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(null, null, false).GetAwaiter().GetResult().Select(x => x.Code));
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.GetWithFilterAsync<State>().GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "CO", "IL", "SC", "WA" }));
+                Assert.That(o.GetWithFilterAsync<State>(null, null, false).GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "CO", "IL", "SC", "WA" }));
 
-            Assert.AreEqual(new string[] { "AZ", "IL" }, o.GetWithFilterAsync<State>(new string[] { "AZ", "IL" }).GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(new string[] { "AZ", "IL" }, o.GetWithFilterAsync<State>(new string[] { "AZ", "IL", "XX" }).GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(new string[] { "AZ", "IL", "XX" }, o.GetWithFilterAsync<State>(new string[] { "AZ", "IL", "XX" }, includeInactive: true).GetAwaiter().GetResult().Select(x => x.Code));
+                Assert.That(o.GetWithFilterAsync<State>(new string[] { "AZ", "IL" }).GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "IL" }));
+                Assert.That(o.GetWithFilterAsync<State>(new string[] { "AZ", "IL", "XX" }).GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "IL" }));
+                Assert.That(o.GetWithFilterAsync<State>(new string[] { "AZ", "IL", "XX" }, includeInactive: true).GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "IL", "XX" }));
 
-            Assert.AreEqual(new string[] { "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(text: "*IN*").GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(new string[] { "IL", "SC", "WA" }, o.GetWithFilterAsync<State>(text: "*in*").GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(new string[] { "WA" }, o.GetWithFilterAsync<State>(text: "*on").GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(Array.Empty<string>(), o.GetWithFilterAsync<State>(text: "pl*").GetAwaiter().GetResult().Select(x => x.Code));
-            Assert.AreEqual(new string[] { "XX" }, o.GetWithFilterAsync<State>(text: "pl*", includeInactive: true).GetAwaiter().GetResult().Select(x => x.Code));
+                Assert.That(o.GetWithFilterAsync<State>(text: "*IN*").GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "IL", "SC", "WA" }));
+                Assert.That(o.GetWithFilterAsync<State>(text: "*in*").GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "IL", "SC", "WA" }));
+                Assert.That(o.GetWithFilterAsync<State>(text: "*on").GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "WA" }));
+                Assert.That(o.GetWithFilterAsync<State>(text: "pl*").GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(Array.Empty<string>()));
+                Assert.That(o.GetWithFilterAsync<State>(text: "pl*", includeInactive: true).GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "XX" }));
 
-            Assert.AreEqual(new string[] { "IL", "WA" }, o.GetWithFilterAsync<State>(new string[] { "az", "il", "wa" }, text: "*in*").GetAwaiter().GetResult().Select(x => x.Code));
+                Assert.That(o.GetWithFilterAsync<State>(new string[] { "az", "il", "wa" }, text: "*in*").GetAwaiter().GetResult().Select(x => x.Code), Is.EqualTo(new string[] { "IL", "WA" }));
+            });
         }
 
         [Test]
@@ -602,20 +726,20 @@ namespace CoreEx.Test.Framework.RefData
             var o = scope.ServiceProvider.GetRequiredService<ReferenceDataOrchestrator>();
 
             var mc = o.GetNamedAsync(new string[] { "state", "bananas", "suburb" }).GetAwaiter().GetResult();
-            Assert.NotNull(mc);
-            Assert.AreEqual(2, mc.Count);
+            Assert.That(mc, Is.Not.Null);
+            Assert.That(mc, Has.Count.EqualTo(2));
             var mc1 = mc["State"];
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc1.Select(x => x.Code));
+            Assert.That(mc1.Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "CO", "IL", "SC", "WA" }));
             var mc2 = mc["Suburb"];
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
+            Assert.That(mc2.Select(x => x.Code), Is.EqualTo(new string[] { "B", "H", "R" }));
 
             mc = o.GetNamedAsync(new string[] { "state", "bananas", "suburb" }, includeInactive: true).GetAwaiter().GetResult();
-            Assert.NotNull(mc);
-            Assert.AreEqual(2, mc.Count);
+            Assert.That(mc, Is.Not.Null);
+            Assert.That(mc, Has.Count.EqualTo(2));
             mc1 = mc["State"];
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "XX", "SC", "WA"}, mc1.Select(x => x.Code));
+            Assert.That(mc1.Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "CO", "IL", "XX", "SC", "WA"}));
             mc2 = mc["Suburb"];
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
+            Assert.That(mc2.Select(x => x.Code), Is.EqualTo(new string[] { "B", "H", "R" }));
         }
 
         [Test]
@@ -626,30 +750,30 @@ namespace CoreEx.Test.Framework.RefData
             var o = test.Services.GetRequiredService<ReferenceDataOrchestrator>();
 
             var mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
-            Assert.NotNull(mc);
-            Assert.AreEqual(2, mc.Count);
+            Assert.That(mc, Is.Not.Null);
+            Assert.That(mc, Has.Count.EqualTo(2));
             var mc1 = mc["State"];
-            Assert.AreEqual(new string[] { "AZ", "CO", "IL", "SC", "WA" }, mc1.Select(x => x.Code));
+            Assert.That(mc1.Select(x => x.Code), Is.EqualTo(new string[] { "AZ", "CO", "IL", "SC", "WA" }));
             var mc2 = mc["Suburb"];
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
+            Assert.That(mc2.Select(x => x.Code), Is.EqualTo(new string[] { "B", "H", "R" }));
 
             hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/ref?state=co,il&suburb&state=xx");
             mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
-            Assert.NotNull(mc);
-            Assert.AreEqual(2, mc.Count);
+            Assert.That(mc, Is.Not.Null);
+            Assert.That(mc, Has.Count.EqualTo(2));
             mc1 = mc["State"];
-            Assert.AreEqual(new string[] { "CO", "IL" }, mc1.Select(x => x.Code));
+            Assert.That(mc1.Select(x => x.Code), Is.EqualTo(new string[] { "CO", "IL" }));
             mc2 = mc["Suburb"];
-            Assert.AreEqual(new string[] { "B", "H", "R" }, mc2.Select(x => x.Code));
+            Assert.That(mc2.Select(x => x.Code), Is.EqualTo(new string[] { "B", "H", "R" }));
 
             hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/ref?state=co,il&suburb=h&state=xx&include-inactive&bananas");
             mc = o.GetNamedAsync(hr.GetRequestOptions()).GetAwaiter().GetResult();
-            Assert.NotNull(mc);
-            Assert.AreEqual(2, mc.Count);
+            Assert.That(mc, Is.Not.Null);
+            Assert.That(mc, Has.Count.EqualTo(2));
             mc1 = mc["State"];
-            Assert.AreEqual(new string[] { "CO", "IL", "XX" }, mc1.Select(x => x.Code));
+            Assert.That(mc1.Select(x => x.Code), Is.EqualTo(new string[] { "CO", "IL", "XX" }));
             mc2 = mc["Suburb"];
-            Assert.AreEqual(new string[] { "H" }, mc2.Select(x => x.Code));
+            Assert.That(mc2.Select(x => x.Code), Is.EqualTo(new string[] { "H" }));
         }
 
         [Test]
@@ -672,19 +796,22 @@ namespace CoreEx.Test.Framework.RefData
             var sw = Stopwatch.StartNew();
             IReferenceDataCollection?  c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
             sw.Stop();
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
-            Assert.NotNull(c);
-            Assert.IsTrue(c!.ContainsCode("A"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(500));
+                Assert.That(c, Is.Not.Null);
+                Assert.That(c!.ContainsCode("A"), Is.True);
+            });
 
             sw = Stopwatch.StartNew();
             c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
             sw.Stop();
-            Assert.Less(sw.ElapsedMilliseconds, 500);
+            Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
 
             sw = Stopwatch.StartNew();
             c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
             sw.Stop();
-            Assert.Less(sw.ElapsedMilliseconds, 500);
+            Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
         }
 
         [Test]
@@ -730,15 +857,18 @@ namespace CoreEx.Test.Framework.RefData
             var sw = Stopwatch.StartNew();
             IReferenceDataCollection? c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
             sw.Stop();
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 490);
-            Assert.NotNull(c);
-            Assert.IsTrue(c!.ContainsCode("A"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(490));
+                Assert.That(c, Is.Not.Null);
+            });
+            Assert.That(c!.ContainsCode("A"), Is.True);
 
             // 2nd time should be fast-as from cache.
             sw = Stopwatch.StartNew();
             c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
             sw.Stop();
-            Assert.Less(sw.ElapsedMilliseconds, 500);
+            Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
 
             // Await longer than cache time.
             await Task.Delay(500).ConfigureAwait(false);
@@ -747,15 +877,18 @@ namespace CoreEx.Test.Framework.RefData
             sw = Stopwatch.StartNew();
             c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().ConfigureAwait(false);
             sw.Stop();
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 490);
-            Assert.NotNull(c);
-            Assert.IsTrue(c!.ContainsCode("A"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(490));
+                Assert.That(c, Is.Not.Null);
+                Assert.That(c!.ContainsCode("A"), Is.True);
+            });
 
             // 4th time should be fast-as from cache.
             sw = Stopwatch.StartNew();
             c = ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>().GetAwaiter().GetResult();
             sw.Stop();
-            Assert.Less(sw.ElapsedMilliseconds, 500);
+            Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
         }
 
         [Test]
@@ -800,21 +933,27 @@ namespace CoreEx.Test.Framework.RefData
             var sw = Stopwatch.StartNew();
             await ReferenceDataOrchestrator.Current.PrefetchAsync(new string[] { "RefData", "RefDataEx" }).ConfigureAwait(false);
             sw.Stop();
-            Assert.GreaterOrEqual(sw.ElapsedMilliseconds, 500);
+            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(500));
 
             sw = Stopwatch.StartNew();
             var c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>();
             sw.Stop();
-            Assert.Less(sw.ElapsedMilliseconds, 500);
-            Assert.NotNull(c);
-            Assert.IsTrue(c!.ContainsCode("A"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
+                Assert.That(c, Is.Not.Null);
+                Assert.That(c!.ContainsCode("A"), Is.True);
+            });
 
             sw = Stopwatch.StartNew();
             c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefDataEx>();
             sw.Stop();
-            Assert.Less(sw.ElapsedMilliseconds, 500);
-            Assert.NotNull(c);
-            Assert.IsTrue(c!.ContainsId("BB"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
+                Assert.That(c, Is.Not.Null);
+                Assert.That(c!.ContainsId("BB"), Is.True);
+            });
         }
 
         [Test]
@@ -846,11 +985,11 @@ namespace CoreEx.Test.Framework.RefData
 
             for (int i = 0; i < colls.Length; i++)
             {
-                Assert.IsNotNull(colls[i]);
-                Assert.AreEqual(2, colls[i]!.Count);
+                Assert.That(colls[i], Is.Not.Null);
+                Assert.That(colls[i]!.Count, Is.EqualTo(2));
             }
 
-            Assert.AreSame(colls[0], colls[4]); // First and last should be same object ref.
+            Assert.That(colls[4], Is.SameAs(colls[0])); // First and last should be same object ref.
         }
 
         [Test]
@@ -858,28 +997,37 @@ namespace CoreEx.Test.Framework.RefData
         {
             // Serialize.
             var td = new TestData { Id = 1, Name = "Bob" };
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Text.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Text.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\"}"));
 
             td.RefData = new RefData { Code = "a" };
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}", new Text.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Text.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}"));
 
             // Deserialize.
             td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.Null(td.RefData);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+            });
+            Assert.That(td.RefData, Is.Null);
 
             td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.NotNull(td.RefData);
-            Assert.AreEqual("a", td.RefData!.Code);
-            Assert.IsFalse(td.RefData.IsValid);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+                Assert.That(td.RefData, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(td.RefData!.Code, Is.EqualTo("a"));
+                Assert.That(td.RefData.IsValid, Is.False);
+            });
 
             var ex = Assert.Throws<Stj.JsonException>(() => new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":1}"));
-            Assert.AreEqual("The JSON value could not be converted to CoreEx.Test.Framework.RefData.RefData. Path: $.refData | LineNumber: 0 | BytePositionInLine: 32.", ex!.Message);
+            Assert.That(ex!.Message, Is.EqualTo("The JSON value could not be converted to CoreEx.Test.Framework.RefData.RefData. Path: $.refData | LineNumber: 0 | BytePositionInLine: 32."));
         }
 
         [Test]
@@ -898,25 +1046,34 @@ namespace CoreEx.Test.Framework.RefData
 
             // Serialize.
             var td = new TestData { Id = 1, Name = "Bob" };
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Text.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Text.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\"}"));
 
             td.RefData = "a";
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"A\"}", new Text.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Text.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\",\"refData\":\"A\"}"));
 
             // Deserialize.
             td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.Null(td.RefData);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+            });
+            Assert.That(td.RefData, Is.Null);
 
             td = new Text.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.NotNull(td.RefData);
-            Assert.AreEqual("A", td.RefData!.Code);
-            Assert.IsTrue(td.RefData.IsValid);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+                Assert.That(td.RefData, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(td.RefData!.Code, Is.EqualTo("A"));
+                Assert.That(td.RefData.IsValid, Is.True);
+            });
         }
 
         [Test]
@@ -924,28 +1081,37 @@ namespace CoreEx.Test.Framework.RefData
         {
             // Serialize.
             var td = new TestData { Id = 1, Name = "Bob" };
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Newtonsoft.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\"}"));
 
             td.RefData = new RefData { Code = "a" };
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Newtonsoft.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}"));
 
             // Deserialize.
             td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.Null(td.RefData);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+            });
+            Assert.That(td.RefData, Is.Null);
 
             td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.NotNull(td.RefData);
-            Assert.AreEqual("a", td.RefData!.Code);
-            Assert.IsFalse(td.RefData.IsValid);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+                Assert.That(td.RefData, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(td.RefData!.Code, Is.EqualTo("a"));
+                Assert.That(td.RefData.IsValid, Is.False);
+            });
 
             var ex = Assert.Throws<Nsj.JsonSerializationException>(() => new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":1}"));
-            Assert.AreEqual("Reference data value must be a string.", ex!.Message);
+            Assert.That(ex!.Message, Is.EqualTo("Reference data value must be a string."));
         }
 
         [Test]
@@ -964,25 +1130,34 @@ namespace CoreEx.Test.Framework.RefData
 
             // Serialize.
             var td = new TestData { Id = 1, Name = "Bob" };
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Newtonsoft.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\"}"));
 
             td.RefData = "a";
-            Assert.AreEqual("{\"id\":1,\"name\":\"Bob\",\"refData\":\"A\"}", new Newtonsoft.Json.JsonSerializer().Serialize(td));
+            Assert.That(new Newtonsoft.Json.JsonSerializer().Serialize(td), Is.EqualTo("{\"id\":1,\"name\":\"Bob\",\"refData\":\"A\"}"));
 
             // Deserialize.
             td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.Null(td.RefData);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+            });
+            Assert.That(td.RefData, Is.Null);
 
             td = new Newtonsoft.Json.JsonSerializer().Deserialize<TestData>("{\"id\":1,\"name\":\"Bob\",\"refData\":\"a\"}");
-            Assert.NotNull(td);
-            Assert.AreEqual(1, td!.Id);
-            Assert.AreEqual("Bob", td.Name);
-            Assert.NotNull(td.RefData);
-            Assert.AreEqual("A", td.RefData!.Code);
-            Assert.IsTrue(td.RefData.IsValid);
+            Assert.That(td, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(td!.Id, Is.EqualTo(1));
+                Assert.That(td.Name, Is.EqualTo("Bob"));
+                Assert.That(td.RefData, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(td.RefData!.Code, Is.EqualTo("A"));
+                Assert.That(td.RefData.IsValid, Is.True);
+            });
         }
     }
 

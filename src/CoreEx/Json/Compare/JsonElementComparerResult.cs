@@ -77,13 +77,13 @@ namespace CoreEx.Json.Compare
         /// Gets the <see cref="JsonElementDifference"/> array.
         /// </summary>
         /// <remarks>The differences found up to the <see cref="MaxDifferences"/> specified.</remarks>
-        public JsonElementDifference[] GetDifferences() => _differences is null ? Array.Empty<JsonElementDifference>() : _differences.ToArray();
+        public JsonElementDifference[] GetDifferences() => _differences is null ? [] : _differences.ToArray();
 
         /// <summary>
         /// Adds a <see cref="JsonElementDifference"/>.
         /// </summary>
         /// <param name="difference">The <see cref="JsonElementDifference"/>.</param>
-        internal void AddDifference(JsonElementDifference difference) => (_differences ??= new List<JsonElementDifference>()).Add(difference);
+        internal void AddDifference(JsonElementDifference difference) => (_differences ??= []).Add(difference);
 
         /// <inheritdoc/>
         public override string ToString()
@@ -218,28 +218,19 @@ namespace CoreEx.Json.Compare
         /// <summary>
         /// Provides internal state needed to support the merge patch.
         /// </summary>
-        private sealed class MergePatchState
+        /// <param name="differencePaths">The differences paths for inclusion.</param>
+        /// <param name="includePaths">The additional paths for inclusion.</param>
+        private sealed class MergePatchState(Dictionary<string, bool>? differencePaths, Dictionary<string, bool>? includePaths)
         {
-            /// <summary>
-            /// Initializes the <see cref="MergePatchState"/> struct.
-            /// </summary>
-            /// <param name="differencePaths">The differences paths for inclusion.</param>
-            /// <param name="includePaths">The additional paths for inclusion.</param>
-            public MergePatchState(Dictionary<string, bool>? differencePaths, Dictionary<string, bool>? includePaths)
-            {
-                DifferencePaths = differencePaths;
-                IncludePaths = includePaths;
-            }
-
             /// <summary>
             /// Gets the differences paths for inclusion.
             /// </summary>
-            public Dictionary<string, bool>? DifferencePaths { get; }
+            public Dictionary<string, bool>? DifferencePaths { get; } = differencePaths;
 
             /// <summary>
             /// Gets the additional paths for inclusion.
             /// </summary>
-            public Dictionary<string, bool>? IncludePaths { get; }
+            public Dictionary<string, bool>? IncludePaths { get; } = includePaths;
 
             /// <summary>
             /// Gets the difference and include match for the specified <see cref="JsonNode"/>.

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using CoreEx.Entities;
 using CoreEx.Wildcards;
 using System.Collections.Generic;
@@ -87,10 +88,9 @@ namespace System.Linq
         public static void ToCollection<TColl, TItem>(this IQueryable<TItem> query, TColl coll)
             where TColl : ICollection<TItem>
         {
-            if (coll == null)
-                throw new ArgumentNullException(nameof(coll));
+            coll.ThrowIfNull(nameof(coll));
 
-            foreach (var item in query ?? throw new ArgumentNullException(nameof(query)))
+            foreach (var item in query.ThrowIfNull(nameof(query)))
             {
                 coll.Add(item);
             }
@@ -108,13 +108,10 @@ namespace System.Linq
         public static void ToCollection<TColl, TItem, TElement>(this IQueryable<TElement> query, Func<TElement, TItem> mapToItem, TColl coll)
             where TColl : ICollection<TItem>
         {
-            if (mapToItem == null)
-                throw new ArgumentNullException(nameof(mapToItem));
+            mapToItem.ThrowIfNull(nameof(mapToItem));
+            coll.ThrowIfNull(nameof(coll));
 
-            if (coll == null)
-                throw new ArgumentNullException(nameof(coll));
-
-            foreach (var element in query ?? throw new ArgumentNullException(nameof(query)))
+            foreach (var element in query.ThrowIfNull(nameof(query)))
             {
                 coll.Add(mapToItem(element));
             }
@@ -131,8 +128,7 @@ namespace System.Linq
         /// <returns>The resulting query.</returns>
         public static IQueryable<TElement> WhereWhen<TElement>(this IQueryable<TElement> query, bool when, Expression<Func<TElement, bool>> predicate)
         {
-            if (query == null)
-                throw new ArgumentNullException(nameof(query));
+            query.ThrowIfNull(nameof(query));
 
             if (when)
                 return query.Where(predicate);
@@ -152,8 +148,7 @@ namespace System.Linq
         /// <returns>The resulting query.</returns>
         public static IQueryable<TElement> WhereWith<TElement, T>(this IQueryable<TElement> query, T with, Expression<Func<TElement, bool>> predicate)
         {
-            if (query == null)
-                throw new ArgumentNullException(nameof(query));
+            query.ThrowIfNull(nameof(query));
 
             if (Comparer<T>.Default.Compare(with, default!) != 0 && Comparer<T>.Default.Compare(with, default!) != 0)
             {
@@ -178,11 +173,8 @@ namespace System.Linq
         /// <returns>The resulting (updated) query.</returns>
         public static IQueryable<TElement> WhereWildcard<TElement>(this IQueryable<TElement> query, Expression<Func<TElement, string?>> property, string? text, bool ignoreCase = true, bool checkForNull = true)
         {
-            if (query == null)
-                throw new ArgumentNullException(nameof(query));
-
-            if (property == null)
-                throw new ArgumentNullException(nameof(property));
+            query.ThrowIfNull(nameof(query));
+            property.ThrowIfNull(nameof(property));
 
             var wc = Wildcard.MultiBasic;
             var wr = wc.Parse(text).ThrowOnError();

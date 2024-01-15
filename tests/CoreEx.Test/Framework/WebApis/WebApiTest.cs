@@ -45,7 +45,7 @@ namespace CoreEx.Test.Framework.WebApis
             hr.Headers.Add("x-correlation-id", "corr-id");
 
             test.Type<WebApi>()
-                .Run(f => f.RunAsync(hr, r => { Assert.AreEqual("corr-id", ExecutionContext.Current.CorrelationId); return Task.FromResult((IActionResult)new StatusCodeResult(200)); }))
+                .Run(f => f.RunAsync(hr, r => { Assert.That(ExecutionContext.Current.CorrelationId, Is.EqualTo("corr-id")); return Task.FromResult((IActionResult)new StatusCodeResult(200)); }))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Assert(HttpStatusCode.OK);
@@ -158,8 +158,8 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertOK()
                 .Result as ValueContentResult;
 
-            Assert.NotNull(vcr);
-            Assert.AreEqual("my-etag", vcr!.ETag);
+            Assert.That(vcr, Is.Not.Null);
+            Assert.That(vcr!.ETag, Is.EqualTo("my-etag"));
         }
 
         [Test]
@@ -185,8 +185,8 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertOK()
                 .Result as ValueContentResult;
 
-            Assert.NotNull(vcr);
-            Assert.AreEqual("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM=", vcr!.ETag);
+            Assert.That(vcr, Is.Not.Null);
+            Assert.That(vcr!.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
         }
 
         [Test]
@@ -267,7 +267,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertOK()
                 .AssertValue(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
 
-            Assert.AreNotEqual(new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20), ((ValueContentResult)r.Result).PagingResult);
+            Assert.That(((ValueContentResult)r.Result).PagingResult, Is.EqualTo(new PagingResult(PagingArgs.CreateSkipAndTake(2, 3), 20)));
         }
 
         [Test]
@@ -286,7 +286,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertOK()
                 .AssertValue(new PersonCollection { new Person { Id = 1, Name = "Simon" } });
 
-            Assert.AreNotEqual(((ValueContentResult)r.Result).ETag, ((ValueContentResult)r2.Result).ETag);
+            Assert.That(((ValueContentResult)r2.Result).ETag, Is.Not.EqualTo(((ValueContentResult)r.Result).ETag));
         }
 
         [Test]

@@ -11,46 +11,64 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         public void Create()
         {
             var pe1 = PropertyExpression.Create<Person, int>(p => p.Id);
-            Assert.AreEqual("Id", pe1.Name);
-            Assert.AreEqual("id", pe1.JsonName);
-            Assert.AreEqual("Identifier", (string)pe1.Text);
-            Assert.IsTrue(pe1.IsJsonSerializable);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pe1.Name, Is.EqualTo("Id"));
+                Assert.That(pe1.JsonName, Is.EqualTo("id"));
+                Assert.That((string)pe1.Text, Is.EqualTo("Identifier"));
+                Assert.That(pe1.IsJsonSerializable, Is.True);
+            });
 
             var pe2 = PropertyExpression.Create<Person, string?>(p => p.Name);
-            Assert.AreEqual("Name", pe2.Name);
-            Assert.AreEqual("name", pe2.JsonName);
-            Assert.AreEqual("Fullname", (string)pe2.Text);
-            Assert.IsTrue(pe2.IsJsonSerializable);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pe2.Name, Is.EqualTo("Name"));
+                Assert.That(pe2.JsonName, Is.EqualTo("name"));
+                Assert.That((string)pe2.Text, Is.EqualTo("Fullname"));
+                Assert.That(pe2.IsJsonSerializable, Is.True);
+            });
 
             var pe3 = PropertyExpression.Create<Person, Gender?>(p => p.Gender);
-            Assert.AreEqual("Gender", pe3.Name);
-            Assert.AreEqual("gender", pe3.JsonName);
-            Assert.AreEqual("Gender", (string)pe3.Text);
-            Assert.IsFalse(pe3.IsJsonSerializable);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pe3.Name, Is.EqualTo("Gender"));
+                Assert.That(pe3.JsonName, Is.EqualTo("gender"));
+                Assert.That((string)pe3.Text, Is.EqualTo("Gender"));
+                Assert.That(pe3.IsJsonSerializable, Is.False);
+            });
 
             var pe4 = PropertyExpression.Create<Person, ChangeLog?>(p => p.ChangeLog);
-            Assert.AreEqual("ChangeLog", pe4.Name);
-            Assert.AreEqual("changeLog", pe4.JsonName);
-            Assert.AreEqual("Change Log", (string)pe4.Text);
-            Assert.IsTrue(pe4.IsJsonSerializable);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pe4.Name, Is.EqualTo("ChangeLog"));
+                Assert.That(pe4.JsonName, Is.EqualTo("changeLog"));
+                Assert.That((string)pe4.Text, Is.EqualTo("Change Log"));
+                Assert.That(pe4.IsJsonSerializable, Is.True);
+            });
 
             var pe5 = PropertyExpression.Create<Person, string?>(p => p.Secret);
-            Assert.AreEqual("Secret", pe5.Name);
-            Assert.AreEqual(null, pe5.JsonName);
-            Assert.AreEqual("Secret", (string)pe5.Text);
-            Assert.IsFalse(pe5.IsJsonSerializable);
+            Assert.Multiple(() =>
+            {
+                Assert.That(pe5.Name, Is.EqualTo("Secret"));
+                Assert.That(pe5.JsonName, Is.EqualTo(null));
+                Assert.That((string)pe5.Text, Is.EqualTo("Secret"));
+                Assert.That(pe5.IsJsonSerializable, Is.False);
+            });
         }
 
         [Test]
         public void ToSentenceCase()
         {
-            Assert.IsNull(PropertyExpression.ToSentenceCase(null));
-            Assert.AreEqual(string.Empty, PropertyExpression.ToSentenceCase(string.Empty));
-            Assert.AreEqual("Identifier", PropertyExpression.ToSentenceCase("Id"));
-            Assert.AreEqual("Identifier", PropertyExpression.ToSentenceCase("id"));
-            Assert.AreEqual("First Name", PropertyExpression.ToSentenceCase("FirstName"));
-            Assert.AreEqual("First Name", PropertyExpression.ToSentenceCase("firstName"));
-            Assert.AreEqual("Employee", PropertyExpression.ToSentenceCase("EmployeeId"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(PropertyExpression.ToSentenceCase(null), Is.Null);
+                Assert.That(PropertyExpression.ToSentenceCase(string.Empty), Is.EqualTo(string.Empty));
+                Assert.That(PropertyExpression.ToSentenceCase("Id"), Is.EqualTo("Identifier"));
+                Assert.That(PropertyExpression.ToSentenceCase("id"), Is.EqualTo("Identifier"));
+                Assert.That(PropertyExpression.ToSentenceCase("FirstName"), Is.EqualTo("First Name"));
+                Assert.That(PropertyExpression.ToSentenceCase("firstName"), Is.EqualTo("First Name"));
+                Assert.That(PropertyExpression.ToSentenceCase("EmployeeId"), Is.EqualTo("Employee"));
+            });
         }
     }
 }

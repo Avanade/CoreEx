@@ -17,7 +17,7 @@ namespace CoreEx.Results
         /// </summary>
         private static void ThrowIfNull(object result)
         {
-            if (result == null) throw new ArgumentNullException(nameof(result));
+            result.ThrowIfNull(nameof(result));
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace CoreEx.Results
         private static void ThrowIfNull(object result, object func, string? name = null)
         {
             ThrowIfNull(result);
-            if (func == null) throw new ArgumentNullException(name ?? nameof(func));
+            func.ThrowIfNull(name ?? nameof(func));
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace CoreEx.Results
             if (result.IsFailure)
                 return result;
 
-            executionContext ??= ExecutionContext.HasCurrent ? ExecutionContext.Current : throw new ArgumentNullException(nameof(executionContext));
+            executionContext ??= ExecutionContext.HasCurrent ? ExecutionContext.Current : executionContext.ThrowIfNull(nameof(executionContext));
             var r = executionContext.UserIsAuthorized(permission);
             return r.IsSuccess ? result : (TResult)result.ToFailure(r.Error);
         }
@@ -115,7 +115,7 @@ namespace CoreEx.Results
             if (result.IsFailure)
                 return result;
 
-            executionContext ??= ExecutionContext.HasCurrent ? ExecutionContext.Current : throw new ArgumentNullException(nameof(executionContext));
+            executionContext ??= ExecutionContext.HasCurrent ? ExecutionContext.Current : executionContext.ThrowIfNull(nameof(executionContext));
             var r = executionContext.UserIsAuthorized(entity, action);
             return r.IsSuccess ? result : (TResult)result.ToFailure(r.Error);
         }
@@ -152,7 +152,7 @@ namespace CoreEx.Results
             if (result.IsFailure)
                 return result;
 
-            executionContext ??= ExecutionContext.HasCurrent ? ExecutionContext.Current : throw new ArgumentNullException(nameof(executionContext));
+            executionContext ??= ExecutionContext.HasCurrent ? ExecutionContext.Current : executionContext.ThrowIfNull(nameof(executionContext));
             var r = executionContext.UserIsInRole(role);
             return r.IsSuccess ? result : (TResult)result.ToFailure(r.Error);
         }

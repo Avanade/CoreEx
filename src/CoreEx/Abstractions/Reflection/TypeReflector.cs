@@ -22,7 +22,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns>The corresponding <see cref="PropertyInfo"/> <see cref="Array"/>.</returns>
         /// <remarks>The default <paramref name="bindingFlags"/> where not overridden are: <see cref="BindingFlags.Public"/>, <see cref="BindingFlags.GetProperty"/>, <see cref="BindingFlags.SetProperty"/> and <see cref="BindingFlags.Instance"/>.</remarks>
         public static PropertyInfo[] GetProperties(Type type, BindingFlags? bindingFlags = null)
-            => (type ?? throw new ArgumentNullException(nameof(type))).GetProperties(bindingFlags ?? (BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance))
+            => type.ThrowIfNull(nameof(type)).GetProperties(bindingFlags ?? (BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance))
                 .Where(x => x.GetIndexParameters().Length == 0).GroupBy(x => x.Name).Select(g => g.First()).ToArray();
 
         /// <summary>
@@ -35,11 +35,8 @@ namespace CoreEx.Abstractions.Reflection
         /// <remarks>The default <paramref name="bindingFlags"/> where not overridden are: <see cref="BindingFlags.Public"/>, <see cref="BindingFlags.GetProperty"/>, <see cref="BindingFlags.SetProperty"/> and <see cref="BindingFlags.Instance"/>.</remarks>
         public static PropertyInfo? GetPropertyInfo(Type type, string propertyName, BindingFlags? bindingFlags = null)
         {
-            if (propertyName == null)
-                throw new ArgumentNullException(nameof(propertyName));
-
-            var pis = (type ?? throw new ArgumentNullException(nameof(type))).GetProperties(bindingFlags ?? (BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance))
-                .Where(x => x.Name == propertyName).ToArray();
+            var pis = type.ThrowIfNull(nameof(type)).GetProperties(bindingFlags ?? (BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.SetProperty | BindingFlags.Instance))
+                .Where(x => x.Name == propertyName.ThrowIfNull(nameof(propertyName))).ToArray();
 
             return pis.Length switch
             {
@@ -70,9 +67,9 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="type">The entity <see cref="Type"/>.</param>
         /// <returns>The <see cref="ITypeReflector"/>.</returns>
         public static ITypeReflector GetReflector(TypeReflectorArgs? args, Type type) 
-            => (args ??= TypeReflectorArgs.Default).Cache.GetOrCreate(type ?? throw new ArgumentNullException(nameof(args)), ce =>
+            => (args ??= TypeReflectorArgs.Default).Cache.GetOrCreate(type.ThrowIfNull(nameof(args)), ce =>
             {
-                var ec = typeof(TypeReflector<>).MakeGenericType(type).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(TypeReflectorArgs) }, null)!;
+                var ec = typeof(TypeReflector<>).MakeGenericType(type).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, [typeof(TypeReflectorArgs)], null)!;
                 var tr = (ITypeReflector)ec.Invoke(new object[] { args });
                 args.TypeBuilder?.Invoke(tr);
                 return ConfigureCacheEntry(ce, tr);
@@ -97,7 +94,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns>The <see cref="TypeReflectorTypeCode"/> and corresponding item <see cref="Type"/> where a collection.</returns>
         public static (TypeReflectorTypeCode TypeCode, Type? ItemType) GetCollectionItemType(Type type)
         {
-            if ((type ?? throw new ArgumentNullException(nameof(type))) == typeof(string) || type.IsPrimitive || type.IsValueType)
+            if ((type.ThrowIfNull(nameof(type))) == typeof(string) || type.IsPrimitive || type.IsValueType)
                 return (TypeReflectorTypeCode.Simple, null);
 
             if (type.IsArray)
@@ -157,7 +154,7 @@ namespace CoreEx.Abstractions.Reflection
             if (gas.Length == 0)
                 return null;
 
-            if (type == typeof(IEnumerable<>).MakeGenericType(new Type[] { gas[0] }))
+            if (type == typeof(IEnumerable<>).MakeGenericType([gas[0]]))
                 return gas[0];
 
             return null;

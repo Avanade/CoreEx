@@ -12,38 +12,28 @@ namespace CoreEx.Events
     /// Provides the event publishing and sending; being the <see cref="EventData">event</see> <see cref="EventDataFormatter.Format(EventData)">formatting</see>, 
     /// <see cref="IEventSerializer.SerializeAsync{T}(EventData{T}, CancellationToken)">serialization</see> and <see cref="IEventSender.SendAsync(IEnumerable{EventSendData}, CancellationToken)">send</see>.
     /// </summary>
-    public class EventPublisher : IEventPublisher, IDisposable
+    /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>.</param>
+    /// <param name="eventSerializer">The <see cref="IEventSerializer"/>.</param>
+    /// <param name="eventSender">The <see cref="IEventSender"/>.</param>
+    public class EventPublisher(EventDataFormatter? eventDataFormatter, IEventSerializer eventSerializer, IEventSender eventSender) : IEventPublisher, IDisposable
     {
         private readonly ConcurrentQueue<(string? Destination, EventData Event)> _queue = new();
         private bool _disposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventPublisher"/> class.
-        /// </summary>
-        /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>.</param>
-        /// <param name="eventSerializer">The <see cref="IEventSerializer"/>.</param>
-        /// <param name="eventSender">The <see cref="IEventSender"/>.</param>
-        public EventPublisher(EventDataFormatter? eventDataFormatter, IEventSerializer eventSerializer, IEventSender eventSender)
-        {
-            EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
-            EventSerializer = eventSerializer ?? throw new ArgumentNullException(nameof(eventSerializer));
-            EventSender = eventSender ?? throw new ArgumentNullException(nameof(eventSender));
-        }
-
-        /// <summary>
         /// Gets the <see cref="Events.EventDataFormatter"/>.
         /// </summary>
-        public EventDataFormatter EventDataFormatter { get; }
+        public EventDataFormatter EventDataFormatter { get; } = eventDataFormatter ?? new EventDataFormatter();
 
         /// <summary>
         /// Gets the <see cref="IEventSerializer"/>.
         /// </summary>
-        public IEventSerializer EventSerializer { get; }
+        public IEventSerializer EventSerializer { get; } = eventSerializer.ThrowIfNull(nameof(eventSerializer));
 
         /// <summary>
         /// Gets the <see cref="IEventSender"/>.
         /// </summary>
-        public IEventSender EventSender { get; }
+        public IEventSender EventSender { get; } = eventSender.ThrowIfNull(nameof(eventSender));
 
         /// <inheritdoc/>
         public bool IsEmpty => _queue.IsEmpty;
@@ -62,13 +52,7 @@ namespace CoreEx.Events
         /// <param name="events">One or more <see cref="EventData"/> objects to be published.</param>
         /// <returns>The <see cref="IEventPublisher"/> to support fluent-style method-chaining.</returns>
         /// <remarks>The <paramref name="name"/> could represent a queue name or equivalent where appropriate.</remarks>
-        public IEventPublisher PublishNamed(string name, params EventData[] events)
-        {
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(nameof(name));
-
-            return PublishInternal(name, events);
-        }
+        public IEventPublisher PublishNamed(string name, params EventData[] events) => PublishInternal(name.ThrowIfNullOrEmpty(nameof(name)), events);
 
         /// <summary>
         /// Performs the formatting and queues internally.

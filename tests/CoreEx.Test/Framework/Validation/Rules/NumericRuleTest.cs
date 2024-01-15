@@ -15,30 +15,36 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate_AllowNegatives()
         {
             var v1 = await (123f).Validate("value").Numeric().ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await (-123f).Validate("value").Numeric().ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Value must not be negative.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must not be negative."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v1 = await (-123f).Validate("value").Numeric(true).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             var v2 = await (123d).Validate("value").Numeric().ValidateAsync();
-            Assert.IsFalse(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.False);
 
             v2 = await (-123d).Validate("value").Numeric().ValidateAsync();
-            Assert.IsTrue(v2.HasErrors);
-            Assert.AreEqual(1, v2.Messages!.Count);
-            Assert.AreEqual("Value must not be negative.", v2.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v2.Messages[0].Type);
-            Assert.AreEqual("value", v2.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v2.HasErrors, Is.True);
+                Assert.That(v2.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v2.Messages![0].Text, Is.EqualTo("Value must not be negative."));
+                Assert.That(v2.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v2.Messages[0].Property, Is.EqualTo("value"));
+            });
 
             v2 = await (-123d).Validate("value").Numeric(true).ValidateAsync();
-            Assert.IsFalse(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.False);
         }
     }
 }

@@ -13,22 +13,16 @@ namespace CoreEx.Hosting
     /// Extends the <see cref="TimerHostedServiceBase"/> and adds <see cref="IServiceSynchronizer"/> to the <see cref="ExecuteAsync(IServiceProvider, CancellationToken)"/> to manage concurrency of execution.
     /// </summary>
     /// <typeparam name="TSync">The <see cref="Type"/> in which to perform the <see cref="Synchronizer"/> <see cref="IServiceSynchronizer.Enter{T}(string?)"/> for.</typeparam>
-    public abstract class SynchronizedTimerHostedServiceBase<TSync> : TimerHostedServiceBase
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>; defaults to instance from the <paramref name="serviceProvider"/> where not specified.</param>
+    /// <param name="synchronizer">The <see cref="IServiceSynchronizer"/>; defaults to <see cref="ConcurrentSynchronizer"/> where not specified.</param>
+    public abstract class SynchronizedTimerHostedServiceBase<TSync>(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null, IServiceSynchronizer? synchronizer = null) : TimerHostedServiceBase(serviceProvider, logger, settings)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SynchronizedTimerHostedServiceBase{TSync}"/> class.
-        /// </summary>
-        /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>; defaults to instance from the <paramref name="serviceProvider"/> where not specified.</param>
-        /// <param name="synchronizer">The <see cref="IServiceSynchronizer"/>; defaults to <see cref="ConcurrentSynchronizer"/> where not specified.</param>
-        public SynchronizedTimerHostedServiceBase(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null, IServiceSynchronizer? synchronizer = null) : base(serviceProvider, logger, settings)
-            => Synchronizer = synchronizer ?? new ConcurrentSynchronizer();
-
         /// <summary>
         /// Gets the <see cref="IServiceSynchronizer"/>.
         /// </summary>
-        protected IServiceSynchronizer Synchronizer { get; }
+        protected IServiceSynchronizer Synchronizer { get; } = synchronizer ?? new ConcurrentSynchronizer();
 
         /// <summary>
         /// Gets or sets the optional synchronization name (used by <see cref="IServiceSynchronizer.Enter{T}(string?)"/> and <see cref="IServiceSynchronizer.Exit{T}(string?)"/>).

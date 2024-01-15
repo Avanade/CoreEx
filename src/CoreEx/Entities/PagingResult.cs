@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
 using System.Drawing;
 using System.Text.Json.Serialization;
 
@@ -9,7 +10,7 @@ namespace CoreEx.Entities
     /// Represents the resulting paging response including <see cref="TotalCount"/> and <see cref="TotalPages"/> where applicable for the subsequent query.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public class PagingResult : PagingArgs
+    public class PagingResult : PagingArgs, IEquatable<PagingResult>
     {
         /// <summary>
         /// Creates a <see cref="PagingResult"/> for a specified page number and size.
@@ -72,5 +73,28 @@ namespace CoreEx.Entities
         /// </summary>
         [JsonIgnore()]
         public long? TotalPages => Option == PagingOption.PageAndSize && TotalCount.HasValue ? (long)System.Math.Ceiling(TotalCount.Value / (double)Take) : null;
+
+        #region Equality
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is PagingResult pr && Equals(pr);
+
+        /// <inheritdoc/>
+        public bool Equals(PagingResult? other) => other is not null && Skip == other.Skip && Take == other.Take && Page == other.Page && Token == other.Token && IsGetCount == other.IsGetCount && TotalCount == other.TotalCount;
+
+        /// <summary>
+        /// Indicates whether the current <see cref="PagingResult"/> is equal to another <see cref="PagingResult"/>.
+        /// </summary>
+        public static bool operator ==(PagingResult? left, PagingResult? right) => (left is null && right is null) || (left is not null && right is not null && left.Equals(right));
+
+        /// <summary>
+        /// Indicates whether the current <see cref="PagingResult"/> is not equal to another <see cref="PagingResult"/>.
+        /// </summary>
+        public static bool operator !=(PagingResult? left, PagingResult? right) => !(left == right);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => HashCode.Combine(Skip, Take, Page, Token, IsGetCount, TotalCount);
+
+        #endregion
     }
 }

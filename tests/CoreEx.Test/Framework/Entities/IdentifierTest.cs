@@ -10,18 +10,21 @@ namespace CoreEx.Test.Framework.Entities
         public void VerifyBaseIdProperty()
         {
             var p = new Person { Id = 88 };
-            Assert.AreEqual(88, p.Id);
+            Assert.That(p.Id, Is.EqualTo(88));
 
             var iii = (IIdentifier<int>)p;
-            Assert.AreEqual(88, iii.Id);
+            Assert.That(iii.Id, Is.EqualTo(88));
 
             var ii = (IIdentifier)p;
-            Assert.AreEqual(88, ii.Id);
+            Assert.That(ii.Id, Is.EqualTo(88));
 
             ii.Id = 99;
-            Assert.AreEqual(99, ii.Id);
-            Assert.AreEqual(99, iii.Id);
-            Assert.AreEqual(99, p.Id);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ii.Id, Is.EqualTo(99));
+                Assert.That(iii.Id, Is.EqualTo(99));
+                Assert.That(p.Id, Is.EqualTo(99));
+            });
         }
 
         private class Person : IIdentifier<int>

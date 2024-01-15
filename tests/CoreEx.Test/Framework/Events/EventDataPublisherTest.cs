@@ -14,60 +14,84 @@ namespace CoreEx.Test.Framework.Events
             var ep = new NullEventPublisher();
 
             var ed = ep.CreateEvent(new System.Uri("http://blah"), "sub", "act");
-            Assert.IsNotNull(ed);
-            Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
-            Assert.That(ed.Subject, Is.EqualTo("sub"));
-            Assert.That(ed.Action, Is.EqualTo("act"));
-            Assert.That(ed.Key, Is.Null);
+            Assert.That(ed, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
+                Assert.That(ed.Subject, Is.EqualTo("sub"));
+                Assert.That(ed.Action, Is.EqualTo("act"));
+                Assert.That(ed.Key, Is.Null);
+            });
 
             ed = ep.CreateEvent(new System.Uri("http://blah"), "sub", "act", "x");
-            Assert.IsNotNull(ed);
-            Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
-            Assert.That(ed.Subject, Is.EqualTo("sub"));
-            Assert.That(ed.Action, Is.EqualTo("act"));
-            Assert.That(ed.Key, Is.EqualTo("x"));
+            Assert.That(ed, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
+                Assert.That(ed.Subject, Is.EqualTo("sub"));
+                Assert.That(ed.Action, Is.EqualTo("act"));
+                Assert.That(ed.Key, Is.EqualTo("x"));
+            });
 
             ed = ep.CreateEvent(new System.Uri("http://blah"), "sub", "act", "a", "b");
-            Assert.IsNotNull(ed);
-            Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
-            Assert.That(ed.Subject, Is.EqualTo("sub"));
-            Assert.That(ed.Action, Is.EqualTo("act"));
-            Assert.That(ed.Key, Is.EqualTo("a,b"));
+            Assert.That(ed, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
+                Assert.That(ed.Subject, Is.EqualTo("sub"));
+                Assert.That(ed.Action, Is.EqualTo("act"));
+                Assert.That(ed.Key, Is.EqualTo("a,b"));
+            });
 
             ed = ep.CreateEvent(new System.Uri("http://blah"), "sub", "act", new CoreEx.Entities.CompositeKey("c", "d"));
-            Assert.IsNotNull(ed);
-            Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
-            Assert.That(ed.Subject, Is.EqualTo("sub"));
-            Assert.That(ed.Action, Is.EqualTo("act"));
-            Assert.That(ed.Key, Is.EqualTo("c,d"));
+            Assert.That(ed, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Source, Is.EqualTo(new System.Uri("http://blah")));
+                Assert.That(ed.Subject, Is.EqualTo("sub"));
+                Assert.That(ed.Action, Is.EqualTo("act"));
+                Assert.That(ed.Key, Is.EqualTo("c,d"));
+            });
 
             var ed2 = ep.CreateEvent("sub", "act");
-            Assert.IsNotNull(ed2);
-            Assert.That(ed2.Source, Is.Null);
-            Assert.That(ed2.Subject, Is.EqualTo("sub"));
-            Assert.That(ed2.Action, Is.EqualTo("act"));
-            Assert.That(ed2.Key, Is.Null);
+            Assert.That(ed2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.Null);
+                Assert.That(ed2.Subject, Is.EqualTo("sub"));
+                Assert.That(ed2.Action, Is.EqualTo("act"));
+                Assert.That(ed2.Key, Is.Null);
+            });
 
             ed2 = ep.CreateEvent("sub", "act", "x");
-            Assert.IsNotNull(ed2);
-            Assert.That(ed2.Source, Is.Null);
-            Assert.That(ed2.Subject, Is.EqualTo("sub"));
-            Assert.That(ed2.Action, Is.EqualTo("act"));
-            Assert.That(ed2.Key, Is.EqualTo("x"));
+            Assert.That(ed2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.Null);
+                Assert.That(ed2.Subject, Is.EqualTo("sub"));
+                Assert.That(ed2.Action, Is.EqualTo("act"));
+                Assert.That(ed2.Key, Is.EqualTo("x"));
+            });
 
             ed2 = ep.CreateEvent("sub", "act", "a", "b");
-            Assert.IsNotNull(ed2);
-            Assert.That(ed2.Source, Is.Null);
-            Assert.That(ed2.Subject, Is.EqualTo("sub"));
-            Assert.That(ed2.Action, Is.EqualTo("act"));
-            Assert.That(ed2.Key, Is.EqualTo("a,b"));
+            Assert.That(ed2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.Null);
+                Assert.That(ed2.Subject, Is.EqualTo("sub"));
+                Assert.That(ed2.Action, Is.EqualTo("act"));
+                Assert.That(ed2.Key, Is.EqualTo("a,b"));
+            });
 
             ed2 = ep.CreateEvent("sub", "act", new CoreEx.Entities.CompositeKey("c", "d"));
-            Assert.IsNotNull(ed2);
-            Assert.That(ed2.Source, Is.Null);
-            Assert.That(ed2.Subject, Is.EqualTo("sub"));
-            Assert.That(ed2.Action, Is.EqualTo("act"));
-            Assert.That(ed2.Key, Is.EqualTo("c,d"));
+            Assert.That(ed2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.Null);
+                Assert.That(ed2.Subject, Is.EqualTo("sub"));
+                Assert.That(ed2.Action, Is.EqualTo("act"));
+                Assert.That(ed2.Key, Is.EqualTo("c,d"));
+            });
         }
 
         [Test]
@@ -77,32 +101,44 @@ namespace CoreEx.Test.Framework.Events
             ep.EventDataFormatter.KeySeparatorCharacter = '|';
 
             var ed1 = ep.CreateValueEvent(new Person1 { Id = 88 }, new System.Uri("http://blah"), "sub", "act");
-            Assert.IsNotNull(ed1);
-            Assert.That(ed1.Source, Is.EqualTo(new System.Uri("http://blah")));
-            Assert.That(ed1.Subject, Is.EqualTo("sub"));
-            Assert.That(ed1.Action, Is.EqualTo("act"));
-            Assert.That(ed1.Key, Is.EqualTo("88"));
+            Assert.That(ed1, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed1.Source, Is.EqualTo(new System.Uri("http://blah")));
+                Assert.That(ed1.Subject, Is.EqualTo("sub"));
+                Assert.That(ed1.Action, Is.EqualTo("act"));
+                Assert.That(ed1.Key, Is.EqualTo("88"));
+            });
 
             var ed2 = ep.CreateValueEvent(new Person2 { PrimaryKey = new CompositeKey("a", "b") }, new System.Uri("http://blah"), "sub", "act");
-            Assert.IsNotNull(ed2);
-            Assert.That(ed2.Source, Is.EqualTo(new System.Uri("http://blah")));
-            Assert.That(ed2.Subject, Is.EqualTo("sub"));
-            Assert.That(ed2.Action, Is.EqualTo("act"));
-            Assert.That(ed2.Key, Is.EqualTo("a|b"));
+            Assert.That(ed2, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed2.Source, Is.EqualTo(new System.Uri("http://blah")));
+                Assert.That(ed2.Subject, Is.EqualTo("sub"));
+                Assert.That(ed2.Action, Is.EqualTo("act"));
+                Assert.That(ed2.Key, Is.EqualTo("a|b"));
+            });
 
             var ed3 = ep.CreateValueEvent(new Person1 { Id = 88 }, "sub", "act");
-            Assert.IsNotNull(ed3);
-            Assert.That(ed3.Source, Is.Null);
-            Assert.That(ed3.Subject, Is.EqualTo("sub"));
-            Assert.That(ed3.Action, Is.EqualTo("act"));
-            Assert.That(ed3.Key, Is.EqualTo("88"));
+            Assert.That(ed3, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed3.Source, Is.Null);
+                Assert.That(ed3.Subject, Is.EqualTo("sub"));
+                Assert.That(ed3.Action, Is.EqualTo("act"));
+                Assert.That(ed3.Key, Is.EqualTo("88"));
+            });
 
             var ed4 = ep.CreateValueEvent(new Person2 { PrimaryKey = new CompositeKey("a", "b") }, "sub", "act");
-            Assert.IsNotNull(ed4);
-            Assert.That(ed3.Source, Is.Null);
-            Assert.That(ed4.Subject, Is.EqualTo("sub"));
-            Assert.That(ed4.Action, Is.EqualTo("act"));
-            Assert.That(ed4.Key, Is.EqualTo("a|b"));
+            Assert.That(ed4, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed4.Source, Is.Null);
+                Assert.That(ed4.Subject, Is.EqualTo("sub"));
+                Assert.That(ed4.Action, Is.EqualTo("act"));
+                Assert.That(ed4.Key, Is.EqualTo("a|b"));
+            });
         }
 
         [Test]

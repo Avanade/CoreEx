@@ -8,27 +8,16 @@ namespace CoreEx.Entities.Extended
     /// <summary>
     /// Provides the property value capabilities enabled by <see cref="EntityBase.GetPropertyValues"/>.
     /// </summary>
-    public struct PropertyValue<T> : IPropertyValue
+    /// <param name="name">The property name.</param>
+    /// <param name="value">The property value.</param>
+    /// <param name="setValue">The action to set (override) the value with the specified value.</param>
+    /// <param name="defaultValue">The optional default value override.</param>
+    public struct PropertyValue<T>(string name, T value, Action<T?> setValue, T? defaultValue = default) : IPropertyValue
     {
-        private readonly Action<T?> _setValue;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PropertyValue{T}"/> class.
-        /// </summary>
-        /// <param name="name">The property name.</param>
-        /// <param name="value">The property value.</param>
-        /// <param name="setValue">The action to set (override) the value with the specified value.</param>
-        /// <param name="defaultValue">The optional default value override.</param>
-        public PropertyValue(string name, T value, Action<T?> setValue, T? defaultValue = default)
-        {
-            Name = string.IsNullOrEmpty(name) ? throw new ArgumentNullException(nameof(name)) : name;
-            Value = value;
-            _setValue = setValue;
-            DefaultValue = defaultValue ?? default;
-        }
+        private readonly Action<T?> _setValue = setValue;
 
         /// <inheritdoc/>
-        public string Name { get; }
+        public string Name { get; } = name.ThrowIfNullOrEmpty(nameof(name));
 
         /// <inheritdoc/>
         readonly object? IPropertyValue.Value => Value;
@@ -36,12 +25,12 @@ namespace CoreEx.Entities.Extended
         /// <summary>
         /// Gets the property value.
         /// </summary>
-        public T? Value { get; private set; }
+        public T? Value { get; private set; } = value;
 
         /// <summary>
         /// Gets the default value.
         /// </summary>
-        public T? DefaultValue { get; }
+        public T? DefaultValue { get; } = defaultValue ?? default;
 
         /// <inheritdoc/>
         public void Clean() => SetValue(Cleaner.Clean(Value));

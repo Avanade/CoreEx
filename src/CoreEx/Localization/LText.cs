@@ -60,7 +60,7 @@ namespace CoreEx.Localization
         /// Returns the <see cref="LText"/> as a <see cref="string"/> (see <see cref="TextProvider"/> <see cref="TextProvider.Current"/> <see cref="TextProviderBase.GetText(LText)"/>).
         /// </summary>
         /// <returns>The <see cref="LText"/> string value.</returns>
-        public override string ToString() => this!;
+        public override readonly string ToString() => this!;
 
         /// <summary>
         /// An implicit cast from an <see cref="LText"/> to a <see cref="string"/> (see <see cref="TextProvider"/> <see cref="TextProvider.Current"/> <see cref="TextProviderBase.GetText(LText)"/>).

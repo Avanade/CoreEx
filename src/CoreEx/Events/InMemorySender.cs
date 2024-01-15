@@ -18,7 +18,7 @@ namespace CoreEx.Events
         /// <inheritdoc/>
         public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
         {
-            events.ForEach(e => _queue.Enqueue(e));
+            events.ForEach(_queue.Enqueue);
             return Task.CompletedTask;
         }
 

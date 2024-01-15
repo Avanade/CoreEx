@@ -2,10 +2,10 @@
 
 using Azure.Messaging.ServiceBus;
 using CoreEx.Abstractions;
+using CoreEx.Azure.ServiceBus.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
-using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
@@ -94,7 +94,7 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
-                ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(args ??= new(), message, messageActions);
+                ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(args ??= [], message, messageActions);
 
                 // Match subscriber to metadata.
                 if (!Orchestrator.TryMatchSubscriber(this, @event, args, out var subscriber, out var valueType))

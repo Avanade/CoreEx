@@ -35,14 +35,14 @@ namespace CoreEx.Test.Framework.Azure.Storage
 
             var result = bas.WriteAsync(testEvent, attachmentData, CancellationToken.None).Result;
 
-            Assert.IsNotNull(result);
-            Assert.IsNotNull(result.Attachment);
-            Assert.IsTrue(result.Attachment!.Contains(testEvent.Id));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Attachment, Is.Not.Null);
+            Assert.That(result.Attachment!.Contains(testEvent.Id), Is.True);
 
             var eventReceivedData = bas.ReadAync(result, CancellationToken.None).Result;
 
-            Assert.IsNotNull(eventReceivedData);
-            Assert.AreEqual(eventData, eventReceivedData.ToString());
+            Assert.That(eventReceivedData, Is.Not.Null);
+            Assert.That(eventReceivedData.ToString(), Is.EqualTo(eventData));
 
             _bcc!.DeleteBlob($"{testEvent.Id}.json");
         }
@@ -57,14 +57,14 @@ namespace CoreEx.Test.Framework.Azure.Storage
 
             var result = bas.WriteAsync(testEvent, attachmentData, CancellationToken.None).Result;
 
-            Assert.IsNotNull(result);
-            Assert.IsNotNull(result.Attachment);
-            Assert.IsTrue(result.Attachment!.Contains(testEvent.Id));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Attachment, Is.Not.Null);
+            Assert.That(result.Attachment!.Contains(testEvent.Id), Is.True);
 
             var eventReceivedData = bas.ReadAync(result, CancellationToken.None).Result;
 
-            Assert.IsNotNull(eventReceivedData);
-            Assert.AreEqual(eventData, eventReceivedData.ToString());
+            Assert.That(eventReceivedData, Is.Not.Null);
+            Assert.That(eventReceivedData.ToString(), Is.EqualTo(eventData));
 
             _bcc!.DeleteBlob($"{testEvent.Id}.json");
         }
@@ -80,9 +80,9 @@ namespace CoreEx.Test.Framework.Azure.Storage
 
             var result = bas.WriteAsync(testEvent, attachmentData, CancellationToken.None).Result;
 
-            Assert.IsNotNull(result);
-            Assert.IsNotNull(result.Attachment);
-            Assert.IsTrue(result.Attachment!.Contains($"{testTenantId}/{testEvent.Id}"));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Attachment, Is.Not.Null);
+            Assert.That(result.Attachment!.Contains($"{testTenantId}/{testEvent.Id}"), Is.True);
         }
 
         [Test]
@@ -96,9 +96,9 @@ namespace CoreEx.Test.Framework.Azure.Storage
 
             var result = bas.WriteAsync(testEvent, attachmentData, CancellationToken.None).Result;
 
-            Assert.IsNotNull(result);
-            Assert.IsNotNull(result.Attachment);
-            Assert.IsTrue(result.Attachment!.Contains($"{testTenantId}/{testEvent.Id}"));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Attachment, Is.Not.Null);
+            Assert.That(result.Attachment!.Contains($"{testTenantId}/{testEvent.Id}"), Is.True);
         }
 
         [OneTimeTearDown]

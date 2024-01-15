@@ -14,22 +14,22 @@ namespace CoreEx.Test.Framework.Validation.Clauses
         public async Task When()
         {
             var v1 = await 1.Validate().Between(2, 10).When(true).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
 
             v1 = await 1.Validate().Between(2, 10).When(false).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await 1.Validate().Between(2, 10).When(() => true).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
 
             v1 = await 1.Validate().Between(2, 10).When(() => false).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             v1 = await 1.Validate().Between(2, 10).When(x => x.Value == 1).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
 
             v1 = await 1.Validate().Between(2, 10).When(x => x.Value != 1).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             var v = Validator.Create<TestData>()
                 .HasProperty(x => x.Text, p => p.Mandatory())
@@ -37,21 +37,21 @@ namespace CoreEx.Test.Framework.Validation.Clauses
 
             var td = new TestData { Text = "xxx", CountA = 88 };
             var v2 = await td.Validate().Entity(v).ValidateAsync();
-            Assert.IsTrue(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.True);
 
             td = new TestData { Text = "yyy", CountA = 88 };
             v2 = await td.Validate().Entity(v).ValidateAsync();
-            Assert.IsFalse(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.False);
         }
 
         [Test]
         public async Task WhenValue()
         {
             var v1 = await 1.Validate().Between(2, 10).WhenValue(v => v == 1).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
 
             v1 = await 1.Validate().Between(2, 10).WhenValue(v => v == 2).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
 
             var v = Validator.Create<TestData>()
                 .HasProperty(x => x.Text, p => p.Mandatory())
@@ -59,21 +59,21 @@ namespace CoreEx.Test.Framework.Validation.Clauses
 
             var td = new TestData { Text = "xxx", CountA = 88 };
             var v2 = await td.Validate().Entity(v).ValidateAsync();
-            Assert.IsTrue(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.True);
 
             td = new TestData { Text = "xxx", CountA = 99 };
             v2 = await td.Validate().Entity(v).ValidateAsync();
-            Assert.IsFalse(v2.HasErrors);
+            Assert.That(v2.HasErrors, Is.False);
         }
 
         [Test]
         public async Task WhenHasValue()
         {
             var v1 = await 1.Validate().Immutable().WhenHasValue().ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
 
             v1 = await 0.Validate().Immutable().WhenHasValue().ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
@@ -82,10 +82,10 @@ namespace CoreEx.Test.Framework.Validation.Clauses
             ExecutionContext.Current.OperationType = OperationType.Update;
 
             var v1 = await 1.Validate().Immutable().WhenOperation(OperationType.Update).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
 
             v1 = await 1.Validate().Immutable().WhenOperation(OperationType.Create).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
@@ -94,10 +94,10 @@ namespace CoreEx.Test.Framework.Validation.Clauses
             ExecutionContext.Current.OperationType = OperationType.Update;
 
             var v1 = await 1.Validate().Immutable().WhenNotOperation(OperationType.Create).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.True);
 
             v1 = await 1.Validate().Immutable().WhenNotOperation(OperationType.Update).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
     }
 }

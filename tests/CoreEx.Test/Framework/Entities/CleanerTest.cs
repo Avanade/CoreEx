@@ -13,11 +13,11 @@ namespace CoreEx.Test.Framework.Entities
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeLocal;
             var dt = DateTime.UtcNow;
             var dtc = Cleaner.Clean(dt);
-            Assert.AreEqual(DateTimeKind.Local, dtc.Kind);
+            Assert.That(dtc.Kind, Is.EqualTo(DateTimeKind.Local));
 
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeUtc;
             dtc = Cleaner.Clean(dt);
-            Assert.AreEqual(DateTimeKind.Utc, dtc.Kind);
+            Assert.That(dtc.Kind, Is.EqualTo(DateTimeKind.Utc));
 
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeLocal;
         }
@@ -28,17 +28,17 @@ namespace CoreEx.Test.Framework.Entities
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeLocal;
             DateTime? dt = DateTime.UtcNow;
             DateTime? dtc = Cleaner.Clean(dt);
-            Assert.AreEqual(DateTimeKind.Local, dtc!.Value.Kind);
+            Assert.That(dtc!.Value.Kind, Is.EqualTo(DateTimeKind.Local));
 
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeUtc;
             dtc = Cleaner.Clean(dt);
-            Assert.AreEqual(DateTimeKind.Utc, dtc!.Value.Kind);
+            Assert.That(dtc!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
 
             Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeLocal;
 
             dt = null;
             dtc = Cleaner.Clean(dt);
-            Assert.IsNull(dtc);
+            Assert.That(dtc, Is.Null);
         }
 
         [Test]
@@ -48,14 +48,20 @@ namespace CoreEx.Test.Framework.Entities
             var s2 = (string?)null;
             var s3 = "ABC";
 
-            Assert.IsNull(Cleaner.Clean(s1));
-            Assert.IsNull(Cleaner.Clean(s2));
-            Assert.AreEqual("ABC", Cleaner.Clean(s3));
+            Assert.Multiple(() =>
+            {
+                Assert.That(Cleaner.Clean(s1), Is.Null);
+                Assert.That(Cleaner.Clean(s2), Is.Null);
+                Assert.That(Cleaner.Clean(s3), Is.EqualTo("ABC"));
+            });
 
             Cleaner.DefaultStringTransform = StringTransform.NullToEmpty;
-            Assert.AreEqual("", Cleaner.Clean(s1));
-            Assert.AreEqual("", Cleaner.Clean(s2));
-            Assert.AreEqual("ABC", Cleaner.Clean(s3));
+            Assert.Multiple(() =>
+            {
+                Assert.That(Cleaner.Clean(s1), Is.EqualTo(""));
+                Assert.That(Cleaner.Clean(s2), Is.EqualTo(""));
+                Assert.That(Cleaner.Clean(s3), Is.EqualTo("ABC"));
+            });
 
             Cleaner.DefaultStringTransform = StringTransform.EmptyToNull;
         }
@@ -64,10 +70,10 @@ namespace CoreEx.Test.Framework.Entities
         public void StringTrimCleaning()
         {
             var s = " ABC ";
-            Assert.AreEqual(" ABC", Cleaner.Clean(s));
+            Assert.That(Cleaner.Clean(s), Is.EqualTo(" ABC"));
 
             Cleaner.DefaultStringTrim = StringTrim.Both;
-            Assert.AreEqual("ABC", Cleaner.Clean(s));
+            Assert.That(Cleaner.Clean(s), Is.EqualTo("ABC"));
 
             Cleaner.DefaultStringTrim = StringTrim.End;
         }

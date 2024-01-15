@@ -10,23 +10,26 @@ namespace CoreEx.Test.Framework.Results
         public void Success_Property()
         {
             var r = Result.Success;
-            Assert.IsTrue(r.IsSuccess);
-            Assert.IsFalse(r.IsFailure);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsSuccess, Is.True);
+                Assert.That(r.IsFailure, Is.False);
+            });
         }
 
         [Test]
         public void Result_Success_Ctor()
         {
             var r = new Result();
-            Assert.AreEqual(Result.Success, r);
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r, Is.EqualTo(Result.Success));
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
         public void Success_Is_Success()
         {
             var r = Result.Success;
-            Assert.IsTrue(r.IsSuccess);
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]
@@ -39,36 +42,48 @@ namespace CoreEx.Test.Framework.Results
         public void Failure_Ctor()
         {
             var r = new Result(new BusinessException());
-            Assert.IsFalse(r.IsSuccess);
-            Assert.IsTrue(r.IsFailure);
-            Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsSuccess, Is.False);
+                Assert.That(r.IsFailure, Is.True);
+                Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
+            });
         }
 
         [Test]
         public void Failure_Is_Failure()
         {
             var r = Result.Fail(new BusinessException());
-            Assert.IsFalse(r.IsSuccess);
-            Assert.IsTrue(r.IsFailure);
-            Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsSuccess, Is.False);
+                Assert.That(r.IsFailure, Is.True);
+                Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
+            });
         }
 
         [Test]
         public void Failure_Is_Failure_With_Message()
         {
             var r = Result.Fail("Test");
-            Assert.IsFalse(r.IsSuccess);
-            Assert.IsTrue(r.IsFailure);
-            Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>().And.Message.EqualTo("Test"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsSuccess, Is.False);
+                Assert.That(r.IsFailure, Is.True);
+                Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>().And.Message.EqualTo("Test"));
+            });
         }
 
         [Test]
         public void Failure_Explicit_Conversion()
         {
             var r = (Result) new BusinessException();
-            Assert.IsFalse(r.IsSuccess);
-            Assert.IsTrue(r.IsFailure);
-            Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsSuccess, Is.False);
+                Assert.That(r.IsFailure, Is.True);
+                Assert.That(r.Error, Is.Not.Null.And.InstanceOf<BusinessException>());
+            });
         }
 
         [Test]
@@ -80,7 +95,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public void Compare_Success_And_Failure()
         {
-            Assert.AreNotEqual(Result.Success, Result.Fail(new BusinessException()));
+            Assert.That(Result.Fail(new BusinessException()), Is.Not.EqualTo(Result.Success));
         }
 
         [Test]
@@ -88,7 +103,7 @@ namespace CoreEx.Test.Framework.Results
         {
             var r1 = Result.Fail(new BusinessException());
             var r2 = Result.Fail(new BusinessException());
-            Assert.AreNotEqual(r1, r2);
+            Assert.That(r2, Is.EqualTo(r1));
         }
 
         [Test]
@@ -96,19 +111,27 @@ namespace CoreEx.Test.Framework.Results
         {
             var r1 = Result.Fail(new BusinessException());
             var r2 = Result.Fail(new BusinessException("Test"));
-            Assert.AreNotEqual(r1, r2);
+            Assert.That(r2, Is.Not.EqualTo(r1));
+        }
+
+        [Test]
+        public void Compare_Two_Different_Types_Failures()
+        {
+            var r1 = Result.Fail(new ValidationException("Test"));
+            var r2 = Result.Fail(new BusinessException("Test"));
+            Assert.That(r2, Is.Not.EqualTo(r1));
         }
 
         [Test]
         public void Success_ToString()
         {
-            Assert.AreEqual("Success.", Result.Success.ToString());
+            Assert.That(Result.Success.ToString(), Is.EqualTo("Success."));
         }
 
         [Test]
         public void Failure_ToString()
         {
-            Assert.AreEqual("Failure: A business error occurred.", Result.Fail(new BusinessException()).ToString());
+            Assert.That(Result.Fail(new BusinessException()).ToString(), Is.EqualTo("Failure: A business error occurred."));
         }
     }
 }

@@ -26,8 +26,8 @@ namespace CoreEx.Abstractions.Reflection
         /// <param name="propertyExpression">The <see cref="LambdaExpression"/> to reference the source entity property.</param>
         public PropertyReflector(TypeReflectorArgs args, Expression<Func<TEntity, TProperty>> propertyExpression)
         {
-            Args = args ?? throw new ArgumentNullException(nameof(args));
-            PropertyExpression = Reflection.PropertyExpression.Create(propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression)), args.JsonSerializer);
+            Args = args.ThrowIfNull(nameof(args));
+            PropertyExpression = Reflection.PropertyExpression.Create(propertyExpression.ThrowIfNull(nameof(propertyExpression)), args.JsonSerializer);
             TypeCode = IsClass ? TypeReflectorTypeCode.Complex : TypeReflectorTypeCode.Simple;
             IsEnumerable = IsClass && (PropertyInfo.PropertyType.IsArray || PropertyInfo.PropertyType.GetInterfaces().Any(x => x == typeof(IEnumerable)));
             if (IsEnumerable)

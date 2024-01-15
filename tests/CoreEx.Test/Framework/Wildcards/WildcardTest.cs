@@ -106,8 +106,11 @@ namespace CoreEx.Test.Framework.Wildcards
 
         private void Check(WildcardSelection selection, string? text, WildcardResult result)
         {
-            Assert.AreEqual(selection, result.Selection);
-            Assert.AreEqual(text, result.Text);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Selection, Is.EqualTo(selection));
+                Assert.That(result.Text, Is.EqualTo(text));
+            });
         }
 
         #endregion
@@ -118,138 +121,162 @@ namespace CoreEx.Test.Framework.Wildcards
         public void Validate_1_Default()
         {
             var wc = Wildcard.BothAll;
-            Assert.IsTrue(wc.Validate(null));
-            Assert.IsTrue(wc.Validate(string.Empty));
-            Assert.IsTrue(wc.Validate("X"));
-            Assert.IsTrue(wc.Validate("*"));
-            Assert.IsTrue(wc.Validate("?"));
-            Assert.IsTrue(wc.Validate("XX"));
-            Assert.IsTrue(wc.Validate("*X"));
-            Assert.IsTrue(wc.Validate("?X"));
-            Assert.IsTrue(wc.Validate("X*"));
-            Assert.IsTrue(wc.Validate("X?"));
-            Assert.IsTrue(wc.Validate("XXX"));
-            Assert.IsTrue(wc.Validate("X*X"));
-            Assert.IsTrue(wc.Validate("X?X"));
-            Assert.IsTrue(wc.Validate("*?*"));
-            Assert.IsTrue(wc.Validate("*X*"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate(null), Is.True);
+                Assert.That(wc.Validate(string.Empty), Is.True);
+                Assert.That(wc.Validate("X"), Is.True);
+                Assert.That(wc.Validate("*"), Is.True);
+                Assert.That(wc.Validate("?"), Is.True);
+                Assert.That(wc.Validate("XX"), Is.True);
+                Assert.That(wc.Validate("*X"), Is.True);
+                Assert.That(wc.Validate("?X"), Is.True);
+                Assert.That(wc.Validate("X*"), Is.True);
+                Assert.That(wc.Validate("X?"), Is.True);
+                Assert.That(wc.Validate("XXX"), Is.True);
+                Assert.That(wc.Validate("X*X"), Is.True);
+                Assert.That(wc.Validate("X?X"), Is.True);
+                Assert.That(wc.Validate("*?*"), Is.True);
+                Assert.That(wc.Validate("*X*"), Is.True);
+            });
         }
 
         [Test]
         public void Validate_2_CharactersNotAllowed()
         {
             var wc = new Wildcard(WildcardSelection.BothAll, multiWildcard: '%', singleWildcard: '_', charactersNotAllowed: new char[] { '*', '?' });
-            Assert.IsTrue(wc.Validate(null));
-            Assert.IsTrue(wc.Validate(string.Empty));
-            Assert.IsTrue(wc.Validate("X"));
-            Assert.IsFalse(wc.Validate("*"));
-            Assert.IsFalse(wc.Validate("?"));
-            Assert.IsTrue(wc.Validate("XX"));
-            Assert.IsFalse(wc.Validate("*X"));
-            Assert.IsFalse(wc.Validate("?X"));
-            Assert.IsFalse(wc.Validate("X*"));
-            Assert.IsFalse(wc.Validate("X?"));
-            Assert.IsTrue(wc.Validate("XXX"));
-            Assert.IsFalse(wc.Validate("X*X"));
-            Assert.IsFalse(wc.Validate("X?X"));
-            Assert.IsFalse(wc.Validate("*?*"));
-            Assert.IsFalse(wc.Validate("*X*"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate(null), Is.True);
+                Assert.That(wc.Validate(string.Empty), Is.True);
+                Assert.That(wc.Validate("X"), Is.True);
+                Assert.That(wc.Validate("*"), Is.False);
+                Assert.That(wc.Validate("?"), Is.False);
+                Assert.That(wc.Validate("XX"), Is.True);
+                Assert.That(wc.Validate("*X"), Is.False);
+                Assert.That(wc.Validate("?X"), Is.False);
+                Assert.That(wc.Validate("X*"), Is.False);
+                Assert.That(wc.Validate("X?"), Is.False);
+                Assert.That(wc.Validate("XXX"), Is.True);
+                Assert.That(wc.Validate("X*X"), Is.False);
+                Assert.That(wc.Validate("X?X"), Is.False);
+                Assert.That(wc.Validate("*?*"), Is.False);
+                Assert.That(wc.Validate("*X*"), Is.False);
+            });
         }
 
         [Test]
         public void Validate_3_EndWildcardOnly()
         {
             var wc = new Wildcard(WildcardSelection.EndsWith | WildcardSelection.MultiWildcard | WildcardSelection.SingleWildcard, singleWildcard: Wildcard.SingleWildcardCharacter);
-            Assert.IsFalse(wc.Validate(null));
-            Assert.IsFalse(wc.Validate(string.Empty));
-            Assert.IsFalse(wc.Validate("X"));
-            Assert.IsFalse(wc.Validate("*"));
-            Assert.IsFalse(wc.Validate("?"));
-            Assert.IsFalse(wc.Validate("XX"));
-            Assert.IsTrue(wc.Validate("*X"));
-            Assert.IsTrue(wc.Validate("?X"));
-            Assert.IsFalse(wc.Validate("X*"));
-            Assert.IsFalse(wc.Validate("X?"));
-            Assert.IsFalse(wc.Validate("XXX"));
-            Assert.IsFalse(wc.Validate("X*X"));
-            Assert.IsFalse(wc.Validate("X?X"));
-            Assert.IsFalse(wc.Validate("*?*"));
-            Assert.IsFalse(wc.Validate("*X*"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate(null), Is.False);
+                Assert.That(wc.Validate(string.Empty), Is.False);
+                Assert.That(wc.Validate("X"), Is.False);
+                Assert.That(wc.Validate("*"), Is.False);
+                Assert.That(wc.Validate("?"), Is.False);
+                Assert.That(wc.Validate("XX"), Is.False);
+                Assert.That(wc.Validate("*X"), Is.True);
+                Assert.That(wc.Validate("?X"), Is.True);
+                Assert.That(wc.Validate("X*"), Is.False);
+                Assert.That(wc.Validate("X?"), Is.False);
+                Assert.That(wc.Validate("XXX"), Is.False);
+                Assert.That(wc.Validate("X*X"), Is.False);
+                Assert.That(wc.Validate("X?X"), Is.False);
+                Assert.That(wc.Validate("*?*"), Is.False);
+                Assert.That(wc.Validate("*X*"), Is.False);
+            });
         }
 
         [Test]
         public void Validate_4_StartWildcardOnly()
         {
             var wc = new Wildcard(WildcardSelection.StartsWith | WildcardSelection.MultiWildcard | WildcardSelection.SingleWildcard, singleWildcard: Wildcard.SingleWildcardCharacter);
-            Assert.IsFalse(wc.Validate(null));
-            Assert.IsFalse(wc.Validate(string.Empty));
-            Assert.IsFalse(wc.Validate("X"));
-            Assert.IsFalse(wc.Validate("*"));
-            Assert.IsFalse(wc.Validate("?"));
-            Assert.IsFalse(wc.Validate("XX"));
-            Assert.IsFalse(wc.Validate("*X"));
-            Assert.IsFalse(wc.Validate("?X"));
-            Assert.IsTrue(wc.Validate("X*"));
-            Assert.IsTrue(wc.Validate("X?"));
-            Assert.IsFalse(wc.Validate("XXX"));
-            Assert.IsFalse(wc.Validate("X*X"));
-            Assert.IsFalse(wc.Validate("X?X"));
-            Assert.IsFalse(wc.Validate("*?*"));
-            Assert.IsFalse(wc.Validate("*X*"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate(null), Is.False);
+                Assert.That(wc.Validate(string.Empty), Is.False);
+                Assert.That(wc.Validate("X"), Is.False);
+                Assert.That(wc.Validate("*"), Is.False);
+                Assert.That(wc.Validate("?"), Is.False);
+                Assert.That(wc.Validate("XX"), Is.False);
+                Assert.That(wc.Validate("*X"), Is.False);
+                Assert.That(wc.Validate("?X"), Is.False);
+                Assert.That(wc.Validate("X*"), Is.True);
+                Assert.That(wc.Validate("X?"), Is.True);
+                Assert.That(wc.Validate("XXX"), Is.False);
+                Assert.That(wc.Validate("X*X"), Is.False);
+                Assert.That(wc.Validate("X?X"), Is.False);
+                Assert.That(wc.Validate("*?*"), Is.False);
+                Assert.That(wc.Validate("*X*"), Is.False);
+            });
         }
 
         [Test]
         public void Validate_5_EmbeddedWildcardOnly()
         {
             var wc = new Wildcard(WildcardSelection.Embedded | WildcardSelection.MultiWildcard | WildcardSelection.SingleWildcard, singleWildcard: Wildcard.SingleWildcardCharacter);
-            Assert.IsFalse(wc.Validate(null));
-            Assert.IsFalse(wc.Validate(string.Empty));
-            Assert.IsFalse(wc.Validate("X"));
-            Assert.IsFalse(wc.Validate("*"));
-            Assert.IsFalse(wc.Validate("?"));
-            Assert.IsFalse(wc.Validate("XX"));
-            Assert.IsFalse(wc.Validate("*X"));
-            Assert.IsFalse(wc.Validate("?X"));
-            Assert.IsFalse(wc.Validate("X*"));
-            Assert.IsFalse(wc.Validate("X?"));
-            Assert.IsFalse(wc.Validate("XXX"));
-            Assert.IsTrue(wc.Validate("X*X"));
-            Assert.IsTrue(wc.Validate("X?X"));
-            Assert.IsFalse(wc.Validate("*?*"));
-            Assert.IsFalse(wc.Validate("*X*"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate(null), Is.False);
+                Assert.That(wc.Validate(string.Empty), Is.False);
+                Assert.That(wc.Validate("X"), Is.False);
+                Assert.That(wc.Validate("*"), Is.False);
+                Assert.That(wc.Validate("?"), Is.False);
+                Assert.That(wc.Validate("XX"), Is.False);
+                Assert.That(wc.Validate("*X"), Is.False);
+                Assert.That(wc.Validate("?X"), Is.False);
+                Assert.That(wc.Validate("X*"), Is.False);
+                Assert.That(wc.Validate("X?"), Is.False);
+                Assert.That(wc.Validate("XXX"), Is.False);
+                Assert.That(wc.Validate("X*X"), Is.True);
+                Assert.That(wc.Validate("X?X"), Is.True);
+                Assert.That(wc.Validate("*?*"), Is.False);
+                Assert.That(wc.Validate("*X*"), Is.False);
+            });
         }
 
         [Test]
         public void Validate_6_SingleOrMultiWildcard()
         {
             var wc = new Wildcard(WildcardSelection.Embedded | WildcardSelection.MultiWildcard, singleWildcard: Wildcard.SingleWildcardCharacter);
-            Assert.IsTrue(wc.Validate("X*X"));
-            Assert.IsFalse(wc.Validate("X?X"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate("X*X"), Is.True);
+                Assert.That(wc.Validate("X?X"), Is.False);
+            });
 
             wc = new Wildcard(WildcardSelection.Embedded | WildcardSelection.SingleWildcard, singleWildcard: Wildcard.SingleWildcardCharacter);
-            Assert.IsFalse(wc.Validate("X*X"));
-            Assert.IsTrue(wc.Validate("X?X"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate("X*X"), Is.False);
+                Assert.That(wc.Validate("X?X"), Is.True);
+            });
         }
 
         [Test]
         public void Validate_7_NoneAndEqual()
         {
             var wc = new Wildcard(WildcardSelection.None | WildcardSelection.Equal, singleWildcard: Wildcard.SingleWildcardCharacter);
-            Assert.IsTrue(wc.Validate(null));
-            Assert.IsTrue(wc.Validate(string.Empty));
-            Assert.IsTrue(wc.Validate("X"));
-            Assert.IsFalse(wc.Validate("*"));
-            Assert.IsFalse(wc.Validate("?"));
-            Assert.IsTrue(wc.Validate("XX"));
-            Assert.IsFalse(wc.Validate("*X"));
-            Assert.IsFalse(wc.Validate("?X"));
-            Assert.IsFalse(wc.Validate("X*"));
-            Assert.IsFalse(wc.Validate("X?"));
-            Assert.IsTrue(wc.Validate("XXX"));
-            Assert.IsFalse(wc.Validate("X*X"));
-            Assert.IsFalse(wc.Validate("X?X"));
-            Assert.IsFalse(wc.Validate("*?*"));
-            Assert.IsFalse(wc.Validate("*X*"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(wc.Validate(null), Is.True);
+                Assert.That(wc.Validate(string.Empty), Is.True);
+                Assert.That(wc.Validate("X"), Is.True);
+                Assert.That(wc.Validate("*"), Is.False);
+                Assert.That(wc.Validate("?"), Is.False);
+                Assert.That(wc.Validate("XX"), Is.True);
+                Assert.That(wc.Validate("*X"), Is.False);
+                Assert.That(wc.Validate("?X"), Is.False);
+                Assert.That(wc.Validate("X*"), Is.False);
+                Assert.That(wc.Validate("X?"), Is.False);
+                Assert.That(wc.Validate("XXX"), Is.True);
+                Assert.That(wc.Validate("X*X"), Is.False);
+                Assert.That(wc.Validate("X?X"), Is.False);
+                Assert.That(wc.Validate("*?*"), Is.False);
+                Assert.That(wc.Validate("*X*"), Is.False);
+            });
         }
 
         #endregion
@@ -280,75 +307,84 @@ namespace CoreEx.Test.Framework.Wildcards
         [Test]
         public void WhereWildcard_IEnumerableExtensions()
         {
-            // None (all).
-            Assert.AreEqual(8, GetPeople().WhereWildcard(x => x.First, null).Select(x => x.Last).Count());
-            Assert.AreEqual(8, GetPeople().WhereWildcard(x => x.First, "").Select(x => x.Last).Count());
+            Assert.Multiple(() =>
+            {
+                // None (all).
+                Assert.That(GetPeople().WhereWildcard(x => x.First, null).Select(x => x.Last).Count(), Is.EqualTo(8));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "").Select(x => x.Last).Count(), Is.EqualTo(8));
 
-            // Equal.
-            Assert.AreEqual("Reynolds", GetPeople().WhereWildcard(x => x.First, "SIMON").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().WhereWildcard(x => x.First, "SIMON", ignoreCase: false).SingleOrDefault());
+                // Equal.
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "SIMON").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "SIMON", ignoreCase: false).SingleOrDefault(), Is.Null);
 
-            // Single (all).
-            Assert.AreEqual(8, GetPeople().WhereWildcard(x => x.First, "*").Select(x => x.Last).Count());
+                // Single (all).
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "*").Select(x => x.Last).Count(), Is.EqualTo(8));
 
-            // Starts with.
-            Assert.AreEqual("Reynolds", GetPeople().WhereWildcard(x => x.First, "SI*").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().WhereWildcard(x => x.First, "SI*", ignoreCase: false).SingleOrDefault());
+                // Starts with.
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "SI*").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "SI*", ignoreCase: false).SingleOrDefault(), Is.Null);
 
-            // Ends with.
-            Assert.AreEqual("Reynolds", GetPeople().WhereWildcard(x => x.First, "*ON").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().WhereWildcard(x => x.First, "*ON", ignoreCase: false).SingleOrDefault());
+                // Ends with.
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "*ON").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "*ON", ignoreCase: false).SingleOrDefault(), Is.Null);
 
-            // Contains.
-            Assert.AreEqual("Reynolds", GetPeople().WhereWildcard(x => x.First, "*IM*").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().WhereWildcard(x => x.First, "*IM*", ignoreCase: false).SingleOrDefault());
+                // Contains.
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "*IM*").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "*IM*", ignoreCase: false).SingleOrDefault(), Is.Null);
 
-            // Regex-based: embedded.
-            Assert.AreEqual("Reynolds", GetPeople().WhereWildcard(x => x.First, "S*N").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().WhereWildcard(x => x.First, "S*N", ignoreCase: false).Select(x => x.Last).SingleOrDefault());
+                // Regex-based: embedded.
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "S*N").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "S*N", ignoreCase: false).Select(x => x.Last).SingleOrDefault(), Is.Null);
 
-            // Regex-based: single-char match.
-            Assert.AreEqual("Lawson", GetPeople().WhereWildcard(x => x.First, "G?RY", wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().WhereWildcard(x => x.First, "G?RY", ignoreCase: false, wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault());
+                // Regex-based: single-char match.
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "G?RY", wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Lawson"));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "G?RY", ignoreCase: false, wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault(), Is.Null);
 
-            // Regex-based: single-char all.
-            Assert.IsNull(GetPeople().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault());
-            Assert.AreEqual("P", GetPeople().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault());
+                // Regex-based: single-char all.
+                Assert.That(GetPeople().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault(), Is.Null);
+                Assert.That(GetPeople().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault(), Is.EqualTo("P"));
+            });
         }
 
         [Test]
         public void WhereWildcard_IQueryableExtensions()
         {
-            // None(all).
-            Assert.AreEqual(8, GetPeople().AsQueryable().WhereWildcard(x => x.First, null).Select(x => x.Last).Count());
-            Assert.AreEqual(8, GetPeople().AsQueryable().WhereWildcard(x => x.First, "").Select(x => x.Last).Count());
+            Assert.Multiple(() =>
+            {
+                // None(all).
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, null).Select(x => x.Last).Count(), Is.EqualTo(8));
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "").Select(x => x.Last).Count(), Is.EqualTo(8));
 
-            // Equal.
-            Assert.AreEqual("Reynolds", GetPeople().AsQueryable().WhereWildcard(x => x.First, "SIMON").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().AsQueryable().WhereWildcard(x => x.First, "SIMON", ignoreCase: false).SingleOrDefault());
+                // Equal.
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "SIMON").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "SIMON", ignoreCase: false).SingleOrDefault(), Is.Null);
 
-            // Single (all).
-            Assert.AreEqual(8, GetPeople().AsQueryable().WhereWildcard(x => x.First, "*").Select(x => x.Last).Count());
+                // Single (all).
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "*").Select(x => x.Last).Count(), Is.EqualTo(8));
 
-            // Starts with.
-            Assert.AreEqual("Reynolds", GetPeople().AsQueryable().WhereWildcard(x => x.First, "SI*").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().AsQueryable().WhereWildcard(x => x.First, "SI*", ignoreCase: false).SingleOrDefault());
+                // Starts with.
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "SI*").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "SI*", ignoreCase: false).SingleOrDefault(), Is.Null);
 
-            // Ends with.
-            Assert.AreEqual("Reynolds", GetPeople().AsQueryable().WhereWildcard(x => x.First, "*ON").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().AsQueryable().WhereWildcard(x => x.First, "*ON", ignoreCase: false).SingleOrDefault());
+                // Ends with.
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "*ON").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "*ON", ignoreCase: false).SingleOrDefault(), Is.Null);
 
-            // Contains.
-            Assert.AreEqual("Reynolds", GetPeople().AsQueryable().WhereWildcard(x => x.First, "*IM*").Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().AsQueryable().WhereWildcard(x => x.First, "*IM*", ignoreCase: false).SingleOrDefault());
+                // Contains.
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "*IM*").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().AsQueryable().WhereWildcard(x => x.First, "*IM*", ignoreCase: false).SingleOrDefault(), Is.Null);
+            });
 
             // Embedded.
             Assert.Throws<InvalidOperationException>(() => GetPeople().AsQueryable().WhereWildcard(x => x.First, "S*N").Select(x => x.Last).SingleOrDefault())!.Message.Should().Be("Wildcard selection text is not supported.");
             Assert.Throws<InvalidOperationException>(() => GetPeople().AsQueryable().WhereWildcard(x => x.First, "S*N", ignoreCase: false).Select(x => x.Last).SingleOrDefault())!.Message.Should().Be("Wildcard selection text is not supported.");
 
-            // Single-char all; '?' is ignored.
-            Assert.IsNull(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault());
-            Assert.IsNull(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", ignoreCase: false, wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault());
+            Assert.Multiple(() =>
+            {
+                // Single-char all; '?' is ignored.
+                Assert.That(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault(), Is.Null);
+                Assert.That(GetPeople().AsQueryable().Where(x => true).WhereWildcard(x => x.First, " ? ", ignoreCase: false, wildcard: new Wildcard(WildcardSelection.MultiAll, singleWildcard: char.MinValue)).Select(x => x.Last).SingleOrDefault(), Is.Null);
+            });
         }
 
         [Test]

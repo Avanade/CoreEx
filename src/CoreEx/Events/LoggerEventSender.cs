@@ -13,15 +13,10 @@ namespace CoreEx.Events
     /// Represents an <see cref="ILogger"/> event sender; whereby the <see cref="EventSendData.Data"/> is output using <see cref="LoggerExtensions.LogInformation(ILogger, string, object[])"/>.
     /// </summary>
     /// <remarks>This is intended for testing and/or prototyping purposes.</remarks>
-    public class LoggerEventSender : IEventSender
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    public class LoggerEventSender(ILogger<LoggerEventSender> logger) : IEventSender
     {
-        private readonly ILogger _logger;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LoggerEventSender"/> class.
-        /// </summary>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public LoggerEventSender(ILogger<LoggerEventSender> logger) => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly ILogger _logger = logger.ThrowIfNull(nameof(logger));
 
         /// <inheritdoc/>
         public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellation)

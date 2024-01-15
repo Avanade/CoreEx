@@ -12,9 +12,24 @@ namespace CoreEx.Entities
     /// Represents an immutable composite key.
     /// </summary>
     /// <remarks>May contain zero or more <see cref="Args"/> that represent the composite key. A subset of the the .NET <see href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types">built-in types</see>
-    /// are supported: <see cref="string"/>, <see cref="char"/>, <see cref="short"/>, <see cref="int"/>, <see cref="long"/>, <see cref="ushort"/>, <see cref="uint"/>, <see cref="ulong"/>, <see cref="Guid"/>, <see cref="DateTimeOffset"/> (converted to a <see cref="DateTime"/>) and <see cref="DateTime"/>.</remarks>
+    /// are supported: <see cref="string"/>, <see cref="char"/>, <see cref="short"/>, <see cref="int"/>, <see cref="long"/>, <see cref="ushort"/>, <see cref="uint"/>, <see cref="ulong"/>, <see cref="Guid"/>, <see cref="DateTimeOffset"/> (converted to a <see cref="DateTime"/>) and <see cref="DateTime"/>.
+    /// <para>A <see cref="CompositeKey"/> is not generally intended to be a first-class JSON-serialized property type, although is supported (see <see cref="CoreEx.Text.Json.CompositeKeyConverterFactory"/>); but, to be used in a read-only non-serialized manner to group (encapsulate) other properties
+    /// into a single value. The <see cref="CompositeKey"/> is also used within the <see cref="IEntityKey"/>, <see cref="IIdentifier"/> and <see cref="IPrimaryKey"/>.</para><para>Example as follows:
+    /// <code>
+    /// public class SalesOrderItem
+    /// {
+    ///     [JsonPropertyName("order")]
+    ///     public string? OrderNumber { get; set; }
+    ///     
+    ///     [JsonPropertyName("item")]
+    ///     public int ItemNumber { get; set; }
+    ///     
+    ///     [JsonIgnore()]
+    ///     public CompositeKey SalesOrderItemKey => CompositeKey.Create(SalesOrderNumber, SalesOrderItemNumber);
+    /// }
+    /// </code></para></remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Diagnostics.DebuggerDisplay("Key = {ToString()}")]
+    [System.Diagnostics.DebuggerDisplay("Args = {ToString()}")]
     public readonly struct CompositeKey : IEquatable<CompositeKey>
     {
         private readonly ImmutableArray<object?> _args;
@@ -22,7 +37,7 @@ namespace CoreEx.Entities
         /// <summary>
         /// Represents an empty <see cref="CompositeKey"/>.
         /// </summary>
-        public static readonly CompositeKey Empty;
+        public static readonly CompositeKey Empty = new();
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from the argument values,
@@ -48,10 +63,10 @@ namespace CoreEx.Entities
                 return;
             }
 
-            var newArgs = new object?[args.Length];
+            object? temp;
             for (int idx = 0; idx < args.Length; idx++)
             {
-                newArgs[idx] = args[idx] == null ? null : args[idx] switch
+                temp = args[idx] == null ? null : args[idx] switch
                 {
                     string str => str,
                     char c => c,
@@ -69,7 +84,7 @@ namespace CoreEx.Entities
                 };
             }
 
-            _args = newArgs.ToImmutableArray();
+            _args = args.ToImmutableArray();
         }
 
         /// <summary>
@@ -147,7 +162,7 @@ namespace CoreEx.Entities
         /// </summary>
         /// <returns>The composite key as a <see cref="string"/>.</returns>
         /// <remarks>Each <see cref="Args"/> value is JSON-formatted to ensure consistency and portability.</remarks>
-        public override string ToString() => ToString(',');
+        public override string? ToString() => ToString(',');
 
         /// <summary>
         /// Returns the <see cref="CompositeKey"/> as a <see cref="string"/> with the <see cref="Args"/> separated by the <paramref name="separator"/>.
@@ -155,10 +170,10 @@ namespace CoreEx.Entities
         /// <param name="separator">The seperator character.</param>
         /// <returns>The composite key as a <see cref="string"/>.</returns>
         /// <remarks>Each <see cref="Args"/> value is JSON-formatted to ensure consistency and portability.</remarks>
-        public string ToString(char separator)
+        public string? ToString(char separator)
         {
             if (Args.Length == 0)
-                return string.Empty;
+                return null;
 
             var index = 0;
             var sb = new StringBuilder();
@@ -173,7 +188,7 @@ namespace CoreEx.Entities
                 if (index > 0)
                     sb.Append(separator);
 
-                bool isString = JsonWrite(ujw, false, arg);
+                bool isString = JsonWrite(ujw, arg);
                 ujw.Flush();
                 if (abw.WrittenMemory.Length > 0 && !(isString && abw.WrittenMemory.Length <= 2))
                 {
@@ -192,129 +207,47 @@ namespace CoreEx.Entities
         }
 
         /// <summary>
-        /// Returns the <see cref="CompositeKey"/> as a JSON <see cref="string"/>.
-        /// </summary>
-        /// <returns>The composite key as a JSON <see cref="string"/>.</returns>
-        public string ToJsonString()
-        {
-            if (Args.Length == 0)
-                return "null";
-
-            var abw = new ArrayBufferWriter<byte>();
-            using var ujw = new Utf8JsonWriter(abw);
-            ujw.WriteStartArray();
-
-            foreach (var arg in Args)
-            {
-                ujw.WriteStartObject();
-                JsonWrite(ujw, true, arg);
-                ujw.WriteEndObject();
-            }
-
-            ujw.WriteEndArray();
-            ujw.Flush();
-            return new BinaryData(abw.WrittenMemory).ToString();
-        }
-
-        /// <summary>
         /// Writes the JSON name and argument value pair.
         /// </summary>
-        private static bool JsonWrite(Utf8JsonWriter ujw, bool includeName, object? arg) => arg switch
+        private static bool JsonWrite(Utf8JsonWriter ujw, object? arg) => arg switch
         {
-            string str => JsonWrite(ujw, includeName ? "string" : null, () => ujw.WriteStringValue(str), true),
-            char c => JsonWrite(ujw, includeName ? "char" : null, () => ujw.WriteStringValue(c.ToString()), true),
-            short s => JsonWrite(ujw, includeName ? "short" : null, () => ujw.WriteNumberValue(s), false),
-            int i => JsonWrite(ujw, includeName ? "int" : null, () => ujw.WriteNumberValue(i), false),
-            long l => JsonWrite(ujw, includeName ? "long" : null, () => ujw.WriteNumberValue(l), false),
-            Guid g => JsonWrite(ujw, includeName ? "guid" : null, () => ujw.WriteStringValue(g), true),
-            DateTime d => JsonWrite(ujw, includeName ? "date" : null, () => ujw.WriteStringValue(d), true),
-            DateTimeOffset o => JsonWrite(ujw, includeName? "offset" : null, () => ujw.WriteStringValue(o), true),
-            ushort us => JsonWrite(ujw, includeName ? "ushort" : null, () => ujw.WriteNumberValue(us), false),
-            uint ui => JsonWrite(ujw, includeName ? "uint" : null, () => ujw.WriteNumberValue(ui), false),
-            ulong ul => JsonWrite(ujw, includeName ? "ulong" : null, () => ujw.WriteNumberValue(ul), false),
+            string str => JsonWrite(() => ujw.WriteStringValue(str), true),
+            char c => JsonWrite(() => ujw.WriteStringValue(c.ToString()), true),
+            short s => JsonWrite(() => ujw.WriteNumberValue(s), false),
+            int i => JsonWrite(() => ujw.WriteNumberValue(i), false),
+            long l => JsonWrite(() => ujw.WriteNumberValue(l), false),
+            Guid g => JsonWrite(() => ujw.WriteStringValue(g), true),
+            DateTime d => JsonWrite(() => ujw.WriteStringValue(d), true),
+            DateTimeOffset o => JsonWrite(() => ujw.WriteStringValue(o), true),
+            ushort us => JsonWrite(() => ujw.WriteNumberValue(us), false),
+            uint ui => JsonWrite(() => ujw.WriteNumberValue(ui), false),
+            ulong ul => JsonWrite(() => ujw.WriteNumberValue(ul), false),
             _ => false
         };
 
         /// <summary>
         /// Writes the JSON name and invokes action to write argument value.
         /// </summary>
-        private static bool JsonWrite(Utf8JsonWriter ujw, string? name, Action action, bool isString)
+        private static bool JsonWrite(Action action, bool isString)
         {
-            if (name != null)
-                ujw.WritePropertyName(name);
-
             action();
             return isString;
         }
+
+        /// <summary>
+        /// Returns the <see cref="CompositeKey"/> as a JSON <see cref="string"/>.
+        /// </summary>
+        /// <returns>The composite key as a JSON <see cref="string"/>.</returns>
+        /// <remarks>Uses the <see cref="Json.JsonSerializer.Default"/> internally.</remarks>
+        public string ToJsonString() => Json.JsonSerializer.Default.Serialize(this);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from serialized <paramref name="json"/> (see <see cref="ToJsonString"/>);
         /// </summary>
         /// <param name="json">The JSON string.</param>
         /// <returns>The <see cref="CompositeKey"/>.</returns>
-        public static CompositeKey CreateFromJson(string json)
-        {
-            if (string.IsNullOrEmpty(json) || json == "null")
-                return new CompositeKey();
-
-            using var jd = JsonDocument.Parse(json);
-            var (key, error) = Deserialize(jd);
-            if (key.HasValue)
-                return key.Value;
-
-            throw new ArgumentException($"The JSON document is incorrectly formatted, or contains invalid data: {error}");
-        }
-
-        /// <summary>
-        /// Deserialize the document.
-        /// </summary>
-        private static (CompositeKey? key, string? error) Deserialize(JsonDocument jd)
-        {
-            if (jd.RootElement.ValueKind != JsonValueKind.Array)
-                return (null, "Root element must be an array.");
-
-            var args = new object?[jd.RootElement.GetArrayLength()];
-            int i = 0;
-
-            foreach (var jo in jd.RootElement.EnumerateArray())
-            {
-                if (jo.ValueKind != JsonValueKind.Object)
-                    return (null, "Root element array must only contains objects.");
-
-                foreach (var jp in jo.EnumerateObject())
-                {
-                    if (jp.Value.ValueKind != JsonValueKind.String && jp.Value.ValueKind != JsonValueKind.Number)
-                        return (null, "Array element must be either a String or a Number.");
-
-                    try
-                    {
-                        switch (jp.Name)
-                        {
-                            case "string": args[i] = jp.Value.GetString(); break;
-                            case "char": args[i] = Convert.ToChar(jp.Value.GetString() ?? string.Empty); break;
-                            case "short": args[i] = jp.Value.GetInt16(); break;
-                            case "int": args[i] = jp.Value.GetInt32(); break;
-                            case "long": args[i] = jp.Value.GetInt64(); break;
-                            case "guid": args[i] = jp.Value.GetGuid(); break;
-                            case "date": args[i] = jp.Value.GetDateTime(); break;
-                            case "offset": args[i] = jp.Value.GetDateTimeOffset(); break;
-                            case "ushort": args[i] = jp.Value.GetUInt16(); break;
-                            case "uint": args[i] = jp.Value.GetUInt32(); break;
-                            case "ulong": args[i] = jp.Value.GetUInt64(); break;
-                            default: return (null, $"Property '{jp.Name}' is not supported.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        return (null, $"Property '{jp.Name}' value is invalid: {ex.Message}");
-                    }
-                }
-
-                i++;
-            }
-
-            return (new CompositeKey(args), null);
-        }
+        /// <remarks>Uses the <see cref="Json.JsonSerializer.Default"/> internally.</remarks>
+        public static CompositeKey CreateFromJson(string json) => (string.IsNullOrEmpty(json) || json == "null") ? new CompositeKey() : Json.JsonSerializer.Default.Deserialize<CompositeKey>(json);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where the key is of the <see cref="Type"/> specified.
@@ -324,7 +257,7 @@ namespace CoreEx.Entities
         /// <param name="separator">The seperator character.</param>
         /// <returns>The <see cref="CompositeKey"/>.</returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString<T>(string key, char separator = ',') => CreateFromString(key, separator, new Type[] { typeof(T) });
+        public static CompositeKey CreateFromString<T>(string? key, char separator = ',') => CreateFromString(key, separator, [typeof(T)]);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
@@ -335,7 +268,7 @@ namespace CoreEx.Entities
         /// <param name="separator">The seperator character.</param>
         /// <returns>The <see cref="CompositeKey"/>.</returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString<T1, T2>(string key, char separator = ',') => CreateFromString(key, separator, new Type[] { typeof(T1), typeof(T2) });
+        public static CompositeKey CreateFromString<T1, T2>(string? key, char separator = ',') => CreateFromString(key, separator, [typeof(T1), typeof(T2)]);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
@@ -347,7 +280,7 @@ namespace CoreEx.Entities
         /// <param name="separator">The seperator character.</param>
         /// <returns>The <see cref="CompositeKey"/>.</returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString<T1, T2, T3>(string key, char separator = ',') => CreateFromString(key, separator, new Type[] { typeof(T1), typeof(T2), typeof(T3) });
+        public static CompositeKey CreateFromString<T1, T2, T3>(string? key, char separator = ',') => CreateFromString(key, separator, [typeof(T1), typeof(T2), typeof(T3)]);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
@@ -356,7 +289,7 @@ namespace CoreEx.Entities
         /// <param name="types">The <see cref="Type"/> array.</param>
         /// <returns>The <see cref="CompositeKey"/>.</returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString(string key, params Type[] types) => CreateFromString(key, ',', types);
+        public static CompositeKey CreateFromString(string? key, params Type[] types) => CreateFromString(key, ',', types);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
@@ -366,9 +299,12 @@ namespace CoreEx.Entities
         /// <param name="types">The <see cref="Type"/> array.</param>
         /// <returns>The <see cref="CompositeKey"/>.</returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString(string key, char separator, params Type[] types)
+        public static CompositeKey CreateFromString(string? key, char separator, params Type[] types)
         {
-            var parts = (key ?? throw new ArgumentNullException(nameof(key))).Split(separator, StringSplitOptions.None);
+            if (key is null)
+                return Empty;
+
+            var parts = key.Split(separator, StringSplitOptions.None);
             if (types.Length == 0 && parts.Length == 1 && string.IsNullOrEmpty(parts[0]))
                 return new CompositeKey();
 

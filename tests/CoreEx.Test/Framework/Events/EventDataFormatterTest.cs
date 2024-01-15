@@ -3,6 +3,7 @@ using CoreEx.Events;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using System;
+using System.Text.Json.Serialization;
 using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.Framework.Events
@@ -26,17 +27,17 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData { Type = "AbCd" };
             var ef = new EventDataFormatter { TypeCasing = CoreEx.Globalization.TextInfoCasing.None };
             ef.Format(ed);
-            Assert.AreEqual("AbCd", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("AbCd"));
 
             ed = new EventData { Type = "AbCd" };
             ef = new EventDataFormatter { TypeCasing = CoreEx.Globalization.TextInfoCasing.Lower };
             ef.Format(ed);
-            Assert.AreEqual("abcd", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("abcd"));
 
             ed = new EventData { Type = "AbCd" };
             ef = new EventDataFormatter { TypeCasing = CoreEx.Globalization.TextInfoCasing.Upper };
             ef.Format(ed);
-            Assert.AreEqual("ABCD", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("ABCD"));
         }
 
         [Test]
@@ -45,21 +46,21 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData();
             var ef = new EventDataFormatter { TypeDefaultToValueTypeName = false };
             ef.Format(ed);
-            Assert.AreEqual(null, ed.Type);
+            Assert.That(ed.Type, Is.EqualTo(null));
 
             ed = new EventData();
             ef.TypeDefaultToValueTypeName = true;
             ef.Format(ed);
-            Assert.AreEqual("none", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("none"));
 
             ed = new EventData { Value = new Product() };
             ef.Format(ed);
-            Assert.AreEqual("coreex.testfunction.models.product", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("coreex.testfunction.models.product"));
 
             ed = new EventData { Value = new Product() };
             ef.TypeSeparatorCharacter = '/';
             ef.Format(ed);
-            Assert.AreEqual("coreex/testfunction/models/product", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("coreex/testfunction/models/product"));
         }
 
         [Test]
@@ -68,11 +69,11 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData { Type = "product", Value = new Product { Id = "abc" } };
             var ef = new EventDataFormatter { TypeAppendEntityKey = true };
             ef.Format(ed);
-            Assert.AreEqual("product.abc", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("product.abc"));
 
             ed = new EventData { Type = "product", Value = new BackendProduct { Code = "xyz" } };
             ef.Format(ed);
-            Assert.AreEqual("product.xyz", ed.Type);
+            Assert.That(ed.Type, Is.EqualTo("product.xyz"));
         }
 
         [Test]
@@ -81,17 +82,17 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData { Subject = "AbCd" };
             var ef = new EventDataFormatter { SubjectCasing = CoreEx.Globalization.TextInfoCasing.None };
             ef.Format(ed);
-            Assert.AreEqual("AbCd", ed.Subject);
+            Assert.That(ed.Subject, Is.EqualTo("AbCd"));
 
             ed = new EventData { Subject = "AbCd" };
             ef = new EventDataFormatter { SubjectCasing = CoreEx.Globalization.TextInfoCasing.Lower };
             ef.Format(ed);
-            Assert.AreEqual("abcd", ed.Subject);
+            Assert.That(ed.Subject, Is.EqualTo("abcd"));
 
             ed = new EventData { Subject = "AbCd" };
             ef = new EventDataFormatter { SubjectCasing = CoreEx.Globalization.TextInfoCasing.Upper };
             ef.Format(ed);
-            Assert.AreEqual("ABCD", ed.Subject);
+            Assert.That(ed.Subject, Is.EqualTo("ABCD"));
         }
 
         [Test]
@@ -100,20 +101,20 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData();
             var ef = new EventDataFormatter { SubjectDefaultToValueTypeName = false };
             ef.Format(ed);
-            Assert.IsNull(ed.Subject);
+            Assert.That(ed.Subject, Is.Null);
 
             ef.SubjectDefaultToValueTypeName = true;
             ef.Format(ed);
-            Assert.IsNull(ed.Subject);
+            Assert.That(ed.Subject, Is.Null);
 
             ed.Value = new Product();
             ef.Format(ed);
-            Assert.AreEqual("coreex.testfunction.models.product", ed.Subject);
+            Assert.That(ed.Subject, Is.EqualTo("coreex.testfunction.models.product"));
 
             ed.Subject = null;
             ef.SubjectSeparatorCharacter = '/';
             ef.Format(ed);
-            Assert.AreEqual("coreex/testfunction/models/product", ed.Subject);
+            Assert.That(ed.Subject, Is.EqualTo("coreex/testfunction/models/product"));
         }
 
         [Test]
@@ -122,11 +123,11 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData { Subject = "product", Value = new Product { Id = "abc" } };
             var ef = new EventDataFormatter { SubjectAppendEntityKey = true };
             ef.Format(ed);
-            Assert.AreEqual("product.abc", ed.Subject);
+            Assert.That(ed.Subject, Is.EqualTo("product.abc"));
 
             ed = new EventData { Subject = "product", Value = new BackendProduct { Code = "xyz" } };
             ef.Format(ed);
-            Assert.AreEqual("product.xyz", ed.Subject);
+            Assert.That(ed.Subject, Is.EqualTo("product.xyz"));
         }
 
         [Test]
@@ -135,17 +136,17 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData { Action = "AbCd" };
             var ef = new EventDataFormatter { ActionCasing = CoreEx.Globalization.TextInfoCasing.None };
             ef.Format(ed);
-            Assert.AreEqual("AbCd", ed.Action);
+            Assert.That(ed.Action, Is.EqualTo("AbCd"));
 
             ed = new EventData { Action = "AbCd" };
             ef = new EventDataFormatter { ActionCasing = CoreEx.Globalization.TextInfoCasing.Lower };
             ef.Format(ed);
-            Assert.AreEqual("abcd", ed.Action);
+            Assert.That(ed.Action, Is.EqualTo("abcd"));
 
             ed = new EventData { Action = "AbCd" };
             ef = new EventDataFormatter { ActionCasing = CoreEx.Globalization.TextInfoCasing.Upper };
             ef.Format(ed);
-            Assert.AreEqual("ABCD", ed.Action);
+            Assert.That(ed.Action, Is.EqualTo("ABCD"));
         }
 
         [Test]
@@ -154,7 +155,7 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData();
             var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.Relative) };
             ef.Format(ed);
-            Assert.AreEqual(new Uri("null", UriKind.Relative), ed.Source);
+            Assert.That(ed.Source, Is.EqualTo(new Uri("null", UriKind.Relative)));
         }
 
         [Test]
@@ -163,7 +164,7 @@ namespace CoreEx.Test.Framework.Events
             var ed = new EventData { Value = new Person { ETag = "xxx" } };
             var ef = new EventDataFormatter { ETagDefaultFromValue = true };
             ef.Format(ed);
-            Assert.AreEqual("xxx", ed.ETag);
+            Assert.That(ed.ETag, Is.EqualTo("xxx"));
         }
 
         [Test]
@@ -175,7 +176,22 @@ namespace CoreEx.Test.Framework.Events
 
             ef.JsonSerializer = new CoreEx.Text.Json.JsonSerializer();
             ef.Format(ed);
-            Assert.AreEqual("0rk/Eu4Si62XCw/qDYxqLh9fhNR/4rrAijmAigS0NDM=", ed.ETag);
+            Assert.That(ed.ETag, Is.EqualTo("0rk/Eu4Si62XCw/qDYxqLh9fhNR/4rrAijmAigS0NDM="));
+        }
+
+        [Test]
+        public void FormattableValue()
+        {
+            var ed = new EventData { Value = new SalesOrderItem { OrderNo = "X400", ItemNo = 10, ProductId = "abc" } };
+            var ef = new EventDataFormatter();
+            ef.Format(ed);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Key, Is.EqualTo("X400,10"));
+                Assert.That(ed.HasAttributes, Is.True);
+                Assert.That(ed.Attributes!["_SessionId"], Is.EqualTo("abc"));
+            });
         }
 
         internal class Person : IETag
@@ -183,6 +199,24 @@ namespace CoreEx.Test.Framework.Events
             public string? Name { get; set; }
 
             public string? ETag { get; set; }
+        }
+
+        internal class SalesOrderItem : IPrimaryKey, IEventDataFormatter
+        {
+            public string? OrderNo { get; set; }
+
+            public int ItemNo { get; set; }
+
+            public string? ProductId { get; set; }
+
+            [JsonIgnore]
+            public CompositeKey PrimaryKey => new(OrderNo, ItemNo);
+
+            void IEventDataFormatter.Format(EventData eventData)
+            {
+                var p = (SalesOrderItem)eventData.Value!;
+                eventData.AddAttribute("_SessionId", p.ProductId!);
+            }
         }
     }
 }

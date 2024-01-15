@@ -21,18 +21,21 @@ namespace CoreEx.Test.Framework.Http
 
         private static void AssertIsInitial(TypedHttpClientOptions o)
         {
-            Assert.IsNotNull(o);
-            Assert.IsNull(o.CustomRetryPolicy);
-            Assert.IsNull(o.RetryCount);
-            Assert.IsNull(o.RetrySeconds);
-            Assert.IsFalse(o.ShouldThrowTransientException);
-            Assert.IsFalse(o.ShouldThrowKnownException);
-            Assert.IsFalse(o.ShouldThrowKnownUseContentAsMessage);
-            Assert.IsNotNull(o.IsTransientPredicate);
-            Assert.IsFalse(o.ShouldEnsureSuccess);
-            Assert.IsNull(o.ExpectedStatusCodes);
-            Assert.IsNull(o.MaxRetryDelay);
-            Assert.IsNull(o.BeforeRequest);
+            Assert.That(o, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.CustomRetryPolicy, Is.Null);
+                Assert.That(o.RetryCount, Is.Null);
+                Assert.That(o.RetrySeconds, Is.Null);
+                Assert.That(o.ShouldThrowTransientException, Is.False);
+                Assert.That(o.ShouldThrowKnownException, Is.False);
+                Assert.That(o.ShouldThrowKnownUseContentAsMessage, Is.False);
+                Assert.That(o.IsTransientPredicate, Is.Not.Null);
+                Assert.That(o.ShouldEnsureSuccess, Is.False);
+                Assert.That(o.ExpectedStatusCodes, Is.Null);
+                Assert.That(o.MaxRetryDelay, Is.Null);
+                Assert.That(o.BeforeRequest, Is.Null);
+            });
         }
 
         [Test]
@@ -40,24 +43,39 @@ namespace CoreEx.Test.Framework.Http
         {
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.WithRetry();
-            Assert.AreEqual(3, o.RetryCount);
-            Assert.AreEqual(1.8d, o.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.RetryCount, Is.EqualTo(3));
+                Assert.That(o.RetrySeconds, Is.EqualTo(1.8d));
+            });
 
             o.WithRetry(5);
-            Assert.AreEqual(5, o.RetryCount);
-            Assert.AreEqual(1.8d, o.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.RetryCount, Is.EqualTo(5));
+                Assert.That(o.RetrySeconds, Is.EqualTo(1.8d));
+            });
 
             o.WithRetry(null, 2.7d);
-            Assert.AreEqual(3, o.RetryCount);
-            Assert.AreEqual(2.7, o.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.RetryCount, Is.EqualTo(3));
+                Assert.That(o.RetrySeconds, Is.EqualTo(2.7));
+            });
 
             o.WithRetry(2, 1.5d);
-            Assert.AreEqual(2, o.RetryCount);
-            Assert.AreEqual(1.5, o.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.RetryCount, Is.EqualTo(2));
+                Assert.That(o.RetrySeconds, Is.EqualTo(1.5));
+            });
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.AreEqual(2, o2.RetryCount);
-            Assert.AreEqual(1.5, o2.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o2.RetryCount, Is.EqualTo(2));
+                Assert.That(o2.RetrySeconds, Is.EqualTo(1.5));
+            });
 
             o.Reset();
             AssertIsInitial(o);
@@ -68,12 +86,18 @@ namespace CoreEx.Test.Framework.Http
         {
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.ThrowTransientException();
-            Assert.IsTrue(o.ShouldThrowTransientException);
-            Assert.IsNotNull(o.IsTransientPredicate);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.ShouldThrowTransientException, Is.True);
+                Assert.That(o.IsTransientPredicate, Is.Not.Null);
+            });
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.IsTrue(o2.ShouldThrowTransientException);
-            Assert.IsNotNull(o2.IsTransientPredicate);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o2.ShouldThrowTransientException, Is.True);
+                Assert.That(o2.IsTransientPredicate, Is.Not.Null);
+            });
 
             o.Reset();
             AssertIsInitial(o);
@@ -84,16 +108,25 @@ namespace CoreEx.Test.Framework.Http
         {
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.ThrowKnownException();
-            Assert.IsTrue(o.ShouldThrowKnownException);
-            Assert.IsFalse(o.ShouldThrowKnownUseContentAsMessage);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.ShouldThrowKnownException, Is.True);
+                Assert.That(o.ShouldThrowKnownUseContentAsMessage, Is.False);
+            });
 
             o.ThrowKnownException(true);
-            Assert.IsTrue(o.ShouldThrowKnownException);
-            Assert.IsTrue(o.ShouldThrowKnownUseContentAsMessage);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o.ShouldThrowKnownException, Is.True);
+                Assert.That(o.ShouldThrowKnownUseContentAsMessage, Is.True);
+            });
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.IsTrue(o2.ShouldThrowKnownException);
-            Assert.IsTrue(o2.ShouldThrowKnownUseContentAsMessage);
+            Assert.Multiple(() =>
+            {
+                Assert.That(o2.ShouldThrowKnownException, Is.True);
+                Assert.That(o2.ShouldThrowKnownUseContentAsMessage, Is.True);
+            });
 
             o.Reset();
             AssertIsInitial(o);
@@ -104,10 +137,10 @@ namespace CoreEx.Test.Framework.Http
         {
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.EnsureSuccess();
-            Assert.IsTrue(o.ShouldEnsureSuccess);
+            Assert.That(o.ShouldEnsureSuccess, Is.True);
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.IsTrue(o2.ShouldEnsureSuccess);
+            Assert.That(o2.ShouldEnsureSuccess, Is.True);
 
             o.Reset();
             AssertIsInitial(o);
@@ -121,13 +154,13 @@ namespace CoreEx.Test.Framework.Http
             o.EnsureAccepted();
             o.EnsureCreated();
             o.EnsureNoContent();
-            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent }, o.ExpectedStatusCodes!.ToArray());
+            Assert.That(o.ExpectedStatusCodes!.ToArray(), Is.EqualTo(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent }));
 
             o.Ensure(HttpStatusCode.Continue, HttpStatusCode.Conflict);
-            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }, o.ExpectedStatusCodes!.ToArray());
+            Assert.That(o.ExpectedStatusCodes!.ToArray(), Is.EqualTo(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }));
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.AreEqual(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }, o2.ExpectedStatusCodes!.ToArray());
+            Assert.That(o2.ExpectedStatusCodes!.ToArray(), Is.EqualTo(new HttpStatusCode[] { HttpStatusCode.OK, HttpStatusCode.Accepted, HttpStatusCode.Created, HttpStatusCode.NoContent, HttpStatusCode.Continue, HttpStatusCode.Conflict }));
 
             o.Reset();
             AssertIsInitial(o);
@@ -138,10 +171,10 @@ namespace CoreEx.Test.Framework.Http
         {
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.WithTimeout(System.TimeSpan.FromMinutes(1));
-            Assert.AreEqual(System.TimeSpan.FromMinutes(1), o.Timeout);
+            Assert.That(o.Timeout, Is.EqualTo(System.TimeSpan.FromMinutes(1)));
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.AreEqual(System.TimeSpan.FromMinutes(1), o2.Timeout);
+            Assert.That(o2.Timeout, Is.EqualTo(System.TimeSpan.FromMinutes(1)));
 
             o.Reset();
             AssertIsInitial(o);
@@ -152,10 +185,10 @@ namespace CoreEx.Test.Framework.Http
         {
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.WithMaxRetryDelay(System.TimeSpan.FromMinutes(2));
-            Assert.AreEqual(System.TimeSpan.FromMinutes(2), o.MaxRetryDelay);
+            Assert.That(o.MaxRetryDelay, Is.EqualTo(System.TimeSpan.FromMinutes(2)));
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.AreEqual(System.TimeSpan.FromMinutes(2), o2.MaxRetryDelay);
+            Assert.That(o2.MaxRetryDelay, Is.EqualTo(System.TimeSpan.FromMinutes(2)));
 
             o.Reset();
             AssertIsInitial(o);
@@ -166,10 +199,10 @@ namespace CoreEx.Test.Framework.Http
         {
             var o = new TypedHttpClientOptions(new DefaultSettings());
             o.OnBeforeRequest((r, ct) => Task.CompletedTask);
-            Assert.NotNull(o.BeforeRequest);
+            Assert.That(o.BeforeRequest, Is.Not.Null);
 
             var o2 = new TypedHttpClientOptions(new DefaultSettings(), o);
-            Assert.NotNull(o2.BeforeRequest);
+            Assert.That(o2.BeforeRequest, Is.Not.Null);
 
             o.Reset();
             AssertIsInitial(o);
@@ -184,22 +217,31 @@ namespace CoreEx.Test.Framework.Http
             thc.Reset();
 
             thc.DefaultOptions.WithRetry(2, 3);
-            Assert.AreEqual(2, thc.DefaultOptions.RetryCount);
-            Assert.AreEqual(3d, thc.DefaultOptions.RetrySeconds);
-            Assert.AreEqual(2, thc.SendOptions.RetryCount);
-            Assert.AreEqual(3d, thc.SendOptions.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(thc.DefaultOptions.RetryCount, Is.EqualTo(2));
+                Assert.That(thc.DefaultOptions.RetrySeconds, Is.EqualTo(3d));
+                Assert.That(thc.SendOptions.RetryCount, Is.EqualTo(2));
+                Assert.That(thc.SendOptions.RetrySeconds, Is.EqualTo(3d));
+            });
 
             thc.WithRetry(5, 7);
-            Assert.AreEqual(2, thc.DefaultOptions.RetryCount);
-            Assert.AreEqual(3d, thc.DefaultOptions.RetrySeconds);
-            Assert.AreEqual(5, thc.SendOptions.RetryCount);
-            Assert.AreEqual(7d, thc.SendOptions.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(thc.DefaultOptions.RetryCount, Is.EqualTo(2));
+                Assert.That(thc.DefaultOptions.RetrySeconds, Is.EqualTo(3d));
+                Assert.That(thc.SendOptions.RetryCount, Is.EqualTo(5));
+                Assert.That(thc.SendOptions.RetrySeconds, Is.EqualTo(7d));
+            });
 
             thc.Reset();
-            Assert.AreEqual(2, thc.DefaultOptions.RetryCount);
-            Assert.AreEqual(3d, thc.DefaultOptions.RetrySeconds);
-            Assert.AreEqual(2, thc.SendOptions.RetryCount);
-            Assert.AreEqual(3d, thc.SendOptions.RetrySeconds);
+            Assert.Multiple(() =>
+            {
+                Assert.That(thc.DefaultOptions.RetryCount, Is.EqualTo(2));
+                Assert.That(thc.DefaultOptions.RetrySeconds, Is.EqualTo(3d));
+                Assert.That(thc.SendOptions.RetryCount, Is.EqualTo(2));
+                Assert.That(thc.SendOptions.RetrySeconds, Is.EqualTo(3d));
+            });
         }
 
         [Test]

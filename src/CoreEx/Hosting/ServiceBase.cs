@@ -37,8 +37,8 @@ namespace CoreEx.Hosting
         /// <param name="settings">The <see cref="SettingsBase"/>; defaults to instance from the <paramref name="serviceProvider"/> where not specified.</param>
         public ServiceBase(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null)
         {
-            ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            ServiceProvider = serviceProvider.ThrowIfNull(nameof(serviceProvider));
+            Logger = logger.ThrowIfNull(nameof(logger));
             Settings = settings ?? ServiceProvider.GetService<SettingsBase>() ?? new DefaultSettings(ServiceProvider.GetRequiredService<IConfiguration>());
         }
 

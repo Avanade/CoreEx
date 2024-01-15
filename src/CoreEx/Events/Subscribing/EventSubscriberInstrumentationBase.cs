@@ -153,7 +153,7 @@ namespace CoreEx.Events.Subscribing
                 _ => result == SubscriberResult.Complete && AlwaysSuffixSuccessOnResultOfComplete ? SuccessSuffix : GetExceptionSuffix(exception)
             };
 
-            return string.Format(InstrumentationNameFormat, string.IsNullOrEmpty(prefix) ? throw new ArgumentNullException(nameof(prefix)) : prefix, resultText, suffix);
+            return string.Format(InstrumentationNameFormat, prefix.ThrowIfNullOrEmpty(nameof(prefix)), resultText, suffix);
         }
 
         /// <summary>

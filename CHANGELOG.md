@@ -2,6 +2,17 @@
 
 Represents the **NuGet** versions.
 
+## v3.9.0
+- *Enhancement*: A new `Abstractions.ServiceBusMessageActions` has been created to encapsulate either a `Microsoft.Azure.WebJobs.ServiceBus.ServiceBusMessageActions` (existing [_in-process_](https://learn.microsoft.com/en-us/azure/azure-functions/functions-dotnet-class-library) function support) or `Microsoft.Azure.Functions.Worker.ServiceBusMessageActions` (new [_isolated_](https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide) function support) and used internally. Implicit conversion is enabled to simplify usage; existing projects will need to be recompiled. The latter capability does not support `RenewAsync` and as such this capability is no longer leveraged for consistency; review documented [`PeekLock`](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-service-bus-trigger?tabs=python-v2%2Cisolated-process%2Cnodejs-v4%2Cextensionv5&pivots=programming-language-csharp#peeklock-behavior) behavior to get desired outcome.
+- *Enhancement*: The `Result`, `Result<T>`, `PagingArgs` and `PagingResult` have had `IEquatable` added to enable equality comparisons.
+- *Enhancement*: Upgraded `UnitTestEx` dependency to `4.0.2` to enable _isolated_ function testing.
+- *Enhancement*: Enabled `IJsonSerializer` support for `CompositeKey` JSON serialization/deserialization.
+- *Enhancement*: Added `IEventDataFormatter` which when implemented by the value set as the `EventData.Value` allows additional formatting to be applied by the `EventDataFormatter`.
+- *Enhancement*: Added `IsMapNullIfNull` to `BidirectionalMapper` that indicates whether to map `null` source value to a corresponding `null` destination automatically.
+- *Fixed*: Added `ReferenceDataMultiDictionaryConverterFactory` to ensure each `IReferenceDataCollection` is serialized correctly according to its underlying type.
+- *Fixed*: `EventDataFormatter` and `CloudEventSerializerBase` updated to correctly set the `Key` property where applicable.
+- *Internal:* Upgraded `NUnit` dependency to `4.0.1` for all `CoreEx` unit test; also, all unit tests now leverage the [_NUnit constraint model_](https://docs.nunit.org/articles/nunit/writing-tests/assertions/assertion-models/constraint.html) testing approach.
+
 ## v3.8.1
 - *Fixed*: The `CoreEx.Text.JsonSerializer` has been updated to cache the _indented_ option correctly.
 - *Fixed*: The `ReferenceDataOrchestator` updated to use the correct serializer for `ETag` generation. 

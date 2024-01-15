@@ -81,10 +81,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <returns>The <see cref="PropertyReflector{TEntity, TProperty}"/>.</returns>
         public PropertyReflector<TEntity, TProperty> Property<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression)
         {
-            if (propertyExpression == null)
-                throw new ArgumentNullException(nameof(propertyExpression));
-
-            var pr = new PropertyReflector<TEntity, TProperty>(Args, propertyExpression);
+            var pr = new PropertyReflector<TEntity, TProperty>(Args, propertyExpression.ThrowIfNull(nameof(propertyExpression)));
             AddProperty(pr);
             return pr;
         }
@@ -94,10 +91,7 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         private void AddProperty(IPropertyReflector propertyReflector)
         {
-            if (propertyReflector == null)
-                throw new ArgumentNullException(nameof(propertyReflector));
-
-            if (_properties.ContainsKey(propertyReflector.Name))
+            if (_properties.ContainsKey(propertyReflector.ThrowIfNull(nameof(propertyReflector)).Name))
                 throw new ArgumentException($"Property with name '{propertyReflector.Name}' can not be specified more than once.", nameof(propertyReflector));
 
             if (propertyReflector.PropertyExpression.IsJsonSerializable && propertyReflector.JsonName != null)

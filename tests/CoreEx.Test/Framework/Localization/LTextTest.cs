@@ -14,8 +14,11 @@ namespace CoreEx.Test.Framework.Localization
         {
             var l = new LText();
             string t = l;
-            Assert.AreEqual(null, t);
-            Assert.AreEqual(null, l.ToString());
+            Assert.Multiple(() =>
+            {
+                Assert.That(t, Is.EqualTo(null));
+                Assert.That(l.ToString(), Is.EqualTo(null));
+            });
         }
 
         [Test]
@@ -23,8 +26,11 @@ namespace CoreEx.Test.Framework.Localization
         {
             var l = new LText("key");
             string t = l;
-            Assert.AreEqual("key", t);
-            Assert.AreEqual("key", l.ToString());
+            Assert.Multiple(() =>
+            {
+                Assert.That(t, Is.EqualTo("key"));
+                Assert.That(l.ToString(), Is.EqualTo("key"));
+            });
         }
 
         [Test]
@@ -32,8 +38,11 @@ namespace CoreEx.Test.Framework.Localization
         {
             var l = new LText(451);
             string t = l;
-            Assert.AreEqual("000451", t);
-            Assert.AreEqual("000451", l.ToString());
+            Assert.Multiple(() =>
+            {
+                Assert.That(t, Is.EqualTo("000451"));
+                Assert.That(l.ToString(), Is.EqualTo("000451"));
+            });
         }
 
         [Test]
@@ -41,8 +50,11 @@ namespace CoreEx.Test.Framework.Localization
         {
             var l = new LText("key", "fallback");
             string t = l;
-            Assert.AreEqual("fallback", t);
-            Assert.AreEqual("fallback", l.ToString());
+            Assert.Multiple(() =>
+            {
+                Assert.That(t, Is.EqualTo("fallback"));
+                Assert.That(l.ToString(), Is.EqualTo("fallback"));
+            });
         }
     }
 }

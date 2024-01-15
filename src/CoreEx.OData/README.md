@@ -302,7 +302,7 @@ public class DataverseClient : ODataClient
 
 ### Registration
 
-At application start up the dependency injection (DI) needs to be configured; compromised of the following:
+At application start up the dependency injection (DI) needs to be configured; comprised of the following:
 - Register the `DataverseClient` as scoped; assumes that the `IMapper` has also been configured.
 - Register the `Soc.ODataClient` as scoped; instantiates a new `Soc.ODataClientSettings` with the _named_ `HttpClient`.
 - Register the `DataverseAuthenticationHandler` as a singleton; to ensure the underlying token is used for all requests.

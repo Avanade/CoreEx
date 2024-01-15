@@ -14,8 +14,6 @@ using UnitTestEx;
 using UnitTestEx.Expectations;
 using UnitTestEx.NUnit;
 using DbEx;
-using Microsoft.Extensions.DependencyInjection;
-using My.Hr.Business;
 using DbEx.Migration;
 using DbEx.SqlServer.Migration;
 
@@ -105,9 +103,12 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.IsNotNull(v?.Items);
-            Assert.AreEqual(4, v!.Items.Count);
-            Assert.AreEqual(new string[] { "Browne", "Jones", "Smith", "Smithers" }, v.Items.Select(x => x.LastName).ToArray());
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(4));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Browne", "Jones", "Smith", "Smithers" }));
+            });
         }
 
         [Test]
@@ -120,11 +121,14 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.IsNotNull(v?.Items);
-            Assert.AreEqual(2, v!.Items.Count);
-            Assert.AreEqual(new string[] { "Jones", "Smith" }, v.Items.Select(x => x.LastName).ToArray());
-            Assert.IsNotNull(v.Paging);
-            Assert.AreEqual(4, v.Paging!.TotalCount);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(2));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Jones", "Smith" }));
+                Assert.That(v.Paging, Is.Not.Null);
+            });
+            Assert.That(v.Paging!.TotalCount, Is.EqualTo(4));
         }
 
         [Test]
@@ -138,7 +142,7 @@ namespace My.Hr.UnitTest
                 .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.IsNull(v!.Paging!.TotalCount); // No count requested.
+            Assert.That(v!.Paging!.TotalCount, Is.Null); // No count requested.
         }
 
         [Test]
@@ -385,9 +389,9 @@ namespace My.Hr.UnitTest
                 .Run(c => c.VerifyAsync(1.ToGuid()))
                 .AssertAccepted();
 
-            Assert.AreEqual(1, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Has.Length.EqualTo(1));
             var e = imp.GetEvents("pendingVerifications");
-            Assert.AreEqual(1, e.Length);
+            Assert.That(e, Has.Length.EqualTo(1));
             ObjectComparer.Assert(new EmployeeVerificationRequest { Name = "Wendy", Age = 38, Gender = "F" }, e[0].Value);
         }
 

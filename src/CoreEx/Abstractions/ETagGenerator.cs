@@ -28,8 +28,7 @@ namespace CoreEx.Abstractions
         /// <returns>The generated ETag.</returns>
         public static string? Generate<T>(IJsonSerializer jsonSerializer, T? value, params string[] parts) where T : class
         {
-            if (jsonSerializer == null)
-                throw new ArgumentNullException(nameof(jsonSerializer));
+            jsonSerializer.ThrowIfNull(nameof(jsonSerializer));
 
             if (value == null)
                 return null;
@@ -59,7 +58,7 @@ namespace CoreEx.Abstractions
         /// <returns>The hashed value.</returns>
         public static string GenerateHash(string text)
         {
-            var buf = Encoding.UTF8.GetBytes(text ?? throw new ArgumentNullException(nameof(text)));
+            var buf = Encoding.UTF8.GetBytes(text.ThrowIfNull(nameof(text)));
 #if NETSTANDARD2_1
             using var sha256 = System.Security.Cryptography.SHA256.Create();
             var hash = new BinaryData(sha256.ComputeHash(buf));

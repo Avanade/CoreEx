@@ -20,7 +20,7 @@ namespace CoreEx.Test.Framework.Json.Mapping
             var json = new JsonObject();
             pdm.MapToJson(p, json);
 
-            Assert.AreEqual("{\"id\":\"00000001-0000-0000-0000-000000000000\",\"nname\":\"Bob\",\"street\":\"sss\",\"town\":\"ccc\",\"address2\":{\"street\":\"ttt\",\"city\":\"ddd\"},\"other\":\"01/01/2000 02:58:34\"}", json.ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
+            Assert.That(json.ToJsonString(new JsonSerializerOptions { WriteIndented = false }), Is.EqualTo("{\"id\":\"00000001-0000-0000-0000-000000000000\",\"nname\":\"Bob\",\"street\":\"sss\",\"town\":\"ccc\",\"address2\":{\"street\":\"ttt\",\"city\":\"ddd\"},\"other\":\"01/01/2000 02:58:34\"}"));
         }
 
         [Test]
@@ -31,13 +31,16 @@ namespace CoreEx.Test.Framework.Json.Mapping
             var pdm = new PersonJsonMapper();
             var p = pdm.MapFromJson(json.AsObject())!;
 
-            Assert.AreEqual(1.ToGuid().ToString(), p.Id);
-            Assert.AreEqual("Bob", p.Name);
-            Assert.AreEqual("sss", p.Address?.Street);
-            Assert.AreEqual("ccc", p.Address?.City);
-            Assert.AreEqual("ttt", p.Address2?.Street);
-            Assert.AreEqual("ddd", p.Address2?.City);
-            Assert.AreEqual(new DateTime(2000, 01, 01, 02, 58, 34), p.Other);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.Id, Is.EqualTo(1.ToGuid().ToString()));
+                Assert.That(p.Name, Is.EqualTo("Bob"));
+                Assert.That(p.Address?.Street, Is.EqualTo("sss"));
+                Assert.That(p.Address?.City, Is.EqualTo("ccc"));
+                Assert.That(p.Address2?.Street, Is.EqualTo("ttt"));
+                Assert.That(p.Address2?.City, Is.EqualTo("ddd"));
+                Assert.That(p.Other, Is.EqualTo(new DateTime(2000, 01, 01, 02, 58, 34)));
+            });
         }
     }
 

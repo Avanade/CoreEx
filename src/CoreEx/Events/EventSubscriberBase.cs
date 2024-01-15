@@ -44,10 +44,10 @@ namespace CoreEx.Events
         /// <param name="eventSubscriberInvoker">The <see cref="EventSubscriberInvoker"/>.</param>
         protected EventSubscriberBase(IEventDataConverter eventDataConverter, ExecutionContext executionContext, SettingsBase settings, ILogger<EventSubscriberBase> logger, EventSubscriberInvoker? eventSubscriberInvoker = null)
         {
-            EventDataConverter = eventDataConverter ?? throw new ArgumentNullException(nameof(eventDataConverter));
-            ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
-            Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            EventDataConverter = eventDataConverter.ThrowIfNull(nameof(eventDataConverter));
+            ExecutionContext = executionContext.ThrowIfNull(nameof(executionContext));
+            Settings = settings.ThrowIfNull(nameof(settings));
+            Logger = logger.ThrowIfNull(nameof(logger));
             EventSubscriberInvoker = eventSubscriberInvoker ?? (_invoker ??= new EventSubscriberInvoker());
         }
 

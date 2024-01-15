@@ -16,8 +16,8 @@ namespace CoreEx.Test.Framework.Validation
         {
             string name = "George";
             var r = await name.Validate().Mandatory().String(50).ValidateAsync();
-            Assert.IsNotNull(r);
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
         }
 
         [Test]
@@ -25,10 +25,13 @@ namespace CoreEx.Test.Framework.Validation
         {
             string? name = null;
             var r = await name.Validate().Mandatory().String(50).ValidateAsync();
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages!.Count);
-            Assert.AreEqual("Name is required.", r.Messages[0].Text);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Name is required."));
+            });
         }
 
         [Test]
@@ -36,9 +39,12 @@ namespace CoreEx.Test.Framework.Validation
         {
             string name = "Bill";
             var r = await name.Validate().Mandatory().Custom(ctx => Result.Go().When(() => ctx.Value == "Bill", () => Result.NotFoundError())).String(5).ValidateAsync();
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
-            Assert.IsNotNull(r.FailureResult);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.FailureResult, Is.Not.Null);
+            });
             Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<NotFoundException>());
             Assert.Throws<NotFoundException>(() => r.ThrowOnError());
         }

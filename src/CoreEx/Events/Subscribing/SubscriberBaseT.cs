@@ -36,10 +36,7 @@ namespace CoreEx.Events.Subscribing
         /// <remarks>Caution where overridding this method as it contains the underlying functionality to invoke <see cref="ReceiveAsync(EventData{TValue}, EventSubscriberArgs, CancellationToken)"/> that is the <i>required</i> method to be overridden.</remarks>
         public async override Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken)
         {
-            if (@event == null)
-                throw new ArgumentNullException(nameof(@event));
-
-            return await Result.Go(@event)
+            return await Result.Go(@event.ThrowIfNull(nameof(@event)))
                 .When(ed => ValueIsRequired && ed.Value is null, _ => Result<EventData>.ValidationError(EventSubscriberBase.RequiredErrorText))
                 .ThenAs(ed => ed is EventData<TValue> edvx ? edvx : new EventData<TValue>(ed).Adjust(e => e.Value = (TValue)ed.Value!))
                 .WhenAsync(ed => ValueValidator != null, async ed =>

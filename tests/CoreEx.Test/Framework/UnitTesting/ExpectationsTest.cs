@@ -17,13 +17,13 @@ namespace CoreEx.Test.Framework.UnitTesting
         {
             var gt = GenericTester.CreateFor<Entity<string>>().ExpectIdentifier();
             var ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string>())))!;
-            Assert.IsTrue(ex.Message.Contains("Expected IIdentifier.Id to have a non-null value."));
+            Assert.That(ex.Message.Contains("Expected IIdentifier.Id to have a non-null value."), Is.True);
 
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { Id = "x" }));
 
             gt = GenericTester.CreateFor<Entity<string>>().ExpectIdentifier("y");
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { Id = "x" })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected IIdentifier.Id value of 'y'; actual 'x'."));
+            Assert.That(ex.Message.Contains("Expected IIdentifier.Id value of 'y'; actual 'x'."), Is.True);
 
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { Id = "y" }));
         }
@@ -33,13 +33,13 @@ namespace CoreEx.Test.Framework.UnitTesting
         {
             var gt = GenericTester.CreateFor<Entity2<string>>().ExpectPrimaryKey();
             var ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity2<string>())))!;
-            Assert.IsTrue(ex.Message.Contains("Expected IPrimaryKey.PrimaryKey.Args to have one or more non-default values."));
+            Assert.That(ex.Message.Contains("Expected IPrimaryKey.PrimaryKey.Args to have one or more non-default values."), Is.True);
 
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity2<string> { Id = "x" }));
 
             gt = GenericTester.CreateFor<Entity2<string>>().ExpectPrimaryKey("y");
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity2<string> { Id = "x" })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected IPrimaryKey.PrimaryKey value of 'y'; actual 'x'."));
+            Assert.That(ex.Message.Contains("Expected IPrimaryKey.PrimaryKey value of 'y'; actual 'x'."), Is.True);
 
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity2<string> { Id = "y" }));
         }
@@ -49,13 +49,13 @@ namespace CoreEx.Test.Framework.UnitTesting
         {
             var gt = GenericTester.CreateFor<Entity<string>>().ExpectETag();
             var ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string>())))!;
-            Assert.IsTrue(ex.Message.Contains("Expected IETag.ETag to have a non-null value."));
+            Assert.That(ex.Message.Contains("Expected IETag.ETag to have a non-null value."), Is.True);
 
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ETag = "xxx" }));
 
             gt = GenericTester.CreateFor<Entity<string>>().ExpectETag("yyy");
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ETag = "yyy" })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected IETag.ETag value of 'yyy' to be different to actual."));
+            Assert.That(ex.Message.Contains("Expected IETag.ETag value of 'yyy' to be different to actual."), Is.True);
 
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ETag = "xxx" }));
         }
@@ -67,16 +67,16 @@ namespace CoreEx.Test.Framework.UnitTesting
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { CreatedBy = "Anonymous", CreatedDate = DateTime.UtcNow } }));
 
             var ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string>())))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit) to have a non-null value."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit) to have a non-null value."), Is.True);
 
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog() })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).CreatedBy value of 'Anonymous'; actual was null."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).CreatedBy value of 'Anonymous'; actual was null."), Is.True);
 
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { CreatedBy = "Anonymous" } })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).CreatedDate to have a non-null value."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).CreatedDate to have a non-null value."), Is.True);
 
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { CreatedBy = "Anonymous", CreatedDate = DateTime.UtcNow.AddMinutes(-1) } })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).CreatedDate value of '") && ex.Message.Contains("' must be greater than or equal to expected."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).CreatedDate value of '") && ex.Message.Contains("' must be greater than or equal to expected."), Is.True);
 
             gt = GenericTester.CreateFor<Entity<string>>().ExpectChangeLogCreated("Banana");
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { CreatedBy = "Banana", CreatedDate = DateTime.UtcNow } }));
@@ -95,16 +95,16 @@ namespace CoreEx.Test.Framework.UnitTesting
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { UpdatedBy = "Anonymous", UpdatedDate = DateTime.UtcNow } }));
 
             var ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string>())))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit) to have a non-null value."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit) to have a non-null value."), Is.True);
 
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog() })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).UpdatedBy value of 'Anonymous'; actual was null."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).UpdatedBy value of 'Anonymous'; actual was null."), Is.True);
 
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { UpdatedBy = "Anonymous" } })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).UpdatedDate to have a non-null value."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).UpdatedDate to have a non-null value."), Is.True);
 
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { UpdatedBy = "Anonymous", UpdatedDate = DateTime.UtcNow.AddMinutes(-1) } })))!;
-            Assert.IsTrue(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).UpdatedDate value of '") && ex.Message.Contains("' must be greater than or equal to expected."));
+            Assert.That(ex.Message.Contains("Expected Change Log (IChangeLogAuditLog.ChangeLogAudit).UpdatedDate value of '") && ex.Message.Contains("' must be greater than or equal to expected."), Is.True);
 
             gt = GenericTester.CreateFor<Entity<string>>().ExpectChangeLogUpdated("Banana");
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertValueAsync(null, new Entity<string> { ChangeLog = new ChangeLog { UpdatedBy = "Banana", UpdatedDate = DateTime.UtcNow } }));
@@ -123,18 +123,18 @@ namespace CoreEx.Test.Framework.UnitTesting
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertAsync(null, new ValidationException()));
 
             var ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertAsync(null, new BusinessException())))!;
-            Assert.IsTrue(ex.Message.Contains("Expected error type of 'ValidationError' but actual was 'BusinessError'."));
+            Assert.That(ex.Message.Contains("Expected error type of 'ValidationError' but actual was 'BusinessError'."), Is.True);
 
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertAsync(null, new Exception())))!;
-            Assert.IsTrue(ex.Message.Contains("Expected error type of 'ValidationError' but none was returned."));
+            Assert.That(ex.Message.Contains("Expected error type of 'ValidationError' but none was returned."), Is.True);
 
             var hr = new HttpResponseMessage(System.Net.HttpStatusCode.BadRequest);
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertAsync(gt.ExpectationsArranger.CreateArgs(null, null).AddExtra(hr))))!;
-            Assert.IsTrue(ex.Message.Contains("Expected error type of 'ValidationError' but none was returned."));
+            Assert.That(ex.Message.Contains("Expected error type of 'ValidationError' but none was returned."), Is.True);
 
             hr.Headers.Add(HttpConsts.ErrorTypeHeaderName, "BusinessError");
             ex = Assert.Throws<Exception>(() => ArrangerAssert(async () => await gt.ExpectationsArranger.AssertAsync(gt.ExpectationsArranger.CreateArgs(null, null).AddExtra(hr))))!;
-            Assert.IsTrue(ex.Message.Contains("Expected error type of 'ValidationError' but actual was 'BusinessError'."));
+            Assert.That(ex.Message.Contains("Expected error type of 'ValidationError' but actual was 'BusinessError'."), Is.True);
 
             hr.Headers.Add(HttpConsts.ErrorTypeHeaderName, "ValidationError");
             ArrangerAssert(async () => await gt.ExpectationsArranger.AssertAsync(gt.ExpectationsArranger.CreateArgs(null, null).AddExtra(hr)));

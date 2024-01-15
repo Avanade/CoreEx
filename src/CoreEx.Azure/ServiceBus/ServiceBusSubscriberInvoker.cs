@@ -2,10 +2,10 @@
 
 using Azure.Messaging.ServiceBus;
 using CoreEx.Abstractions;
+using CoreEx.Azure.ServiceBus.Abstractions;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
 using CoreEx.Invokers;
-using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -171,7 +171,6 @@ namespace CoreEx.Azure.ServiceBus
                     if (delay > 0)
                     {
                         // Renew the lock to maximize time and then delay.
-                        await messageActions.RenewMessageLockAsync(message, cancellationToken).ConfigureAwait(false);
                         invoker.Logger.LogDebug("Retry delaying - Service Bus message '{Message}'. Retry delay {Delay}ms.", message.MessageId, delay);
                         await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                         invoker.Logger.LogDebug("Retry delayed - Service Bus message '{Message}'.", message.MessageId, delay);
@@ -181,7 +180,7 @@ namespace CoreEx.Azure.ServiceBus
                     {
                         // Abandon message versus bubbling.
                         invoker.Logger.LogDebug("Abandoning - Service Bus message '{Message}'.", message.MessageId);
-                        await messageActions.AbandonMessageAsync(message, new Dictionary<string, object?> { { SubscriberAbandonReasonPropertyName, FormatText(exception.Message) } }, cancellationToken).ConfigureAwait(false);
+                        await messageActions.AbandonMessageAsync(message, new Dictionary<string, object> { { SubscriberAbandonReasonPropertyName, FormatText(exception.Message) } }, cancellationToken).ConfigureAwait(false);
                         invoker.Logger.LogDebug("Abandoned - Service Bus message '{Message}'.", message.MessageId);
                         return false;
                     }
@@ -211,14 +210,14 @@ namespace CoreEx.Azure.ServiceBus
             var ex = exception is EventSubscriberException esex && esex.HasInnerExtendedException ? null : exception;
 
             invoker.Logger.LogDebug("Dead Lettering - Service Bus message '{Message}'. [{Reason}] {Error}", message.MessageId, errorReason, exception.Message);
-            await messageActions.DeadLetterMessageAsync(message, new Dictionary<string, object?> { { SubscriberExceptionPropertyName, FormatText(exception.ToString()) } }, errorReason, FormatText(exception.Message), cancellationToken).ConfigureAwait(false);
+            await messageActions.DeadLetterMessageAsync(message, new Dictionary<string, object> { { SubscriberExceptionPropertyName, FormatText(exception.ToString()) } }, errorReason, FormatText(exception.Message), cancellationToken).ConfigureAwait(false);
             invoker.Logger.LogError(ex, "Dead Lettered - Service Bus message '{Message}'. [{Reason}] {Error}", message.MessageId, errorReason, exception.Message);
         }
 
         /// <summary>
         /// Shortens the text to 2048 characters; should be enough to given context - otherwise, full context should have be written to the log.
         /// </summary>
-        private static string? FormatText(string? text) => text?[..Math.Min(text.Length, 2048)];
+        private static string FormatText(string? text) => text?[..Math.Min(text.Length, 2048)] ?? string.Empty;
 
         /// <summary>
         /// Update the <see cref="ILogger.BeginScope{TState}(TState)"/> <paramref name="state"/> from the <paramref name="message"/>.
@@ -252,7 +251,7 @@ namespace CoreEx.Azure.ServiceBus
         protected virtual void OnBeforeMessageProcessing(EventSubscriberBase subscriber, ServiceBusReceivedMessage message) { }
 
         /// <summary>
-        /// Provides an opportunity to perform additional logging/monitoring after the <paramref name="message"/> processing occurs (including any corresponding <see cref="ServiceBusReceiveActions"/> invocation).
+        /// Provides an opportunity to perform additional logging/monitoring after the <paramref name="message"/> processing occurs (including any corresponding <see cref="ServiceBusReceivedMessage"/> invocation).
         /// </summary>
         /// <param name="subscriber">The invoking <see cref="EventSubscriberBase"/>.</param>
         /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>

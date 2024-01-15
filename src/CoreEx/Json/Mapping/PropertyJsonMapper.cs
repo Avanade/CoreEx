@@ -29,7 +29,7 @@ namespace CoreEx.Json.Mapping
         /// <param name="operationTypes">The <see cref="CoreEx.Mapping.OperationTypes"/> selection to enable inclusion or exclusion of property.</param>
         internal PropertyJsonMapper(IJsonObjectMapper owner, Expression<Func<TSource, TSourceProperty>> propertyExpression, string? jsonName = null, OperationTypes operationTypes = OperationTypes.Any)
         {
-            Owner = owner ?? throw new ArgumentNullException(nameof(owner));
+            Owner = owner.ThrowIfNull(nameof(owner));
             _propertyExpression = Abstractions.Reflection.PropertyExpression.Create(propertyExpression, Owner.JsonSerializer);
             JsonName = jsonName ?? _propertyExpression.JsonName ?? PropertyName;
             OperationTypes = operationTypes;
@@ -74,8 +74,7 @@ namespace CoreEx.Json.Mapping
         /// <inheritdoc/>
         void IPropertyJsonMapper.SetConverter(IConverter converter)
         {
-            if (converter == null)
-                throw new ArgumentNullException(nameof(converter));
+            converter.ThrowIfNull(nameof(converter));
 
             if (Mapper != null)
                 throw new InvalidOperationException("The Mapper and Converter cannot be both set; only one is permissible.");
@@ -101,8 +100,7 @@ namespace CoreEx.Json.Mapping
         /// <inheritdoc/>
         void IPropertyJsonMapper.SetMapper(IJsonObjectMapper mapper)
         {
-            if (mapper == null)
-                throw new ArgumentNullException(nameof(mapper));
+            mapper.ThrowIfNull(nameof(mapper));
 
             if (Converter != null)
                 throw new InvalidOperationException("The Mapper and Converter cannot be both set; only one is permissible.");
@@ -111,7 +109,7 @@ namespace CoreEx.Json.Mapping
                 throw new InvalidOperationException($"The PropertyType '{PropertyType.Name}' must be a class to set a Mapper.");
 
             if (mapper.SourceType != typeof(TSourceProperty))
-                throw new ArgumentNullException($"The PropertyType '{PropertyType.Name}' and IDataverseMapper.SourceType '{mapper.SourceType.Name}' must match.");
+                throw new ArgumentException($"The PropertyType '{PropertyType.Name}' and IDataverseMapper.SourceType '{mapper.SourceType.Name}' must match.", nameof(mapper));
 
             if (IsPrimaryKey)
                 throw new InvalidOperationException("A Mapper can not be set for a primary key.");

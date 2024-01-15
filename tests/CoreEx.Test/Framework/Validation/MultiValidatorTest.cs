@@ -23,21 +23,25 @@ namespace CoreEx.Test.Framework.Validation
                 .Add(1.Validate("value").Between(10, 20))
                 .ValidateAsync().ConfigureAwait(false);
             
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
 
-            Assert.AreEqual(3, r.Messages!.Count);
-            Assert.AreEqual("Text is required.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Text", r.Messages[0].Property);
+                Assert.That(r.Messages!, Has.Count.EqualTo(3));
 
-            Assert.AreEqual("Count B must be greater than 10.", r.Messages[1].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
-            Assert.AreEqual("CountB", r.Messages[1].Property);
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Text is required."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Text"));
 
-            Assert.AreEqual("Value must be between 10 and 20.", r.Messages[2].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[2].Type);
-            Assert.AreEqual("value", r.Messages[2].Property);
+                Assert.That(r.Messages[1].Text, Is.EqualTo("Count B must be greater than 10."));
+                Assert.That(r.Messages[1].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("CountB"));
+
+                Assert.That(r.Messages[2].Text, Is.EqualTo("Value must be between 10 and 20."));
+                Assert.That(r.Messages[2].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[2].Property, Is.EqualTo("value"));
+            });
         }
 
         [Test]
@@ -52,21 +56,25 @@ namespace CoreEx.Test.Framework.Validation
                 .Add(1.Validate("id").Between(10, 20))
                 .ValidateAsync().ConfigureAwait(false);
 
-            Assert.IsNotNull(r);
-            Assert.IsTrue(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
 
-            Assert.AreEqual(3, r.Messages!.Count);
-            Assert.AreEqual("Text is required.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("value.Text", r.Messages[0].Property);
+                Assert.That(r.Messages!, Has.Count.EqualTo(3));
 
-            Assert.AreEqual("Count B must be greater than 10.", r.Messages[1].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[1].Type);
-            Assert.AreEqual("value.CountB", r.Messages[1].Property);
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Text is required."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value.Text"));
 
-            Assert.AreEqual("Identifier must be between 10 and 20.", r.Messages[2].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[2].Type);
-            Assert.AreEqual("id", r.Messages[2].Property);
+                Assert.That(r.Messages[1].Text, Is.EqualTo("Count B must be greater than 10."));
+                Assert.That(r.Messages[1].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[1].Property, Is.EqualTo("value.CountB"));
+
+                Assert.That(r.Messages[2].Text, Is.EqualTo("Identifier must be between 10 and 20."));
+                Assert.That(r.Messages[2].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[2].Property, Is.EqualTo("id"));
+            });
 
             Assert.Throws<ValidationException>(() => r.ThrowOnError());
         }
@@ -83,8 +91,8 @@ namespace CoreEx.Test.Framework.Validation
                 .Add(15.Validate("id").Between(10, 20))
                 .ValidateAsync().ConfigureAwait(false);
 
-            Assert.IsNotNull(r);
-            Assert.IsFalse(r.HasErrors);
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
             r.ThrowOnError();
         }
     }

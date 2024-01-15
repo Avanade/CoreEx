@@ -32,7 +32,7 @@ namespace CoreEx.Entities
         /// <param name="paging">Defaults the <see cref="Paging"/> to the requesting <see cref="PagingArgs"/>.</param>
         protected CollectionResult(PagingArgs? paging)
         {
-            if (paging != null)
+            if (paging is not null)
                 Paging = new PagingResult(paging);
         }
 
@@ -40,7 +40,7 @@ namespace CoreEx.Entities
         public TColl Items
         {
             get => _collection ??= new TColl();
-            set => _collection = value ?? throw new ArgumentNullException(nameof(value));
+            set => _collection = value.ThrowIfNull(nameof(value));
         }
 
         /// <inheritdoc/>

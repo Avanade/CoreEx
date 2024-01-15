@@ -12,26 +12,32 @@ namespace CoreEx.Test.Framework.Entities.Extended
         public void SettingAndGetting()
         {
             var ta = new TestA { Id = 88, Code = " A ", Text = " B ", DateOnly = new DateTime(2000, 01, 01, 12, 59, 59), DateTime = new DateTime(2000, 01, 01, 12, 59, 59), Description = "the AB code." };
-            Assert.AreEqual(88, ta.Id);
-            Assert.AreEqual("a", ta.Code);
-            Assert.AreEqual(" B", ta.Text);
-            Assert.AreEqual(new DateTime(2000, 01, 01), ta.DateOnly);
-            Assert.AreEqual(new DateTime(2000, 01, 01, 12, 59, 59, DateTimeKind.Utc), ta.DateTime);
-            Assert.IsTrue(ta.IsChanged);
-            Assert.AreEqual("The AB Code.", ta.Description);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ta.Id, Is.EqualTo(88));
+                Assert.That(ta.Code, Is.EqualTo("a"));
+                Assert.That(ta.Text, Is.EqualTo(" B"));
+                Assert.That(ta.DateOnly, Is.EqualTo(new DateTime(2000, 01, 01)));
+                Assert.That(ta.DateTime, Is.EqualTo(new DateTime(2000, 01, 01, 12, 59, 59, DateTimeKind.Utc)));
+                Assert.That(ta.IsChanged, Is.True);
+                Assert.That(ta.Description, Is.EqualTo("The AB Code."));
+            });
 
             ta.AcceptChanges();
-            Assert.IsFalse(ta.IsChanged);
+            Assert.That(ta.IsChanged, Is.False);
 
             ta.Code = null;
             ta.Text = null;
             ta.DateTime = null;
             ta.Description = null;
-            Assert.IsEmpty(ta.Code);
-            Assert.IsNull(ta.Text);
-            Assert.IsNull(ta.DateTime);
-            Assert.IsTrue(ta.IsChanged);
-            Assert.IsNull(ta.Description);
+            Assert.That(ta.Code, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ta.Text, Is.Null);
+                Assert.That(ta.DateTime, Is.Null);
+                Assert.That(ta.IsChanged, Is.True);
+                Assert.That(ta.Description, Is.Null);
+            });
         }
 
         private class TestA : EntityCore

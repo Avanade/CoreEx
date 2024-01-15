@@ -13,22 +13,31 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         {
             var edf = new EventDataFormatter();
             var esa = new EventSubscriberAttribute("root.*");
-            Assert.IsFalse(esa.IsMatch(edf, Create("root", null, null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create("root.a", null, null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create("root.a.b", null, null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create("other", null, null)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create("root", null, null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create("root.a", null, null)), Is.True);
+                Assert.That(esa.IsMatch(edf, Create("root.a.b", null, null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create("other", null, null)), Is.False);
+            });
 
             esa = new EventSubscriberAttribute("root.*.*");
-            Assert.IsFalse(esa.IsMatch(edf, Create("root", null, null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create("root.a", null, null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create("ROOT.A.B", null, null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create("root.a.b.c", null, null)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create("root", null, null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create("root.a", null, null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create("ROOT.A.B", null, null)), Is.True);
+                Assert.That(esa.IsMatch(edf, Create("root.a.b.c", null, null)), Is.False);
+            });
 
             esa = new EventSubscriberAttribute("root.*.**");
-            Assert.IsFalse(esa.IsMatch(edf, Create("root", null, null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create("root.a", null, null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create("root.a.b", null, null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create("root.a.b.c", null, null)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create("root", null, null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create("root.a", null, null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create("root.a.b", null, null)), Is.True);
+                Assert.That(esa.IsMatch(edf, Create("root.a.b.c", null, null)), Is.True);
+            });
         }
 
         [Test]
@@ -36,22 +45,31 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         {
             var edf = new EventDataFormatter();
             var esa = new EventSubscriberAttribute() { Type = "root.*" };
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "root", null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create(null, "root.a", null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "root.a.b", null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "other", null)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create(null, "root", null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create(null, "root.a", null)), Is.True);
+                Assert.That(esa.IsMatch(edf, Create(null, "root.a.b", null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create(null, "other", null)), Is.False);
+            });
 
             esa = new EventSubscriberAttribute() { Type = "root.*.*" };
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "root", null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "root.a", null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create(null, "ROOT.A.B", null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "root.a.b.c", null)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create(null, "root", null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create(null, "root.a", null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create(null, "ROOT.A.B", null)), Is.True);
+                Assert.That(esa.IsMatch(edf, Create(null, "root.a.b.c", null)), Is.False);
+            });
 
             esa = new EventSubscriberAttribute() { Type = "root.*.**" };
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "root", null)));
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, "root.a", null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create(null, "root.a.b", null)));
-            Assert.IsTrue(esa.IsMatch(edf, Create(null, "root.a.b.c", null)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create(null, "root", null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create(null, "root.a", null)), Is.False);
+                Assert.That(esa.IsMatch(edf, Create(null, "root.a.b", null)), Is.True);
+                Assert.That(esa.IsMatch(edf, Create(null, "root.a.b.c", null)), Is.True);
+            });
         }
 
         [Test]
@@ -59,11 +77,14 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         {
             var edf = new EventDataFormatter();
             var esa = new EventSubscriberAttribute(null, "a*", "b");
-            Assert.IsTrue(esa.IsMatch(edf, Create(null, null, "a")));
-            Assert.IsTrue(esa.IsMatch(edf, Create(null, null, "AA")));
-            Assert.IsTrue(esa.IsMatch(edf, Create(null, null, "b")));
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, null, "BB")));
-            Assert.IsFalse(esa.IsMatch(edf, Create(null, null, "c")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create(null, null, "a")), Is.True);
+                Assert.That(esa.IsMatch(edf, Create(null, null, "AA")), Is.True);
+                Assert.That(esa.IsMatch(edf, Create(null, null, "b")), Is.True);
+                Assert.That(esa.IsMatch(edf, Create(null, null, "BB")), Is.False);
+                Assert.That(esa.IsMatch(edf, Create(null, null, "c")), Is.False);
+            });
         }
 
         [Test]
@@ -71,9 +92,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         {
             var edf = new EventDataFormatter();
             var esa = new EventSubscriberAttribute("root.*", "a*", "b");
-            Assert.IsFalse(esa.IsMatch(edf, Create("root", null, "aa")));
-            Assert.IsTrue(esa.IsMatch(edf, Create("root.a", null, "b")));
-            Assert.IsFalse(esa.IsMatch(edf, Create("root.a.b", null, "b")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create("root", null, "aa")), Is.False);
+                Assert.That(esa.IsMatch(edf, Create("root.a", null, "b")), Is.True);
+                Assert.That(esa.IsMatch(edf, Create("root.a.b", null, "b")), Is.False);
+            });
         }
 
         [Test]
@@ -82,11 +106,14 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var edf = new EventDataFormatter();
             var esa = new EventSubscriberAttribute("root.*", "a*", "b");
 
-            Assert.IsTrue(esa.IsMatch(edf, Create("ROOT.A", null, "b")));
+            Assert.That(esa.IsMatch(edf, Create("ROOT.A", null, "b")), Is.True);
 
             esa.IgnoreCase = false;
-            Assert.IsTrue(esa.IsMatch(edf, Create("root.a", null, "b")));
-            Assert.IsFalse(esa.IsMatch(edf, Create("ROOT.A", null, "b")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, Create("root.a", null, "b")), Is.True);
+                Assert.That(esa.IsMatch(edf, Create("ROOT.A", null, "b")), Is.False);
+            });
         }
 
         [Test]
@@ -95,23 +122,32 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var edf = new EventDataFormatter();
 
             var esa = new EventSubscriberAttribute(new Uri("*", UriKind.Relative));
-            Assert.IsTrue(esa.IsMatch(edf, new EventData { Source = new Uri("test", UriKind.Relative) }));
-            Assert.IsTrue(esa.IsMatch(edf, new EventData { Source = new Uri("http://test", UriKind.Absolute) }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("test", UriKind.Relative) }), Is.True);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("http://test", UriKind.Absolute) }), Is.True);
+            });
 
             esa = new EventSubscriberAttribute(new Uri("test/*", UriKind.Relative));
-            Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("test", UriKind.Relative) }));
-            Assert.IsTrue(esa.IsMatch(edf, new EventData { Source = new Uri("test/abc", UriKind.Relative) }));
-            Assert.IsTrue(esa.IsMatch(edf, new EventData { Source = new Uri("/test/abc", UriKind.Relative) }));
-            Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test", UriKind.Absolute) }));
-            Assert.IsTrue(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test/abc", UriKind.Absolute) }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("test", UriKind.Relative) }), Is.False);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("test/abc", UriKind.Relative) }), Is.True);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("/test/abc", UriKind.Relative) }), Is.True);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test", UriKind.Absolute) }), Is.False);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test/abc", UriKind.Absolute) }), Is.True);
+            });
 
             esa = new EventSubscriberAttribute(new Uri("http://host/test/*", UriKind.Absolute));
-            Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("test/abc", UriKind.Relative) }));
-            Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test", UriKind.Absolute) }));
-            Assert.IsTrue(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test/xyz", UriKind.Absolute) }));
-            Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("http://tsoh/test/xyz", UriKind.Absolute) }));
-            Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("https://host/test/xyz", UriKind.Absolute) }));
-            Assert.IsFalse(esa.IsMatch(edf, new EventData { Source = new Uri("http://host:5050/test/xyz", UriKind.Absolute) }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("test/abc", UriKind.Relative) }), Is.False);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test", UriKind.Absolute) }), Is.False);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("http://host/test/xyz", UriKind.Absolute) }), Is.True);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("http://tsoh/test/xyz", UriKind.Absolute) }), Is.False);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("https://host/test/xyz", UriKind.Absolute) }), Is.False);
+                Assert.That(esa.IsMatch(edf, new EventData { Source = new Uri("http://host:5050/test/xyz", UriKind.Absolute) }), Is.False);
+            });
         }
 
         private EventData Create(string? subject, string? type, string? action) => new() { Subject = subject, Type = type, Action = action };

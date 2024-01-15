@@ -18,11 +18,17 @@ namespace CoreEx.Test.Framework.FluentValidation
                 .Add(new ProductValidator().Wrap(), new Product { Id = "B2TF", Name = "DeLorean", Price = 88m })
                 .ValidateAsync().ConfigureAwait(false);
 
-            Assert.IsTrue(r.HasErrors);
-            Assert.AreEqual(1, r.Messages.Count);
-            Assert.AreEqual("A DeLorean cannot be priced at 88 as that could cause a chain reaction that would unravel the very fabric of the space-time continuum and destroy the entire universe.", r.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, r.Messages[0].Type);
-            Assert.AreEqual("Name", r.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages, Has.Count.EqualTo(1));
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Messages[0].Text, Is.EqualTo("A DeLorean cannot be priced at 88 as that could cause a chain reaction that would unravel the very fabric of the space-time continuum and destroy the entire universe."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Name"));
+            });
         }
     }
 }

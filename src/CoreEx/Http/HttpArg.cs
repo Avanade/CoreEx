@@ -20,37 +20,27 @@ namespace CoreEx.Http
     /// Represents an <see cref="IHttpArgTypeArg"/> argument for an <see cref="HttpRequestMessage"/> where updating <see cref="HttpRequestMessage.RequestUri"/> or <see cref="HttpRequestMessage.Content"/> (body).
     /// </summary>
     /// <typeparam name="T">The <see cref="Value"/> <see cref="Type"/>.</typeparam>
-    public class HttpArg<T> : IHttpArgTypeArg
+    /// <param name="name">The argument <see cref="IHttpArgTypeArg.Name"/>.</param>
+    /// <param name="value">The argument <see cref="Value"/>.</param>
+    /// <param name="argType">The <see cref="IHttpArgTypeArg.ArgType"/>.</param>
+    public class HttpArg<T>(string name, T value, HttpArgType argType = HttpArgType.FromUri) : IHttpArgTypeArg
     {
         private bool _isUsed = false;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HttpArg{Object}"/> class.
-        /// </summary>
-        /// <param name="name">The argument <see cref="IHttpArgTypeArg.Name"/>.</param>
-        /// <param name="value">The argument <see cref="Value"/>.</param>
-        /// <param name="argType">The <see cref="IHttpArgTypeArg.ArgType"/>.</param>
-        public HttpArg(string name, T value, HttpArgType argType = HttpArgType.FromUri)
-        {
-            Name = name ?? throw new ArgumentNullException(nameof(name));
-            Value = value;
-            ArgType = argType;
-        }
-
-        /// <summary>
         /// Gets the argument name.
         /// </summary>
-        public string Name { get; }
+        public string Name { get; } = name.ThrowIfNull(nameof(name));
 
         /// <summary>
         /// Gets the <see cref="HttpArgType"/> that determines how the argument is applied.
         /// </summary>
-        public HttpArgType ArgType { get; }
+        public HttpArgType ArgType { get; } = argType;
 
         /// <summary>
         /// Gets the argument value.
         /// </summary>
-        public T Value { get;}
+        public T Value { get; } = value;
 
         /// <inheritdoc/>
         public string? ToEscapeDataString()

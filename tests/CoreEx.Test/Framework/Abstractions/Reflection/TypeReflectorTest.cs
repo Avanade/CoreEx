@@ -15,26 +15,29 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         public void GetReflector()
         {
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
-            Assert.NotNull(tr.GetProperty("Id"));
-            Assert.NotNull(tr.GetProperty("Name"));
-            Assert.NotNull(tr.GetProperty("GenderSid"));
-            Assert.NotNull(tr.GetProperty("Gender"));
-            Assert.NotNull(tr.GetProperty("Addresses"));
-            Assert.NotNull(tr.GetProperty("ChangeLog"));
-            Assert.NotNull(tr.GetProperty("Secret"));
-            Assert.NotNull(tr.GetProperty("NickNames"));
-            Assert.IsFalse(tr.TryGetProperty("Bananas", out var _));
+            Assert.Multiple(() =>
+            {
+                Assert.That(tr.GetProperty("Id"), Is.Not.Null);
+                Assert.That(tr.GetProperty("Name"), Is.Not.Null);
+                Assert.That(tr.GetProperty("GenderSid"), Is.Not.Null);
+                Assert.That(tr.GetProperty("Gender"), Is.Not.Null);
+                Assert.That(tr.GetProperty("Addresses"), Is.Not.Null);
+                Assert.That(tr.GetProperty("ChangeLog"), Is.Not.Null);
+                Assert.That(tr.GetProperty("Secret"), Is.Not.Null);
+                Assert.That(tr.GetProperty("NickNames"), Is.Not.Null);
+                Assert.That(tr.TryGetProperty("Bananas", out var _), Is.False);
 
-            Assert.NotNull(tr.GetJsonProperty("id"));
-            Assert.IsNull(tr.GetJsonProperty("Id"));
-            Assert.NotNull(tr.GetJsonProperty("name"));
-            Assert.IsNull(tr.GetJsonProperty("genderSid"));
-            Assert.NotNull(tr.GetJsonProperty("gender"));
-            Assert.NotNull(tr.GetJsonProperty("addresses"));
-            Assert.NotNull(tr.GetJsonProperty("changeLog"));
-            Assert.IsNull(tr.GetJsonProperty("secret"));
-            Assert.NotNull(tr.GetJsonProperty("nickNames"));
-            Assert.IsNull(tr.GetJsonProperty("bananas"));
+                Assert.That(tr.GetJsonProperty("id"), Is.Not.Null);
+                Assert.That(tr.GetJsonProperty("Id"), Is.Null);
+                Assert.That(tr.GetJsonProperty("name"), Is.Not.Null);
+                Assert.That(tr.GetJsonProperty("genderSid"), Is.Null);
+                Assert.That(tr.GetJsonProperty("gender"), Is.Not.Null);
+                Assert.That(tr.GetJsonProperty("addresses"), Is.Not.Null);
+                Assert.That(tr.GetJsonProperty("changeLog"), Is.Not.Null);
+                Assert.That(tr.GetJsonProperty("secret"), Is.Null);
+                Assert.That(tr.GetJsonProperty("nickNames"), Is.Not.Null);
+                Assert.That(tr.GetJsonProperty("bananas"), Is.Null);
+            });
         }
 
         [Test]
@@ -42,16 +45,16 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         {
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("Id");
-            Assert.IsNotNull(pr.GetTypeReflector());
+            Assert.That(pr.GetTypeReflector(), Is.Not.Null);
 
             var p = new Person { Id = 88 };
-            Assert.AreEqual(88, pr.PropertyExpression.GetValue(p));
+            Assert.That(pr.PropertyExpression.GetValue(p), Is.EqualTo(88));
 
             pr.PropertyExpression.SetValue(p, 99);
-            Assert.AreEqual(99, p.Id);
+            Assert.That(p.Id, Is.EqualTo(99));
 
             pr.PropertyExpression.SetValue(p, null!);
-            Assert.AreEqual(0, p.Id);
+            Assert.That(p.Id, Is.EqualTo(0));
         }
 
         [Test]
@@ -59,23 +62,23 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         {
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetJsonProperty("gender");
-            Assert.NotNull(pr);
-            Assert.AreEqual("GenderSid", pr!.Name);
+            Assert.That(pr, Is.Not.Null);
+            Assert.That(pr!.Name, Is.EqualTo("GenderSid"));
 
             pr = tr.GetProperty("Gender");
-            Assert.AreEqual("Gender", pr.GetTypeReflector()!.Type.Name);
+            Assert.That(pr.GetTypeReflector()!.Type.Name, Is.EqualTo("Gender"));
 
             var g = new Gender { Code = "F" };
             var p = new Person { Gender = g };
 
             var g2 = (Gender)pr.PropertyExpression.GetValue(p)!;
-            Assert.AreEqual("F", g2.Code);
+            Assert.That(g2.Code, Is.EqualTo("F"));
 
             pr.PropertyExpression.SetValue(p, new Gender { Code = "M" });
-            Assert.AreEqual("M", p.Gender.Code);
+            Assert.That(p.Gender.Code, Is.EqualTo("M"));
 
             pr.PropertyExpression.SetValue(p, null!);
-            Assert.AreEqual(null, p.Gender);
+            Assert.That(p.Gender, Is.EqualTo(null));
         }
 
         [Test]
@@ -83,19 +86,19 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         {
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("Addresses");
-            Assert.IsNotNull(pr.GetTypeReflector());
+            Assert.That(pr.GetTypeReflector(), Is.Not.Null);
 
             var a = new List<Address> { new() { Street = "s", City = "c" } };
             var p = new Person { Addresses = a };
 
             var a2 = (List<Address>)pr.PropertyExpression.GetValue(p)!;
-            Assert.AreEqual("s", a2[0].Street);
+            Assert.That(a2[0].Street, Is.EqualTo("s"));
 
             pr.PropertyExpression.SetValue(p, new List<Address> { new() { Street = "s2", City = "c2" } });
-            Assert.AreEqual("s2", p.Addresses[0].Street);
+            Assert.That(p.Addresses[0].Street, Is.EqualTo("s2"));
 
             pr.PropertyExpression.SetValue(p, null!);
-            Assert.AreEqual(null, p.Addresses);
+            Assert.That(p.Addresses, Is.EqualTo(null));
         }
 
         [Test]
@@ -103,19 +106,19 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         {
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("NickNames");
-            Assert.IsNotNull(pr.GetTypeReflector());
+            Assert.That(pr.GetTypeReflector(), Is.Not.Null);
 
             var n = new string[] { "baz" };
             var p = new Person { NickNames = n };
 
             var a2 = (string[])pr.PropertyExpression.GetValue(p)!;
-            Assert.AreEqual("baz", a2[0]);
+            Assert.That(a2[0], Is.EqualTo("baz"));
 
             pr.PropertyExpression.SetValue(p, new string[] { "gaz" });
-            Assert.AreEqual("gaz", p.NickNames[0]);
+            Assert.That(p.NickNames[0], Is.EqualTo("gaz"));
 
             pr.PropertyExpression.SetValue(p, null!);
-            Assert.AreEqual(null, p.NickNames);
+            Assert.That(p.NickNames, Is.EqualTo(null));
         }
 
         [Test]
@@ -123,23 +126,26 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         {
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("Salary");
-            Assert.IsNotNull(pr.GetTypeReflector());
+            Assert.That(pr.GetTypeReflector(), Is.Not.Null);
 
             var p = new Person { Salary = 1m };
 
             pr.PropertyExpression.SetValue(p, 2m);
-            Assert.AreEqual(2m, p.Salary);
+            Assert.That(p.Salary, Is.EqualTo(2m));
 
             pr.PropertyExpression.SetValue(p, null!);
-            Assert.AreEqual(null, p.Salary);
+            Assert.That(p.Salary, Is.EqualTo(null));
         }
 
         [Test]
         public void GetReflector_Compare()
         {
             var tr = TypeReflector.GetReflector<int[]>(new TypeReflectorArgs());
-            Assert.IsTrue(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 3 }));
-            Assert.IsFalse(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 4 }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 3 }), Is.True);
+                Assert.That(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 4 }), Is.False);
+            });
         }
 
         [Test]
@@ -148,12 +154,15 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("Id");
 
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, pr.TypeCode);
-            Assert.IsTrue(pr.Compare(null, null));
-            Assert.IsFalse(pr.Compare(1, null));
-            Assert.IsFalse(pr.Compare(null, 2));
-            Assert.IsFalse(pr.Compare(1, 2));
-            Assert.IsTrue(pr.Compare(1, 1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(pr.TypeCode, Is.EqualTo(TypeReflectorTypeCode.Simple));
+                Assert.That(pr.Compare(null, null), Is.True);
+                Assert.That(pr.Compare(1, null), Is.False);
+                Assert.That(pr.Compare(null, 2), Is.False);
+                Assert.That(pr.Compare(1, 2), Is.False);
+                Assert.That(pr.Compare(1, 1), Is.True);
+            });
         }
 
         [Test]
@@ -162,12 +171,15 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("Salary");
 
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, pr.TypeCode);
-            Assert.IsTrue(pr.Compare(null, null));
-            Assert.IsFalse(pr.Compare(1m, null));
-            Assert.IsFalse(pr.Compare(null, 2m));
-            Assert.IsFalse(pr.Compare(1m, 2m));
-            Assert.IsTrue(pr.Compare(1m, 1m));
+            Assert.Multiple(() =>
+            {
+                Assert.That(pr.TypeCode, Is.EqualTo(TypeReflectorTypeCode.Simple));
+                Assert.That(pr.Compare(null, null), Is.True);
+                Assert.That(pr.Compare(1m, null), Is.False);
+                Assert.That(pr.Compare(null, 2m), Is.False);
+                Assert.That(pr.Compare(1m, 2m), Is.False);
+                Assert.That(pr.Compare(1m, 1m), Is.True);
+            });
         }
 
         [Test]
@@ -176,13 +188,16 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("NickNames");
 
-            Assert.AreEqual(TypeReflectorTypeCode.Array, pr.TypeCode);
-            Assert.IsTrue(pr.Compare(null, null));
-            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, null));
-            Assert.IsFalse(pr.Compare(null, new string[] { "y", "z" }));
-            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, new string[] { "y", "z" }));
-            Assert.IsFalse(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b", "c" }));
-            Assert.IsTrue(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b" }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(pr.TypeCode, Is.EqualTo(TypeReflectorTypeCode.Array));
+                Assert.That(pr.Compare(null, null), Is.True);
+                Assert.That(pr.Compare(new string[] { "a", "b" }, null), Is.False);
+                Assert.That(pr.Compare(null, new string[] { "y", "z" }), Is.False);
+                Assert.That(pr.Compare(new string[] { "a", "b" }, new string[] { "y", "z" }), Is.False);
+                Assert.That(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b", "c" }), Is.False);
+                Assert.That(pr.Compare(new string[] { "a", "b" }, new string[] { "a", "b" }), Is.True);
+            });
         }
 
         [Test]
@@ -191,33 +206,39 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
             var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
             var pr = tr.GetProperty("Addresses");
 
-            Assert.AreEqual(TypeReflectorTypeCode.ICollection, pr.TypeCode);
-            Assert.IsTrue(pr.Compare(null, null));
-            Assert.IsTrue(pr.Compare(new List<Address>(), new List<Address>()));
+            Assert.Multiple(() =>
+            {
+                Assert.That(pr.TypeCode, Is.EqualTo(TypeReflectorTypeCode.ICollection));
+                Assert.That(pr.Compare(null, null), Is.True);
+                Assert.That(pr.Compare(new List<Address>(), new List<Address>()), Is.True);
 
-            // No equality check for Address, so will all fail.
-            Assert.IsFalse(pr.Compare(new List<Address> { new() }, new List<Address> { new() }));
-            Assert.IsFalse(pr.Compare(null, new List<Address> { new() }));
-            Assert.IsFalse(pr.Compare(new List<Address> { new() }, null));
-            Assert.IsFalse(pr.Compare(new List<Address> { new() }, new List<Address> { new(), new() }));
+                // No equality check for Address, so will all fail.
+                Assert.That(pr.Compare(new List<Address> { new() }, new List<Address> { new() }), Is.False);
+                Assert.That(pr.Compare(null, new List<Address> { new() }), Is.False);
+                Assert.That(pr.Compare(new List<Address> { new() }, null), Is.False);
+                Assert.That(pr.Compare(new List<Address> { new() }, new List<Address> { new(), new() }), Is.False);
+            });
         }
 
         [Test]
         public void GetReflector_TypeCode_And_ItemType()
         {
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetReflector<string>(new TypeReflectorArgs()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.Simple, TypeReflector.GetReflector<int>(new TypeReflectorArgs()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.Array, TypeReflector.GetReflector<string?[]>(new TypeReflectorArgs()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.ICollection, TypeReflector.GetReflector<List<decimal?>>(new TypeReflectorArgs()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.IDictionary, TypeReflector.GetReflector<Dictionary<string, Person>>(new TypeReflectorArgs()).TypeCode);
-            Assert.AreEqual(TypeReflectorTypeCode.Complex, TypeReflector.GetReflector<Person>(new TypeReflectorArgs()).TypeCode);
+            Assert.Multiple(() =>
+            {
+                Assert.That(TypeReflector.GetReflector<string>(new TypeReflectorArgs()).TypeCode, Is.EqualTo(TypeReflectorTypeCode.Simple));
+                Assert.That(TypeReflector.GetReflector<int>(new TypeReflectorArgs()).TypeCode, Is.EqualTo(TypeReflectorTypeCode.Simple));
+                Assert.That(TypeReflector.GetReflector<string?[]>(new TypeReflectorArgs()).TypeCode, Is.EqualTo(TypeReflectorTypeCode.Array));
+                Assert.That(TypeReflector.GetReflector<List<decimal?>>(new TypeReflectorArgs()).TypeCode, Is.EqualTo(TypeReflectorTypeCode.ICollection));
+                Assert.That(TypeReflector.GetReflector<Dictionary<string, Person>>(new TypeReflectorArgs()).TypeCode, Is.EqualTo(TypeReflectorTypeCode.IDictionary));
+                Assert.That(TypeReflector.GetReflector<Person>(new TypeReflectorArgs()).TypeCode, Is.EqualTo(TypeReflectorTypeCode.Complex));
 
-            Assert.AreEqual(null, TypeReflector.GetReflector<string>(new TypeReflectorArgs()).ItemType);
-            Assert.AreEqual(null, TypeReflector.GetReflector<int>(new TypeReflectorArgs()).ItemType);
-            Assert.AreEqual(typeof(string), TypeReflector.GetReflector<string?[]>(new TypeReflectorArgs()).ItemType);
-            Assert.AreEqual(typeof(decimal?), TypeReflector.GetReflector<List<decimal?>>(new TypeReflectorArgs()).ItemType);
-            Assert.AreEqual(typeof(Person), TypeReflector.GetReflector<Dictionary<string, Person>>(new TypeReflectorArgs()).ItemType);
-            Assert.AreEqual(null, TypeReflector.GetReflector<Person>(new TypeReflectorArgs()).ItemType);
+                Assert.That(TypeReflector.GetReflector<string>(new TypeReflectorArgs()).ItemType, Is.EqualTo(null));
+                Assert.That(TypeReflector.GetReflector<int>(new TypeReflectorArgs()).ItemType, Is.EqualTo(null));
+                Assert.That(TypeReflector.GetReflector<string?[]>(new TypeReflectorArgs()).ItemType, Is.EqualTo(typeof(string)));
+                Assert.That(TypeReflector.GetReflector<List<decimal?>>(new TypeReflectorArgs()).ItemType, Is.EqualTo(typeof(decimal?)));
+                Assert.That(TypeReflector.GetReflector<Dictionary<string, Person>>(new TypeReflectorArgs()).ItemType, Is.EqualTo(typeof(Person)));
+                Assert.That(TypeReflector.GetReflector<Person>(new TypeReflectorArgs()).ItemType, Is.EqualTo(null));
+            });
         }
     }
 

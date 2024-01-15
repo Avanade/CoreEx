@@ -19,19 +19,25 @@ namespace CoreEx.Test.Framework.Validation.Clauses
 
             var td = new TestData { Text = null, CountA = 88 };
             var v1 = await td.Validate("value").Entity(v).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("value.Text", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Property, Is.EqualTo("value.Text"));
+            });
 
             td = new TestData { Text = "xxx", CountA = 88 };
             v1 = await td.Validate("value").Entity(v).ValidateAsync();
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("value.CountA", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Property, Is.EqualTo("value.CountA"));
+            });
 
             td = new TestData { Text = "xxx", CountA = 5 };
             v1 = await td.Validate("value").Entity(v).ValidateAsync();
-            Assert.IsFalse(v1.HasErrors);
+            Assert.That(v1.HasErrors, Is.False);
         }
     }
 }

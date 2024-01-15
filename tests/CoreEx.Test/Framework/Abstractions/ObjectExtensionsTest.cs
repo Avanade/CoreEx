@@ -11,14 +11,14 @@ namespace CoreEx.Test.Framework.Abstractions
         {
             string aussie = null!;
             var ex = Assert.Throws<ArgumentNullException>(() => aussie.ThrowIfNull());
-            Assert.AreEqual("aussie", ex!.ParamName);
+            Assert.That(ex!.ParamName, Is.EqualTo("aussie"));
         }
 
         [Test]
         public void ThrowIfNull_WhenNotNull()
         {
             string aussie = "Aussie";
-            Assert.AreEqual(aussie, aussie.ThrowIfNull());
+            Assert.That(aussie.ThrowIfNull(), Is.EqualTo(aussie));
         }
 
         [Test]
@@ -26,8 +26,11 @@ namespace CoreEx.Test.Framework.Abstractions
         {
             var p = new Person();
             var p2 = p.Adjust(x => x.Name = "Babs");
-            Assert.AreEqual("Babs", p.Name);
-            Assert.AreEqual("Babs", p2.Name);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.Name, Is.EqualTo("Babs"));
+                Assert.That(p2.Name, Is.EqualTo("Babs"));
+            });
         }
 
         [Test]
@@ -35,7 +38,7 @@ namespace CoreEx.Test.Framework.Abstractions
         {
             Person? p = null;
             p.Adjust(x => x.Name = "Babs");
-            Assert.IsNull(p);
+            Assert.That(p, Is.Null);
         }
 
         [Test]
@@ -43,9 +46,12 @@ namespace CoreEx.Test.Framework.Abstractions
         {
             Person? p = new();
             var p2 = p.Adjust(x => x.Name = "Babs");
-            Assert.IsNotNull(p);
-            Assert.AreEqual("Babs", p.Name);
-            Assert.AreEqual("Babs", p2.Name);
+            Assert.That(p, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(p.Name, Is.EqualTo("Babs"));
+                Assert.That(p2.Name, Is.EqualTo("Babs"));
+            });
         }
 
         public class Person { public string? Name { get; set; } }

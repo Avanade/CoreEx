@@ -24,26 +24,32 @@ namespace CoreEx.Test.Framework.Azure.Storage
             var bls = new TestBlobLockSynchronizer(bcc);
             var bls2 = new TestBlobLockSynchronizer(bcc);
 
-            // Acquire lease.
-            Assert.IsTrue(bls.Enter<int>());
+            Assert.Multiple(() =>
+            {
+                // Acquire lease.
+                Assert.That(bls.Enter<int>(), Is.True);
 
-            // Try immediately.
-            Assert.IsFalse(bls2.Enter<int>());
+                // Try immediately.
+                Assert.That(bls2.Enter<int>(), Is.False);
+            });
 
             // Try within the initial lease time.
             Thread.Sleep(12000);
-            Assert.IsFalse(bls2.Enter<int>());
+            Assert.That(bls2.Enter<int>(), Is.False);
 
             // Try and should have been renewed.
             Thread.Sleep(12000);
-            Assert.IsFalse(bls2.Enter<int>());
+            Assert.That(bls2.Enter<int>(), Is.False);
 
             // Release it.
             bls.Exit<int>();
 
-            // And final quick go around again.
-            Assert.IsTrue(bls.Enter<int>());
-            Assert.IsFalse(bls2.Enter<int>());
+            Assert.Multiple(() =>
+            {
+                // And final quick go around again.
+                Assert.That(bls.Enter<int>(), Is.True);
+                Assert.That(bls2.Enter<int>(), Is.False);
+            });
             bls.Exit<int>();
         }
     }

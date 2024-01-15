@@ -12,14 +12,14 @@ namespace CoreEx.Test.Framework.Mapping.Converters
         {
             var dt = new DateTime(2022, 11, 28, 13, 09, 42, 987, DateTimeKind.Utc);
             var val = EncodedStringToDateTimeConverter.Default.ToSource.Convert(dt);
-            Assert.AreEqual("sImk0EHR2kg=", val);
+            Assert.That(val, Is.EqualTo("sImk0EHR2kg="));
         }
 
         [Test]
         public void ConvertToDestination()
         {
             var dt = EncodedStringToDateTimeConverter.Default.ToDestination.Convert("sImk0EHR2kg=");
-            Assert.AreEqual(new DateTime(2022, 11, 28, 13, 09, 42, 987, DateTimeKind.Utc), dt);
+            Assert.That(dt, Is.EqualTo(new DateTime(2022, 11, 28, 13, 09, 42, 987, DateTimeKind.Utc)));
         }
     }
 }

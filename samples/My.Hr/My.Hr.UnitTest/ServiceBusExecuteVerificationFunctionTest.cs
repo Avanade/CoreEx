@@ -67,9 +67,9 @@ namespace My.Hr.UnitTest
                 .Run(f => f.RunAsync(sbm, sba.Object))
                 .AssertSuccess();
 
-            Assert.AreEqual(1, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Has.Length.EqualTo(1));
             var e = imp.GetEvents("verificationResults");
-            Assert.AreEqual(1, e.Length);
+            Assert.That(e, Has.Length.EqualTo(1));
             if (Environment.OSVersion.Platform == PlatformID.Unix)
                 ObjectComparer.Assert(UnitTestEx.Resource.GetJsonValue<EmployeeVerificationResponse>("VerificationResult.Unix.json"), e[0].Value);
             else

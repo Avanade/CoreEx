@@ -13,17 +13,23 @@ namespace CoreEx.Test.Framework.Invokers
         {
             var i = new TestInvoker();
             await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(100, ct); });
-            Assert.IsTrue(i.Before);
-            Assert.IsTrue(i.After);
+            Assert.Multiple(() =>
+            {
+                Assert.That(i.Before, Is.True);
+                Assert.That(i.After, Is.True);
+            });
         }
 
         [Test]
-        public async Task Invoke_AsyncWithResult()
+        public void Invoke_AsyncWithResult()
         {
             var i = new TestInvoker();
-            Assert.AreEqual(88, await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(100, ct); return 88; }));
-            Assert.IsTrue(i.Before);
-            Assert.IsTrue(i.After);
+            Assert.Multiple(async () =>
+            {
+                Assert.That(await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(100, ct); return 88; }), Is.EqualTo(88));
+                Assert.That(i.Before, Is.True);
+                Assert.That(i.After, Is.True);
+            });
         }
 
         [Test]

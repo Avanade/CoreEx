@@ -26,7 +26,7 @@ namespace CoreEx
         public static T? Adjust<T>(this T? value, Action<T> adjuster)
         {
             if (value is not null)
-                adjuster?.Invoke(value ?? throw new ArgumentNullException(nameof(value)));
+                adjuster?.Invoke(value.ThrowIfNull(nameof(value)));
 
             return value!;
         }

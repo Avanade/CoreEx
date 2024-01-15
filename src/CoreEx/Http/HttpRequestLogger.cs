@@ -22,8 +22,8 @@ namespace CoreEx.Http
         /// </summary>
         private HttpRequestLogger(SettingsBase settings, ILogger logger)
         {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _settings = settings.ThrowIfNull(nameof(settings));
+            _logger = logger.ThrowIfNull(nameof(logger));
         }
 
         /// <summary>

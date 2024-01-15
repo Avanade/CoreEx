@@ -21,9 +21,10 @@ namespace My.Hr.UnitTest
                 .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "employee/verify", new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" })))
                 .AssertAccepted();
 
-            Assert.AreEqual(1, imp.GetNames().Length);
+            Assert.That(imp.GetNames(), Has.Length.EqualTo(1));
+
             var e = imp.GetEvents("pendingVerifications");
-            Assert.AreEqual(1, e.Length);
+            Assert.That(e, Has.Length.EqualTo(1));
             ObjectComparer.Assert(new EmployeeVerificationRequest { Name = "Wendy", Age = 37, Gender = "F" }, e[0].Value);
         }
     }

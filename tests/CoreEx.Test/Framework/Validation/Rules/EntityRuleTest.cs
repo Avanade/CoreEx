@@ -21,11 +21,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var te = new TestEntity { Item = new TestItem() };
             var v1 = await te.Validate("value").Entity(_tev).ValidateAsync();
 
-            Assert.IsTrue(v1.HasErrors);
-            Assert.AreEqual(1, v1.Messages!.Count);
-            Assert.AreEqual("Identifier is required.", v1.Messages[0].Text);
-            Assert.AreEqual(MessageType.Error, v1.Messages[0].Type);
-            Assert.AreEqual("value.Item.Id", v1.Messages[0].Property);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Identifier is required."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value.Item.Id"));
+            });
         }
     }
 }
