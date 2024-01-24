@@ -17,7 +17,9 @@ Fire-and-forget | This is to enable decoupled asynchronous processing, whereby t
 
 ## Limitations
 
-Only JSON-based Web APIs are supported. Where additional or other content types are needed then this library in its current state will not be able to enable, and these Web APIs will need to be implemented in a traditional custom manner.
+Only JSON-based Web APIs are generally supported. Where additional or other content types are needed then this library in its current state will not be able to enable, and these Web APIs will need to be implemented in a traditional custom manner.
+
+There is provision such that any result of type [`IActionResult`](https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types), for example [`FileContentResult`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.filecontentresult), is returned these will be enacted by the ASP.NET Core runtime as-is (i.e. no `CoreEx.AspNetCore` processing will occur on the result). However, all other request handling, exception handling, logging, etc. described below will occur which has a consistency benefit.
 
 <br/>
 
@@ -73,6 +75,8 @@ JSON serialization | Serializes the `TResult` value using the `IJsonSerailizer`.
 [`ETag`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag) header | Sets the HTTP `ETag` header using either [`IETag.ETag`] or generated hash.
 [Status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) | Sets the response HTTP status code as configured.
 [`Location`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) | Sets the HTTP `Location` header where specified (applicable).
+
+As described earlier, the above will _not_ occur for `IActionResult` results.
 
 <br/>
 
