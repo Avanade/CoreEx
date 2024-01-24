@@ -72,9 +72,9 @@ Step | Description
 JSON serialization | Serializes the `TResult` value using the `IJsonSerailizer`. Where include or exclude fields were specified within the request query string then these will be applied (`IJsonSerializer.TryApplyFilter`) to the JSON response to limit the response content.
 `ETag` generation | Checks if value implements [`IETag`](../CoreEx/Entities/IETag.cs), where non-null leave as-is; otherwise, automatically [generate](../CoreEx/Abstractions/ETagGenerator.cs) `ETag` hash from serialized value (excluding filters).
 `GET` [`If-Match`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Match) | Where the value/generated `ETag` equals the `GET` request `If-Match` value then return an HTTP status code of `304-NotModified` with no content.
-[`ETag`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag) header | Sets the HTTP `ETag` header using either [`IETag.ETag`] or generated hash.
+[`ETag`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag) header | Sets the HTTP `ETag` header using either `IETag.ETag` or generated hash.
 [Status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) | Sets the response HTTP status code as configured.
-[`Location`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) | Sets the HTTP `Location` header where specified (applicable).
+[`Location`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) | Sets the HTTP `Location` header where specified (where applicable).
 
 As described earlier, the above will _not_ occur for `IActionResult` results.
 
