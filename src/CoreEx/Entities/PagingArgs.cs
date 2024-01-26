@@ -10,7 +10,7 @@ namespace CoreEx.Entities
     /// Represents position-based paging being a) <see cref="Page"/> and <see cref="Size"/>, b) <see cref="Skip"/> and <see cref="Take"/>, or c) <see cref="Token"/> and <see cref="Take"/>. The <see cref="DefaultTake"/> and <see cref="MaxTake"/> (and <see cref="DefaultIsGetCount"/>) 
     /// are static settings to encourage page-size consistency, as well as limit the maximum value possible. 
     /// </summary>
-    //[System.Diagnostics.DebuggerStepThrough]
+    [System.Diagnostics.DebuggerStepThrough]
     public class PagingArgs : IEquatable<PagingArgs>
     {
         private static long? _defaultTake;

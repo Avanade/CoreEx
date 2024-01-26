@@ -15,25 +15,14 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Provides a <b>CoreEx</b> oriented <see cref="Exception"/> handling middleware that is <see cref="IExtendedException"/> result aware.
     /// </summary>
-    public class WebApiExceptionHandlerMiddleware
+    /// <param name="next">The next <see cref="RequestDelegate"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    public class WebApiExceptionHandlerMiddleware(RequestDelegate next, SettingsBase settings, ILogger<WebApiExceptionHandlerMiddleware> logger)
     {
-        private readonly RequestDelegate _next;
-        private readonly SettingsBase _settings;
-        private readonly ILogger _logger;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WebApiExceptionHandlerMiddleware"/>.
-        /// </summary>
-        /// <param name="next">The next <see cref="RequestDelegate"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <exception cref="ArgumentNullException"></exception>
-        public WebApiExceptionHandlerMiddleware(RequestDelegate next, SettingsBase settings, ILogger<WebApiExceptionHandlerMiddleware> logger)
-        {
-            _next = next ?? throw new ArgumentNullException(nameof(next));
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private readonly RequestDelegate _next = next.ThrowIfNull(nameof(next));
+        private readonly SettingsBase _settings = settings.ThrowIfNull(nameof(settings));
+        private readonly ILogger _logger = logger.ThrowIfNull(nameof(logger));
 
         /// <summary>
         /// Invokes the <see cref="WebApiExceptionHandlerMiddleware"/>.

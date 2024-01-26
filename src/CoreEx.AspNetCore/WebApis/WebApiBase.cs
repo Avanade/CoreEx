@@ -25,49 +25,37 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Provides the base Web API execution encapsulation to <see cref="RunAsync"/> the underlying logic in a consistent manner.
     /// </summary>
-    public abstract class WebApiBase
+    /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    /// <param name="invoker">The <see cref="WebApiInvoker"/>; defaults where not specified.</param>
+    public abstract class WebApiBase(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApiBase> logger, WebApiInvoker? invoker)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WebApi"/> class.
-        /// </summary>
-        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="invoker">The <see cref="WebApiInvoker"/>; defaults where not specified.</param>
-        protected WebApiBase(ExecutionContext executionContext, SettingsBase settings, IJsonSerializer jsonSerializer, ILogger<WebApiBase> logger, WebApiInvoker? invoker)
-        {
-            ExecutionContext = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
-            Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            JsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            Invoker = invoker ?? WebApiInvoker.Current;
-        }
-
         /// <summary>
         /// Gets the <see cref="CoreEx.ExecutionContext"/>.
         /// </summary>
-        public ExecutionContext ExecutionContext { get; }
+        public ExecutionContext ExecutionContext { get; } = executionContext.ThrowIfNull(nameof(executionContext));
 
         /// <summary>
         /// Gets the <see cref="SettingsBase"/>.
         /// </summary>
-        public SettingsBase Settings { get; }
+        public SettingsBase Settings { get; } = settings.ThrowIfNull(nameof(settings));
 
         /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.
         /// </summary>
-        public IJsonSerializer JsonSerializer { get; }
+        public IJsonSerializer JsonSerializer { get; } = jsonSerializer.ThrowIfNull(nameof(jsonSerializer));
 
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
-        public ILogger Logger { get; }
+        public ILogger Logger { get; } = logger.ThrowIfNull(nameof(logger));
 
         /// <summary>
         /// Gets the <see cref="WebApiInvoker"/>.
         /// </summary>
-        public WebApiInvoker Invoker { get; }
+        public WebApiInvoker Invoker { get; } = invoker ?? WebApiInvoker.Current;
 
         /// <summary>
         /// Gets or sets the list of secondary correlation identifier names.
@@ -98,11 +86,8 @@ namespace CoreEx.AspNetCore.WebApis
         /// <remarks>This is, and must be, used by all methods that process an <see cref="HttpRequest"/> to ensure that the standardized before and after, success and error, handling occurs as required.</remarks>
         protected async Task<IActionResult> RunAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<IActionResult>> function, OperationType operationType = OperationType.Unspecified, CancellationToken cancellationToken = default, [CallerMemberName] string? memberName = null)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             // Invoke the "actual" function via the pluggable invoker.
             ExecutionContext.OperationType = operationType;
@@ -123,8 +108,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <returns>The <see cref="Exception"/> where there is an error; otherwise, <see cref="WebApiParam{T}"/> for success.</returns>
         protected internal async Task<(WebApiParam<TValue>?, Exception?)> ValidateValueAsync<TValue>(WebApiParam wap, bool useValue, TValue value, bool valueIsRequired = true, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
         {
-            if (wap == null)
-                throw new ArgumentNullException(nameof(wap));
+            wap.ThrowIfNull(nameof(wap));
 
             WebApiParam<TValue> wapv;
             if (useValue)
@@ -181,10 +165,10 @@ namespace CoreEx.AspNetCore.WebApis
         /// <returns>The corresponding <see cref="IActionResult"/>.</returns>
         public static async Task<IActionResult> CreateActionResultFromExceptionAsync(WebApiBase? owner, HttpContext context, Exception exception, SettingsBase settings, ILogger logger, Func<Exception, ILogger, CancellationToken, Task<IActionResult?>>? unhandledExceptionAsync = null, CancellationToken cancellationToken = default)
         {
-            if (context is null) throw new ArgumentNullException(nameof(context));
-            if (exception is null) throw new ArgumentNullException(nameof(exception));
-            if (logger is null) throw new ArgumentNullException(nameof(logger));
-            if (settings is null) throw new ArgumentNullException(nameof(settings));
+            context.ThrowIfNull(nameof(context));
+            exception.ThrowIfNull(nameof(exception));
+            logger.ThrowIfNull(nameof(logger));
+            settings.ThrowIfNull(nameof(settings));
 
             if (owner is not null && !owner.Invoker.CatchAndHandleExceptions)
                 throw exception;

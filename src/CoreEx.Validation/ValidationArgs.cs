@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Configuration;
 using CoreEx.Entities;
 using System.Collections.Generic;
 
@@ -10,6 +11,8 @@ namespace CoreEx.Validation
     /// </summary>
     public class ValidationArgs
     {
+        private static bool? _defaultUseJsonNames;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationArgs"/> class.
         /// </summary>
@@ -18,7 +21,12 @@ namespace CoreEx.Validation
         /// <summary>
         /// Indicates whether to use the JSON name for the <see cref="MessageItem"/> <see cref="MessageItem.Property"/>; by default (<c>false</c>) uses the .NET name.
         /// </summary>
-        public static bool DefaultUseJsonNames { get; set; } = false;
+        /// <remarks>Will attempt to use <see cref="SettingsBase.ValidationUseJsonNames"/> as a default where possible.</remarks>
+        public static bool DefaultUseJsonNames 
+        { 
+            get => _defaultUseJsonNames ?? ExecutionContext.GetService<SettingsBase>()?.ValidationUseJsonNames ?? false;
+            set => _defaultUseJsonNames = value;
+        } 
 
         /// <summary>
         /// Gets or sets the optional name of a selected (specific) property to validate for the entity (<c>null</c> indicates to validate all).

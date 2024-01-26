@@ -15,9 +15,6 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
-using System.Xml.Linq;
-using System.Data;
 
 namespace CoreEx.Validation
 {

@@ -12,14 +12,9 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Represents an extended <see cref="StatusCodeResult"/> that enables customization of the <see cref="HttpResponse"/>.
     /// </summary>
-    public class ExtendedStatusCodeResult : StatusCodeResult
+    /// <param name="statusCode">The <see cref="HttpStatusCode"/>.</param>
+    public class ExtendedStatusCodeResult(HttpStatusCode statusCode) : StatusCodeResult((int)statusCode)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ExtendedStatusCodeResult"/> class.
-        /// </summary>
-        /// <param name="statusCode">The <see cref="HttpStatusCode"/>.</param>
-        public ExtendedStatusCodeResult(HttpStatusCode statusCode) : base((int)statusCode) { }
-
         /// <summary>
         /// Gets or sets the <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.
         /// </summary>

@@ -167,7 +167,7 @@ public class EmployeeFunction
 
 ## WebApiPublish
 
-The [`WebApiPublisher`](./WebApis/WebApiPublisher.cs) class should be leveraged for fire-and-forget style APIs, where the message is received, validated and then published as an event for out-of-process decoupled processing.
+The [`WebApiPublisher`](./WebApis/WebApiPublisher.cs) class should be leveraged for _fire-and-forget_ style APIs, where the message is received, validated and then published as an event for out-of-process decoupled processing.
 
 The `WebApiPublish` extends (inherits) [`WebApiBase`](./WebApis/WebApiBase.cs) that provides the base `RunAsync` method described [above](#WebApi).
 
@@ -177,12 +177,46 @@ The `WebApiPublisher` constructor takes an [`IEventPublisher`](../CoreEx/Events/
 
 ### Supported HTTP methods
 
-A publish should be performed using an HTTP `POST` and as such this is the only HTTP method supported. The `WebApiPublish` provides the following overloads depending on need. Where a generic `Type` is specified, either `TValue` being the request content body and/or `TResult` being the response body, this signifies that `WebApi` will manage the underlying JSON serialization:
+A publish should be performed using an HTTP `POST` and as such this is the only HTTP method supported. The `WebApiPublish` provides the following overloads depending on need.
 
 HTTP | Method | Description
 -|-|-
 `POST` | `PublishAsync<TValue>()` | Publish a single message/event with `TValue` being the request content body.
-`POST` | `PublishAsync<TColl, TItem>()` | Publish zero or more message/event(s) from the `TColl` collection with an item type of `TItem`.
+`POST` | `PublishValueAsync<TValue>()` | Publish a single message/event with `TValue` being the specified value (preivously deserialized).
+`POST` | `PublishAsync<TValue, TEventValue>()` | Publish a single message/event with `TValue` being the request content body mapping to the specified event value type.
+`POST` | `PublishValueAsync<TValue, TEventValue>()` | Publish a single message/event with `TValue` being the specified value (preivously deserialized) mapping to the specified event value type.
+- | -
+`POST` | `PublishCollectionAsync<TColl, TItem>()` | Publish zero or more message/event(s) from the `TColl` collection with an item type of `TItem` being the request content body.
+`POST` | `PublishCollectionValueAsync<TColl, TItem>()` | Publish zero or more message/event(s) from the `TColl` collection with an item type of `TItem` being the specified value (preivously deserialized).
+`POST` | `PublishCollectionAsync<TColl, TItem, TEventItem>()` | Publish zero or more message/event(s) from the `TColl` collection with an item type of `TItem` being the request content body mapping to the specified event value type.
+`POST` | `PublishCollectionValueAsync<TColl, TItem, TEventItem>()` | Publish zero or more message/event(s) from the `TColl` collection with an item type of `TItem` being the specified value (preivously deserialized) mapping to the specified event value type.
+
+<br/>
+
+### Argument
+
+Depending on the overload used (as defined above), an optional _argument_ can be specified that provides additional opportunities to configure and add additional logic into the underlying publishing orchestration.
+
+The following argurment types are supported:
+- [`WebApiPublisherArgs<TValue>`](./WebApis/WebApiPublisherArgsT.cs) - single message with no mapping.
+- [`WebApiPublisherArgs<TValue, TEventValue>`](./WebApis/WebApiPublisherArgsT2.cs) - single message _with_ mapping.
+- [`WebApiPublisherCollectionArgs<TColl, TItem>`](./WebApis/WebApiPublisherCollectionArgsT.cs) - collection of messages with no mapping.
+- [`WebApiPublisherCollectionArgs<TColl, TItem, TEventItem>`](./WebApis/WebApiPublisherCollectionArgsT2.cs) - collection of messages _with_ mapping.
+
+The arguments will have the following properties depending on the supported functionality. The sequence defines the order in which each of the properties is enacted (orchestrated) internally. Where a failure or exception occurs then the execution will be aborted and the corresponding `IActionResult` returned (including the likes of logging etc. where applicable).
+
+Property | Description | Sequence
+-|-
+`EventName` | The event destintion name (e.g. Queue or Topic name) where applicable. | N/A
+`StatusCode` | The resulting status code where successful. Defaults to `204-Accepted`. | N/A
+`OperationType` | The [`OperationType`](../CoreEx/OperationType.cs). Defaults to `OperationType.Unspecified`. | N/A
+`MaxCollectionSize` | The maximum collection size allowed/supported. | 1
+`OnBeforeValidateAsync` | The function to be invoked before the request value is validated; opportunity to modify contents. | 2
+`Validator` | The `IValidator<T>` to validate the request value. | 3
+`OnBeforeEventAsync` | The function to be invoked after validation / before event; opportunity to modify contents. | 4
+`Mapper` | The `IMapper<TSource, TDestination>` override. | 5
+`OnEvent` | The action to be invoked once converted to an [`EventData`](../CoreEx/Events/EventData.cs); opportunity to modify contents. | 6
+`CreateSuccessResult` | The function to be invoked to create/override the success `IActionResult`. | 7
 
 <br/>
 
@@ -194,7 +228,7 @@ A request body is mandatory and must be serialized JSON as per the specified gen
 
 ### Response
 
-The response HTTP status code is `204-Accepted` (default) with no content.
+The response HTTP status code is `204-Accepted` (default) with no content. This can be overridden using the arguments `StatusCode` property.
 
 <br/>
 
@@ -214,7 +248,6 @@ public class HttpTriggerQueueVerificationFunction
         _settings = settings;
     }
 
-    [FunctionName(nameof(HttpTriggerQueueVerificationFunction))]
     public Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "employee/verify")] HttpRequest request)
-        => _webApiPublisher.PublishAsync(request, _settings.VerificationQueueName, validator: new EmployeeVerificationValidator().Wrap());
+        => _webApiPublisher.PublishAsync(request, new WebApiPublisherArgs<EmployeeVerificationRequest>(_settings.VerificationQueueName) { Validator = new EmployeeVerificationValidator().Wrap() });
 ```

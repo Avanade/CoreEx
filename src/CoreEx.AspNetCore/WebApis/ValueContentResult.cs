@@ -34,7 +34,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="etag">The related <see cref="IETag.ETag"/>.</param>
         /// <param name="pagingResult">The related <see cref="ICollectionResult.Paging"/>.</param>
         /// <param name="location">The <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
-        private ValueContentResult(string content, HttpStatusCode statusCode, string? etag, PagingResult? pagingResult, Uri? location)
+        public ValueContentResult(string content, HttpStatusCode statusCode, string? etag, PagingResult? pagingResult, Uri? location)
         {
             Content = content;
             ContentType = MediaTypeNames.Application.Json;
