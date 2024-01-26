@@ -17,7 +17,9 @@ Fire-and-forget | This is to enable decoupled asynchronous processing, whereby t
 
 ## Limitations
 
-Only JSON-based Web APIs are supported. Where additional or other content types are needed then this library in its current state will not be able to enable, and these Web APIs will need to be implemented in a traditional custom manner.
+Only JSON-based Web APIs are generally supported. Where additional or other content types are needed then this library in its current state will not be able to enable, and these Web APIs will need to be implemented in a traditional custom manner.
+
+There is provision such that any result of type [`IActionResult`](https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types), for example [`FileContentResult`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.filecontentresult), is returned these will be enacted by the ASP.NET Core runtime as-is (i.e. no `CoreEx.AspNetCore` processing will occur on the result). However, all other request handling, exception handling, logging, etc. described below will occur which has a consistency benefit.
 
 <br/>
 
@@ -70,9 +72,11 @@ Step | Description
 JSON serialization | Serializes the `TResult` value using the `IJsonSerailizer`. Where include or exclude fields were specified within the request query string then these will be applied (`IJsonSerializer.TryApplyFilter`) to the JSON response to limit the response content.
 `ETag` generation | Checks if value implements [`IETag`](../CoreEx/Entities/IETag.cs), where non-null leave as-is; otherwise, automatically [generate](../CoreEx/Abstractions/ETagGenerator.cs) `ETag` hash from serialized value (excluding filters).
 `GET` [`If-Match`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Match) | Where the value/generated `ETag` equals the `GET` request `If-Match` value then return an HTTP status code of `304-NotModified` with no content.
-[`ETag`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag) header | Sets the HTTP `ETag` header using either [`IETag.ETag`] or generated hash.
+[`ETag`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag) header | Sets the HTTP `ETag` header using either `IETag.ETag` or generated hash.
 [Status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) | Sets the response HTTP status code as configured.
-[`Location`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) | Sets the HTTP `Location` header where specified (applicable).
+[`Location`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) | Sets the HTTP `Location` header where specified (where applicable).
+
+As described earlier, the above will _not_ occur for `IActionResult` results.
 
 <br/>
 
@@ -250,4 +254,4 @@ public class HttpTriggerQueueVerificationFunction
 
     public Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "employee/verify")] HttpRequest request)
         => _webApiPublisher.PublishAsync(request, new WebApiPublisherArgs<EmployeeVerificationRequest>(_settings.VerificationQueueName) { Validator = new EmployeeVerificationValidator().Wrap() });
-```
+}
