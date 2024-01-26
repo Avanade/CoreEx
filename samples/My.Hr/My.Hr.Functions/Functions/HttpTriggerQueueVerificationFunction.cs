@@ -33,5 +33,5 @@ public class HttpTriggerQueueVerificationFunction
     [OpenApiRequestBody(MediaTypeNames.Application.Json, typeof(EmployeeVerificationRequest), Description = "The **EmployeeVerification** payload")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Accepted, contentType: MediaTypeNames.Text.Plain, bodyType: typeof(string), Description = "The OK response")]
     public Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = "employee/verify")] HttpRequest request)
-        => _webApiPublisher.PublishAsync(request, _settings.VerificationQueueName, validator: new EmployeeVerificationValidator().Wrap());
+        => _webApiPublisher.PublishAsync(request, new WebApiPublisherArgs<EmployeeVerificationRequest>(_settings.VerificationQueueName) { Validator = new EmployeeVerificationValidator().Wrap() });
 }

@@ -46,6 +46,8 @@ public class ServiceBusExecuteVerificationFunction
 }
 ```
 
+<br/>
+
 ### Instrumentation
 
 To get further insights into the processing of the messages an [`IEventSubscriberInstrumentation`](../../CoreEx/Events/IEventSubscriberInstrumentation.cs) can be implemented. The corresponding `EventSubscriberBase.Instrumentation` property should be set during construction; typically performed during dependency injection. Determine whether the instrumentation instance should also be registered as a _singleton_.

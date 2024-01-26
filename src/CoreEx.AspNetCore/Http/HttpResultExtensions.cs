@@ -38,8 +38,7 @@ namespace CoreEx.AspNetCore.Http
         /// <remarks>This will automatically invoke <see cref="ApplyETag(HttpRequest, string)"/> where there is an <see cref="HttpRequestOptions.ETag"/> value.</remarks>
         public static HttpRequest ApplyRequestOptions(this HttpRequest httpRequest, HttpRequestOptions? requestOptions)
         {
-            if (httpRequest == null)
-                throw new ArgumentNullException(nameof(httpRequest));
+            httpRequest.ThrowIfNull(nameof(httpRequest));
 
             if (requestOptions == null)
                 return httpRequest;
@@ -87,8 +86,7 @@ namespace CoreEx.AspNetCore.Http
         /// <returns>The <see cref="HttpRequestJsonValue{T}"/>.</returns>
         public static async Task<HttpRequestJsonValue<T>> ReadAsJsonValueAsync<T>(this HttpRequest httpRequest, IJsonSerializer jsonSerializer, bool valueIsRequired = true, IValidator<T>? validator = null, CancellationToken cancellationToken = default)
         {
-            if (httpRequest == null)
-                throw new ArgumentNullException(nameof(httpRequest));
+            httpRequest.ThrowIfNull(nameof(httpRequest));
 
             var content = await BinaryData.FromStreamAsync(httpRequest.Body, cancellationToken).ConfigureAwait(false);
             var jv = new HttpRequestJsonValue<T>();
@@ -97,7 +95,7 @@ namespace CoreEx.AspNetCore.Http
             try
             {
                 if (content.ToMemory().Length > 0)
-                    jv.Value = (jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).Deserialize<T>(content)!;
+                    jv.Value = jsonSerializer.ThrowIfNull(nameof(jsonSerializer)).Deserialize<T>(content)!;
 
                 if (valueIsRequired && jv.Value == null)
                     jv.ValidationException = new ValidationException($"{InvalidJsonMessagePrefix} Value is mandatory.");
@@ -138,7 +136,7 @@ namespace CoreEx.AspNetCore.Http
         /// </summary>
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
         /// <returns>The <see cref="WebApiRequestOptions"/>.</returns>
-        public static WebApiRequestOptions GetRequestOptions(this HttpRequest httpRequest) => new(httpRequest ?? throw new ArgumentNullException(nameof(httpRequest)));
+        public static WebApiRequestOptions GetRequestOptions(this HttpRequest httpRequest) => new(httpRequest.ThrowIfNull(nameof(httpRequest)));
 
         /// <summary>
         /// Adds the <see cref="PagingArgs"/> to the <see cref="IHeaderDictionary"/>.

@@ -1,18 +1,54 @@
 ﻿# CoreEx.Hosting
 
-The `CoreEx.Hosting` namespace provides additional [hosted service (worker)](https://learn.microsoft.com/en-us/dotnet/core/extensions/workers) capabilities.
+The `CoreEx.Hosting` namespace provides additional [hosted service (worker)](https://learn.microsoft.com/en-us/dotnet/core/extensions/workers) runtime capabilities.
 
 <br/>
 
 ## Motivation
 
-To enable additional [`IHostedService`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostedservice) capabilities.
+To enable improved hosted service consistency and testability, plus additional [`IHostedService`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostedservice) runtime capabilities.
+
+<br/>
+
+## Host startup
+
+To improve consistency and testability the [`IHostStartup`](./IHostStartup.cs) and [`HostStartup`](./HostStartup) implementations are provided. By seperating out the key [Dependency Injection (DI)](https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection) configuration from the underlying host configuration enables the DI configuration to be tested in isolation against a _test-host_ where applicable.
+
+The following is an example of a `HostStartup` implementation.
+
+```csharp
+public class Startup : HostStartup
+{
+    public override void ConfigureAppConfiguration(HostBuilderContext context, IConfigurationBuilder config)
+    {
+        config.AddEnvironmentVariables("Prefix_");
+    }
+
+    /// <inheritdoc/>
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services
+            .AddSettings()
+            .AddExecutionContext()
+            .AddJsonSerializer();
+	}
+}
+```
+
+The following is an example of a `Program` implementation that initiates a host and uses the [`ConfigureHostStartup`](HostStartupExtensions.cs) extension method to integrate the `Startup` functionality. This has an added advantage of being able to add specific startup capabilities directly to a host that should not be available to the _test-host_ (as demonstrated by `ConfigureFunctionsWorkerDefaults`).
+
+```csharp
+new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureHostStartup<Startup>()
+    .Build().Run();
+```
 
 <br/>
 
 ## Hosted services
 
-The following additional `IHostedService` implementations are provided.
+The following additional [`IHostedService`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostedservice) implementations are provided.
 
 Class | Description
 -|-

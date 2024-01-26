@@ -15,21 +15,11 @@ namespace CoreEx.AspNetCore.HealthChecks
     /// <summary>
     /// Provides the Health Check service.
     /// </summary>
-    public class HealthService
+    public class HealthService(SettingsBase settings, HealthCheckService healthCheckService, IJsonSerializer jsonSerializer)
     {
-        private readonly SettingsBase _settings;
-        private readonly HealthCheckService _healthCheckService;
-        private readonly IJsonSerializer _jsonSerializer;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="HealthService"/> class.
-        /// </summary>
-        public HealthService(SettingsBase settings, HealthCheckService healthCheckService, IJsonSerializer jsonSerializer)
-        {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _healthCheckService = healthCheckService ?? throw new ArgumentNullException(nameof(healthCheckService));
-            _jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
-        }
+        private readonly SettingsBase _settings = settings.ThrowIfNull(nameof(settings));
+        private readonly HealthCheckService _healthCheckService = healthCheckService.ThrowIfNull(nameof(healthCheckService));
+        private readonly IJsonSerializer _jsonSerializer = jsonSerializer.ThrowIfNull(nameof(jsonSerializer));
 
         /// <summary>
         /// Runs the health check and returns JSON result.

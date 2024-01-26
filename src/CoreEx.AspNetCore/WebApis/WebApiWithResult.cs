@@ -46,14 +46,11 @@ namespace CoreEx.AspNetCore.WebApis
         public async Task<IActionResult> GetWithResultAsync<TResult>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result<TResult>>> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             HttpStatusCode alternateStatusCode = HttpStatusCode.NotFound, OperationType operationType = OperationType.Read, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsGet(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Get}' to use {nameof(GetAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -92,14 +89,11 @@ namespace CoreEx.AspNetCore.WebApis
         public async Task<IActionResult> PostWithResultAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result>> function, HttpStatusCode statusCode = HttpStatusCode.OK, OperationType operationType = OperationType.Create,
             Func<Uri>? locationUri = null, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -184,14 +178,11 @@ namespace CoreEx.AspNetCore.WebApis
         private async Task<IActionResult> PostWithResultInternalAsync<TValue>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<Result>> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<Uri>? locationUri = null, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -236,14 +227,11 @@ namespace CoreEx.AspNetCore.WebApis
         public async Task<IActionResult> PostWithResultAsync<TResult>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result<TResult>>> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Create, Func<TResult, Uri>? locationUri = null, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -336,14 +324,11 @@ namespace CoreEx.AspNetCore.WebApis
         private async Task<IActionResult> PostWithResultInternalAsync<TValue, TResult>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TResult>>> function, HttpStatusCode statusCode = HttpStatusCode.OK, HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent,
             OperationType operationType = OperationType.Create, bool valueIsRequired = true, IValidator<TValue>? validator = null, Func<TResult, Uri>? locationUri = null, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsPost(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Post}' to use {nameof(PostAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -432,14 +417,11 @@ namespace CoreEx.AspNetCore.WebApis
         private async Task<IActionResult> PutWithResultInternalAsync<TValue>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<Result>> function, HttpStatusCode statusCode = HttpStatusCode.NoContent,
             OperationType operationType = OperationType.Update, bool valueIsRequired = true, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsPut(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Put}' to use {nameof(PutWithResultAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -532,14 +514,11 @@ namespace CoreEx.AspNetCore.WebApis
         public async Task<IActionResult> PutWithResultInternalAsync<TValue, TResult>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TResult>>> function, HttpStatusCode statusCode = HttpStatusCode.OK,
             HttpStatusCode alternateStatusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Update, bool valueIsRequired = true, IValidator<TValue>? validator = null, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsPut(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Put}' to use {nameof(PutWithResultAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -628,17 +607,12 @@ namespace CoreEx.AspNetCore.WebApis
         private async Task<IActionResult> PutWithResultInternalAsync<TValue>(HttpRequest request, bool useValue, TValue value, Func<WebApiParam, CancellationToken, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false, CancellationToken cancellationToken = default) where TValue : class
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            get.ThrowIfNull(nameof(get));
+            put.ThrowIfNull(nameof(put));
 
             if (!HttpMethods.IsPut(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Put}' to use {nameof(PutWithResultAsync)}.", nameof(request));
-
-            if (get == null)
-                throw new ArgumentNullException(nameof(get));
-
-            if (put == null)
-                throw new ArgumentNullException(nameof(put));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -687,14 +661,11 @@ namespace CoreEx.AspNetCore.WebApis
         /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
         public async Task<IActionResult> DeleteWithResultAsync(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result>> function, HttpStatusCode statusCode = HttpStatusCode.NoContent, OperationType operationType = OperationType.Delete, CancellationToken cancellationToken = default)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            request.ThrowIfNull(nameof(request));
+            function.ThrowIfNull(nameof(function));
 
             if (!HttpMethods.IsDelete(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Delete}' to use {nameof(DeleteWithResultAsync)}.", nameof(request));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
 
             return await RunAsync(request, async (wap, ct) =>
             {
@@ -748,20 +719,15 @@ namespace CoreEx.AspNetCore.WebApis
         public async Task<IActionResult> PatchWithResultAsync<TValue>(HttpRequest request, Func<WebApiParam, CancellationToken, Task<Result<TValue?>>> get, Func<WebApiParam<TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK,
             OperationType operationType = OperationType.Update, IValidator<TValue>? validator = null, bool simulatedConcurrency = false, CancellationToken cancellationToken = default) where TValue : class
         {
+            request.ThrowIfNull(nameof(request));
+            get.ThrowIfNull(nameof(get));
+            put.ThrowIfNull(nameof(put));
+
             if (JsonMergePatch == null)
                 throw new InvalidOperationException($"To use the '{nameof(PatchWithResultAsync)}' methods the '{nameof(JsonMergePatch)}' object must be passed in the constructor. Where using dependency injection consider using '{nameof(Microsoft.Extensions.DependencyInjection.IServiceCollectionExtensions.AddJsonMergePatch)}' to add and configure the supported options.");
 
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
-
             if (!HttpMethods.IsPatch(request.Method))
                 throw new ArgumentException($"HttpRequest.Method is '{request.Method}'; must be '{HttpMethods.Patch}' to use {nameof(PatchWithResultAsync)}.", nameof(request));
-
-            if (get == null)
-                throw new ArgumentNullException(nameof(get));
-
-            if (put == null)
-                throw new ArgumentNullException(nameof(put));
 
             return await RunAsync(request, async (wap, ct) =>
             {

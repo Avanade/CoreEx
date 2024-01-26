@@ -21,6 +21,7 @@ namespace CoreEx.Configuration
         private readonly ThreadLocal<bool> _isReflectionCall = new();
         private readonly List<string> _prefixes = [];
         private readonly Dictionary<string, PropertyInfo> _allProperties;
+        private bool? _validationUseJsonNames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsBase"/> class.
@@ -205,5 +206,10 @@ namespace CoreEx.Configuration
         /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.SlidingExpiration"/>. Defaults to <c>30</c> minutes.
         /// </summary>
         public TimeSpan? RefDataCacheSlidingExpiration => GetValue($"RefDataCache__{nameof(ICacheEntry.SlidingExpiration)}", TimeSpan.FromMinutes(30));
+
+        /// <summary>
+        /// Gets the default validation use of JSON names. Defaults to <c>true</c>.
+        /// </summary>
+        public bool ValidationUseJsonNames => _validationUseJsonNames ??= GetValue(nameof(ValidationUseJsonNames), true);
     }
 }

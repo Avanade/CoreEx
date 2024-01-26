@@ -6,7 +6,6 @@ using CoreEx.AspNetCore.WebApis;
 using NUnit.Framework;
 using System.Net.Http;
 using System.Threading.Tasks;
-using UnitTestEx;
 using UnitTestEx.NUnit;
 using CoreEx.Mapping;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +22,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }), "test"))
+                .Run(f => f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }), new WebApiPublisherArgs<Product>("test")))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -43,7 +42,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<Product>(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), "test"))
+                .Run(f => f.PublishAsync<Product>(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), new WebApiPublisherArgs<Product>("test")))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .AssertContent("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
@@ -60,7 +59,7 @@ namespace CoreEx.Test.Framework.WebApis
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .ConfigureServices(sc => sc.AddMappers<WebApiPublisherTest>())
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<Product, BackendProduct>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }), "test"))
+                .Run(f => f.PublishAsync<Product, BackendProduct>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }), new WebApiPublisherArgs<Product, BackendProduct>("test")))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -87,7 +86,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), new WebApiPublisherCollectionArgs<ProductCollection, Product>("test")))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -117,7 +116,7 @@ namespace CoreEx.Test.Framework.WebApis
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .ConfigureServices(sc => sc.AddMappers<WebApiPublisherTest>())
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionAsync<ProductCollection, Product, BackendProduct>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product, BackendProduct>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), new WebApiPublisherCollectionArgs<ProductCollection, Product, BackendProduct>("test")))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -149,7 +148,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(hr, "test"))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(hr, new WebApiPublisherCollectionArgs<ProductCollection, Product>("test")))
                 .ToActionResultAssertor()
                 .AssertAccepted();
 
@@ -186,7 +185,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), new WebApiPublisherCollectionArgs<ProductCollection, Product>("test") { MaxCollectionSize = 2 }))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .AssertContent("The publish collection contains 3 items where only a maximum size of 2 is supported.");
@@ -202,7 +201,25 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "Xyz", Name = "Widget", Price = 9.95m }), "test", beforeEvent: (_, __) => throw new BusinessException("Nope, nope!")))
+                .Run(f => f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "Xyz", Name = "Widget", Price = 9.95m }),
+                    new WebApiPublisherArgs<Product> { EventName = "test", OnBeforeEventAsync = (_, __) => throw new BusinessException("Nope, nope!") }))
+                .ToActionResultAssertor()
+                .AssertBadRequest()
+                .AssertContent("Nope, nope!");
+
+            var qn = imp.GetNames();
+            Assert.That(qn, Is.Empty);
+        }
+
+        [Test]
+        public void PublishAsync_BeforeErrorResult()
+        {
+            var imp = new InMemoryPublisher();
+            using var test = FunctionTester.Create<Startup>();
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
+                .Type<WebApiPublisher>()
+                .Run(f => f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "Xyz", Name = "Widget", Price = 9.95m }),
+                    new WebApiPublisherArgs<Product> { EventName = "test", OnBeforeEventAsync = (_, __) => Task.FromResult(Result.Fail("Nope, nope!")) }))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .AssertContent("Nope, nope!");
@@ -225,7 +242,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => throw new BusinessException("Nope, nope!")))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), new WebApiPublisherCollectionArgs<ProductCollection, Product>("test") { OnBeforeEventAsync = (_, __) => throw new BusinessException("Nope, nope!") }))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .AssertContent("Nope, nope!");
@@ -235,43 +252,7 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
-        public void PublishWithResultAsync_Value_Success()
-        {
-            var imp = new InMemoryPublisher();
-            using var test = FunctionTester.Create<Startup>();
-            test.ReplaceScoped<IEventPublisher>(_ => imp)
-                .Type<WebApiPublisher>()
-                .Run(f => f.PublishWithResultAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }), "test"))
-                .ToActionResultAssertor()
-                .AssertAccepted();
-
-            var qn = imp.GetNames();
-            Assert.That(qn, Has.Length.EqualTo(1));
-            Assert.That(qn[0], Is.EqualTo("test"));
-
-            var ed = imp.GetEvents("test");
-            Assert.That(ed, Has.Length.EqualTo(1));
-            ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, ed[0].Value);
-        }
-
-        [Test]
-        public void PublishWithResultAsync_Value_Error()
-        {
-            var imp = new InMemoryPublisher();
-            using var test = FunctionTester.Create<Startup>();
-            test.ReplaceScoped<IEventPublisher>(_ => imp)
-                .Type<WebApiPublisher>()
-                .Run(f => f.PublishWithResultAsync<Product>(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), "test"))
-                .ToActionResultAssertor()
-                .AssertBadRequest()
-                .AssertContent("Invalid request: content was not provided, contained invalid JSON, or was incorrectly formatted: Value is mandatory.");
-
-            var qn = imp.GetNames();
-            Assert.That(qn, Is.Empty);
-        }
-
-        [Test]
-        public void PublishCollectionWithResultAsync_Success()
+        public void PublishCollectionAsync_BeforeErrorResult()
         {
             var products = new ProductCollection
             {
@@ -284,115 +265,7 @@ namespace CoreEx.Test.Framework.WebApis
             using var test = FunctionTester.Create<Startup>();
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test"))
-                .ToActionResultAssertor()
-                .AssertAccepted();
-
-            var qn = imp.GetNames();
-            Assert.That(qn, Has.Length.EqualTo(1));
-            Assert.That(qn[0], Is.EqualTo("test"));
-
-            var ed = imp.GetEvents("test");
-            Assert.That(ed, Has.Length.EqualTo(3));
-            ObjectComparer.Assert(products[0], ed[0].Value);
-            ObjectComparer.Assert(products[1], ed[1].Value);
-            ObjectComparer.Assert(products[2], ed[2].Value);
-        }
-
-        [Test]
-        public void PublishCollectionWithResultAsync_Success_WithCorrelationId()
-        {
-            var products = new ProductCollection
-            {
-                new Product { Id = "Xyz", Name = "Widget", Price = 9.95m },
-                new Product { Id = "Xyz2", Name = "Widget2", Price = 9.95m },
-                new Product { Id = "Xyz3", Name = "Widget3", Price = 9.95m }
-            };
-
-            using var test = FunctionTester.Create<Startup>();
-            var imp = new InMemoryPublisher();
-            var hr = test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products);
-            hr.Headers.Add("x-correlation-id", "corr-id"); // Send through a known correlation id.
-
-            test.ReplaceScoped<IEventPublisher>(_ => imp)
-                .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(hr, "test"))
-                .ToActionResultAssertor()
-                .AssertAccepted();
-
-            var qn = imp.GetNames();
-            Assert.That(qn, Has.Length.EqualTo(1));
-            Assert.That(qn[0], Is.EqualTo("test"));
-
-            var ed = imp.GetEvents("test");
-            Assert.That(ed, Has.Length.EqualTo(3));
-            ObjectComparer.Assert(products[0], ed[0].Value);
-            ObjectComparer.Assert(products[1], ed[1].Value);
-            ObjectComparer.Assert(products[2], ed[2].Value);
-
-            Assert.Multiple(() =>
-            {
-                // Assert the known correlation id.
-                Assert.That(ed[0].CorrelationId, Is.EqualTo("corr-id"));
-                Assert.That(ed[1].CorrelationId, Is.EqualTo("corr-id"));
-                Assert.That(ed[2].CorrelationId, Is.EqualTo("corr-id"));
-            });
-        }
-
-        [Test]
-        public void PublishCollectionWithResultAsync_SizeError()
-        {
-            var products = new ProductCollection
-            {
-                new Product { Id = "Xyz", Name = "Widget", Price = 9.95m },
-                new Product { Id = "Xyz2", Name = "Widget2", Price = 9.95m },
-                new Product { Id = "Xyz3", Name = "Widget3", Price = 9.95m }
-            };
-
-            var imp = new InMemoryPublisher();
-            using var test = FunctionTester.Create<Startup>();
-            test.ReplaceScoped<IEventPublisher>(_ => imp)
-                .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", maxCollSize: 2))
-                .ToActionResultAssertor()
-                .AssertBadRequest()
-                .AssertContent("The publish collection contains 3 items where only a maximum size of 2 is supported.");
-
-            var qn = imp.GetNames();
-            Assert.That(qn, Is.Empty);
-        }
-
-        [Test]
-        public void PublishWithResultAsync_BeforeError()
-        {
-            var imp = new InMemoryPublisher();
-            using var test = FunctionTester.Create<Startup>();
-            test.ReplaceScoped<IEventPublisher>(_ => imp)
-                .Type<WebApiPublisher>()
-                .Run(f => f.PublishWithResultAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "Xyz", Name = "Widget", Price = 9.95m }), "test", beforeEvent: (_, __) => Task.FromResult(Result.Fail("Nope, nope!"))))
-                .ToActionResultAssertor()
-                .AssertBadRequest()
-                .AssertContent("Nope, nope!");
-
-            var qn = imp.GetNames();
-            Assert.That(qn, Is.Empty);
-        }
-
-        [Test]
-        public void PublishCollectionWithResultAsync_BeforeError()
-        {
-            var products = new ProductCollection
-            {
-                new Product { Id = "Xyz", Name = "Widget", Price = 9.95m },
-                new Product { Id = "Xyz2", Name = "Widget2", Price = 9.95m },
-                new Product { Id = "Xyz3", Name = "Widget3", Price = 9.95m }
-            };
-
-            var imp = new InMemoryPublisher();
-            using var test = FunctionTester.Create<Startup>();
-            test.ReplaceScoped<IEventPublisher>(_ => imp)
-                .Type<WebApiPublisher>()
-                .Run(f => f.PublishCollectionWithResultAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), "test", beforeEvents: (_, __) => Task.FromResult(Result.Fail("Nope, nope!"))))
+                .Run(f => f.PublishCollectionAsync<ProductCollection, Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", products), new WebApiPublisherCollectionArgs<ProductCollection, Product>("test") { OnBeforeEventAsync = (_, __) => Task.FromResult(Result.Fail("Nope, nope!")) }))
                 .ToActionResultAssertor()
                 .AssertBadRequest()
                 .AssertContent("Nope, nope!");

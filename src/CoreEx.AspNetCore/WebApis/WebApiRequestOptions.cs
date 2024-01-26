@@ -24,7 +24,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="httpRequest">The <see cref="HttpRequest"/>.</param>
         public WebApiRequestOptions(HttpRequest httpRequest)
         {
-            Request = httpRequest ?? throw new ArgumentNullException(nameof(httpRequest));
+            Request = httpRequest.ThrowIfNull(nameof(httpRequest));
             GetQueryStringOptions(Request.Query);
 
             if (httpRequest.Headers != null && httpRequest.Headers.Count > 0)

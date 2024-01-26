@@ -9,25 +9,15 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Represents a <see cref="WebApi"/> parameter.
     /// </summary>
-    public class WebApiParam
+    /// <param name="webApi">The parent <see cref="WebApiBase"/> instance.</param>
+    /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
+    /// <param name="operationType">The <see cref="CoreEx.OperationType"/>.</param>
+    public class WebApiParam(WebApiBase webApi, WebApiRequestOptions requestOptions, OperationType operationType = OperationType.Unspecified)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WebApiParam"/> class.
-        /// </summary>
-        /// <param name="webApi">The parent <see cref="WebApiBase"/> instance.</param>
-        /// <param name="requestOptions">The <see cref="WebApiRequestOptions"/>.</param>
-        /// <param name="operationType">The <see cref="CoreEx.OperationType"/>.</param>
-        public WebApiParam(WebApiBase webApi, WebApiRequestOptions requestOptions, OperationType operationType = OperationType.Unspecified)
-        {
-            WebApi = webApi ?? throw new ArgumentNullException(nameof(webApi));
-            RequestOptions = requestOptions ?? throw new ArgumentNullException(nameof(requestOptions));
-            OperationType = operationType;
-        }
-
         /// <summary>
         /// Gets the parent (invoking) <see cref="WebApi"/>.
         /// </summary>
-        public WebApiBase WebApi { get; }
+        public WebApiBase WebApi { get; } = webApi.ThrowIfNull(nameof(webApi));
 
         /// <summary>
         /// Gets or sets the <see cref="HttpRequest"/>.
@@ -37,7 +27,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Gets or sets the <see cref="WebApiRequestOptions"/>.
         /// </summary>
-        public WebApiRequestOptions RequestOptions { get; }
+        public WebApiRequestOptions RequestOptions { get; } = requestOptions.ThrowIfNull(nameof(requestOptions));
 
         /// <summary>
         /// Gets the <see cref="Entities.PagingArgs"/>.
@@ -47,7 +37,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Gets the <see cref="CoreEx.OperationType"/>.
         /// </summary>
-        public OperationType OperationType { get; }
+        public OperationType OperationType { get; } = operationType;
 
         /// <summary>
         /// Inspects the <paramref name="value"/> to either update the <see cref="WebApiRequestOptions.ETag"/> or <paramref name="value"/> <see cref="IETag.ETag"/> where appropriate.
