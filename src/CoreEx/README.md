@@ -36,9 +36,6 @@ Namespace | Description
 [`Text.Json`](./Text/Json) | Provides [`System.Text.Json`](https://docs.microsoft.com/en-us/dotnet/api/system.text.json) implementation of the [`IJsonSerializer`](./Json/IJsonSerializer.cs).
 [`Validation`](./Validation) | Provides implementation agnostic validation capabilities.
 [`Wildcards`](./Wildcards) | Provides standardized approach to parsing and validating [`Wildcard`](./Wildcards/Wildcard.cs) text.`
-[`Text.Json`](./Text/Json) | Provides [`System.Text.Json`](https://docs.microsoft.com/en-us/dotnet/api/system.text.json) implementation of the [`IJsonSerializer`](./Json/IJsonSerializer.cs).
-[`Validation`](./Validation) | Provides implementation agnostic validation capabilities.
-[`Wildcards`](./Wildcards) | Provides standardized approach to parsing and validating [`Wildcard`](./Wildcards/Wildcard.cs) text. 
 
 <br/>
 
