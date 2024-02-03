@@ -1219,7 +1219,8 @@ namespace CoreEx.Validation
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #else
         /// <summary>
         /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
@@ -1233,11 +1234,11 @@ namespace CoreEx.Validation
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>>? validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #endif
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
-            if (result.IsFailure)
+            if (validator is null || result.IsFailure)
                 return result;
 
             var vi = validator(value.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
@@ -1258,7 +1259,8 @@ namespace CoreEx.Validation
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #else
         /// <summary>
         /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
@@ -1272,12 +1274,12 @@ namespace CoreEx.Validation
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>> validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T?>, IPropertyRule<ValidationValue<T?>, T?>>? validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #endif
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
             var r = await result.ConfigureAwait(false);
-            if (r.IsFailure)
+            if (validator is null || r.IsFailure)
                 return r;
 
             var vi = validator(value.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");

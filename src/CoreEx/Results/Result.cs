@@ -55,6 +55,9 @@ namespace CoreEx.Results
         /// <inheritdoc/>
         IResult IResult.ToFailure(Exception error) => new Result(error);
 
+        /// <inheritdoc/>
+        public bool IsFailureOfType<TException>() where TException : Exception => _error is not null && _error.GetType() == typeof(TException);
+
         /// <summary>
         /// Converts the <see cref="Result"/> to a corresponding <see cref="Result{T}"/> (of <see cref="Type"/> <typeparamref name="T"/>) defaulting to <see cref="Result{T}.None"/> where <see cref="Result.IsSuccess"/>; otherwise, where
         /// <see cref="IsFailure"/> returns a resulting instance with the corresponding <see cref="Error"/>.
@@ -122,6 +125,12 @@ namespace CoreEx.Results
         /// <param name="message">The error message.</param>
         /// <returns>The <see cref="Result"/> that has a state of <see cref="IsFailure"/>.</returns>
         public static Result Fail(LText? message = null) => new(new BusinessException(message));
+
+        /// <summary>
+        /// Converts the <see cref="Result"/> to a <see cref="Task{TResult}"/> using <see cref="Task.FromResult{TResult}(TResult)"/>.
+        /// </summary>
+        /// <returns>The completed <see cref="Task{TResult}"/>.</returns>
+        public Task<Result> AsTask() => Task.FromResult(this);
 
         /// <inheritdoc/>
         public override string ToString() => IsSuccess ? "Success." : $"Failure: {Error.Message}";

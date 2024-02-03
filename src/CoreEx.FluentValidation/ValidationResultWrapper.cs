@@ -70,5 +70,8 @@ namespace CoreEx.FluentValidation
 
         /// <inheritdoc/>
         public Result<R> ToResult<R>() => HasErrors ? Result<R>.ValidationError(Messages!) : Validation.Validation.ConvertValueToResult<T, R>(Value!);
+
+        /// <inheritdoc/>
+        public Result ToResult() => HasErrors ? Results.Result.ValidationError(Messages!) : Results.Result.Success;
     }
 }

@@ -14,7 +14,7 @@ namespace CoreEx.Events.Subscribing
         /// Records instrumentation based on the <paramref name="errorHandling"/> and <paramref name="exception"/> values.
         /// </summary>
         /// <param name="errorHandling">The corresponding <see cref="ErrorHandling"/> value where an error ocurred; otherwise, <c>null</c> for success.</param>
-        /// <param name="exception">The corresponding <see cref="Exception"/> where there is an error (will be of Type <see cref="EventSubscriberException"/> where <paramref name="errorHandling"/> is not <see cref="ErrorHandling.None"/>).</param>
+        /// <param name="exception">The corresponding <see cref="Exception"/> where there is an error (will be of Type <see cref="EventSubscriberException"/> where <paramref name="errorHandling"/> is not <see cref="ErrorHandling.HandleByHost"/>).</param>
         void Instrument(ErrorHandling? errorHandling = null, Exception? exception = null);
     }
 }

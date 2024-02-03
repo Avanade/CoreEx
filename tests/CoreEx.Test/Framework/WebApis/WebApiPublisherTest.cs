@@ -9,12 +9,19 @@ using System.Threading.Tasks;
 using UnitTestEx.NUnit;
 using CoreEx.Mapping;
 using Microsoft.Extensions.DependencyInjection;
+using CoreEx.Hosting.Work;
+using System;
+using Microsoft.AspNetCore.Mvc;
+using CoreEx.Test.Framework.Abstractions.Reflection;
 
 namespace CoreEx.Test.Framework.WebApis
 {
     [TestFixture]
     public class WebApiPublisherTest
     {
+        [OneTimeSetUp]
+        public void OneTimeSetUp() => UnitTestEx.Abstractions.CoreExOneOffTestSetUp.ForceSetUp();
+
         [Test]
         public void PublishAsync_Value_Success()
         {
@@ -273,9 +280,265 @@ namespace CoreEx.Test.Framework.WebApis
             var qn = imp.GetNames();
             Assert.That(qn, Is.Empty);
         }
+
+        [Test]
+        public void Publish_With_Work_State()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var imp = new InMemoryPublisher();
+            using var test = FunctionTester.Create<Startup>();
+
+            var wr = test.ReplaceScoped<IEventPublisher>(_ => imp)
+                .Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.PublishAsync<Product>(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest", new Product { Id = "A", Name = "B", Price = 1.99m }),
+                        new WebApiPublisherArgs<Product>("test") { CreateLocation = (_, @event) => new Uri($"status/{@event.Id}", UriKind.Relative) }.WithWorkState());
+                })
+                .ToActionResultAssertor()
+                .AssertAccepted()
+                .Result;
+
+            var qn = imp.GetNames();
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
+
+            var ed = imp.GetEvents("test");
+            Assert.That(ed, Has.Length.EqualTo(1));
+            ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, ed[0].Value);
+
+            var ws = wso.GetAsync<Product>(ed[0].Id!).Result;
+            Assert.That(ws, Is.Not.Null);
+            Assert.That(ws.Status, Is.EqualTo(WorkStatus.Created));
+
+            var escr = wr as ExtendedStatusCodeResult;
+            Assert.That(escr, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(escr.StatusCode, Is.EqualTo(202));
+                Assert.That(escr.Location, Is.EqualTo(new Uri($"status/{ed[0].Id}", UriKind.Relative)));
+            });
+        }
+
+        [Test]
+        public void GetWorkStatus_NotFound()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+                    return f.GetWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherStatusArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void GetWorkStatus_InProgress_OK()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var ws = wso.CreateAsync(new WorkStateArgs("test", "abc")).Result;
+
+            using var test = FunctionTester.Create<Startup>();
+
+            // Status of created.
+            var ara = test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherStatusArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertOK()
+                .AssertValue(ws)
+                .AssertResultType<ValueContentResult>();
+
+            var vcr = ara.Result as ValueContentResult;
+            Assert.That(vcr?.RetryAfter, Is.EqualTo(TimeSpan.FromSeconds(30)));
+
+            // Status of started.
+            ws = wso.StartAsync(ws.Id!).Result;
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherStatusArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertOK()
+                .AssertValue(ws);
+
+            // Status of indeterminate.
+            ws = wso.IndeterminateAsync(ws.Id!, "Oh no!").Result;
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherStatusArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertOK()
+                .AssertValue(ws);
+        }
+
+        [Test]
+        public void GetWorkStatus_Fail_BadRequest()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var ws = wso.CreateAsync(new WorkStateArgs("test", "abc")).Result;
+            ws = wso.StartAsync("abc").Result;
+            ws = wso.FailAsync("abc", "bad-request").Result;
+
+            using var test = FunctionTester.Create<Startup>();
+
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherStatusArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertBadRequest()
+                .AssertValue(ws);
+        }
+
+        [Test]
+        public void GetWorkStatus_Completed()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var ws = wso.CreateAsync(new WorkStateArgs("test", "abc")).Result;
+            ws = wso.StartAsync("abc").Result;
+            ws = wso.CompleteAsync("abc").Result;
+
+            using var test = FunctionTester.Create<Startup>();
+
+            var ara = test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherStatusArgs("test", "abc") { CreateResultLocation = ws => new Uri($"/result/{ws.Id}", UriKind.Relative) });
+                })
+                .ToActionResultAssertor()
+                .AssertResultType<RedirectResult>();
+
+            var rr = ara.Result as RedirectResult;
+            Assert.That(rr?.Url, Is.EqualTo($"/result/{ws.Id}"));
+        }
+
+        [Test]
+        public void GetWorkResult_NotFound()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+
+            using var test = FunctionTester.Create<Startup>();
+
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherResultArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertNotFound();
+        }
+
+        [Test]
+        public void GetWorkResult_NoValue()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var ws = wso.CreateAsync(new WorkStateArgs("test", "abc")).Result;
+            ws = wso.StartAsync("abc").Result;
+            ws = wso.CompleteAsync("abc").Result;
+
+            using var test = FunctionTester.Create<Startup>();
+
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherResultArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertNoContent();
+        }
+
+        [Test]
+        public void GetWorkResult_WithValue()
+        {
+            var p = new Product { Id = "A", Name = "B", Price = 1.99m };
+
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var ws = wso.CreateAsync(new WorkStateArgs("test", "abc")).Result;
+            ws = wso.StartAsync("abc").Result;
+            ws = wso.CompleteAsync("abc").Result;
+            wso.SetDataAsync(ws.Id!, p).Wait();
+
+            using var test = FunctionTester.Create<Startup>();
+
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.GetWorkResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherResultArgs<Product>("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertOK()
+                .AssertValue(p);
+        }
+
+        [Test]
+        public void CancelWorkStatus_AlreadyFailed()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var ws = wso.CreateAsync(new WorkStateArgs("test", "abc")).Result;
+            ws = wso.StartAsync("abc").Result;
+            ws = wso.FailAsync("abc", "bad-request").Result;
+
+            using var test = FunctionTester.Create<Startup>();
+
+            // Status of created.
+            test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.CancelWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherCancelArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertBadRequest()
+                .AssertContent("A cancellation can not be performed when the current status is Failed.");
+        }
+
+        [Test]
+        public void CancelWorkStatus_Success()
+        {
+            var wso = new WorkStateOrchestrator(new InMemoryWorkStatePersistence());
+            var ws = wso.CreateAsync(new WorkStateArgs("test", "abc")).Result;
+            ws = wso.StartAsync("abc").Result;
+
+            using var test = FunctionTester.Create<Startup>();
+
+            ws = test.Type<WebApiPublisher>()
+                .Run(f =>
+                {
+                    f.WorkStateOrchestrator = wso;
+                    return f.CancelWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherCancelArgs("test", "abc"));
+                })
+                .ToActionResultAssertor()
+                .AssertOK()
+                .GetValue<WorkState>();
+
+            Assert.That(ws, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ws.Status, Is.EqualTo(WorkStatus.Cancelled));
+                Assert.That(ws.Reason, Is.EqualTo("No reason was specified."));
+            });
+        }
     }
 
-    // Demonnstrates a hard-coded mapper.
+    // Demonstrates a hard-coded mapper.
     public class ProductMapper : Mapper<Product, BackendProduct>
     {
         protected override BackendProduct? OnMap(Product? s, BackendProduct? d, OperationTypes operationType)

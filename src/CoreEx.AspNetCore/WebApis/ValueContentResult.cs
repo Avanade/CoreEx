@@ -59,6 +59,11 @@ namespace CoreEx.AspNetCore.WebApis
         /// </summary>
         public Uri? Location { get; set; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="TimeSpan"/> for the <see cref="System.Net.Http.Headers.RetryConditionHeaderValue"/>.
+        /// </summary>
+        public TimeSpan? RetryAfter { get; set; }
+
         /// <inheritdoc/>
         public override Task ExecuteResultAsync(ActionContext context)
         {
@@ -70,6 +75,9 @@ namespace CoreEx.AspNetCore.WebApis
 
             if (Location != null)
                 headers.Location = Location;
+
+            if (RetryAfter is not null)
+                context.HttpContext.Response.Headers.Append(HeaderNames.RetryAfter, new System.Net.Http.Headers.RetryConditionHeaderValue(RetryAfter.Value).ToString());
 
             return base.ExecuteResultAsync(context);
         }

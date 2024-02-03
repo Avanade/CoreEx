@@ -179,6 +179,9 @@ namespace CoreEx.Validation
         /// <inheritdoc/>
         public Result<R> ToResult<R>() => FailureResult.HasValue ? FailureResult.Value.Bind<R>() : (HasErrors ? Result<R>.ValidationError(Messages!) : Validation.ConvertValueToResult<TEntity, R>(Value!));
 
+        /// <inheritdoc/>
+        public Result ToResult() => FailureResult ?? (HasErrors ? Result.ValidationError(Messages!) : Result.Success);
+
         /// <summary>
         /// Merges a validation result into this.
         /// </summary>

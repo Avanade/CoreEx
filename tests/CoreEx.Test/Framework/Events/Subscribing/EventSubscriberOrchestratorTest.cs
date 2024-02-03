@@ -1,6 +1,7 @@
 ﻿using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
+using CoreEx.Hosting.Work;
 using CoreEx.Results;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,15 +23,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
             var eso = new EventSubscriberOrchestrator();
-            var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
-
-            eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteAsSilent };
+            var match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs());
             Assert.Multiple(() =>
             {
-                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.False);
-                Assert.That(subscriber, Is.Null);
-                Assert.That(valueType, Is.Null);
+                Assert.That(match.Matched, Is.False);
+                Assert.That(match.Subscriber, Is.Null);
+                Assert.That(match.ValueType, Is.Null);
             });
         }
 
@@ -41,15 +39,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
             var eso = new EventSubscriberOrchestrator().AddSubscriber<OthersSubscriber>().AddSubscriber<DeleteSubscriber>();
-            var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
-
-            eso = new EventSubscriberOrchestrator() { NotSubscribedHandling = ErrorHandling.CompleteAsSilent };
+            var match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs());
             Assert.Multiple(() =>
             {
-                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "created" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.False);
-                Assert.That(subscriber, Is.Null);
-                Assert.That(valueType, Is.Null);
+                Assert.That(match.Matched, Is.False);
+                Assert.That(match.Subscriber, Is.Null);
+                Assert.That(match.ValueType, Is.Null);
             });
         }
 
@@ -60,11 +55,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
             var eso = new EventSubscriberOrchestrator().AddSubscriber<ModifySubscriber>().AddSubscriber<DeleteSubscriber>();
+            var match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs());
             Assert.Multiple(() =>
             {
-                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.True);
-                Assert.That(subscriber, Is.Not.Null.And.TypeOf<ModifySubscriber>());
-                Assert.That(valueType, Is.Not.Null.And.EqualTo(typeof(Employee)));
+                Assert.That(match.Matched, Is.True);
+                Assert.That(match.Subscriber, Is.Not.Null.And.TypeOf<ModifySubscriber>());
+                Assert.That(match.ValueType, Is.Not.Null.And.EqualTo(typeof(Employee)));
             });
         }
 
@@ -75,11 +71,12 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
             var eso = new EventSubscriberOrchestrator().AddSubscriber<ModifySubscriber>().AddSubscriber<DeleteSubscriber>();
+            var match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs());
             Assert.Multiple(() =>
             {
-                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.True);
-                Assert.That(subscriber, Is.Not.Null.And.TypeOf<DeleteSubscriber>());
-                Assert.That(valueType, Is.Null);
+                Assert.That(match.Matched, Is.True);
+                Assert.That(match.Subscriber, Is.Not.Null.And.TypeOf<DeleteSubscriber>());
+                Assert.That(match.ValueType, Is.Null);
             });
         }
 
@@ -89,16 +86,13 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var sb = SetUpServiceProvider(sc => sc.AddScoped<DeleteSubscriber>());
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
-            var eso = new EventSubscriberOrchestrator().AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>().UseAmbiquousSubscriberHandling(ErrorHandling.None);
-            var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
-            Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorAmbiquousSubscriber));
-
-            eso = new EventSubscriberOrchestrator() { AmbiquousSubscriberHandling = ErrorHandling.CompleteAsSilent }.AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>();
+            var eso = new EventSubscriberOrchestrator().AddSubscriber<DeleteSubscriber>().AddSubscriber<DuplicateSubscriber>().UseAmbiquousSubscriberHandling(ErrorHandling.HandleByHost);
+            var match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs());
             Assert.Multiple(() =>
             {
-                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "deleted" }, new EventSubscriberArgs(), out var subscriber, out var valueType), Is.False);
-                Assert.That(subscriber, Is.Null);
-                Assert.That(valueType, Is.Null);
+                Assert.That(match.Matched, Is.False);
+                Assert.That(match.Subscriber, Is.Not.Null.And.TypeOf<DeleteSubscriber>());
+                Assert.That(match.ValueType, Is.Null);
             });
         }
 
@@ -109,19 +103,25 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
             var eso = new EventSubscriberOrchestrator().AddSubscriber<OthersSubscriber>();
-            var esex = Assert.Throws<EventSubscriberException>(() => eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.other", Type = "blah.blah", Action = "created", Key = "XXX" }, new EventSubscriberArgs(), out var subscriber, out var valueType));
+            var match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.other", Type = "blah.blah", Action = "created", Key = "KEY" }, new EventSubscriberArgs());
             Assert.Multiple(() =>
             {
-                Assert.That(esex!.ExceptionSource, Is.EqualTo(EventSubscriberExceptionSource.OrchestratorNotSubscribed));
+                Assert.That(match.Matched, Is.True);
+                Assert.That(match.Subscriber, Is.Not.Null.And.TypeOf<OthersSubscriber>());
+                Assert.That(match.ValueType, Is.Null);
+            });
 
-                Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.other", Type = "blah.blah", Action = "created", Key = "KEY" }, new EventSubscriberArgs(), out var subscriber2, out var valueType2), Is.True);
-                Assert.That(subscriber2, Is.Not.Null.And.TypeOf<OthersSubscriber>());
-                Assert.That(valueType2, Is.Null);
+            match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.other", Type = "blah.blah", Action = "created", Key = "XXX" }, new EventSubscriberArgs());
+            Assert.Multiple(() =>
+            {
+                Assert.That(match.Matched, Is.False);
+                Assert.That(match.Subscriber, Is.Null);
+                Assert.That(match.ValueType, Is.Null);
             });
         }
 
         [Test] public async Task Receive_Unhandled_None() => await ReceiveTest(null, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), false, message: "Unhandled exception.");
-        [Test] public async Task Receive_Unhandled_Exception() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.Handle, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception.", ins: "Test.Error.UnhandledError");
+        [Test] public async Task Receive_Unhandled_Exception() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.HandleBySubscriber, () => throw new System.NotImplementedException("Unhandled exception."), typeof(System.NotImplementedException), true, message: "Unhandled exception.", ins: "Test.Error.UnhandledError");
         [Test] public async Task Receive_Unhandled_CompleteSilent() => await ReceiveTest(ms => ms._UnhandledHandling = ErrorHandling.CompleteAsSilent, () => throw new System.NotImplementedException("Unhandled exception."), ins: "Test.Complete.UnhandledError");
 
         [Test] public async Task Receive_Unhandled_FailFast()
@@ -133,31 +133,31 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         }
 
         [Test] public async Task Receive_Security_None() => await ReceiveTest(null, () => throw new AuthenticationException(), typeof(AuthenticationException), false);
-        [Test] public async Task Receive_Security_Exception() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.Handle, () => throw new AuthorizationException(), typeof(AuthorizationException), true, ins: "Test.Error.AuthorizationError");
+        [Test] public async Task Receive_Security_Exception() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.HandleBySubscriber, () => throw new AuthorizationException(), typeof(AuthorizationException), true, ins: "Test.Error.AuthorizationError");
         [Test] public async Task Receive_Security_Retry() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.Retry, () => throw new AuthorizationException(), typeof(AuthorizationException), true, true, ins: "Test.Retry.AuthorizationError");
         [Test] public async Task Receive_Security_CompleteSilent() => await ReceiveTest(ms => ms._SecurityHandling = ErrorHandling.CompleteAsSilent, () => throw new AuthorizationException(), ins: "Test.Complete.AuthorizationError");
 
         [Test] public async Task Receive_InvalidData_None() => await ReceiveTest(null, () => throw new BusinessException(), typeof(BusinessException), false);
-        [Test] public async Task Receive_InvalidData_Exception() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.Handle, () => throw new ConflictException(), typeof(ConflictException), true, ins: "Test.Error.ConflictError");
+        [Test] public async Task Receive_InvalidData_Exception() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.HandleBySubscriber, () => throw new ConflictException(), typeof(ConflictException), true, ins: "Test.Error.ConflictError");
         [Test] public async Task Receive_InvalidData_CompleteSilent() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.CompleteAsSilent, () => throw new DuplicateException(), ins: "Test.Complete.DuplicateError");
-        [Test] public async Task Receive_InvalidData_Exception_ValueIsRequired() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.Handle, () => throw new DivideByZeroException(), typeof(ValidationException), true, message: "Invalid message; body was not provided, contained invalid JSON, or was incorrectly formatted: Value is required.", ed: new EventData<Employee>(), ins: "Test.Error.ValidationError");
+        [Test] public async Task Receive_InvalidData_Exception_ValueIsRequired() => await ReceiveTest(ms => ms._InvalidDataHandling = ErrorHandling.HandleBySubscriber, () => throw new DivideByZeroException(), typeof(ValidationException), true, message: "Invalid message; body was not provided, contained invalid JSON, or was incorrectly formatted: Value is required.", ed: new EventData<Employee>(), ins: "Test.Error.ValidationError");
 
         [Test] public async Task Receive_Concurrency_None() => await ReceiveTest(null, () => throw new ConcurrencyException(), typeof(ConcurrencyException), false);
-        [Test] public async Task Receive_Concurrency_Exception() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.Handle, () => throw new ConcurrencyException(), typeof(ConcurrencyException), true, ins: "Test.Error.ConcurrencyError");
+        [Test] public async Task Receive_Concurrency_Exception() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.HandleBySubscriber, () => throw new ConcurrencyException(), typeof(ConcurrencyException), true, ins: "Test.Error.ConcurrencyError");
         [Test] public async Task Receive_Concurrency_CompleteSilent() => await ReceiveTest(ms => ms._ConcurrencyHandling = ErrorHandling.CompleteAsSilent, () => throw new ConcurrencyException(), ins: "Test.Complete.ConcurrencyError");
 
         [Test] public async Task Receive_NotFound_None() => await ReceiveTest(null, () => throw new NotFoundException(), typeof(NotFoundException), false);
-        [Test] public async Task Receive_NotFound_Exception() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.Handle, () => throw new NotFoundException(), typeof(NotFoundException), true, ins: "Test.Error.NotFoundError");
+        [Test] public async Task Receive_NotFound_Exception() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.HandleBySubscriber, () => throw new NotFoundException(), typeof(NotFoundException), true, ins: "Test.Error.NotFoundError");
         [Test] public async Task Receive_NotFound_CompleteSilent() => await ReceiveTest(ms => ms._NotFoundHandling = ErrorHandling.CompleteAsSilent, () => throw new NotFoundException(), ins: "Test.Complete.NotFoundError");
 
         [Test] public async Task Receive_Transient_None() => await ReceiveTest(null, () => throw new TransientException(), typeof(TransientException), false, true);
         [Test] public async Task Receive_Transient_Retry() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.Retry, () => throw new TransientException(), typeof(TransientException), true, true, ins: "Test.Retry.TransientError");
-        [Test] public async Task Receive_Transient_Exception() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.Handle, () => throw new TransientException(), typeof(TransientException), true, false, ins: "Test.Error.TransientError");
+        [Test] public async Task Receive_Transient_Exception() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.HandleBySubscriber, () => throw new TransientException(), typeof(TransientException), true, false, ins: "Test.Error.TransientError");
         [Test] public async Task Receive_Transient_CompleteSilent() => await ReceiveTest(ms => ms._TransientHandling = ErrorHandling.CompleteAsSilent, () => throw new TransientException(), ins: "Test.Complete.TransientError");
 
         [Test] public async Task Receive_DataConsistency_None() => await ReceiveTest(null, () => throw new DataConsistencyException(), typeof(DataConsistencyException), false, true);
         [Test] public async Task Receive_DataConsistency_Retry() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.Retry, () => throw new DataConsistencyException(), typeof(DataConsistencyException), true, true, ins: "Test.Retry.DataConsistencyError");
-        [Test] public async Task Receive_DataConsistency_Exception() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.Handle, () => throw new DataConsistencyException(), typeof(DataConsistencyException), true, false, ins: "Test.Error.DataConsistencyError");
+        [Test] public async Task Receive_DataConsistency_Exception() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.HandleBySubscriber, () => throw new DataConsistencyException(), typeof(DataConsistencyException), true, false, ins: "Test.Error.DataConsistencyError");
         [Test] public async Task Receive_DataConsistency_CompleteSilent() => await ReceiveTest(ms => ms._DataConsistencyHandling = ErrorHandling.CompleteAsSilent, () => throw new DataConsistencyException(), ins: "Test.Complete.DataConsistencyError");
 
         [Test] public async Task Receive_Success() => await ReceiveTest(null, () => { }, null, false, ins: "Test.Complete.Success");
@@ -172,13 +172,15 @@ namespace CoreEx.Test.Framework.Events.Subscribing
         private static ServiceProvider SetUpServiceProvider(Action<IServiceCollection>? action = null)
         {
             var sc = new ServiceCollection();
-            sc.AddLogging();
+            sc.AddLogging(lb => lb.AddConsole());
             sc.AddCloudEventSerializer();
             sc.AddExecutionContext();
             sc.AddDefaultSettings();
             sc.AddSingleton<EmployeeEventSub>();
             sc.AddEventDataFormatter();
             sc.AddAzureServiceBusReceivedMessageConverter();
+            sc.AddSingleton<IWorkStatePersistence, InMemoryWorkStatePersistence>();
+            sc.AddSingleton<WorkStateOrchestrator>();
 
             action?.Invoke(sc);
 
@@ -193,14 +195,15 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             var eso = new EventSubscriberOrchestrator().AddSubscriber<ModifySubscriber>().AddSubscriber<DeleteSubscriber>();
             var ees = sb.GetRequiredService<EmployeeEventSub>();
 
-            Assert.That(eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs(), out var subscriber, out var _), Is.True);
+            var match = eso.TryMatchSubscriber(ees, new EventData { Subject = "my.hr.employee", Type = "blah.blah", Action = "tweaked" }, new EventSubscriberArgs());
+            Assert.That(match.Matched, Is.True);
 
             setAction?.Invoke(ms);
             ms.Action = () => receiveAction();
 
             try
             {
-                await eso.ReceiveAsync(ees, subscriber!, ed ?? new EventData<Employee> { Value = new Employee { Id = 1, Name = "Bob" } }, new EventSubscriberArgs());
+                await eso.ReceiveAsync(ees, match.Subscriber!, ed ?? new EventData<Employee> { Value = new Employee { Id = 1, Name = "Bob" } }, new EventSubscriberArgs());
                 Assert.That(exceptionType, Is.Null, "Expected an exception!");
             }
             catch (EventSubscriberException esex)
@@ -227,13 +230,13 @@ namespace CoreEx.Test.Framework.Events.Subscribing
             finally
             {
                 // Reset.
-                ms._UnhandledHandling = ErrorHandling.None;
-                ms._SecurityHandling = ErrorHandling.None;
-                ms._TransientHandling = ErrorHandling.None;
-                ms._NotFoundHandling = ErrorHandling.None;
-                ms._ConcurrencyHandling = ErrorHandling.None;
-                ms._DataConsistencyHandling = ErrorHandling.None;
-                ms._InvalidDataHandling = ErrorHandling.None;
+                ms._UnhandledHandling = ErrorHandling.HandleByHost;
+                ms._SecurityHandling = ErrorHandling.HandleByHost;
+                ms._TransientHandling = ErrorHandling.HandleByHost;
+                ms._NotFoundHandling = ErrorHandling.HandleByHost;
+                ms._ConcurrencyHandling = ErrorHandling.HandleByHost;
+                ms._DataConsistencyHandling = ErrorHandling.HandleByHost;
+                ms._InvalidDataHandling = ErrorHandling.HandleByHost;
             }
 
             var status = ((TestInstrumentation)ees.Instrumentation!).Status;
@@ -255,13 +258,13 @@ namespace CoreEx.Test.Framework.Events.Subscribing
                 return Task.FromResult(Result.Success);
             }
 
-            public ErrorHandling _UnhandledHandling = ErrorHandling.None;
-            public ErrorHandling _SecurityHandling = ErrorHandling.None;
-            public ErrorHandling _TransientHandling = ErrorHandling.None;
-            public ErrorHandling _NotFoundHandling = ErrorHandling.None;
-            public ErrorHandling _ConcurrencyHandling = ErrorHandling.None;
-            public ErrorHandling _DataConsistencyHandling = ErrorHandling.None;
-            public ErrorHandling _InvalidDataHandling = ErrorHandling.None;
+            public ErrorHandling _UnhandledHandling = ErrorHandling.HandleByHost;
+            public ErrorHandling _SecurityHandling = ErrorHandling.HandleByHost;
+            public ErrorHandling _TransientHandling = ErrorHandling.HandleByHost;
+            public ErrorHandling _NotFoundHandling = ErrorHandling.HandleByHost;
+            public ErrorHandling _ConcurrencyHandling = ErrorHandling.HandleByHost;
+            public ErrorHandling _DataConsistencyHandling = ErrorHandling.HandleByHost;
+            public ErrorHandling _InvalidDataHandling = ErrorHandling.HandleByHost;
 
             public override ErrorHandling UnhandledHandling => _UnhandledHandling;
 

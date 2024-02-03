@@ -60,7 +60,7 @@ namespace CoreEx.Test.Framework.Results
             Assert.That(AssertSuccess(Result.Go(1).ThenAs(i => Result.Ok(i + 1f))), Is.EqualTo(2f));
             AssertFailure(Result.Go<int>(new NotFoundException()).ThenAs(i => { Assert.Fail(); return Result.Ok(i + 1f); }));
 
-            AssertSuccess(Result.Go().Then(() => new IToResultTest()));
+            AssertSuccess(Result.Go().Then(() => { }));
             AssertFailure(Result.NotFoundError().ThenFrom(() => { Assert.Fail(); return new IToResultTest(); }));
 
             Assert.That(AssertSuccess(Result.Go(0).ThenFrom(_ => new ITypedToResultTest())), Is.EqualTo(1));
@@ -155,6 +155,8 @@ namespace CoreEx.Test.Framework.Results
         public class ITypedToResultTest : ITypedToResult
         {
             public Result<T> ToResult<T>() => Result.Ok((T)(object)1);
+
+            public Result ToResult() => Result.Success;
         }
 
         public class IToResultIntTest : IToResult<int>

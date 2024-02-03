@@ -47,9 +47,9 @@ namespace CoreEx.Events.Subscribing
         public EventDataFormatter? EventDataFormatter { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to. Defaults to <see cref="ErrorHandling.Handle"/>.
+        /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has not been <see cref="AddSubscribers">subscribed</see> to. Defaults to <see cref="ErrorHandling.HandleBySubscriber"/>.
         /// </summary>
-        public ErrorHandling NotSubscribedHandling { get; set; } = ErrorHandling.Handle;
+        public ErrorHandling NotSubscribedHandling { get; set; } = ErrorHandling.HandleBySubscriber;
 
         /// <summary>
         /// Gets or sets the <see cref="ErrorHandling"/> where an <i>event</i> is encountered that has more than one <see cref="AddSubscribers">subscriber</see> (is ambiguous). Defaults to <see cref="ErrorHandling.CriticalFailFast"/>.
@@ -146,33 +146,21 @@ namespace CoreEx.Events.Subscribing
         }
 
         /// <summary>
-        /// Trys to match and return a <paramref name="subscriber"/> from within the registered <see cref="AddSubscriber{TSubscriber}">subscribers</see>; whilst also determining the resulting <see cref="EventData.Value"/> <see cref="Type"/>.
+        /// Trys to match and return a <see cref="IEventSubscriber"/> from within the registered <see cref="AddSubscriber{TSubscriber}">subscribers</see>; whilst also determining the resulting <see cref="EventData.Value"/> <see cref="Type"/>.
         /// </summary>
         /// <param name="parent">The parent (owning) <see cref="EventSubscriberBase"/>.</param>
         /// <param name="event">The actual <see cref="EventData"/>.</param>
         /// <param name="args">The optional <see cref="EventSubscriberArgs"/>.</param>
-        /// <param name="subscriber">The resulting <see cref="IEventSubscriber"/>.</param>
-        /// <param name="valueType">The resulting <see cref="EventData.Value"/> <see cref="Type"/> (where applicable).</param>
-        /// <returns><c>true</c> indicates that a single <paramref name="subscriber"/> was found; otherwise, <c>false</c>.</returns>
-        /// <remarks>Depending on the the <see cref="NotSubscribedHandling"/> and <see cref="AmbiquousSubscriberHandling"/> a corresponding <see cref="EventSubscriberException"/> will be thrown.</remarks>
-        /// <exception cref="EventSubscriberException"></exception>
-        public bool TryMatchSubscriber(EventSubscriberBase parent, EventData @event, EventSubscriberArgs args, out IEventSubscriber? subscriber, out Type? valueType)
+        /// <returns>The resulting match (<c>bool</c>), <see cref="IEventSubscriber"/> and <see cref="EventData.Value"/> <see cref="Type"/> where found.</returns>
+        public (bool Matched, IEventSubscriber? Subscriber, Type? ValueType) TryMatchSubscriber(EventSubscriberBase parent, EventData @event, EventSubscriberArgs args)
         {
             parent.ThrowIfNull(nameof(parent));
             @event.ThrowIfNull(nameof(@event));
 
-            if (TryMatchSubscriberInternal(@event, args, out subscriber, out valueType))
-                return true;
+            if (TryMatchSubscriberInternal(@event, args, out var subscriber, out var valueType))
+                return (true, subscriber, valueType);
 
-            var txt = $"Subject: {(string.IsNullOrEmpty(@event.Subject) ? "<none>" : @event.Subject)}, Action: {(string.IsNullOrEmpty(@event.Action) ? "<none>" : @event.Action)}, Type: {(string.IsNullOrEmpty(@event.Type) ? "<none>" : @event.Type)}";
-            var esex = new EventSubscriberException(subscriber == null ? $"No corresponding Subscriber could be matched; {txt}" : $"More than one Subscriber was matched (ambiguous); {txt}")
-                { ExceptionSource = subscriber == null ? EventSubscriberExceptionSource.OrchestratorNotSubscribed : EventSubscriberExceptionSource.OrchestratorAmbiquousSubscriber };
-
-            parent.ErrorHandler.HandleError(esex, subscriber == null ? NotSubscribedHandling : AmbiquousSubscriberHandling, parent.Logger, parent.Instrumentation);
-
-            subscriber = null;
-            valueType = null;
-            return false;
+            return (false, subscriber, valueType);
         }
 
         /// <summary>
@@ -227,6 +215,9 @@ namespace CoreEx.Events.Subscribing
                     result.ThrowOnError();
 
                     // Perform the complete/success instrumentation.
+                    if (parent.WorkStateOrchestrator is not null)
+                        await parent.WorkStateOrchestrator.CompleteAsync(@event.Id!, ct).ConfigureAwait(false);
+
                     parent.Instrumentation?.Instrument();
                 }, cancellationToken).ConfigureAwait(false);
             }
@@ -235,14 +226,14 @@ namespace CoreEx.Events.Subscribing
             {
                 // Handle the exception based on the subscriber configuration.
                 var handling = ErrorHandler.DetermineErrorHandling(subscriber, eex);
-                if (handling == ErrorHandling.None)
+                if (handling == ErrorHandling.HandleByHost)
                     throw;
 
-                parent.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), handling, parent.Logger, parent.Instrumentation);
+                await parent.ErrorHandler.HandleErrorAsync(new ErrorHandlerArgs(@event.Id, new EventSubscriberException(ex.Message, ex), handling, parent.Logger) { Instrumentation = parent.Instrumentation, WorkOrchestrator = parent.WorkStateOrchestrator }, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex) when (subscriber.UnhandledHandling != ErrorHandling.None) // Where unhandled is none, just let the unhandled exception bubble up.
+            catch (Exception ex) when (subscriber.UnhandledHandling != ErrorHandling.HandleByHost) // Where unhandled is none, just let the unhandled exception bubble up.
             {
-                parent.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), subscriber.UnhandledHandling, parent.Logger, parent.Instrumentation);
+                await parent.ErrorHandler.HandleErrorAsync(new ErrorHandlerArgs(@event.Id, new EventSubscriberException(ex.Message, ex), subscriber.UnhandledHandling, parent.Logger) { Instrumentation = parent.Instrumentation, WorkOrchestrator = parent.WorkStateOrchestrator }, cancellationToken).ConfigureAwait(false);
             }
         }
     }

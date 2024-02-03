@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using CoreEx.Results;
+using System.Threading.Tasks;
 
 namespace CoreEx.Test.Framework.Results
 {
@@ -206,6 +207,17 @@ namespace CoreEx.Test.Framework.Results
         {
             var r = Result<int>.Fail(new BusinessException("Test"));
             Assert.That(r.ToString(), Is.EqualTo("Failure: Test"));
+        }
+
+        [Test]
+        public async Task AsTask()
+        {
+            var r = await Result.Go(1).AsTask();
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsSuccess, Is.True);
+                Assert.That(r.Value, Is.EqualTo(1));
+            });
         }
     }
 }

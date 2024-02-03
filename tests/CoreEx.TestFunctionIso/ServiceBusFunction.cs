@@ -15,6 +15,9 @@ namespace CoreEx.TestFunctionIso
         public Task Run([ServiceBusTrigger("test-queue", Connection = "ServiceBusConnectionString")] ServiceBusReceivedMessage message, ServiceBusMessageActions sbma)
             => _subscriber.ReceiveAsync<string>(message, sbma, (@event, args) =>
             {
+                if (@event.Value == "not-found")
+                    return Result.NotFoundError().AsTask();
+
                 _logger.LogInformation($"Received message: {@event.Value}");
                 return Result.SuccessTask;
             });

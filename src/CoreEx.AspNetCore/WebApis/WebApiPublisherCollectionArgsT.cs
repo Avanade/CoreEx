@@ -32,6 +32,9 @@ namespace CoreEx.AspNetCore.WebApis
         public string? EventName { get; set; }
 
         /// <inheritdoc/>
+        public EventData? EventTemplate { get; set;  }
+
+        /// <inheritdoc/>
         public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.Accepted;
 
         /// <inheritdoc/>
@@ -56,6 +59,6 @@ namespace CoreEx.AspNetCore.WebApis
         IMapper<TItem, TItem>? IWebApiPublisherCollectionArgs<TColl, TItem, TItem>.Mapper => null;
 
         /// <inheritdoc/>
-        public Func<IActionResult>? CreateSuccessResult { get; set; }
+        public Func<Task<IActionResult>>? CreateSuccessResultAsync { get; set; }
     }
 }

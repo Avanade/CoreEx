@@ -2,6 +2,16 @@
 
 Represents the **NuGet** versions.
 
+## v3.11.0
+- *Enhancement*: The `ITypedToResult` correctly implements `IToResult` as the simple `ToResult` where required. 
+- *Enhancement*: Added `Result.AsTask()` and `Result<T>.AsTask` to simplify the conversion to a completed `Task<Result>` or `Task<Result<T>>` where applicable.
+- *Enhancement*: Added `IResult.IsFailureOfType<TException>` to indicate whether the result is in a failure state and the underlying error is of the specified `TException` type.
+- *Enhancement*: Added `EventTemplate` property to the `WebApiPublisherArgs` and `WebApiPublisherCollectionArgs` to define an `EventData` template.
+- *Enhancement:* Enum renames to improve understanding of intent for event subscribing logic: `ErrorHandling.None` is now `ErrorHandling.HandleByHost` and `ErrorHandling.Handle` is now `ErrorHandling.HandleBySubscriber`.
+- *Enhancement*: Added `CoreEx.Hosting.Work` namespace which includes light-weight/simple foundational capabilities to track and orchestrate work; intended for the likes of [_asynchronous request-response_](https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply) scenarios.
+  - Added `IWorkStatePersistence` to enable flexible/pluggable persistence of the `WorkState` and resulting data; includes `InMemoryWorkStatePersistence` for testing, `FileWorkStatePersistence` for file-based, and `TableWorkStatePersistence` leveraging Azure table storage.
+  - Added `WorkStateOrchestrator` support to `EventSubscriberBase`, including corresponding `ServiceBusSubscriber` and `ServiceBusOrchestratedSubscriber` using the `ServiceBusMessage.MessageId` as the corresponding `WorkState.Id`.
+
 ## v3.10.0
 - *Enhancement*: The `WebApiPublisher` publishing methods have been simplified (breaking change), primarily through the use of a new _argument_ that encapsulates the various related options. This will enable the addition of further options in the future without resulting in breaking changes or adding unneccessary complexities. The related [`README`](./src/CoreEx.AspNetCore/WebApis/README.md) has been updated to document.
 - *Enhancement*: Added `ValidationUseJsonNames` to `SettingsBase` (defaults to `true`) to allow setting `ValidationArgs.DefaultUseJsonNames` to be configurable.

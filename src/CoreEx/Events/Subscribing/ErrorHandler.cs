@@ -3,6 +3,8 @@
 using CoreEx.Abstractions;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreEx.Events.Subscribing
 {
@@ -41,62 +43,81 @@ namespace CoreEx.Events.Subscribing
         };
 
         /// <summary>
-        /// Handles (actions) the <paramref name="eventSubscriberException"/> as defined by the <paramref name="errorHandling"/>.
+        /// Handles (actions) the error as defined by the <paramref name="args"/>.
         /// </summary>
-        /// <param name="eventSubscriberException">The <see cref="EventSubscriberException"/>.</param>
-        /// <param name="errorHandling">The <see cref="ErrorHandling"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="instrumentation">The optional <see cref="IEventSubscriberInstrumentation"/>.</param>
-        /// <remarks>Where the <paramref name="eventSubscriberException"/> is not thrown from within or the existing exception is bubbled, then subsequent processing should be <i>assumed</i> to complete gracefully without continuing.
-        /// <para>An <paramref name="errorHandling"/> value of <see cref="ErrorHandling.None"/> will result in a throw as it has already been converted into a <see cref="EventSubscriberException"/>; as such, <see cref="ErrorHandling.None"/> should generally be handled prior to invocation.</para></remarks>
-        public void HandleError(EventSubscriberException eventSubscriberException, ErrorHandling errorHandling, ILogger logger, IEventSubscriberInstrumentation? instrumentation)
+        /// <param name="args">The <see cref="ErrorHandlerArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>Where the <see cref="ErrorHandlerArgs.Exception"/> is not thrown from within or the existing exception is bubbled, then subsequent processing should be <i>assumed</i> to complete gracefully without continuing.
+        /// <para>An <see name="ErrorHandlerArgs.ErrorHandling"/> value of <see cref="ErrorHandling.HandleByHost"/> will result in a throw as it has already been converted into a <see cref="EventSubscriberException"/>; as such, <see cref="ErrorHandling.HandleByHost"/> should generally be handled prior to invocation.</para></remarks>
+        public async Task HandleErrorAsync(ErrorHandlerArgs args, CancellationToken cancellationToken)
         {
             // Set the configured error handling for the exception.
-            if (errorHandling != ErrorHandling.None)
-                eventSubscriberException.ErrorHandling = errorHandling;
+            if (args.ErrorHandling != ErrorHandling.HandleByHost)
+                args.Exception.ErrorHandling = args.ErrorHandling;
 
             // Where the exception is known then exception and stack trace need not be logged.
-            var ex = eventSubscriberException.HasInnerExtendedException ? null : eventSubscriberException;
+            var ex = args.Exception.HasInnerExtendedException ? null : args.Exception;
 
             // Handle based on error handling configuration.
-            switch (errorHandling)
+            switch (args.ErrorHandling)
             {
-                case ErrorHandling.None:
-                case ErrorHandling.Handle:
-                    eventSubscriberException.IsTransient = false;
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    throw eventSubscriberException;
+                case ErrorHandling.HandleByHost:
+                case ErrorHandling.HandleBySubscriber:
+                    args.Exception.IsTransient = false;
+                    if (args.WorkOrchestrator is not null)
+                        await args.WorkOrchestrator.IndeterminateAsync(args.Identifier!, args.Exception.Message, cancellationToken);
+
+                    args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
+                    throw args.Exception;
 
                 case ErrorHandling.Retry:
-                    eventSubscriberException.IsTransient = true;
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    throw eventSubscriberException;
+                    args.Exception.IsTransient = true;
+                    if (args.WorkOrchestrator is not null)
+                        await args.WorkOrchestrator.IndeterminateAsync(args.Identifier!, args.Exception.Message, cancellationToken);
+                    
+                    args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
+                    throw args.Exception;
 
                 case ErrorHandling.CompleteAsSilent:
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
+                    if (args.WorkOrchestrator is not null)
+                        await args.WorkOrchestrator.FailAsync(args.Identifier!, args.Exception.Message, cancellationToken);
+
+                    args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
                     break;
 
                 case ErrorHandling.CompleteWithInformation:
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    logger.LogInformation(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    if (args.WorkOrchestrator is not null)
+                        await args.WorkOrchestrator.FailAsync(args.Identifier!, args.Exception.Message, cancellationToken);
+
+                    args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
+                    args.Logger.LogInformation(ex, LogFormat, args.Exception.Message, args.Exception.ExceptionSource, args.ErrorHandling.ToString());
                     break;
 
                 case ErrorHandling.CompleteWithWarning:
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    logger.LogWarning(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    if (args.WorkOrchestrator is not null)
+                        await args.WorkOrchestrator.FailAsync(args.Identifier!, args.Exception.Message, cancellationToken);
+
+                    args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
+                    args.Logger.LogWarning(ex, LogFormat, args.Exception.Message, args.Exception.ExceptionSource, args.ErrorHandling.ToString());
                     break;
 
                 case ErrorHandling.CompleteWithError:
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    logger.LogError(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
+                    if (args.WorkOrchestrator is not null)
+                        await args.WorkOrchestrator.FailAsync(args.Identifier!, args.Exception.Message, cancellationToken);
+
+                    args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
+                    args.Logger.LogError(ex, LogFormat, args.Exception.Message, args.Exception.ExceptionSource, args.ErrorHandling.ToString());
                     break;
 
                 case ErrorHandling.CriticalFailFast:
-                    eventSubscriberException.IsTransient = false;
-                    instrumentation?.Instrument(errorHandling, eventSubscriberException);
-                    logger.LogCritical(ex, LogFormat, eventSubscriberException.Message, eventSubscriberException.ExceptionSource, errorHandling.ToString());
-                    FailFast(eventSubscriberException);
-                    throw eventSubscriberException; // A backup in case FailFast does not function as expected; should _not_ get here!
+                    args.Exception.IsTransient = false;
+                    if (args.WorkOrchestrator is not null)
+                        await args.WorkOrchestrator.FailAsync(args.Identifier!, args.Exception.Message, cancellationToken);
+
+                    args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
+                    args.Logger.LogCritical(ex, LogFormat, args.Exception.Message, args.Exception.ExceptionSource, args.ErrorHandling.ToString());
+                    FailFast(args.Exception);
+                    throw args.Exception; // A backup in case FailFast does not function as expected; should _not_ get here!
             }
         }
 

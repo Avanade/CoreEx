@@ -42,5 +42,10 @@ namespace UnitTestEx.Abstractions
                 return false;
             });
         }
+
+        /// <summary>
+        /// Forces the one-off test set-up to occur.
+        /// </summary>
+        public static void ForceSetUp() => new CoreExOneOffTestSetUp().SetUp();
     }
 }

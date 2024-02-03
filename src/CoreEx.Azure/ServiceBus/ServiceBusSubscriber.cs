@@ -104,19 +104,19 @@ namespace CoreEx.Azure.ServiceBus
         public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, EventSubscriberArgs, Task<Result>> function, 
             EventSubscriberArgs? args = null, Func<EventData, EventSubscriberArgs, Task>? afterReceive = null, CancellationToken cancellationToken = default)
         {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
-
-            if (messageActions == null)
-                throw new ArgumentNullException(nameof(messageActions));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
+            message.ThrowIfNull(nameof(message));
+            messageActions.ThrowIfNull(nameof(messageActions));
+            function.ThrowIfNull(nameof(function));
 
             return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
+                // Perform any pre-processing.
+                var canProceed = await OnBeforeProcessingAsync(message.MessageId, message, cancellationToken).ConfigureAwait(false);
+                if (!canProceed)
+                    return;
+
                 // Deserialize the JSON into the selected type.
-                var @event = await DeserializeEventAsync(message, cancellationToken).ConfigureAwait(false);
+                var @event = await DeserializeEventAsync(message.MessageId, message, cancellationToken).ConfigureAwait(false);
                 if (@event is null)
                     return;
 
@@ -130,6 +130,9 @@ namespace CoreEx.Azure.ServiceBus
                       .ThrowOnError();
 
                 // Perform the complete/success instrumentation.
+                if (WorkStateOrchestrator is not null)
+                    await WorkStateOrchestrator.CompleteAsync(@event.Id!, cancellationToken);
+                
                 Instrumentation?.Instrument();
             }, (message, messageActions), cancellationToken);
         }
@@ -165,19 +168,19 @@ namespace CoreEx.Azure.ServiceBus
         public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, EventSubscriberArgs, Task<Result>> function, bool valueIsRequired = true, IValidator<TValue>? validator = null,
             EventSubscriberArgs? args = null, Func<EventData<TValue>, EventSubscriberArgs, Task>? afterReceive = null, CancellationToken cancellationToken = default)
         {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
-
-            if (messageActions == null)
-                throw new ArgumentNullException(nameof(messageActions));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
+            message.ThrowIfNull(nameof(message));
+            messageActions.ThrowIfNull(nameof(messageActions));
+            function.ThrowIfNull(nameof(function));
 
             return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
+                // Perform any pre-processing.
+                var canProceed = await OnBeforeProcessingAsync(message.MessageId, message, cancellationToken).ConfigureAwait(false);
+                if (!canProceed)
+                    return;
+
                 // Deserialize the JSON into the selected type.
-                var @event = await DeserializeEventAsync(message, valueIsRequired, validator, cancellationToken).ConfigureAwait(false);
+                var @event = await DeserializeEventAsync(message.MessageId, message, valueIsRequired, validator, cancellationToken).ConfigureAwait(false);
                 if (@event is null)
                     return;
 
@@ -191,6 +194,9 @@ namespace CoreEx.Azure.ServiceBus
                       .ThrowOnError();
 
                 // Perform the complete/success instrumentation.
+                if (WorkStateOrchestrator is not null)
+                    await WorkStateOrchestrator.CompleteAsync(@event.Id!, cancellationToken);
+
                 Instrumentation?.Instrument();
             }, (message, messageActions), cancellationToken);
         }
@@ -205,9 +211,7 @@ namespace CoreEx.Azure.ServiceBus
         /// unexpectantly.</remarks>
         public static void UpdateEventSubscriberArgsWithServiceBusMessage(EventSubscriberArgs args, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
         {
-            if (args == null)
-                throw new ArgumentNullException(nameof(args));
-
+            args.ThrowIfNull(nameof(args));
             args.TryAdd(ServiceBusReceivedMessageName, message ?? throw new ArgumentNullException(nameof(message)));
             args.TryAdd(ServiceBusMessageActionsName, messageActions ?? throw new ArgumentNullException(nameof(messageActions)));
         }

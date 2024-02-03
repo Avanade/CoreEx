@@ -1,5 +1,5 @@
-﻿using CoreEx.Azure.ServiceBus;
-using CoreEx.Hosting;
+﻿using CoreEx.Hosting;
+using CoreEx.Hosting.Work;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CoreEx.TestFunctionIso
@@ -14,7 +14,15 @@ namespace CoreEx.TestFunctionIso
                 .AddJsonSerializer()
                 .AddWebApi()
                 .AddEventDataSerializer()
-                .AddScoped<ServiceBusSubscriber>();
+                .AddAzureServiceBusSubscriber((sp, s) =>
+                {
+                    s.WorkStateAlreadyFinishedHandling = Events.Subscribing.ErrorHandling.CompleteWithWarning;
+                    s.WorkStateOrchestrator = sp.GetRequiredService<WorkStateOrchestrator>();
+                });
+
+            services
+                .AddSingleton<IWorkStatePersistence, InMemoryWorkStatePersistence>()
+                .AddSingleton<WorkStateOrchestrator>();
         }
     }
 }

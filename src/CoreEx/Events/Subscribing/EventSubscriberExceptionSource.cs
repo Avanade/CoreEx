@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Hosting.Work;
+
 namespace CoreEx.Events.Subscribing
 {
     /// <summary>
@@ -25,6 +27,11 @@ namespace CoreEx.Events.Subscribing
         /// <summary>
         /// Indicates that the <see cref="EventSubscriberException"/> relates to the <see cref="EventSubscriberOrchestrator.AmbiquousSubscriberHandling"/>. 
         /// </summary>
-        OrchestratorAmbiquousSubscriber = 2204
+        OrchestratorAmbiquousSubscriber = 2204,
+
+        /// <summary>
+        /// Indicates that the <see cref="EventSubscriberException"/> relates to the <see cref="WorkStateOrchestrator"/> having a <see cref="WorkState.Status"/> of <see cref="WorkStatus.Finished"/>.
+        /// </summary>
+        WorkStateAlreadyFinished = 2205
     }
 }

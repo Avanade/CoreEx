@@ -6,7 +6,7 @@ namespace CoreEx.Results
     /// Enables the <see cref="ToResult"/> to convert into a corresponding <see cref="Result{T}"/>.
     /// </summary>
     /// <returns>The resulting <see cref="Result{T}"/>.</returns>
-    public interface ITypedToResult
+    public interface ITypedToResult : IToResult
     {
         /// <summary>
         /// Converts into a corresponding <see cref="Result{T}"/>.
