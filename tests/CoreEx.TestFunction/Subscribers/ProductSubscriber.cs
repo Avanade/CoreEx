@@ -12,17 +12,11 @@ using System.Threading.Tasks;
 namespace CoreEx.TestFunction.Subscribers
 {
     [EventSubscriber("my.product")]
-    public class ProductSubscriber : SubscriberBase<Product>
+    public class ProductSubscriber(ILogger<NoValueSubscriber> logger) : SubscriberBase<Product>(new ProductValidator().Wrap())
     {
-        private readonly ILogger _logger;
+        private readonly ILogger _logger = logger;
 
-        public static HashSet<string> EventIds { get; } = new HashSet<string>();
-
-        public ProductSubscriber(ILogger<NoValueSubscriber> logger)
-        {
-            _logger = logger;
-            ValueValidator = new ProductValidator().Wrap();
-        }
+        public static HashSet<string> EventIds { get; } = [];
 
         public async override Task<Result> ReceiveAsync(EventData<Product> @event, EventSubscriberArgs args, CancellationToken cancellationToken)
         {

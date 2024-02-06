@@ -12,9 +12,11 @@ namespace CoreEx.Events.Subscribing
     /// Represents an <see cref="IEventSubscriber"/> with a <see cref="ValueType"/> of <typeparamref name="TValue"/> (supports <see cref="EventData{T}"/>).
     /// </summary>
     /// <typeparam name="TValue">The <see cref="EventData{T}.Value"/> <see cref="Type"/>.</typeparam>
+    /// <param name="valueValidator">The optional <see cref="IValidator{T}"/> for the value.</param>
+    /// <param name="valueIsRequired">Indicates whether the <see cref="EventData{T}.Value"/> is required; defaults to <c>true</c>.</param>
     /// <remarks>This is for use when the <see cref="EventData{T}"/> has to be deserialized.
     /// <para>Additionally, <see cref="ValueIsRequired"/> and <see cref="ValueValidator"/> enable a consistent validation approach prior to the underlying <see cref="ReceiveAsync(EventData{TValue}, EventSubscriberArgs, CancellationToken)"/> being invoked.</para></remarks>
-    public abstract class SubscriberBase<TValue> : SubscriberBase
+    public abstract class SubscriberBase<TValue>(IValidator<TValue>? valueValidator = null, bool valueIsRequired = true) : SubscriberBase
     {
         /// <inheritdoc/>
         public override Type EventDataType => typeof(EventData<TValue>);
@@ -25,12 +27,12 @@ namespace CoreEx.Events.Subscribing
         /// <summary>
         /// Indicates whether the <see cref="EventData{T}.Value"/> is required.
         /// </summary>
-        protected bool ValueIsRequired { get; set; } = true;
+        protected bool ValueIsRequired { get; set; } = valueIsRequired;
 
         /// <summary>
         /// Gets or sets the optional <see cref="IValidator{T}"/> for the value.
         /// </summary>
-        protected IValidator<TValue>? ValueValidator { get; set; }
+        protected IValidator<TValue>? ValueValidator { get; set; } = valueValidator;
 
         /// <inheritdoc/>
         /// <remarks>Caution where overridding this method as it contains the underlying functionality to invoke <see cref="ReceiveAsync(EventData{TValue}, EventSubscriberArgs, CancellationToken)"/> that is the <i>required</i> method to be overridden.</remarks>
