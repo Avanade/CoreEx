@@ -137,16 +137,22 @@ namespace CoreEx.Events
         /// </summary>
         /// <param name="identifier">The unique identifier from the originiating message.</param>
         /// <param name="originatingMessage">The originating message.</param>
+        /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns><c>true</c> indicates that processing can continue; otherwise, <c>false</c>.</returns>
         /// <remarks>Where there is a corresponding <see cref="WorkState"/> for the <paramref name="originatingMessage"/> and it is not in a state that is considered valid for processing then processing will not occur.</remarks>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
-        protected async Task<bool> OnBeforeProcessingAsync(string identifier, object originatingMessage, CancellationToken cancellationToken = default)
+        protected async Task<bool> OnBeforeProcessingAsync(string identifier, object originatingMessage, EventSubscriberArgs args, CancellationToken cancellationToken = default)
         {
+            args.ThrowIfNull(nameof(args));
             if (WorkStateOrchestrator is null)
+            {
+                args.SetState(this, identifier, null);
                 return true;
+            }
 
             var wr = await WorkStateOrchestrator.GetAsync(identifier, cancellationToken).ConfigureAwait(false);
+            args.SetState(this, identifier, wr);
             if (wr is null || WorkStatus.InProgress.HasFlag(wr.Status))
                 return true;
 

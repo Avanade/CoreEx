@@ -38,6 +38,9 @@ namespace CoreEx.AspNetCore.WebApis
         public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.Accepted;
 
         /// <inheritdoc/>
+        public bool ValueIsRequired { get; set; } = true;
+
+        /// <inheritdoc/>
         public IValidator<TValue>? Validator { get; set; } = validator;
 
         /// <inheritdoc/>

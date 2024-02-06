@@ -44,7 +44,12 @@ namespace CoreEx.AspNetCore.WebApis
         HttpStatusCode StatusCode { get; }
 
         /// <summary>
-        /// Gets or sets the optional validator.
+        /// Indicates whether the <typeparamref name="TValue"/> is required.
+        /// </summary>
+        bool ValueIsRequired { get; }
+
+        /// <summary>
+        /// Gets or sets the optional <typeparamref name="TValue"/> validator.
         /// </summary>
         IValidator<TValue>? Validator { get; }
 
@@ -95,7 +100,8 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Gets or sets the function to create the <see cref="WorkStateArgs"/>.
         /// </summary>
-        /// <remarks><para>The <see cref="WorkStateArgs.Id"/> and <see cref="WorkStateArgs.CorrelationId"/> will be overridden by the <see cref="EventData"/> equivalents after creation to ensure consistencey; therefore, these properties need not be set during create.</para>
+        /// <remarks><para>The <see cref="WorkStateArgs.Id"/> and <see cref="WorkStateArgs.CorrelationId"/> will be overridden by the <see cref="EventData"/> equivalents after creation to ensure consistencey; therefore, these properties need
+        /// not be set during create. The <see cref="WorkStateArgs.Key"/> will be set to the <see cref="EventDataBase.Key"/> where <c>null</c>, so also does not need to be explicitly set.</para>
         /// An <see cref="InvalidOperationException"/> will occur where this is set and the corresponding <see cref="WebApiPublisher.WorkStateOrchestrator"/> is <c>null</c>. The combination of the two enables
         /// the automatic create (<see cref="WorkStateOrchestrator.CreateAsync(WorkStateArgs, CancellationToken)"/>) of <see cref="WorkState"/> tracking to enable the likes of the <i>asynchronous request-response</i> pattern.</remarks>
         Func<WorkStateArgs>? CreateWorkStateArgs { get; }

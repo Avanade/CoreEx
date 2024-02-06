@@ -312,7 +312,7 @@ namespace CoreEx.Hosting.Work
         /// </summary>
         /// <typeparam name="TValue">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="id">The work identifier.</param>
-        /// <param name="value">The value to JSON serialize as the resul data.</param>
+        /// <param name="value">The value to JSON serialize as the result data.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public Task SetDataAsync<TValue>(string id, TValue value, CancellationToken cancellationToken = default)
         {

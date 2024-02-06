@@ -20,7 +20,7 @@ namespace CoreEx.Hosting.Work
         /// <summary>
         /// Indicates that the underlying work is in progress; however, the progress is indeterminate, see associated <see cref="WorkState.Reason"/> for details.
         /// </summary>
-        /// <remarks>There is a possible retry of processing and as such may/may not be completed; will eventually automatically expire without explicit completion.</remarks>
+        /// <remarks>This may occur as a result of a possible retry of processing and as such may or may not be completed; will eventually automatically expire without explicit completion.</remarks>
         Indeterminate = 4,
 
         /// <summary>

@@ -16,8 +16,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
-using YamlDotNet.Core.Tokens;
 
 namespace CoreEx.AspNetCore.WebApis
 {
@@ -62,7 +60,18 @@ namespace CoreEx.AspNetCore.WebApis
         #region PublishAsync
 
         /// <summary>
-        /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> that is to be published using the <see cref="EventPublisher"/>.
+        /// Performs a <see cref="HttpMethods.Post"/> operation with no content body that is to be published using the <see cref="EventPublisher"/>.
+        /// </summary>
+        /// <param name="request">The <see cref="HttpRequest"/>.</param>
+        /// <param name="args">The <see cref="WebApiPublisherArgs{TValue}"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The corresponding <see cref="ExtendedStatusCodeResult"/> <see cref="IActionResult"/> where successful.</returns>
+        /// <remarks>The <paramref name="request"/> must have an <see cref="HttpRequest.Method"/> of <see cref="HttpMethods.Post"/>.</remarks>
+        public Task<IActionResult> PublishAsync(HttpRequest request, WebApiPublisherArgs args, CancellationToken cancellationToken = default)
+            => PublishOrchestrateAsync(request, false, default!, args.ThrowIfNull(nameof(args)), cancellationToken);
+
+        /// <summary>
+        /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON body content value of <see cref="Type"/> <typeparamref name="TValue"/> that is to be published using the <see cref="EventPublisher"/>.
         /// </summary>
         /// <typeparam name="TValue">The request JSON content value <see cref="Type"/>.</typeparam>
         /// <param name="request">The <see cref="HttpRequest"/>.</param>
@@ -87,7 +96,7 @@ namespace CoreEx.AspNetCore.WebApis
             => PublishOrchestrateAsync(request, true, value, args ?? new WebApiPublisherArgs<TValue>(), cancellationToken);
 
         /// <summary>
-        /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON content value of <see cref="Type"/> <typeparamref name="TValue"/> that is to be published using the <see cref="EventPublisher"/>.
+        /// Performs a <see cref="HttpMethods.Post"/> operation with a request JSON body content value of <see cref="Type"/> <typeparamref name="TValue"/> that is to be published using the <see cref="EventPublisher"/>.
         /// </summary>
         /// <typeparam name="TValue">The request JSON content value <see cref="Type"/>.</typeparam>
         /// <typeparam name="TEventValue">The <see cref="EventData.Value"/> <see cref="Type"/> (where different to the request).</typeparam>
@@ -130,11 +139,12 @@ namespace CoreEx.AspNetCore.WebApis
             return await RunAsync(request, async (wap, ct) =>
             {
                 // Use specified value or get from the request. 
-                var (wapv, vex) = await ValidateValueAsync(wap, useValue, value, true, null, cancellationToken).ConfigureAwait(false);
+                var (wapv, vex) = await ValidateValueAsync(wap, useValue, value, args.ValueIsRequired, null, cancellationToken).ConfigureAwait(false);
                 if (vex is not null)
                     return await CreateActionResultFromExceptionAsync(this, request.HttpContext, vex, Settings, Logger, OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
 
                 // Process the publishing as configured.
+                WorkState? ws = null;
                 var r = await Result.Go()
                     .WhenAsAsync(() => args.OnBeforeValidationAsync is not null, () => args.OnBeforeValidationAsync!(wapv!, ct))
                     .WhenAsAsync(_ => args.Validator is not null, async _ => (await args.Validator!.ValidateAsync(wapv!.Value!, ct).ConfigureAwait(false)).ToResult<TValue>())
@@ -158,7 +168,8 @@ namespace CoreEx.AspNetCore.WebApis
                         var wsa = args.CreateWorkStateArgs!();
                         wsa.Id = e.Id;
                         wsa.CorrelationId = e.CorrelationId;
-                        await WorkStateOrchestrator!.CreateAsync(wsa).ConfigureAwait(false);
+                        wsa.Key ??= e.Key;
+                        ws = await WorkStateOrchestrator!.CreateAsync(wsa).ConfigureAwait(false);
                     });
 
                 if (r.IsFailure)
@@ -167,7 +178,7 @@ namespace CoreEx.AspNetCore.WebApis
                 if (args.CreateSuccessResultAsync is not null)
                     return await args.CreateSuccessResultAsync().ConfigureAwait(false) ?? throw new InvalidOperationException($"The {nameof(IWebApiPublisherArgs<TValue, TEventValue>.CreateSuccessResultAsync)} must return a result.");
 
-                return new ExtendedStatusCodeResult(args.StatusCode) { Location = args.CreateLocation?.Invoke(wapv!, r.Value) };
+                return ValueContentResult.CreateResult(ws, HttpStatusCode.Accepted, HttpStatusCode.Accepted, JsonSerializer, request.GetRequestOptions(), false, args.CreateLocation?.Invoke(wapv!, r.Value));
             }, args.OperationType, cancellationToken, nameof(PublishAsync)).ConfigureAwait(false);
         }
 
@@ -333,7 +344,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 // Check for the completed status and redirect to the result location where applicable.
                 if (ws.Status == WorkStatus.Completed && args.CreateResultLocation is not null)
-                    return new RedirectResult(args.CreateResultLocation(ws).ToString());
+                    return new ExtendedStatusCodeResult(HttpStatusCode.Redirect) { Location = args.CreateResultLocation(ws) ?? throw new InvalidOperationException("A result location is ") };
 
                 // Return the work status as either a BadRequest or OK.
                 var res = ValueContentResult.CreateResult(ws, WorkStatus.Terminated.HasFlag(ws.Status) ? HttpStatusCode.BadRequest : HttpStatusCode.OK, null, JsonSerializer, request.GetRequestOptions(), true, null);

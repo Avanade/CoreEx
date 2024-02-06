@@ -35,7 +35,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Gets or sets the function to create the <see cref="Uri"/> for the result <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/>.
         /// </summary>
-        /// <remarks>This will only be invoked when the <see cref="WorkState.Status"/> is <see cref="WorkStatus.Completed"/>. Will result in a <see cref="RedirectResult"/> with an <see cref="System.Net.HttpStatusCode.Redirect"/>.</remarks>
+        /// <remarks>This will only be invoked when the <see cref="WorkState.Status"/> is <see cref="WorkStatus.Completed"/> and enables the <see cref="System.Net.HttpStatusCode.Redirect"/> <see cref="ExtendedStatusCodeResult"/> behavior.</remarks>
         public Func<WorkState, Uri>? CreateResultLocation { get; set; }
 
         /// <summary>

@@ -12,7 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using CoreEx.Hosting.Work;
 using System;
 using Microsoft.AspNetCore.Mvc;
-using CoreEx.Test.Framework.Abstractions.Reflection;
+using System.Net;
+using UnitTestEx;
 
 namespace CoreEx.Test.Framework.WebApis
 {
@@ -21,6 +22,25 @@ namespace CoreEx.Test.Framework.WebApis
     {
         [OneTimeSetUp]
         public void OneTimeSetUp() => UnitTestEx.Abstractions.CoreExOneOffTestSetUp.ForceSetUp();
+
+        [Test]
+        public void PublishAsync_NoValue()
+        {
+            var imp = new InMemoryPublisher();
+            using var test = FunctionTester.Create<Startup>();
+            test.ReplaceScoped<IEventPublisher>(_ => imp)
+                .Type<WebApiPublisher>()
+                .Run(f => f.PublishAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), new WebApiPublisherArgs("test")))
+                .ToActionResultAssertor()
+                .AssertAccepted();
+
+            var qn = imp.GetNames();
+            Assert.That(qn, Has.Length.EqualTo(1));
+            Assert.That(qn[0], Is.EqualTo("test"));
+
+            var ed = imp.GetEvents("test");
+            Assert.That(ed, Has.Length.EqualTo(1));
+        }
 
         [Test]
         public void PublishAsync_Value_Success()
@@ -288,7 +308,7 @@ namespace CoreEx.Test.Framework.WebApis
             var imp = new InMemoryPublisher();
             using var test = FunctionTester.Create<Startup>();
 
-            var wr = test.ReplaceScoped<IEventPublisher>(_ => imp)
+            var ws = test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .Type<WebApiPublisher>()
                 .Run(f =>
                 {
@@ -298,7 +318,8 @@ namespace CoreEx.Test.Framework.WebApis
                 })
                 .ToActionResultAssertor()
                 .AssertAccepted()
-                .Result;
+                .AssertLocationHeaderContains("status/")
+                .GetValue<WorkState>();
 
             var qn = imp.GetNames();
             Assert.That(qn, Has.Length.EqualTo(1));
@@ -308,17 +329,11 @@ namespace CoreEx.Test.Framework.WebApis
             Assert.That(ed, Has.Length.EqualTo(1));
             ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, ed[0].Value);
 
-            var ws = wso.GetAsync<Product>(ed[0].Id!).Result;
-            Assert.That(ws, Is.Not.Null);
-            Assert.That(ws.Status, Is.EqualTo(WorkStatus.Created));
-
-            var escr = wr as ExtendedStatusCodeResult;
-            Assert.That(escr, Is.Not.Null);
-            Assert.Multiple(() =>
-            {
-                Assert.That(escr.StatusCode, Is.EqualTo(202));
-                Assert.That(escr.Location, Is.EqualTo(new Uri($"status/{ed[0].Id}", UriKind.Relative)));
-            });
+            var ws2 = wso.GetAsync<Product>(ed[0].Id!).Result;
+            Assert.That(ws2, Is.Not.Null);
+            Assert.That(ws2.Status, Is.EqualTo(WorkStatus.Created));
+            
+            ObjectComparer.Assert(ws, ws2);
         }
 
         [Test]
@@ -421,10 +436,8 @@ namespace CoreEx.Test.Framework.WebApis
                     return f.GetWorkStatusAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/status/abc"), new WebApiPublisherStatusArgs("test", "abc") { CreateResultLocation = ws => new Uri($"/result/{ws.Id}", UriKind.Relative) });
                 })
                 .ToActionResultAssertor()
-                .AssertResultType<RedirectResult>();
-
-            var rr = ara.Result as RedirectResult;
-            Assert.That(rr?.Url, Is.EqualTo($"/result/{ws.Id}"));
+                .Assert(HttpStatusCode.Redirect)
+                .AssertLocationHeader(new Uri($"/result/{ws.Id}", UriKind.Relative));
         }
 
         [Test]

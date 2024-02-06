@@ -87,7 +87,8 @@ namespace CoreEx.Azure.ServiceBus
             return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
                 // Perform any pre-processing.
-                var canProceed = await OnBeforeProcessingAsync(message.MessageId, message, cancellationToken).ConfigureAwait(false);
+                args ??= [];
+                var canProceed = await OnBeforeProcessingAsync(message.MessageId, message, args, cancellationToken).ConfigureAwait(false);
                 if (!canProceed)
                     return;
 
@@ -96,7 +97,7 @@ namespace CoreEx.Azure.ServiceBus
                 if (@event is null)
                     return;
 
-                ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(args ??= [], message, messageActions);
+                ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(args, message, messageActions);
 
                 // Match subscriber to metadata.
                 var match = Orchestrator.TryMatchSubscriber(this, @event, args);

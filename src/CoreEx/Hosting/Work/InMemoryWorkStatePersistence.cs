@@ -3,7 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,6 +18,11 @@ namespace CoreEx.Hosting.Work
         private readonly Dictionary<string, WorkState> _workStates = [];
         private readonly Dictionary<string, BinaryData> _workData = [];
         private readonly ILogger? _logger = logger;
+
+        /// <summary>
+        /// Gets all the <see cref="WorkState"/> entries.
+        /// </summary>
+        public WorkState[] GetWorkStates() => _workStates.Values.ToArray();
 
         /// <inheritdoc/>
         public Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken)
