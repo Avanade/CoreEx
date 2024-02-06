@@ -51,7 +51,7 @@ namespace CoreEx.Events.Subscribing
         public string SuccessSuffix { get; set; } = "Success";
 
         /// <summary>
-        /// Gets or sets the instrumentation suffix for an see <see cref="ErrorHandling.None"/> or <see cref="ErrorType.UnhandledError"/>.
+        /// Gets or sets the instrumentation suffix for an see <see cref="ErrorHandling.HandleByHost"/> or <see cref="ErrorType.UnhandledError"/>.
         /// </summary>
         public string UnhandledErrorSuffix { get; set; } = nameof(ErrorType.UnhandledError);
 

@@ -81,35 +81,46 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
         {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
-
-            if (messageActions == null)
-                throw new ArgumentNullException(nameof(messageActions));
+            message.ThrowIfNull(nameof(message));
+            messageActions.ThrowIfNull(nameof(messageActions));
 
             return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
+                // Perform any pre-processing.
+                args ??= [];
+                var canProceed = await OnBeforeProcessingAsync(message.MessageId, message, args, cancellationToken).ConfigureAwait(false);
+                if (!canProceed)
+                    return;
+
                 // Get the event (without value as type unknown).
-                var @event = await DeserializeEventAsync(message, cancellationToken);
+                var @event = await DeserializeEventAsync(message.MessageId, message, cancellationToken);
                 if (@event is null)
                     return;
 
-                ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(args ??= [], message, messageActions);
+                ServiceBusSubscriber.UpdateEventSubscriberArgsWithServiceBusMessage(args, message, messageActions);
 
                 // Match subscriber to metadata.
-                if (!Orchestrator.TryMatchSubscriber(this, @event, args, out var subscriber, out var valueType))
+                var match = Orchestrator.TryMatchSubscriber(this, @event, args);
+                if (!match.Matched)
+                {
+                    var txt = $"Subject: {(string.IsNullOrEmpty(@event.Subject) ? "<none>" : @event.Subject)}, Action: {(string.IsNullOrEmpty(@event.Action) ? "<none>" : @event.Action)}, Type: {(string.IsNullOrEmpty(@event.Type) ? "<none>" : @event.Type)}";
+                    var esex = new EventSubscriberException(match.Subscriber == null ? $"No corresponding Subscriber could be matched; {txt}" : $"More than one Subscriber was matched (ambiguous); {txt}")
+                        { ExceptionSource = match.Subscriber == null ? EventSubscriberExceptionSource.OrchestratorNotSubscribed : EventSubscriberExceptionSource.OrchestratorAmbiquousSubscriber };
+
+                    await ErrorHandler.HandleErrorAsync(new ErrorHandlerArgs(@event.Id, esex, match.Subscriber == null ? Orchestrator.NotSubscribedHandling : Orchestrator.AmbiquousSubscriberHandling, Logger) { Instrumentation = Instrumentation, WorkOrchestrator = WorkStateOrchestrator }, cancellationToken);
                     return;
+                }
 
                 // Deserialize the event (again) where there is a value as value not deserialized previously.
-                if (valueType is not null)
+                if (match.ValueType is not null)
                 {
-                    @event = await DeserializeEventAsync(message, valueType, cancellationToken).ConfigureAwait(false);
+                    @event = await DeserializeEventAsync(message.MessageId, message, match.ValueType, cancellationToken).ConfigureAwait(false);
                     if (@event is null)
                         return;
                 }
 
                 // Execute subscriber receive with the event.
-                await Orchestrator.ReceiveAsync(this, subscriber!, @event, args, cancellationToken).ConfigureAwait(false);
+                await Orchestrator.ReceiveAsync(this, match.Subscriber!, @event, args, cancellationToken).ConfigureAwait(false);
             }, (message, messageActions), cancellationToken);
         }
     }

@@ -32,7 +32,7 @@ public class Startup
             .AddAzureServiceBusPurger()
             .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection), configure: (o, sp) => o.RetryOptions.MaxRetries = 3)
             .AddJsonMergePatch()
-            .AddWebApi(c => c.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? WebApiBase.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
+            .AddWebApi((_, c) => c.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? WebApiBase.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
             .AddReferenceDataContentWebApi()
             .AddRequestCache();
 

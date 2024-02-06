@@ -184,6 +184,7 @@ namespace My.Hr.UnitTest
                 .AssertCreated()
                 .AssertValue(e, "Id", "ETag")
                 .AssertLocationHeader<Employee>(v => new Uri($"api/employees/{v!.Id}", UriKind.Relative))
+                .AssertLocationHeaderContains("api/employees") // Just for kicks testing both types work
                 .GetValue<Employee>();
 
             // Do a GET to make sure it is in the database and all fields equal.

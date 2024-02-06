@@ -36,5 +36,12 @@ namespace CoreEx.Results
         /// <param name="error">The underlying error represented as an <see cref="Exception"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
         IResult ToFailure(Exception error);
+
+        /// <summary>
+        /// Indicates whether the result is in a failure state and the underlying error is of the specified <typeparamref name="TException"/> <see cref="Type"/>.
+        /// </summary>
+        /// <typeparam name="TException">The <see cref="Exception"/> <see cref="Type"/>.</typeparam>
+        /// <returns><c>true</c> indicates that the result is in a failure state <i>and</i> the underlying error is of the specified <typeparamref name="TException"/> <see cref="Type"/>.</returns>
+        bool IsFailureOfType<TException>() where TException : Exception;
     }
 }

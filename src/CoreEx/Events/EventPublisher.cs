@@ -61,9 +61,8 @@ namespace CoreEx.Events
         {
             foreach (var @event in events)
             {
-                var e = @event.Copy();
-                EventDataFormatter.Format(e);
-                _queue.Enqueue((name, e));
+                EventDataFormatter.Format(@event);
+                _queue.Enqueue((name, @event));
             }
 
             return this;

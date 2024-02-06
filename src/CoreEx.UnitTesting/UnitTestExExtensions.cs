@@ -186,7 +186,7 @@ namespace UnitTestEx
         public static ActionResultAssertor AssertETagHeader(this ActionResultAssertor assertor, string expectedETag)
         {
             if (assertor.Result != null && assertor.Result is ValueContentResult vcr)
-                assertor.Owner.Implementor.AssertAreEqual(expectedETag, vcr.ETag, $"Expected and Actual {nameof(ValueContentResult)}.{nameof(ValueContentResult.ETag)} values are not equal.");
+                assertor.Owner.Implementor.AssertAreEqual(expectedETag, vcr.ETag, $"Expected and Actual {nameof(ValueContentResult.ETag)} values are not equal.");
             else
                 assertor.Owner.Implementor.AssertFail($"The Result must be of Type {typeof(ValueContentResult).FullName} to use {nameof(AssertETagHeader)}.");
 
@@ -202,9 +202,11 @@ namespace UnitTestEx
         public static ActionResultAssertor AssertLocationHeader(this ActionResultAssertor assertor, Uri expectedUri)
         {
             if (assertor.Result != null && assertor.Result is ValueContentResult vcr)
-                assertor.Owner.Implementor.AssertAreEqual(expectedUri, vcr.Location, $"Expected and Actual {nameof(ValueContentResult)}.{nameof(ValueContentResult.Location)} values are not equal.");
+                assertor.Owner.Implementor.AssertAreEqual(expectedUri, vcr.Location, $"Expected and Actual {nameof(ValueContentResult.Location)} values are not equal.");
+            else if (assertor.Result != null && assertor.Result is ExtendedStatusCodeResult escr)
+                assertor.Owner.Implementor.AssertAreEqual(expectedUri, escr.Location, $"Expected and Actual {nameof(ExtendedStatusCodeResult.Location)} values are not equal.");
             else
-                assertor.Owner.Implementor.AssertFail($"The Result must be of Type {typeof(ValueContentResult).FullName} to use {nameof(AssertETagHeader)}.");
+                assertor.Owner.Implementor.AssertFail($"The Result must be of Type {typeof(ValueContentResult).FullName} or {typeof(ExtendedStatusCodeResult).FullName} to use {nameof(AssertLocationHeader)}.");
 
             return assertor;
         }
@@ -217,14 +219,42 @@ namespace UnitTestEx
         /// <param name="expectedUri">The expected <see cref="Uri"/> function.</param>
         /// <returns>The <see cref="ActionResultAssertor"/> to support fluent-style method-chaining.</returns>
         public static ActionResultAssertor AssertLocationHeader<TValue>(this ActionResultAssertor assertor, Func<TValue, Uri> expectedUri)
+            => assertor.AssertLocationHeader(expectedUri.Invoke(assertor.GetValue<TValue>()!));
+
+        /// <summary>
+        /// Asserts that the <see cref="ValueContentResult.Location"/> contains the <paramref name="expected"/> string.
+        /// </summary>
+        /// <param name="assertor">The assertor.</param>
+        /// <param name="expected">The expected string.</param>
+        /// <returns>The <see cref="ActionResultAssertor"/> to support fluent-style method-chaining.</returns>
+        public static ActionResultAssertor AssertLocationHeaderContains(this ActionResultAssertor assertor, string expected)
         {
+            Uri? actual = null;
             if (assertor.Result != null && assertor.Result is ValueContentResult vcr)
-                assertor.Owner.Implementor.AssertAreEqual(expectedUri?.Invoke(assertor.GetValue<TValue>()!), vcr.Location, $"Expected and Actual {nameof(ValueContentResult)}.{nameof(ValueContentResult.Location)} values are not equal.");
+                actual = vcr.Location;
+            else if (assertor.Result != null && assertor.Result is ExtendedStatusCodeResult escr)
+                actual = escr.Location;
             else
-                assertor.Owner.Implementor.AssertFail($"The Result must be of Type {typeof(ValueContentResult).FullName} to use {nameof(AssertETagHeader)}.");
+                assertor.Owner.Implementor.AssertFail($"The Result must be of Type {typeof(ValueContentResult).FullName} or {typeof(ExtendedStatusCodeResult).FullName} to use {nameof(AssertLocationHeader)}.");
+
+            if (actual == null)
+                assertor.Owner.Implementor.AssertFail($"The actual {nameof(ValueContentResult.Location)} must not be null.");
+
+            if (!actual!.ToString().Contains(expected))
+                assertor.Owner.Implementor.AssertFail($"The {nameof(ValueContentResult.Location)} '{actual}' must contain {expected}.");
 
             return assertor;
         }
+
+        /// <summary>
+        /// Asserts that the <see cref="ValueContentResult.Location"/> contains the <paramref name="expected"/> string function.
+        /// </summary>
+        /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
+        /// <param name="assertor">The assertor.</param>
+        /// <param name="expected">The expected string function.</param>
+        /// <returns>The <see cref="ActionResultAssertor"/> to support fluent-style method-chaining.</returns>
+        public static ActionResultAssertor AssertLocationHeader<TValue>(this ActionResultAssertor assertor, Func<TValue, string> expected)
+            => assertor.AssertLocationHeaderContains(expected.Invoke(assertor.GetValue<TValue>()!));
 
         #endregion
 

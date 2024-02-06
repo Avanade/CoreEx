@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using CoreEx.Hosting.Work;
 using CoreEx.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -211,5 +212,10 @@ namespace CoreEx.Configuration
         /// Gets the default validation use of JSON names. Defaults to <c>true</c>.
         /// </summary>
         public bool ValidationUseJsonNames => _validationUseJsonNames ??= GetValue(nameof(ValidationUseJsonNames), true);
+
+        /// <summary>
+        /// Gets or sets the <see cref="WorkStateOrchestrator"/> <see cref="WorkStateOrchestrator.ExpiryTimeSpan"/>. Defaults to <c>1</c> hour.
+        /// </summary>
+        public TimeSpan WorkerExpiryTimeSpan => GetValue(nameof(WorkerExpiryTimeSpan), TimeSpan.FromHours(1));
     }
 }

@@ -49,6 +49,9 @@ namespace CoreEx.Validation
         /// <inheritdoc/>
         public Result<R> ToResult<R>() => FailureResult.HasValue ? FailureResult.Value.Bind<R>() : (HasErrors ? Result<R>.ValidationError(Messages!) : Validation.ConvertValueToResult<TProperty, R>(Value!));
 
+        /// <inheritdoc/>
+        public Result ToResult() => FailureResult ?? (HasErrors ? Result.ValidationError(Messages!) : Result.Success);
+
         /// <summary>
         /// Throws a <see cref="ValidationException"/> where an error was found (and optionally if warnings).
         /// </summary>

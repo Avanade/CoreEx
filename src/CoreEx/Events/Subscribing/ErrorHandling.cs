@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace CoreEx.Events.Subscribing
 {
@@ -10,16 +11,19 @@ namespace CoreEx.Events.Subscribing
     public enum ErrorHandling
     {
         /// <summary>
-        /// Indicates that when the corresponding <i>error</i> occurs the underlying <see cref="System.Exception"/> will continue to bubble up the stack as unhandled.
+        /// Indicates that when the corresponding <i>error</i> occurs the underlying <see cref="System.Exception"/> will continue to bubble up the stack as unhandled to the executing host.
         /// </summary>
-        None,
+        /// <remarks>The host is the process that initiated the underlying <see cref="EventSubscriberBase"/>.</remarks>
+        HandleByHost,
 
         /// <summary>
         /// Indicates that when the corresponding <i>error</i> occurs that it should be handled by the subscriber.
         /// </summary>
-        /// <remarks>Results in a <see cref="EventSubscriberException"/> where the <see cref="Abstractions.IExtendedException.IsTransient"/> property is set (overridden) to <c>false</c>.
-        /// <para>Depending on the underlying messaging subsystem this may result in the likes of the message being deadlettered (or equivalent) where supported.</para></remarks>
-        Handle,
+        /// <remarks>Depending on the underlying messaging subsystem this may result in the likes of the message being deadlettered (or equivalent) where supported. May result in <see cref="HandleByHost"/> (bubble up the stack as unhandled to the executing host)
+        /// where subscriber is unable to handle appropriately.
+        /// <para>Where the underlying <see cref="Exception"/> implements <see cref="Abstractions.IExtendedException"/> and the <see cref="Abstractions.IExtendedException.IsTransient"/> property is set to <c>true</c> any configured retries
+        /// will be performed until exhausted; then will bubble up the stack as unhandled to the executing host.</para></remarks>
+        HandleBySubscriber,
 
         /// <summary>
         /// Indicates that when the corresponding <i>error</i> occurs that it may be transient and should be retried (where possible).

@@ -34,6 +34,12 @@ namespace CoreEx.AspNetCore.WebApis
         string? EventName { get; }
 
         /// <summary>
+        /// Gets or sets the optional <see cref="EventData"/> to use as a template when instantiating the <see cref="EventData"/> for publishing.
+        /// </summary>
+        /// <remarks>Will use the <see cref="EventData(EventDataBase)"/> constructor to copy from the template.</remarks>
+        EventData? EventTemplate { get; }
+
+        /// <summary>
         /// Gets or sets the <see cref="HttpStatusCode"/> where successful.
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpStatusCode.Accepted"/>.</remarks>
@@ -84,6 +90,6 @@ namespace CoreEx.AspNetCore.WebApis
         /// Gets or sets the function to override the creation of the success <see cref="IActionResult"/>.
         /// </summary>
         /// <remarks>Defaults to a <see cref="ExtendedStatusCodeResult"/> using the defined <see cref="StatusCode"/>.</remarks>
-        Func<IActionResult>? CreateSuccessResult { get; }
+        Func<Task<IActionResult>>? CreateSuccessResultAsync { get; }
     }
 }

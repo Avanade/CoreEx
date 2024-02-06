@@ -203,24 +203,25 @@ Depending on the overload used (as defined above), an optional _argument_ can be
 
 The following argurment types are supported:
 - [`WebApiPublisherArgs<TValue>`](./WebApis/WebApiPublisherArgsT.cs) - single message with no mapping.
-- [`WebApiPublisherArgs<TValue, TEventValue>`](./WebApis/WebApiPublisherArgsT2.cs) - single message _with_ mapping.
+- [`WebApiPublisherArgs<TValue, TEventValue>`](./WebApis/WebApiPublisherArgsT2.cs) - single message _with_ [mapping](https://github.com/Avanade/CoreEx/tree/main/src/CoreEx/Mapping).
 - [`WebApiPublisherCollectionArgs<TColl, TItem>`](./WebApis/WebApiPublisherCollectionArgsT.cs) - collection of messages with no mapping.
-- [`WebApiPublisherCollectionArgs<TColl, TItem, TEventItem>`](./WebApis/WebApiPublisherCollectionArgsT2.cs) - collection of messages _with_ mapping.
+- [`WebApiPublisherCollectionArgs<TColl, TItem, TEventItem>`](./WebApis/WebApiPublisherCollectionArgsT2.cs) - collection of messages _with_ [mapping](https://github.com/Avanade/CoreEx/tree/main/src/CoreEx/Mapping).
 
 The arguments will have the following properties depending on the supported functionality. The sequence defines the order in which each of the properties is enacted (orchestrated) internally. Where a failure or exception occurs then the execution will be aborted and the corresponding `IActionResult` returned (including the likes of logging etc. where applicable).
 
 Property | Description | Sequence
 -|-
 `EventName` | The event destintion name (e.g. Queue or Topic name) where applicable. | N/A
+`EventTemplate` | The [`EventData`](../CoreEx/Events/EventData.cs) template to be used to create the message/event. | N/A
 `StatusCode` | The resulting status code where successful. Defaults to `204-Accepted`. | N/A
 `OperationType` | The [`OperationType`](../CoreEx/OperationType.cs). Defaults to `OperationType.Unspecified`. | N/A
-`MaxCollectionSize` | The maximum collection size allowed/supported. | 1
+`MaxCollectionSize` | The maximum collection size allowed/supported (where applicable). | 1
 `OnBeforeValidateAsync` | The function to be invoked before the request value is validated; opportunity to modify contents. | 2
 `Validator` | The `IValidator<T>` to validate the request value. | 3
 `OnBeforeEventAsync` | The function to be invoked after validation / before event; opportunity to modify contents. | 4
-`Mapper` | The `IMapper<TSource, TDestination>` override. | 5
+`Mapper` | The `IMapper<TSource, TDestination>` override (where applicable). | 5
 `OnEvent` | The action to be invoked once converted to an [`EventData`](../CoreEx/Events/EventData.cs); opportunity to modify contents. | 6
-`CreateSuccessResult` | The function to be invoked to create/override the success `IActionResult`. | 7
+`CreateSuccessResult` | The function to be invoked to create/override the success `IActionResult`. Defaults to returning specified `StatusCode`. | 7
 
 <br/>
 

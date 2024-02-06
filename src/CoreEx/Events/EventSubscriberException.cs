@@ -45,8 +45,8 @@ namespace CoreEx.Events
         /// <summary>
         /// Gets or sets the <see cref="ErrorHandling"/> used when handling the error.
         /// </summary>
-        /// <remarks>See <see cref="ErrorHandler.HandleError(EventSubscriberException, ErrorHandling, Microsoft.Extensions.Logging.ILogger, IEventSubscriberInstrumentation?)"/></remarks>
-        public ErrorHandling ErrorHandling { get; set; } = ErrorHandling.None;
+        /// <remarks>See <see cref="ErrorHandler.HandleErrorAsync"/>.</remarks>
+        public ErrorHandling ErrorHandling { get; set; } = ErrorHandling.HandleByHost;
 
         /// <summary>
         /// Gets the error type/reason.

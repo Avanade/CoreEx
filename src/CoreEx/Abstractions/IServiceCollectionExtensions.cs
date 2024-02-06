@@ -7,6 +7,7 @@ using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
 using CoreEx.Hosting;
+using CoreEx.Hosting.Work;
 using CoreEx.Http;
 using CoreEx.Json;
 using CoreEx.Json.Merge;
@@ -231,9 +232,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Action<CoreEx.Json.Merge.JsonMergePatchOptions>? configure = null) => CheckServices(services).AddSingleton<IJsonMergePatch>(sp =>
         {
-            var jmpo = new CoreEx.Json.Merge.JsonMergePatchOptions(sp.GetService<IJsonSerializer>());
+            var jmpo = new JsonMergePatchOptions(sp.GetService<IJsonSerializer>());
             configure?.Invoke(jmpo);
-            return new CoreEx.Json.Merge.JsonMergePatch(jmpo);
+            return new JsonMergePatch(jmpo);
         });
 
         /// <summary>
@@ -331,5 +332,18 @@ namespace Microsoft.Extensions.DependencyInjection
             mapper.Register(assemblies);
             return services.AddSingleton<IMapper>(mapper);
         }
+
+        /// <summary>
+        /// Adds the <see cref="WorkStateOrchestrator"/> as a singleton service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="WorkStateOrchestrator"/> to be further configured.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddWorkStateOrchestrator(this IServiceCollection services, Action<IServiceProvider, WorkStateOrchestrator>? configure = null) => CheckServices(services).AddSingleton(sp =>
+        {
+            var wso = new WorkStateOrchestrator(sp.GetRequiredService<IWorkStatePersistence>(), sp.GetService<SettingsBase>(), sp.GetService<IJsonSerializer>(), sp.GetService<IIdentifierGenerator>());
+            configure?.Invoke(sp, wso);
+            return wso;
+        });
     }
 }

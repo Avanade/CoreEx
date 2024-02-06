@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Hosting.Work;
 using System;
 
 namespace CoreEx.Events.Subscribing
@@ -44,5 +45,11 @@ namespace CoreEx.Events.Subscribing
         /// Gets the <see cref="ErrorHandling"/> for when a <see cref="ValidationException"/>, <see cref="BusinessException"/>, <see cref="DuplicateException"/> or <see cref="ConflictException"/> is encountered.
         /// </summary>
         ErrorHandling InvalidDataHandling { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ErrorHandling"/> for when the corresponding <see cref="WorkState"/> has a <see cref="WorkState.Status"/> already of <see cref="WorkStatus.Finished"/>.
+        /// </summary>
+        /// <remarks>A <c>null</c> indicates that the <see cref="WorkState"/> should not be verified before processing and work should occur regardless.</remarks>
+        ErrorHandling? WorkStateAlreadyFinishedHandling { get; }
     }
 }

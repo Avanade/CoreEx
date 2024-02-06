@@ -5,6 +5,7 @@ using CoreEx.Localization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace CoreEx.Results
 {
@@ -63,6 +64,9 @@ namespace CoreEx.Results
 
         /// <inheritdoc/>
         IResult IResult.ToFailure(Exception error) => new Result<T>(error);
+
+        /// <inheritdoc/>
+        public bool IsFailureOfType<TException>() where TException : Exception => _error is not null && _error.GetType() == typeof(TException);
 
         /// <summary>
         /// Throws the <see cref="Error"/> where <see cref="IsFailure"/>; otherwise, does nothing.
@@ -125,6 +129,12 @@ namespace CoreEx.Results
 
             return this;
         }
+
+        /// <summary>
+        /// Converts the <see cref="Result"/> to a <see cref="Task{TResult}"/> using <see cref="Task.FromResult{TResult}(TResult)"/>.
+        /// </summary>
+        /// <returns>The completed <see cref="Task{TResult}"/>.</returns>
+        public Task<Result<T>> AsTask() => Task.FromResult(this);
 
         /// <summary>
         /// Implicitly converts an <see cref="Exception"/> to a <see cref="Result"/> that is considered <see cref="IsFailure"/>.

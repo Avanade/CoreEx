@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="NUnit.Analyzers" Version="3.10.0">
+    <PackageReference Include="NUnit.Analyzers" Version="4.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -22,7 +22,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="UnitTestEx.NUnit" Version="4.1.0" />
+    <PackageReference Include="UnitTestEx.NUnit" Version="4.1.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,6 +33,7 @@
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.OData\CoreEx.OData.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Solace\CoreEx.Solace.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.UnitTesting.NUnit\CoreEx.UnitTesting.NUnit.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />

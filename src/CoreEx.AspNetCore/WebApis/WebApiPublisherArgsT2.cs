@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Events;
+using CoreEx.Hosting.Work;
 using CoreEx.Mapping;
 using CoreEx.Results;
 using CoreEx.Validation;
@@ -31,7 +32,13 @@ namespace CoreEx.AspNetCore.WebApis
         public string? EventName { get; set; } = default!;
 
         /// <inheritdoc/>
+        public EventData? EventTemplate { get; set; }
+
+        /// <inheritdoc/>
         public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.Accepted;
+
+        /// <inheritdoc/>
+        public bool ValueIsRequired { get; set; } = true;
 
         /// <inheritdoc/>
         public IValidator<TValue>? Validator { get; set; } = validator;
@@ -52,6 +59,37 @@ namespace CoreEx.AspNetCore.WebApis
         public IMapper<TValue, TEventValue>? Mapper { get; set; }
 
         /// <inheritdoc/>
-        public Func<IActionResult>? CreateSuccessResult { get; set; }
+        public Func<Task<IActionResult>>? CreateSuccessResultAsync { get; set; }
+
+        /// <inheritdoc/>
+        public Func<WebApiParam<TValue>, EventData, Uri>? CreateLocation { get; set; }
+
+        /// <inheritdoc/>
+        public Func<WorkStateArgs>? CreateWorkStateArgs { get; set; }
+
+        /// <summary>
+        /// Sets the <see cref="CreateWorkStateArgs"/> to use the <see cref="WorkStateArgs.Create{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> to infer the <see cref="WorkState.TypeName"/> enabling state separation.</typeparam>
+        /// <returns>The <see cref="WebApiPublisherArgs{TValue}"/> to support fluent-style method-chaining.</returns>
+        public WebApiPublisherArgs<TValue, TEventValue> WithWorkState<T>()
+        {
+            CreateWorkStateArgs = () => WorkStateArgs.Create<T>();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the <see cref="CreateWorkStateArgs"/> to use the specified <paramref name="typeName"/> or where <c>null</c> automatically set using the <typeparamref name="TEventValue"/> <see cref="Type"/>.
+        /// </summary>
+        /// <param name="typeName">The type name.</param>
+        /// <returns>The <see cref="WebApiPublisherArgs{TValue}"/> to support fluent-style method-chaining.</returns>
+        public WebApiPublisherArgs<TValue, TEventValue> WithWorkState(string? typeName = null)
+        {
+            if (typeName is null)
+                return WithWorkState<TEventValue>();
+
+            CreateWorkStateArgs = () => new WorkStateArgs(typeName);
+            return this;
+        }
     }
 }

@@ -20,37 +20,36 @@ namespace CoreEx.Events.Subscribing
         public virtual Type? ValueType => null;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.UnhandledHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
-        public virtual ErrorHandling UnhandledHandling => ErrorHandling.None;
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.UnhandledHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling UnhandledHandling => ErrorHandling.HandleByHost;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.SecurityHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
-        public virtual ErrorHandling SecurityHandling => ErrorHandling.None;
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.SecurityHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling SecurityHandling => ErrorHandling.HandleByHost;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.TransientHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
-        public virtual ErrorHandling TransientHandling => ErrorHandling.None;
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.TransientHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling TransientHandling => ErrorHandling.HandleByHost;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.NotFoundHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
-        public virtual ErrorHandling NotFoundHandling => ErrorHandling.None;
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.NotFoundHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling NotFoundHandling => ErrorHandling.HandleByHost;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.ConcurrencyHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
-        public virtual ErrorHandling ConcurrencyHandling => ErrorHandling.None;
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.ConcurrencyHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling ConcurrencyHandling => ErrorHandling.HandleByHost;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.DataConsistencyHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
-        public virtual ErrorHandling DataConsistencyHandling => ErrorHandling.None;
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.DataConsistencyHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling DataConsistencyHandling => ErrorHandling.HandleByHost;
 
         /// <inheritdoc/>
-        /// <remarks>Defaults to <see cref="ErrorHandling.None"/> indicating that the <see cref="EventSubscriberBase.InvalidDataHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
-        public virtual ErrorHandling InvalidDataHandling => ErrorHandling.None;
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.InvalidDataHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling InvalidDataHandling => ErrorHandling.HandleByHost;
 
-        /// <summary>
-        /// Gets or sets the optional <see cref="IEventSubscriberInstrumentation"/>.
-        /// </summary>
-        public IEventSubscriberInstrumentation? Instrumentation { get; set; }
+        /// <inheritdoc/>
+        /// <remarks>Defaults to <see cref="ErrorHandling.HandleByHost"/> indicating that the <see cref="EventSubscriberBase.InvalidDataHandling"/> configuration will be used; override explicitly to set specific handling behaviour where applicable.</remarks>
+        public virtual ErrorHandling? WorkStateAlreadyFinishedHandling => ErrorHandling.HandleByHost;
 
         /// <inheritdoc/>
         public abstract Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken);

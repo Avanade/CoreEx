@@ -26,14 +26,14 @@ namespace CoreEx.Azure.ServiceBus
     public class ServiceBusSubscriber : EventSubscriberBase, IServiceBusSubscriber
     {
         /// <summary>
-        /// Gets the <see cref="EventSubscriberArgs"/> name to access the <see cref="ServiceBusMessage"/>.
+        /// Gets the <see cref="EventSubscriberArgs"/> name to access the <see cref="ServiceBusReceivedMessage"/>.
         /// </summary>
-        public const string ServiceBusReceivedMessageName = "_ServiceBusReceivedMessage";
+        public const string ServiceBusReceivedMessageName = nameof(ServiceBusReceivedMessage);
 
         /// <summary>
         /// Gets the <see cref="EventSubscriberArgs"/> name to access the <see cref="ServiceBusMessageActions"/>.
         /// </summary>
-        public const string ServiceBusMessageActionsName = "ServiceBusMessageActions";
+        public const string ServiceBusMessageActionsName = nameof(ServiceBusMessageActions);
 
         internal static ServiceBusSubscriberInvoker? _invoker;
 
@@ -86,11 +86,9 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
         /// <param name="function">The function logic to invoke.</param>
         /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
-        /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, EventSubscriberArgs, Task> function,
-            EventSubscriberArgs? args = null, Func<EventData, EventSubscriberArgs, Task>? afterReceive = null, CancellationToken cancellationToken = default)
-            => ReceiveAsync(message, messageActions, (ed, ea) => Result.Success.ThenAsync(() => function(ed, ea)), args, afterReceive, cancellationToken);
+        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, EventSubscriberArgs, Task> function, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+            => ReceiveAsync(message, messageActions, (ed, ea, _) => Result.Success.ThenAsync(() => function(ed, ea)), args, cancellationToken);
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData"/> (with no value) for processing.
@@ -99,37 +97,59 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
         /// <param name="function">The function logic to invoke.</param>
         /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
-        /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, EventSubscriberArgs, Task<Result>> function, 
-            EventSubscriberArgs? args = null, Func<EventData, EventSubscriberArgs, Task>? afterReceive = null, CancellationToken cancellationToken = default)
+        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, EventSubscriberArgs, CancellationToken, Task> function, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+            => ReceiveAsync(message, messageActions, (ed, ea, ct) => Result.Success.ThenAsync(() => function(ed, ea, ct)), args, cancellationToken);
+
+        /// <summary>
+        /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData"/> (with no value) for processing.
+        /// </summary>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
+        /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
+        /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, EventSubscriberArgs, Task<Result>> function, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+            => ReceiveAsync(message, messageActions, (ed, ea, _) => function(ed, ea), args, cancellationToken);
+
+        /// <summary>
+        /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData"/> (with no value) for processing.
+        /// </summary>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
+        /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
+        /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task ReceiveAsync(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData, EventSubscriberArgs, CancellationToken, Task<Result>> function, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
         {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
-
-            if (messageActions == null)
-                throw new ArgumentNullException(nameof(messageActions));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
+            message.ThrowIfNull(nameof(message));
+            messageActions.ThrowIfNull(nameof(messageActions));
+            function.ThrowIfNull(nameof(function));
 
             return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
+                // Perform any pre-processing.
+                args ??= [];
+                var canProceed = await OnBeforeProcessingAsync(message.MessageId, message, args, cancellationToken).ConfigureAwait(false);
+                if (!canProceed)
+                    return;
+
                 // Deserialize the JSON into the selected type.
-                var @event = await DeserializeEventAsync(message, cancellationToken).ConfigureAwait(false);
+                var @event = await DeserializeEventAsync(message.MessageId, message, cancellationToken).ConfigureAwait(false);
                 if (@event is null)
                     return;
 
-                UpdateEventSubscriberArgsWithServiceBusMessage(args ??= [], message, messageActions);
-                if (afterReceive != null)
-                    await afterReceive(@event!, args).ConfigureAwait(false);
+                UpdateEventSubscriberArgsWithServiceBusMessage(args, message, messageActions);
 
                 // Invoke the actual function logic.
-                Result.Go(await function(@event!, args).ConfigureAwait(false))
+                Result.Go(await function(@event!, args, ct).ConfigureAwait(false))
                       .Then(() => Logger.LogInformation("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId))
                       .ThrowOnError();
 
                 // Perform the complete/success instrumentation.
+                if (WorkStateOrchestrator is not null)
+                    await WorkStateOrchestrator.CompleteAsync(@event.Id!, cancellationToken);
+                
                 Instrumentation?.Instrument();
             }, (message, messageActions), cancellationToken);
         }
@@ -141,14 +161,13 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
         /// <param name="function">The function logic to invoke.</param>
-        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
-        /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, EventSubscriberArgs, Task> function, bool valueIsRequired = true, IValidator<TValue>? validator = null,
-            EventSubscriberArgs? args = null, Func<EventData<TValue>, EventSubscriberArgs, Task>? afterReceive = null, CancellationToken cancellationToken = default)
-            => ReceiveAsync(message, messageActions, (ed, ea) => Result.Success.ThenAsync(() => function(ed, ea)), valueIsRequired, validator, args, afterReceive, cancellationToken);
+        public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, EventSubscriberArgs, Task> function, IValidator<TValue>? validator = null, bool valueIsRequired = true,
+            EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+            => ReceiveAsync(message, messageActions, (ed, ea, _) => Result.Success.ThenAsync(() => function(ed, ea)), validator, valueIsRequired, args, cancellationToken);
 
         /// <summary>
         /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData{T}"/> for processing.
@@ -157,40 +176,71 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
         /// <param name="function">The function logic to invoke.</param>
-        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
         /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
-        /// <param name="afterReceive">A function that enables the <paramref name="message"/> <see cref="EventData"/> to be processed directly after the message is received and deserialized.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, EventSubscriberArgs, Task<Result>> function, bool valueIsRequired = true, IValidator<TValue>? validator = null,
-            EventSubscriberArgs? args = null, Func<EventData<TValue>, EventSubscriberArgs, Task>? afterReceive = null, CancellationToken cancellationToken = default)
+        public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, EventSubscriberArgs, CancellationToken, Task> function, IValidator<TValue>? validator = null, bool valueIsRequired = true,
+            EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+            => ReceiveAsync(message, messageActions, (ed, ea, ct) => Result.Success.ThenAsync(() => function(ed, ea, ct)), validator, valueIsRequired, args, cancellationToken);
+
+        /// <summary>
+        /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData{T}"/> for processing.
+        /// </summary>
+        /// <typeparam name="TValue">The event value <see cref="Type"/>.</typeparam>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
+        /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, EventSubscriberArgs, Task<Result>> function, IValidator<TValue>? validator = null, bool valueIsRequired = true,
+            EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+            => ReceiveAsync(message, messageActions, (ed, ea, _) => function(ed, ea), validator, valueIsRequired, args, cancellationToken);
+
+        /// <summary>
+        /// Encapsulates the execution of an <see cref="ServiceBusReceivedMessage"/> <paramref name="function"/> converting the <paramref name="message"/> into a corresponding <see cref="EventData{T}"/> for processing.
+        /// </summary>
+        /// <typeparam name="TValue">The event value <see cref="Type"/>.</typeparam>
+        /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
+        /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
+        /// <param name="function">The function logic to invoke.</param>
+        /// <param name="validator">The <see cref="IValidator{T}"/> to validate the deserialized value.</param>
+        /// <param name="valueIsRequired">Indicates whether the value is required; will consider invalid where null.</param>
+        /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        public Task ReceiveAsync<TValue>(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, Func<EventData<TValue>, EventSubscriberArgs, CancellationToken, Task<Result>> function, IValidator<TValue>? validator = null, bool valueIsRequired = true,
+            EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
         {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
-
-            if (messageActions == null)
-                throw new ArgumentNullException(nameof(messageActions));
-
-            if (function == null)
-                throw new ArgumentNullException(nameof(function));
+            message.ThrowIfNull(nameof(message));
+            messageActions.ThrowIfNull(nameof(messageActions));
+            function.ThrowIfNull(nameof(function));
 
             return ServiceBusSubscriberInvoker.InvokeAsync(this, async (_, ct) =>
             {
+                // Perform any pre-processing.
+                args ??= [];
+                var canProceed = await OnBeforeProcessingAsync(message.MessageId, message, args, cancellationToken).ConfigureAwait(false);
+                if (!canProceed)
+                    return;
+
                 // Deserialize the JSON into the selected type.
-                var @event = await DeserializeEventAsync(message, valueIsRequired, validator, cancellationToken).ConfigureAwait(false);
+                var @event = await DeserializeEventAsync(message.MessageId, message, valueIsRequired, validator, cancellationToken).ConfigureAwait(false);
                 if (@event is null)
                     return;
 
-                UpdateEventSubscriberArgsWithServiceBusMessage(args ??= [], message, messageActions);
-                if (afterReceive != null)
-                    await afterReceive(@event!, args).ConfigureAwait(false);
+                UpdateEventSubscriberArgsWithServiceBusMessage(args, message, messageActions);
 
                 // Invoke the actual function logic.
-                Result.Go(await function(@event!, args).ConfigureAwait(false))
+                Result.Go(await function(@event!, args, ct).ConfigureAwait(false))
                       .Then(() => Logger.LogInformation("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId))
                       .ThrowOnError();
 
                 // Perform the complete/success instrumentation.
+                if (WorkStateOrchestrator is not null)
+                    await WorkStateOrchestrator.CompleteAsync(@event.Id!, cancellationToken);
+
                 Instrumentation?.Instrument();
             }, (message, messageActions), cancellationToken);
         }
@@ -203,13 +253,10 @@ namespace CoreEx.Azure.ServiceBus
         /// <param name="messageActions">The <see cref="ServiceBusMessageActions"/>.</param>
         /// <remarks>This will allow access to these values from within the event processing logic and is intended for advanced scenarios only; care should be taken to not perform an action that would result in the underlying host to fail
         /// unexpectantly.</remarks>
-        public static void UpdateEventSubscriberArgsWithServiceBusMessage(EventSubscriberArgs args, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
+        internal static void UpdateEventSubscriberArgsWithServiceBusMessage(EventSubscriberArgs args, ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions)
         {
-            if (args == null)
-                throw new ArgumentNullException(nameof(args));
-
-            args.TryAdd(ServiceBusReceivedMessageName, message ?? throw new ArgumentNullException(nameof(message)));
-            args.TryAdd(ServiceBusMessageActionsName, messageActions ?? throw new ArgumentNullException(nameof(messageActions)));
+            args.TryAdd(ServiceBusReceivedMessageName, message);
+            args.TryAdd(ServiceBusMessageActionsName, messageActions);
         }
     }
 }

@@ -93,21 +93,27 @@ namespace CoreEx.Azure.ServiceBus
             {
                 // Handle the exception based on the subscriber configuration.
                 var handling = ErrorHandler.DetermineErrorHandling(invoker, eex);
-                if (handling == ErrorHandling.None)
+                if (handling == ErrorHandling.HandleByHost)
                 {
-                    invoker.Instrumentation?.Instrument(ErrorHandling.None, ex);
+                    if (invoker.WorkStateOrchestrator is not null)
+                        await invoker.WorkStateOrchestrator.IndeterminateAsync(args.Message.MessageId, ex.Message, cancellationToken).ConfigureAwait(false);
+
+                    invoker.Instrumentation?.Instrument(ErrorHandling.HandleByHost, ex);
                     throw;
                 }
 
-                invoker.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), handling, invoker.Logger, invoker.Instrumentation);
+                await invoker.ErrorHandler.HandleErrorAsync(new ErrorHandlerArgs(args.Message.MessageId, new EventSubscriberException(ex.Message, ex), handling, invoker.Logger) { Instrumentation = invoker.Instrumentation, WorkOrchestrator = invoker.WorkStateOrchestrator }, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex) when (invoker.UnhandledHandling != ErrorHandling.None)
+            catch (Exception ex) when (invoker.UnhandledHandling != ErrorHandling.HandleByHost)
             {
-                invoker.ErrorHandler.HandleError(new EventSubscriberException(ex.Message, ex), invoker.UnhandledHandling, invoker.Logger, invoker.Instrumentation);
+                await invoker.ErrorHandler.HandleErrorAsync(new ErrorHandlerArgs(args.Message.MessageId, new EventSubscriberException(ex.Message, ex), invoker.UnhandledHandling, invoker.Logger) { Instrumentation = invoker.Instrumentation, WorkOrchestrator = invoker.WorkStateOrchestrator }, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex) when (invoker.UnhandledHandling == ErrorHandling.None)
+            catch (Exception ex) when (invoker.UnhandledHandling == ErrorHandling.HandleByHost)
             {
-                invoker.Instrumentation?.Instrument(ErrorHandling.None, ex);
+                if (invoker.WorkStateOrchestrator is not null)
+                    await invoker.WorkStateOrchestrator.IndeterminateAsync(args.Message.MessageId!, ex.Message, cancellationToken).ConfigureAwait(false);
+
+                invoker.Instrumentation?.Instrument(ErrorHandling.HandleByHost, ex);
                 throw;
             }
             finally
@@ -131,13 +137,16 @@ namespace CoreEx.Azure.ServiceBus
             // Handle a known exception type.
             if (exception is EventSubscriberException eex)
             {
-                if (eex.ErrorHandling == ErrorHandling.None)
+                if (eex.ErrorHandling == ErrorHandling.HandleByHost)
                     return true; // Keep throwing; i.e. bubble exception.
 
                 // Where not considered transient then dead-letter.
                 if (!eex.IsTransient)
                 {
                     await DeadLetterExceptionAsync(invoker, message, messageActions, eex.ErrorType, exception, cancellationToken).ConfigureAwait(false);
+                    if (invoker.WorkStateOrchestrator is not null)
+                        await invoker.WorkStateOrchestrator.FailAsync(message.MessageId, exception.Message, cancellationToken).ConfigureAwait(false);
+
                     return false;
                 }
 
@@ -164,7 +173,11 @@ namespace CoreEx.Azure.ServiceBus
                     if (sbs.MaxDeliveryCount.HasValue && message.DeliveryCount >= sbs.MaxDeliveryCount.Value)
                     {
                         // Dead-letter when maximum delivery count achieved.
-                        await DeadLetterExceptionAsync(invoker, message, messageActions, "MaxDeliveryCountExceeded", new EventSubscriberException($"Message could not be consumed after {sbs.MaxDeliveryCount.Value} attempts (as defined by {invoker.GetType().Name}).", exception), cancellationToken).ConfigureAwait(false);
+                        var msg = $"Message could not be consumed after {sbs.MaxDeliveryCount.Value} attempts (as defined by {invoker.GetType().Name}).";
+                        await DeadLetterExceptionAsync(invoker, message, messageActions, "MaxDeliveryCountExceeded", new EventSubscriberException(msg, exception), cancellationToken).ConfigureAwait(false);
+                        if (invoker.WorkStateOrchestrator is not null)
+                            await invoker.WorkStateOrchestrator.FailAsync(message.MessageId, msg, cancellationToken).ConfigureAwait(false);
+
                         return false;
                     }
 
@@ -194,11 +207,14 @@ namespace CoreEx.Azure.ServiceBus
                 return true;
 
             // Where the unhandled handling is set to None then keep bubbling; do not dead-letter.
-            if (invoker.UnhandledHandling == ErrorHandling.None)
+            if (invoker.UnhandledHandling == ErrorHandling.HandleByHost)
                 return true; 
 
             // Dead-letter the unhandled exception.
             await DeadLetterExceptionAsync(invoker, message, messageActions, ErrorType.UnhandledError.ToString(), exception, cancellationToken).ConfigureAwait(false);
+            if (invoker.WorkStateOrchestrator is not null)
+                await invoker.WorkStateOrchestrator.FailAsync(message.MessageId, exception.Message, cancellationToken).ConfigureAwait(false);
+
             return false;
         }
 
