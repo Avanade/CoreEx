@@ -3,13 +3,13 @@
 Represents the **NuGet** versions.
 
 ## v3.11.0
-- *Enhancement*: The `ITypedToResult` correctly implements `IToResult` as the simple `ToResult` where required. 
+- *Enhancement*: The `ITypedToResult` updated to correctly implement `IToResult` as the simple `ToResult` where required. 
 - *Enhancement*: Added `Result.AsTask()` and `Result<T>.AsTask` to simplify the conversion to a completed `Task<Result>` or `Task<Result<T>>` where applicable.
 - *Enhancement*: Added `IResult.IsFailureOfType<TException>` to indicate whether the result is in a failure state and the underlying error is of the specified `TException` type.
 - *Enhancement*: Added `EventTemplate` property to the `WebApiPublisherArgs` and `WebApiPublisherCollectionArgs` to define an `EventData` template.
 - *Enhancement*: Added `SubscriberBase<T>` constructor overload to enable specification of `valueValidator` and `ValueIsRequired` parameters versus setting properties directly simplifying usage.
 - *Enhancement:* Enum renames to improve understanding of intent for event subscribing logic: `ErrorHandling.None` is now `ErrorHandling.HandleByHost` and `ErrorHandling.Handle` is now `ErrorHandling.HandleBySubscriber`.
-- *Enhancement:* Simplified the `ServiceBusSubscriber.Receive` methods by removing the `afterReceive` parameter which served no real purpose; also, reversed the `validator` and `valueIsRequired` parameters (order as stated) as the `validator` is more likely to be used than `valueIsRequired` which defaults to `true`.
+- *Enhancement:* Simplified the `ServiceBusSubscriber.Receive` methods by removing the `afterReceive` parameter which served no real purpose; also, reversed the `validator` and `valueIsRequired` parameters (order as stated) as the `validator` is more likely to be specified than `valueIsRequired` which defaults to `true`.
 - *Enhancement*: Added `CoreEx.Hosting.Work` namespace which includes light-weight/simple foundational capabilities to track and orchestrate work; intended for the likes of [_asynchronous request-response_](https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply) scenarios.
   - Added `IWorkStatePersistence` to enable flexible/pluggable persistence of the `WorkState` and resulting data; includes `InMemoryWorkStatePersistence` for testing, `FileWorkStatePersistence` for file-based, and `TableWorkStatePersistence` leveraging Azure table storage.
   - Added `WorkStateOrchestrator` support to `EventSubscriberBase`, including corresponding `ServiceBusSubscriber` and `ServiceBusOrchestratedSubscriber` using the `ServiceBusMessage.MessageId` as the corresponding `WorkState.Id`.
