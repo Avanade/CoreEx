@@ -28,6 +28,9 @@ namespace CoreEx.Test.Framework.Hosting.Work
                 _ => new InMemoryWorkStatePersistence()
             };
 
+            if (p is null)
+                return null!;
+
             return new WorkStateOrchestrator(p, s);
         }
 
