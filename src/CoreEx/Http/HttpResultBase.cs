@@ -188,7 +188,7 @@ namespace CoreEx.Http
                         {
                             foreach (var error in kvp.Value.Where(x => !string.IsNullOrEmpty(x)))
                             {
-                                (mic ??= new MessageItemCollection()).AddPropertyError(kvp.Key, error);
+                                (mic ??= []).AddPropertyError(kvp.Key, error);
                             }
                         }
                     }

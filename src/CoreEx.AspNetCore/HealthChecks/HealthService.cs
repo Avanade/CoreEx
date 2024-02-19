@@ -42,7 +42,7 @@ namespace CoreEx.AspNetCore.HealthChecks
         /// <summary>
         /// Builds the health report response.
         /// </summary>
-        private IActionResult BuildResponse(HealthReport healthReport)
+        private ContentResult BuildResponse(HealthReport healthReport)
         {
             var code = healthReport.Status == HealthStatus.Healthy ? HttpStatusCode.OK : HttpStatusCode.ServiceUnavailable;
 

@@ -45,7 +45,7 @@ namespace CoreEx.Solace.PubSub
         {
             var message = ContextFactory.Instance.CreateMessage();
 
-            message.BinaryAttachment = @event.Data?.ToArray() ?? Array.Empty<byte>();
+            message.BinaryAttachment = @event.Data?.ToArray() ?? [];
             message.ApplicationMessageId = @event.Id;
             message.HttpContentType = MediaTypeNames.Application.Json;
             message.CorrelationId = @event.CorrelationId ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current.CorrelationId : null);
@@ -77,7 +77,7 @@ namespace CoreEx.Solace.PubSub
             if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
             {
                 // Attrtibutes that start with an underscore are considered internal and will not be sent automatically; i.e. _SessionId and _TimeToLive.
-                foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith("_")))
+                foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith('_')))
                 {
                     message.UserPropertyMap.AddString(attribute.Key, attribute.Value);
                 }

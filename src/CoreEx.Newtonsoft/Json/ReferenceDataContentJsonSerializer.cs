@@ -11,7 +11,8 @@ namespace CoreEx.Newtonsoft.Json
     /// Provides the JSON Serialize and Deserialize implementation to allow <see cref="IReferenceData"/> types to serialize contents.
     /// </summary>
     /// <remarks>Generally, <see cref="IReferenceData"/> types will serialize the <see cref="IReferenceData.Code"/> as the value; this allows for full <see cref="IReferenceData"/> contents to be serialized.</remarks>
-    public class ReferenceDataContentJsonSerializer : JsonSerializer, IReferenceDataContentJsonSerializer
+    /// <param name="settings">The <see cref="JsonSerializerSettings"/>. Defaults to <see cref="DefaultSettings"/>.</param>
+    public class ReferenceDataContentJsonSerializer(JsonSerializerSettings? settings = null) : JsonSerializer(settings ?? DefaultSettings), IReferenceDataContentJsonSerializer
     {
         /// <summary>
         /// Gets or sets the default <see cref="JsonSerializerSettings"/> without <see cref="ReferenceDataJsonConverter"/> to allow <see cref="IReferenceData"/> types to serialize contents.
@@ -33,11 +34,5 @@ namespace CoreEx.Newtonsoft.Json
             ContractResolver = ContractResolver.Default,
             Converters = { new Nsj.Converters.StringEnumConverter(), new CollectionResultJsonConverter() }
         };
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonSerializer"/> class.
-        /// </summary>
-        /// <param name="settings">The <see cref="JsonSerializerSettings"/>. Defaults to <see cref="DefaultSettings"/>.</param>
-        public ReferenceDataContentJsonSerializer(JsonSerializerSettings? settings = null) : base(settings ?? DefaultSettings) { }
     }
 }

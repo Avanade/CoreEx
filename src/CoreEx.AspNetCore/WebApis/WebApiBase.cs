@@ -237,7 +237,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Creates an <see cref="IActionResult"/> from an unexpected <paramref name="exception"/>.
         /// </summary>
-        private static IActionResult CreateActionResultForUnexpectedResult(Exception exception, bool includeExceptionInResult) => includeExceptionInResult
+        private static ContentResult CreateActionResultForUnexpectedResult(Exception exception, bool includeExceptionInResult) => includeExceptionInResult
             ? new ContentResult { StatusCode = (int)HttpStatusCode.InternalServerError, ContentType = MediaTypeNames.Text.Plain, Content = $"An unexpected internal server error has occurred. CorrelationId={ExecutionContext.Current.CorrelationId} Exception={exception}" }
             : new ContentResult { StatusCode = (int)HttpStatusCode.InternalServerError, ContentType = MediaTypeNames.Text.Plain, Content = $"An unexpected internal server error has occurred. CorrelationId={ExecutionContext.Current.CorrelationId}" };
     }

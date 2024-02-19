@@ -5,7 +5,7 @@ using CoreEx.Results;
 using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Data.Common;
 
 namespace CoreEx.Database.MySql
@@ -18,6 +18,12 @@ namespace CoreEx.Database.MySql
     /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
     public class MySqlDatabase(Func<MySqlConnection> create, ILogger<MySqlDatabase>? logger = null, DatabaseInvoker? invoker = null) : Database<MySqlConnection>(create, MySqlClientFactory.Instance, logger, invoker)
     {
+        /// <summary>
+        /// Gets the default <see cref="DuplicateErrorNumbers"/>.
+        /// </summary>
+        /// <remarks>See <see href="https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html"/>.</remarks>
+        public static int[] DefaultDuplicateErrorNumbers { get; } = [1022, 1062, 1088, 1291, 1586, 1859];
+
         /// <inheritdoc/>
         public override IConverter RowVersionConverter => EncodedStringToDateTimeConverter.Default;
 
@@ -28,15 +34,15 @@ namespace CoreEx.Database.MySql
         public bool ThrowTransformedException { get; set; } = true;
 
         /// <summary>
-        /// Indicates whether to check the <see cref="SqlDuplicateErrorNumbers"/> when catching the <see cref="MySqlException"/>.
+        /// Indicates whether to check the <see cref="DuplicateErrorNumbers"/> when catching the <see cref="MySqlException"/>.
         /// </summary>
-        public bool CheckSqlDuplicateErrorNumbers { get; set; } = true;
+        public bool CheckDuplicateErrorNumbers { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the list of known <see cref="MySqlException.Number"/> values that are considered a duplicate error.
         /// </summary>
-        /// <remarks>See <see href="https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html"/>.</remarks>
-        public List<int> SqlDuplicateErrorNumbers { get; set; } = new List<int>(new int[] { 1022, 1062, 1088, 1291, 1586, 1859 });
+        /// <remarks>Overrides the <see cref="DefaultDuplicateErrorNumbers"/>.</remarks>
+        public int[]? DuplicateErrorNumbers { get; set; }
 
         /// <inheritdoc/>
         protected override Result? OnDbException(DbException dbex)
@@ -59,7 +65,7 @@ namespace CoreEx.Database.MySql
                     case 56010: return Result.Fail(new DataConsistencyException(msg, sex));
 
                     default:
-                        if (CheckSqlDuplicateErrorNumbers && SqlDuplicateErrorNumbers.Contains(sex.Number))
+                        if (CheckDuplicateErrorNumbers && (DuplicateErrorNumbers ?? DefaultDuplicateErrorNumbers).Contains(sex.Number))
                             return Result.Fail(new DuplicateException(null, sex));
 
                         break;

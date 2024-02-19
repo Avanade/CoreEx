@@ -18,23 +18,14 @@ namespace CoreEx.Http
     /// <summary>
     /// Represents a typed <see cref="HttpClient"/> foundation wrapper.
     /// </summary>
-    public abstract class TypedHttpClientBase
+    /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
+    /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>..</param>
+    public abstract class TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TypedHttpClientBase{TBase}"/>.
-        /// </summary>
-        /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>..</param>
-        public TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null)
-        {
-            Client = client.ThrowIfNull(nameof(client));
-            JsonSerializer = jsonSerializer ?? CoreEx.Json.JsonSerializer.Default;
-        }
-
         /// <summary>
         /// Gets the underlying <see cref="HttpClient"/>.
         /// </summary>
-        protected HttpClient Client { get; }
+        protected HttpClient Client { get; } = client.ThrowIfNull(nameof(client));
 
         /// <summary>
         /// Gets the Base Address of the client
@@ -44,7 +35,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.
         /// </summary>
-        protected IJsonSerializer JsonSerializer { get; }
+        protected IJsonSerializer JsonSerializer { get; } = jsonSerializer ?? CoreEx.Json.JsonSerializer.Default;
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> with no specified content.
@@ -239,9 +230,6 @@ namespace CoreEx.Http
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The deserialized response value.</returns>
-#if NETSTANDARD2_1
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
-#endif
         protected async Task<TResp> ReadAsJsonAsync<TResp>(HttpResponseMessage response, CancellationToken cancellationToken = default)
         {
             response.EnsureSuccessStatusCode();

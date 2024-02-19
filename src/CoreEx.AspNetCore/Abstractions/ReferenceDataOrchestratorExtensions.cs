@@ -56,7 +56,7 @@ namespace CoreEx.RefData
         /// <summary>
         /// Perform a further split of the string values.
         /// </summary>
-        private static IEnumerable<string> SplitStringValues(IEnumerable<string> values)
+        private static List<string> SplitStringValues(IEnumerable<string> values)
         {
             var list = new List<string>();
             foreach (var value in values)

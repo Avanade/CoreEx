@@ -532,13 +532,13 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="name">The property name.</param>
         /// <returns>The fully qualified property name.</returns>
-        internal string CreateFullyQualifiedPropertyName(string name) => FullyQualifiedEntityName == null ? name : name.StartsWith("[") ? FullyQualifiedEntityName + name : FullyQualifiedEntityName + "." + name;
+        internal string CreateFullyQualifiedPropertyName(string name) => FullyQualifiedEntityName == null ? name : name.StartsWith('[') ? FullyQualifiedEntityName + name : FullyQualifiedEntityName + "." + name;
 
         /// <summary>
         /// Creates a fully qualified JSON property name for the specified name.
         /// </summary>
         /// <param name="name">The property name.</param>
         /// <returns>The fully qualified property name.</returns>
-        internal string CreateFullyQualifiedJsonPropertyName(string name) => FullyQualifiedJsonEntityName == null ? name : name.StartsWith("[") ? FullyQualifiedJsonEntityName + name : FullyQualifiedJsonEntityName + "." + name;
+        internal string CreateFullyQualifiedJsonPropertyName(string name) => FullyQualifiedJsonEntityName == null ? name : name.StartsWith('[') ? FullyQualifiedJsonEntityName + name : FullyQualifiedJsonEntityName + "." + name;
     }
 }

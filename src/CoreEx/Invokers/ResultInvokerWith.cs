@@ -10,42 +10,34 @@ namespace CoreEx.Invokers
     /// Represents the <see cref="IResult"/> <see cref="InvokerBase"/> with capability.
     /// </summary>
     /// <typeparam name="T">The <see cref="IResult"/> <see cref="Type"/>.</typeparam>
-    public readonly struct ResultInvokerWith<T> where T : IResult
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="ResultInvokerWith{T}"/>.
+    /// </remarks>
+    /// <param name="result">The originating <see cref="IResult"/>.</param>
+    /// <param name="invoker">The <see cref="InvokerBase"/>.</param>
+    /// <param name="owner">The owner/invoker.</param>
+    /// <param name="args">The <see cref="InvokerArgs"/>.</param>
+    public readonly struct ResultInvokerWith<T>(T result, InvokerBase invoker, object owner, InvokerArgs? args = null) where T : IResult
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResultInvokerWith{T}"/>.
-        /// </summary>
-        /// <param name="result">The originating <see cref="IResult"/>.</param>
-        /// <param name="invoker">The <see cref="InvokerBase"/>.</param>
-        /// <param name="owner">The owner/invoker.</param>
-        /// <param name="args">The <see cref="InvokerArgs"/>.</param>
-        public ResultInvokerWith(T result, InvokerBase invoker, object owner, InvokerArgs? args = null)
-        {
-            Result = result ?? throw new System.ArgumentNullException(nameof(result));
-            Invoker = invoker ?? throw new System.ArgumentNullException(nameof(invoker));
-            Owner = owner ?? throw new System.ArgumentNullException(nameof(owner));
-            Args = args ?? InvokerArgs.Default;
-        }
-
         /// <summary>
         /// Gets the originating result.
         /// </summary>
-        public T Result { get; }
+        public T Result { get; } = result ?? throw new System.ArgumentNullException(nameof(result));
 
         /// <summary>
         /// Gets the <see cref="InvokerBase"/>.
         /// </summary>
-        public InvokerBase Invoker { get; }
+        public InvokerBase Invoker { get; } = invoker ?? throw new System.ArgumentNullException(nameof(invoker));
 
         /// <summary>
         /// Gets the owner/invoker.
         /// </summary>
-        public object Owner { get; }
+        public object Owner { get; } = owner ?? throw new System.ArgumentNullException(nameof(owner));
 
         /// <summary>
         /// Gets the <see cref="InvokerArgs"/>.
         /// </summary>
-        public InvokerArgs Args { get; }
+        public InvokerArgs Args { get; } = args ?? InvokerArgs.Default;
 
         /// <summary>
         /// Executes the <paramref name="func"/> where the <see cref="Result"/> is <see cref="Result.IsSuccess"/>.

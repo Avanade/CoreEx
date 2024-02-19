@@ -9,7 +9,8 @@ Represents the **NuGet** versions.
 - *Fixed*: The `WorkOrchestrator.GetAsync<T>()` and `WorkOrchestrator.GetAsync(string type, ..)` methods were not automatically cancelling where expired.
 - *Fixed*: The `InvokerArgs` activity tracing is correctly capturing the `Exception.Message` where an `Exception` has been thrown.
 - *Internal*: 
-  - All `throw new ArgumentNullException` migrated to the `xxx.ThrowIfNull` extension method equivalent. 
+  - All `throw new ArgumentNullException` migrated to the `xxx.ThrowIfNull` extension method equivalent.
+  - All	_Run Code Analysis_ issues resolved.
 
 ## v3.11.0
 - *Enhancement*: The `ITypedToResult` updated to correctly implement `IToResult` as the simple `ToResult` where required. 

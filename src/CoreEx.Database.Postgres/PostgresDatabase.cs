@@ -5,7 +5,7 @@ using CoreEx.Results;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Data.Common;
 
 namespace CoreEx.Database.Postgres
@@ -19,6 +19,12 @@ namespace CoreEx.Database.Postgres
     public class PostgresDatabase(Func<NpgsqlConnection> create, ILogger<PostgresDatabase>? logger = null, DatabaseInvoker? invoker = null) : Database<NpgsqlConnection>(create, NpgsqlFactory.Instance, logger, invoker)
     {
         private static readonly PostgresDatabaseColumns _defaultColumns = new();
+
+        /// <summary>
+        /// Gets the default <see cref="DuplicateErrorNumbers"/>.
+        /// </summary>
+        /// <remarks>See <see href="https://dev.Npgsql.com/doc/Npgsql-errors/8.0/en/server-error-reference.html"/>.</remarks>
+        public static string[] DefaultDuplicateErrorNumbers { get; } = ["23505"];
 
         /// <summary>
         /// Gets or sets the names of the pre-configured <see cref="PostgresDatabaseColumns"/>.
@@ -36,15 +42,15 @@ namespace CoreEx.Database.Postgres
         public bool ThrowTransformedException { get; set; } = true;
 
         /// <summary>
-        /// Indicates whether to check the <see cref="SqlDuplicateErrorNumbers"/> when catching the <see cref="PostgresException"/>.
+        /// Indicates whether to check the <see cref="DuplicateErrorNumbers"/> when catching the <see cref="PostgresException"/>.
         /// </summary>
-        public bool CheckSqlDuplicateErrorNumbers { get; set; } = true;
+        public bool CheckDuplicateErrorNumbers { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the list of known <see cref="PostgresException.SqlState"/> values that are considered a duplicate error.
         /// </summary>
-        /// <remarks>See <see href="https://dev.Npgsql.com/doc/Npgsql-errors/8.0/en/server-error-reference.html"/>.</remarks>
-        public List<string> SqlDuplicateErrorNumbers { get; set; } = new List<string>(new string[] { "23505" });
+        /// <remarks>Overrides the <see cref="DefaultDuplicateErrorNumbers"/>.</remarks>
+        public string[]? DuplicateErrorNumbers { get; set; }
 
         /// <inheritdoc/>
         protected override Result? OnDbException(DbException dbex)
@@ -67,7 +73,7 @@ namespace CoreEx.Database.Postgres
                     case "56010": return Result.Fail(new DataConsistencyException(msg, pex));
 
                     default:
-                        if (CheckSqlDuplicateErrorNumbers && SqlDuplicateErrorNumbers.Contains(pex.SqlState))
+                        if (CheckDuplicateErrorNumbers && (DuplicateErrorNumbers ?? DefaultDuplicateErrorNumbers).Contains(pex.SqlState))
                             return Result.Fail(new DuplicateException(null, pex));
 
                         break;

@@ -29,7 +29,7 @@ namespace CoreEx.Validation
                 if (_messages != null)
                     return _messages;
 
-                _messages = new();
+                _messages = [];
                 _messages.CollectionChanged += Messages_CollectionChanged;
                 return _messages;
             }

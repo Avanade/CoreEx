@@ -4,7 +4,6 @@ using CoreEx.Abstractions;
 using CoreEx.AspNetCore.Http;
 using CoreEx.Entities;
 using CoreEx.Json;
-using CoreEx.Results;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
@@ -159,12 +158,12 @@ namespace CoreEx.AspNetCore.WebApis
             bool hasETag = TryGetETag(val, out var etag);
 
             Action<IJsonPreFilterInspector>? inspector;
-            if (requestOptions.IncludeFields != null && requestOptions.IncludeFields.Any())
+            if (requestOptions.IncludeFields != null && requestOptions.IncludeFields.Length > 0)
             {
                 inspector = hasETag ? null : fi => etag = GenerateETag(requestOptions, val, fi.ToJsonString(), jsonSerializer);
                 jsonSerializer.TryApplyFilter(val, requestOptions.IncludeFields, out json, JsonPropertyFilter.Include, preFilterInspector: inspector);
             }
-            else if (requestOptions.ExcludeFields != null && requestOptions.ExcludeFields.Any())
+            else if (requestOptions.ExcludeFields != null && requestOptions.ExcludeFields.Length > 0)
             {
                 inspector = hasETag ? null : fi => etag = GenerateETag(requestOptions, val, fi.ToJsonString(), jsonSerializer);
                 jsonSerializer.TryApplyFilter(val, requestOptions.ExcludeFields, out json, JsonPropertyFilter.Exclude, preFilterInspector: inspector);

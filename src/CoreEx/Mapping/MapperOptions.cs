@@ -7,28 +7,19 @@ namespace CoreEx.Mapping
     /// <summary>
     /// Represents the <see cref="Mapper{TSource, TDestination}"/> options.
     /// </summary>
-    public class MapperOptions
+    /// <param name="mapper">The owning <see cref="Owner"/>.</param>
+    /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.</param>
+    public class MapperOptions(Mapper mapper, OperationTypes operationType)
     {
-        /// <summary>
-        /// Initialize a new instance of the <see cref="MapperOptions"/> class.
-        /// </summary>
-        /// <param name="mapper">The owning <see cref="Owner"/>.</param>
-        /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.</param>
-        public MapperOptions(Mapper mapper, OperationTypes operationType)
-        {
-            Owner = mapper.ThrowIfNull(nameof(mapper));
-            OperationType = operationType;
-        }
-
         /// <summary>
         /// Gets the owning <see cref="Mapper"/>.
         /// </summary>
-        public Mapper Owner { get; }
+        public Mapper Owner { get; } = mapper.ThrowIfNull(nameof(mapper));
 
         /// <summary>
         /// Gets the singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="OperationTypes"/> value being performed.
         /// </summary>
-        public OperationTypes OperationType { get; }
+        public OperationTypes OperationType { get; } = operationType;
 
         /// <summary>
         /// Maps the <paramref name="source"/> (inferring <see cref="Type"/>) value to a new <typeparamref name="TDestination"/> value.

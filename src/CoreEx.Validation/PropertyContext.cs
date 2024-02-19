@@ -191,13 +191,13 @@ namespace CoreEx.Validation
         /// Creates a fully qualified property name for the name.
         /// </summary>
         /// <param name="name">The property name.</param>
-        public string CreateFullyQualifiedPropertyName(string name) => (Parent.FullyQualifiedEntityName == null) ? name : (Parent.FullyQualifiedEntityName + (name.StartsWith("[") ? "" : ".") + name);
+        public string CreateFullyQualifiedPropertyName(string name) => (Parent.FullyQualifiedEntityName == null) ? name : (Parent.FullyQualifiedEntityName + (name.StartsWith('[') ? "" : ".") + name);
 
         /// <summary>
         /// Creates a fully qualified JSON property name for the name.
         /// </summary>
         /// <param name="name">The property name.</param>
-        public string CreateFullyQualifiedJsonPropertyName(string name) => (Parent.FullyQualifiedJsonEntityName == null) ? name : (Parent.FullyQualifiedJsonEntityName + (name.StartsWith("[") ? "" : ".") + name);
+        public string CreateFullyQualifiedJsonPropertyName(string name) => (Parent.FullyQualifiedJsonEntityName == null) ? name : (Parent.FullyQualifiedJsonEntityName + (name.StartsWith('[') ? "" : ".") + name);
 
         /// <summary>
         /// Creates a new <see cref="ValidationArgs"/> from the <see cref="PropertyContext{TEntity, TProperty}"/>.

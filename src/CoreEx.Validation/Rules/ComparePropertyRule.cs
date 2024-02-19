@@ -15,22 +15,13 @@ namespace CoreEx.Validation.Rules
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
     /// <typeparam name="TCompareProperty">The compare to property <see cref="Type"/>.</typeparam>
-    public class ComparePropertyRule<TEntity, TProperty, TCompareProperty> : CompareRuleBase<TEntity, TProperty> where TEntity : class
+    /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
+    /// <param name="compareToPropertyExpression">The <see cref="Expression"/> to reference the compare to entity property.</param>
+    /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to derive the text from the property itself).</param>
+    public class ComparePropertyRule<TEntity, TProperty, TCompareProperty>(CompareOperator compareOperator, Expression<Func<TEntity, TCompareProperty>> compareToPropertyExpression, LText? compareToText = null) : CompareRuleBase<TEntity, TProperty>(compareOperator) where TEntity : class
     {
-        private readonly PropertyExpression<TEntity, TCompareProperty> _compareTo;
-        private readonly LText? _compareToText;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareValueRule{TEntity, TProperty}"/> class specifying the compare to property.
-        /// </summary>
-        /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
-        /// <param name="compareToPropertyExpression">The <see cref="Expression"/> to reference the compare to entity property.</param>
-        /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to derive the text from the property itself).</param>
-        public ComparePropertyRule(CompareOperator compareOperator, Expression<Func<TEntity, TCompareProperty>> compareToPropertyExpression, LText? compareToText = null) : base(compareOperator)
-        {
-            _compareTo = PropertyExpression.Create(compareToPropertyExpression);
-            _compareToText = compareToText;
-        }
+        private readonly PropertyExpression<TEntity, TCompareProperty> _compareTo = PropertyExpression.Create(compareToPropertyExpression);
+        private readonly LText? _compareToText = compareToText;
 
         /// <inheritdoc/>
         protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)

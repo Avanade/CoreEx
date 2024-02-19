@@ -23,7 +23,7 @@ namespace CoreEx.Abstractions.Reflection
         /// </summary>
         public const string SentenceCaseWordSplitPattern = "([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))";
 
-#if NET8_0_OR_GREATER
+#if NET7_0_OR_GREATER
         private readonly static Lazy<Regex> _regex = new(SentenceRegex);
 #else
         private readonly static Lazy<Regex> _regex = new(() => new Regex(SentenceCaseWordSplitPattern, RegexOptions.CultureInvariant | RegexOptions.Compiled));
@@ -138,7 +138,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <para>For example a value of '<c>EmployeeId</c>' would return just '<c>Employee</c>'.</para></remarks>
         public static List<string> SentenceCaseLastWordRemovals { get; set; } = ["Id"];
 
-#if NET8_0_OR_GREATER
+#if NET7_0_OR_GREATER
         /// <summary>
         /// Provides the compiled <see cref="Regex"/> for splitting strings into a sentence of words.
         /// </summary>

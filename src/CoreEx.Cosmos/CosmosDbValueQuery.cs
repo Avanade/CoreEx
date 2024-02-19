@@ -15,17 +15,12 @@ namespace CoreEx.Cosmos
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="CosmosDbValue{T}"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-    public class CosmosDbValueQuery<T, TModel> : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>> where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
+    /// <param name="container">The <see cref="CosmosDbValueContainer{T, TModel}"/>.</param>
+    /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+    /// <param name="query">A function to modify the underlying <see cref="IQueryable{T}"/>.</param>
+    public class CosmosDbValueQuery<T, TModel>(CosmosDbValueContainer<T, TModel> container, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>>(container, dbArgs) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
     {
-        private readonly Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? _query;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CosmosDbValueQuery{T, TModel}"/> class.
-        /// </summary>
-        /// <param name="container">The <see cref="CosmosDbValueContainer{T, TModel}"/>.</param>
-        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
-        /// <param name="query">A function to modify the underlying <see cref="IQueryable{T}"/>.</param>
-        public CosmosDbValueQuery(CosmosDbValueContainer<T, TModel> container, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) : base(container, dbArgs) => _query = query;
+        private readonly Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? _query = query;
 
         /// <summary>
         /// Gets the <see cref="CosmosDbValueContainer{T, TModel}"/>.

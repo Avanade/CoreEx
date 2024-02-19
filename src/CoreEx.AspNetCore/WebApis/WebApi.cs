@@ -695,7 +695,7 @@ namespace CoreEx.AspNetCore.WebApis
 
                 // Get the current value before we perform the update; also performing a concurrency match.
                 var cvalue = await get(wap, ct).ConfigureAwait(false);
-                var ex = cvalue == null ? new NotFoundException() : ConcurrencyETagMatching(wap, cvalue, wapv!.Value, simulatedConcurrency);
+                var ex = cvalue == null ? (Exception)new NotFoundException() : ConcurrencyETagMatching(wap, cvalue, wapv!.Value, simulatedConcurrency);
                 if (ex is not null)
                     return await CreateActionResultFromExceptionAsync(this, request.HttpContext, ex, Settings, Logger, OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
 
@@ -708,7 +708,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Where etags are supported or automatic concurrency then we need to make sure one was provided up-front and match.
         /// </summary>
-        private Exception? ConcurrencyETagMatching<TValue>(WebApiParam wap, TValue getValue, TValue putValue, bool autoConcurrency)
+        private ConcurrencyException? ConcurrencyETagMatching<TValue>(WebApiParam wap, TValue getValue, TValue putValue, bool autoConcurrency)
         {
             var et = putValue as IETag;
             if (et != null || autoConcurrency)
@@ -844,7 +844,7 @@ namespace CoreEx.AspNetCore.WebApis
                 {
                     // Get the current value and perform a concurrency match before we perform the merge.
                     var value = await get(wap, ct2).ConfigureAwait(false);
-                    var ex = value is null ? new NotFoundException() : ConcurrencyETagMatching(wap, value, jpv, simulatedConcurrency);
+                    var ex = value is null ? (Exception)new NotFoundException() : ConcurrencyETagMatching(wap, value, jpv, simulatedConcurrency);
                     if (ex is not null)
                         throw ex;
 
