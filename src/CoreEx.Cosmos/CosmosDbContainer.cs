@@ -17,15 +17,10 @@ namespace CoreEx.Cosmos
     /// </summary>
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-    public class CosmosDbContainer<T, TModel> : CosmosDbContainerBase<T, TModel, CosmosDbContainer<T, TModel>> where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new()
+    /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
+    /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
+    public class CosmosDbContainer<T, TModel>(ICosmosDb cosmosDb, string containerId) : CosmosDbContainerBase<T, TModel, CosmosDbContainer<T, TModel>>(cosmosDb, containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new()
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CosmosDbContainer{T, TModel}"/> class.
-        /// </summary>
-        /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
-        /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-        public CosmosDbContainer(ICosmosDb cosmosDb, string containerId) : base(cosmosDb, containerId) { }
-
         /// <summary>
         /// Gets the <b>value</b> from the response updating any special properties as required.
         /// </summary>
@@ -126,7 +121,7 @@ namespace CoreEx.Cosmos
         }, cancellationToken, nameof(GetWithResultAsync));
 
         /// <inheritdoc/>
-        public override Task<Result<T>> CreateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (_, v, args, ct) =>
+        public override Task<Result<T>> CreateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value.ThrowIfNull(nameof(value)), dbArgs, async (_, v, args, ct) =>
         {
             var pk = GetPartitionKey(v);
             ChangeLog.PrepareCreated(v);
@@ -141,7 +136,7 @@ namespace CoreEx.Cosmos
         }, cancellationToken, nameof(CreateWithResultAsync));
 
         /// <inheritdoc/>
-        public override Task<Result<T>> UpdateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value ?? throw new ArgumentNullException(nameof(value)), dbArgs, async (_,v, args, ct) =>
+        public override Task<Result<T>> UpdateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value.ThrowIfNull(nameof(value)), dbArgs, async (_,v, args, ct) =>
         {
             var key = GetCosmosId(v);
             var pk = GetPartitionKey(v);

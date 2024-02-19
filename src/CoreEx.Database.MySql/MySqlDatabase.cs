@@ -13,17 +13,11 @@ namespace CoreEx.Database.MySql
     /// <summary>
     /// Provides <see href="https://dev.mysql.com/">MySQL</see> database access functionality.
     /// </summary>
-    public class MySqlDatabase : Database<MySqlConnection>
+    /// <param name="create">The function to create the <see cref="MySqlConnection"/>.</param>
+    /// <param name="logger">The optional <see cref="ILogger"/>.</param>
+    /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
+    public class MySqlDatabase(Func<MySqlConnection> create, ILogger<MySqlDatabase>? logger = null, DatabaseInvoker? invoker = null) : Database<MySqlConnection>(create, MySqlClientFactory.Instance, logger, invoker)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MySqlConnection"/> class.
-        /// </summary>
-        /// <param name="create">The function to create the <see cref="MySqlConnection"/>.</param>
-        /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-        /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
-        public MySqlDatabase(Func<MySqlConnection> create, ILogger<MySqlDatabase>? logger = null, DatabaseInvoker? invoker = null)
-            : base(create, MySqlClientFactory.Instance, logger, invoker) { }
-
         /// <inheritdoc/>
         public override IConverter RowVersionConverter => EncodedStringToDateTimeConverter.Default;
 

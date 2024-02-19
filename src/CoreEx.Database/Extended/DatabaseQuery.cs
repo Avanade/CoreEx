@@ -23,7 +23,7 @@ namespace CoreEx.Database.Extended
         /// <param name="queryParams">The query <see cref="DatabaseParameterCollection"/> action to enable additional filtering.</param>
         internal DatabaseQuery(DatabaseCommand command, DatabaseArgs args, Action<DatabaseParameterCollection>? queryParams)
         {
-            Command = command ?? throw new ArgumentNullException(nameof(command));
+            Command = command.ThrowIfNull(nameof(command));
             Parameters = new DatabaseParameterCollection(Database);
             QueryArgs = args;
             Mapper = (IDatabaseMapper<T>)args.Mapper;

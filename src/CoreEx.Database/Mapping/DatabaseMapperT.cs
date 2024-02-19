@@ -19,7 +19,7 @@ namespace CoreEx.Database.Mapping
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
     public class DatabaseMapper<TSource> : IDatabaseMapper<TSource>, IDatabaseMapperMappings where TSource : class, new()
     {
-        private readonly List<IPropertyColumnMapper> _mappings = new();
+        private readonly List<IPropertyColumnMapper> _mappings = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseMapper{TSource}"/> class.
@@ -50,8 +50,7 @@ namespace CoreEx.Database.Mapping
         {
             get
             {
-                if (propertyExpression == null)
-                    throw new ArgumentNullException(nameof(propertyExpression));
+                propertyExpression.ThrowIfNull(nameof(propertyExpression));
 
                 MemberExpression? me = null;
                 if (propertyExpression.Body.NodeType == ExpressionType.MemberAccess)
@@ -98,8 +97,8 @@ namespace CoreEx.Database.Mapping
                 var sex = Expression.Lambda(Expression.Property(spe, sp), spe);
                 typeof(DatabaseMapper<TSource>)
                     .GetMethod("Property", BindingFlags.Public | BindingFlags.Instance)!
-                    .MakeGenericMethod(new Type[] { sp.PropertyType })
-                    .Invoke(this, new object?[] { sex, null, null, OperationTypes.Any });
+                    .MakeGenericMethod([sp.PropertyType])
+                    .Invoke(this, [sex, null, null, OperationTypes.Any]);
             }
         }
 
@@ -187,7 +186,7 @@ namespace CoreEx.Database.Mapping
         /// <param name="inheritMapper">The <see cref="IDatabaseMapper{T}"/> to inherit from. Must also implement <see cref="IDatabaseMapperMappings"/>.</param>
         public void InheritPropertiesFrom<T>(IDatabaseMapper<T> inheritMapper) where T : class, new()
         {
-            if (inheritMapper == null) throw new ArgumentNullException(nameof(inheritMapper));
+            inheritMapper.ThrowIfNull(nameof(inheritMapper));
             if (!typeof(TSource).IsSubclassOf(typeof(T))) throw new ArgumentException($"Type {typeof(TSource).Name} must inherit from {typeof(T).Name}.", nameof(inheritMapper));
             if (inheritMapper is not IDatabaseMapperMappings inheritMappings) throw new ArgumentException($"Type {typeof(T).Name} must implement {typeof(IDatabaseMapperMappings).Name} to copy the mappings.", nameof(inheritMapper));
 
@@ -200,7 +199,7 @@ namespace CoreEx.Database.Mapping
                 var pmap = (IPropertyColumnMapper)type
                     .GetMethod("Property", BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)!
                     .MakeGenericMethod(p.PropertyType)
-                    .Invoke(this, new object?[] { lex, p.ColumnName, p.ParameterName, p.OperationTypes })!;
+                    .Invoke(this, [lex, p.ColumnName, p.ParameterName, p.OperationTypes])!;
 
                 if (p.IsPrimaryKey)
                     pmap.SetPrimaryKey(p.IsPrimaryKeyGeneratedOnCreate);
@@ -219,7 +218,7 @@ namespace CoreEx.Database.Mapping
         /// <inheritdoc/>
         public void MapToDb(TSource? value, DatabaseParameterCollection parameters, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+            parameters.ThrowIfNull(nameof(parameters));
             if (value == null) return;
 
             foreach (var p in _mappings)
@@ -241,8 +240,7 @@ namespace CoreEx.Database.Mapping
         /// <inheritdoc/>
         public TSource? MapFromDb(DatabaseRecord record, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (record == null) throw new ArgumentNullException(nameof(record));
-
+            record.ThrowIfNull(nameof(record));
             var value = new TSource();
 
             foreach (var p in _mappings)
@@ -266,7 +264,7 @@ namespace CoreEx.Database.Mapping
         /// <inheritdoc/>
         void IDatabaseMapper<TSource>.MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, TSource? value)
         {
-            if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+            parameters.ThrowIfNull(nameof(parameters));
             if (value == null) return;
 
             foreach (var p in _mappings.Where(x => x.IsPrimaryKey))
@@ -289,8 +287,7 @@ namespace CoreEx.Database.Mapping
         /// <inheritdoc/>
         void IDatabaseMapper.MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, CompositeKey key)
         {
-            if (parameters == null) throw new ArgumentNullException(nameof(parameters));
-
+            parameters.ThrowIfNull(nameof(parameters));
             var pk = _mappings.Where(x => x.IsPrimaryKey).ToArray();
             if (key.Args == null || key.Args.Length != pk.Length)
                 throw new ArgumentException($"The number of keys supplied must equal the number of properties identified as {nameof(IPropertyColumnMapper.IsPrimaryKey)}.", nameof(key));

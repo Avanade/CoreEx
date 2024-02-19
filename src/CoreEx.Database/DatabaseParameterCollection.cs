@@ -13,20 +13,15 @@ namespace CoreEx.Database
     /// <summary>
     /// Provides a <see cref="DbParameter"/> collection used for a <see cref="DbCommand"/>.
     /// </summary>
-    public sealed class DatabaseParameterCollection : ICollection<DbParameter>, IDatabaseParameters<DatabaseParameterCollection>
+    /// <param name="database">The <see cref="IDatabase"/>.</param>
+    public sealed class DatabaseParameterCollection(IDatabase database) : ICollection<DbParameter>, IDatabaseParameters<DatabaseParameterCollection>
     {
-        private readonly List<DbParameter> _parameters = new();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DatabaseParameterCollection"/>.
-        /// </summary>
-        /// <param name="database">The <see cref="IDatabase"/>.</param>
-        public DatabaseParameterCollection(IDatabase database) => Database = database ?? throw new ArgumentNullException(nameof(database));
+        private readonly List<DbParameter> _parameters = [];
 
         /// <summary>
         /// Gets the underlying <see cref="IDatabase"/>.
         /// </summary>
-        public IDatabase Database { get; }
+        public IDatabase Database { get; } = database.ThrowIfNull(nameof(database));
 
         /// <inheritdoc/>
         DatabaseParameterCollection IDatabaseParameters<DatabaseParameterCollection>.Parameters => this;
@@ -129,7 +124,7 @@ namespace CoreEx.Database
         /// </summary>
         /// <param name="name">The parameter name.</param>
         /// <returns>The parameterized name.</returns>
-        public static string ParameterizeName(string name) => (name ?? throw new ArgumentNullException(nameof(name))).StartsWith('@') ? name : $"@{name}";
+        public static string ParameterizeName(string name) => name.ThrowIfNull(nameof(name)).StartsWith('@') ? name : $"@{name}";
 
         /// <summary>
         /// Gets or sets the <see cref="DbParameter"/> at the specified <paramref name="index"/>.

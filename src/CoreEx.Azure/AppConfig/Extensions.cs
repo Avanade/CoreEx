@@ -23,7 +23,7 @@ public static class Extensions
     public static IConfigurationBuilder AddAzureAppConfiguration(this IConfigurationBuilder builder, string connectionName = "AppConfigConnectionString", string? labelFilter = null, params string[] keyPrefixes)
     {
         // build configuration and get connection string to Azure App Configuration (this most likely will be environment variable set in app service)
-        var config = (builder ?? throw new ArgumentNullException(nameof(builder))).Build();
+        var config = builder.ThrowIfNull(nameof(builder)).Build();
         var accs = config.GetValue<string?>(connectionName);
 
         if (string.IsNullOrEmpty(accs))

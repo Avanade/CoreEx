@@ -53,8 +53,7 @@ namespace CoreEx.Validation.Rules
         /// <param name="compareToText">The compare text <see cref="LText"/> to be passed for the error message.</param>
         protected void CreateErrorMessage(PropertyContext<TEntity, TProperty> context, LText compareToText)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
+            context.ThrowIfNull(nameof(context));
 
             switch (Operator)
             {

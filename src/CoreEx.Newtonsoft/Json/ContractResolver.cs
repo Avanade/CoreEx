@@ -66,7 +66,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
         public ContractResolver AddType(Type type)
         {
-            (_typeDict ??= new HashSet<Type>()).Add(type);
+            (_typeDict ??= []).Add(type);
             return this;
         }
 
@@ -78,8 +78,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
         public ContractResolver AddRename(Type type, IDictionary<string, string> pairs)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
+            type.ThrowIfNull(nameof(type));
 
             if (pairs != null)
             {
@@ -101,14 +100,9 @@ namespace CoreEx.Newtonsoft.Json
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
         public ContractResolver AddRename(Type type, string propertyName, string jsonName)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-
-            if (string.IsNullOrEmpty(propertyName))
-                throw new ArgumentNullException(nameof(propertyName));
-
-            if (string.IsNullOrEmpty(jsonName))
-                throw new ArgumentNullException(nameof(jsonName));
+            type.ThrowIfNull(nameof(type));
+            propertyName.ThrowIfNullOrEmpty(nameof(propertyName));
+            jsonName.ThrowIfNullOrEmpty(nameof(jsonName));
 
             if (propertyName == jsonName)
                 return this;
@@ -126,8 +120,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <returns>The <see cref="ContractResolver"/> instance to support fluent-style method-chaining.</returns>
         public ContractResolver AddIgnore(Type type, params string[] propertyNames)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
+            type.ThrowIfNull(nameof(type));
 
             if (propertyNames == null || propertyNames.Length == 0)
                 return this;

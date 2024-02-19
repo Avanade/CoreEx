@@ -20,13 +20,13 @@ namespace CoreEx.Validation.Rules
         /// Initializes a new instance of the <see cref="DuplicateRule{TEntity, TProperty}"/> class with a <paramref name="predicate"/>.
         /// </summary>
         /// <param name="predicate">The must predicate.</param>
-        public DuplicateRule(Predicate<TEntity> predicate) => _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        public DuplicateRule(Predicate<TEntity> predicate) => _predicate = predicate.ThrowIfNull(nameof(predicate));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DuplicateRule{TEntity, TProperty}"/> class with a <paramref name="duplicate"/> function.
         /// </summary>
         /// <param name="duplicate">The duplicate function.</param>
-        public DuplicateRule(Func<bool> duplicate) => _duplicate = duplicate ?? throw new ArgumentNullException(nameof(duplicate));
+        public DuplicateRule(Func<bool> duplicate) => _duplicate = duplicate.ThrowIfNull(nameof(duplicate));
 
         /// <inheritdoc/>
         protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)

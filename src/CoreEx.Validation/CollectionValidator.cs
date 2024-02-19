@@ -67,8 +67,7 @@ namespace CoreEx.Validation
         /// <inheritdoc/>
         public override Task<ValidationContext<TColl>> ValidateAsync(TColl? value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            value.ThrowIfNull(nameof(value));
 
             return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
@@ -109,13 +108,13 @@ namespace CoreEx.Validation
 
                 var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? PropertyExpression.ConvertToSentenceCase(Validation.ValueNameDefault)!);
                 if (hasNullItem)
-                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.CollectionNullItemFormat, new object?[] { text.Value, null });
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.CollectionNullItemFormat, [text.Value, null]);
 
                 // Check the length/count.
                 if (i < MinCount)
-                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MinCountFormat, new object?[] { text.Value, null, MinCount });
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MinCountFormat, [text.Value, null, MinCount]);
                 else if (MaxCount.HasValue && i > MaxCount.Value)
-                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MaxCountFormat, new object?[] { text.Value, null, MaxCount });
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MaxCountFormat, [text.Value, null, MaxCount]);
 
                 // Check for duplicates.
                 if (!hasItemErrors && Item != null)
@@ -153,7 +152,7 @@ namespace CoreEx.Validation
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a CollectionValidator.");
 
-            _additionalAsync = additionalAsync ?? throw new ArgumentNullException(nameof(additionalAsync));
+            _additionalAsync = additionalAsync.ThrowIfNull(nameof(additionalAsync));
             return this;
         }
     }

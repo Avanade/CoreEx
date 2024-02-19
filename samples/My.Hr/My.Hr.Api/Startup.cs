@@ -4,8 +4,8 @@ using CoreEx.DataBase.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
-using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Trace;
+using Az = Azure.Messaging.ServiceBus;
 
 namespace My.Hr.Api;
 
@@ -28,9 +28,9 @@ public class Startup
             .AddEventDataSerializer()
             .AddEventDataFormatter()
             .AddEventPublisher()
+            .AddSingleton(sp => new Az.ServiceBusClient(sp.GetRequiredService<HrSettings>().ServiceBusConnection__fullyQualifiedNamespace))
             .AddAzureServiceBusSender()
             .AddAzureServiceBusPurger()
-            .AddAzureServiceBusClient(connectionName: nameof(HrSettings.ServiceBusConnection), configure: (o, sp) => o.RetryOptions.MaxRetries = 3)
             .AddJsonMergePatch()
             .AddWebApi((_, c) => c.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? WebApiBase.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
             .AddReferenceDataContentWebApi()

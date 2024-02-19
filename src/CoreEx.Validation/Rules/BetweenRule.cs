@@ -54,10 +54,10 @@ namespace CoreEx.Validation.Rules
         /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
         public BetweenRule(Func<TEntity, TProperty> compareFromValueFunction, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false)
         {
-            _compareFromValueFunction = compareFromValueFunction ?? throw new ArgumentNullException(nameof(compareFromValueFunction));
+            _compareFromValueFunction = compareFromValueFunction.ThrowIfNull(nameof(compareFromValueFunction));
             _compareFromTextFunction = compareFromTextFunction;
             _compareFromValue = default!;
-            _compareToValueFunction = compareToValueFunction ?? throw new ArgumentNullException(nameof(compareToValueFunction));
+            _compareToValueFunction = compareToValueFunction.ThrowIfNull(nameof(compareToValueFunction));
             _compareToTextFunction = compareToTextFunction;
             _compareToValue = default!;
             _exclusiveBetween = exclusiveBetween;
@@ -73,10 +73,10 @@ namespace CoreEx.Validation.Rules
         /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
         public BetweenRule(Func<TEntity, CancellationToken, Task<TProperty>> compareFromValueFunctionAsync, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false)
         {
-            _compareFromValueFunctionAsync = compareFromValueFunctionAsync ?? throw new ArgumentNullException(nameof(compareFromValueFunctionAsync));
+            _compareFromValueFunctionAsync = compareFromValueFunctionAsync.ThrowIfNull(nameof(compareFromValueFunctionAsync));
             _compareFromTextFunction = compareFromTextFunction;
             _compareFromValue = default!;
-            _compareToValueFunctionAsync = compareToValueFunctionAsync ?? throw new ArgumentNullException(nameof(compareToValueFunctionAsync));
+            _compareToValueFunctionAsync = compareToValueFunctionAsync.ThrowIfNull(nameof(compareToValueFunctionAsync));
             _compareToTextFunction = compareToTextFunction;
             _compareToValue = default!;
             _exclusiveBetween = exclusiveBetween;

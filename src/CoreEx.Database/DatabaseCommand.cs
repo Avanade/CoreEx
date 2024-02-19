@@ -16,39 +16,28 @@ namespace CoreEx.Database
     /// Provides extended database command capabilities.
     /// </summary>
     /// <remarks>As the underlying <see cref="DbCommand"/> implements <see cref="IDisposable"/> this is only created (and automatically disposed) where executing the command proper.</remarks>
-    public sealed class DatabaseCommand : IDatabaseParameters<DatabaseCommand>
+    /// <param name="db">The <see cref="IDatabase"/>.</param>
+    /// <param name="commandType">The <see cref="System.Data.CommandType"/>.</param>
+    /// <param name="commandText">The command text.</param>
+    public sealed class DatabaseCommand(IDatabase db, CommandType commandType, string commandText) : IDatabaseParameters<DatabaseCommand>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DatabaseCommand"/> class.
-        /// </summary>
-        /// <param name="db">The <see cref="IDatabase"/>.</param>
-        /// <param name="commandType">The <see cref="System.Data.CommandType"/>.</param>
-        /// <param name="commandText">The command text.</param>
-        public DatabaseCommand(IDatabase db, CommandType commandType, string commandText)
-        {
-            Database = db ?? throw new ArgumentNullException(nameof(db));
-            Parameters = new DatabaseParameterCollection(db);
-            CommandType = commandType;
-            CommandText = commandText ?? throw new ArgumentNullException(nameof(commandText));
-        }
-
         /// <summary>
         /// Gets the underlying <see cref="IDatabase"/>.
         /// </summary>
-        public IDatabase Database { get; }
+        public IDatabase Database { get; } = db.ThrowIfNull(nameof(db));
 
         /// <inheritdoc/>
-        public DatabaseParameterCollection Parameters { get; }
+        public DatabaseParameterCollection Parameters { get; } = new DatabaseParameterCollection(db);
 
         /// <summary>
         /// Gets the <see cref="System.Data.CommandType"/>.
         /// </summary>
-        public CommandType CommandType { get; }
+        public CommandType CommandType { get; } = commandType;
 
         /// <summary>
         /// Gets the command text.
         /// </summary>
-        public string CommandText { get; }
+        public string CommandText { get; } = commandText.ThrowIfNull(nameof(commandText));
 
         /// <summary>
         /// Creates the corresponding <see cref="DbCommand"/>.
@@ -572,8 +561,7 @@ namespace CoreEx.Database
         /// </summary>
         private async Task<Result> SelectInternalAsync<T, TColl>(TColl coll, IDatabaseMapper<T> mapper, bool throwWhereMulti, bool stopAfterOneRow, string memberName, CancellationToken cancellationToken) where TColl : ICollection<T>
         {
-            if (mapper == null)
-                throw new ArgumentNullException(nameof(mapper));
+            mapper.ThrowIfNull(nameof(mapper));
 
             return await Database.Invoker.InvokeAsync(Database, mapper, throwWhereMulti, stopAfterOneRow, async (_, mapper, throwWhereMulti, stopAfterOneRow, ct) =>
             {

@@ -27,7 +27,7 @@ namespace CoreEx.Database
         /// Gets the default list of characters that are to be escaped.
         /// </summary>
         /// <remarks>See <see href="https://docs.microsoft.com/en-us/sql/t-sql/language-elements/like-transact-sql"/> for more detail on escape characters.</remarks>
-        public static readonly char[] DefaultCharactersToEscape = { '%', '_', '[' };
+        public static readonly char[] DefaultCharactersToEscape = ['%', '_', '['];
 
         /// <summary>
         /// Gets the default escaping format string when one of the <see cref="CharactersToEscape"/> is found.

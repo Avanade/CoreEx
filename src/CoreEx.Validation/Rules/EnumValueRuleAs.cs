@@ -9,15 +9,10 @@ namespace CoreEx.Validation.Rules
     /// Provides a means to add an <see cref="EnumValueRule{TEntity, TEnum}"/> <see cref="As"/> a specified <see cref="Enum"/> <see cref="Type"/>.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    public class EnumValueRuleAs<TEntity> where TEntity : class
+    /// <param name="parent">The parent <see cref="IPropertyRule{TEntity, TProperty}"/>.</param>
+    public class EnumValueRuleAs<TEntity>(IPropertyRule<TEntity, string> parent) where TEntity : class
     {
-        private readonly IPropertyRule<TEntity, string> _parent;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EnumValueRuleAs{TEntity}"/> class.
-        /// </summary>
-        /// <param name="parent">The parent <see cref="IPropertyRule{TEntity, TProperty}"/>.</param>
-        public EnumValueRuleAs(IPropertyRule<TEntity, string> parent) => _parent = parent ?? throw new ArgumentNullException(nameof(parent));
+        private readonly IPropertyRule<TEntity, string> _parent = parent.ThrowIfNull(nameof(parent));
 
         /// <summary>
         /// Adds an <see cref="EntityRule{TEntity, TProperty, TValidator}"/> using a validator <see cref="As"/> a specified <typeparamref name="TEnum"/>.

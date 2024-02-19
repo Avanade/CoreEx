@@ -8,15 +8,10 @@ namespace CoreEx.Database
     /// <summary>
     /// Provides a per <see cref="DatabaseRecord"/> mapper that simulates a <see cref="IDatabaseMapper{T}.MapFromDb(DatabaseRecord, OperationTypes)"/> by invoking the function passed into the constructor.
     /// </summary>
-    internal class DatabaseRecordMapper<T> : IDatabaseMapper<T>
+    /// <param name="func">The <see cref="DatabaseRecord"/> mapping function.</param>
+    internal class DatabaseRecordMapper<T>(Func<DatabaseRecord, T> func) : IDatabaseMapper<T>
     {
-        private readonly Func<DatabaseRecord, T> _func;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DatabaseRecordMapper{T}"/> class.
-        /// </summary>
-        /// <param name="func">The <see cref="DatabaseRecord"/> mapping function.</param>
-        public DatabaseRecordMapper(Func<DatabaseRecord, T> func) => _func = func ?? throw new ArgumentNullException(nameof(func));
+        private readonly Func<DatabaseRecord, T> _func = func.ThrowIfNull(nameof(func));
 
         /// <inheritdoc/>
         T? IDatabaseMapper<T>.MapFromDb(DatabaseRecord record, OperationTypes operationType) => _func(record);

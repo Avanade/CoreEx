@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0;net8.0;netstandard2.1</TargetFrameworks>
+    <RootNamespace>CoreEx.Database.Postgres</RootNamespace>
+    <Product>CoreEx</Product>
+    <Title>CoreEx .NET Postgres Database extras.</Title>
+    <Description>CoreEx .NET Postgres Database extras.</Description>
+    <PackageTags>coreex db database sql postgres ado.net relational</PackageTags>
+  </PropertyGroup>
+
+  <Import Project="..\..\Common.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
+  </ItemGroup>
+
+</Project>

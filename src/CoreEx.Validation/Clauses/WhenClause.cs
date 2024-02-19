@@ -19,19 +19,19 @@ namespace CoreEx.Validation.Clauses
         /// Initializes a new instance of the <see cref="WhenClause{TEntity, TProperty}"/> class with a <paramref name="predicate"/> being passed the <typeparamref name="TEntity"/>.
         /// </summary>
         /// <param name="predicate">The when predicate.</param>
-        public WhenClause(Predicate<TEntity> predicate) => _entityPredicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        public WhenClause(Predicate<TEntity> predicate) => _entityPredicate = predicate.ThrowIfNull(nameof(predicate));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WhenClause{TEntity, TProperty}"/> class with a <paramref name="when"/> function.
         /// </summary>
         /// <param name="when">The when function.</param>
-        public WhenClause(Func<bool> when) => _when = when ?? throw new ArgumentNullException(nameof(when));
+        public WhenClause(Func<bool> when) => _when = when.ThrowIfNull(nameof(when));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WhenClause{TEntity, TProperty}"/> class with a <paramref name="predicate"/> being passed the <typeparamref name="TProperty"/>.
         /// </summary>
         /// <param name="predicate">The when predicate.</param>
-        public WhenClause(Predicate<TProperty> predicate) => _propertyPredicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        public WhenClause(Predicate<TProperty> predicate) => _propertyPredicate = predicate.ThrowIfNull(nameof(predicate));
 
         /// <summary>
         /// Checks the clause.
@@ -40,8 +40,7 @@ namespace CoreEx.Validation.Clauses
         /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
         public bool Check(IPropertyContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
+            context.ThrowIfNull(nameof(context));
 
             return _when != null ? _when.Invoke()
                 : _entityPredicate != null ? _entityPredicate.Invoke((TEntity)context.Parent.Value!)

@@ -21,19 +21,19 @@ namespace CoreEx.Validation.Rules
         /// Initializes a new instance of the <see cref="ImmutableRule{TEntity, TProperty}"/> class with a <paramref name="predicate"/>.
         /// </summary>
         /// <param name="predicate">The must predicate.</param>
-        public ImmutableRule(Predicate<TEntity> predicate) => _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        public ImmutableRule(Predicate<TEntity> predicate) => _predicate = predicate.ThrowIfNull(nameof(predicate));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImmutableRule{TEntity, TProperty}"/> class with an <paramref name="immutable"/> function.
         /// </summary>
         /// <param name="immutable">The immutable function.</param>
-        public ImmutableRule(Func<bool> immutable) => _immutable = immutable ?? throw new ArgumentNullException(nameof(immutable));
+        public ImmutableRule(Func<bool> immutable) => _immutable = immutable.ThrowIfNull(nameof(immutable));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImmutableRule{TEntity, TProperty}"/> class with an <paramref name="immutableAsync"/> function.
         /// </summary>
         /// <param name="immutableAsync">The immutable function.</param>
-        public ImmutableRule(Func<CancellationToken, Task<bool>> immutableAsync) => _immutableAsync = immutableAsync ?? throw new ArgumentNullException(nameof(immutableAsync));
+        public ImmutableRule(Func<CancellationToken, Task<bool>> immutableAsync) => _immutableAsync = immutableAsync.ThrowIfNull(nameof(immutableAsync));
 
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)

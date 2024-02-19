@@ -34,7 +34,7 @@ namespace CoreEx.OData
         /// <summary>
         /// Gets the owning <see cref="ODataClient"/>.
         /// </summary>
-        public ODataClient Owner { get; } = client ?? throw new ArgumentNullException(nameof(client));
+        public ODataClient Owner { get; } = client.ThrowIfNull(nameof(client));
 
         /// <summary>
         /// Gets the <see cref="ODataArgs"/>.
@@ -44,12 +44,12 @@ namespace CoreEx.OData
         /// <summary>
         /// Gets the collection name.
         /// </summary>
-        public string CollectionName { get; } = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
+        public string CollectionName { get; } = collectionName.ThrowIfNull(nameof(collectionName));
 
         /// <summary>
         /// Gets the <see cref="IODataMapper{TSource}"/>.
         /// </summary>
-        public IODataMapper<T> Mapper { get; } = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        public IODataMapper<T> Mapper { get; } = mapper.ThrowIfNull(nameof(mapper));
 
         /// <summary>
         /// Gets the entity for the specified <paramref name="key"/> mapping from the <see cref="ODataItem"/> to <typeparamref name="T"/>.

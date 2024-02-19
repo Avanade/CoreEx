@@ -21,30 +21,21 @@ namespace CoreEx.Database.SqlServer.Outbox
     /// <see cref="IEventSender"/> can be specified using <see cref="SetPrimaryEventSender(IEventSender)"/>. This will then be used to send the events immediately, and where successful, they will be audited in the database as dequeued 
     /// event(s); versus on error (as a backup), where they will be enqueued for the out-of-process dequeue and send (as per default). Note: the challenge this primary sender introduces is in-order publishing; there is no means to guarantee order for the 
     /// events that are processed on error.</para></remarks>
-    public abstract class EventOutboxEnqueueBase : IEventSender
+    /// <param name="database">The <see cref="IDatabase"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    public abstract class EventOutboxEnqueueBase(IDatabase database, ILogger<EventOutboxEnqueueBase> logger) : IEventSender
     {
         private IEventSender? _eventSender;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventOutboxEnqueueBase"/> class.
-        /// </summary>
-        /// <param name="database">The <see cref="IDatabase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public EventOutboxEnqueueBase(IDatabase database, ILogger<EventOutboxEnqueueBase> logger)
-        {
-            Database = database ?? throw new ArgumentNullException(nameof(database));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
-
-        /// <summary>
         /// Gets the <see cref="IDatabase"/>.
         /// </summary>
-        protected IDatabase Database { get; }
+        protected IDatabase Database { get; } = database.ThrowIfNull(nameof(database));
 
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
-        protected ILogger Logger { get; }
+        protected ILogger Logger { get; } = logger.ThrowIfNull(nameof(logger));
 
         /// <summary>
         /// Gets the database type name for the <see cref="TableValuedParameter"/>.

@@ -18,15 +18,10 @@ namespace CoreEx.Validation
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public sealed class ValueValidatorResult<TEntity, TProperty> : IValueValidatorResult<TEntity, TProperty> where TEntity : class
+    /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
+    public sealed class ValueValidatorResult<TEntity, TProperty>(PropertyContext<TEntity, TProperty> context) : IValueValidatorResult<TEntity, TProperty> where TEntity : class
     {
-        private readonly PropertyContext<TEntity, TProperty> _context;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ValueValidatorResult{TEntity, TProperty}"/> class.
-        /// </summary>
-        /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
-        public ValueValidatorResult(PropertyContext<TEntity, TProperty> context) => _context = context ?? throw new ArgumentNullException(nameof(context));
+        private readonly PropertyContext<TEntity, TProperty> _context = context.ThrowIfNull(nameof(context));
 
         /// <inheritdoc/>
         public TProperty? Value => _context.Value;

@@ -82,10 +82,7 @@ namespace CoreEx.Validation
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         internal async Task ValidateAsync<TEntity>(PropertyContext<TEntity, T> context, CancellationToken cancellationToken) where TEntity : class
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            var vv = new ValidationValue<T>(context.Parent.Value, context.Value);
+            var vv = new ValidationValue<T>(context.ThrowIfNull(nameof(context)).Parent.Value, context.Value);
             var vc = new ValidationContext<ValidationValue<T>>(vv, new ValidationArgs
             {
                 Config = context.Parent.Config,
@@ -127,7 +124,7 @@ namespace CoreEx.Validation
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a Validator.");
 
-            _additionalAsync = additionalAsync ?? throw new ArgumentNullException(nameof(additionalAsync));
+            _additionalAsync = additionalAsync.ThrowIfNull(nameof(additionalAsync));
             return this;
         }
 

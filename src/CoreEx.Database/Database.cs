@@ -18,41 +18,30 @@ namespace CoreEx.Database
     /// Provides the common/base database access functionality.
     /// </summary>
     /// <typeparam name="TConnection">The <see cref="DbConnection"/> <see cref="Type"/>.</typeparam>
-    public class Database<TConnection> : IDatabase where TConnection : DbConnection
+    /// <param name="create">The function to create the <typeparamref name="TConnection"/> <see cref="DbConnection"/>.</param>
+    /// <param name="provider">The underlying <see cref="DbProviderFactory"/>.</param>
+    /// <param name="logger">The optional <see cref="ILogger"/>.</param>
+    /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
+    public class Database<TConnection>(Func<TConnection> create, DbProviderFactory provider, ILogger<Database<TConnection>>? logger = null, DatabaseInvoker? invoker = null) : IDatabase where TConnection : DbConnection
     {
         private static readonly DatabaseColumns _defaultColumns = new();
         private static readonly DatabaseWildcard _defaultWildcard = new();
         private static DatabaseInvoker? _invoker;
 
-        private readonly Func<TConnection> _dbConnCreate;
+        private readonly Func<TConnection> _dbConnCreate = create.ThrowIfNull(nameof(create));
         private TConnection? _dbConn;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Database{TConn}"/> class.
-        /// </summary>
-        /// <param name="create">The function to create the <typeparamref name="TConnection"/> <see cref="DbConnection"/>.</param>
-        /// <param name="provider">The underlying <see cref="DbProviderFactory"/>.</param>
-        /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-        /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
-        public Database(Func<TConnection> create, DbProviderFactory provider, ILogger<Database<TConnection>>? logger = null, DatabaseInvoker? invoker = null)
-        {
-            _dbConnCreate = create ?? throw new ArgumentNullException(nameof(create));
-            Provider = provider ?? throw new ArgumentNullException(nameof(provider));
-            Logger = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection>>>();
-            Invoker = invoker ?? (_invoker ??= new DatabaseInvoker());
-        }
-
         /// <inheritdoc/>
-        public DbProviderFactory Provider { get; }
+        public DbProviderFactory Provider { get; } = provider.ThrowIfNull(nameof(provider));
 
         /// <inheritdoc/>
         public Guid DatabaseId { get; } = Guid.NewGuid();
 
         /// <inheritdoc/>
-        public ILogger? Logger { get; }
+        public ILogger? Logger { get; } = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection>>>();
 
         /// <inheritdoc/>
-        public DatabaseInvoker Invoker { get; }
+        public DatabaseInvoker Invoker { get; } = invoker ?? (_invoker ??= new DatabaseInvoker());
 
         /// <inheritdoc/>
         public DatabaseArgs DbArgs { get; set; } = new DatabaseArgs();
@@ -119,11 +108,11 @@ namespace CoreEx.Database
 
         /// <inheritdoc/>
         public DatabaseCommand StoredProcedure(string storedProcedure)
-            => new(this, CommandType.StoredProcedure, storedProcedure ?? throw new ArgumentNullException(nameof(storedProcedure)));
+            => new(this, CommandType.StoredProcedure, storedProcedure.ThrowIfNull(nameof(storedProcedure)));
 
         /// <inheritdoc/>
         public DatabaseCommand SqlStatement(string sqlStatement)
-            => new(this, CommandType.Text, sqlStatement ?? throw new ArgumentNullException(nameof(sqlStatement)));
+            => new(this, CommandType.Text, sqlStatement.ThrowIfNull(nameof(sqlStatement)));
 
         /// <inheritdoc/>
         public DatabaseCommand SqlFromResource(string resourceName, Assembly? assembly = null)

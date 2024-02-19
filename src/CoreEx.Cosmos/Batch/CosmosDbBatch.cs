@@ -37,12 +37,12 @@ namespace CoreEx.Cosmos.Batch
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static async Task ImportBatchAsync<TModel>(this ICosmosDb cosmosDb, string containerId, IEnumerable<TModel> items, Func<TModel, TModel>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier<string>
         {
-            var container = (cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb))).Database.GetContainer(containerId ?? throw new ArgumentNullException(nameof(containerId)));
+            var container = cosmosDb.ThrowIfNull(nameof(cosmosDb)).Database.GetContainer(containerId.ThrowIfNull(nameof(containerId)));
 
             if (items == null)
                 return;
 
-            List<Task> tasks = new();
+            List<Task> tasks = [];
             foreach (var item in items)
             {
                 if (SequentialExecution)
@@ -83,8 +83,8 @@ namespace CoreEx.Cosmos.Batch
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static async Task<bool> ImportBatchAsync<TModel>(this ICosmosDb cosmosDb, string containerId, JsonDataReader jsonDataReader, string? name = null, Func<TModel, TModel>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier<string>, new()
         {
-            var container = (cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb))).Database.GetContainer(containerId ?? throw new ArgumentNullException(nameof(containerId)));
-            if (!(jsonDataReader ?? throw new ArgumentNullException(nameof(jsonDataReader))).TryDeserialize<TModel>(name, out var items))
+            var container = cosmosDb.ThrowIfNull(nameof(cosmosDb)).Database.GetContainer(containerId.ThrowIfNull(nameof(containerId)));
+            if (!jsonDataReader.ThrowIfNull(nameof(jsonDataReader)).TryDeserialize<TModel>(name, out var items))
                 return false;
 
             await ImportBatchAsync(cosmosDb, containerId, items, modelUpdater, requestOptions, cancellationToken).ConfigureAwait(false);
@@ -120,12 +120,12 @@ namespace CoreEx.Cosmos.Batch
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static async Task ImportValueBatchAsync<TModel>(this ICosmosDb cosmosDb, string containerId, IEnumerable<TModel> items, Func<CosmosDbValue<TModel>, CosmosDbValue<TModel>>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier, new()
         {
-            var container = (cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb))).Database.GetContainer(containerId ?? throw new ArgumentNullException(nameof(containerId)));
+            var container = cosmosDb.ThrowIfNull(nameof(cosmosDb)).Database.GetContainer(containerId.ThrowIfNull(nameof(containerId)));
 
             if (items == null)
                 return;
 
-            List<Task> tasks = new();
+            List<Task> tasks = [];
             foreach (var item in items)
             {
                 var cdv = new CosmosDbValue<TModel>(item);
@@ -169,8 +169,8 @@ namespace CoreEx.Cosmos.Batch
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static async Task<bool> ImportValueBatchAsync<TModel>(this ICosmosDb cosmosDb, string containerId, JsonDataReader jsonDataReader, string? name = null, Func<CosmosDbValue<TModel>, CosmosDbValue<TModel>>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) where TModel : class, IIdentifier, new()
         {
-            var container = (cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb))).Database.GetContainer(containerId ?? throw new ArgumentNullException(nameof(containerId)));
-            if (!(jsonDataReader ?? throw new ArgumentNullException(nameof(jsonDataReader))).TryDeserialize<TModel>(name, out var items))
+            var container = cosmosDb.ThrowIfNull(nameof(cosmosDb)).Database.GetContainer(containerId.ThrowIfNull(nameof(containerId)));
+            if (!jsonDataReader.ThrowIfNull(nameof(jsonDataReader)).TryDeserialize<TModel>(name, out var items))
                 return false;
 
             await ImportValueBatchAsync(cosmosDb, containerId, items, modelUpdater, requestOptions, cancellationToken).ConfigureAwait(false);
@@ -207,11 +207,10 @@ namespace CoreEx.Cosmos.Batch
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static async Task<bool> ImportValueBatchAsync(this ICosmosDb cosmosDb, string containerId, JsonDataReader jsonDataReader, IEnumerable<Type> types, Func<object, object>? modelUpdater = null, ItemRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
-            var container = (cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb))).Database.GetContainer(containerId ?? throw new ArgumentNullException(nameof(containerId)));
-            var tasks = new List<Task>();
+            var container = cosmosDb.ThrowIfNull(nameof(cosmosDb)).Database.GetContainer(containerId.ThrowIfNull(nameof(containerId)));
+            jsonDataReader.ThrowIfNull(nameof(jsonDataReader));
 
-            if (jsonDataReader == null)
-                throw new ArgumentNullException(nameof(jsonDataReader));
+            var tasks = new List<Task>();
 
             foreach (var type in types)
             {

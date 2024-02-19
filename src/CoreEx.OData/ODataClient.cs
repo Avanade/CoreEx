@@ -133,7 +133,7 @@ namespace CoreEx.OData
         /// <param name="odex">The <see cref="Soc.WebRequestException"/>.</param>
         /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
         /// <remarks>Where overridding and the <see cref="Soc.WebRequestException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</remarks>
-        protected virtual Result? OnCosmosException(Soc.WebRequestException odex) => odex == null ? throw new ArgumentNullException(nameof(odex)) : odex.Code switch
+        protected virtual Result? OnCosmosException(Soc.WebRequestException odex) => odex.ThrowIfNull(nameof(odex)).Code switch
         {
             HttpStatusCode.NotFound => Result.Fail(new NotFoundException(null, odex)),
             HttpStatusCode.Conflict => Result.Fail(new DuplicateException(null, odex)),

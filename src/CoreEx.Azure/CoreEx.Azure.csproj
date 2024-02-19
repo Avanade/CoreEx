@@ -4,8 +4,8 @@
     <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     <RootNamespace>CoreEx.Azure</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Standard Azure Extensions.</Title>
-    <Description>CoreEx .NET Standard (v2.1) Azure Extensions.</Description>
+    <Title>CoreEx .NET Azure Extensions.</Title>
+    <Description>CoreEx .NET Azure Extensions.</Description>
     <PackageTags>coreex api function aspnet azure servicebus</PackageTags>
   </PropertyGroup>
 

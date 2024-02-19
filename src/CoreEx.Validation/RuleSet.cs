@@ -16,7 +16,7 @@ namespace CoreEx.Validation
         /// Initializes a new instance of the <see cref="RuleSet{TEntity}"/> class to be invoked where the predicate is true.
         /// </summary>
         /// <param name="predicate">A function to determine whether the <see cref="RuleSet{TEntity}"/> is to be validated.</param>
-        internal RuleSet(Predicate<ValidationContext<TEntity>> predicate) => Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        internal RuleSet(Predicate<ValidationContext<TEntity>> predicate) => Predicate = predicate.ThrowIfNull(nameof(predicate));
 
         /// <summary>
         /// Gets the function to determine whether the <see cref="RuleSet{TEntity}"/> is to be validated.

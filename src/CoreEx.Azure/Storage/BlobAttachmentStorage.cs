@@ -14,15 +14,10 @@ namespace CoreEx.Azure.Storage
     /// Provides the reading and writing of a <see cref="EventData.Value"/> attachment that exceeds the <see cref="MaxDataSize"/> as identified by a corresponding <see cref="EventAttachment"/> within 
     /// <see href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction">Azure Blob Storage</see>.
     /// </summary>
-    public class BlobAttachmentStorage : IAttachmentStorage
+    /// <param name="blobContainerClient">The <see cref="BlobContainerClient"/>.</param>
+    public class BlobAttachmentStorage(BlobContainerClient blobContainerClient) : IAttachmentStorage
     {
-        private readonly BlobContainerClient _blobContainerClient;
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="BlobAttachmentStorage"/> class.
-        /// </summary>
-        /// <param name="blobContainerClient">The <see cref="BlobContainerClient"/>.</param>
-        public BlobAttachmentStorage(BlobContainerClient blobContainerClient) => _blobContainerClient = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
+        private readonly BlobContainerClient _blobContainerClient = blobContainerClient.ThrowIfNull(nameof(blobContainerClient));
 
         /// <inheritdoc/>
         public int MaxDataSize { get; set; }

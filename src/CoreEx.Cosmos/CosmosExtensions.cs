@@ -22,11 +22,8 @@ namespace CoreEx.Cosmos
         /// <returns>The <see cref="ContainerResponse"/>.</returns>
         public static Task<ContainerResponse> DeleteContainerAsync(this Database database, string containerId, ContainerRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
-            if (database == null)
-                throw new ArgumentNullException(nameof(database));
-
-            if (containerId == null)
-                throw new ArgumentNullException(nameof(containerId));
+            database.ThrowIfNull(nameof(database));
+            containerId.ThrowIfNull(nameof(containerId));
 
             var container = database.GetContainer(containerId);
             return container.DeleteContainerAsync(requestOptions, cancellationToken);
@@ -43,11 +40,8 @@ namespace CoreEx.Cosmos
         /// <returns>The <see cref="Container"/>.</returns>
         public static async Task<Container> ReplaceOrCreateContainerAsync(this Database database, ContainerProperties containerProperties, int? throughput = null, RequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
-            if (database == null)
-                throw new ArgumentNullException(nameof(database));
-
-            if (containerProperties == null)
-                throw new ArgumentNullException(nameof(containerProperties));
+            database.ThrowIfNull(nameof(database));
+            containerProperties.ThrowIfNull(nameof(containerProperties));
 
             try
             {

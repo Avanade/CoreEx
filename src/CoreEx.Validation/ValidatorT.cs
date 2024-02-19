@@ -100,11 +100,10 @@ namespace CoreEx.Validation
         /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
         public Validator<TEntity> IncludeBase<TInclude>(IValidatorEx<TInclude> include) where TInclude : class
         {
-            if (include == null)
-                throw new ArgumentNullException(nameof(include));
+            include.ThrowIfNull(nameof(include));
 
             if (!typeof(TEntity).GetTypeInfo().IsSubclassOf(typeof(TInclude)))
-                throw new ArgumentException($"Type {typeof(TEntity).Name} must inherit from {typeof(TInclude).Name}.");
+                throw new ArgumentException($"Type {typeof(TEntity).Name} must inherit from {typeof(TInclude).Name}.", nameof(include));
 
             if (_currentRuleSet == null)
                 base.Rules.Add(new IncludeBaseRule<TEntity, TInclude>(include));
@@ -131,7 +130,7 @@ namespace CoreEx.Validation
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a Validator.");
 
-            _additionalAsync = additionalAsync ?? throw new ArgumentNullException(nameof(additionalAsync));
+            _additionalAsync = additionalAsync.ThrowIfNull(nameof(additionalAsync));
             return this;
         }
 
@@ -143,11 +142,8 @@ namespace CoreEx.Validation
         /// <returns>The <see cref="RuleSet{TEntity}"/>.</returns>
         public RuleSet<TEntity> RuleSet(Predicate<ValidationContext<TEntity>> predicate, Action action)
         {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
+            predicate.ThrowIfNull(nameof(predicate));
+            action.ThrowIfNull(nameof(action));
 
             return SetRuleSet(new RuleSet<TEntity>(predicate), (v) => action());
         }
@@ -160,11 +156,8 @@ namespace CoreEx.Validation
         /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
         public Validator<TEntity> HasRuleSet(Predicate<ValidationContext<TEntity>> predicate, Action<Validator<TEntity>> action)
         {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
+            predicate.ThrowIfNull(nameof(predicate));
+            action.ThrowIfNull(nameof(action));
 
             SetRuleSet(new RuleSet<TEntity>(predicate), action);
             return this;

@@ -89,6 +89,7 @@ namespace CoreEx.Invokers
         /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
         /// <param name="result">The result value.</param>
         /// <returns>The <paramref name="result"/>.</returns>
+        /// <remarks>Where the <typeparamref name="TResult"/> is a <see cref="Result"/> then the underlying <see cref="Result.Success"/> or <see cref="Result.Error"/> will be recorded accordingly.</remarks>
         public TResult TraceResult<TResult>(TResult result)
         {
             if (Activity is not null)
@@ -105,9 +106,24 @@ namespace CoreEx.Invokers
         }
 
         /// <summary>
-        /// Completes the <see cref="Activity"/> (where started).
+        /// Completes the <see cref="Activity"/> tracing (where started) recording the <see cref="InvokerResult"/> with the <see cref="ExceptionState"/> and capturing the corresponding <see cref="Exception.Message"/>.
         /// </summary>
-        public readonly void Complete()
+        /// <param name="ex">The <see cref="System.Exception"/>.</param>
+        public void TraceException(Exception ex) 
+        {
+            if (Activity is not null && ex is not null)
+            {
+                Activity.SetTag(InvokerResult, ExceptionState);
+                Activity.SetTag(InvokerFailure, $"{ex.Message} [{ex.GetType().Name}]");
+                _isComplete = true;
+            }
+        }
+
+        /// <summary>
+        /// Completes (stops) the <see cref="Activity"/> tracing (where started).
+        /// </summary>
+        /// <remarks>Where not previously recorded as complete will set the <see cref="InvokerResult"/> to <see cref="ExceptionState"/>.</remarks>
+        public readonly void TraceComplete()
         {
             if (Activity is not null)
             {

@@ -77,8 +77,7 @@ namespace CoreEx.Validation
         /// <inheritdoc/>
         public override Task<ValidationContext<TDict>> ValidateAsync(TDict? value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            value.ThrowIfNull(nameof(value));
 
             return ValidationInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
             {
@@ -133,16 +132,16 @@ namespace CoreEx.Validation
 
                 var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? Validation.ValueNameDefault);
                 if (hasNullKey)
-                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullKeyFormat, new object?[] { text.Value, null });
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullKeyFormat, [text.Value, null]);
 
                 if (hasNullValue)
-                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullValueFormat, new object?[] { text.Value, null });
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullValueFormat, [text.Value, null]);
 
                 // Check the length/count.
                 if (i < MinCount)
-                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MinCountFormat, new object?[] { text.Value, null, MinCount });
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MinCountFormat, [text.Value, null, MinCount]);
                 else if (MaxCount.HasValue && i > MaxCount.Value)
-                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MaxCountFormat, new object?[] { text.Value, null, MaxCount });
+                    context.AddMessage(Entities.MessageType.Error, ValidatorStrings.MaxCountFormat, [text.Value, null, MaxCount]);
 
                 if (context.FailureResult is not null)
                     return context;
@@ -174,7 +173,7 @@ namespace CoreEx.Validation
             if (_additionalAsync != null)
                 throw new InvalidOperationException("Additional can only be defined once for a DictionaryValidator.");
 
-            _additionalAsync = additionalAsync ?? throw new ArgumentNullException(nameof(additionalAsync));
+            _additionalAsync = additionalAsync.ThrowIfNull(nameof(additionalAsync));
             return this;
         }
     }

@@ -1,7 +1,7 @@
 ﻿using CoreEx.TestFunctionIso;
 using UnitTestEx.NUnit;
 
-namespace CoreEx.Test.TestFunctionIso
+namespace CoreEx.Test2.TestFunctionIso
 {
     [TestFixture]
     public class HttpFunctionTest

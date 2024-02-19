@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using CoreEx.Events;
 using System;
 using System.Buffers;
@@ -75,7 +76,7 @@ namespace UnitTestEx.Expectations
         /// <param name="destination">The named destination (e.g. queue or topic).</param>
         /// <param name="subject">The expected subject (may contain wildcards).</param>
         /// <param name="action">The expected action (may contain wildcards).</param>
-        public void Expect(string? destination, string subject, string? action = "*") => Add(destination, ("*", subject ?? throw new ArgumentNullException(nameof(subject)), action, null, []));
+        public void Expect(string? destination, string subject, string? action = "*") => Add(destination, ("*", subject.ThrowIfNull(nameof(subject)), action, null, []));
 
         /// <summary>
         /// Expects that the corresponding event has been published (in order specified). The expected event <paramref name="source"/>, <paramref name="subject"/> and <paramref name="action"/> can use wildcards. All other <see cref="EventData"/> 
@@ -85,7 +86,7 @@ namespace UnitTestEx.Expectations
         /// <param name="source">The expected source formatted as a <see cref="Uri"/> (may contain wildcards).</param>
         /// <param name="subject">The expected subject (may contain wildcards).</param>
         /// <param name="action">The expected action (may contain wildcards).</param>
-        public void Expect(string? destination, string source, string subject, string? action = "*") => Add(destination, (source ?? throw new ArgumentNullException(nameof(source)), subject ?? throw new ArgumentNullException(nameof(subject)), action, null, []));
+        public void Expect(string? destination, string source, string subject, string? action = "*") => Add(destination, (source.ThrowIfNull(nameof(source)), subject.ThrowIfNull(nameof(subject)), action, null, []));
 
         /// <summary>
         /// Expects that the corresponding <paramref name="event"/> has been published (in order specified). All properties for expected event will be compared again the actual.
@@ -94,7 +95,7 @@ namespace UnitTestEx.Expectations
         /// <param name="event">The expected <paramref name="event"/>. Wildcards are supported for <see cref="EventDataBase.Subject"/> and <see cref="EventDataBase.Action"/>.</param>
         /// <param name="pathsToIgnore">The JSON paths to ignore from the comparison. Defaults to <see cref="UnitTestExExtensions.GetExpectedEventsPathsToIgnore"/>.</param>
         /// <remarks>Wildcards are supported for <see cref="EventDataBase.Subject"/>, <see cref="EventDataBase.Action"/> and <see cref="EventDataBase.Type"/>.</remarks>
-        public void Expect(string? destination, EventData @event, params string[] pathsToIgnore) => Add(destination, (null, @event?.Subject, @event?.Action, @event ?? throw new ArgumentNullException(nameof(@event)), pathsToIgnore));
+        public void Expect(string? destination, EventData @event, params string[] pathsToIgnore) => Add(destination, (null, @event?.Subject, @event?.Action, @event.ThrowIfNull(nameof(@event)), pathsToIgnore));
 
         /// <summary>
         /// Expects that the corresponding <paramref name="event"/> has been published (in order specified). All properties for expected event will be compared again the actual.
@@ -104,7 +105,7 @@ namespace UnitTestEx.Expectations
         /// <param name="event">The expected <paramref name="event"/>. Wildcards are supported for <see cref="EventDataBase.Subject"/> and <see cref="EventDataBase.Action"/>.</param>
         /// <param name="pathsToIgnore">The JSON paths to ignore from the comparison. Defaults to <see cref="UnitTestExExtensions.GetExpectedEventsPathsToIgnore"/>.</param>
         /// <remarks>Wildcards are supported for <see cref="EventDataBase.Subject"/>, <see cref="EventDataBase.Action"/> and <see cref="EventDataBase.Type"/>.</remarks>
-        public void Expect(string? destination, string source, EventData @event, params string[] pathsToIgnore) => Add(destination, (source, @event?.Subject, @event?.Action, @event ?? throw new ArgumentNullException(nameof(@event)), pathsToIgnore));
+        public void Expect(string? destination, string source, EventData @event, params string[] pathsToIgnore) => Add(destination, (source, @event?.Subject, @event?.Action, @event.ThrowIfNull(nameof(@event)), pathsToIgnore));
 
         /// <inheritdoc/>
         protected override Task OnAssertAsync(AssertArgs args)
@@ -166,10 +167,7 @@ namespace UnitTestEx.Expectations
         /// </summary>
         private void AssertDestination(AssertArgs args, string? destination, List<(string? Source, string? Subject, string? Action, EventData? Event, string[] PathsToIgnore)> expectedEvents, List<string?> actualEvents)
         {
-            if (actualEvents == null)
-                throw new ArgumentNullException(nameof(actualEvents));
-
-            if (actualEvents.Count != expectedEvents.Count)
+            if (actualEvents.ThrowIfNull(nameof(actualEvents)).Count != expectedEvents.Count)
                 args.Tester.Implementor.AssertFail($"Destination {destination}: Expected {_expectedEvents.Count} event(s); there were {actualEvents.Count} actual.");
 
             for (int i = 0; i < actualEvents.Count; i++)
@@ -216,7 +214,7 @@ namespace UnitTestEx.Expectations
         /// <returns><c>true</c> where there is a wildcard match; otherwise, <c>false</c>.</returns>
         public bool WildcardMatch(AssertArgs args, string expected, string? actual, char separatorCharacter)
         {
-            if ((expected ?? throw new ArgumentNullException(nameof(expected))) == "*")
+            if (expected.ThrowIfNull(nameof(expected)) == "*")
                 return true;
 
             var eparts = expected.Split(separatorCharacter);

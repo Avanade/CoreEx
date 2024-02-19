@@ -11,15 +11,10 @@ namespace CoreEx.Validation.Rules
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="System.Type"/>.</typeparam>
-    internal class CommonRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class
+    /// <param name="commonValidator">The <see cref="CommonValidator{T}"/>.</param>
+    internal class CommonRule<TEntity, TProperty>(CommonValidator<TProperty> commonValidator) : ValueRuleBase<TEntity, TProperty> where TEntity : class
     {
-        private readonly CommonValidator<TProperty> _commonValidator;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CommonRule{TEntity, TProperty}"/> class specifying the corresponding <paramref name="commonValidator"/>.
-        /// </summary>
-        /// <param name="commonValidator">The <see cref="CommonValidator{T}"/>.</param>
-        public CommonRule(CommonValidator<TProperty> commonValidator) => _commonValidator = commonValidator ?? throw new ArgumentNullException(nameof(commonValidator));
+        private readonly CommonValidator<TProperty> _commonValidator = commonValidator.ThrowIfNull(nameof(commonValidator));
 
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)

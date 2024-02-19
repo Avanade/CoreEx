@@ -112,7 +112,7 @@ namespace CoreEx.OData.Mapping
                 throw new InvalidOperationException($"The PropertyType '{PropertyType.Name}' must be a class to set a Mapper.");
 
             if (mapper.SourceType != typeof(TSourceProperty))
-                throw new ArgumentNullException($"The PropertyType '{PropertyType.Name}' and IDictionaryMapper.SourceType '{mapper.SourceType.Name}' must match.");
+                throw new ArgumentException($"The PropertyType '{PropertyType.Name}' and IDictionaryMapper.SourceType '{mapper.SourceType.Name}' must match.", nameof(mapper));
 
             Mapper = mapper;
         }

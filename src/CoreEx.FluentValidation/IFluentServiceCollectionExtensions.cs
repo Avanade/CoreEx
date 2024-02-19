@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using System;
 using System.Linq;
 
@@ -24,7 +25,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// Adds the <see cref="FluentValidation.IValidator{T}"/>, the corresponding <see cref="CoreEx.FluentValidation.ValidatorWrapper{T}"/> and <typeparamref name="TValidator"/> as scoped services.
         /// </summary>
         private static IServiceCollection AddFluentValidatorWithInterfacesInternal<T, TValidator>(this IServiceCollection services) where TValidator : class, FluentValidation.IValidator<T>
-            => (services ?? throw new ArgumentNullException(nameof(services)))
+            => services.ThrowIfNull(nameof(services))
                 .AddScoped<FluentValidation.IValidator<T>, TValidator>()
                 .AddScoped<CoreEx.Validation.IValidator<T>>(sp => new CoreEx.FluentValidation.ValidatorWrapper<T>(sp.GetRequiredService<FluentValidation.IValidator<T>>()))
                 .AddScoped(sp => (TValidator)sp.GetRequiredService<FluentValidation.IValidator<T>>());
@@ -43,7 +44,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// Adds the <see cref="FluentValidation.IValidator"/> as a scoped service only.
         /// </summary>
         private static IServiceCollection AddFluentValidatorInternal<TValidator>(this IServiceCollection services) where TValidator : class, FluentValidation.IValidator
-            => (services ?? throw new ArgumentNullException(nameof(services))).AddScoped<TValidator>();
+            => services.ThrowIfNull(nameof(services)).AddScoped<TValidator>();
 
         /// <summary>
         /// Adds all the <see cref="FluentValidation.IValidator{T}"/>(s) and corresponding <see cref="CoreEx.FluentValidation.ValidatorWrapper{T}"/>(s) from the specified <typeparamref name="TAssembly"/> as scoped services.

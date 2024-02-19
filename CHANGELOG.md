@@ -2,6 +2,15 @@
 
 Represents the **NuGet** versions.
 
+## v3.12.0
+- *Enhancement*: Added new `CoreEx.Database.Postgres` project/package to support [PostgreSQL](https://www.postgresql.org/) database capabilities. Primarily encapsulates the open-source [`Npqsql`](https://www.npgsql.org/) .NET ADO database provider for PostgreSQL.
+  - Added `EncodedStringToUInt32Converter` to support PostgreSQL `xmin` column encoding as the row version/etag.
+- *Fixed:* The `IServiceCollection.AddAzureServiceBusClient` extension method as been removed; the `ServiceBusClient` will need to be instantiated prior to usage. Standard approach is for consumers to create client instances independently.
+- *Fixed*: The `WorkOrchestrator.GetAsync<T>()` and `WorkOrchestrator.GetAsync(string type, ..)` methods were not automatically cancelling where expired.
+- *Fixed*: The `InvokerArgs` activity tracing is correctly capturing the `Exception.Message` where an `Exception` has been thrown.
+- *Internal*: 
+  - All `throw new ArgumentNullException` migrated to the `xxx.ThrowIfNull` extension method equivalent. 
+
 ## v3.11.0
 - *Enhancement*: The `ITypedToResult` updated to correctly implement `IToResult` as the simple `ToResult` where required. 
 - *Enhancement*: Added `Result.AsTask()` and `Result<T>.AsTask` to simplify the conversion to a completed `Task<Result>` or `Task<Result<T>>` where applicable.

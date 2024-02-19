@@ -40,7 +40,7 @@ namespace CoreEx.Validation.Rules
         /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
         public CompareValueRule(CompareOperator compareOperator, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null) : base(compareOperator)
         {
-            _compareToValueFunction = compareToValueFunction ?? throw new ArgumentNullException(nameof(compareToValueFunction));
+            _compareToValueFunction = compareToValueFunction.ThrowIfNull(nameof(compareToValueFunction));
             _compareToTextFunction = compareToTextFunction;
             _compareToValue = default!;
         }
@@ -53,7 +53,7 @@ namespace CoreEx.Validation.Rules
         /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunctionAsync"/>).</param>
         public CompareValueRule(CompareOperator compareOperator, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareToTextFunction = null) : base(compareOperator)
         {
-            _compareToValueFunctionAsync = compareToValueFunctionAsync ?? throw new ArgumentNullException(nameof(compareToValueFunctionAsync));
+            _compareToValueFunctionAsync = compareToValueFunctionAsync.ThrowIfNull(nameof(compareToValueFunctionAsync));
             _compareToTextFunction = compareToTextFunction;
             _compareToValue = default!;
         }
@@ -61,8 +61,7 @@ namespace CoreEx.Validation.Rules
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
+            context.ThrowIfNull(nameof(context));
 
             var compareToValue = _compareToValueFunction != null
                 ? _compareToValueFunction(context.Parent.Value!) 

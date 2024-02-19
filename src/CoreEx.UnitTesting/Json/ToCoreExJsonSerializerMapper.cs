@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -14,7 +15,7 @@ namespace UnitTestEx.Json
     /// <param name="testJsonSerializer">The <see cref="IJsonSerializer"/>.</param>
     public class ToCoreExJsonSerializerMapper(IJsonSerializer testJsonSerializer) : CoreEx.Json.IJsonSerializer
     {
-        private readonly IJsonSerializer _testJsonSerializer = testJsonSerializer ?? throw new ArgumentNullException(nameof(testJsonSerializer));
+        private readonly IJsonSerializer _testJsonSerializer = testJsonSerializer.ThrowIfNull(nameof(testJsonSerializer));
 
         /// <inheritdoc/>
         public object Options => _testJsonSerializer.Options;

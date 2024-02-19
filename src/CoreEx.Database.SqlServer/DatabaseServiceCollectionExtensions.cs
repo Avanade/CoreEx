@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using CoreEx.Configuration;
 using CoreEx.Database.SqlServer.Outbox;
 using CoreEx.Hosting;
@@ -29,7 +30,7 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 services.AddHostedService(sp => new EventOutboxHostedService(sp, sp.GetRequiredService<ILogger<EventOutboxHostedService>>(), sp.GetRequiredService<SettingsBase>(), sp.GetRequiredService<IServiceSynchronizer>(), partitionKey, destination)
                 {
-                    EventOutboxDequeueFactory = eventOutboxDequeueFactory ?? throw new ArgumentNullException(nameof(eventOutboxDequeueFactory))
+                    EventOutboxDequeueFactory = eventOutboxDequeueFactory.ThrowIfNull(nameof(eventOutboxDequeueFactory))
                 });
             }
 

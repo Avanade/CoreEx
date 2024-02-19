@@ -27,10 +27,7 @@ namespace CoreEx.Mapping
         /// <remarks>Uses the <see cref="IMemberConfigurationExpression{TSource, TDestination, TMember}.PreCondition(Func{ResolutionContext, bool})"/>.</remarks>
         public static IMemberConfigurationExpression<TSource, TDestination, TSourceMember> OperationTypes<TSource, TDestination, TSourceMember>(this IMemberConfigurationExpression<TSource, TDestination, TSourceMember> mce, OperationTypes operationTypes)
         {
-            if (mce == null)
-                throw new ArgumentNullException(nameof(mce));
-
-            mce.PreCondition((ResolutionContext rc) => !rc.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
+            mce.ThrowIfNull(nameof(mce)).PreCondition((ResolutionContext rc) => !rc.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
             return mce;
         }
 
@@ -45,10 +42,7 @@ namespace CoreEx.Mapping
         /// <remarks>Uses the <see cref="IPathConfigurationExpression{TSource, TDestination, TMember}.Condition(Func{ConditionParameters{TSource, TDestination, TMember}, bool})"/>.</remarks>
         public static IPathConfigurationExpression<TSource, TDestination, TMember> OperationTypes<TSource, TDestination, TMember>(this IPathConfigurationExpression<TSource, TDestination, TMember> pce, OperationTypes operationTypes)
         {
-            if (pce == null)
-                throw new ArgumentNullException(nameof(pce));
-
-            pce.Condition(cp => !cp.Context.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
+            pce.ThrowIfNull(nameof(pce)).Condition(cp => !cp.Context.Items.TryGetValue(OperationTypesName, out var ot) || operationTypes.HasFlag((OperationTypes)ot));
             return pce;
         }
 
@@ -61,7 +55,7 @@ namespace CoreEx.Mapping
         /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="CoreEx.Mapping.OperationTypes"/> value being performed.</param>
         /// <returns>The destination value.</returns>
         public static TDestination Map<TDestination>(this AutoMapper.IMapper mapper, object source, OperationTypes operationType)
-            => (mapper ?? throw new ArgumentNullException(nameof(mapper))).Map<TDestination>(source, o => o.Items.Add(OperationTypesName, operationType));
+            => mapper.ThrowIfNull(nameof(mapper)).Map<TDestination>(source, o => o.Items.Add(OperationTypesName, operationType));
 
         /// <summary>
         /// Maps the <paramref name="source"/> value to a new <typeparamref name="TDestination"/> value.
@@ -73,7 +67,7 @@ namespace CoreEx.Mapping
         /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="CoreEx.Mapping.OperationTypes"/> value being performed.</param>
         /// <returns>The destination value.</returns>
         public static TDestination Map<TSource, TDestination>(this AutoMapper.IMapper mapper, TSource source, OperationTypes operationType)
-            => (mapper ?? throw new ArgumentNullException(nameof(mapper))).Map<TSource, TDestination>(source, o => o.Items.Add(OperationTypesName, operationType));
+            => mapper.ThrowIfNull(nameof(mapper)).Map<TSource, TDestination>(source, o => o.Items.Add(OperationTypesName, operationType));
 
         /// <summary>
         /// Maps the <paramref name="source"/> value into the existing <paramref name="destination"/> value.
@@ -86,6 +80,6 @@ namespace CoreEx.Mapping
         /// <param name="operationType">The singluar <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> <see cref="CoreEx.Mapping.OperationTypes"/> value being performed.</param>
         /// <returns>The <paramref name="destination"/> value.</returns>
         public static TDestination Map<TSource, TDestination>(this AutoMapper.IMapper mapper, TSource source, TDestination destination, OperationTypes operationType)
-            => (mapper ?? throw new ArgumentNullException(nameof(mapper))).Map(source, destination, o => o.Items.Add(OperationTypesName, operationType));
+            => mapper.ThrowIfNull(nameof(mapper)).Map(source, destination, o => o.Items.Add(OperationTypesName, operationType));
     }
 }

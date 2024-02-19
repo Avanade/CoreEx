@@ -59,7 +59,7 @@ namespace UnitTestEx
         /// <param name="jsonSerializer">The <see cref="JsonSerializer"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> to support fluent-style method-chaining.</returns>
         public static TSelf UseJsonSerializer<TSelf>(this TesterBase<TSelf> tester, CoreEx.Json.IJsonSerializer jsonSerializer) where TSelf : TesterBase<TSelf>
-            => tester.UseJsonSerializer((jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer))).ToUnitTestEx());
+            => tester.UseJsonSerializer((jsonSerializer.ThrowIfNull(nameof(jsonSerializer))).ToUnitTestEx());
 
         #endregion
 
@@ -285,7 +285,7 @@ namespace UnitTestEx
             /// </summary>
             internal GenericTesterBaseWith(GenericTesterBase<TEntryPoint, TSelf> tester, OperationType operationType)
             {
-                _tester = tester ?? throw new ArgumentNullException(nameof(tester));
+                _tester = tester.ThrowIfNull(nameof(tester));
                 _operationType = operationType;
             }
 
@@ -417,7 +417,7 @@ namespace UnitTestEx
             /// <summary>
             /// Initializes a new instance of the <see cref="AgentTesterWith{TEntryPoint, TSelf}"/>.
             /// </summary>
-            internal AgentTesterWith(ApiTesterBase<TEntryPoint, TSelf> tester) => _tester = tester ?? throw new ArgumentNullException(nameof(tester));
+            internal AgentTesterWith(ApiTesterBase<TEntryPoint, TSelf> tester) => _tester = tester.ThrowIfNull(nameof(tester));
 
             /// <summary>
             /// Enables a test <see cref="HttpRequestMessage"/> to be sent to the underlying <see cref="TestServer"/> leveraging the specified <see cref="TypedHttpClientBase">agent</see>.
@@ -528,7 +528,7 @@ namespace UnitTestEx
         /// <returns>The <see cref="ServiceBusReceivedMessage"/>.</returns>
         public static ServiceBusReceivedMessage CreateServiceBusMessage<TSelf>(this TesterBase<TSelf> tester, EventData @event) where TSelf : TesterBase<TSelf>
         {
-            if (@event == null) throw new ArgumentNullException(nameof(@event));
+            @event.ThrowIfNull(nameof(@event));
             var message = (tester.Services.GetService<EventDataToServiceBusConverter>() ?? new EventDataToServiceBusConverter(tester.Services.GetService<IEventSerializer>(), tester.Services.GetService<IValueConverter<EventSendData, ServiceBusMessage>>())).Convert(@event).GetRawAmqpMessage();
             tester.ResetHost(false);
             return tester.CreateServiceBusMessage(message);
@@ -544,7 +544,7 @@ namespace UnitTestEx
         /// <returns>The <see cref="ServiceBusReceivedMessage"/>.</returns>
         public static ServiceBusReceivedMessage CreateServiceBusMessage<TSelf>(this TesterBase<TSelf> tester, EventData @event, Action<AmqpAnnotatedMessage>? messageModify) where TSelf : TesterBase<TSelf>
         {
-            if (@event == null) throw new ArgumentNullException(nameof(@event));
+            @event.ThrowIfNull(nameof(@event));
             var message = (tester.Services.GetService<EventDataToServiceBusConverter>() ?? new EventDataToServiceBusConverter(tester.Services.GetService<IEventSerializer>(), tester.Services.GetService<IValueConverter<EventSendData, ServiceBusMessage>>())).Convert(@event).GetRawAmqpMessage();
             tester.ResetHost(false);
             return tester.CreateServiceBusMessage(message, messageModify);

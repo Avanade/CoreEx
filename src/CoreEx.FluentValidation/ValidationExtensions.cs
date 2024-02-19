@@ -31,7 +31,7 @@ namespace CoreEx.FluentValidation
         /// <returns>The <see cref="ValidationException"/> where the <see cref="ValidationResult"/> has errors; otherwise, <c>null</c>.</returns>
         public static ValidationException? ToValidationException(this ValidationResult validationResult)
         {
-            if ((validationResult ?? throw new ArgumentNullException(nameof(validationResult))).IsValid)
+            if (validationResult.ThrowIfNull(nameof(validationResult)).IsValid)
                 return null;
 
             var mic = new MessageItemCollection();

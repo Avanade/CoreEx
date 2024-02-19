@@ -1,7 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using System;
-
 namespace CoreEx.Cosmos
 {
     /// <summary>
@@ -16,8 +14,8 @@ namespace CoreEx.Cosmos
         /// <param name="container">The <see cref="Microsoft.Azure.Cosmos.Container"/>.</param>
         internal CosmosDbModelContainer(ICosmosDb cosmosDb, Microsoft.Azure.Cosmos.Container container)
         {
-            CosmosDb = cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb));
-            Container = container ?? throw new ArgumentNullException(nameof(container));
+            CosmosDb = cosmosDb.ThrowIfNull(nameof(cosmosDb));
+            Container = container.ThrowIfNull(nameof(container));
         }
 
         /// <inheritdoc/>

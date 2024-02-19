@@ -23,7 +23,7 @@ namespace CoreEx.Database.Extended
         /// <param name="mapper">The <see cref="IDatabaseMapper"/>.</param>
         public DatabaseArgs(DatabaseArgs template, IDatabaseMapper mapper)
         {
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _mapper = mapper.ThrowIfNull(nameof(mapper));
             Refresh = template.Refresh;
         }
 
@@ -31,17 +31,17 @@ namespace CoreEx.Database.Extended
         /// Initializes a new instance of the <see cref="DatabaseArgs"/> struct.
         /// </summary>
         /// <param name="mapper">The <see cref="IDatabaseMapper"/>.</param>
-        public DatabaseArgs(IDatabaseMapper mapper) => _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        public DatabaseArgs(IDatabaseMapper mapper) => _mapper = mapper.ThrowIfNull(nameof(mapper));
 
         /// <summary>
         /// Gets the <see cref="IDatabaseMapper"/>.
         /// </summary>
-        public IDatabaseMapper Mapper => _mapper ?? throw new InvalidOperationException("Mapper must have been specified for it to be referenced.");
+        public readonly IDatabaseMapper Mapper => _mapper ?? throw new InvalidOperationException("Mapper must have been specified for it to be referenced.");
 
         /// <summary>
         /// Indicates whether the <see cref="Mapper"/> has been specified.
         /// </summary>
-        public bool HasMapper => _mapper != null;
+        public readonly bool HasMapper => _mapper != null;
 
         /// <summary>
         /// Indicates whether the data should be refreshed (reselected where applicable) after a <b>save</b> operation (defaults to <c>true</c>).

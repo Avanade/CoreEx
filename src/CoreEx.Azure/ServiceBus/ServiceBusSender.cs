@@ -27,17 +27,17 @@ namespace CoreEx.Azure.ServiceBus
     {
         private const string _unspecifiedQueueOrTopicName = "$default";
         private static ServiceBusSenderInvoker? _invoker;
-        private readonly ServiceBusClient _client = client ?? throw new ArgumentNullException(nameof(client), "Verify dependency injection configuration and if service bus connection string for publisher was correctly defined.");
+        private readonly ServiceBusClient _client = client.ThrowIfNull(nameof(client));
 
         /// <summary>
         /// Gets the <see cref="SettingsBase"/>.
         /// </summary>
-        protected SettingsBase Settings { get; } = settings ?? throw new ArgumentNullException(nameof(settings));
+        protected SettingsBase Settings { get; } = settings.ThrowIfNull(nameof(settings));
 
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
-        protected ILogger Logger { get; } = logger ?? throw new ArgumentNullException(nameof(logger));
+        protected ILogger Logger { get; } = logger.ThrowIfNull(nameof(logger));
 
         /// <summary>
         /// Gets the <see cref="ServiceBusSenderInvoker"/>.

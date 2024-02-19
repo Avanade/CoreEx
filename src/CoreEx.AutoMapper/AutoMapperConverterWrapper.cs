@@ -11,22 +11,17 @@ namespace CoreEx.Mapping.Converters
     /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
     /// <typeparam name="TConverter">The <see cref="IConverter{TSource, TDestination}"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The declaring <see cref="Type"/> itself to enable <see cref="Default"/>.</typeparam>
-    public abstract class AutoMapperConverterWrapper<TSource, TDestination, TConverter, TSelf>
+    /// <param name="create">The optional function to create the <typeparamref name="TConverter"/> instance.</param>
+    public abstract class AutoMapperConverterWrapper<TSource, TDestination, TConverter, TSelf>(Func<TConverter>? create = null)
         where TConverter : IConverter<TSource, TDestination>, new()
         where TSelf : AutoMapperConverterWrapper<TSource, TDestination, TConverter, TSelf>, new()
     {
-        private readonly Func<TConverter> _create;
+        private readonly Func<TConverter> _create = create ?? (() => new TConverter());
 
         /// <summary>
         /// Gets or sets the default (singleton) instance.
         /// </summary>
         public static TSelf Default { get; set; } = new();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AutoMapperConverterWrapper{TSource, TDestination, TConverter, TSelf}"/> class.
-        /// </summary>
-        /// <param name="create">The optional function to create the <typeparamref name="TConverter"/> instance.</param>
-        public AutoMapperConverterWrapper(Func<TConverter>? create = null) => _create = create ?? (() => new TConverter());
 
         /// <summary>
         /// Gets the source to destination <see cref="AutoMapper.IValueConverter{TSource, TDestination}"/>.

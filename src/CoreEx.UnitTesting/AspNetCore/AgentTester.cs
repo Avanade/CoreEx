@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -46,7 +47,7 @@ namespace UnitTestEx.AspNetCore
         /// <returns>An <see cref="HttpResponseMessageAssertor"/>.</returns>
         public async Task<HttpResponseMessageAssertor> RunAsync(Func<TAgent, Task<Ceh.HttpResult>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            func.ThrowIfNull(nameof(func));
 
             using var scope = this.CreateClientScope<TAgent>();
             var agent = scope.ServiceProvider.GetRequiredService<TAgent>();
@@ -67,7 +68,7 @@ namespace UnitTestEx.AspNetCore
         /// <returns>An <see cref="HttpResponseMessageAssertor"/>.</returns>
         public async Task<HttpResponseMessageAssertor<TValue>> RunAsync<TValue>(Func<TAgent, Task<Ceh.HttpResult<TValue>>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            func.ThrowIfNull(nameof(func));
 
             using var scope = this.CreateClientScope<TAgent>();
             var agent = scope.ServiceProvider.GetRequiredService<TAgent>();
@@ -91,7 +92,7 @@ namespace UnitTestEx.AspNetCore
         /// <returns>An <see cref="HttpResponseMessageAssertor"/>.</returns>
         public async Task<HttpResponseMessageAssertor> RunAsync(Func<TAgent, Task<HttpResponseMessage>> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            func.ThrowIfNull(nameof(func));
 
             using var scope = this.CreateClientScope<TAgent>();
             var agent = scope.ServiceProvider.GetRequiredService<TAgent>();

@@ -11,16 +11,10 @@ namespace CoreEx.Validation.Clauses
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class DependsOnClause<TEntity, TProperty> : IPropertyRuleClause<TEntity, TProperty> where TEntity : class
+    /// <param name="dependsOnExpression">The <see cref="Expression"/> to reference the depends on entity property.</param>
+    public class DependsOnClause<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> dependsOnExpression) : IPropertyRuleClause<TEntity, TProperty> where TEntity : class
     {
-        private readonly PropertyExpression<TEntity, TProperty> _dependsOn;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DependsOnClause{TEntity, TProperty}"/> class.
-        /// </summary>
-        /// <param name="dependsOnExpression">The <see cref="Expression"/> to reference the depends on entity property.</param>
-        public DependsOnClause(Expression<Func<TEntity, TProperty>> dependsOnExpression)
-            => _dependsOn = PropertyExpression.Create(dependsOnExpression ?? throw new ArgumentNullException(nameof(dependsOnExpression)));
+        private readonly PropertyExpression<TEntity, TProperty> _dependsOn = PropertyExpression.Create(dependsOnExpression.ThrowIfNull(nameof(dependsOnExpression)));
 
         /// <summary>
         /// Checks the clause.
@@ -29,11 +23,8 @@ namespace CoreEx.Validation.Clauses
         /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
         public bool Check(IPropertyContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             // Do not continue where the depends on property is in error.
-            if (context.Parent.HasError(context.CreateFullyQualifiedPropertyName(_dependsOn.Name)))
+            if (context.ThrowIfNull(nameof(context)).Parent.HasError(context.CreateFullyQualifiedPropertyName(_dependsOn.Name)))
                 return false;
 
             // Check depends on value to continue.

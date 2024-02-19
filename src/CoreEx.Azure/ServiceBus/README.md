@@ -60,7 +60,7 @@ public class AppInsightInstrumentation : EventSubscriberInstrumentationBase
     private readonly TelemetryClient _telemetryClient;
 
     public AppInsightInstrumentation(TelemetryClient telemetryClient) 
-        => _telemetryClient = telemetryClient ?? throw new ArgumentNullException(nameof(telemetryClient));
+        => _telemetryClient = telemetryClient.ThrowIfNull(nameof(telemetryClient));
 
     public override void Instrument(ErrorHandling? errorHandling = null, Exception? exception = null)
         => _telemetryClient.TrackEvent(GetInstrumentName("Subscriber", errorHandling, exception));

@@ -22,7 +22,7 @@ namespace CoreEx.Validation.Rules
         /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
         /// <param name="validator">The corresponding item <see cref="IValidatorEx{TItem}"/>.</param>
         /// <returns>The <see cref="CollectionRuleItem{TItem}"/>.</returns>
-        public static CollectionRuleItem<TItem> Create<TItem>(IValidatorEx<TItem> validator) => new(validator ?? throw new ArgumentNullException(nameof(validator)));
+        public static CollectionRuleItem<TItem> Create<TItem>(IValidatorEx<TItem> validator) => new(validator.ThrowIfNull(nameof(validator)));
 
         /// <summary>
         /// Create an instance of the <see cref="CollectionRuleItem{TItem}"/> class leveraging the <paramref name="serviceProvider"/> to get the instance.

@@ -15,7 +15,7 @@ namespace CoreEx.Database
         /// <param name="minRows">The minimum number of rows allowed.</param>
         /// <param name="maxRows">The maximum number of rows allowed.</param>
         /// <param name="stopOnNull">Indicates whether to stop further query result set processing where the current set has resulted in a null (i.e. no records).</param>
-        protected MultiSetCollArgs(int minRows = 0, int? maxRows = null, bool stopOnNull = false)
+        public MultiSetCollArgs(int minRows = 0, int? maxRows = null, bool stopOnNull = false)
         {
             if (maxRows.HasValue && minRows <= maxRows.Value)
                 throw new ArgumentException("Max Rows is less than Min Rows.", nameof(maxRows));
