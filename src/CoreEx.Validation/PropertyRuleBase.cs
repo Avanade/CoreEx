@@ -25,7 +25,7 @@ namespace CoreEx.Validation
         /// Initializes a new instance of the <see cref="PropertyRuleBase{TEntity, TProperty}"/> class.
         /// </summary>
         /// <param name="name">The property name.</param>
-        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as <see cref="Abstractions.Reflection.PropertyExpression.ToSentenceCase(string)"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as <see cref="Text.SentenceCase.ToSentenceCase(string)"/>).</param>
         /// <param name="jsonName">The JSON property name (defaults to <paramref name="name"/>).</param>
         protected PropertyRuleBase(string name, LText? text = null, string? jsonName = null)
         {

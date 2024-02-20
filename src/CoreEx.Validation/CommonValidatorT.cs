@@ -54,7 +54,7 @@ namespace CoreEx.Validation
         {
             var vv = new ValidationValue<T>(null, value);
             var ctx = new PropertyContext<ValidationValue<T>, T>(new ValidationContext<ValidationValue<T>>(vv,
-                new ValidationArgs()), value, name ?? Name, jsonName ?? JsonName, text ?? PropertyExpression.ConvertToSentenceCase(name) ?? Text);
+                new ValidationArgs()), value, name ?? Name, jsonName ?? JsonName, text ?? name.ToSentenceCase() ?? Text);
 
             await InvokeAsync(ctx, cancellationToken).ConfigureAwait(false);
             var res = new ValueValidatorResult<ValidationValue<T>, T>(ctx);

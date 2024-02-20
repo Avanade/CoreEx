@@ -130,7 +130,7 @@ namespace CoreEx.Validation
                     }
                 }
 
-                var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? Validation.ValueNameDefault);
+                var text = new Lazy<LText>(() => Text ?? args?.FullyQualifiedEntityName.ToSentenceCase() ?? Validation.ValueTextDefault);
                 if (hasNullKey)
                     context.AddMessage(Entities.MessageType.Error, ValidatorStrings.DictionaryNullKeyFormat, [text.Value, null]);
 

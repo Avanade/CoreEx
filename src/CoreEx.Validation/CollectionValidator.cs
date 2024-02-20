@@ -106,7 +106,7 @@ namespace CoreEx.Validation
                     i++;
                 }
 
-                var text = new Lazy<LText>(() => Text ?? PropertyExpression.ConvertToSentenceCase(args?.FullyQualifiedEntityName) ?? PropertyExpression.ConvertToSentenceCase(Validation.ValueNameDefault)!);
+                var text = new Lazy<LText>(() => Text ?? args?.FullyQualifiedEntityName.ToSentenceCase() ?? Validation.ValueTextDefault!);
                 if (hasNullItem)
                     context.AddMessage(Entities.MessageType.Error, ValidatorStrings.CollectionNullItemFormat, [text.Value, null]);
 
