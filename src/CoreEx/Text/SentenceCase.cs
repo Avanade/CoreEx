@@ -38,8 +38,15 @@ namespace CoreEx.Text
         /// Performs a sentence case word split on the specified <paramref name="text"/>.
         /// </summary>
         /// <param name="text">The text to sentence case word split.</param>
-        /// <returns></returns>
-        public static string[] WordSplit(string text) => string.IsNullOrEmpty(text) ? [] : WordSplitRegex.Split(text);
+        /// <returns>An array of words.</returns>
+        public static string[] SplitIntoWords(string? text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return [];
+
+            var s = WordSplitRegex.Replace(text, "$1 "); // Add a space between each word.
+            return s.Split(' ', StringSplitOptions.RemoveEmptyEntries); // Split the string into words.
+        }
 
         /// <summary>
         /// Converts a <see cref="string"/> into sentence case.
@@ -78,9 +85,7 @@ namespace CoreEx.Text
                 return scs;
 
             // Determine whether last word should be removed, then go through each word and substitute.
-            var s = WordSplitRegex.Replace(text, "$1 "); // Split the string into words.
-            var parts = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
+            var parts = SplitIntoWords(text);
             var removeLastWord = LastWordRemovals.Contains(parts.Last());
 
             for (int i = 0; i < parts.Length; i++)

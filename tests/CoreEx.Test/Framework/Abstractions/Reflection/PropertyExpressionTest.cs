@@ -69,6 +69,15 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
                 Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase("firstName"), Is.EqualTo("First Name"));
                 Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase("EmployeeId"), Is.EqualTo("Employee"));
             });
+
+            var w = CoreEx.Text.SentenceCase.SplitIntoWords("FirstXMLCode");
+            Assert.Multiple(() =>
+            {
+                Assert.That(w, Has.Length.EqualTo(3));
+                Assert.That(w[0], Is.EqualTo("First"));
+                Assert.That(w[1], Is.EqualTo("XML"));
+                Assert.That(w[2], Is.EqualTo("Code"));
+            });
         }
     }
 }
