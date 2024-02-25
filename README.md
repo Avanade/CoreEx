@@ -60,9 +60,9 @@ These other _Avanade_ repositories leverage _CoreEx_:
 
 Repo | Description
 -|-
-[Beef](https://github.com/Avanade/beef) | Code-generation capabilities to support the industrialization of API development leveraging `CoreEx` as the primary runtime framework (_Beef_ version `v5+`).
-[DbEx](https://github.com/Avanade/dbex) | Provides database extensions for DbUp-inspired database migrations.
-[NTangle](https://github.com/Avanade/ntangle) | Change Data Capture (CDC) code generation tool and runtime.
+[*Beef*](https://github.com/Avanade/beef) | Code-generation capabilities to support the industrialization of API development leveraging `CoreEx` as the primary runtime framework (_Beef_ version `v5+`).
+[*DbEx*](https://github.com/Avanade/dbex) | Provides database extensions for DbUp-inspired database migrations.
+[*NTangle*](https://github.com/Avanade/ntangle) | Change Data Capture (CDC) code generation tool and runtime.
 
 <br/>
 
