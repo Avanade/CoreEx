@@ -17,7 +17,7 @@ namespace CoreEx.Validation
         /// <summary>
         /// Gets the underlying rules collection.
         /// </summary>
-        internal protected List<IPropertyRule<TEntity>> Rules { get; } = new List<IPropertyRule<TEntity>>();
+        internal protected List<IPropertyRule<TEntity>> Rules { get; } = [];
 
         /// <summary>
         /// Gets the <see cref="ExecutionContext.Current"/> instance.

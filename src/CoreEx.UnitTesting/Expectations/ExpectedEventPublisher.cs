@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using CoreEx.Events;
 using CoreEx.Json;
 using Microsoft.Extensions.Logging;
@@ -33,12 +34,7 @@ namespace UnitTestEx.Expectations
         /// <param name="sharedState">The <see cref="TestSharedState"/>.</param>
         /// <returns>The <see cref="ExpectedEventPublisher"/> where found; otherwise, <c>null</c>.</returns>
         public static ExpectedEventPublisher? GetFromSharedState(TestSharedState sharedState)
-        {
-            if (sharedState == null)
-                throw new ArgumentNullException(nameof(sharedState));
-
-            return sharedState.StateData.TryGetValue(nameof(ExpectedEventPublisher), out var eep) ? eep as ExpectedEventPublisher : null;
-        }
+            => sharedState.ThrowIfNull(nameof(sharedState)).StateData.TryGetValue(nameof(ExpectedEventPublisher), out var eep) ? eep as ExpectedEventPublisher : null;
 
         /// <summary>
         /// Sets the <see cref="ExpectedEventPublisher"/> into the <see cref="TestSharedState"/>.
@@ -46,12 +42,7 @@ namespace UnitTestEx.Expectations
         /// <param name="sharedState">The <see cref="TestSharedState"/>.</param>
         /// <param name="expectedEventPublisher">The <see cref="ExpectedEventPublisher"/>.</param>
         public static void SetToSharedState(TestSharedState sharedState, ExpectedEventPublisher? expectedEventPublisher)
-        {
-            if (sharedState == null)
-                throw new ArgumentNullException(nameof(sharedState));
-
-            sharedState.StateData[nameof(ExpectedEventPublisher)] = expectedEventPublisher ?? throw new ArgumentNullException(nameof(expectedEventPublisher));
-        }
+            => sharedState.ThrowIfNull(nameof(sharedState)).StateData[nameof(ExpectedEventPublisher)] = expectedEventPublisher.ThrowIfNull(nameof(expectedEventPublisher));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExpectedEventPublisher"/> class.
@@ -63,7 +54,7 @@ namespace UnitTestEx.Expectations
         public ExpectedEventPublisher(TestSharedState sharedState, ILogger<ExpectedEventPublisher>? logger = null, IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null)
             : base(eventDataFormatter, new CoreEx.Text.Json.EventDataSerializer(), new NullEventSender())
         {
-            _sharedState = sharedState ?? throw new ArgumentNullException(nameof(sharedState));
+            _sharedState = sharedState.ThrowIfNull(nameof(sharedState));
             SetToSharedState(_sharedState, this);
             _logger = logger;
             _jsonSerializer = jsonSerializer ?? JsonSerializer.Default;

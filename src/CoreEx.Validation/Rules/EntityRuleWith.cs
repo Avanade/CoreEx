@@ -9,15 +9,10 @@ namespace CoreEx.Validation.Rules
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class EntityRuleWith<TEntity, TProperty> where TEntity : class where TProperty : class?
+    /// <param name="parent">The parent <see cref="IPropertyRule{TEntity, TProperty}"/>.</param>
+    public class EntityRuleWith<TEntity, TProperty>(IPropertyRule<TEntity, TProperty> parent) where TEntity : class where TProperty : class?
     {
-        private readonly IPropertyRule<TEntity, TProperty> _parent;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EntityRuleWith{TEntity, TProperty}"/> class.
-        /// </summary>
-        /// <param name="parent">The parent <see cref="IPropertyRule{TEntity, TProperty}"/>.</param>
-        public EntityRuleWith(IPropertyRule<TEntity, TProperty> parent) => _parent = parent ?? throw new ArgumentNullException(nameof(parent));
+        private readonly IPropertyRule<TEntity, TProperty> _parent = parent.ThrowIfNull(nameof(parent));
 
         /// <summary>
         /// Adds an <see cref="EntityRule{TEntity, TProperty, TValidator}"/> using a validator <see cref="With"/> a specified <typeparamref name="TValidator"/>.

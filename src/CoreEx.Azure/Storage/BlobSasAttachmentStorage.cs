@@ -23,7 +23,7 @@ namespace CoreEx.Azure.Storage
         /// Initializes a new instance of <see cref="BlobSasAttachmentStorage"/> class with a <paramref name="blobContainerClient"/>
         /// </summary>
         /// <param name="blobContainerClient">The <see cref="BlobContainerClient"/>.</param>
-        public BlobSasAttachmentStorage(BlobContainerClient blobContainerClient) => _blobContainerClient = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
+        public BlobSasAttachmentStorage(BlobContainerClient blobContainerClient) => _blobContainerClient = blobContainerClient.ThrowIfNull(nameof(blobContainerClient));
 
         /// <summary>
         /// Initializes a new instance of <see cref="BlobSasAttachmentStorage"/> class.

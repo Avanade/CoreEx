@@ -38,7 +38,7 @@ namespace CoreEx.Database.Extended
         {
             if (_fields == null)
             {
-                _fields = new();
+                _fields = [];
                 for (var i = 0; i < dr.DataReader.FieldCount; i++)
                 {
                     _fields.Add(dr.DataReader.GetName(i), i);

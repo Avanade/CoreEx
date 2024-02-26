@@ -10,21 +10,12 @@ namespace CoreEx.Validation.Rules
     /// Provides a means to add an <see cref="ReferenceDataCodeRule{TEntity, TRefData}"/> using a validator <see cref="As"/> a specified <see cref="IReferenceData"/> <see cref="Type"/>.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    public class ReferenceDataCodeRuleAs<TEntity> where TEntity : class
+    /// <param name="parent">The parent <see cref="PropertyRuleBase{TEntity, TProperty}"/>.</param>
+    /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+    public class ReferenceDataCodeRuleAs<TEntity>(IPropertyRule<TEntity, string> parent, LText? errorText = null) where TEntity : class
     {
-        private readonly IPropertyRule<TEntity, string> _parent;
-        private readonly LText? _errorText;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EntityRuleWith{TEntity, TProperty}"/> class.
-        /// </summary>
-        /// <param name="parent">The parent <see cref="PropertyRuleBase{TEntity, TProperty}"/>.</param>
-        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
-        public ReferenceDataCodeRuleAs(IPropertyRule<TEntity, string> parent, LText? errorText = null)
-        {
-            _parent = parent ?? throw new ArgumentNullException(nameof(parent));
-            _errorText = errorText;
-        }
+        private readonly IPropertyRule<TEntity, string> _parent = parent.ThrowIfNull(nameof(parent));
+        private readonly LText? _errorText = errorText;
 
         /// <summary>
         /// Adds an <see cref="ReferenceDataCodeRule{TEntity, TRefData}"/> using a validator <see cref="As"/> a specified <see cref="IReferenceData"/> <see cref="Type"/>.

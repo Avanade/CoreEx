@@ -26,7 +26,7 @@ namespace CoreEx.EntityFrameworkCore
         /// <param name="query">A function to modify the underlying <see cref="IQueryable{TModel}"/>.</param>
         internal EfDbQuery(IEfDb efdb, EfDbArgs args, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null)
         {
-            EfDb = efdb ?? throw new ArgumentNullException(nameof(efdb));
+            EfDb = efdb.ThrowIfNull(nameof(efdb));
             Args = args;
             _query = query;
             Paging = null;
@@ -248,8 +248,7 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         private async readonly Task<Result<TColl>> SelectQueryWithResultInternalAsync<TColl>(TColl collection, string memberName, CancellationToken cancellationToken) where TColl : ICollection<T>
         {
-            if (collection == null)
-                throw new ArgumentNullException(nameof(collection));
+            collection.ThrowIfNull(nameof(collection));
 
             var paging = Paging;
             var mapper = Mapper;

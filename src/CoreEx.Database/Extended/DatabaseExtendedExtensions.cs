@@ -43,7 +43,7 @@ namespace CoreEx.Database.Extended
             where TColl : class, IReferenceDataCollection<TId, TItem>, new()
             where TItem : class, IReferenceData<TId>, new()
             where TId : IComparable<TId>, IEquatable<TId>
-            => ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database))).StoredProcedure(storedProcedure));
+            => ReferenceData<TColl, TItem, TId>(database.ThrowIfNull(nameof(database)).StoredProcedure(storedProcedure));
 
         /// <summary>
         /// Creates a <see cref="RefDataLoader{TColl, TItem, TId}"/> (for <see cref="IReferenceDataCollection"/> loading) using a '<c>SELECT * FROM [<paramref name="schemaName"/>].[<paramref name="tableName"/>]</c>' SQL statement.
@@ -66,11 +66,11 @@ namespace CoreEx.Database.Extended
 
             var cb = database.Provider.CreateCommandBuilder() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateCommandBuilder)} returned a null.");
             if (string.IsNullOrEmpty(schemaName))
-                return ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database)))
-                    .SqlStatement($"SELECT * FROM {cb.QuoteIdentifier(tableName ?? throw new ArgumentNullException(nameof(tableName)))}"));
+                return ReferenceData<TColl, TItem, TId>(database.ThrowIfNull(nameof(database))
+                    .SqlStatement($"SELECT * FROM {cb.QuoteIdentifier(tableName.ThrowIfNull(nameof(tableName)))}"));
             else
-                return ReferenceData<TColl, TItem, TId>((database ?? throw new ArgumentNullException(nameof(database)))
-                    .SqlStatement($"SELECT * FROM {cb.QuoteIdentifier(schemaName ?? throw new ArgumentNullException(nameof(schemaName)))}.{cb.QuoteIdentifier(tableName ?? throw new ArgumentNullException(nameof(tableName)))}"));
+                return ReferenceData<TColl, TItem, TId>(database.ThrowIfNull(nameof(database))
+                    .SqlStatement($"SELECT * FROM {cb.QuoteIdentifier(schemaName)}.{cb.QuoteIdentifier(tableName.ThrowIfNull(nameof(tableName)))}"));
         }
 
         /// <summary>
@@ -98,11 +98,8 @@ namespace CoreEx.Database.Extended
         /// </summary>
         private static async Task<Result<T>> SaveWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, T value, OperationTypes operationType, CancellationToken cancellationToken = default) where T : class, new()
         {
-            if (command == null)
-                throw new ArgumentNullException(nameof(command));
-
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            command.ThrowIfNull(nameof(command));
+            value.ThrowIfNull(nameof(value));
 
             // Set ChangeLog properties where appropriate.
             if (operationType == OperationTypes.Create)
@@ -301,7 +298,7 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The value where found; otherwise, <c>null</c>.</returns>
         public static Task<Result<T?>> GetWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
-            => (command ?? throw new ArgumentNullException(nameof(command)))
+            => command.ThrowIfNull(nameof(command))
                 .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
                 .SelectFirstOrDefaultWithResultAsync((IDatabaseMapper<T>)args.Mapper, cancellationToken);
 
@@ -394,7 +391,7 @@ namespace CoreEx.Database.Extended
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public static async Task<Result> DeleteWithResultAsync(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default)
         {
-            var rowsAffectedResult = await (command ?? throw new ArgumentNullException(nameof(command)))
+            var rowsAffectedResult = await command.ThrowIfNull(nameof(command))
                 .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
                 .ScalarWithResultAsync<int>(cancellationToken).ConfigureAwait(false);
 

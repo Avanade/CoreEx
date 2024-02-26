@@ -32,7 +32,7 @@ namespace CoreEx.Cosmos
         public CosmosDbValue(TModel value)
         {
             Type = typeof(TModel).Name;
-            _value = value ?? throw new ArgumentNullException(nameof(value));
+            _value = value.ThrowIfNull(nameof(value));
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace CoreEx.Cosmos
         /// Gets or sets the value.
         /// </summary>
         [JsonProperty("value")]
-        public TModel Value { get => _value; set => _value = value ?? throw new ArgumentNullException(nameof(Value)); }
+        public TModel Value { get => _value; set => _value = value.ThrowIfNull(nameof(Value)); }
 
         /// <summary>
         /// Gets the value.

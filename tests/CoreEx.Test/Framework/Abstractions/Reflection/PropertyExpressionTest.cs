@@ -61,13 +61,22 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         {
             Assert.Multiple(() =>
             {
-                Assert.That(PropertyExpression.ToSentenceCase(null), Is.Null);
-                Assert.That(PropertyExpression.ToSentenceCase(string.Empty), Is.EqualTo(string.Empty));
-                Assert.That(PropertyExpression.ToSentenceCase("Id"), Is.EqualTo("Identifier"));
-                Assert.That(PropertyExpression.ToSentenceCase("id"), Is.EqualTo("Identifier"));
-                Assert.That(PropertyExpression.ToSentenceCase("FirstName"), Is.EqualTo("First Name"));
-                Assert.That(PropertyExpression.ToSentenceCase("firstName"), Is.EqualTo("First Name"));
-                Assert.That(PropertyExpression.ToSentenceCase("EmployeeId"), Is.EqualTo("Employee"));
+                Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase(null), Is.Null);
+                Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase(string.Empty), Is.EqualTo(string.Empty));
+                Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase("Id"), Is.EqualTo("Identifier"));
+                Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase("id"), Is.EqualTo("Identifier"));
+                Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase("FirstName"), Is.EqualTo("First Name"));
+                Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase("firstName"), Is.EqualTo("First Name"));
+                Assert.That(CoreEx.Text.SentenceCase.ToSentenceCase("EmployeeId"), Is.EqualTo("Employee"));
+            });
+
+            var w = CoreEx.Text.SentenceCase.SplitIntoWords("FirstXMLCode");
+            Assert.Multiple(() =>
+            {
+                Assert.That(w, Has.Length.EqualTo(3));
+                Assert.That(w[0], Is.EqualTo("First"));
+                Assert.That(w[1], Is.EqualTo("XML"));
+                Assert.That(w[2], Is.EqualTo("Code"));
             });
         }
     }

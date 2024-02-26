@@ -28,8 +28,8 @@ namespace CoreEx.Validation
         /// <param name="text">The property text.</param>
         public PropertyContext(ValidationContext<TEntity> context, TProperty? value, string name, string? jsonName = null, LText? text = null)
         {
-            Parent = context ?? throw new ArgumentNullException(nameof(context));
-            Name = string.IsNullOrEmpty(name) ? throw new ArgumentNullException(nameof(name)) : name;
+            Parent = context.ThrowIfNull(nameof(context));
+            Name = name.ThrowIfNullOrEmpty(nameof(name));
             JsonName = jsonName ?? Name;
             UseJsonName = context.UsedJsonNames;
             Text = text ?? Name.ToSentenceCase()!;
@@ -46,7 +46,7 @@ namespace CoreEx.Validation
         /// <param name="value">The property value.</param>
         public PropertyContext(LText? text, ValidationContext<TEntity> context, TProperty? value)
         {
-            Parent = context ?? throw new ArgumentNullException(nameof(context));
+            Parent = context.ThrowIfNull(nameof(context));
             FullyQualifiedPropertyName = Parent.FullyQualifiedEntityName ?? Validation.ValueNameDefault;
             FullyQualifiedJsonPropertyName = Parent.FullyQualifiedJsonEntityName ?? Validation.ValueNameDefault;
             Name = FullyQualifiedPropertyName.Split('.', StringSplitOptions.RemoveEmptyEntries).Last();
@@ -167,7 +167,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="format">The composite format string.</param>
         /// <returns>A <see cref="MessageItem"/>.</returns>
-        public MessageItem CreateErrorMessage(LText format) => CreateErrorMessage(format, Array.Empty<object>());
+        public MessageItem CreateErrorMessage(LText format) => CreateErrorMessage(format, []);
 
         /// <summary>
         /// Creates a new <see cref="MessageType.Error"/> <see cref="MessageItem"/> with the specified format and additional values to be included in the text and <b>adds</b> to the underlying <see cref="IValidationContext"/>.
@@ -191,13 +191,13 @@ namespace CoreEx.Validation
         /// Creates a fully qualified property name for the name.
         /// </summary>
         /// <param name="name">The property name.</param>
-        public string CreateFullyQualifiedPropertyName(string name) => (Parent.FullyQualifiedEntityName == null) ? name : (Parent.FullyQualifiedEntityName + (name.StartsWith("[") ? "" : ".") + name);
+        public string CreateFullyQualifiedPropertyName(string name) => (Parent.FullyQualifiedEntityName == null) ? name : (Parent.FullyQualifiedEntityName + (name.StartsWith('[') ? "" : ".") + name);
 
         /// <summary>
         /// Creates a fully qualified JSON property name for the name.
         /// </summary>
         /// <param name="name">The property name.</param>
-        public string CreateFullyQualifiedJsonPropertyName(string name) => (Parent.FullyQualifiedJsonEntityName == null) ? name : (Parent.FullyQualifiedJsonEntityName + (name.StartsWith("[") ? "" : ".") + name);
+        public string CreateFullyQualifiedJsonPropertyName(string name) => (Parent.FullyQualifiedJsonEntityName == null) ? name : (Parent.FullyQualifiedJsonEntityName + (name.StartsWith('[') ? "" : ".") + name);
 
         /// <summary>
         /// Creates a new <see cref="ValidationArgs"/> from the <see cref="PropertyContext{TEntity, TProperty}"/>.

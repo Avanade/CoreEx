@@ -49,7 +49,11 @@ namespace CoreEx.Entities
         /// <summary>
         /// Initializes a new <see cref="CompositeKey"/> structure.
         /// </summary>
+#if NET8_0_OR_GREATER
+        public CompositeKey() => _args = [];
+#else
         public CompositeKey() => _args = ImmutableArray<object?>.Empty;
+#endif
 
         /// <summary>
         /// Initializes a new <see cref="CompositeKey"/> structure with one or more values that represent the composite key.
@@ -59,7 +63,11 @@ namespace CoreEx.Entities
         {
             if (args == null)
             {
+#if NET8_0_OR_GREATER
+                _args = [null];
+#else
                 _args = new object?[] { null }.ToImmutableArray();
+#endif
                 return;
             }
 
@@ -84,7 +92,11 @@ namespace CoreEx.Entities
                 };
             }
 
+#if NET8_0_OR_GREATER
+            _args = [.. args];
+#else
             _args = args.ToImmutableArray();
+#endif
         }
 
         /// <summary>

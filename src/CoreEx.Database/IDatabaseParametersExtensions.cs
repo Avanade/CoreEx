@@ -24,10 +24,7 @@ namespace CoreEx.Database
         /// <returns>The current <see cref="DatabaseCommand"/> instance to support chaining (fluent interface).</returns>
         public static TSelf Params<TSelf>(this IDatabaseParameters<TSelf> parameters, Action<DatabaseParameterCollection> action)
         {
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
-
-            action.Invoke((parameters ?? throw new ArgumentNullException(nameof(parameters))).Parameters);
+            action.ThrowIfNull(nameof(action))(parameters.ThrowIfNull(nameof(parameters)).Parameters);
             return (TSelf)parameters;
         }
 
@@ -59,7 +56,7 @@ namespace CoreEx.Database
         /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
         public static TSelf Param<TSelf>(this IDatabaseParameters<TSelf> parameters, string name, object? value, ParameterDirection direction = ParameterDirection.Input)
         {
-            (parameters ?? throw new ArgumentNullException(nameof(parameters))).Parameters.AddParameter(name, value, direction);
+            parameters.ThrowIfNull(nameof(parameters)).Parameters.AddParameter(name, value, direction);
             return (TSelf)parameters;
         }
 
@@ -75,7 +72,7 @@ namespace CoreEx.Database
         /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
         public static TSelf Param<TSelf>(this IDatabaseParameters<TSelf> parameters, string name, object? value, DbType dbType, ParameterDirection direction = ParameterDirection.Input)
         {
-            (parameters ?? throw new ArgumentNullException(nameof(parameters))).Parameters.AddParameter(name, value, dbType, direction);
+            parameters.ThrowIfNull(nameof(parameters)).Parameters.AddParameter(name, value, dbType, direction);
             return (TSelf)parameters;
         }
 
@@ -91,7 +88,7 @@ namespace CoreEx.Database
         /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
         public static TSelf Param<TSelf>(this IDatabaseParameters<TSelf> parameters, string name, DbType dbType, int size, ParameterDirection direction = ParameterDirection.Input)
         {
-            (parameters ?? throw new ArgumentNullException(nameof(parameters))).Parameters.AddParameter(name, dbType, size, direction);
+            parameters.ThrowIfNull(nameof(parameters)).Parameters.AddParameter(name, dbType, size, direction);
             return (TSelf)parameters;
         }
 
@@ -150,11 +147,10 @@ namespace CoreEx.Database
         /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
         public static TSelf ParamWhen<TSelf, T>(this IDatabaseParameters<TSelf> parameters, bool? when, string name, Func<T> value, ParameterDirection direction = ParameterDirection.Input)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            value.ThrowIfNull(nameof(value));
 
             if (when == true)
-                (parameters ?? throw new ArgumentNullException(nameof(parameters))).Parameters.AddParameter(name, value(), direction);
+                parameters.ThrowIfNull(nameof(parameters)).Parameters.AddParameter(name, value(), direction);
 
             return (TSelf)parameters;
         }
@@ -173,11 +169,10 @@ namespace CoreEx.Database
         /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
         public static TSelf ParamWhen<TSelf, T>(this IDatabaseParameters<TSelf> parameters, bool? when, string name, Func<T> value, DbType dbType, ParameterDirection direction = ParameterDirection.Input)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            value.ThrowIfNull(nameof(value));
 
             if (when == true)
-                (parameters ?? throw new ArgumentNullException(nameof(parameters))).Parameters.AddParameter(name, value(), dbType, direction);
+                parameters.ThrowIfNull(nameof(parameters)).Parameters.AddParameter(name, value(), dbType, direction);
 
             return (TSelf)parameters;
         }
@@ -411,7 +406,7 @@ namespace CoreEx.Database
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
         public static TSelf ReselectRecordParam<TSelf>(this IDatabaseParameters<TSelf> parameters, bool reselect = true)
         {
-            (parameters ?? throw new ArgumentNullException(nameof(parameters))).Parameters.AddReselectRecordParam(reselect);
+            parameters.ThrowIfNull(nameof(parameters)).Parameters.AddReselectRecordParam(reselect);
             return (TSelf)parameters;
         }
 

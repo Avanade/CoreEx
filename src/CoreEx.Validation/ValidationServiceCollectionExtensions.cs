@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using CoreEx.Localization;
 using CoreEx.Validation;
 using System;
@@ -26,7 +27,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// Adds the <see cref="IValidatorEx{T}"/>, the <see cref="IValidator{T}"/>, and <typeparamref name="TValidator"/> as scoped services.
         /// </summary>
         private static IServiceCollection AddValidatorWithInterfacesInternal<T, TValidator>(this IServiceCollection services) where TValidator : class, IValidatorEx<T>
-            => (services ?? throw new ArgumentNullException(nameof(services)))
+            => services.ThrowIfNull(nameof(services))
                 .AddScoped<IValidatorEx<T>, TValidator>()
                 .AddScoped<IValidator<T>>(sp => sp.GetRequiredService<IValidatorEx<T>>())
                 .AddScoped(sp => (TValidator)sp.GetRequiredService<IValidatorEx<T>>());
@@ -45,7 +46,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// Adds the <typeparamref name="TValidator"/> as a scoped service only.
         /// </summary>
         private static IServiceCollection AddValidatorInternal<TValidator>(this IServiceCollection services) where TValidator : class, IValidatorEx
-            => (services ?? throw new ArgumentNullException(nameof(services))).AddScoped<TValidator>();
+            => services.ThrowIfNull(nameof(services)).AddScoped<TValidator>();
 
         /// <summary>
         /// Adds all the <see cref="IValidatorEx{T}"/> validators from the specified <typeparamref name="TAssembly"/> as scoped services.
@@ -85,6 +86,6 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
         public static IServiceCollection AddValidationTextProvider(this IServiceCollection services)
-            => (services ?? throw new ArgumentNullException(nameof(services))).AddSingleton<ITextProvider, ValidationTextProvider>();
+            => services.ThrowIfNull(nameof(services)).AddSingleton<ITextProvider, ValidationTextProvider>();
     }
 }

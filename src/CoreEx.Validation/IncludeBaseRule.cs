@@ -19,15 +19,12 @@ namespace CoreEx.Validation
         /// Initializes a new instance of the <see cref="IncludeBaseRule{TEntity, TInclude}"/> class.
         /// </summary>
         /// <param name="include">The base <see cref="IValidatorEx{TInclude}"/>.</param>
-        internal IncludeBaseRule(IValidatorEx<TInclude> include) => _include = include ?? throw new ArgumentNullException(nameof(include));
+        internal IncludeBaseRule(IValidatorEx<TInclude> include) => _include = include.ThrowIfNull(nameof(include));
 
         /// <inheritdoc/>
         public async Task ValidateAsync(ValidationContext<TEntity> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            if (context.Value is not TInclude val)
+            if (context.ThrowIfNull(nameof(context)).Value is not TInclude val)
                 throw new InvalidOperationException($"Type {typeof(TEntity).Name} must inherit from {typeof(TInclude).Name}.");
 
             var ctx = new ValidationContext<TInclude>(val, new ValidationArgs

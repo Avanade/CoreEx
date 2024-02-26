@@ -48,9 +48,7 @@ namespace CoreEx.Newtonsoft.Json
         /// <returns><c>true</c> indicates that at least one JSON node was filtered (removed); otherwise, <c>false</c> for no changes.</returns>
         public static bool TryApply<T>(T value, IEnumerable<string>? paths, out JToken json, JsonPropertyFilter filter = JsonPropertyFilter.Include, JsonSerializerSettings? settings = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
+            value.ThrowIfNull(nameof(value));
             json = JToken.FromObject(value, Nsj.JsonSerializer.Create(settings));
             preFilterInspector?.Invoke(new JsonPreFilterInspector(json));
             return Apply(json, paths, filter, comparison);

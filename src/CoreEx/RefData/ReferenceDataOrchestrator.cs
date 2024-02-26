@@ -320,9 +320,14 @@ namespace CoreEx.RefData
 
                 return ria.TraceResult(coll);
             }
+            catch (Exception ex)
+            {
+                ria.TraceException(ex);
+                throw;
+            }
             finally
             {
-                ria.Complete();
+                ria.TraceComplete();
             }
         }
 

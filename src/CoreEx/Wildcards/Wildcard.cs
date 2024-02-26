@@ -84,7 +84,7 @@ namespace CoreEx.Wildcards
             Supported = supported;
             MultiWildcard = multiWildcard;
             SingleWildcard = singleWildcard;
-            CharactersNotAllowed = new ReadOnlyCollection<char>(charactersNotAllowed != null ? (char[])charactersNotAllowed.Clone() : Array.Empty<char>());
+            CharactersNotAllowed = new ReadOnlyCollection<char>(charactersNotAllowed != null ? (char[])charactersNotAllowed.Clone() : []);
             SpaceTreatment = spaceTreatment;
             Transform = transform;
         }
@@ -166,7 +166,7 @@ namespace CoreEx.Wildcards
             var sb = new StringBuilder();
             var wr = new WildcardResult(this) { Selection = WildcardSelection.Undetermined };
 
-            if (CharactersNotAllowed != null && CharactersNotAllowed.Count > 0 && text.IndexOfAny(CharactersNotAllowed.ToArray()) >= 0)
+            if (CharactersNotAllowed != null && CharactersNotAllowed.Count > 0 && text.IndexOfAny([.. CharactersNotAllowed]) >= 0)
                 wr.Selection |= WildcardSelection.InvalidCharacter;
 
             var hasMulti = SpaceTreatment == WildcardSpaceTreatment.MultiWildcardWhenOthers && Supported.HasFlag(WildcardSelection.MultiWildcard) && text.Contains(MultiWildcardCharacter, StringComparison.InvariantCulture);

@@ -15,26 +15,17 @@ namespace CoreEx.Cosmos
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="Type"/> itself.</typeparam>
-    public abstract class CosmosDbContainerBase<T, TModel, TSelf> : ICosmosDbContainer<T, TModel> where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
+    /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
+    /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
+    public abstract class CosmosDbContainerBase<T, TModel, TSelf>(ICosmosDb cosmosDb, string containerId) : ICosmosDbContainer<T, TModel> where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
     {
         private Func<T, PartitionKey>? _partitionKey;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CosmosDbContainerBase{T, TModel, TSelf}"/> class.
-        /// </summary>
-        /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
-        /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-        public CosmosDbContainerBase(ICosmosDb cosmosDb, string containerId)
-        {
-            CosmosDb = cosmosDb ?? throw new ArgumentNullException(nameof(cosmosDb));
-            Container = cosmosDb.GetCosmosContainer(containerId);
-        }
+        /// <inheritdoc/>
+        public ICosmosDb CosmosDb { get; } = cosmosDb.ThrowIfNull(nameof(cosmosDb));
 
         /// <inheritdoc/>
-        public ICosmosDb CosmosDb { get; }
-
-        /// <inheritdoc/>
-        public Container Container { get; }
+        public Container Container { get; } = cosmosDb.GetCosmosContainer(containerId);
 
         /// <summary>
         /// Gets the <see cref="PartitionKey"/> from the <paramref name="value"/>.
@@ -84,7 +75,7 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param name="value">The entity value.</param>
         /// <returns>The <b>CosmosDb</b> identifier.</returns>
-        public string GetCosmosId(T value) => GetCosmosId((value ?? throw new ArgumentNullException(nameof(value))).EntityKey);
+        public string GetCosmosId(T value) => GetCosmosId(value.ThrowIfNull(nameof(value)).EntityKey);
 
         /// <summary>
         /// Gets the entity for the specified <paramref name="id"/>.

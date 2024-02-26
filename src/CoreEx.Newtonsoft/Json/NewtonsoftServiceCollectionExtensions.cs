@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx;
 using CoreEx.Events;
 using CoreEx.Json;
 using System;
@@ -14,7 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// Checks that the <see cref="IServiceCollection"/> is not null.
         /// </summary>
-        private static IServiceCollection CheckServices(IServiceCollection services) => services ?? throw new ArgumentNullException(nameof(services));
+        private static IServiceCollection CheckServices(IServiceCollection services) => services.ThrowIfNull(nameof(services));
 
         /// <summary>
         /// Adds the <see cref="CoreEx.Newtonsoft.Json.JsonSerializer"/> as the <see cref="IJsonSerializer"/> and <see cref="CoreEx.Newtonsoft.Json.ReferenceDataContentJsonSerializer"/> as the <see cref="IReferenceDataContentJsonSerializer"/> singleton services.

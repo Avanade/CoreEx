@@ -86,8 +86,7 @@ namespace CoreEx.Database.Mapping
         /// <inheritdoc/>
         void IPropertyColumnMapper.SetConverter(IConverter converter)
         {
-            if (converter == null)
-                throw new ArgumentNullException(nameof(converter));
+            converter.ThrowIfNull(nameof(converter));
 
             if (Mapper != null)
                 throw new InvalidOperationException("The Mapper and Converter cannot be both set; only one is permissible.");
@@ -113,8 +112,7 @@ namespace CoreEx.Database.Mapping
         /// <inheritdoc/>
         void IPropertyColumnMapper.SetMapper(IDatabaseMapper mapper)
         {
-            if (mapper == null)
-                throw new ArgumentNullException(nameof(mapper));
+            mapper.ThrowIfNull(nameof(mapper));
 
             if (Converter != null)
                 throw new InvalidOperationException("The Mapper and Converter cannot be both set; only one is permissible.");
@@ -123,7 +121,7 @@ namespace CoreEx.Database.Mapping
                 throw new InvalidOperationException($"The PropertyType '{PropertyType.Name}' must be a class to set a Mapper.");
 
             if (mapper.SourceType != typeof(TSourceProperty))
-                throw new ArgumentNullException($"The PropertyType '{PropertyType.Name}' and IDatabaseMapper.SourceType '{mapper.SourceType.Name}' must match.");
+                throw new ArgumentException($"The PropertyType '{PropertyType.Name}' and IDatabaseMapper.SourceType '{mapper.SourceType.Name}' must match.", nameof(mapper));
 
             if (IsPrimaryKey)
                 throw new InvalidOperationException("A Mapper can not be set for a primary key.");

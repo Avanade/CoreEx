@@ -876,7 +876,7 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
         public static ReferenceDataCodeRuleAs<TEntity> RefDataCode<TEntity>(this IPropertyRule<TEntity, string> rule, LText? errorText = null) where TEntity : class
-            => new(rule ?? throw new ArgumentNullException(nameof(rule)), errorText);
+            => new(rule.ThrowIfNull(nameof(rule)), errorText);
 
         #endregion
 
@@ -962,7 +962,7 @@ namespace CoreEx.Validation
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
         /// <remarks>This is only intended to be leveraged for the root entity value being validated as no <see cref="ValidationArgs"/> are passed meaning advanced capabilities will be ignored.</remarks>
         public static IPropertyRule<TEntity, TProperty> Interop<TEntity, TProperty, TValidator>(this IPropertyRule<TEntity, TProperty> rule, TValidator validator) where TEntity : class where TProperty : class? where TValidator : IValidator
-            => rule.ThrowIfNull(nameof(rule)).AddRule(new InteropRule<TEntity, TProperty, TValidator>(() => validator ?? throw new ArgumentNullException(nameof(validator))));
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new InteropRule<TEntity, TProperty, TValidator>(() => validator.ThrowIfNull(nameof(validator))));
 
         /// <summary>
         /// Adds an interop validation (see <see cref="InteropRule{TEntity, TProperty, TValidator}"/>) (intended for non-<c>CoreEx.Validation</c>).
@@ -1127,13 +1127,8 @@ namespace CoreEx.Validation
         /// <returns>The (this) <see cref="MultiValidator"/>.</returns>
         public static MultiValidator Add<T>(this MultiValidator multiValidator, ValueValidator<T?> validator)
         {
-            if (multiValidator == null)
-                throw new ArgumentNullException(nameof(multiValidator));
-
-            if (validator == null)
-                throw new ArgumentNullException(nameof(validator));
-
-            (multiValidator ?? throw new ArgumentNullException(nameof(multiValidator))).Validators.Add(async ct => await validator.ValidateAsync(ct).ConfigureAwait(false));
+            validator.ThrowIfNull(nameof(validator));
+            multiValidator.ThrowIfNull(nameof(multiValidator)).Validators.Add(async ct => await validator.ValidateAsync(ct).ConfigureAwait(false));
             return multiValidator;
         }
 
@@ -1146,13 +1141,8 @@ namespace CoreEx.Validation
         /// <returns>The (this) <see cref="MultiValidator"/>.</returns>
         public static MultiValidator Add<T>(this MultiValidator multiValidator, IPropertyRule<ValidationValue<T>, T> validator)
         {
-            if (multiValidator == null)
-                throw new ArgumentNullException(nameof(multiValidator));
-
-            if (validator == null)
-                throw new ArgumentNullException(nameof(validator));
-
-            (multiValidator ?? throw new ArgumentNullException(nameof(multiValidator))).Validators.Add(validator.ValidateAsync);
+            validator.ThrowIfNull(nameof(validator));
+            multiValidator.ThrowIfNull(nameof(multiValidator)).Validators.Add(validator.ValidateAsync);
             return multiValidator;
         }
 
@@ -1173,7 +1163,7 @@ namespace CoreEx.Validation
         /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
         public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Result<TEntity> result, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
@@ -1196,7 +1186,7 @@ namespace CoreEx.Validation
         /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
         public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Task<Result<TEntity>> result, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
         {
-            if (validator == null) throw new ArgumentNullException(nameof(validator));
+            validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {

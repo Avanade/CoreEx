@@ -36,7 +36,7 @@ namespace CoreEx.Azure.Storage
         /// <remarks>Performs a <see cref="BlobContainerClient.CreateIfNotExists(PublicAccessType, IDictionary{string, string}, BlobContainerEncryptionScopeOptions, CancellationToken)"/> to ensure the container exists.</remarks>
         public BlobLeaseSynchronizer(BlobContainerClient client)
         { 
-            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _client = client.ThrowIfNull(nameof(client));
             _client.CreateIfNotExists();
 
             _timer = new Lazy<Timer>(() => new Timer(_ =>

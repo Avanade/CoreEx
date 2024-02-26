@@ -22,13 +22,13 @@ namespace CoreEx.Validation.Rules
         /// Initializes a new instance of the <see cref="OverrideRule{TEntity, TProperty}"/> class with a <paramref name="func"/>.
         /// </summary>
         /// <param name="func">The override function.</param>
-        public OverrideRule(Func<TEntity, TProperty> func) => _func = func ?? throw new ArgumentNullException(nameof(func));
+        public OverrideRule(Func<TEntity, TProperty> func) => _func = func.ThrowIfNull(nameof(func));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OverrideRule{TEntity, TProperty}"/> class with a <paramref name="funcAsync"/>.
         /// </summary>
         /// <param name="funcAsync">The override function.</param>
-        public OverrideRule(Func<TEntity, CancellationToken, Task<TProperty>> funcAsync) => _funcAsync = funcAsync ?? throw new ArgumentNullException(nameof(funcAsync));
+        public OverrideRule(Func<TEntity, CancellationToken, Task<TProperty>> funcAsync) => _funcAsync = funcAsync.ThrowIfNull(nameof(funcAsync));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OverrideRule{TEntity, TProperty}"/> class with a <paramref name="value"/>.

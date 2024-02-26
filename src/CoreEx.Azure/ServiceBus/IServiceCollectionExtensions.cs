@@ -1,16 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using System;
-using Azure.Identity;
 using CoreEx;
 using CoreEx.Azure.ServiceBus;
 using CoreEx.Configuration;
 using CoreEx.Events;
-using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.Logging;
-using Asb = Azure.Messaging.ServiceBus;
-using Ace = Azure.Core.Extensions;
 using CoreEx.Events.Subscribing;
+using Microsoft.Extensions.Logging;
+using System;
+using Asb = Azure.Messaging.ServiceBus;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -19,36 +16,6 @@ namespace Microsoft.Extensions.DependencyInjection
     /// </summary>
     public static class ServiceCollectionExtensions
     {
-        /// <summary>
-        /// Adds the Azure <see cref="Asb.ServiceBusClient"/>.
-        /// </summary>
-        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-        /// <param name="connectionName">The connection <see cref="SettingsBase">configuration setting</see> name.</param>
-        /// <param name="configure">Adds a delegate to configure the client options.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddAzureServiceBusClient(this IServiceCollection services, string connectionName = "ServiceBusConnection", Action<Asb.ServiceBusClientOptions, IServiceProvider>? configure = null)
-        {
-            services.AddAzureClients(cb =>
-            {
-                var config = services.BuildServiceProvider().GetRequiredService<SettingsBase>();
-                var sbcs = config.GetValue<string>(connectionName);
-
-                if (string.IsNullOrEmpty(sbcs))
-                    throw new InvalidOperationException(@$"The Azure Service Bus connection string is not configured; the configuration setting '{connectionName}' is either not specified or does not have a value.");
-
-                Ace.IAzureClientBuilder<Asb.ServiceBusClient, Asb.ServiceBusClientOptions> acb;
-                if (sbcs.Contains("SharedAccessKey=", StringComparison.OrdinalIgnoreCase))
-                    acb = cb.AddServiceBusClient(sbcs); // Connect to Azure Service Bus with secret.
-                else
-                    acb = cb.AddServiceBusClientWithNamespace(sbcs).WithCredential(new DefaultAzureCredential()); // Connect to Azure Service Bus with managed identity.
-
-                if (configure != null)
-                    acb.ConfigureOptions(configure);
-            });
-
-            return services;
-        }
-
         /// <summary>
         /// Adds the Azure <see cref="ServiceBusSubscriber"/> as a scoped service.
         /// </summary>

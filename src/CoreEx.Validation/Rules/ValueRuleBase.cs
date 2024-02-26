@@ -15,7 +15,7 @@ namespace CoreEx.Validation.Rules
     /// <typeparam name="TProperty">The property <see cref="System.Type"/>.</typeparam>
     public abstract class ValueRuleBase<TEntity, TProperty> : IValueRule<TEntity, TProperty> where TEntity : class
     {
-        private readonly List<IPropertyRuleClause<TEntity>> _clauses = new();
+        private readonly List<IPropertyRuleClause<TEntity>> _clauses = [];
 
         /// <summary>
         /// Gets or sets the error message format text (overrides the default).

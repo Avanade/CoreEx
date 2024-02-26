@@ -12,26 +12,14 @@ namespace CoreEx.Azure.ServiceBus
     /// <summary>
     /// Provides the Azure ServiceBus purging capability.
     /// </summary>
-    public class ServiceBusPurger : IEventPurger
+    /// <param name="client">The underlying <see cref="ServiceBusClient"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    public class ServiceBusPurger(ServiceBusClient client, SettingsBase settings, ILogger<ServiceBusPurger> logger) : IEventPurger
     {
-        private readonly ServiceBusClient _client;
-        private readonly SettingsBase Settings;
-        private readonly ILogger Logger;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceBusPurger"/> class.
-        /// </summary>
-        /// <param name="client">The underlying <see cref="ServiceBusClient"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public ServiceBusPurger(ServiceBusClient client, SettingsBase settings, ILogger<ServiceBusPurger> logger)
-        {
-            _client = client ?? throw new ArgumentNullException(nameof(client), "Verify dependency injection configuration and if service bus connection string for publisher was correctly defined.");
-            _client.ConfigureAwait(false);
-
-            Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private readonly ServiceBusClient _client = client.ThrowIfNull(nameof(client));
+        private readonly SettingsBase Settings = settings.ThrowIfNull(nameof(settings));
+        private readonly ILogger Logger = logger.ThrowIfNull(nameof(logger));
 
         /// <inheritdoc/>
         public Task PurgeDeadLetterAsync(string queueName, Action<ServiceBusReceivedMessage>? messageAction = null, CancellationToken cancellationToken = default) 
@@ -54,8 +42,7 @@ namespace CoreEx.Azure.ServiceBus
         /// </summary>
         private async Task PurgeAsync(string queueOrTopicName, string? subscriptionName, SubQueue subQueue, Action<ServiceBusReceivedMessage>? messageAction, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrEmpty(queueOrTopicName))
-                throw new ArgumentNullException(nameof(queueOrTopicName));
+            queueOrTopicName.ThrowIfNullOrEmpty(nameof(queueOrTopicName));
 
             // Get queue name and subscription name by checking settings override.
             var qn = Settings.GetValue($"Publisher_ServiceBusQueueName_{queueOrTopicName}", defaultValue: queueOrTopicName);

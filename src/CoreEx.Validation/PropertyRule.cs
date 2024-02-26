@@ -33,10 +33,7 @@ namespace CoreEx.Validation
         /// <inheritdoc/>
         public async Task ValidateAsync(ValidationContext<TEntity> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            if (context.Value == null)
+            if (context.ThrowIfNull(nameof(context)).Value == null)
                 return;
 
             // Where validating a specific property then make sure the names match.

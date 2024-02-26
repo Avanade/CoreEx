@@ -21,19 +21,19 @@ namespace CoreEx.Validation.Rules
         /// Initializes a new instance of the <see cref="MustRule{TEntity, TProperty}"/> class with a <paramref name="predicate"/>.
         /// </summary>
         /// <param name="predicate">The must predicate.</param>
-        public MustRule(Predicate<TEntity> predicate) => _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        public MustRule(Predicate<TEntity> predicate) => _predicate = predicate.ThrowIfNull(nameof(predicate));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MustRule{TEntity, TProperty}"/> class with a <paramref name="must"/> function.
         /// </summary>
         /// <param name="must">The must function.</param>
-        public MustRule(Func<bool> must) => _must = must ?? throw new ArgumentNullException(nameof(must));
+        public MustRule(Func<bool> must) => _must = must.ThrowIfNull(nameof(must));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MustRule{TEntity, TProperty}"/> class with a <paramref name="mustAsync"/> function.
         /// </summary>
         /// <param name="mustAsync">The must function.</param>
-        public MustRule(Func<CancellationToken, Task<bool>> mustAsync) => _mustAsync = mustAsync ?? throw new ArgumentNullException(nameof(mustAsync));
+        public MustRule(Func<CancellationToken, Task<bool>> mustAsync) => _mustAsync = mustAsync.ThrowIfNull(nameof(mustAsync));
 
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)

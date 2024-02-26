@@ -24,7 +24,7 @@ namespace CoreEx.FluentValidation
         /// <exception cref="ArgumentNullException"></exception>
         public ValidationResultWrapper(ValidationResult result, T? value)
         {
-            Result = result ?? throw new ArgumentNullException(nameof(result));
+            Result = result.ThrowIfNull(nameof(result));
             Value = value;
         }
 

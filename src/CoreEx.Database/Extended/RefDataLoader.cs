@@ -16,21 +16,17 @@ namespace CoreEx.Database.Extended
     /// <typeparam name="TColl">The <see cref="IReferenceDataCollection"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TItem">The <see cref="IReferenceData"/> item <see cref="Type"/>.</typeparam>
     /// <typeparam name="TId">The <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
-    public class RefDataLoader<TColl, TItem, TId>
+    /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
+    public class RefDataLoader<TColl, TItem, TId>(DatabaseCommand command)
         where TColl : class, IReferenceDataCollection<TId, TItem>, new()
         where TItem : class, IReferenceData<TId>, new()
         where TId : IComparable<TId>, IEquatable<TId>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RefDataLoader{TColl, TItem, TId}"/> class.
-        /// </summary>
-        /// <param name="command">The <see cref="DatabaseCommand"/>.</param>
-        public RefDataLoader(DatabaseCommand command) => Command = command ?? throw new ArgumentNullException(nameof(command));
 
         /// <summary>
         /// Gets the <see cref="IDatabase"/>.
         /// </summary>
-        public DatabaseCommand Command { get; }
+        public DatabaseCommand Command { get; } = command.ThrowIfNull(nameof(command));
 
         /// <summary>
         /// Executes a dynamic <see cref="IReferenceDataCollection"/> query updating the <paramref name="coll"/>.
@@ -57,8 +53,7 @@ namespace CoreEx.Database.Extended
         public async Task<Result> LoadWithResultAsync(TColl coll, string? idColumnName = null, Action<DatabaseRecord, TItem>? additionalProperties = null, IEnumerable<IMultiSetArgs>? multiSetArgs = null,
             Func<DatabaseRecord, TItem, bool>? confirmItemIsToBeAdded = null, CancellationToken cancellationToken = default)
         {
-            if (coll == null)
-                throw new ArgumentNullException(nameof(coll));
+            coll.ThrowIfNull(nameof(coll));
 
             var list = new List<IMultiSetArgs> { new RefDataMultiSetCollArgs<TColl, TItem, TId>(Command.Database, coll.Add, idColumnName, additionalProperties, confirmItemIsToBeAdded) };
             if (multiSetArgs != null)

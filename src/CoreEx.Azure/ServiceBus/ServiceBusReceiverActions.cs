@@ -13,16 +13,11 @@ namespace CoreEx.Azure.ServiceBus
     /// Represents the set of message actions that can be performed on a <see cref="ServiceBusReceivedMessage"/> and related <see cref="ServiceBusReceiver"/>.
     /// </summary>
     /// <remarks>This is required as the base <see cref="ServiceBusMessageActions"/> contains internal constructor for <see cref="ServiceBusReceiver"/> therefore this is needed to override methods and implement same.</remarks>
-    public class ServiceBusReceiverActions : ServiceBusMessageActions
+    /// <param name="serviceBusReceiver">The <see cref="ServiceBusReceiver"/>.</param>
+    /// <exception cref="ArgumentNullException"></exception>
+    public class ServiceBusReceiverActions(ServiceBusReceiver serviceBusReceiver) : ServiceBusMessageActions
     {
-        private readonly ServiceBusReceiver _serviceBusReceiver;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceBusReceiverActions"/> class.
-        /// </summary>
-        /// <param name="serviceBusReceiver">The <see cref="ServiceBusReceiver"/>.</param>
-        /// <exception cref="ArgumentNullException"></exception>
-        public ServiceBusReceiverActions(ServiceBusReceiver serviceBusReceiver) => _serviceBusReceiver = serviceBusReceiver ?? throw new ArgumentNullException(nameof(serviceBusReceiver));
+        private readonly ServiceBusReceiver _serviceBusReceiver = serviceBusReceiver.ThrowIfNull(nameof(serviceBusReceiver));
 
         /// <inheritdoc/>
         public override Task AbandonMessageAsync(ServiceBusReceivedMessage message, IDictionary<string, object> propertiesToModify = default!, CancellationToken cancellationToken = default)

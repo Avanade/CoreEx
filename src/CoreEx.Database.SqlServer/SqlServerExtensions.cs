@@ -25,7 +25,7 @@ namespace CoreEx.Database.SqlServer
         /// <returns>A <see cref="DbParameter"/>.</returns>
         public static SqlParameter AddParameter(this DatabaseParameterCollection dpc, string name, object? value, SqlDbType? sqlDbType = null, ParameterDirection direction = ParameterDirection.Input)
         {
-            var p = (SqlParameter)((dpc ?? throw new ArgumentNullException(nameof(dpc))).Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
+            var p = (SqlParameter)(dpc.ThrowIfNull(nameof(dpc)).Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
             p.ParameterName = DatabaseParameterCollection.ParameterizeName(name);
             if (sqlDbType.HasValue)
                 p.SqlDbType = sqlDbType.Value;
@@ -47,10 +47,10 @@ namespace CoreEx.Database.SqlServer
         /// <remarks>This specifically implies that the <see cref="SqlParameter"/> is being used; if not then an exception will be thrown.</remarks>
         public static SqlParameter AddTableValuedParameter(this DatabaseParameterCollection dpc, string name, TableValuedParameter tvp)
         {
-            var p = (SqlParameter)((dpc ?? throw new ArgumentNullException(nameof(dpc))).Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
+            var p = (SqlParameter)(dpc.ThrowIfNull(nameof(dpc)).Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
             p.ParameterName = DatabaseParameterCollection.ParameterizeName(name);
             p.SqlDbType = SqlDbType.Structured;
-            p.TypeName = (tvp ?? throw new ArgumentNullException(nameof(tvp))).TypeName;
+            p.TypeName = tvp.ThrowIfNull(nameof(tvp)).TypeName;
             p.Value = tvp.Value;
             p.Direction = ParameterDirection.Input;
 
@@ -72,11 +72,8 @@ namespace CoreEx.Database.SqlServer
         /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
         public static TSelf ParamWhen<TSelf, T>(this IDatabaseParameters<TSelf> parameters, bool? when, string name, Func<T> value, SqlDbType sqlDbType, ParameterDirection direction = ParameterDirection.Input)
         {
-            if (parameters == null)
-                throw new ArgumentNullException(nameof(parameters));
-
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            parameters.ThrowIfNull(nameof(parameters));
+            value.ThrowIfNull(nameof(value));
 
             if (when == true)
                 parameters.Parameters.AddParameter(name, value(), sqlDbType, direction);

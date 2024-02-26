@@ -49,9 +49,14 @@ namespace CoreEx.Invokers
             {
                 return ia.TraceResult(OnInvoke(ia, invoker, func, args));
             }
+            catch (Exception ex)
+            {
+                ia.TraceException(ex);
+                throw;
+            }
             finally
             {
-                ia.Complete();
+                ia.TraceComplete();
             }
         }
 
@@ -65,9 +70,14 @@ namespace CoreEx.Invokers
             {
                 return ia.TraceResult(await OnInvokeAsync(ia, invoker, func, args, cancellationToken).ConfigureAwait(false));
             }
+            catch (Exception ex)
+            {
+                ia.TraceException(ex);
+                throw;
+            }
             finally
             {
-                ia.Complete();
+                ia.TraceComplete();
             }
         }
 

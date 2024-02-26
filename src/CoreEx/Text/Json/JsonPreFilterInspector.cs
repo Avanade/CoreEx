@@ -8,21 +8,16 @@ namespace CoreEx.Text.Json
     /// <summary>
     /// Provides pre (prior) to filtering JSON inspection.
     /// </summary>
-    public readonly struct JsonPreFilterInspector : IJsonPreFilterInspector
+    /// <param name="json">The <see cref="JsonNode"/>.</param>
+    public readonly struct JsonPreFilterInspector(JsonNode json) : IJsonPreFilterInspector
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonPreFilterInspector"/> struct. 
-        /// </summary>
-        /// <param name="json">The <see cref="JsonNode"/>.</param>
-        public JsonPreFilterInspector(JsonNode json) => Json = json;
-
         /// <inheritdoc/>
         object IJsonPreFilterInspector.Json => Json;
 
         /// <summary>
         /// Gets the <see cref="JsonNode"/> before any filtering has been applied.
         /// </summary>
-        public JsonNode Json { get; }
+        public JsonNode Json { get; } = json;
 
         /// <inheritdoc/>
         public string? ToJsonString() => Json.ToJsonString();

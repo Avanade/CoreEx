@@ -56,6 +56,7 @@ param(
         "src\CoreEx.Database",
         "src\CoreEx.Database.SqlServer",
         "src\CoreEx.Database.MySql",
+        "src\CoreEx.Database.Postgres",
         "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.Cosmos",
         "src\CoreEx.OData",

@@ -40,9 +40,6 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-#if NETSTANDARD2_1
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
-#endif
         public async Task LogRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
         {
             try
@@ -73,7 +70,6 @@ namespace CoreEx.Http
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="operationTime">Time in which response was received by the client</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Future proofing.")]
         public async Task LogResponseAsync(HttpRequestMessage request, HttpResponseMessage response, TimeSpan operationTime, CancellationToken cancellationToken = default)
         {
             // Logging should never throw an exception.

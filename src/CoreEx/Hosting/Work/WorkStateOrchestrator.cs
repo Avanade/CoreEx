@@ -346,7 +346,7 @@ namespace CoreEx.Hosting.Work
         /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.Expiry"/>).</remarks>
         public async Task<WorkState?> GetAsync(string type, string id, CancellationToken cancellationToken = default)
         {
-            var ws = await Persistence.GetAsync(id.ThrowIfNullOrEmpty(nameof(id)), cancellationToken).ConfigureAwait(false);
+            var ws = await GetAsync(id, cancellationToken).ConfigureAwait(false);
             return ws is null || ws.TypeName != type ? null : ws;
         }
 

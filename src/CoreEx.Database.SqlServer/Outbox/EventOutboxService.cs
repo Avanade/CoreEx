@@ -14,7 +14,12 @@ namespace CoreEx.Database.SqlServer.Outbox
     /// Provides the <see cref="EventOutboxDequeueBase"/> dequeue and publish self-service capabilities.
     /// </summary>
     /// <remarks>This will instantiate an <see cref="EventOutboxDequeueBase"/> using the underlying <see cref="ServiceProvider"/> and invoke <see cref="EventOutboxDequeueBase.DequeueAndSendAsync(int, string?, string?, CancellationToken)"/>.</remarks>
-    public class EventOutboxService : ServiceBase
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="partitionKey">The optional partition key.</param>
+    /// <param name="destination">The optional destination name (i.e. queue or topic).</param>
+    public class EventOutboxService(IServiceProvider serviceProvider, ILogger<EventOutboxService> logger, SettingsBase? settings = null, string? partitionKey = null, string? destination = null) : ServiceBase(serviceProvider, logger, settings)
     {
         private string? _name;
         private int? _maxIterations;
@@ -26,29 +31,14 @@ namespace CoreEx.Database.SqlServer.Outbox
         public string MaxDequeueSizeName { get; set; } = "MaxDequeueSize";
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventOutboxService"/> class.
-        /// </summary>
-        /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="partitionKey">The optional partition key.</param>
-        /// <param name="destination">The optional destination name (i.e. queue or topic).</param>
-        public EventOutboxService(IServiceProvider serviceProvider, ILogger<EventOutboxService> logger, SettingsBase? settings = null, string? partitionKey = null, string? destination = null)
-            : base(serviceProvider, logger, settings)
-        {
-            PartitionKey = partitionKey;
-            Destination = destination;
-        }
-
-        /// <summary>
         /// Gets the optional partition key.
         /// </summary>
-        public string? PartitionKey { get; }
+        public string? PartitionKey { get; } = partitionKey;
 
         /// <summary>
         /// Gets the optional destination name (i.e. queue or topic).
         /// </summary>
-        public string? Destination { get; }
+        public string? Destination { get; } = destination;
 
         /// <summary>
         /// Gets the service name (used for the likes of configuration and logging).

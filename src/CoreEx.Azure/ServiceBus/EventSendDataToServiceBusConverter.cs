@@ -75,7 +75,7 @@ namespace CoreEx.Azure.ServiceBus
             if (@event.Attributes != null && @event.Attributes.Count > 0 && PropertySelection.HasFlag(EventDataProperty.Attributes))
             {
                 // Attrtibutes that start with an underscore are considered internal and will not be sent automatically; i.e. _SessionId and _TimeToLive.
-                foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith("_")))
+                foreach (var attribute in @event.Attributes.Where(x => !string.IsNullOrEmpty(x.Key) && !x.Key.StartsWith('_')))
                 {
                     message.ApplicationProperties.Add(attribute.Key, attribute.Value);
                 }

@@ -21,13 +21,13 @@ namespace CoreEx.Validation.Rules
         /// Initializes a new instance of the <see cref="CustomRule{TEntity, TProperty}"/> class specifying the corresponding <paramref name="custom"/>.
         /// </summary>
         /// <param name="custom">The function to invoke to perform the custom validation.</param>
-        public CustomRule(Func<PropertyContext<TEntity, TProperty>, Result> custom) => _custom = custom ?? throw new ArgumentNullException(nameof(custom));
+        public CustomRule(Func<PropertyContext<TEntity, TProperty>, Result> custom) => _custom = custom.ThrowIfNull(nameof(custom));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CustomRule{TEntity, TProperty}"/> class specifying the corresponding <paramref name="customAsync"/>.
         /// </summary>
         /// <param name="customAsync">The function to invoke to perform the custom validation.</param>
-        public CustomRule(Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task<Result>> customAsync) => _customAsync = customAsync ?? throw new ArgumentNullException(nameof(customAsync));
+        public CustomRule(Func<PropertyContext<TEntity, TProperty>, CancellationToken, Task<Result>> customAsync) => _customAsync = customAsync.ThrowIfNull(nameof(customAsync));
 
         /// <summary>
         /// Validate the property value.

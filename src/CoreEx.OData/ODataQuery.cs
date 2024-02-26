@@ -31,7 +31,7 @@ namespace CoreEx.OData
         /// <exception cref="ArgumentNullException"></exception>
         internal ODataQuery(IOData odata, ODataArgs args, string? collectionName, Func<Soc.IBoundClient<TModel>, Soc.IBoundClient<TModel>>? query)
         {
-            ODataClient = odata ?? throw new ArgumentNullException(nameof(odata));
+            ODataClient = odata.ThrowIfNull(nameof(odata));
             Args = args;
             CollectionName = collectionName;
             _query = query;
@@ -241,8 +241,7 @@ namespace CoreEx.OData
         /// </summary>
         private async readonly Task<Result<TColl>> SelectQueryWithResultInternalAsync<TColl>(TColl collection, string memberName, CancellationToken cancellationToken) where TColl : ICollection<T>
         {
-            if (collection == null)
-                throw new ArgumentNullException(nameof(collection));
+            collection.ThrowIfNull(nameof(collection));
 
             var paging = Paging;
             var mapper = Mapper;

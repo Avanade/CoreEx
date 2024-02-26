@@ -33,10 +33,10 @@ namespace CoreEx.Solace.PubSub
         /// <param name="converter">The optional <see cref="IValueConverter{TSource, TDestination}"/> to convert an <see cref="EventSendData"/> to a corresponding <see cref="IMessage"/>.</param>
         public PubSubSender(IContext solaceContext, SessionProperties sessionProperties, SettingsBase settings, ILogger<PubSubSender> logger, PubSubSenderInvoker? invoker = null, IValueConverter<EventSendData, IMessage>? converter = null)
         {
-            SolaceContext = solaceContext ?? throw new ArgumentNullException(nameof(solaceContext), "Verify PubSub connection properties have been correctly defined.");
-            SessionProperties = sessionProperties ?? throw new ArgumentNullException(nameof(sessionProperties), "Verify PubSub connection properties have been correctly defined.");
-            Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            SolaceContext = solaceContext.ThrowIfNull(nameof(solaceContext));
+            SessionProperties = sessionProperties.ThrowIfNull(nameof(sessionProperties));
+            Settings = settings.ThrowIfNull(nameof(settings));
+            Logger = logger.ThrowIfNull(nameof(logger));
             Invoker = invoker ?? (_invoker ??= new PubSubSenderInvoker());
             Converter = converter ?? new EventSendDataToPubSubConverter();
             DefaultQueueOrTopicName = Settings.GetValue($"{GetType().Name}:QueueOrTopicName", defaultValue: _unspecifiedQueueOrTopicName);
@@ -160,7 +160,7 @@ namespace CoreEx.Solace.PubSub
                         try
                         {
                             Logger.LogInformation("Sending {Count} message(s) to PubSub Broker.", messageBatch.Count);
-                            var returnCode = session.Send(messageBatch.ToArray(), 0, messageBatch.Count, out int sentCount);
+                            var returnCode = session.Send([.. messageBatch], 0, messageBatch.Count, out int sentCount);
 
                             if (returnCode != ReturnCode.SOLCLIENT_OK)
                             {

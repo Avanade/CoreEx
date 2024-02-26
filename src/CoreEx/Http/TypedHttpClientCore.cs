@@ -16,19 +16,13 @@ namespace CoreEx.Http
     /// Represents a typed <see cref="HttpClient"/> base wrapper that supports <see cref="HttpMethod.Head"/>, <see cref="HttpMethod.Get"/>, <see cref="HttpMethod.Post"/>, <see cref="HttpMethod.Put"/>, <see cref="HttpMethod.Patch"/> and <see cref="HttpMethod.Delete"/>.
     /// </summary>
     /// <typeparam name="TSelf">The self <see cref="Type"/> for support fluent-style method-chaining.</typeparam>
-    public abstract class TypedHttpClientCore<TSelf> : TypedHttpClientBase<TSelf> where TSelf : TypedHttpClientCore<TSelf>
+    /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
+    /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
+    /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
+    /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
+    /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
+    public abstract class TypedHttpClientCore<TSelf>(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClientCore<TSelf>>? logger = null) : TypedHttpClientBase<TSelf>(client, jsonSerializer, executionContext, settings, logger) where TSelf : TypedHttpClientCore<TSelf>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TypedHttpClientCore{TBase}"/>.
-        /// </summary>
-        /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
-        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
-        /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
-        /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
-        public TypedHttpClientCore(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClientCore<TSelf>>? logger = null)
-            : base(client, jsonSerializer, executionContext, settings, logger) { }
-
         #region HeadAsync
 
         /// <summary>

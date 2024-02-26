@@ -10,16 +10,11 @@ namespace CoreEx.EntityFrameworkCore
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-    public readonly struct EfDbEntity<T, TModel> : IEfDbEntity where T : class, IEntityKey, new() where TModel : class, new()
+    /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+    public readonly struct EfDbEntity<T, TModel>(IEfDb efDb) : IEfDbEntity where T : class, IEntityKey, new() where TModel : class, new()
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EfDbEntity{T, TModel}"/> class.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        public EfDbEntity(IEfDb efDb) => EfDb = efDb ?? throw new ArgumentNullException(nameof(efDb));
-
         /// <inheritdoc/>
-        public IEfDb EfDb { get; }
+        public IEfDb EfDb { get; } = efDb.ThrowIfNull(nameof(efDb));
 
         /// <summary>
         /// Creates an <see cref="EfDbQuery{T, TModel}"/> to enable select-like capabilities.

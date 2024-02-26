@@ -23,7 +23,7 @@ namespace CoreEx.Cosmos
         /// </summary>
         protected CosmosDbQueryBase(ICosmosDbContainer container, CosmosDbArgs dbArgs)
         {
-            Container = container ?? throw new ArgumentNullException(nameof(container));
+            Container = container.ThrowIfNull(nameof(container));
             QueryArgs = dbArgs;
         }
 

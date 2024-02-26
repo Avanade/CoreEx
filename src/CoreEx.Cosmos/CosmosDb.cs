@@ -13,7 +13,10 @@ namespace CoreEx.Cosmos
     /// <summary>
     /// Provides extended <b>CosmosDb</b> data access.
     /// </summary>
-    public class CosmosDb : ICosmosDb
+    /// <param name="database">The <see cref="Microsoft.Azure.Cosmos.Database"/>.</param>
+    /// <param name="mapper">The <see cref="IMapper"/>.</param>
+    /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="CosmosDbInvoker"/>.</param>
+    public class CosmosDb(Database database, IMapper mapper, CosmosDbInvoker? invoker = null) : ICosmosDb
     {
         private static CosmosDbInvoker? _invoker;
         private Action<RequestOptions>? _updateRequestOptionsAction;
@@ -24,40 +27,21 @@ namespace CoreEx.Cosmos
         /// <summary>
         /// Provides key as combination of model type and container identifier.
         /// </summary>
-        private readonly struct Key
+        private readonly struct Key(Type modelType, string containerId)
         {
-            public Key(Type modelType, string containerId)
-            {
-                ModelType = modelType;
-                ContainerId = containerId;
-            }
+            public Type ModelType { get; } = modelType;
 
-            public Type ModelType { get; }
-
-            public string ContainerId { get; }
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CosmosDb"/> class.
-        /// </summary>
-        /// <param name="database">The <see cref="Microsoft.Azure.Cosmos.Database"/>.</param>
-        /// <param name="mapper">The <see cref="IMapper"/>.</param>
-        /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="CosmosDbInvoker"/>.</param>
-        public CosmosDb(Database database, IMapper mapper, CosmosDbInvoker? invoker = null)
-        {
-            Database = database ?? throw new ArgumentNullException(nameof(database));
-            Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            Invoker = invoker ?? (_invoker ??= new CosmosDbInvoker());
+            public string ContainerId { get; } = containerId;
         }
 
         /// <inheritdoc/>
-        public Database Database { get; }
+        public Database Database { get; } = database.ThrowIfNull(nameof(database));
 
         /// <inheritdoc/>
-        public IMapper Mapper { get; }
+        public IMapper Mapper { get; } = mapper.ThrowIfNull(nameof(mapper));
 
         /// <inheritdoc/>
-        public CosmosDbInvoker Invoker { get; }
+        public CosmosDbInvoker Invoker { get; } = invoker ?? (_invoker ??= new CosmosDbInvoker());
 
         /// <inheritdoc/>
         public virtual PartitionKey? PartitionKey => _partitionKey;
@@ -104,14 +88,14 @@ namespace CoreEx.Cosmos
         /// <remarks>The <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</remarks>
         public CosmosDb UseAuthorizeFilter<TModel>(string containerId, Func<IQueryable, IQueryable> filter)
         {
-            if (!_filters.TryAdd(new Key(typeof(TModel), containerId ?? throw new ArgumentNullException(nameof(containerId))), filter ?? throw new ArgumentNullException(nameof(filter))))
+            if (!_filters.TryAdd(new Key(typeof(TModel), containerId.ThrowIfNull(nameof(containerId))), filter.ThrowIfNull(nameof(filter))))
                 throw new InvalidOperationException("A filter cannot be overridden.");
 
             return this;
         }
 
         /// <inheritdoc/>
-        public Func<IQueryable, IQueryable>? GetAuthorizeFilter<TModel>(string containerId) => _filters.TryGetValue(new Key(typeof(TModel), containerId ?? throw new ArgumentNullException(nameof(containerId))), out var filter) ? filter : null;
+        public Func<IQueryable, IQueryable>? GetAuthorizeFilter<TModel>(string containerId) => _filters.TryGetValue(new Key(typeof(TModel), containerId.ThrowIfNull(nameof(containerId))), out var filter) ? filter : null;
 
         /// <summary>
         /// Sets the <see cref="Action"/> to update the <see cref="ItemRequestOptions"/> for the selected operation.
@@ -120,7 +104,7 @@ namespace CoreEx.Cosmos
         /// <returns>This <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</returns>
         public CosmosDb ItemRequestOptions(Action<RequestOptions> updateItemRequestOptionsAction)
         {
-            _updateRequestOptionsAction = updateItemRequestOptionsAction ?? throw new ArgumentNullException(nameof(updateItemRequestOptionsAction));
+            _updateRequestOptionsAction = updateItemRequestOptionsAction.ThrowIfNull(nameof(updateItemRequestOptionsAction));
             return this;
         }
 
@@ -128,7 +112,7 @@ namespace CoreEx.Cosmos
         /// Updates the <paramref name="itemRequestOptions"/> using the <see cref="Action"/> set with <see cref="ItemRequestOptions(Action{RequestOptions})"/>.
         /// </summary>
         /// <param name="itemRequestOptions">The <see cref="Microsoft.Azure.Cosmos.ItemRequestOptions"/>.</param>
-        public void UpdateItemRequestOptions(RequestOptions itemRequestOptions) => _updateRequestOptionsAction?.Invoke(itemRequestOptions ?? throw new ArgumentNullException(nameof(itemRequestOptions)));
+        public void UpdateItemRequestOptions(RequestOptions itemRequestOptions) => _updateRequestOptionsAction?.Invoke(itemRequestOptions.ThrowIfNull(nameof(itemRequestOptions)));
 
         /// <inheritdoc/>
         ItemRequestOptions ICosmosDb.GetItemRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
@@ -145,7 +129,7 @@ namespace CoreEx.Cosmos
         /// <returns>This <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</returns>
         public CosmosDb QueryRequestOptions(Action<QueryRequestOptions> updateQueryRequestOptionsAction)
         {
-            _updateQueryRequestOptionsAction = updateQueryRequestOptionsAction ?? throw new ArgumentNullException(nameof(updateQueryRequestOptionsAction));
+            _updateQueryRequestOptionsAction = updateQueryRequestOptionsAction.ThrowIfNull(nameof(updateQueryRequestOptionsAction));
             return this;
         }
 
@@ -153,7 +137,7 @@ namespace CoreEx.Cosmos
         /// Updates the <paramref name="queryRequestOptions"/> using the <see cref="Action"/> set with <see cref="QueryRequestOptions(Action{QueryRequestOptions})"/>.
         /// </summary>
         /// <param name="queryRequestOptions">The <see cref="Microsoft.Azure.Cosmos.QueryRequestOptions"/>.</param>
-        public void UpdateQueryRequestOptions(QueryRequestOptions queryRequestOptions) => _updateQueryRequestOptionsAction?.Invoke(queryRequestOptions ?? throw new ArgumentNullException(nameof(queryRequestOptions)));
+        public void UpdateQueryRequestOptions(QueryRequestOptions queryRequestOptions) => _updateQueryRequestOptionsAction?.Invoke(queryRequestOptions.ThrowIfNull(nameof(queryRequestOptions)));
 
         /// <inheritdoc/>
         QueryRequestOptions ICosmosDb.GetQueryRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
@@ -184,7 +168,7 @@ namespace CoreEx.Cosmos
         /// <param name="cex">The <see cref="CosmosException"/>.</param>
         /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/>.</returns>
         /// <remarks>Where overridding and the <see cref="CosmosException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</remarks>
-        protected virtual Result? OnCosmosException(CosmosException cex) => cex == null ? throw new ArgumentNullException(nameof(cex)) : cex.StatusCode switch
+        protected virtual Result? OnCosmosException(CosmosException cex) => cex.ThrowIfNull(nameof(cex)).StatusCode switch
         {
             System.Net.HttpStatusCode.NotFound => Result.Fail(new NotFoundException(null, cex)),
             System.Net.HttpStatusCode.Conflict => Result.Fail(new DuplicateException(null, cex)),
@@ -193,7 +177,7 @@ namespace CoreEx.Cosmos
         };
 
         /// <inheritdoc/>
-        public virtual string FormatIdentifier(object? id) => id == null ? throw new ArgumentNullException(nameof(id)) : id switch
+        public virtual string FormatIdentifier(object? id) => id.ThrowIfNull(nameof(id)) switch
         {
             string si => si,
             int ii => ii.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -203,7 +187,7 @@ namespace CoreEx.Cosmos
         };
 
         /// <inheritdoc/>
-        public virtual object? ParseIdentifier(Type type, string? id) => (type ?? throw new ArgumentNullException(nameof(type))) switch
+        public virtual object? ParseIdentifier(Type type, string? id) => type.ThrowIfNull(nameof(type)) switch
         {
             Type t when t == typeof(string) => id,
             Type t when t == typeof(int) => id == null ? 0 : int.Parse(id, System.Globalization.CultureInfo.InvariantCulture),

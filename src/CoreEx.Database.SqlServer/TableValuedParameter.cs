@@ -10,28 +10,19 @@ namespace CoreEx.Database.SqlServer
     /// <summary>
     /// Represents a SQL-Server table-valued parameter (see <see href="https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/sql/table-valued-parameters"/>).
     /// </summary>
-    public class TableValuedParameter
+    /// <param name="typeName">The SQL type name of the table-valued parameter.</param>
+    /// <param name="value">The <see cref="DataTable"/> value.</param>
+    public class TableValuedParameter(string typeName, DataTable value)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TableValuedParameter"/> class.
-        /// </summary>
-        /// <param name="typeName">The SQL type name of the table-valued parameter.</param>
-        /// <param name="value">The <see cref="DataTable"/> value.</param>
-        public TableValuedParameter(string typeName, DataTable value)
-        {
-            TypeName = typeName ?? throw new ArgumentNullException(nameof(typeName));
-            Value = value ?? throw new ArgumentNullException(nameof(value));
-        }
-
         /// <summary>
         /// Gets or sets the SQL type name of the table-valued parameter.
         /// </summary>
-        public string TypeName { get; }
+        public string TypeName { get; } = typeName.ThrowIfNull(nameof(typeName));
 
         /// <summary>
         /// Gets or sets the <see cref="DataTable"/> value.
         /// </summary>
-        public DataTable Value { get; }
+        public DataTable Value { get; } = value.ThrowIfNull(nameof(value));
 
         /// <summary>
         /// Adds a new <see cref="DataRow"/> to the <see cref="Value"/> using the specified <paramref name="columnValues"/>.
@@ -57,8 +48,8 @@ namespace CoreEx.Database.SqlServer
         /// <param name="items">Zero or more items to add.</param>
         public void AddRows<T>(IDatabase database, IDatabaseMapper<T> mapper, IEnumerable<T>? items)
         {
-            if (database == null) throw new ArgumentNullException(nameof(database));
-            if (mapper == null) throw new ArgumentNullException(nameof(mapper));
+            database.ThrowIfNull(nameof(database));
+            mapper.ThrowIfNull(nameof(mapper));
 
             if (items == null)
                 return;

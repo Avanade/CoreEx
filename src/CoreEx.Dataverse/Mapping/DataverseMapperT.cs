@@ -52,8 +52,7 @@ namespace CoreEx.Dataverse.Mapping
         {
             get
             {
-                if (propertyExpression == null)
-                    throw new ArgumentNullException(nameof(propertyExpression));
+                propertyExpression.ThrowIfNull(nameof(propertyExpression));
 
                 MemberExpression? me = null;
                 if (propertyExpression.Body.NodeType == ExpressionType.MemberAccess)
@@ -187,7 +186,7 @@ namespace CoreEx.Dataverse.Mapping
         /// <param name="inheritMapper">The <see cref="IDataverseMapper{T}"/> to inherit from. Must also implement <see cref="IDataverseMapperMappings"/>.</param>
         public void InheritPropertiesFrom<T>(IDataverseMapper<T> inheritMapper) where T : class, new()
         {
-            if (inheritMapper == null) throw new ArgumentNullException(nameof(inheritMapper));
+            inheritMapper.ThrowIfNull(nameof(inheritMapper));
             if (!typeof(TSource).IsSubclassOf(typeof(T))) throw new ArgumentException($"Type {typeof(TSource).Name} must inherit from {typeof(T).Name}.", nameof(inheritMapper));
             if (inheritMapper is not IDataverseMapperMappings inheritMappings) throw new ArgumentException($"Type {typeof(T).Name} must implement {typeof(IDataverseMapperMappings).Name} to copy the mappings.", nameof(inheritMapper));
 
@@ -216,7 +215,7 @@ namespace CoreEx.Dataverse.Mapping
         /// <inheritdoc/>
         public void MapToDataverse(TSource? value, Entity entity, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            entity.ThrowIfNull(nameof(entity));
             if (value == null) return;
 
             foreach (var p in _mappings)
@@ -238,8 +237,7 @@ namespace CoreEx.Dataverse.Mapping
         /// <inheritdoc/>
         public TSource? MapFromDataverse(Entity entity, OperationTypes operationType = OperationTypes.Unspecified)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-
+            entity.ThrowIfNull(nameof(entity));
             var value = new TSource();
 
             foreach (var p in _mappings)

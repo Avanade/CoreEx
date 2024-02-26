@@ -30,34 +30,24 @@ namespace CoreEx.EntityFrameworkCore
     ///   </list>
     /// </para>
     /// </remarks>
-    public class EfDb<TDbContext> : IEfDb where TDbContext : DbContext, IEfDbContext
+    /// <param name="dbContext">The <see cref="DbContext"/>.</param>
+    /// <param name="mapper">The <see cref="IMapper"/>.</param>
+    /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="EfDbInvoker"/>.</param>
+    public class EfDb<TDbContext>(TDbContext dbContext, IMapper mapper, EfDbInvoker? invoker = null) : IEfDb where TDbContext : DbContext, IEfDbContext
     {
-        private readonly TDbContext _dbContext;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EfDb{TDbContext}"/> class.
-        /// </summary>
-        /// <param name="dbContext">The <see cref="DbContext"/>.</param>
-        /// <param name="mapper">The <see cref="IMapper"/>.</param>
-        /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="EfDbInvoker"/>.</param>
-        public EfDb(TDbContext dbContext, IMapper mapper, EfDbInvoker? invoker = null)
-        {
-            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            Invoker = invoker ?? new EfDbInvoker();
-        }
+        private readonly TDbContext _dbContext = dbContext.ThrowIfNull(nameof(dbContext));
 
         /// <inheritdoc/>
         public DbContext DbContext => _dbContext;
 
         /// <inheritdoc/>
-        public EfDbInvoker Invoker { get; }
+        public EfDbInvoker Invoker { get; } = invoker ?? new EfDbInvoker();
 
         /// <inheritdoc/>
         public IDatabase Database => _dbContext.BaseDatabase;
 
         /// <inheritdoc/>
-        public IMapper Mapper { get; }
+        public IMapper Mapper { get; } = mapper.ThrowIfNull(nameof(mapper));
 
         /// <inheritdoc/>
         public EfDbArgs DbArgs { get; set; } = new EfDbArgs();
@@ -75,7 +65,7 @@ namespace CoreEx.EntityFrameworkCore
 
         private async Task<Result<T?>> GetWithResultInternalAsync<T, TModel>(EfDbArgs args, CompositeKey key, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, key, async (_, key, ct) =>
         {
-            var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), cancellationToken).ConfigureAwait(false);
+            var model = await DbContext.FindAsync<TModel>([.. key.Args], cancellationToken).ConfigureAwait(false);
             if (args.ClearChangeTrackerAfterGet)
                 DbContext.ChangeTracker.Clear();
 
@@ -100,10 +90,8 @@ namespace CoreEx.EntityFrameworkCore
         private async Task<Result<T>> CreateWithResultInternalAsync<T, TModel>(EfDbArgs args, T value, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
 
-            ChangeLog.PrepareCreated(value);
+            ChangeLog.PrepareCreated(value.ThrowIfNull(nameof(value)));
             Cleaner.ResetTenantId(value);
 
             return await Invoker.InvokeAsync(this, args, value, async (_, args, value, ct) =>
@@ -137,10 +125,8 @@ namespace CoreEx.EntityFrameworkCore
         private async Task<Result<T>> UpdateWithResultInternalAsync<T, TModel>(EfDbArgs args, T value, string memberName, CancellationToken cancellationToken) where T : class, IEntityKey, new() where TModel : class, new()
         {
             CheckSaveArgs(args);
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
 
-            ChangeLog.PrepareUpdated(value);
+            ChangeLog.PrepareUpdated(value.ThrowIfNull(nameof(value)));
             Cleaner.ResetTenantId(value);
 
             return await Invoker.InvokeAsync(this, args, value, async (_, args, value, ct) =>
@@ -185,7 +171,7 @@ namespace CoreEx.EntityFrameworkCore
             return await Invoker.InvokeAsync(this, args, key, async (_, args, key, ct) =>
             {
                 // A pre-read is required to get the row version for concurrency.
-                var model = await DbContext.FindAsync<TModel>(key.Args.ToArray(), ct).ConfigureAwait(false);
+                var model = await DbContext.FindAsync<TModel>([.. key.Args], ct).ConfigureAwait(false);
                 if (model == null)
                     return Result.NotFoundError();
 

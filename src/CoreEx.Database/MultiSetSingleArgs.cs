@@ -5,23 +5,14 @@ namespace CoreEx.Database
     /// <summary>
     /// Provides the base <b>Database</b> multi-set arguments when expecting a single item/record only.
     /// </summary>
-    public abstract class MultiSetSingleArgs : IMultiSetArgs
+    /// <param name="isMandatory">Indicates whether the value is mandatory; defaults to <c>true</c>.</param>
+    /// <param name="stopOnNull">Indicates whether to stop further query result set processing where the current set has resulted in a null (i.e. no records).</param>
+    public abstract class MultiSetSingleArgs(bool isMandatory = true, bool stopOnNull = false) : IMultiSetArgs
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MultiSetSingleArgs"/> class.
-        /// </summary>
-        /// <param name="isMandatory">Indicates whether the value is mandatory; defaults to <c>true</c>.</param>
-        /// <param name="stopOnNull">Indicates whether to stop further query result set processing where the current set has resulted in a null (i.e. no records).</param>
-        protected MultiSetSingleArgs(bool isMandatory = true, bool stopOnNull = false)
-        {
-            IsMandatory = isMandatory;
-            StopOnNull = stopOnNull;
-        }
-
         /// <summary>
         /// Indicates whether the value is mandatory; i.e. a corresponding record must be read.
         /// </summary>
-        public bool IsMandatory { get; set; }
+        public bool IsMandatory { get; set; } = isMandatory;
 
         /// <summary>
         /// Gets or sets the minimum number of rows allowed.
@@ -36,7 +27,7 @@ namespace CoreEx.Database
         /// <summary>
         /// Indicates whether to stop further query result set processing where the current set has resulted in a null (i.e. no records).
         /// </summary>
-        public bool StopOnNull { get; set; }
+        public bool StopOnNull { get; set; } = stopOnNull;
 
         /// <summary>
         /// The <see cref="DatabaseRecord"/> method invoked for each record for its respective dataset.

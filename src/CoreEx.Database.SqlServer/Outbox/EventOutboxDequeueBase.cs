@@ -20,35 +20,25 @@ namespace CoreEx.Database.SqlServer.Outbox
     /// <remarks>The <see cref="EventDataBase.Id"/> (being the unique event identifier) can be leveraged by the underlying messaging platform to perform duplicate checking. There is no guarantee that a dequeued event is <i>on</i> published more
     /// than once, the guarantee is at best <i>at-least</i> once semantics based on the implementation of the final <see cref="IEventSender"/>.
     /// </remarks>
-    public abstract class EventOutboxDequeueBase : IDatabaseMapper<EventSendData>
+    /// <param name="database">The <see cref="IDatabase"/>.</param>
+    /// <param name="eventSender">The <see cref="IEventSender"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    public abstract class EventOutboxDequeueBase(IDatabase database, IEventSender eventSender, ILogger<EventOutboxDequeueBase> logger) : IDatabaseMapper<EventSendData>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EventOutboxDequeueBase"/> class.
-        /// </summary>
-        /// <param name="database">The <see cref="IDatabase"/>.</param>
-        /// <param name="eventSender">The <see cref="IEventSender"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        public EventOutboxDequeueBase(IDatabase database, IEventSender eventSender, ILogger<EventOutboxDequeueBase> logger)
-        {
-            Database = database ?? throw new ArgumentNullException(nameof(database));
-            EventSender = eventSender ?? throw new ArgumentNullException(nameof(eventSender));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
-
         /// <summary>
         /// Gets the <see cref="IDatabase"/>.
         /// </summary>
-        protected IDatabase Database { get; }
+        protected IDatabase Database { get; } = database.ThrowIfNull(nameof(database));
 
         /// <summary>
         /// Gets the <see cref="IEventSender"/>.
         /// </summary>
-        protected IEventSender EventSender { get; }
+        protected IEventSender EventSender { get; } = eventSender.ThrowIfNull(nameof(eventSender));
 
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
-        protected ILogger Logger { get; }
+        protected ILogger Logger { get; } = logger.ThrowIfNull(nameof(logger));
 
         /// <summary>
         /// Gets the event outbox <i>dequeue</i> stored procedure name.

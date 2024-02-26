@@ -5,7 +5,7 @@ using CoreEx.Results;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,23 +15,24 @@ namespace CoreEx.Database.SqlServer
     /// <summary>
     /// Provides <see href="https://learn.microsoft.com/en-us/sql/?view=sql-server-ver16">SQL Server</see> database access functionality.
     /// </summary>
-    public class SqlServerDatabase : Database<SqlConnection>
+    /// <param name="create">The function to create the <see cref="SqlConnection"/>.</param>
+    /// <param name="logger">The optional <see cref="ILogger"/>.</param>
+    /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
+    public class SqlServerDatabase(Func<SqlConnection> create, ILogger<SqlServerDatabase>? logger = null, DatabaseInvoker? invoker = null) : Database<SqlConnection>(create, SqlClientFactory.Instance, logger, invoker)
     {
         private static readonly SqlServerDatabaseColumns _defaultColumns = new();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SqlServerDatabase"/> class.
+        /// Gets the default <see cref="DuplicateErrorNumbers"/>.
         /// </summary>
-        /// <param name="create">The function to create the <see cref="SqlConnection"/>.</param>
-        /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-        /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
-        public SqlServerDatabase(Func<SqlConnection> create, ILogger<SqlServerDatabase>? logger = null, DatabaseInvoker? invoker = null)
-            : base(create, SqlClientFactory.Instance, logger, invoker) { }
+        /// <remarks>See <see href="https://docs.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors"/>
+        /// and <see href="https://docs.microsoft.com/en-us/azure/sql-database/sql-database-develop-error-messages"/>.</remarks>
+        public static int[] DefaultDuplicateErrorNumbers { get; } = [2601, 2627];
 
         /// <summary>
         /// Gets or sets the names of the pre-configured <see cref="SqlServerDatabaseColumns"/>.
         /// </summary>
-        /// <remarks>Do not update the default properties directly as a shared static instance is used (unless this is the desired behaviour); create a new <see cref="Extended.DatabaseColumns"/> instance for overridding.</remarks>
+        /// <remarks>Do not update the default properties directly as a shared static instance is used (unless this is the desired behaviour); create a new <see cref="SqlServerDatabaseColumns"/> instance for overridding.</remarks>
         public new SqlServerDatabaseColumns DatabaseColumns { get; set; } = _defaultColumns;
 
         /// <inheritdoc/>
@@ -50,16 +51,15 @@ namespace CoreEx.Database.SqlServer
         public bool ThrowTransformedException { get; set; } = true;
 
         /// <summary>
-        /// Indicates whether to check the <see cref="SqlDuplicateErrorNumbers"/> when catching the <see cref="SqlException"/>.
+        /// Indicates whether to check the <see cref="DuplicateErrorNumbers"/> when catching the <see cref="SqlException"/>.
         /// </summary>
-        public bool CheckSqlDuplicateErrorNumbers { get; set; } = true;
+        public bool CheckDuplicateErrorNumbers { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the list of known <see cref="SqlException.Number"/> values that are considered a duplicate error.
         /// </summary>
-        /// <remarks>See <see href="https://docs.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors"/>
-        /// and <see href="https://docs.microsoft.com/en-us/azure/sql-database/sql-database-develop-error-messages"/>.</remarks>
-        public List<int> SqlDuplicateErrorNumbers { get; set; } = new List<int>(new int[] { 2601, 2627 });
+        /// <remarks>Overrides the <see cref="DefaultDuplicateErrorNumbers"/>.</remarks>
+        public int[]? DuplicateErrorNumbers { get; set; }
 
         /// <summary>
         /// Sets the SQL session context using the specified values by invoking the <see cref="SessionContextStoredProcedure"/> using parameters named <see cref="SqlServerDatabaseColumns.SessionContextUsernameName"/>, 
@@ -122,7 +122,7 @@ namespace CoreEx.Database.SqlServer
                     case 56010: return Result.Fail(new DataConsistencyException(msg, sex));
 
                     default:
-                        if (CheckSqlDuplicateErrorNumbers && SqlDuplicateErrorNumbers.Contains(sex.Number))
+                        if (CheckDuplicateErrorNumbers && (DuplicateErrorNumbers ?? DefaultDuplicateErrorNumbers).Contains(sex.Number))
                             return Result.Fail(new DuplicateException(null, sex));
 
                         break;

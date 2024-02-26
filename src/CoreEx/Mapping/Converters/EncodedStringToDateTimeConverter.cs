@@ -5,8 +5,7 @@ using System;
 namespace CoreEx.Mapping.Converters
 {
     /// <summary>
-    /// Represents an encoded <see cref="string"/> to <see cref="DateTime"/> converter (uses <see cref="Convert.FromBase64String(string)"/> and <see cref="Convert.ToBase64String(byte[])"/> for encoding;
-    /// and <see cref="DateTime.ToBinary"/> and <see cref="DateTime.FromBinary(long)"/> for underlying value.).
+    /// Represents an encoded <see cref="string"/> to <see cref="DateTime"/> converter.
     /// </summary>
     public readonly struct EncodedStringToDateTimeConverter : IConverter<string?, DateTime?>
     {

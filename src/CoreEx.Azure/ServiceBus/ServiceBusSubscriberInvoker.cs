@@ -29,10 +29,10 @@ namespace CoreEx.Azure.ServiceBus
         protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, EventSubscriberBase invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, (ServiceBusReceivedMessage Message, ServiceBusMessageActions MessageActions) args, CancellationToken cancellationToken)
         {
             if (args.Message == null)
-                throw new ArgumentNullException(nameof(args), $"The {nameof(ServiceBusReceivedMessage)} value is required.");
+                throw new ArgumentException($"The {nameof(ServiceBusReceivedMessage)} value is required.", nameof(args));
 
             if (args.MessageActions == null)
-                throw new ArgumentNullException(nameof(args), $"The {nameof(ServiceBusMessageActions)} value is required.");
+                throw new ArgumentException($"The {nameof(ServiceBusMessageActions)} value is required.", nameof(args));
 
             if (!string.IsNullOrEmpty(args.Message.CorrelationId))
                 invoker.ExecutionContext.CorrelationId = args.Message.CorrelationId;

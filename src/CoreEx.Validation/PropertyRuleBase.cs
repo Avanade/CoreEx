@@ -18,18 +18,18 @@ namespace CoreEx.Validation
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
     public abstract class PropertyRuleBase<TEntity, TProperty> : IPropertyRule<TEntity, TProperty> where TEntity : class
     {
-        private readonly List<IValueRule<TEntity, TProperty>> _rules = new();
-        private readonly List<IPropertyRuleClause<TEntity>> _clauses = new();
+        private readonly List<IValueRule<TEntity, TProperty>> _rules = [];
+        private readonly List<IPropertyRuleClause<TEntity>> _clauses = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyRuleBase{TEntity, TProperty}"/> class.
         /// </summary>
         /// <param name="name">The property name.</param>
-        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as <see cref="Abstractions.Reflection.PropertyExpression.ToSentenceCase(string)"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as <see cref="Text.SentenceCase.ToSentenceCase(string)"/>).</param>
         /// <param name="jsonName">The JSON property name (defaults to <paramref name="name"/>).</param>
         protected PropertyRuleBase(string name, LText? text = null, string? jsonName = null)
         {
-            Name = string.IsNullOrEmpty(name) ? throw new ArgumentNullException(nameof(name)) : name;
+            Name = name.ThrowIfNullOrEmpty(nameof(name));
             Text = text ?? Name.ToSentenceCase()!;
             JsonName = string.IsNullOrEmpty(jsonName) ? Name : jsonName;
         }
@@ -79,8 +79,7 @@ namespace CoreEx.Validation
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         protected async Task InvokeAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
+            context.ThrowIfNull(nameof(context));
 
             // Check all "this" clauses.
             foreach (var clause in _clauses)

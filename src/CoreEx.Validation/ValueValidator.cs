@@ -11,20 +11,15 @@ namespace CoreEx.Validation
     /// Enables validation for a value.
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-    public class ValueValidator<T> : PropertyRuleBase<ValidationValue<T>, T>
+    /// <param name="value">The value to validate.</param>
+    /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
+    /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+    public class ValueValidator<T>(T value, string? name = null, LText? text = null) : PropertyRuleBase<ValidationValue<T>, T>(string.IsNullOrEmpty(name) ? Validation.ValueNameDefault : name, text)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ValueValidator{T}"/> class.
-        /// </summary>
-        /// <param name="value">The value to validate.</param>
-        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
-        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
-        public ValueValidator(T value, string? name = null, LText? text = null) : base(string.IsNullOrEmpty(name) ? Validation.ValueNameDefault : name, text) => ValidationValue = new ValidationValue<T>(null, value);
-
         /// <summary>
         /// Gets the <see cref="ValidationValue{T}"/>.
         /// </summary>
-        public ValidationValue<T> ValidationValue { get; }
+        public ValidationValue<T> ValidationValue { get; } = new ValidationValue<T>(null, value);
 
         /// <summary>
         /// Gets the value.

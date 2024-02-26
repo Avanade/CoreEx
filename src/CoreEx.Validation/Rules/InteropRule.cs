@@ -20,7 +20,7 @@ namespace CoreEx.Validation.Rules
         /// <param name="validatorFunc">The function to return the <see cref="IValidator"/>.</param>
         public InteropRule(Func<TValidator> validatorFunc)
         {
-            ValidatorFunc = validatorFunc ?? throw new ArgumentNullException(nameof(validatorFunc));
+            ValidatorFunc = validatorFunc.ThrowIfNull(nameof(validatorFunc));
             if (validatorFunc is IValidatorEx)
                 throw new ArgumentException($"{ValidatorFunc.GetType().Name} implements {typeof(IValidatorEx).Name} and as such must use {typeof(EntityRule<,,>).Name}.", nameof(validatorFunc));
         }
@@ -35,13 +35,7 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        protected override bool Check(PropertyContext<TEntity, TProperty> context)
-        {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            return !context.Parent.ShallowValidation && base.Check(context);
-        }
+        protected override bool Check(PropertyContext<TEntity, TProperty> context) => !context.ThrowIfNull(nameof(context)).Parent.ShallowValidation && base.Check(context);
 
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)

@@ -318,6 +318,10 @@ namespace CoreEx.Json.Data
                         case Guid gv: jw.WriteStringValue(gv); break;
                         case DateTime dv: jw.WriteStringValue(dv); break;
                         case DateTimeOffset ov: jw.WriteStringValue(ov); break;
+#if NET7_0_OR_GREATER
+                        case DateOnly dv: jw.WriteStringValue(dv.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)); break;
+                        case TimeOnly tv: jw.WriteStringValue(tv.ToString("HH:mm:ss.FFFFFFF", System.Globalization.CultureInfo.InvariantCulture)); break;
+#endif
                         case bool bv: jw.WriteBooleanValue(bv); break;
                         case short nsv: jw.WriteNumberValue(nsv); break;
                         case int niv: jw.WriteNumberValue(niv); break;

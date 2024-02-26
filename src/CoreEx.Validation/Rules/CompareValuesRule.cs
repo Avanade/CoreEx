@@ -28,14 +28,14 @@ namespace CoreEx.Validation.Rules
         /// </summary>
         /// <param name="compareToValues">The compare to values.</param>
         public CompareValuesRule(IEnumerable<TProperty> compareToValues) : this() 
-            => _compareToValues = compareToValues ?? throw new ArgumentNullException(nameof(compareToValues));
+            => _compareToValues = compareToValues.ThrowIfNull(nameof(compareToValues));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CompareValuesRule{TEntity, TProperty}"/> class specifying the compare to values async function (as an <see cref="CompareOperator.Equal"/>).
         /// </summary>
         /// <param name="compareToValuesFunctionAsync">The compare to values function.</param>
         public CompareValuesRule(Func<TEntity, CancellationToken, Task<IEnumerable<TProperty>>> compareToValuesFunctionAsync) : this()
-            =>  _compareToValuesFunctionAsync = compareToValuesFunctionAsync ?? throw new ArgumentNullException(nameof(compareToValuesFunctionAsync));
+            =>  _compareToValuesFunctionAsync = compareToValuesFunctionAsync.ThrowIfNull(nameof(compareToValuesFunctionAsync));
 
         /// <summary>
         /// Gets or sets the <see cref="IEqualityComparer{T}"/>.
@@ -50,8 +50,7 @@ namespace CoreEx.Validation.Rules
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
+            context.ThrowIfNull(nameof(context));
 
             // Perform the comparison.
             var values = _compareToValues != null ? _compareToValues! : await _compareToValuesFunctionAsync!(context.Parent.Value!, cancellationToken).ConfigureAwait(false);

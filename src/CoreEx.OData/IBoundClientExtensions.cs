@@ -24,9 +24,9 @@ namespace CoreEx.OData
         /// <returns>The resulting query.</returns>
         public static IBoundClient<TElement> FilterWhen<TElement>(this IBoundClient<TElement> query, bool when, Expression<Func<TElement, bool>> predicate) where TElement : class
         {
-            var q = query ?? throw new ArgumentNullException(nameof(query));
+            var q = query.ThrowIfNull(nameof(query));
             if (when)
-                return q.Filter(predicate ?? throw new ArgumentNullException(nameof(predicate)));
+                return q.Filter(predicate.ThrowIfNull(nameof(predicate)));
             else
                 return q;
         }
@@ -43,13 +43,13 @@ namespace CoreEx.OData
         /// <returns>The resulting query.</returns>
         public static IBoundClient<TElement> FilterWith<TElement, T>(this IBoundClient<TElement> query, T with, Expression<Func<TElement, bool>> predicate) where TElement : class
         {
-            var q = query ?? throw new ArgumentNullException(nameof(query));
+            var q = query.ThrowIfNull(nameof(query));
             if (Comparer<T>.Default.Compare(with, default!) != 0 && Comparer<T>.Default.Compare(with, default!) != 0)
             {
                 if (with is not string && with is System.Collections.IEnumerable ie && !ie.GetEnumerator().MoveNext())
                     return q;
 
-                return q.Filter(predicate ?? throw new ArgumentNullException(nameof(predicate)));
+                return q.Filter(predicate.ThrowIfNull(nameof(predicate)));
             }
             else
                 return q;
@@ -67,8 +67,8 @@ namespace CoreEx.OData
         /// <returns>The resulting (updated) query.</returns>
         public static IBoundClient<TElement> FilterWildcard<TElement>(this IBoundClient<TElement> query, Expression<Func<TElement, string?>> property, string? text, bool ignoreCase = true, bool checkForNull = true) where TElement : class
         {
-            var q = query ?? throw new ArgumentNullException(nameof(query));
-            var p = property ?? throw new ArgumentNullException(nameof(property));
+            var q = query.ThrowIfNull(nameof(query));
+            var p = property.ThrowIfNull(nameof(property));
 
             // Check the expression.
             if (p.Body is not MemberExpression me)

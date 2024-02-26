@@ -28,8 +28,7 @@ namespace CoreEx.Validation
         /// <param name="fullyQualifiedJsonEntityNameOverride">Optional <see cref="ValidationArgs.FullyQualifiedJsonEntityName"/> override.</param>
         public ValidationContext(TEntity value, ValidationArgs args, string? fullyQualifiedEntityNameOverride = null, string? fullyQualifiedJsonEntityNameOverride = null)
         {
-            if (args == null)
-                throw new ArgumentNullException(nameof(args));
+            args.ThrowIfNull(nameof(args));
 
             Value = value;
             FullyQualifiedEntityName = fullyQualifiedEntityNameOverride ?? args.FullyQualifiedEntityName;
@@ -411,8 +410,7 @@ namespace CoreEx.Validation
         public bool Check<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, Func<TProperty, bool> predicate, LText text)
         {
             var pe = CreatePropertyExpression(propertyExpression);
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
+            predicate.ThrowIfNull(nameof(predicate));
 
             if (HasError(pe))
                 return true;
@@ -461,8 +459,7 @@ namespace CoreEx.Validation
         public bool Check<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, Func<TProperty, bool> predicate, LText format, params object[] values)
         {
             var pe = CreatePropertyExpression(propertyExpression);
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
+            predicate.ThrowIfNull(nameof(predicate));
 
             if (HasError(pe))
                 return true;
@@ -519,16 +516,14 @@ namespace CoreEx.Validation
         /// Creates the fully qualified name from a property expression.
         /// </summary>
         private string CreateFullyQualifiedName<TProperty>(PropertyExpression<TEntity, TProperty> propertyExpression)
-            => CreateFullyQualifiedName((propertyExpression ?? throw new ArgumentNullException(nameof(propertyExpression))).Name, propertyExpression.JsonName);
+            => CreateFullyQualifiedName(propertyExpression.ThrowIfNull(nameof(propertyExpression)).Name, propertyExpression.JsonName);
 
         /// <summary>
         /// Creates the fully qualified name using the property and json property names.
         /// </summary>
         private string CreateFullyQualifiedName(string propertyName, string? jsonPropertyName)
         {
-            if (propertyName == null)
-                throw new ArgumentNullException(nameof(propertyName));
-
+            propertyName.ThrowIfNullOrEmpty(nameof(propertyName));
             return UsedJsonNames ? CreateFullyQualifiedJsonPropertyName(jsonPropertyName ?? propertyName) : CreateFullyQualifiedPropertyName(propertyName);
         }
 
@@ -537,13 +532,13 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="name">The property name.</param>
         /// <returns>The fully qualified property name.</returns>
-        internal string CreateFullyQualifiedPropertyName(string name) => FullyQualifiedEntityName == null ? name : name.StartsWith("[") ? FullyQualifiedEntityName + name : FullyQualifiedEntityName + "." + name;
+        internal string CreateFullyQualifiedPropertyName(string name) => FullyQualifiedEntityName == null ? name : name.StartsWith('[') ? FullyQualifiedEntityName + name : FullyQualifiedEntityName + "." + name;
 
         /// <summary>
         /// Creates a fully qualified JSON property name for the specified name.
         /// </summary>
         /// <param name="name">The property name.</param>
         /// <returns>The fully qualified property name.</returns>
-        internal string CreateFullyQualifiedJsonPropertyName(string name) => FullyQualifiedJsonEntityName == null ? name : name.StartsWith("[") ? FullyQualifiedJsonEntityName + name : FullyQualifiedJsonEntityName + "." + name;
+        internal string CreateFullyQualifiedJsonPropertyName(string name) => FullyQualifiedJsonEntityName == null ? name : name.StartsWith('[') ? FullyQualifiedJsonEntityName + name : FullyQualifiedJsonEntityName + "." + name;
     }
 }

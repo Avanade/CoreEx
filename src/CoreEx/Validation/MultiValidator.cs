@@ -21,7 +21,7 @@ namespace CoreEx.Validation
         /// <summary>
         /// Gets the list of validators.
         /// </summary>
-        public List<Func<CancellationToken, Task<IValidationResult>>> Validators { get; } = new();
+        public List<Func<CancellationToken, Task<IValidationResult>>> Validators { get; } = [];
 
         /// <summary>
         /// Adds an <see cref="IValidator{T}"/>.

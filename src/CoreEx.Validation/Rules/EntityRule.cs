@@ -12,31 +12,20 @@ namespace CoreEx.Validation.Rules
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
     /// <typeparam name="TValidator">The property validator <see cref="Type"/>.</typeparam>
-    public class EntityRule<TEntity, TProperty, TValidator> : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : class? where TValidator : IValidatorEx
+    /// <param name="validator">The <see cref="IValidatorEx"/>.</param>
+    public class EntityRule<TEntity, TProperty, TValidator>(TValidator validator) : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : class? where TValidator : IValidatorEx
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EntityRule{TEntity, TProperty, TValidator}"/> class.
-        /// </summary>
-        /// <param name="validator">The <see cref="IValidatorEx"/>.</param>
-        public EntityRule(TValidator validator) => Validator = validator ?? throw new ArgumentNullException(nameof(validator));
-
         /// <summary>
         /// Gets the <see cref="IValidatorEx"/>.
         /// </summary>
-        public TValidator Validator { get; private set; }
+        public TValidator Validator { get; private set; } = validator.ThrowIfNull(nameof(validator));
 
         /// <summary>
         /// Overrides the <b>Check</b> method and will not validate where performing a shallow validation.
         /// </summary>
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        protected override bool Check(PropertyContext<TEntity, TProperty> context)
-        {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            return !context.Parent.ShallowValidation && base.Check(context);
-        }
+        protected override bool Check(PropertyContext<TEntity, TProperty> context) => !context.ThrowIfNull(nameof(context)).Parent.ShallowValidation && base.Check(context);
 
         /// <inheritdoc/>
         protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
