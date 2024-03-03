@@ -48,7 +48,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var vcr = test.Type<WebApi>()
-                .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(Result.Ok(new Person { Id = 1, Name = "Angela", ETag = "my-etag" }))))
+                .Run(f => f.GetWithResultAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget"), r => Task.FromResult(Result.Ok(new Person { Id = 1, Name = "Angela", ETag = "my-etag" }))))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Result as ValueContentResult;
@@ -61,8 +61,8 @@ namespace CoreEx.Test.Framework.WebApis
         public void GetWithResultAsync_WithETagValueNotModified()
         {
             using var test = FunctionTester.Create<Startup>();
-            var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples");
-            hr.Headers.Add(HeaderNames.IfMatch, "my-etag");
+            var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget");
+            hr.Headers.Add(HeaderNames.IfMatch, "\\W\"my-etag\"");
 
             test.Type<WebApi>()
                 .Run(f => f.GetWithResultAsync(hr, r => Task.FromResult(Result.Ok(new Person { Id = 1, Name = "Angela", ETag = "my-etag" }))))
@@ -81,7 +81,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Result as ValueContentResult;
 
             Assert.That(vcr, Is.Not.Null);
-            Assert.That(vcr!.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
+            Assert.That(vcr!.ETag, Is.EqualTo("F/BIL6G5jbvZxc4fnCc5BekkmFM9/BuXSSl/i5bQj5Q="));
         }
 
         [Test]
@@ -89,7 +89,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples");
-            hr.Headers.Add(HeaderNames.IfMatch, "iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM=");
+            hr.Headers.Add(HeaderNames.IfMatch, "\\W\"F/BIL6G5jbvZxc4fnCc5BekkmFM9/BuXSSl/i5bQj5Q=\"");
 
             test.Type<WebApi>()
                 .Run(f => f.GetWithResultAsync(hr, r => Task.FromResult(Result.Ok(new Person { Id = 1, Name = "Angela" }))))

@@ -50,5 +50,17 @@ namespace CoreEx.Mapping.Converters
         /// Gets the destination to source <see cref="IValueConverter{TDestination, TSource}"/>.
         /// </summary>
         public IValueConverter<string?, DateTime?> ToSource => _convertToSource;
+
+        /// <inheritdoc />
+        public readonly object? ConvertToDestination(object? source) => ConvertToDestination((DateTime?)source);
+
+        /// <inheritdoc />
+        public readonly object? ConvertToSource(object? destination) => ConvertToSource((string?)destination);
+
+        /// <inheritdoc />
+        public readonly string? ConvertToDestination(DateTime? source) => ToDestination.Convert(source);
+
+        /// <inheritdoc />
+        public readonly DateTime? ConvertToSource(string? destination) => ToSource.Convert(destination);
     }
 }

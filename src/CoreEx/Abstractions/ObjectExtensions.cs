@@ -12,6 +12,7 @@ namespace CoreEx
     /// <summary>
     /// Provides standard <see cref="object"/> extensions.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     public static class ObjectExtensions
     {
         /// <summary>

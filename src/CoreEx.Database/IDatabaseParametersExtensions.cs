@@ -2,6 +2,7 @@
 
 using CoreEx.Database.Mapping;
 using CoreEx.Entities;
+using CoreEx.Mapping;
 using CoreEx.Mapping.Converters;
 using System;
 using System.Collections.Generic;
@@ -450,5 +451,20 @@ namespace CoreEx.Database
         }
 
         #endregion 
+
+        /// <summary>
+        /// Sets the <see cref="DbParameter.Direction"/> to <see cref="ParameterDirection.Output"/> when the <paramref name="operationType"/> is <see cref="OperationTypes.Create"/>.
+        /// </summary>
+        /// <param name="parameter">The <see cref="DbParameter"/>.</param>
+        /// <param name="operationType">The single <see cref="OperationTypes"/> value being performed to enable conditional execution where appropriate.</param>
+        /// <returns>The <paramref name="parameter"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>Where not <see cref="OperationTypes.Create"/> then the <see cref="DbParameter.Direction"/> will remain unchanged.</remarks>
+        public static DbParameter SetDirectionToOutputOnCreate(this DbParameter parameter, OperationTypes operationType)
+        {
+            if (operationType == OperationTypes.Create)
+                parameter.Direction = ParameterDirection.Output;
+
+            return parameter;
+        }
     }
 }

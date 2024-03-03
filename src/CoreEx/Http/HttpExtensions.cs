@@ -96,9 +96,9 @@ namespace CoreEx.Http
             if (!string.IsNullOrEmpty(etag))
             {
                 if (httpRequest.Method == HttpMethod.Get || httpRequest.Method == HttpMethod.Head)
-                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)!));
+                    httpRequest.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)!, true));
                 else
-                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)!));
+                    httpRequest.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(ETagGenerator.FormatETag(etag)!, true));
             }
 
             return httpRequest;

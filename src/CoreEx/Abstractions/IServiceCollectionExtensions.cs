@@ -321,6 +321,27 @@ namespace Microsoft.Extensions.DependencyInjection
             => AddMappers(services, [typeof(TAssembly).Assembly]);
 
         /// <summary>
+        /// Registers all the <see cref="IMapper{TSource, TDestination}"/>(s) from the specified <typeparamref name="TAssembly1"/> and <typeparamref name="TAssembly2"/> into a new <see cref="Mapper"/> that is then registered as a singleton service.
+        /// </summary>
+        /// <typeparam name="TAssembly1">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <typeparam name="TAssembly2">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddMappers<TAssembly1, TAssembly2>(this IServiceCollection services)
+            => AddMappers(services, [typeof(TAssembly1).Assembly, typeof(TAssembly2).Assembly]);
+
+        /// <summary>
+        /// Registers all the <see cref="IMapper{TSource, TDestination}"/>(s) from the specified <typeparamref name="TAssembly1"/>, <typeparamref name="TAssembly2"/> and <typeparamref name="TAssembly3"/> into a new <see cref="Mapper"/> that is then registered as a singleton service.
+        /// </summary>
+        /// <typeparam name="TAssembly1">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <typeparam name="TAssembly2">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <typeparam name="TAssembly3">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddMappers<TAssembly1, TAssembly2, TAssembly3>(this IServiceCollection services)
+            => AddMappers(services, [typeof(TAssembly1).Assembly, typeof(TAssembly2).Assembly, typeof(TAssembly3).Assembly]);
+
+        /// <summary>
         /// Registers all the <see cref="IMapper{TSource, TDestination}"/>(s) from the specified <paramref name="assemblies"/> into a new <see cref="Mapper"/> that is then registered as a singleton service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>

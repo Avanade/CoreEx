@@ -238,7 +238,7 @@ namespace CoreEx.Validation
             => rule.ThrowIfNull(nameof(rule)).AddRule(new ExistsRule<TEntity, TProperty>(exists) { ErrorText = errorText });
 
         /// <summary>
-        /// Adds a validation where the rule <paramref name="exists"/> value is <c>true</c> to verify it exists (see <see cref="ExistsRule{TEntity, TProperty}"/>).
+        /// Adds a validation where the rule <paramref name="exists"/> resultant value is <c>true</c> to verify it exists (see <see cref="ExistsRule{TEntity, TProperty}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
@@ -257,20 +257,22 @@ namespace CoreEx.Validation
         /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <remarks>Where the resultant value is an <see cref="IResult"/> then existence is confirmed when <see cref="IResult.IsSuccess"/> and the the underlying <see cref="IResult.Value"/> is not null.</remarks>
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
-        public static IPropertyRule<TEntity, TProperty> ExistsAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object?>> exists, LText? errorText = null) where TEntity : class
+        public static IPropertyRule<TEntity, TProperty> ValueExistsAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<object?>> exists, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new ExistsRule<TEntity, TProperty>(exists) { ErrorText = errorText });
 
         /// <summary>
-        /// Adds a validation where the rule <paramref name="exists"/> is <b>not null</b> to verify it exists (see <see cref="ExistsRule{TEntity, TProperty}"/>).
+        /// Adds a validation where the rule <paramref name="exists"/> resultant value is <b>not null</b> to verify it exists (see <see cref="ExistsRule{TEntity, TProperty}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="exists">The exists function.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <remarks>Where the resultant value is an <see cref="IResult"/> then existence is confirmed when <see cref="IResult.IsSuccess"/> and the the underlying <see cref="IResult.Value"/> is not null.</remarks>
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
-        public static IPropertyRule<TEntity, TProperty> Exists<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, object? exists, LText? errorText = null) where TEntity : class
+        public static IPropertyRule<TEntity, TProperty> ValueExists<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, object? exists, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new ExistsRule<TEntity, TProperty>((_, __) => Task.FromResult(exists != null)) { ErrorText = errorText });
 
         /// <summary>

@@ -62,6 +62,7 @@ namespace CoreEx.Azure.Storage
                 TypeName = state.TypeName;
                 Key = state.Key;
                 CorrelationId = state.CorrelationId;
+                UserName = state.UserName;
                 Status = state.Status;
                 Created = state.Created;
                 Expiry = state.Expiry;
@@ -161,6 +162,7 @@ namespace CoreEx.Azure.Storage
                 TypeName = er.Value.TypeName,
                 Key = er.Value.Key,
                 CorrelationId = er.Value.CorrelationId,
+                UserName = er.Value.UserName,
                 Status = er.Value.Status,
                 Created = er.Value.Created,
                 Expiry = er.Value.Expiry,

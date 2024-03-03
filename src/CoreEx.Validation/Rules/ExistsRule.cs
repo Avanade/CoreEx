@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Http;
+using CoreEx.Results;
 using System;
 using System.Net;
 using System.Net.Http;
@@ -37,6 +38,7 @@ namespace CoreEx.Validation.Rules
         /// Initializes a new instance of the <see cref="ExistsRule{TEntity, TProperty}"/> class with an <paramref name="exists"/> function that must return a value.
         /// </summary>
         /// <param name="exists">The exists function.</param>
+        /// <remarks>Where the resultant value is an <see cref="IResult"/> then existence is confirmed when <see cref="IResult.IsSuccess"/> and the the underlying <see cref="IResult.Value"/> is not null.</remarks>
         public ExistsRule(Func<TEntity, CancellationToken, Task<object?>> exists) => _existsNotNull = exists.ThrowIfNull(nameof(exists));
 
         /// <summary>
@@ -77,8 +79,18 @@ namespace CoreEx.Validation.Rules
             }
             else
             {
-                if (await _existsNotNull!(context.Parent.Value!, cancellationToken).ConfigureAwait(false) == null)
+                var value = await _existsNotNull!(context.Parent.Value!, cancellationToken).ConfigureAwait(false);
+                if (value == null)
                     CreateErrorMessage(context);
+
+                if (value is IResult ir)
+                {
+                    if (ir.IsFailure)
+                        context.Parent.SetFailureResult(new Result(ir.Error));
+
+                    if (ir.Value is null)
+                        CreateErrorMessage(context);
+                }
             }
         }
 

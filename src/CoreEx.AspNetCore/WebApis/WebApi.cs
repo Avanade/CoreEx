@@ -719,10 +719,8 @@ namespace CoreEx.AspNetCore.WebApis
 
                 if (etag != null)
                 {
-                    if (!ValueContentResult.TryGetETag(getValue!, out var getEt))
-                        getEt = ValueContentResult.GenerateETag(wap.RequestOptions, getValue!, null, JsonSerializer);
-
-                    if (etag != getEt)
+                    var getEt = ValueContentResult.GenerateETag(wap.RequestOptions, getValue!, null, JsonSerializer);
+                    if (etag != getEt.etag)
                         return new ConcurrencyException();
                 }
             }

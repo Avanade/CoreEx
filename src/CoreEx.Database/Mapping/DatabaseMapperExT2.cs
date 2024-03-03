@@ -5,12 +5,11 @@ using System;
 namespace CoreEx.Database.Mapping
 {
     /// <summary>
-    /// Provides <see cref="DatabaseMapper{TSource}"/> with a singleton <see cref="Default"/>.
+    /// Provides <see cref="DatabaseMapperEx{TSource}"/> with a singleton <see cref="Default"/>.
     /// </summary>
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
     /// <typeparam name="TMapper">The mapper <see cref="Type"/>.</typeparam>
-    /// <remarks>Where performance is critical consider using <see cref="DatabaseMapperEx{TSource, TMapper}"/>.</remarks>
-    public abstract class DatabaseMapper<TSource, TMapper> : DatabaseMapper<TSource> where TSource : class, new() where TMapper : DatabaseMapper<TSource, TMapper>, new()
+    public abstract class DatabaseMapperEx<TSource, TMapper> : DatabaseMapperEx<TSource> where TSource : class, new() where TMapper : DatabaseMapperEx<TSource, TMapper>, new()
     {
         private static readonly TMapper _default = new();
 

@@ -227,7 +227,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <c>null</c>.</returns>
-        public IReferenceDataCollection? GetByType(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection? coll) ? coll! : Invokers.Invoker.RunSync(() => GetByTypeAsync(type));
+        public IReferenceDataCollection? GetByType(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection? coll) ? coll! : Invoker.RunSync(() => GetByTypeAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/> (will throw <see cref="InvalidOperationException"/> where not found).
@@ -241,7 +241,7 @@ namespace CoreEx.RefData
         /// </summary>
         /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
         /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, will throw an <see cref="InvalidOperationException"/>.</returns>
-        public IReferenceDataCollection GetByTypeRequired(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection? coll) ? coll! : Invokers.Invoker.RunSync(() => GetByTypeRequiredAsync(type));
+        public IReferenceDataCollection GetByTypeRequired(Type type) => Cache.TryGetValue(OnGetCacheKey(type), out IReferenceDataCollection? coll) ? coll! : Invoker.RunSync(() => GetByTypeRequiredAsync(type));
 
         /// <summary>
         /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>. 
@@ -264,7 +264,7 @@ namespace CoreEx.RefData
 
             var coll = await OnGetOrCreateAsync(type, (t, ct) =>
             {
-                return ReferenceDataOrchestratorInvoker.Current.Invoke(this, ia =>
+                return ReferenceDataOrchestratorInvoker.Current.Invoke(this, async ia =>
                 {
                     if (ia.Activity is not null)
                     {
@@ -273,16 +273,17 @@ namespace CoreEx.RefData
                     }
 
                     Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
-                    var ec = ExecutionContext.Current.CreateCopy();
+                    using var ec = ExecutionContext.Current.CreateCopy();
                     var rdo = _asyncLocal.Value;
 
                     using var scope = ServiceProvider.CreateScope();
+                    Task<IReferenceDataCollection> task;
                     using (System.Threading.ExecutionContext.SuppressFlow())
                     {
-                        var task = Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ia, ct));
-                        task.Wait();
-                        return task;
+                        task = Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ia, ct));
                     }
+
+                    return await task.ConfigureAwait(false);
                 }, nameof(GetByTypeAsync));
             }, cancellationToken).ConfigureAwait(false);
 
@@ -312,7 +313,6 @@ namespace CoreEx.RefData
                 var sw = Stopwatch.StartNew();
                 var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
                 var coll = (await provider.GetAsync(type, cancellationToken).ConfigureAwait(false)).Value;
-                coll.ETag = ETagGenerator.Generate(ServiceProvider.GetRequiredService<IReferenceDataContentJsonSerializer>(), coll)!;
                 sw.Stop();
 
                 Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);

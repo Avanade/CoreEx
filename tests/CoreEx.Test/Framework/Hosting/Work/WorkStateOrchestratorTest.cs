@@ -62,6 +62,9 @@ namespace CoreEx.Test.Framework.Hosting.Work
                 return;
             }
 
+            ExecutionContext.Reset();
+            ExecutionContext.SetCurrent(new ExecutionContext { UserName = ExecutionContext.EnvironmentUserName });
+
             // Clean up before we begin.
             await o.Persistence.DeleteAsync("abc", default);
 
@@ -129,6 +132,17 @@ namespace CoreEx.Test.Framework.Hosting.Work
 
             // Check different type; but same id. Confirms same type as extra pre-caution!
             wr = await o.GetAsync("other", "abc");
+            Assert.That(wr, Is.Null);
+
+            // Check different username; but same id. Confirms same user as extra/extra pre-caution!
+            ExecutionContext.Reset();
+            ExecutionContext.SetCurrent(new ExecutionContext { UserName = "other" });
+            wr = await o.GetAsync<Person>("abc");
+            Assert.That(wr, Is.Null);
+
+            // Check no username set; but same id. Confirms same user as extra/extra/extra pre-caution!
+            ExecutionContext.Reset();
+            wr = await o.GetAsync<Person>("abc");
             Assert.That(wr, Is.Null);
         }
 

@@ -5,6 +5,7 @@ using CoreEx.Localization;
 using CoreEx.Validation;
 using System;
 using System.Linq;
+using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -53,28 +54,63 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddValidators<TAssembly>(this IServiceCollection services)
+            => AddValidators(services, [typeof(TAssembly).Assembly]);
+
+        /// <summary>
+        /// Adds all the <see cref="IValidatorEx{T}"/> validators from the specified <typeparamref name="TAssembly1"/> and <typeparamref name="TAssembly2"/> as scoped services.
+        /// </summary>
+        /// <typeparam name="TAssembly1">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <typeparam name="TAssembly2">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddValidators<TAssembly1, TAssembly2>(this IServiceCollection services)
+            => AddValidators(services, [typeof(TAssembly1).Assembly, typeof(TAssembly2).Assembly]);
+
+        /// <summary>
+        /// Adds all the <see cref="IValidatorEx{T}"/> validators from the specified <typeparamref name="TAssembly1"/>, <typeparamref name="TAssembly2"/> and <typeparamref name="TAssembly3"/> as scoped services.
+        /// </summary>
+        /// <typeparam name="TAssembly1">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <typeparam name="TAssembly2">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <typeparam name="TAssembly3">The <see cref="Type"/> to infer the underlying <see cref="Type.Assembly"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+        public static IServiceCollection AddValidators<TAssembly1, TAssembly2, TAssembly3>(this IServiceCollection services)
+            => AddValidators(services, [typeof(TAssembly1).Assembly, typeof(TAssembly2).Assembly, typeof(TAssembly3).Assembly]);
+
+        /// <summary>
+        /// Adds all the <see cref="IValidatorEx{T}"/> validators from the specified <paramref name="assemblies"/> as scoped services.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="assemblies">The assemblies.</param>
         /// <param name="includeInternalTypes">Indicates whether to include internally defined types.</param>
         /// <param name="alsoRegisterInterfaces">Indicates whether to also register the interfaces with <see cref="AddValidator{T, TValidator}(IServiceCollection)"/> (default); otherwise, with <see cref="AddValidator{TValidator}(IServiceCollection)"/> (just the validator instance itself).</param>
         /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
-        public static IServiceCollection AddValidators<TAssembly>(this IServiceCollection services, bool includeInternalTypes = false, bool alsoRegisterInterfaces = true)
+        public static IServiceCollection AddValidators(this IServiceCollection services, Assembly[] assemblies, bool includeInternalTypes = false, bool alsoRegisterInterfaces = true)
         {
-            var av = alsoRegisterInterfaces
-                ? typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorWithInterfacesInternal), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
-                : typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorInternal), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            services.ThrowIfNull(nameof(services));
 
-            foreach (var match in from type in includeInternalTypes ? typeof(TAssembly).Assembly.GetTypes() : typeof(TAssembly).Assembly.GetExportedTypes()
-                                  where !type.IsAbstract && !type.IsGenericTypeDefinition
-                                  let interfaces = type.GetInterfaces()
-                                  let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidatorEx<>))
-                                  let @interface = genericInterfaces.FirstOrDefault()
-                                  let valueType = @interface?.GetGenericArguments().FirstOrDefault()
-                                  where @interface != null
-                                  select new { valueType, type })
+            foreach (var assembly in assemblies.Distinct())
             {
-                if (alsoRegisterInterfaces)
-                    av.MakeGenericMethod(match.valueType, match.type).Invoke(null, new object[] { services });
-                else
-                    av.MakeGenericMethod(match.type).Invoke(null, new object[] { services });
+                var av = alsoRegisterInterfaces
+                    ? typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorWithInterfacesInternal), BindingFlags.Static | BindingFlags.NonPublic)!
+                    : typeof(ValidationServiceCollectionExtensions).GetMethod(nameof(AddValidatorInternal), BindingFlags.Static | BindingFlags.NonPublic)!;
+
+                foreach (var match in from type in includeInternalTypes ? assembly.GetTypes() : assembly.GetExportedTypes()
+                                      where !type.IsAbstract && !type.IsGenericTypeDefinition
+                                      let interfaces = type.GetInterfaces()
+                                      let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidatorEx<>))
+                                      let @interface = genericInterfaces.FirstOrDefault()
+                                      let valueType = @interface?.GetGenericArguments().FirstOrDefault()
+                                      where @interface != null
+                                      select new { valueType, type })
+                {
+                    if (alsoRegisterInterfaces)
+                        av.MakeGenericMethod(match.valueType, match.type).Invoke(null, new object[] { services });
+                    else
+                        av.MakeGenericMethod(match.type).Invoke(null, new object[] { services });
+                }
             }
 
             return services;

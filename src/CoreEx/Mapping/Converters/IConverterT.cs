@@ -17,12 +17,6 @@ namespace CoreEx.Mapping.Converters
         /// <inheritdoc/>
         Type IConverter.DestinationType => typeof(TDestination);
 
-        /// <inheritdoc/>
-        object? IConverter.ConvertToDestination(object? source) => ToDestination.Convert((TSource)source!);
-
-        /// <inheritdoc/>
-        object? IConverter.ConvertToSource(object? destination) => ToSource.Convert((TDestination)destination!);
-
         /// <summary>
         /// Gets the source to destination <see cref="IValueConverter{TSource, TDestination}"/>.
         /// </summary>
@@ -32,5 +26,19 @@ namespace CoreEx.Mapping.Converters
         /// Gets the destination to source <see cref="IValueConverter{TDestination, TSource}"/>.
         /// </summary>
         IValueConverter<TDestination, TSource> ToSource { get; }
+
+        /// <summary>
+        /// Converts the source to the destination value (converts to).
+        /// </summary>
+        /// <param name="source">The source value to convert.</param>
+        /// <returns>The converted destination value.</returns>
+        TDestination ConvertToDestination(TSource source);
+
+        /// <summary>
+        /// Converts the destination to the source value (converts back from).
+        /// </summary>
+        /// <param name="destination">The destination value to convert.</param>
+        /// <returns>The converted source value.</returns>
+        TSource ConvertToSource(TDestination destination);
     }
 }

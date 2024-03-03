@@ -2,6 +2,17 @@
 
 Represents the **NuGet** versions.
 
+## v3.13.0
+- *Enhancement*: Added `DatabaseMapperEx` enabling extended/explicit mapping where performance is critical versus existing that uses reflection and compiled expressions; can offer up to 40%+ improvement in some scenarios.
+- *Enhancement*: The `AddMappers<TAssembly>()` and `AddValidators<TAssembly>()` extension methods now also support two or three assembly specification overloads.
+- *Enhancement*: A `WorkState.UserName` has been added to enable the tracking of the user that initiated the work; this is then checked to ensure that only the initiating user can interact with their own work state.
+- *Fixed:* The `ReferenceDataOrchestrator.GetByTypeAsync` has had the previous sync-over-async corrected to be fully async.
+- *Fixed*: Validation extensions `Exists` and `ExistsAsync` which expect a non-null resultant value have been renamed to `ValueExists` and `ValueExistsAsync` to improve usability; also they are `IResult` aware and will act accordingly.
+- *Fixed*: The `ETag` HTTP handling has been updated to correctly output and expect the weak `W/"xxxx"` format. 
+- *Fixed*: The `ETagGenerator` implementation has been further optimized to minimize unneccessary string allocations.
+- *Fixed*: The `SettingsBase` has been optimized. The internal recursion checking has been removed and as such an endless loop (`StackOverflowException`) may occur where misconfigured; given frequency of `IConfiguration` usage the resulting performance is deemed more important. Additionally, `prefixes` are now optional.
+  - The existing support of referencing a settings property by name (`settings.GetValue<T>("NamedProperty")`) and it using reflection to find before querying the `IConfiguration` has been removed. This was not a common, or intended usage, and was somewhat magical, and finally was non-performant.
+
 ## v3.12.0
 - *Enhancement*: Added new `CoreEx.Database.Postgres` project/package to support [PostgreSQL](https://www.postgresql.org/) database capabilities. Primarily encapsulates the open-source [`Npqsql`](https://www.npgsql.org/) .NET ADO database provider for PostgreSQL.
   - Added `EncodedStringToUInt32Converter` to support PostgreSQL `xmin` column encoding as the row version/etag.

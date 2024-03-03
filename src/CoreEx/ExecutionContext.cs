@@ -16,8 +16,9 @@ namespace CoreEx
     /// <summary>
     /// Represents a thread-bound (request) execution context using <see cref="AsyncLocal{ExecutionContext}"/>.
     /// </summary>
-    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments. This class should be extended by consumers where additional properties are required.</remarks>
-    public class ExecutionContext : ITenantId
+    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments. This class should be extended by consumers where additional properties are required.
+    /// <para>The <see cref="ExecutionContext"/> implements <see cref="IDisposable"/>; however, from a standard implementation perspective there are no unmanaged resources leveraged. The <see cref="Dispose()"/> will result in a <see cref="Reset"/>.</para></remarks>
+    public class ExecutionContext : ITenantId, IDisposable
     {
         private static readonly AsyncLocal<ExecutionContext?> _asyncLocal = new();
 
@@ -26,6 +27,8 @@ namespace CoreEx
         private Lazy<ConcurrentDictionary<string, object?>> _properties = new(true);
         private IReferenceDataContext? _referenceDataContext;
         private HashSet<string>? _roles;
+        private bool _disposed;
+        private readonly object _lock = new();
 
         /// <summary>
         /// Gets or sets the function to create a default <see cref="ExecutionContext"/> instance.
@@ -149,9 +152,9 @@ namespace CoreEx
         public bool IsTextSerializationEnabled { get; set; }
 
         /// <summary>
-        /// Gets or sets the <b>result</b> entity tag (where value does not support <see cref="IETag"/>).
+        /// Gets or sets the <b>result</b> entity tag (used where the value does not explicitly implement <see cref="IETag"/>).
         /// </summary>
-        public string? ETag { get; set; }
+        public string? ResultETag { get; set; }
 
         /// <summary>
         /// Gets or sets the corresponding user name.
@@ -207,12 +210,40 @@ namespace CoreEx
             ec.CorrelationId = CorrelationId;
             ec.OperationType = OperationType;
             ec.IsTextSerializationEnabled = IsTextSerializationEnabled;
-            ec.ETag = ETag;
+            ec.ResultETag = ResultETag;
             ec.UserName = UserName;
             ec.UserId = UserId;
             ec.TenantId = TenantId;
             return ec;
         }
+
+        /// <summary>
+        /// Dispose of resources.
+        /// </summary>
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                lock (_lock)
+                {
+                    if (!_disposed)
+                    {
+                        _disposed = true;
+                        Reset();
+                        Dispose(true);
+                    }
+                }
+            }
+
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="ExecutionContext"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected virtual void Dispose(bool disposing) { }
 
         #region Security
 

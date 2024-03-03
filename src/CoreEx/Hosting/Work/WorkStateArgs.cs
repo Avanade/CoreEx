@@ -51,5 +51,11 @@ namespace CoreEx.Hosting.Work
         /// </summary>
         /// <remarks>The <see cref="WorkState.Expiry"/> will default to the <see cref="WorkStateOrchestrator.ExpiryTimeSpan"/> where not specified.</remarks>
         public TimeSpan? Expiry { get; set; }
+
+        /// <summary>
+        /// Gets or sets the owning user name.
+        /// </summary>
+        /// <remarks>This provides a basic authorization opportunity by verifying only the initiating user has ongoing access. This will default to <see cref="ExecutionContext.UserName"/>; otherwise, <c>null</c>.</remarks>
+        public string? UserName { get; set; }
     }
 }

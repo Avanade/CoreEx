@@ -38,6 +38,12 @@ namespace CoreEx.Hosting.Work
         public WorkStatus Status { get; set; }
 
         /// <summary>
+        /// Gets or sets the owning user name.
+        /// </summary>
+        /// <remarks>This provides a basic authorization-style opportunity by verifying <i>only</i> the initiating user has ongoing access.</remarks>
+        public string? UserName { get; set; }
+
+        /// <summary>
         /// Gets or sets the <see cref="WorkStatus.Created"/> <see cref="DateTimeOffset"/>.
         /// </summary>
         public DateTimeOffset Created { get; set; }

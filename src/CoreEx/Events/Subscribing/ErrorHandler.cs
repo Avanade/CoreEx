@@ -83,6 +83,7 @@ namespace CoreEx.Events.Subscribing
                         await args.WorkOrchestrator.FailAsync(args.Identifier!, args.Exception.Message, cancellationToken);
 
                     args.Instrumentation?.Instrument(args.ErrorHandling, args.Exception);
+                    args.Logger.LogDebug(ex, LogFormat, args.Exception.Message, args.Exception.ExceptionSource, args.ErrorHandling.ToString());
                     break;
 
                 case ErrorHandling.CompleteWithInformation:

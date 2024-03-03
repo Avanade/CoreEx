@@ -106,6 +106,22 @@ namespace CoreEx.Entities
         public ImmutableArray<object?> Args => _args;
 
         /// <summary>
+        /// Asserts the <see cref="Args"/> length and throws an <see cref="ArgumentException"/> where the length is not as expected.
+        /// </summary>
+        /// <param name="length">The expected length.</param>
+        /// <returns>The <see cref="CompositeKey"/> to support fluent-style method-chaining.</returns>
+        public CompositeKey AssertLength(int length)
+        {
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length), "Length must be greater than or equal to zero.");
+
+            if (_args.Length != length)
+                throw new ArgumentException($"The number of arguments within the {nameof(CompositeKey)} must equal {length}.", nameof(length));
+
+            return this;
+        }
+
+        /// <summary>
         /// Determines whether the current <see cref="CompositeKey"/> is equal to another <see cref="CompositeKey"/>.
         /// </summary>
         /// <param name="other">The other <see cref="CompositeKey"/>.</param>

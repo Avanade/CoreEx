@@ -4,7 +4,6 @@ using CoreEx.Entities;
 using CoreEx.Http;
 using CoreEx.RefData;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,17 +24,13 @@ namespace CoreEx.AspNetCore.WebApis
         public WebApiRequestOptions(HttpRequest httpRequest)
         {
             Request = httpRequest.ThrowIfNull(nameof(httpRequest));
-            GetQueryStringOptions(Request.Query);
+            HasQueryString = GetQueryStringOptions(Request.Query);
 
-            if (httpRequest.Headers != null && httpRequest.Headers.Count > 0)
-            {
-                if (httpRequest.Headers.TryGetValue(HeaderNames.IfNoneMatch, out var vals) || httpRequest.Headers.TryGetValue(HeaderNames.IfMatch, out vals))
-                {
-                    var etag = vals.FirstOrDefault()?.Trim();
-                    if (!string.IsNullOrEmpty(etag))
-                        ETag = etag.Trim('\"');
-                }
-            }
+            // Get the raw ETag from the request headers.
+            var rth = httpRequest.GetTypedHeaders();
+            var etag = rth.IfNoneMatch.FirstOrDefault()?.Tag ?? rth.IfMatch.FirstOrDefault()?.Tag;
+            if (etag.HasValue)
+                ETag = etag.Value.Substring(1, etag.Value.Length - 2);
         }
 
         /// <summary>
@@ -44,9 +39,14 @@ namespace CoreEx.AspNetCore.WebApis
         public HttpRequest Request { get; }
 
         /// <summary>
+        /// Indicates whether the <see cref="Request"/> has a query string.
+        /// </summary>
+        public bool HasQueryString { get; }
+
+        /// <summary>
         /// Gets or sets the entity tag that was passed as either a <c>If-None-Match</c> header where <see cref="HttpMethod.Get"/>; otherwise, an <c>If-Match</c> header.
         /// </summary>
-        /// <remarks>Automatically adds quoting to be ETag format compliant.</remarks>
+        /// <remarks>Represents the underlying ray value; i.e. is stripped of any <c>W/"xxxx"</c> formatting.</remarks>
         public string? ETag { get; set; }
 
         /// <summary>
@@ -79,10 +79,10 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Gets the options from the <see cref="IQueryCollection"/>.
         /// </summary>
-        private void GetQueryStringOptions(IQueryCollection query)
+        private bool GetQueryStringOptions(IQueryCollection query)
         {
             if (query == null || query.Count == 0)
-                return;
+                return false;
 
             var fields = GetNamedQueryString(query, HttpConsts.IncludeFieldsQueryStringNames);
             if (!string.IsNullOrEmpty(fields))
@@ -96,6 +96,7 @@ namespace CoreEx.AspNetCore.WebApis
             IncludeInactive = HttpExtensions.ParseBoolValue(GetNamedQueryString(query, HttpConsts.IncludeInactiveQueryStringNames, "true"));
 
             Paging = GetPagingArgs(query);
+            return true;
         }
 
         /// <summary>

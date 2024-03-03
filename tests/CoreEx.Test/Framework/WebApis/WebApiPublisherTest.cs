@@ -329,7 +329,7 @@ namespace CoreEx.Test.Framework.WebApis
             Assert.That(ed, Has.Length.EqualTo(1));
             ObjectComparer.Assert(new Product { Id = "A", Name = "B", Price = 1.99m }, ed[0].Value);
 
-            var ws2 = wso.GetAsync<Product>(ed[0].Id!).Result;
+            var ws2 = wso.GetAsync(ed[0].Id!).Result;
             Assert.That(ws2, Is.Not.Null);
             Assert.That(ws2.Status, Is.EqualTo(WorkStatus.Created));
             

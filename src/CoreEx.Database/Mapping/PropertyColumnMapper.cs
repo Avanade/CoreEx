@@ -207,7 +207,7 @@ namespace CoreEx.Database.Mapping
             if (!OperationTypes.HasFlag(operationType))
                 return;
 
-            TSourceProperty? pval = default;
+            TSourceProperty? pval;
             if (Mapper != null)
                 pval = (TSourceProperty?)Mapper.MapFromDb(record, operationType);
             else
@@ -219,6 +219,8 @@ namespace CoreEx.Database.Mapping
                     else
                         pval = (TSourceProperty)Converter.ConvertToSource(record.DataReader.GetValue(ordinal))!;
                 }
+                else
+                    pval = default;
             }
 
             _propertyExpression.SetValue(value, pval);

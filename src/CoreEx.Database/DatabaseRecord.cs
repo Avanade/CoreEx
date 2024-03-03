@@ -2,6 +2,7 @@
 
 using CoreEx.Entities;
 using System;
+using System.Data;
 using System.Data.Common;
 
 namespace CoreEx.Database
@@ -22,6 +23,20 @@ namespace CoreEx.Database
         /// Gets the underlying <see cref="DbDataReader"/>.
         /// </summary>
         public DbDataReader DataReader { get; } = dataReader.ThrowIfNull(nameof(dataReader));
+
+        /// <summary>
+        /// Gets the named column value.
+        /// </summary>
+        /// <param name="columnName">The column name.</param>
+        /// <returns>The value.</returns>
+        public object? GetValue(string columnName) => GetValue(DataReader.GetOrdinal(columnName.ThrowIfNull(nameof(columnName))));
+
+        /// <summary>
+        /// Gets the specified column value.
+        /// </summary>
+        /// <param name="ordinal">The ordinal index.</param>
+        /// <returns>The value.</returns>
+        public object? GetValue(int ordinal) => DataReader.IsDBNull(ordinal) ? default! : DataReader.GetValue(ordinal);
 
         /// <summary>
         /// Gets the named column value.
