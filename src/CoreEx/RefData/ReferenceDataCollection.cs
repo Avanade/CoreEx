@@ -44,9 +44,6 @@ namespace CoreEx.RefData
         /// </summary>
         public ReferenceDataSortOrder SortOrder { get; set; }
 
-        /// <inheritdoc/>
-        public string? ETag { get; set; }
-
         /// <summary>
         /// Gets the item for the specified <see cref="IReferenceData.Code"/>.
         /// </summary>

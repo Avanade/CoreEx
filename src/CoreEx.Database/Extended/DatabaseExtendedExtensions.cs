@@ -299,7 +299,7 @@ namespace CoreEx.Database.Extended
         /// <returns>The value where found; otherwise, <c>null</c>.</returns>
         public static Task<Result<T?>> GetWithResultAsync<T>(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, new()
             => command.ThrowIfNull(nameof(command))
-                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
+                .Params(p => args.Mapper.MapKeyToDb(key, p))
                 .SelectFirstOrDefaultWithResultAsync((IDatabaseMapper<T>)args.Mapper, cancellationToken);
 
         /// <summary>
@@ -392,7 +392,7 @@ namespace CoreEx.Database.Extended
         public static async Task<Result> DeleteWithResultAsync(this DatabaseCommand command, DatabaseArgs args, CompositeKey key, CancellationToken cancellationToken = default)
         {
             var rowsAffectedResult = await command.ThrowIfNull(nameof(command))
-                .Params(p => args.Mapper.MapPrimaryKeyParameters(p, OperationTypes.Get, key))
+                .Params(p => args.Mapper.MapKeyToDb(key, p))
                 .ScalarWithResultAsync<int>(cancellationToken).ConfigureAwait(false);
 
             return rowsAffectedResult.WhenAs(rowsAffected => rowsAffected < 1, _ => Result.NotFoundError());

@@ -3,7 +3,6 @@
 using CoreEx.Entities;
 using CoreEx.Mapping;
 using System;
-using System.Data;
 
 namespace CoreEx.Database
 {
@@ -34,21 +33,11 @@ namespace CoreEx.Database
         void MapToDb(object? value, DatabaseParameterCollection parameters, OperationTypes operationType = OperationTypes.Unspecified);
 
         /// <summary>
-        /// Maps the primary key from the <paramref name="value"/> and adds to the <paramref name="parameters"/>.
+        /// Maps the <paramref name="key"/> and adds to the <paramref name="parameters"/>.
         /// </summary>
-        /// <param name="parameters">The <see cref="DatabaseParameterCollection"/>.</param>
-        /// <param name="operationType">The single <see cref="OperationTypes"/> that indicates that a <see cref="OperationTypes.Create"/> is being performed; therefore, any key properties that are auto-generated will have a parameter
-        /// direction of <see cref="ParameterDirection.Output"/> versus <see cref="ParameterDirection.Input"/>.</param>
-        /// <param name="value">The value.</param>
-        void MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, object? value);
-
-        /// <summary>
-        /// Maps the primary key for the listed <paramref name="key"/> and adds to the <paramref name="parameters"/>.
-        /// </summary>
-        /// <param name="parameters">The <see cref="DatabaseParameterCollection"/>.</param>
-        /// <param name="operationType">The single <see cref="OperationTypes"/> that indicates that a <see cref="OperationTypes.Create"/> is being performed; therefore, any key properties that are auto-generated will have a parameter
-        /// direction of <see cref="ParameterDirection.Output"/> versus <see cref="ParameterDirection.Input"/>.</param>
         /// <param name="key">The primary <see cref="CompositeKey"/>.</param>
-        void MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, CompositeKey key);
+        /// <param name="parameters">The <see cref="DatabaseParameterCollection"/>.</param>
+        /// <remarks>This is used to map the only the key parameters; for example a <b>Get</b> or <b>Delete</b> operation.</remarks>
+        void MapKeyToDb(CompositeKey key, DatabaseParameterCollection parameters);
     }
 }

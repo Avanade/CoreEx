@@ -325,7 +325,7 @@ namespace CoreEx.Http
                         delay ??= TimeSpan.FromSeconds(Math.Pow(options.RetrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500)));
 
                         // Do not go over max delay.
-                        var maxDelay = options.MaxRetryDelay ?? Settings.MaxRetryDelay;
+                        var maxDelay = options.MaxRetryDelay ?? Settings.HttpMaxRetryDelay;
                         return delay.Value > maxDelay ? maxDelay : delay.Value;
                     },
                     onRetryAsync: async (result, timeSpan, retryCount, context) =>

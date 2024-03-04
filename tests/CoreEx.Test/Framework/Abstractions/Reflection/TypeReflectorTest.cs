@@ -4,6 +4,7 @@ using CoreEx.RefData;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace CoreEx.Test.Framework.Abstractions.Reflection
@@ -239,6 +240,39 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
                 Assert.That(TypeReflector.GetReflector<Dictionary<string, Person>>(new TypeReflectorArgs()).ItemType, Is.EqualTo(typeof(Person)));
                 Assert.That(TypeReflector.GetReflector<Person>(new TypeReflectorArgs()).ItemType, Is.EqualTo(null));
             });
+        }
+
+        [Test]
+        public void SetValues()
+        {
+            var tr = TypeReflector.GetReflector<Person>(new TypeReflectorArgs());
+            var p = new Person();
+            tr.GetProperty("Id").PropertyExpression.SetValue(p, 88);
+            tr.GetProperty("Name").PropertyExpression.SetValue(p, "foo");
+
+            var sw = Stopwatch.StartNew();
+            for (int i = 0; i < 100000; i++)
+            {
+                _ = new Person
+                {
+                    Id = 88,
+                    Name = "foo"
+                };
+            }
+
+            sw.Stop();
+            System.Console.WriteLine($"Raw 100K validations - elapsed: {sw.Elapsed.TotalMilliseconds}ms (per {sw.Elapsed.TotalMilliseconds / 100000}ms)");
+
+            sw = Stopwatch.StartNew();
+            for (int i = 0; i < 100000; i++)
+            {
+                p = new Person();
+                tr.GetProperty("Id").PropertyExpression.SetValue(p, 88);
+                tr.GetProperty("Name").PropertyExpression.SetValue(p, "foo");
+            }
+
+            sw.Stop();
+            System.Console.WriteLine($"Expression 100K validations - elapsed: {sw.Elapsed.TotalMilliseconds}ms (per {sw.Elapsed.TotalMilliseconds / 100000}ms)");
         }
     }
 

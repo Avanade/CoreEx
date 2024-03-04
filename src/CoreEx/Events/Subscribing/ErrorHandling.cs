@@ -35,6 +35,7 @@ namespace CoreEx.Events.Subscribing
         /// <summary>
         /// Indicates that when the corresponding <i>error</i> occurs this is expected and the current event/message should be completed without further processing and logging (i.e. silently).
         /// </summary>
+        /// <remarks>A <see cref="LogLevel.Debug"/> will be logged where applicable to support debugging.</remarks>
         CompleteAsSilent,
 
         /// <summary>

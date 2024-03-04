@@ -3,8 +3,7 @@
 using CoreEx.Entities;
 using CoreEx.Json;
 using System;
-using System.Globalization;
-using System.Text;
+using System.Security.Cryptography;
 
 namespace CoreEx.Abstractions
 {
@@ -14,80 +13,61 @@ namespace CoreEx.Abstractions
     public static class ETagGenerator
     {
         /// <summary>
-        /// Represents the divider character where ETag value is made up of multiple parts.
-        /// </summary>
-        public const char DividerCharacter = '|';
-
-        /// <summary>
-        /// Generates an ETag for a value by serializing to JSON and performing an <see cref="System.Security.Cryptography.SHA256"/> hash.
+        /// Generates an ETag for a value by serializing to JSON and performing an <see cref="SHA256"/> hash.
         /// </summary>
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="value">The value.</param>
-        /// <param name="parts">Optional extra part(s) to append to the JSON to include in the underlying hash computation.</param>
         /// <returns>The generated ETag.</returns>
-        public static string? Generate<T>(IJsonSerializer jsonSerializer, T? value, params string[] parts) where T : class
+        public static string? Generate<T>(IJsonSerializer jsonSerializer, T? value)
         {
             jsonSerializer.ThrowIfNull(nameof(jsonSerializer));
-
             if (value == null)
                 return null;
 
-            // Where value is IFormattable/IComparable use ToString; otherwise, JSON serialize.
-            var txt = ConvertToString(jsonSerializer, value);
-
-            if (parts.Length > 0)
-            {
-                var sb = new StringBuilder(txt);
-                foreach (var ex in parts)
-                {
-                    sb.Append(DividerCharacter);
-                    sb.Append(ex);
-                }
-
-                txt = sb.ToString();
-            }
-
-            return GenerateHash(txt);
-        }
-
-        /// <summary>
-        /// Generates a hash of the string using <see cref="System.Security.Cryptography.SHA256"/>.
-        /// </summary>
-        /// <param name="text">The text value to hash.</param>
-        /// <returns>The hashed value.</returns>
-        public static string GenerateHash(string text)
-        {
-            var buf = Encoding.UTF8.GetBytes(text.ThrowIfNull(nameof(text)));
+            // Serialize to JSON and then hash.
+            byte[] hash;
+            var bd = jsonSerializer.SerializeToBinaryData(value);
 #if NETSTANDARD2_1
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var hash = new BinaryData(sha256.ComputeHash(buf));
+            using var sha256 = SHA256.Create();
+            hash = sha256.ComputeHash(bd.ToArray());
 #else
-            var hash = System.Security.Cryptography.SHA256.HashData(buf);
+            hash = SHA256.HashData(bd);
 #endif
             return Convert.ToBase64String(hash);
         }
 
         /// <summary>
-        /// Converts the <paramref name="value"/> to a corresponding <see cref="string"/>.
+        /// Generates a hash of the parts using <see cref="SHA256"/>.
         /// </summary>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="value">The value to convert.</param>
-        /// <returns>A <see cref="string"/> representation of the value.</returns>
-        private static string ConvertToString(IJsonSerializer jsonSerializer, object? value)
+        /// <param name="parts">The parts to hash.</param>
+        /// <returns>The hashed value.</returns>
+        public static string? GenerateHash(params string[] parts)
         {
-            if (value == null)
-                return string.Empty;
+            if (parts == null || parts.Length == 0)
+                return null;
 
-            if (value is string str)
-                return str;
+            byte[] hash;
+#if NETSTANDARD2_1
+            var input = parts.Length == 1 ? parts[0] : string.Concat(parts);
+            using var sha256 = SHA256.Create();
+            hash = sha256.ComputeHash(new BinaryData(input).ToArray());
+#else
+            if (parts.Length == 1)
+                hash = SHA256.HashData(new BinaryData(parts[0]));
+            else
+            {
+                using var ih = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                foreach (var part in parts)
+                {
+                    ih.AppendData(new BinaryData(part));
+                }
 
-            if (value is DateTime dte)
-                return dte.ToString("o");
+                hash = ih.GetCurrentHash();
+            }
 
-            return (value is IFormattable ic)
-                ? ic.ToString(null, CultureInfo.InvariantCulture)
-                : ((value is IComparable) ? value.ToString() : jsonSerializer.Serialize(value)) ?? string.Empty;
+#endif
+            return Convert.ToBase64String(hash);
         }
 
         /// <summary>
@@ -95,13 +75,37 @@ namespace CoreEx.Abstractions
         /// </summary>
         /// <param name="value">The value to format.</param>
         /// <returns>The formatted <see cref="IETag.ETag"/>.</returns>
-        public static string? FormatETag(string? value) => value == null || (value.Length > 1 && value.StartsWith("\"", StringComparison.InvariantCultureIgnoreCase) && value.EndsWith("\"", StringComparison.InvariantCultureIgnoreCase)) ? value : "\"" + value + "\"";
+        public static string? FormatETag(string? value)
+        { 
+            if (value is null)
+                return null;
+
+            if (value.StartsWith('\"') && value.EndsWith('\"'))
+                return value;
+
+            if (value.StartsWith("W/\"") && value.EndsWith('\"'))
+                return value[2..];
+            
+            return $"\"{value}\"";
+        }
 
         /// <summary>
-        /// Parses an <see cref="IETag.ETag"/> by removing double quotes character bookends; for example '<c>"abc"</c>' would be formatted as '<c>abc</c>'.
+        /// Parses an <see cref="IETag.ETag"/> by removing any weak prefix ('<c>W/</c>') double quotes character bookends; for example '<c>"abc"</c>' would be formatted as '<c>abc</c>'.
         /// </summary>
         /// <param name="etag">The <see cref="IETag.ETag"/> to unformat.</param>
         /// <returns>The unformatted value.</returns>
-        public static string? ParseETag(string? etag) => etag is not null && etag.Length > 1 && etag.StartsWith("\"", StringComparison.InvariantCultureIgnoreCase) && etag.EndsWith("\"", StringComparison.InvariantCultureIgnoreCase) ? etag[1..^1] : etag;
+        public static string? ParseETag(string? etag)
+        {
+            if (string.IsNullOrEmpty(etag))
+                return null;
+
+            if (etag.StartsWith('\"') && etag.EndsWith('\"'))
+                return etag[1..^1];
+
+            if (etag.StartsWith("W/\"") && etag.EndsWith('\"'))
+                return etag[2..^1];
+
+            return etag;
+        }
     }
 }

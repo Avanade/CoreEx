@@ -6,7 +6,7 @@ using System.ComponentModel;
 namespace CoreEx.Mapping.Converters
 {
     /// <summary>
-    /// Represents a <typeparamref name="T"/> to <see cref="string"/> conversion.
+    /// Represents a <typeparamref name="T"/> to <see cref="string"/> conversion using a <see cref="TypeConverter"/>.
     /// </summary>
     /// <typeparam name="T">The <see cref="Type"/> to convert.</typeparam>
     /// <remarks>See also <see cref="StringToTypeConverter{T}"/>.</remarks>
@@ -31,5 +31,17 @@ namespace CoreEx.Mapping.Converters
 
         /// <inheritdoc/>
         public readonly IValueConverter<string?, T> ToSource => _convertToSource;
+
+        /// <inheritdoc />
+        public readonly object? ConvertToDestination(object? source) => ConvertToDestination((T)source!);
+
+        /// <inheritdoc />
+        public readonly object? ConvertToSource(object? destination) => ConvertToSource((string?)destination);
+
+        /// <inheritdoc />
+        public readonly string? ConvertToDestination(T source) => ToDestination.Convert(source);
+
+        /// <inheritdoc />
+        public readonly T ConvertToSource(string? destination) => ToSource.Convert(destination);
     }
 }

@@ -2,6 +2,7 @@
 using CoreEx.Validation;
 using CoreEx.Entities;
 using System.Threading.Tasks;
+using CoreEx.Results;
 
 namespace CoreEx.Test.Framework.Validation.Rules
 {
@@ -53,10 +54,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await 123.Validate("value").ExistsAsync((_, __) => Task.FromResult<object?>(new object())).ValidateAsync();
+            v1 = await 123.Validate("value").ValueExistsAsync((_, __) => Task.FromResult<object?>(new object())).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 123.Validate("value").ExistsAsync((_, __) => Task.FromResult((object?)null)).ValidateAsync();
+            v1 = await 123.Validate("value").ValueExistsAsync((_, __) => Task.FromResult((object?)null)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -91,6 +92,11 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
+
+            v1 = await 123.Validate("value").ValueExistsAsync(async (_, __) => await GetBlahAsync()).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.True); // Result.Success is not a valid value
         }
+
+        private static Task<Result> GetBlahAsync() => Task.FromResult(Result.Success);
     }
 }

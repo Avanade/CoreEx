@@ -17,7 +17,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <summary>
         /// Gets the <see cref="IMemoryCache"/>.
         /// </summary>
-        internal static IMemoryCache Cache => ExecutionContext.GetService<IMemoryCache>() ?? (_fallbackCache ??= new MemoryCache(new MemoryCacheOptions()));
+        internal static IMemoryCache Cache => ExecutionContext.GetService<IReflectionCache>() ?? (_fallbackCache ??= new MemoryCache(new MemoryCacheOptions()));
 
         /// <summary>
         /// Validates, creates and compiles the property expression; whilst also determinig the property friendly <see cref="PropertyExpression{TEntity, TProperty}.Text"/>.

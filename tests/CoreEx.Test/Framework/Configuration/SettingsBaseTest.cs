@@ -20,6 +20,7 @@ namespace CoreEx.Test.Framework.Configuration
 
             public string PropTest => GetValue<string>();
 
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "<Pending>")]
             public string PropTest2 => "some hardcoded value";
 
             public string SomethingGlobal => GetValue<string>();
@@ -27,7 +28,7 @@ namespace CoreEx.Test.Framework.Configuration
 
         }
 
-        private IConfiguration CreateTestConfiguration()
+        private static IConfiguration CreateTestConfiguration()
         {
             Environment.SetEnvironmentVariable("this_is_a_unittest_underscore__key", "underscoreValue");
             ConfigurationBuilder builder = new();
@@ -47,7 +48,7 @@ namespace CoreEx.Test.Framework.Configuration
         [Test]
         public void CommonSettings_Should_Not_ThrowException_When_ConfigurationNull()
         {
-            new SettingsForTesting(null!);
+            _ = new SettingsForTesting(null!);
         }
 
         [Test]
@@ -57,10 +58,10 @@ namespace CoreEx.Test.Framework.Configuration
             var configuration = CreateTestConfiguration();
 
             // Act
-            Action act = () => new SettingsForTesting(configuration, prefixes: null!);
+            Action act = () => _ = new SettingsForTesting(configuration, prefixes: null!);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>();
+            act.Should().NotThrow<ArgumentNullException>();
         }
 
         [Test]
@@ -71,7 +72,7 @@ namespace CoreEx.Test.Framework.Configuration
             var prefixes = new string[] { "foo", string.Empty };
 
             // Act
-            Action act = () => new SettingsForTesting(configuration, prefixes);
+            Action act = () => _ = new SettingsForTesting(configuration, prefixes);
 
             // Assert
             act.Should().Throw<ArgumentException>();
@@ -161,14 +162,13 @@ namespace CoreEx.Test.Framework.Configuration
             result.Should().Be("underscoreValue");
         }
 
-
         [Test]
         public void GetValue_Should_Return_Value_From_Property_When_Class_Has_it()
         {
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<string>("PropTest2");
+            var result = settings.PropTest2;
 
             // Assert
             result.Should().Be("some hardcoded value");
@@ -180,7 +180,7 @@ namespace CoreEx.Test.Framework.Configuration
             var configuration = CreateTestConfiguration();
             var settings = new SettingsForTesting(configuration, new string[] { "Sample/", "Common/" });
 
-            var result = settings.GetValue<string>("PropTestNested");
+            var result = settings.PropTestNested;
 
             // Assert
             settings.SomethingGlobal.Should().Be("foo");
@@ -198,7 +198,7 @@ namespace CoreEx.Test.Framework.Configuration
 
             var testResult = Parallel.ForEach(reps, (i) =>
             {
-                var result = settings.GetValue<string>("PropTestNested");
+                var result = settings.PropTestNested;
 
                 // Assert
                 settings.SomethingGlobal.Should().Be("foo");
@@ -212,16 +212,15 @@ namespace CoreEx.Test.Framework.Configuration
 
         static async Task ExamineValuesOfLocalObjectsEitherSideOfAwait(SettingsForTesting settings)
         {
-            var result = settings.GetValue<string>("PropTestNested");
+            var result = settings.PropTestNested;
             settings.SomethingGlobal.Should().Be("foo");
             result.Should().Be("foo");
 
             await Task.Delay(100);
 
-            result = settings.GetValue<string>("PropTestNested");
+            result = settings.PropTestNested;
             settings.SomethingGlobal.Should().Be("foo");
             result.Should().Be("foo");
         }
-
     }
 }

@@ -105,7 +105,6 @@ namespace CoreEx.Http
 
             // Access the query string.
             var uri = new Uri(requestUri, UriKind.RelativeOrAbsolute);
-
             var ub = new UriBuilder(uri.IsAbsoluteUri ? uri : new Uri(new Uri("https://coreex"), requestUri));
             var qs = HttpUtility.ParseQueryString(ub.Query);
 

@@ -125,7 +125,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <summary>
         /// Gets all the properties.
         /// </summary>
-        public IReadOnlyCollection<IPropertyReflector> GetProperties() => new ReadOnlyCollection<IPropertyReflector>(_properties.Values.OfType<IPropertyReflector>().ToList());
+        public IEnumerable<IPropertyReflector> GetProperties() => _properties.Values;
 
         /// <inheritdoc/>
         public ITypeReflector? GetItemTypeReflector() => _itemReflector ??= TypeReflector.GetReflector(Args, ItemType!);

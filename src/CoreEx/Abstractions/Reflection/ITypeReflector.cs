@@ -45,8 +45,7 @@ namespace CoreEx.Abstractions.Reflection
         /// <summary>
         /// Gets all the properties for the <see cref="Type"/>.
         /// </summary>
-        /// <returns>A read-only <see cref="IPropertyReflector"/> collection.</returns>
-        IReadOnlyCollection<IPropertyReflector> GetProperties();
+        IEnumerable<IPropertyReflector> GetProperties();
 
         /// <summary>
         /// Gets the <see cref="IPropertyReflector"/> for the specified property name where it exists.

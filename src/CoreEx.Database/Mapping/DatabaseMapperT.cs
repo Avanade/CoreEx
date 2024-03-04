@@ -14,9 +14,10 @@ using System.Reflection;
 namespace CoreEx.Database.Mapping
 {
     /// <summary>
-    /// Provides mapping from a <typeparamref name="TSource"/> <see cref="Type"/> and database.
+    /// Provides mapping from a <typeparamref name="TSource"/> <see cref="Type"/> and database using reflection.
     /// </summary>
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <remarks>Where performance is critical consider using <see cref="DatabaseMapperEx{TSource}"/>.</remarks>
     public class DatabaseMapper<TSource> : IDatabaseMapper<TSource>, IDatabaseMapperMappings where TSource : class, new()
     {
         private readonly List<IPropertyColumnMapper> _mappings = [];
@@ -261,31 +262,13 @@ namespace CoreEx.Database.Mapping
         /// <returns>The source value.</returns>
         protected virtual TSource? OnMapFromDb(TSource value, DatabaseRecord record, OperationTypes operationType) => value;
 
-        /// <inheritdoc/>
-        void IDatabaseMapper<TSource>.MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, TSource? value)
-        {
-            parameters.ThrowIfNull(nameof(parameters));
-            if (value == null) return;
-
-            foreach (var p in _mappings.Where(x => x.IsPrimaryKey))
-            {
-                var dir = (operationType == OperationTypes.Create && p.IsPrimaryKeyGeneratedOnCreate) ? ParameterDirection.Output : ParameterDirection.Input;
-                var pval = DatabaseMapper<TSource>.ConvertPropertyValueForDb(p, p.PropertyExpression.GetValue(value));
-
-                if (p.DbType.HasValue)
-                    parameters.AddParameter(p.ParameterName, pval, p.DbType.Value, dir);
-                else
-                    parameters.AddParameter(p.ParameterName, pval, dir);
-            }
-        }
-
         /// <summary>
         /// Converts the property value for the database.
         /// </summary>
         private static object? ConvertPropertyValueForDb(IPropertyColumnMapper pcm, object? value) => pcm.Converter == null ? value : pcm.Converter.ConvertToDestination(value);
 
         /// <inheritdoc/>
-        void IDatabaseMapper.MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, CompositeKey key)
+        void IDatabaseMapper.MapKeyToDb(CompositeKey key, DatabaseParameterCollection parameters)
         {
             parameters.ThrowIfNull(nameof(parameters));
             var pk = _mappings.Where(x => x.IsPrimaryKey).ToArray();
@@ -295,13 +278,12 @@ namespace CoreEx.Database.Mapping
             for (int i = 0; i < key.Args.Length; i++)
             {
                 var p = pk[i];
-                var dir = (operationType == OperationTypes.Create && p.IsPrimaryKeyGeneratedOnCreate) ? ParameterDirection.Output : ParameterDirection.Input;
                 var pval = DatabaseMapper<TSource>.ConvertPropertyValueForDb(p, key.Args[i]);
 
                 if (p.DbType.HasValue)
-                    parameters.AddParameter(p.ParameterName, pval, p.DbType.Value, dir);
+                    parameters.AddParameter(p.ParameterName, pval, p.DbType.Value);
                 else
-                    parameters.AddParameter(p.ParameterName, pval, dir);
+                    parameters.AddParameter(p.ParameterName, pval);
             }
         }
     }

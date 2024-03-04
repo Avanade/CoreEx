@@ -56,6 +56,11 @@ namespace CoreEx.Hosting.Work
         }
 
         /// <summary>
+        /// Indicates whether to check the <see cref="WorkState.UserName"/> where not <c>null</c> where performing a <see cref="GetAsync(string, string, CancellationToken)"/> or <see cref="GetAsync{T}(string, CancellationToken)"/>.
+        /// </summary>
+        public bool CheckUserName { get; set; } = true;
+
+        /// <summary>
         /// Gets the <see cref="WorkState"/> for the specified <paramref name="id"/>.
         /// </summary>
         /// <param name="id">The work identifier.</param>
@@ -97,7 +102,8 @@ namespace CoreEx.Hosting.Work
                 CorrelationId = args?.CorrelationId ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current.CorrelationId : Guid.NewGuid().ToString()),
                 Status = WorkStatus.Created,
                 Created = now,
-                Expiry = now.Add(args?.Expiry ?? ExpiryTimeSpan)
+                Expiry = now.Add(args?.Expiry ?? ExpiryTimeSpan),
+                UserName = args?.UserName ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current.UserName : null)
             };
 
             await Persistence.CreateAsync(ws, cancellationToken).ConfigureAwait(false);
@@ -343,11 +349,19 @@ namespace CoreEx.Hosting.Work
         /// <param name="id">The work identifier.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="WorkState"/> where found; otherwise, <c>null</c>.</returns>
-        /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.Expiry"/>).</remarks>
+        /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.Expiry"/>).
+        /// <para>Additionally, the <paramref name="type"/> must equal the <see cref="WorkState.TypeName"/>; and, if <see cref="CheckUserName"/> is <c>true</c> then the <see cref="WorkState.UserName"/> must equal the <see cref="ExecutionContext.UserName"/>
+        /// ensuring that the initiating user can only interact with their <see cref="WorkState"/>. Where the aforementioned does not equal then a <c>null</c> will be returned.</para></remarks>
         public async Task<WorkState?> GetAsync(string type, string id, CancellationToken cancellationToken = default)
         {
             var ws = await GetAsync(id, cancellationToken).ConfigureAwait(false);
-            return ws is null || ws.TypeName != type ? null : ws;
+            if (ws is null || ws.TypeName != type)
+                return null;
+
+            if (CheckUserName && ws.UserName is not null && ws.UserName != (ExecutionContext.HasCurrent ? ExecutionContext.Current.UserName : null))
+                return null;
+
+            return ws;
         }
 
         /// <summary>
@@ -357,7 +371,9 @@ namespace CoreEx.Hosting.Work
         /// <param name="id">The work identifier.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="WorkState"/> where found; otherwise, <c>null</c>.</returns>
-        /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.Expiry"/>).</remarks>
+        /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.Expiry"/>).
+        /// <para>Additionally, the <typeparamref name="T"/> must equal the <see cref="WorkState.TypeName"/>; and, if <see cref="CheckUserName"/> is <c>true</c> then the <see cref="WorkState.UserName"/> must equal the <see cref="ExecutionContext.UserName"/>
+        /// ensuring that the initiating user can only interact with their <see cref="WorkState"/>. Where the aforementioned does not equal then a <c>null</c> will be returned.</para></remarks>
         public Task<WorkState?> GetAsync<T>(string id, CancellationToken cancellationToken = default) => GetAsync(WorkStateArgs.GetTypeName<T>(), id, cancellationToken);
 
         #endregion

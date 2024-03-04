@@ -3,7 +3,6 @@
 using CoreEx.Entities;
 using CoreEx.Mapping;
 using System;
-using System.Data;
 
 namespace CoreEx.Database
 {
@@ -39,18 +38,6 @@ namespace CoreEx.Database
         void MapToDb(TSource? value, DatabaseParameterCollection parameters, OperationTypes operationType = OperationTypes.Unspecified);
 
         /// <inheritdoc/>
-        void IDatabaseMapper.MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, object? value) => MapPrimaryKeyParameters(parameters, operationType, (TSource?)value);
-
-        /// <summary>
-        /// Maps the primary key from the <paramref name="value"/> and adds to the <paramref name="parameters"/>.
-        /// </summary>
-        /// <param name="parameters">The <see cref="DatabaseParameterCollection"/>.</param>
-        /// <param name="operationType">The single <see cref="OperationTypes"/> that indicates that a <see cref="OperationTypes.Create"/> is being performed; therefore, any key properties that are auto-generated will have a parameter
-        /// direction of <see cref="ParameterDirection.Output"/> versus <see cref="ParameterDirection.Input"/>.</param>
-        /// <param name="value">The value.</param>
-        void MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, TSource? value) => throw new NotSupportedException();
-
-        /// <inheritdoc/>
-        void IDatabaseMapper.MapPrimaryKeyParameters(DatabaseParameterCollection parameters, OperationTypes operationType, CompositeKey key) => throw new NotSupportedException();
+        void IDatabaseMapper.MapKeyToDb(CompositeKey key, DatabaseParameterCollection parameters) => throw new NotSupportedException();
     }
 }

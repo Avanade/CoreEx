@@ -12,8 +12,8 @@ namespace CoreEx.Abstractions.Reflection
     /// Provides the arguments passed to and through a <see cref="TypeReflector"/>.
     /// </summary>
     /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
-    /// <param name="cache">The <see cref="IMemoryCache"/> to use versus instantiating each <see cref="TypeReflector"/> per use (expensive operation).</param>
-    public class TypeReflectorArgs(IJsonSerializer? jsonSerializer = null, IMemoryCache? cache = null)
+    /// <param name="cache">The <see cref="IReflectionCache"/> to use versus instantiating each <see cref="TypeReflector"/> per use (expensive operation).</param>
+    public class TypeReflectorArgs(IJsonSerializer? jsonSerializer = null, IReflectionCache? cache = null)
     {
         private static readonly Lazy<TypeReflectorArgs> _default = new(() => new TypeReflectorArgs());
 
@@ -31,7 +31,7 @@ namespace CoreEx.Abstractions.Reflection
         /// Gets the <see cref="IMemoryCache"/> to use versus instantiating each <see cref="TypeReflector"/> per use.
         /// </summary>
         /// <remarks>The <see cref="AbsoluteExpirationTimespan"/> and <see cref="SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
-        public IMemoryCache Cache { get; } = cache ?? new MemoryCache(new MemoryCacheOptions());
+        public IMemoryCache Cache { get; } = (MemoryCache?)cache ?? new MemoryCache(new MemoryCacheOptions());
 
         /// <summary>
         /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>24</c> hours.

@@ -10,7 +10,7 @@ namespace CoreEx.RefData
     /// <summary>
     /// Provides <see cref="GetById(object)"/> and <see cref="GetByCode(string)"/> functionality for an <see cref="IReferenceData"/> collection.
     /// </summary>
-    public interface IReferenceDataCollection : IETag
+    public interface IReferenceDataCollection
     {
         /// <summary>
         /// Gets the underlying item <see cref="Type"/>.

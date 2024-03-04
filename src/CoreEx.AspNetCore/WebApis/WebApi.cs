@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.AspNetCore.Http;
 using CoreEx.Configuration;
 using CoreEx.Entities;
@@ -710,19 +711,29 @@ namespace CoreEx.AspNetCore.WebApis
         /// </summary>
         private ConcurrencyException? ConcurrencyETagMatching<TValue>(WebApiParam wap, TValue getValue, TValue putValue, bool autoConcurrency)
         {
-            var et = putValue as IETag;
-            if (et != null || autoConcurrency)
+            var ptag = putValue as IETag;
+            if (ptag != null || autoConcurrency)
             {
-                string? etag = et?.ETag ?? wap.RequestOptions.ETag;
+                string? etag = wap.RequestOptions.ETag ?? ptag?.ETag;
                 if (string.IsNullOrEmpty(etag))
                     return new ConcurrencyException($"An 'If-Match' header is required for an HTTP {wap.Request.Method} where the underlying entity supports concurrency (ETag).");
 
                 if (etag != null)
                 {
-                    if (!ValueContentResult.TryGetETag(getValue!, out var getEt))
-                        getEt = ValueContentResult.GenerateETag(wap.RequestOptions, getValue!, null, JsonSerializer);
+                    var gtag = getValue is IETag getag ? getag.ETag : null;
+                    if (gtag is null)
+                    {
+                        var isTextSerializationEnabled = ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled;
+                        if (isTextSerializationEnabled)
+                            ExecutionContext.Current.IsTextSerializationEnabled = false;
 
-                    if (etag != getEt)
+                        gtag = ETagGenerator.Generate(JsonSerializer, getValue);
+
+                        if (ExecutionContext.HasCurrent)
+                            ExecutionContext.Current.IsTextSerializationEnabled = isTextSerializationEnabled;
+                    }
+
+                    if (etag != gtag)
                         return new ConcurrencyException();
                 }
             }

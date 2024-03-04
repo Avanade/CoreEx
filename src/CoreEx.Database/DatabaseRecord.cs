@@ -26,6 +26,27 @@ namespace CoreEx.Database
         /// <summary>
         /// Gets the named column value.
         /// </summary>
+        /// <param name="columnName">The column name.</param>
+        /// <returns>The value.</returns>
+        public object? GetValue(string columnName) => GetValue(DataReader.GetOrdinal(columnName.ThrowIfNull(nameof(columnName))));
+
+        /// <summary>
+        /// Gets the specified column value.
+        /// </summary>
+        /// <param name="ordinal">The ordinal index.</param>
+        /// <returns>The value.</returns>
+        public object? GetValue(int ordinal)
+        {
+            if (DataReader.IsDBNull(ordinal))
+                return default;
+
+            var val = DataReader.GetValue(ordinal);
+            return val is DateTime dt ? Cleaner.Clean(dt, Database.DateTimeTransform) : val;
+        }
+
+        /// <summary>
+        /// Gets the named column value.
+        /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="columnName">The column name.</param>
         /// <returns>The value.</returns>

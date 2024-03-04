@@ -16,8 +16,9 @@ namespace CoreEx
     /// <summary>
     /// Represents a thread-bound (request) execution context using <see cref="AsyncLocal{ExecutionContext}"/>.
     /// </summary>
-    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments. This class should be extended by consumers where additional properties are required.</remarks>
-    public class ExecutionContext : ITenantId
+    /// <remarks>Used to house/pass context parameters and capabilities that are outside of the general operation arguments. This class should be extended by consumers where additional properties are required.
+    /// <para>The <see cref="ExecutionContext"/> implements <see cref="IDisposable"/>; however, from a standard implementation perspective there are no unmanaged resources leveraged. The <see cref="Dispose()"/> will result in a <see cref="Reset"/>.</para></remarks>
+    public class ExecutionContext : ITenantId, IDisposable
     {
         private static readonly AsyncLocal<ExecutionContext?> _asyncLocal = new();
 
@@ -26,6 +27,8 @@ namespace CoreEx
         private Lazy<ConcurrentDictionary<string, object?>> _properties = new(true);
         private IReferenceDataContext? _referenceDataContext;
         private HashSet<string>? _roles;
+        private bool _disposed;
+        private readonly object _lock = new();
 
         /// <summary>
         /// Gets or sets the function to create a default <see cref="ExecutionContext"/> instance.
@@ -129,7 +132,7 @@ namespace CoreEx
         /// <summary>
         /// Gets the <see cref="ServiceProvider"/>.
         /// </summary>
-        /// <remarks>This is automatically set via the <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
+        /// <remarks>This is automatically set via the <see cref="IServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
         public IServiceProvider? ServiceProvider { get; set; }
 
         /// <summary>
@@ -147,11 +150,6 @@ namespace CoreEx
         /// Indicates whether text serialization is enabled; see <see cref="HttpConsts.IncludeTextQueryStringName"/>.
         /// </summary>
         public bool IsTextSerializationEnabled { get; set; }
-
-        /// <summary>
-        /// Gets or sets the <b>result</b> entity tag (where value does not support <see cref="IETag"/>).
-        /// </summary>
-        public string? ETag { get; set; }
 
         /// <summary>
         /// Gets or sets the corresponding user name.
@@ -199,20 +197,46 @@ namespace CoreEx
         {
             var ec = Create == null ? throw new InvalidOperationException($"The {nameof(Create)} function must not be null to create a copy.") : Create();
             ec._timestamp = _timestamp;
-            ec._referenceDataContext = _referenceDataContext;
             ec._messages = _messages;
             ec._properties = _properties;
+            ec._referenceDataContext = _referenceDataContext;
             ec._roles = _roles;
             ec.ServiceProvider = ServiceProvider;
             ec.CorrelationId = CorrelationId;
             ec.OperationType = OperationType;
             ec.IsTextSerializationEnabled = IsTextSerializationEnabled;
-            ec.ETag = ETag;
             ec.UserName = UserName;
             ec.UserId = UserId;
             ec.TenantId = TenantId;
             return ec;
         }
+
+        /// <summary>
+        /// Dispose of resources.
+        /// </summary>
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                lock (_lock)
+                {
+                    if (!_disposed)
+                    {
+                        _disposed = true;
+                        Dispose(true);
+                    }
+                }
+            }
+
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="ExecutionContext"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected virtual void Dispose(bool disposing) => Reset();
 
         #region Security
 
