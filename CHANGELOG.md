@@ -10,6 +10,7 @@ Represents the **NuGet** versions.
 - *Fixed*: Validation extensions `Exists` and `ExistsAsync` which expect a non-null resultant value have been renamed to `ValueExists` and `ValueExistsAsync` to improve usability; also they are `IResult` aware and will act accordingly.
 - *Fixed*: The `ETag` HTTP handling has been updated to correctly output and expect the weak `W/"xxxx"` format. 
 - *Fixed*: The `ETagGenerator` implementation has been further optimized to minimize unneccessary string allocations.
+- *Fixed*: The `ValueContentResult` will only generate a response header ETag (`ETagGenerator`) for a `GET` or `HEAD` request. The underlying result `IETag.ETag` is used as-is where there is no query string; otherwise, generates as assumes query string will alter result (i.e. filtering, paging, sorting, etc.). The result `IETag.ETag` is unchanged so the consumer can still use as required for a further operation.
 - *Fixed*: The `SettingsBase` has been optimized. The internal recursion checking has been removed and as such an endless loop (`StackOverflowException`) may occur where misconfigured; given frequency of `IConfiguration` usage the resulting performance is deemed more important. Additionally, `prefixes` are now optional.
   - The existing support of referencing a settings property by name (`settings.GetValue<T>("NamedProperty")`) and it using reflection to find before querying the `IConfiguration` has been removed. This was not a common, or intended usage, and was somewhat magical, and finally was non-performant.
 

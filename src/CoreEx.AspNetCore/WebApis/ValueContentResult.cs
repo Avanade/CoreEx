@@ -10,7 +10,6 @@ using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.Mime;
@@ -149,13 +148,25 @@ namespace CoreEx.AspNetCore.WebApis
                     throw new InvalidOperationException("Function has not returned a result; no AlternateStatusCode has been configured to return.");
             }
 
+            // Where there is etag support and it is null (assumes auto-generation) then generate from the full value JSON contents as the baseline value.
+            var isTextSerializationEnabled = ExecutionContext.HasCurrent && ExecutionContext.Current.IsTextSerializationEnabled;
+            var etag = value is IETag vetag ? vetag.ETag : null;
+            if (etag is null)
+            {
+                if (isTextSerializationEnabled)
+                    ExecutionContext.Current.IsTextSerializationEnabled = false;
+
+                etag = ETagGenerator.Generate(jsonSerializer, value);
+                if (value is IETag vetag2)
+                    vetag2.ETag = etag;
+            }
+
             // Where IncludeText is selected then enable before serialization occurs.
             if (requestOptions.IncludeText && ExecutionContext.HasCurrent)
                 ExecutionContext.Current.IsTextSerializationEnabled = true;
 
-            // Serialize and generate the etag whilst also applying any filtering of the data where selected.
+            // Serialize the value performing any filtering as per the request options.
             string? json = null;
-
             if (requestOptions.IncludeFields != null && requestOptions.IncludeFields.Length > 0)
                 jsonSerializer.TryApplyFilter(val, requestOptions.IncludeFields, out json, JsonPropertyFilter.Include);
             else if (requestOptions.ExcludeFields != null && requestOptions.ExcludeFields.Length > 0)
@@ -163,7 +174,12 @@ namespace CoreEx.AspNetCore.WebApis
             else
                 json = jsonSerializer.Serialize(val);
 
+            // Generate the etag from the final JSON serialization and check for not-modified.
             var result = GenerateETag(requestOptions, val, json, jsonSerializer);
+
+            // Reset the text serialization flag.
+            if (ExecutionContext.HasCurrent)
+                ExecutionContext.Current.IsTextSerializationEnabled = isTextSerializationEnabled;
 
             // Check for not-modified and return status accordingly.
             if (checkForNotModified && result.etag == requestOptions.ETag)
@@ -174,7 +190,7 @@ namespace CoreEx.AspNetCore.WebApis
             }
 
             // Create and return the ValueContentResult.
-            primaryResult = new ValueContentResult(result.json!, statusCode, result.etag, paging, location);
+            primaryResult = new ValueContentResult(result.json!, statusCode, result.etag ?? etag, paging, location);
             alternateResult = null;
             return true;
         }
@@ -189,14 +205,15 @@ namespace CoreEx.AspNetCore.WebApis
         /// <returns>The etag and serialized JSON (where performed).</returns>
         internal static (string? etag, string? json) GenerateETag<T>(WebApiRequestOptions requestOptions, T value, string? json, IJsonSerializer jsonSerializer)
         {
+            // Where not a GET or HEAD then no etag is generated; just use what we have.
+            if (!HttpMethods.IsGet(requestOptions.Request.Method) && !HttpMethods.IsHead(requestOptions.Request.Method))
+                return (value is IETag etag ? etag.ETag : null, json);
+
             // Where no query string and there is an etag then that value should be leveraged as the fast-path.
             if (!requestOptions.HasQueryString)
             {
                 if (value is IETag etag && etag.ETag != null)
                     return (etag.ETag, json);
-
-                if (ExecutionContext.HasCurrent && ExecutionContext.Current.ResultETag != null)
-                    return (ExecutionContext.Current.ResultETag, json);
 
                 // Where there is a collection then we need to generate a hash that represents the collection.
                 if (json is null && value is not string && value is IEnumerable coll)

@@ -2,7 +2,6 @@
 
 using CoreEx.Entities;
 using System;
-using System.Data;
 using System.Data.Common;
 
 namespace CoreEx.Database
@@ -36,7 +35,14 @@ namespace CoreEx.Database
         /// </summary>
         /// <param name="ordinal">The ordinal index.</param>
         /// <returns>The value.</returns>
-        public object? GetValue(int ordinal) => DataReader.IsDBNull(ordinal) ? default! : DataReader.GetValue(ordinal);
+        public object? GetValue(int ordinal)
+        {
+            if (DataReader.IsDBNull(ordinal))
+                return default;
+
+            var val = DataReader.GetValue(ordinal);
+            return val is DateTime dt ? Cleaner.Clean(dt, Database.DateTimeTransform) : val;
+        }
 
         /// <summary>
         /// Gets the named column value.

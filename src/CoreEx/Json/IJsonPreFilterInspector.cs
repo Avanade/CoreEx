@@ -9,7 +9,7 @@ namespace CoreEx.Json
     public interface IJsonPreFilterInspector
     {
         /// <summary>
-        /// Gets the underlying JSON object (as per the underlying implementation).
+        /// Gets the underlying JSON object (as per the underlying <see cref="IJsonSerializer"/> implementation).
         /// </summary>
         object Json { get; }
 

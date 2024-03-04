@@ -89,7 +89,7 @@ namespace CoreEx.Http
         /// <param name="httpRequest">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="etag">The <i>ETag</i> value.</param>
         /// <returns>The <see cref="HttpRequestMessage"/> to support fluent-style method-chaining.</returns>
-        /// <remarks>Automatically adds quoting to be ETag format compliant.</remarks>
+        /// <remarks>Automatically adds quoting to be ETag format compliant and sets the ETag as weak ('<c>W/</c>').</remarks>
         public static HttpRequestMessage ApplyETag(this HttpRequestMessage httpRequest, string? etag)
         {
             // Apply the ETag header.

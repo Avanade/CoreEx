@@ -90,10 +90,22 @@ namespace CoreEx.Abstractions
         }
 
         /// <summary>
-        /// Parses an <see cref="IETag.ETag"/> by removing double quotes character bookends; for example '<c>"abc"</c>' would be formatted as '<c>abc</c>'.
+        /// Parses an <see cref="IETag.ETag"/> by removing any weak prefix ('<c>W/</c>') double quotes character bookends; for example '<c>"abc"</c>' would be formatted as '<c>abc</c>'.
         /// </summary>
         /// <param name="etag">The <see cref="IETag.ETag"/> to unformat.</param>
         /// <returns>The unformatted value.</returns>
-        public static string? ParseETag(string? etag) => etag is not null && etag.Length > 1 && etag.StartsWith("\"", StringComparison.InvariantCultureIgnoreCase) && etag.EndsWith("\"", StringComparison.InvariantCultureIgnoreCase) ? etag[1..^1] : etag;
+        public static string? ParseETag(string? etag)
+        {
+            if (string.IsNullOrEmpty(etag))
+                return null;
+
+            if (etag.StartsWith('\"') && etag.EndsWith('\"'))
+                return etag[1..^1];
+
+            if (etag.StartsWith("W/\"") && etag.EndsWith('\"'))
+                return etag[2..^1];
+
+            return etag;
+        }
     }
 }

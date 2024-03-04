@@ -223,13 +223,35 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var vcr = test.Type<WebApi>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget"), r => Task.FromResult(new Person { Id = 1, Name = "Angela" })))
+                .ToActionResultAssertor()
+                .AssertOK()
+                .Result as ValueContentResult;
+
+            Assert.That(vcr, Is.Not.Null);
+            Assert.That(vcr!.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
+
+            var p = test.JsonSerializer.Deserialize<Person>(vcr.Content!);
+            Assert.That(p, Is.Not.Null);
+            Assert.That(p.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
+        }
+
+        [Test]
+        public void GetAsync_WithGenETagValue_QueryString()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var vcr = test.Type<WebApi>()
                 .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples"), r => Task.FromResult(new Person { Id = 1, Name = "Angela" })))
                 .ToActionResultAssertor()
                 .AssertOK()
                 .Result as ValueContentResult;
 
             Assert.That(vcr, Is.Not.Null);
-            Assert.That(vcr!.ETag, Is.EqualTo("F/BIL6G5jbvZxc4fnCc5BekkmFM9/BuXSSl/i5bQj5Q="));
+            Assert.That(vcr!.ETag, Is.EqualTo("cpDn3xugV1xKSHF9AY4kQRNQ1yC/SU49xC66C92WZbE="));
+
+            var p = test.JsonSerializer.Deserialize<Person>(vcr.Content!);
+            Assert.That(p, Is.Not.Null);
+            Assert.That(p.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
         }
 
         [Test]
@@ -237,7 +259,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest/testget?fruit=apples");
-            hr.Headers.Add(HeaderNames.IfMatch, "\\W\"F/BIL6G5jbvZxc4fnCc5BekkmFM9/BuXSSl/i5bQj5Q=\"");
+            hr.Headers.Add(HeaderNames.IfMatch, "\\W\"cpDn3xugV1xKSHF9AY4kQRNQ1yC/SU49xC66C92WZbE=\"");
 
             test.Type<WebApi>()
                 .Run(f => f.GetAsync(hr, r => Task.FromResult(new Person { Id = 1, Name = "Angela" })))
@@ -650,7 +672,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .Run(f => f.PatchAsync(hr, get: _ => Task.FromResult<Person?>(new Person { Id = 13, Name = "Deano" }), put: _ => Task.FromResult<Person>(new Person { Id = 13, Name = "Gazza" }), simulatedConcurrency: true))
                 .ToActionResultAssertor()
                 .AssertOK()
-                .AssertValue(new Person { Id = 13, Name = "Gazza" });
+                .AssertValue(new Person { Id = 13, Name = "Gazza", ETag = "tEEokPXk+4Q5MoiGqyAs1+6A00e2ww59Zm57LJgvBcg=" });
         }
 
         private static HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)

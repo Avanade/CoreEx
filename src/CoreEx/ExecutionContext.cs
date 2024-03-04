@@ -132,7 +132,7 @@ namespace CoreEx
         /// <summary>
         /// Gets the <see cref="ServiceProvider"/>.
         /// </summary>
-        /// <remarks>This is automatically set via the <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
+        /// <remarks>This is automatically set via the <see cref="IServiceCollectionExtensions.AddExecutionContext(IServiceCollection, Func{IServiceProvider, ExecutionContext}?)"/>.</remarks>
         public IServiceProvider? ServiceProvider { get; set; }
 
         /// <summary>
@@ -150,11 +150,6 @@ namespace CoreEx
         /// Indicates whether text serialization is enabled; see <see cref="HttpConsts.IncludeTextQueryStringName"/>.
         /// </summary>
         public bool IsTextSerializationEnabled { get; set; }
-
-        /// <summary>
-        /// Gets or sets the <b>result</b> entity tag (used where the value does not explicitly implement <see cref="IETag"/>).
-        /// </summary>
-        public string? ResultETag { get; set; }
 
         /// <summary>
         /// Gets or sets the corresponding user name.
@@ -202,15 +197,14 @@ namespace CoreEx
         {
             var ec = Create == null ? throw new InvalidOperationException($"The {nameof(Create)} function must not be null to create a copy.") : Create();
             ec._timestamp = _timestamp;
-            ec._referenceDataContext = _referenceDataContext;
             ec._messages = _messages;
             ec._properties = _properties;
+            ec._referenceDataContext = _referenceDataContext;
             ec._roles = _roles;
             ec.ServiceProvider = ServiceProvider;
             ec.CorrelationId = CorrelationId;
             ec.OperationType = OperationType;
             ec.IsTextSerializationEnabled = IsTextSerializationEnabled;
-            ec.ResultETag = ResultETag;
             ec.UserName = UserName;
             ec.UserId = UserId;
             ec.TenantId = TenantId;
@@ -229,7 +223,6 @@ namespace CoreEx
                     if (!_disposed)
                     {
                         _disposed = true;
-                        Reset();
                         Dispose(true);
                     }
                 }
@@ -243,7 +236,7 @@ namespace CoreEx
         /// Releases the unmanaged resources used by the <see cref="ExecutionContext"/> and optionally releases the managed resources.
         /// </summary>
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing) { }
+        protected virtual void Dispose(bool disposing) => Reset();
 
         #region Security
 
