@@ -52,7 +52,9 @@ namespace CoreEx.Http
             ExecutionContext = executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext());
             Settings = settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings();
             Logger = logger ?? ExecutionContext.GetService<ILogger<TypedHttpClientBase<TSelf>>>() ?? NullLoggerFactory.Instance.CreateLogger<TypedHttpClientBase<TSelf>>();
+#pragma warning disable CS0618 // Type or member is obsolete
             RequestLogger = HttpRequestLogger.Create(Settings, Logger);
+#pragma warning restore CS0618 // Type or member is obsolete
             OnDefaultOptionsConfiguration?.Invoke(DefaultOptions);
         }
 
@@ -74,6 +76,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets the <see cref="HttpRequestLogger"/>.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging/?view=aspnetcore-8.0 on how to implement.")]
         protected HttpRequestLogger RequestLogger { get; }
 
         /// <summary>
@@ -103,6 +106,7 @@ namespace CoreEx.Http
         /// <param name="retryPolicy">The custom retry policy.</param>
         /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/> with additional handling of <see cref="SocketException"/> and <see cref="TimeoutException"/>.
         /// <para>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TSelf WithCustomRetryPolicy(PolicyBuilder<HttpResponseMessage> retryPolicy)
         {
             SendOptions.WithCustomRetryPolicy(retryPolicy);
@@ -142,6 +146,7 @@ namespace CoreEx.Http
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks><para>The <paramref name="count"/> is the number of additional retries that should be performed in addition to the initial request.</para>
         /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TSelf WithRetry(int? count = null, double? seconds = null)
         {
             SendOptions.WithRetry(count, seconds);
@@ -217,6 +222,7 @@ namespace CoreEx.Http
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TSelf WithTimeout(TimeSpan timeout)
         {
             SendOptions.WithTimeout(timeout);
@@ -229,6 +235,7 @@ namespace CoreEx.Http
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks><para>Default is <c>30</c> seconds but it can be overridden for async calls (e.g. when using Azure Service Bus trigger).</para>
         /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TSelf WithMaxRetryDelay(TimeSpan maxRetryDelay)
         {
             SendOptions.WithMaxRetryDelay(maxRetryDelay);
@@ -298,6 +305,7 @@ namespace CoreEx.Http
             CancellationTokenSource? cts = null;
             var options = SendOptions;
 
+#pragma warning disable CS0618 // Type or member is obsolete
             try
             {
                 var sw = Stopwatch.StartNew();
@@ -394,11 +402,13 @@ namespace CoreEx.Http
                 throw new HttpRequestException($"Response status code {response.StatusCode}; expected one of the following: {string.Join(", ", options.ExpectedStatusCodes)}.");
 
             return response;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         /// <summary>
         /// Sets the cancellation based on the timeout.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         private CancellationToken SetCancellationBasedOnTimeout(CancellationToken cancellationToken, out CancellationTokenSource? cts)
         {
             var timeout = SendOptions.Timeout ?? TimeSpan.FromSeconds(Settings.GetValue<int?>($"{GetType().Name}__{nameof(SettingsBase.HttpTimeoutSeconds)}") ?? Settings.HttpTimeoutSeconds);

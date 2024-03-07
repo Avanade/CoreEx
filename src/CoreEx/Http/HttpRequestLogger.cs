@@ -12,6 +12,7 @@ namespace CoreEx.Http
     /// <summary>
     /// Provides the HTTP request/response logging.
     /// </summary>
+    [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging/?view=aspnetcore-8.0 on how to implement.")]
     public class HttpRequestLogger
     {
         private readonly SettingsBase _settings;

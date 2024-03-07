@@ -2,6 +2,13 @@
 
 Represents the **NuGet** versions.
 
+## v3.14.0
+- *Enhancement*: Planned feature obsoletion. The `TypedHttpClientBase` methods `WithRetry`, `WithTimeout`, `WithCustomRetryPolicy` and `WithMaxRetryDelay` are now marked as obsolete and will result in a compile-time warning. Related `TypedHttpClientOptions`, `HttpRequestLogger` and `SettingsBase` capabilities have also been obsoleted.
+  - Why? Primarily based on Microsoft guidance around [`IHttpClientFactory`](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-factory) usage. Specifically advances in native HTTP [resilency](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience) support, and the [.NET 8 networking improvemtns](https://devblogs.microsoft.com/dotnet/dotnet-8-networking-improvements/).
+  - When? Soon, planned within the next minor release (`v3.15.0`). This will simplify the underlying `TypedHttpClientBase` logic and remove the internal dependency on an older version of the [_Polly_](https://www.nuget.org/packages/Polly/7.2.4) package.
+  - How? Review the compile-time warnings, and [update the codebase](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/implement-http-call-retries-exponential-backoff-polly) to use the native `IHttpClientFactory` resiliency capabilities.
+- *Enhancement*: Updated `CoreEx.UnitTesting` to leverage the latest `UnitTestEx` (`v4.2.0`) which has added support for testing `HttpMessageHandler` and `HttpClient` configurations. This will enable improved mocked testing as a result of the above changes where applicable.
+
 ## v3.13.0
 - *Enhancement*: Added `DatabaseMapperEx` enabling extended/explicit mapping where performance is critical versus existing that uses reflection and compiled expressions; can offer up to 40%+ improvement in some scenarios.
 - *Enhancement*: The `AddMappers<TAssembly>()` and `AddValidators<TAssembly>()` extension methods now also support two or three assembly specification overloads.
