@@ -8,6 +8,7 @@ Represents the **NuGet** versions.
   - When? Soon, planned within the next minor release (`v3.15.0`). This will simplify the underlying `TypedHttpClientBase` logic and remove the internal dependency on an older version of the [_Polly_](https://www.nuget.org/packages/Polly/7.2.4) package.
   - How? Review the compile-time warnings, and [update the codebase](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/implement-http-call-retries-exponential-backoff-polly) to use the native `IHttpClientFactory` resiliency capabilities.
 - *Enhancement*: Updated `CoreEx.UnitTesting` to leverage the latest `UnitTestEx` (`v4.2.0`) which has added support for testing `HttpMessageHandler` and `HttpClient` configurations. This will enable improved mocked testing as a result of the above changes where applicable.
+- *Enhancement*: Added `CustomSerializers` property to `IEventSerializer` of type `CustomEventSerializers`. This allows for the add (registration) of custom JSON serialization logic for a specified `EventData.Value` type. This is intended to allow an opportunity to serialize a specific type in a different manner to the default JSON serialization; for example, exclude certain properties, or use a different serialization format.
 
 ## v3.13.0
 - *Enhancement*: Added `DatabaseMapperEx` enabling extended/explicit mapping where performance is critical versus existing that uses reflection and compiled expressions; can offer up to 40%+ improvement in some scenarios.

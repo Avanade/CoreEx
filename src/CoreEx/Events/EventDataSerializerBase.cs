@@ -36,6 +36,9 @@ namespace CoreEx.Events
         /// <inheritdoc/>
         public IAttachmentStorage? AttachmentStorage { get; set; }
 
+        /// <inheritdoc/>
+        public CustomEventSerializers CustomSerializers { get; } = new();
+
         /// <summary>
         /// Indicates whether the <see cref="EventData.Value"/> is serialized only (<c>true</c>); or alternatively, the complete <see cref="EventData"/> including all metadata (<c>false</c>).
         /// </summary>
@@ -133,12 +136,12 @@ namespace CoreEx.Events
             BinaryData data;
             EventAttachment attachment;
 
-            // Only serializes the value
+            // Only serializes the value.
             if (SerializeValueOnly)
             {
-                data = JsonSerializer.SerializeToBinaryData(@event.Value);
+                data = CustomSerializers.SerializeToBinaryData(@event, JsonSerializer, SerializeValueOnly);
                 if (AttachmentStorage is null || data.ToMemory().Length <= AttachmentStorage!.MaxDataSize)
-                    return JsonSerializer.SerializeToBinaryData(@event.Value);
+                    return data;
 
                 // Create the attachment and serialize the event with the attachment reference.
                 attachment = await AttachmentStorage.WriteAsync(@event, data, cancellationToken).ConfigureAwait(false);
@@ -146,19 +149,17 @@ namespace CoreEx.Events
             }
 
             // Serializes the complete event including metadata.
-            var e = @event.Copy();
-            EventDataFormatter.Format(e);
             if (AttachmentStorage is null)
-                return JsonSerializer.SerializeToBinaryData(e);
+                return CustomSerializers.SerializeToBinaryData(@event, JsonSerializer, SerializeValueOnly);
 
             // Serialize the value and check if needs to be an attachment.
-            data = JsonSerializer.SerializeToBinaryData(e.Value);
+            data = CustomSerializers.SerializeToBinaryData(@event, JsonSerializer, true);
             if (data.ToMemory().Length < AttachmentStorage!.MaxDataSize)
-                return JsonSerializer.SerializeToBinaryData(e);
+                return CustomSerializers.SerializeToBinaryData(@event, JsonSerializer, false);
 
             // Create the attachment and re-serialize the event with the attachment reference.
             attachment = await AttachmentStorage.WriteAsync(@event, data, cancellationToken).ConfigureAwait(false);
-            return JsonSerializer.SerializeToBinaryData(new EventData(e) { Value = attachment });
+            return JsonSerializer.SerializeToBinaryData(new EventData(@event) { Value = attachment });
         }
     }
 }

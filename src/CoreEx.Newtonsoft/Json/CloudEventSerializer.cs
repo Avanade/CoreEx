@@ -50,6 +50,21 @@ namespace CoreEx.Newtonsoft.Json
 
         /// <inheritdoc/>
         protected override Task<BinaryData> EncodeAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
-            => Task.FromResult(new BinaryData(new JsonEventFormatter(JsonSerializer).EncodeStructuredModeMessage(cloudEvent, out var _)));
+            => Task.FromResult(new BinaryData(new InternalFormatter(JsonSerializer).EncodeStructuredModeMessage(cloudEvent, out var _)));
+
+        private class InternalFormatter(Nsj.JsonSerializer jsonSerializer) : JsonEventFormatter(jsonSerializer)
+        {
+            /// <inheritdoc/>
+            protected override void EncodeStructuredModeData(CloudEvent cloudEvent, JsonWriter writer)
+            {
+                if (cloudEvent.Data is BinaryData bd && cloudEvent.DataContentType == MediaTypeNames.Application.Json)
+                {
+                    writer.WritePropertyName(DataPropertyName);
+                    writer.WriteRawValue(bd.ToString());
+                }
+                else
+                    base.EncodeStructuredModeData(cloudEvent, writer);
+            }
+        }
     }
 }

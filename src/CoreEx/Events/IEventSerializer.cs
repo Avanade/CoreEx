@@ -23,6 +23,11 @@ namespace CoreEx.Events
         public IAttachmentStorage? AttachmentStorage { get; set; }
 
         /// <summary>
+        /// Gets the <see cref="CustomEventSerializers"/> which enables the <see cref="EventData"/> or <see cref="EventData.Value"/> serialization to be customized per <see cref="EventData.Value"/> <see cref="Type"/>.
+        /// </summary>
+        public CustomEventSerializers CustomSerializers { get; }
+
+        /// <summary>
         /// Serializes the <see cref="EventData"/> to a <see cref="BinaryData"/>.
         /// </summary>
         /// <param name="event">The <see cref="EventData"/>.</param>

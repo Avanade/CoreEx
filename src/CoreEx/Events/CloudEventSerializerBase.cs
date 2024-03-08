@@ -45,6 +45,9 @@ namespace CoreEx.Events
         public IAttachmentStorage? AttachmentStorage { get; set; }
 
         /// <inheritdoc/>
+        public CustomEventSerializers CustomSerializers { get; } = new();
+
+        /// <inheritdoc/>
         public async Task<EventData> DeserializeAsync(BinaryData eventData, CancellationToken cancellationToken = default)
         {
             CloudEvent ce;
@@ -190,14 +193,12 @@ namespace CoreEx.Events
         /// </summary>
         private async Task<BinaryData> SerializeToCloudEventAsync(EventData @event, CancellationToken cancellationToken)
         {
-            EventDataFormatter.Format(@event);
-
             var ce = new CloudEvent
             {
                 Id = @event.Id,
                 Time = @event.Timestamp,
-                Type = @event.Type ?? throw new InvalidOperationException("CloudEvents must have a Type; the EventDataFormatter should be updated to set."),
-                Source = @event.Source ?? throw new InvalidOperationException("CloudEvents must have a Source; the EventDataFormatter should be updated to set.")
+                Type = @event.Type ?? throw new InvalidOperationException($"CloudEvents must have a Type; the {nameof(EventDataFormatter)} should be updated to set."),
+                Source = @event.Source ?? throw new InvalidOperationException($"CloudEvents must have a Source; the {nameof(EventDataFormatter)} should be updated to set.")
             };
 
             SetExtensionAttribute(ce, SubjectName, @event.Subject);
@@ -221,12 +222,12 @@ namespace CoreEx.Events
             if (@event.Value is not null)
             {
                 ce.DataContentType = MediaTypeNames.Application.Json;
-                ce.Data = @event.Value;
+                ce.Data = CustomSerializers.SerializeToBinaryData(@event, EventDataFormatter.JsonSerializer!, true);
 
                 // Where attachments are supported, check the size of the data and write to the attachment storage if required.
-                if (AttachmentStorage != null)
+                if (AttachmentStorage is not null)
                 {
-                    var data = EventDataFormatter.JsonSerializer!.SerializeToBinaryData(@event.Value);
+                    var data = CustomSerializers.SerializeToBinaryData(@event, EventDataFormatter.JsonSerializer!, true);
                     if (data.ToMemory().Length >= AttachmentStorage!.MaxDataSize)
                         ce.Data = await AttachmentStorage.WriteAsync(@event, data, cancellationToken).ConfigureAwait(false);
                 }

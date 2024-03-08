@@ -114,5 +114,33 @@ namespace CoreEx.Json
         /// <param name="jsonName">The JSON name where underlying JSON attribute is defined or not; <c>null</c> where not serializable.</param>
         /// <returns><c>true</c> indicates that the property is considered serializable; otherwise, <c>false</c>.</returns>
         bool TryGetJsonName(MemberInfo memberInfo, [NotNullWhen(true)] out string? jsonName);
+
+        /// <summary>
+        /// Serialize the <paramref name="value"/> to a JSON <see cref="string"/> using the specified <see cref="JsonPropertyFilter.Include"/> property <paramref name="names"/> filter (<see cref="StringComparison.OrdinalIgnoreCase"/>).
+        /// </summary>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="names">The list of JSON property names to <see cref="JsonPropertyFilter.Include"/>.</param>
+        /// <returns>The JSON <see cref="string"/>.</returns>
+        /// <remarks>This is a wrapper for <see cref="TryApplyFilter{T}(T, IEnumerable{string}?, out string, JsonPropertyFilter, StringComparison, Action{IJsonPreFilterInspector}?)"/>.</remarks>
+        public string SerializeWithIncludeFilter<T>(T value, params string[] names)
+        {
+            TryApplyFilter(value, names, out string json, JsonPropertyFilter.Include, StringComparison.OrdinalIgnoreCase);
+            return json;
+        }
+
+        /// <summary>
+        /// Serialize the <paramref name="value"/> to a JSON <see cref="string"/> using the specified <see cref="JsonPropertyFilter.Include"/> property <paramref name="names"/> filter (<see cref="StringComparison.OrdinalIgnoreCase"/>).
+        /// </summary>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="names">The list of JSON property names to <see cref="JsonPropertyFilter.Include"/>.</param>
+        /// <returns>The JSON <see cref="string"/>.</returns>
+        /// <remarks>This is a wrapper for <see cref="TryApplyFilter{T}(T, IEnumerable{string}?, out string, JsonPropertyFilter, StringComparison, Action{IJsonPreFilterInspector}?)"/>.</remarks>
+        public string SerializeWithExcludeFilter<T>(T value, params string[] names)
+        {
+            TryApplyFilter(value, names, out string json, JsonPropertyFilter.Exclude, StringComparison.OrdinalIgnoreCase);
+            return json;
+        }
     }
 }

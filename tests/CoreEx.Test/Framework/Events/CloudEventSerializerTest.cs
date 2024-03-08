@@ -35,6 +35,7 @@ namespace CoreEx.Test.Framework.Events
             var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.RelativeOrAbsolute) };
             var es = new CoreEx.Text.Json.CloudEventSerializer(ef) as IEventSerializer;
             var ed = CreateProductEvent2();
+            ef.Format(ed);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
             Assert.That(bd, Is.Not.Null);
             Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));
@@ -107,6 +108,7 @@ namespace CoreEx.Test.Framework.Events
             var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.RelativeOrAbsolute) };
             var es = new CoreEx.Newtonsoft.Json.CloudEventSerializer(ef) as IEventSerializer;
             var ed = CreateProductEvent2();
+            ef.Format(ed);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
             Assert.That(bd, Is.Not.Null);
             Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));

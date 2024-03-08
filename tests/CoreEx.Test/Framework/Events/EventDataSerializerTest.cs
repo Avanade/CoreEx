@@ -30,6 +30,7 @@ namespace CoreEx.Test.Framework.Events
             var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.RelativeOrAbsolute) };
             var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer(), ef) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent2();
+            ef.Format(ed);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
             Assert.That(bd, Is.Not.Null);
             Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));
@@ -177,6 +178,25 @@ namespace CoreEx.Test.Framework.Events
         }
 
         [Test]
+        public async Task SystemTextJson_Serialize_Deserialize_Custom_EventData1()
+        {
+            var es = new CoreEx.Text.Json.EventDataSerializer(new Text.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
+            es.CustomSerializers.Add<Product>((ed, js, _) => new BinaryData(js.SerializeWithExcludeFilter(ed, "value.price")));
+            var ed = CloudEventSerializerTest.CreateProductEvent1();
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.That(bd, Is.Not.Null);
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2, "value.price");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Value.Price, Is.Not.Zero);
+                Assert.That(ed2.Value.Price, Is.Zero); // Price should be scrubbed.
+            });
+        }
+
+        [Test]
         public async Task NewtonsoftJson_Serialize_Deserialize_EventData1()
         {
             var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
@@ -195,6 +215,7 @@ namespace CoreEx.Test.Framework.Events
             var ef = new EventDataFormatter { SourceDefault = _ => new Uri("null", UriKind.RelativeOrAbsolute) };
             var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer(), ef) { SerializeValueOnly = false } as IEventSerializer;
             var ed = CloudEventSerializerTest.CreateProductEvent2();
+            ef.Format(ed);
             var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
             Assert.That(bd, Is.Not.Null);
             Assert.That(bd.ToString(), Is.EqualTo(CloudEvent2));
@@ -266,6 +287,25 @@ namespace CoreEx.Test.Framework.Events
 
             var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
             ObjectComparer.Assert(new EventData<Product>(), ed2);
+        }
+
+        [Test]
+        public async Task NewtonsoftText_Serialize_Deserialize_Custom_EventData1()
+        {
+            var es = new CoreEx.Newtonsoft.Json.EventDataSerializer(new Newtonsoft.Json.JsonSerializer()) { SerializeValueOnly = false } as IEventSerializer;
+            es.CustomSerializers.Add<Product>((ed, js, _) => new BinaryData(js.SerializeWithExcludeFilter(ed, "value.price")));
+            var ed = CloudEventSerializerTest.CreateProductEvent1();
+            var bd = await es.SerializeAsync(ed).ConfigureAwait(false);
+            Assert.That(bd, Is.Not.Null);
+
+            var ed2 = await es.DeserializeAsync<Product>(bd).ConfigureAwait(false);
+            ObjectComparer.Assert(ed, ed2, "value.price");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ed.Value.Price, Is.Not.Zero);
+                Assert.That(ed2.Value.Price, Is.Zero); // Price should be scrubbed.
+            });
         }
 
         private const string CloudEvent1 = "{\"value\":{\"id\":\"A\",\"name\":\"B\",\"price\":1.99},\"id\":\"id\",\"subject\":\"product\",\"action\":\"created\",\"type\":\"product.created\",\"source\":\"product/a\",\"timestamp\":\"2022-02-22T22:02:22+00:00\",\"correlationId\":\"cid\",\"key\":\"A\",\"tenantId\":\"tid\",\"partitionKey\":\"pid\",\"etag\":\"etag\",\"attributes\":{\"fruit\":\"bananas\"}}";

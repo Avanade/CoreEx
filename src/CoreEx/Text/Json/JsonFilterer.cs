@@ -67,7 +67,7 @@ namespace CoreEx.Text.Json
         public static bool TryApply<T>(T value, IEnumerable<string>? paths, out string json, JsonPropertyFilter filter = JsonPropertyFilter.Include, JsonSerializerOptions? options = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase, Action<IJsonPreFilterInspector>? preFilterInspector = null)
         {
             var r = TryApply(value, paths, out JsonNode node, filter, options, comparison, preFilterInspector);
-            json = node.ToJsonString();
+            json = node.ToJsonString(options);
             return r;
         }
 
