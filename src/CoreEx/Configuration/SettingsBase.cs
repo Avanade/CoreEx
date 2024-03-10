@@ -121,26 +121,31 @@ namespace CoreEx.Configuration
         /// <summary>
         /// Indicates whether the <see cref="TypedHttpClientBase{TSelf}"/> logs the request and response <see cref="HttpContent"/>. It is recommended that this is <b>only</b> used for development/debugging purposes.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging/?view=aspnetcore-8.0 on how to implement.")]
         public bool HttpLogContent => GetValue(nameof(HttpLogContent), false);
 
         /// <summary>
         /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> retry count. Defaults to <c>3</c>.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public int HttpRetryCount => GetValue(nameof(HttpRetryCount), 3);
 
         /// <summary>
         /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> retry delay in seconds. Defaults to <c>1.8</c>.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public double HttpRetrySeconds => GetValue(nameof(HttpRetrySeconds), 1.8d);
 
         /// <summary>
         /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> timeout. Defaults to <c>90</c> seconds.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public int HttpTimeoutSeconds => GetValue(defaultValue: 90);
 
         /// <summary>
         /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> maximum retry delay. Defaults to <c>2</c> minutes.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TimeSpan HttpMaxRetryDelay => TimeSpan.FromSeconds(GetValue(defaultValue: 120));
 
         /// <summary>

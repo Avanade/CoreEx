@@ -3,6 +3,7 @@
 using CloudNative.CloudEvents;
 using CloudNative.CloudEvents.SystemTextJson;
 using CoreEx.Events;
+using Microsoft.Extensions.Options;
 using System;
 using System.Net.Mime;
 using System.Threading;
@@ -42,6 +43,25 @@ namespace CoreEx.Text.Json
 
         /// <inheritdoc/>
         protected override Task<BinaryData> EncodeAsync(CloudEvent cloudEvent, CancellationToken cancellation = default)
-            => Task.FromResult(new BinaryData(new JsonEventFormatter(Options, new Stj.JsonDocumentOptions()).EncodeStructuredModeMessage(cloudEvent, out var _)));
+            //=> Task.FromResult(new BinaryData(new JsonEventFormatter(Options, new Stj.JsonDocumentOptions()).EncodeStructuredModeMessage(cloudEvent, out var _)));
+            => Task.FromResult(new BinaryData(new InternalFormatter(Options, new Stj.JsonDocumentOptions()).EncodeStructuredModeMessage(cloudEvent, out var _)));
+
+        /// <summary>
+        /// Override the formatting where the <see cref="CloudEvent.Data"/> is a <see cref="BinaryData"/> and the <see cref="CloudEvent.DataContentType"/> is <see cref="MediaTypeNames.Application.Json"/> by assuming already serialized.
+        /// </summary>
+        private class InternalFormatter(Stj.JsonSerializerOptions options, Stj.JsonDocumentOptions jsonDocumentOptions) : JsonEventFormatter(options, jsonDocumentOptions)
+        {
+            /// <inheritdoc/>
+            protected override void EncodeStructuredModeData(CloudEvent cloudEvent, Stj.Utf8JsonWriter writer)
+            {
+                if (cloudEvent.Data is BinaryData bd && cloudEvent.DataContentType == MediaTypeNames.Application.Json)
+                {
+                    writer.WritePropertyName(DataPropertyName);
+                    writer.WriteRawValue(bd, true);
+                }
+                else
+                    base.EncodeStructuredModeData(cloudEvent, writer);
+            }
+        }
     }
 }

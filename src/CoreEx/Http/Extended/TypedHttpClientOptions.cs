@@ -53,11 +53,13 @@ namespace CoreEx.Http.Extended
         /// <summary>
         /// Gets the retry count; see <see cref="WithRetry(int?, double?)"/>.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public int? RetryCount { get; private set; }
 
         /// <summary>
         /// Gets the retry seconds; see <see cref="WithRetry(int?, double?)"/>.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public double? RetrySeconds { get; private set; }
 
         /// <summary>
@@ -93,6 +95,7 @@ namespace CoreEx.Http.Extended
         /// <summary>
         /// Gets the custom retry policy; see <see cref="WithCustomRetryPolicy(PolicyBuilder{HttpResponseMessage})"/>.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public PolicyBuilder<HttpResponseMessage>? CustomRetryPolicy { get; private set; }
 
         /// <summary>
@@ -103,6 +106,7 @@ namespace CoreEx.Http.Extended
         /// <summary>
         /// Gets the maximum retry delay; see <see cref="WithMaxRetryDelay(TimeSpan)"/>.
         /// </summary>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TimeSpan? MaxRetryDelay { get; private set; }
 
         /// <summary>
@@ -130,6 +134,7 @@ namespace CoreEx.Http.Extended
         /// <param name="retryPolicy">The custom retry policy.</param>
         /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/> with additional handling of <see cref="SocketException"/> and <see cref="TimeoutException"/>.
         /// <para>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TypedHttpClientOptions WithCustomRetryPolicy(PolicyBuilder<HttpResponseMessage> retryPolicy)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -172,6 +177,7 @@ namespace CoreEx.Http.Extended
         /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry.</param>
         /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
         /// <para>The <paramref name="count"/> is the number of additional retries that should be performed in addition to the initial request.</para></remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TypedHttpClientOptions WithRetry(int? count = null, double? seconds = null)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -267,6 +273,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TypedHttpClientOptions WithTimeout(TimeSpan timeout)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -280,6 +287,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
         /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
+        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
         public TypedHttpClientOptions WithMaxRetryDelay(TimeSpan maxRetryDelay)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -317,6 +325,7 @@ namespace CoreEx.Http.Extended
         /// </summary>
         public void Reset()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             CheckDefaultNotBeingUpdatedInSendMode();
             if (_defaultOptions is null)
             {
@@ -350,6 +359,7 @@ namespace CoreEx.Http.Extended
                 ShouldNullOnNotFound = _defaultOptions.ShouldNullOnNotFound;
                 BeforeRequest = _defaultOptions.BeforeRequest;
             }
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 }

@@ -5,6 +5,7 @@ using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.Http;
 using CoreEx.Wildcards;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,9 +57,23 @@ namespace UnitTestEx.Expectations
         /// <summary>
         /// Gets whether the <see cref="UseExpectedEvents{TSelf}(TesterBase{TSelf})"/> has been invoked
         /// </summary>
-        /// <param name="owner"></param>
-        /// <returns></returns>
-        public static bool IsExpectedEventPublisherConfigured(this TesterBase owner) => owner.SetUp.Properties.TryGetValue(TesterBaseIsExpectedEventPublisherConfiguredKey, out var val) && (bool)val!;
+        /// <param name="tester">The <see cref="TesterBase"/>.</param>
+        /// <returns>Indicates whether the <see cref="ExpectedEventPublisher"/> is configured.</returns>
+        public static bool IsExpectedEventPublisherConfigured(this TesterBase tester) => tester.SetUp.Properties.TryGetValue(TesterBaseIsExpectedEventPublisherConfiguredKey, out var val) && (bool)val!;
+
+        /// <summary>
+        /// Gets the <see cref="ExpectedEventPublisher"/> from the <see cref="TesterBase.Services"/>.
+        /// </summary>
+        /// <param name="tester">The <see cref="TesterBase"/>.</param>
+        /// <returns>The <see cref="ExpectedEventPublisher"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown where the <see cref="ExpectedEventPublisher"/> has not been configured (<see cref="IsExpectedEventPublisherConfigured"/>).</exception>
+        public static ExpectedEventPublisher GetExpectedEventPublisher(this TesterBase tester)
+        {
+            if (!IsExpectedEventPublisherConfigured(tester))
+                throw new InvalidOperationException($"The {nameof(ExpectedEventPublisher)} has not been configured. Please ensure that the {nameof(UseExpectedEvents)} method has been invoked.");
+
+            return (ExpectedEventPublisher)tester.Services.GetRequiredService<IEventPublisher>();
+        }
 
         #endregion
 
