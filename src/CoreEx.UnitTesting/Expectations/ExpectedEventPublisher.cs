@@ -4,8 +4,8 @@ using CoreEx;
 using CoreEx.Events;
 using CoreEx.Json;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +16,8 @@ namespace UnitTestEx.Expectations
     /// <summary>
     /// Provides an expected event publisher to support <see cref="EventExpectations{TTester}"/>.
     /// </summary>
-    /// <remarks>Where an <see cref="ILogger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.</remarks>
+    /// <remarks>Where an <see cref="ILogger"/> is provided then each <see cref="EventData"/> will also be logged during <i>Send</i>.
+    /// <para></para></remarks>
     public sealed class ExpectedEventPublisher : EventPublisher
     {
         private readonly TestSharedState _sharedState;
@@ -33,7 +34,7 @@ namespace UnitTestEx.Expectations
         /// </summary>
         /// <param name="sharedState">The <see cref="TestSharedState"/>.</param>
         /// <returns>The <see cref="ExpectedEventPublisher"/> where found; otherwise, <c>null</c>.</returns>
-        public static ExpectedEventPublisher? GetFromSharedState(TestSharedState sharedState)
+        internal static ExpectedEventPublisher? GetFromSharedState(TestSharedState sharedState)
             => sharedState.ThrowIfNull(nameof(sharedState)).StateData.TryGetValue(nameof(ExpectedEventPublisher), out var eep) ? eep as ExpectedEventPublisher : null;
 
         /// <summary>
@@ -41,7 +42,7 @@ namespace UnitTestEx.Expectations
         /// </summary>
         /// <param name="sharedState">The <see cref="TestSharedState"/>.</param>
         /// <param name="expectedEventPublisher">The <see cref="ExpectedEventPublisher"/>.</param>
-        public static void SetToSharedState(TestSharedState sharedState, ExpectedEventPublisher? expectedEventPublisher)
+        internal static void SetToSharedState(TestSharedState sharedState, ExpectedEventPublisher? expectedEventPublisher)
             => sharedState.ThrowIfNull(nameof(sharedState)).StateData[nameof(ExpectedEventPublisher)] = expectedEventPublisher.ThrowIfNull(nameof(expectedEventPublisher));
 
         /// <summary>
@@ -51,8 +52,9 @@ namespace UnitTestEx.Expectations
         /// <param name="logger">The optional <see cref="ILogger"/> for logging the events (each <see cref="EventData"/>).</param>
         /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/> for the logging. Defaults to <see cref="JsonSerializer.Default"/></param>
         /// <param name="eventDataFormatter">The <see cref="EventDataFormatter"/>; defaults where not specified.</param>
-        public ExpectedEventPublisher(TestSharedState sharedState, ILogger<ExpectedEventPublisher>? logger = null, IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null)
-            : base(eventDataFormatter, new CoreEx.Text.Json.EventDataSerializer(), new NullEventSender())
+        /// <param name="eventSerializer">The <see cref="IEventSerializer"/>; defaults where not specified.</param>
+        public ExpectedEventPublisher(TestSharedState sharedState, ILogger<ExpectedEventPublisher>? logger = null, IJsonSerializer? jsonSerializer = null, EventDataFormatter? eventDataFormatter = null, IEventSerializer? eventSerializer = null)
+            : base(eventDataFormatter, eventSerializer ?? new CoreEx.Text.Json.EventDataSerializer(), new NullEventSender())
         {
             _sharedState = sharedState.ThrowIfNull(nameof(sharedState));
             SetToSharedState(_sharedState, this);
@@ -61,17 +63,27 @@ namespace UnitTestEx.Expectations
         }
 
         /// <summary>
-        /// Gets the dictionary that contains the sent events by destination.
+        /// Gets the dictionary that contains the actual published and sent events by destination.
         /// </summary>
-        /// <remarks>The sent events are queued as the JSON-serialized representation of the <see cref="EventData"/>.</remarks>
-        public ConcurrentDictionary<string, ConcurrentQueue<string?>> SentEvents { get; } = new();
+        /// <remarks>The actual published events are queued as the JSON-serialized (indented) representation of the <see cref="EventData"/>, the <see cref="EventData"/> itself, and the corresponding <see cref="EventSendData"/>.</remarks>
+        public ConcurrentDictionary<string, ConcurrentQueue<(string Json, EventData Event, EventSendData SentEvent)>> PublishedEvents { get; } = new();
+
+        /// <summary>
+        /// Indicates whether any events have been published.
+        /// </summary>
+        public bool HasPublishedEvents => !PublishedEvents.IsEmpty;
+
+        /// <summary>
+        /// Gets the total count of published events (across all destinations).
+        /// </summary>
+        public int PublishedEventCount => PublishedEvents.Select(x => x.Value.Count).Sum();
 
         /// <inheritdoc/>
         protected override Task OnEventSendAsync(string? name, EventData eventData, EventSendData eventSendData, CancellationToken cancellationToken)
         {
-            var queue = SentEvents.GetOrAdd(name ?? NullKeyName, _ => new ConcurrentQueue<string?>());
+            var queue = PublishedEvents.GetOrAdd(name ?? NullKeyName, _ => new ConcurrentQueue<(string Json, EventData Event, EventSendData SentEvent)>());
             var json = _jsonSerializer.Serialize(eventData, JsonWriteFormat.Indented);
-            queue.Enqueue(json);
+            queue.Enqueue((json, eventData, eventSendData));
 
             if (_logger != null)
             {

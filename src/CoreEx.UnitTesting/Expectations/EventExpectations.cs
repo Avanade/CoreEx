@@ -122,7 +122,7 @@ namespace UnitTestEx.Expectations
             if (!expectedEventPublisher.IsEmpty)
                 args.Tester.Implementor.AssertFail("Expected Event Publish/Send mismatch; there are one or more published events that have not been sent.");
 
-            var names = expectedEventPublisher.SentEvents.Keys.ToArray();
+            var names = expectedEventPublisher.PublishedEvents.Keys.ToArray();
             if (_expectNoEvents && !_expectEvents && _expectedEvents.Count == 0 && names.Length > 0)
                 args.Tester.Implementor.AssertFail($"Expected no Event(s); one or more were published.");
 
@@ -158,9 +158,10 @@ namespace UnitTestEx.Expectations
         }
 
         /// <summary>
-        /// Gets the event from the event storage.
+        /// Gets the event JSON from the event storage.
         /// </summary>
-        private static List<string?> GetEvents(ExpectedEventPublisher expectedEventPublisher, string? name) => expectedEventPublisher!.SentEvents.TryGetValue(name ?? ExpectedEventPublisher.NullKeyName, out var queue) ? [.. queue] : new();
+        private static List<string> GetEvents(ExpectedEventPublisher expectedEventPublisher, string? name) 
+            => expectedEventPublisher!.PublishedEvents.TryGetValue(name ?? ExpectedEventPublisher.NullKeyName, out var queue) ? [.. queue.Select(x => x.Json)] : new();
 
         /// <summary>
         /// Asserts the events for the destination.
