@@ -108,6 +108,6 @@ namespace CoreEx.Validation
         public abstract Task<ValueValidatorResult<TEntity, TProperty>> ValidateAsync(CancellationToken cancellationToken = default);
 
         /// <inheritdoc/>
-        async Task<IValidationResult> IPropertyRule<TEntity, TProperty>.ValidateAsync(CancellationToken cancellationToken) => await ValidateAsync(cancellationToken).ConfigureAwait(false);
+        async Task<IValidationResult> IPropertyRule.ValidateAsync(CancellationToken cancellationToken) => await ValidateAsync(cancellationToken).ConfigureAwait(false);
     }
 }

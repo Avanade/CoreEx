@@ -17,23 +17,12 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    /// <remarks>The internal reflection comes at a performance cost; as such the resulting <see cref="PropertyExpression{TEntity, TProperty}"/> is cached using an <see cref="IMemoryCache"/>. The <see cref="AbsoluteExpirationTimespan"/>
-    /// and <see cref="SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
+    /// <remarks>The internal reflection comes at a performance cost; as such the resulting <see cref="PropertyExpression{TEntity, TProperty}"/> is cached using an <see cref="IMemoryCache"/>. The <see cref="PropertyExpression.AbsoluteExpirationTimespan"/>
+    /// and <see cref="PropertyExpression.SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
     public class PropertyExpression<TEntity, TProperty> : IPropertyExpression
     {
         private readonly Func<TEntity, TProperty> _getValue;
         private readonly Action<TEntity, TProperty>? _setValue;
-        private string? _text;
-
-        /// <summary>
-        /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>4</c> hours.
-        /// </summary>
-        public static TimeSpan AbsoluteExpirationTimespan { get; set; } = TimeSpan.FromHours(4);
-
-        /// <summary>
-        /// Gets or sets the <see cref="IMemoryCache"/> sliding expiration <see cref="TimeSpan"/>. Default to <c>30</c> minutes.
-        /// </summary>
-        public static TimeSpan SlidingExpirationTimespan { get; set; } = TimeSpan.FromMinutes(30);
 
         /// <summary>
         /// Validates, creates and compiles the property expression; whilst also determinig the property friendly <see cref="Text"/>.
@@ -52,8 +41,11 @@ namespace CoreEx.Abstractions.Reflection
             // Check cache and reuse as this is a *really* expensive operation. Key contains: Entity type, property name, and json serializer (in case configuration is different).
             return cache.GetOrCreate((typeof(TEntity), me.Member.Name, jsonSerializer.GetType()), ce =>
             {
-                ce.SetAbsoluteExpiration(AbsoluteExpirationTimespan);
-                ce.SetSlidingExpiration(SlidingExpirationTimespan);
+                if (PropertyExpression.AbsoluteExpirationTimespan.HasValue)
+                    ce.SetAbsoluteExpiration(PropertyExpression.AbsoluteExpirationTimespan.Value);
+
+                if (PropertyExpression.SlidingExpirationTimespan.HasValue)
+                    ce.SetSlidingExpiration(PropertyExpression.SlidingExpirationTimespan.Value);
 
                 if (me.Member.MemberType != MemberTypes.Property)
                     throw new InvalidOperationException("Expression results in a Member that is not a Property.");
@@ -103,7 +95,7 @@ namespace CoreEx.Abstractions.Reflection
             PropertyInfo = pi;
             Name = name;
             JsonName = jsonName;
-            _text = text;
+            Text = PropertyExpression.CreatePropertyLText(typeof(TEntity), pi, text ?? Name.ToSentenceCase());
             IsJsonSerializable = isSerializable;
             IsClass = PropertyInfo.PropertyType.IsClass && PropertyInfo.PropertyType != typeof(string);
             _getValue = getValue;
@@ -120,7 +112,7 @@ namespace CoreEx.Abstractions.Reflection
         public string? JsonName { get; }
 
         /// <inheritdoc/>
-        public LText Text => _text ??= Name.ToSentenceCase()!; // Lazy generate the text to avoid logic execution if not needed.
+        public LText Text { get; }
 
         /// <inheritdoc/>
         public bool IsJsonSerializable { get;  }
