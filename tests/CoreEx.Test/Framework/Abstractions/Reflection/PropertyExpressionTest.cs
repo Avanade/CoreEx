@@ -16,6 +16,7 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
                 Assert.That(pe1.Name, Is.EqualTo("Id"));
                 Assert.That(pe1.JsonName, Is.EqualTo("id"));
                 Assert.That((string)pe1.Text, Is.EqualTo("Identifier"));
+                Assert.That(pe1.Text.KeyAndOrText, Is.EqualTo("CoreEx.Test.Framework.Abstractions.Reflection.Person.Id"));
                 Assert.That(pe1.IsJsonSerializable, Is.True);
             });
 

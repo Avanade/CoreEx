@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.14.1
+- *Fixed*: The `Result.ValidatesAsync` extension method signature has had the value nullability corrected to enable fluent-style method-chaining.
+- *Fixed*: The fully qualified type and property name is now correctly used as the `LText.KeyAndOrText` when creating within the `PropertyExpression<TEntity, TProperty>` to enable a qualified _key_ that can be used by the `ITextProvider` to substitute the text at runtime; the existing text fallback behavior remains such that an appropriate text is used. The `PropertyExpression.CreatePropertyLTextKey` function can be overridden to change this behavior.
+
 ## v3.14.0
 - *Enhancement*: Planned feature obsoletion. The `TypedHttpClientBase` methods `WithRetry`, `WithTimeout`, `WithCustomRetryPolicy` and `WithMaxRetryDelay` are now marked as obsolete and will result in a compile-time warning. Related `TypedHttpClientOptions`, `HttpRequestLogger` and `SettingsBase` capabilities have also been obsoleted.
   - Why? Primarily based on Microsoft guidance around [`IHttpClientFactory`](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-factory) usage. Specifically advances in native HTTP [resilency](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience) support, and the [.NET 8 networking improvements](https://devblogs.microsoft.com/dotnet/dotnet-8-networking-improvements/).

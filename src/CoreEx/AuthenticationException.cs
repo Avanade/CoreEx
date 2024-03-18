@@ -13,7 +13,7 @@ namespace CoreEx
     /// <remarks>The <see cref="Exception.Message"/> defaults to: <i>An authentication error occured; the credentials you provided are not valid.</i></remarks>
     public class AuthenticationException : Exception, IExtendedException
     {
-        private const string _message = "An authorization error occurred; you are not permitted to perform this action.";
+        private const string _message = "An authentication error occurred; the credentials you provided are not valid.";
 
         /// <summary>
         /// Get or sets the <see cref="ShouldBeLogged"/> value.

@@ -274,7 +274,7 @@ namespace CoreEx.Test.Framework.Validation
 
         public class TestEntity
         {
-            public List<TestItem>? Items { get; set; } = new List<TestItem>();
+            public List<TestItem>? Items { get; set; } = [];
 
             public TestItem? Item { get; set; }
 
@@ -306,11 +306,9 @@ namespace CoreEx.Test.Framework.Validation
 
         }
 
-        public class TestDataString
+        public class TestDataString(string name)
         {
-            public TestDataString(string name) => Name = name;
-
-            public string Name { get; set; }
+            public string Name { get; set; } = name;
         }
 
         [Test]
@@ -412,7 +410,7 @@ namespace CoreEx.Test.Framework.Validation
 
             var type = vxc.GetType();
             var mi = type.GetMethod("ValidateAsync")!;
-            var vc = ((Task<ValidationContext<TestInjectChild>>)mi.Invoke(vxc, new object?[] { context.Value, context.CreateValidationArgs(), System.Threading.CancellationToken.None })!).GetAwaiter().GetResult();
+            var vc = ((Task<ValidationContext<TestInjectChild>>)mi.Invoke(vxc, [context.Value, context.CreateValidationArgs(), System.Threading.CancellationToken.None])!).GetAwaiter().GetResult();
             context.Parent.MergeResult(vc);
             return Result.Success;
         }

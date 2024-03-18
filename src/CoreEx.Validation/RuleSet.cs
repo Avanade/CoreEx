@@ -10,7 +10,7 @@ namespace CoreEx.Validation
     /// Represents a validation rule set for an entity, in that it groups one or more <see cref="Rules"/> together for a specified condition.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    public class RuleSet<TEntity> : ValidatorBase<TEntity>, IPropertyRule<TEntity> where TEntity : class
+    public class RuleSet<TEntity> : ValidatorBase<TEntity>, IEntityRule<TEntity> where TEntity : class
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RuleSet{TEntity}"/> class to be invoked where the predicate is true.

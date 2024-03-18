@@ -1,9 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Json;
+using CoreEx.Localization;
+using CoreEx.Text;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace CoreEx.Abstractions.Reflection
 {
@@ -18,6 +22,25 @@ namespace CoreEx.Abstractions.Reflection
         /// Gets the <see cref="IMemoryCache"/>.
         /// </summary>
         internal static IMemoryCache Cache => ExecutionContext.GetService<IReflectionCache>() ?? (_fallbackCache ??= new MemoryCache(new MemoryCacheOptions()));
+
+        /// <summary>
+        /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>.
+        /// </summary>
+        /// <remarks>Defaults to <c>4</c> hours.</remarks>
+        public static TimeSpan? AbsoluteExpirationTimespan { get; set; } = TimeSpan.FromHours(4);
+
+        /// <summary>
+        /// Gets or sets the <see cref="IMemoryCache"/> sliding expiration <see cref="TimeSpan"/>.
+        /// </summary>
+        /// <remarks>Defaults to <c>30</c> minutes.</remarks>
+        public static TimeSpan? SlidingExpirationTimespan { get; set; } = TimeSpan.FromMinutes(30);
+
+        /// <summary>
+        /// Gets or sets the function to create the <see cref="LText"/> for the specified entity <see cref="Type"/>, <see cref="PropertyInfo"/> and <i>inferred</i> text (being either the corresponding <see cref="DisplayAttribute.Name"/> where specified
+        /// or the <see cref="MemberInfo.Name"/> converted to <see cref="SentenceCase.ToSentenceCase"/>).
+        /// </summary>
+        /// <remarks>Defaults the <see cref="LText.KeyAndOrText"/> to the fully qualified name (being <see cref="Type.FullName"/> + '.' + <see cref="MemberInfo.Name"/>) and the <see cref="LText.FallbackText"/> to the <i>inferred</i> text.</remarks>
+        public static Func<Type, PropertyInfo, string, LText> CreatePropertyLText { get; set; } = (entityType, propertyInfo, text) => new LText($"{entityType.FullName}.{propertyInfo.Name}", text);
 
         /// <summary>
         /// Validates, creates and compiles the property expression; whilst also determinig the property friendly <see cref="PropertyExpression{TEntity, TProperty}.Text"/>.

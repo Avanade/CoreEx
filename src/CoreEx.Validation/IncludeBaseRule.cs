@@ -11,7 +11,7 @@ namespace CoreEx.Validation
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TInclude">The entity base <see cref="Type"/>.</typeparam>
-    public class IncludeBaseRule<TEntity, TInclude> : ValidatorBase<TEntity>, IPropertyRule<TEntity> where TEntity : class where TInclude : class
+    public class IncludeBaseRule<TEntity, TInclude> : ValidatorBase<TEntity>, IEntityRule<TEntity> where TEntity : class where TInclude : class
     {
         private readonly IValidatorEx<TInclude> _include;
 

@@ -78,6 +78,7 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task Validation_Success_Other_Value()
         {
+            1.Validate().Mandatory().CompareValue(CompareOperator.LessThanEqual, 10);
             var r = await Result.Go().ValidatesAsync(1, v => v.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
             Assert.That(r.IsSuccess, Is.True);
         }
@@ -88,6 +89,28 @@ namespace CoreEx.Test.Framework.Results
             var id = 88;
             var r = await Result.Go().ValidatesAsync(id, v => v.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [id: Identifier must be less than or equal to 10.]"));
+        }
+
+        [Test]
+        public async Task Validation_Success_Other_String()
+        {
+            string? email = "a@b";
+
+            IPropertyRule<ValidationValue<string?>, string> x = email.Validate().Email();
+
+            var r = await Result.Go().ValidatesAsync(email, v => v.Email());
+            Assert.That(r.IsSuccess, Is.True);
+        }
+
+        [Test]
+        public async Task Validation_Success_Other_String2()
+        {
+            string email = "a@b";
+
+            email.Validate().Email();
+
+            var r = await Result.Go(email).ValidatesAsync(email, v => v.Email());
+            Assert.That(r.IsSuccess, Is.True);
         }
 
         [Test]

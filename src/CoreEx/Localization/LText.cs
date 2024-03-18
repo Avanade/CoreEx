@@ -7,8 +7,14 @@ namespace CoreEx.Localization
     /// <summary>
     /// Represents the <b>localization text</b> key/identifier to be used by the <see cref="TextProvider"/>.
     /// </summary>
-    public struct LText
+    public struct LText : IEquatable<LText>
     {
+        /// <summary>
+        /// Gets the empty <see cref="LText"/>.
+        /// </summary>
+        /// <remarks>The <see cref="KeyAndOrText"/> and <see cref="FallbackText"/> are both <c>null</c>.</remarks>
+        public static readonly LText Empty = new();
+
         /// <summary>
         /// Gets or sets the numeric (<see cref="long"/>) key/identifier format to convert to a standardized <see cref="string"/>.
         /// </summary>
@@ -52,15 +58,39 @@ namespace CoreEx.Localization
         public string? KeyAndOrText { get; }
 
         /// <summary>
-        /// Gets or sets the optional fallback text to be used when the <see cref="KeyAndOrText"/> is not found by the <see cref="TextProvider"/> (where not specified that <see cref="KeyAndOrText"/> becomes the fallback text).
+        /// Gets or sets the optional fallback text to be used when the <see cref="KeyAndOrText"/> is not found by the <see cref="TextProvider"/> (where not specified the <see cref="KeyAndOrText"/> becomes the fallback text).
         /// </summary>
         public string? FallbackText { get; set; }
+
+        /// <summary>
+        /// Indicates whether the <see cref="LText"/> is empty; i.e. the <see cref="KeyAndOrText"/> and <see cref="FallbackText"/> are both <c>null</c>.
+        /// </summary>
+        public readonly bool IsEmpty => KeyAndOrText is null && FallbackText is null;
 
         /// <summary>
         /// Returns the <see cref="LText"/> as a <see cref="string"/> (see <see cref="TextProvider"/> <see cref="TextProvider.Current"/> <see cref="TextProviderBase.GetText(LText)"/>).
         /// </summary>
         /// <returns>The <see cref="LText"/> string value.</returns>
         public override readonly string ToString() => this!;
+
+        /// <inheritdoc/>
+        public override readonly bool Equals(object? obj) => obj is LText r && Equals(r);
+
+        /// <inheritdoc/>
+        public readonly bool Equals(LText other) => KeyAndOrText == other.KeyAndOrText && FallbackText == other.FallbackText;
+
+        /// <inheritdoc/>
+        public override readonly int GetHashCode() => HashCode.Combine(KeyAndOrText, FallbackText);
+
+        /// <summary>
+        /// Indicates whether the current <see cref="LText"/> is equal to another <see cref="LText"/>.
+        /// </summary>
+        public static bool operator ==(LText left, LText right) => left.Equals(right);
+
+        /// <summary>
+        /// Indicates whether the current <see cref="LText"/> is not equal to another <see cref="LText"/>.
+        /// </summary>
+        public static bool operator !=(LText left, LText right) => !(left == right);
 
         /// <summary>
         /// An implicit cast from an <see cref="LText"/> to a <see cref="string"/> (see <see cref="TextProvider"/> <see cref="TextProvider.Current"/> <see cref="TextProviderBase.GetText(LText)"/>).
@@ -73,6 +103,6 @@ namespace CoreEx.Localization
         /// An implicit cast from a text <see cref="string"/> to an <see cref="LText"/> value updating the <see cref="KeyAndOrText"/>.
         /// </summary>
         /// <param name="keyAndOrText">The key and/or text.</param>
-        public static implicit operator LText(string keyAndOrText) => new(keyAndOrText);
+        public static implicit operator LText(string keyAndOrText) => keyAndOrText is null ? Empty : new(keyAndOrText);
     }
 }

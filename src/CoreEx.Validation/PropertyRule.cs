@@ -15,7 +15,7 @@ namespace CoreEx.Validation
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class PropertyRule<TEntity, TProperty> : PropertyRuleBase<TEntity, TProperty>, IPropertyRule<TEntity>, IValueRule<TEntity, TProperty> where TEntity : class
+    public class PropertyRule<TEntity, TProperty> : PropertyRuleBase<TEntity, TProperty>, IEntityRule<TEntity>, IValueRule<TEntity, TProperty> where TEntity : class
     {
         private readonly PropertyExpression<TEntity, TProperty> _property;
 
