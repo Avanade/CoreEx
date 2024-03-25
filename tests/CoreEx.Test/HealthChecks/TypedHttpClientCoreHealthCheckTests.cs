@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using CoreEx.HealthChecks;
+using CoreEx.Http.HealthChecks;
 using CoreEx.TestFunction;
 using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -104,8 +104,8 @@ namespace CoreEx.Test.HealthChecks
             var result = await target.CheckHealthAsync(context, CancellationToken.None);
 
             // Assert
-            result.Status.Should().Be(HealthStatus.Unhealthy, because: "No HttpClient injected");
-            result.Description.Should().Be("Typed Http client dependency for 'CoreEx.TestFunction.BackendHttpClient' not resolved");
+            result.Status.Should().Be(HealthStatus.Unhealthy, because: "No HttpClient injected.");
+            result.Description.Should().Be("Typed Http client dependency for 'CoreEx.TestFunction.BackendHttpClient' not resolved.");
         }
     }
 }

@@ -1,10 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions;
 using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Invokers;
-using CoreEx.Json;
 using CoreEx.RefData.Caching;
 using CoreEx.Wildcards;
 using Microsoft.Extensions.Caching.Memory;
@@ -67,11 +65,11 @@ namespace CoreEx.RefData
                     }
                     catch (Exception ex)
                     {
-                        throw new InvalidOperationException($"Unable to get an instance of the {nameof(ReferenceDataOrchestrator)} from the {nameof(ExecutionContext)}. It is recommended that the {nameof(ReferenceDataOrchestrator)}.{nameof(ReferenceDataOrchestrator.SetCurrent)} is used to set globally; this can be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.", ex);
+                        throw new InvalidOperationException($"Unable to get an instance of the {nameof(ReferenceDataOrchestrator)} from the {nameof(ExecutionContext)}. It is recommended that the {nameof(ReferenceDataOrchestrator)}.{nameof(SetCurrent)} is used to set globally; this can be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.", ex);
                     }
                 }
 
-                throw new InvalidOperationException($"Unable to get an instance of the {nameof(ReferenceDataOrchestrator)} from the {nameof(ExecutionContext)}. It is recommended that the {nameof(ReferenceDataOrchestrator)}.{nameof(ReferenceDataOrchestrator.SetCurrent)} is used to set globally; this can be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.");
+                throw new InvalidOperationException($"Unable to get an instance of the {nameof(ReferenceDataOrchestrator)} from the {nameof(ExecutionContext)}. It is recommended that the {nameof(ReferenceDataOrchestrator)}.{nameof(SetCurrent)} is used to set globally; this can be performed using the IApplicationBuilder.UseReferenceDataOrchestrator method during start-up where applicable.");
             }
         }
 
@@ -95,7 +93,11 @@ namespace CoreEx.RefData
         public ReferenceDataOrchestrator(IServiceProvider serivceProvider, IMemoryCache? cache = null, ICacheEntryConfig? cacheEntryConfig = null)
         {
             ServiceProvider = serivceProvider.ThrowIfNull(nameof(serivceProvider));
+#if NET7_0_OR_GREATER
+            Cache = cache ?? new MemoryCache(new MemoryCacheOptions { TrackStatistics = true });
+#else
             Cache = cache ?? new MemoryCache(new MemoryCacheOptions());
+#endif
             CacheEntryConfig = cacheEntryConfig ?? new SettingsBasedCacheEntry(ServiceProvider.GetService<SettingsBase>());
             _logger = new Lazy<ILogger>(ServiceProvider.GetRequiredService<ILogger<ReferenceDataOrchestrator>>);
             _settings = new Lazy<SettingsBase?>(ServiceProvider.GetService<SettingsBase>);
@@ -119,7 +121,7 @@ namespace CoreEx.RefData
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
-        [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public ILogger Logger => _logger.Value;
 
         /// <summary>

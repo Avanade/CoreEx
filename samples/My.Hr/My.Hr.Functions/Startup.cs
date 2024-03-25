@@ -2,10 +2,9 @@ using System.Threading.Tasks;
 using CoreEx;
 using CoreEx.AspNetCore.HealthChecks;
 using CoreEx.AspNetCore.WebApis;
-using CoreEx.Azure.HealthChecks;
 using CoreEx.Database;
-using CoreEx.DataBase.HealthChecks;
-using CoreEx.HealthChecks;
+using CoreEx.Database.HealthChecks;
+using CoreEx.Http.HealthChecks;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,13 +47,12 @@ public class Startup : FunctionsStartup
 
             // Register the health checks.
             builder.Services
-                .AddScoped<HealthService>()
                 .AddHealthChecks()
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<GenderizeApiClient>>("Genderize API")
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<AgifyApiClient>>("Agify API")
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<NationalizeApiClient>>("Nationalize API")
-                .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
-                .AddTypeActivatedCheck<SqlServerHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default, timeout: System.TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
+                //.AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
+                .AddTypeActivatedCheck<DatabaseHealthCheck<IDatabase>>("SQL Server", HealthStatus.Unhealthy, tags: default, timeout: System.TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
 
             // Register the business services.
             builder.Services

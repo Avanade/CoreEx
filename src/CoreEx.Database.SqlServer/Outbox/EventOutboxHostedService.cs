@@ -2,9 +2,12 @@
 
 using CoreEx.Configuration;
 using CoreEx.Hosting;
+using CoreEx.Hosting.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,10 +46,11 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="synchronizer">The <see cref="IServiceSynchronizer"/>.</param>
+        /// <param name="healthCheck">The optional <see cref="TimerHostedServiceHealthCheck"/> to report health.</param>
         /// <param name="partitionKey">The optional partition key.</param>
         /// <param name="destination">The optional destination name (i.e. queue or topic).</param>
-        public EventOutboxHostedService(IServiceProvider serviceProvider, ILogger<EventOutboxHostedService> logger, SettingsBase settings, IServiceSynchronizer synchronizer, string? partitionKey = null, string? destination = null)
-            : base(serviceProvider, logger, settings, synchronizer)
+        public EventOutboxHostedService(IServiceProvider serviceProvider, ILogger<EventOutboxHostedService> logger, SettingsBase settings, IServiceSynchronizer synchronizer, TimerHostedServiceHealthCheck? healthCheck = null, string? partitionKey = null, string? destination = null)
+            : base(serviceProvider, logger, settings, synchronizer, healthCheck)
         {
             PartitionKey = partitionKey;
             Destination = destination;
@@ -117,24 +121,28 @@ namespace CoreEx.Database.SqlServer.Outbox
             if (EventOutboxDequeueFactory == null)
                 throw new InvalidOperationException($"The {nameof(EventOutboxDequeueFactory)} property must be configured to create an instance of the {nameof(EventOutboxDequeueBase)}.");
 
-            try
-            {
-                int sent;
+            int sent;
 
-                do
-                {
-                    // As we want to tight loop the execution where there mey be more in the queue, a new 'Scope' is used to ensure new instances of dependencies are used otherwise a disposed error may occur for the underlying transaction.
-                    using var scope = scopedServiceProvider.CreateScope();
-                    ExecutionContext.Reset();
-                    var eod = EventOutboxDequeueFactory(scope.ServiceProvider) ?? throw new InvalidOperationException($"The {nameof(EventOutboxDequeueFactory)} function must return an instance of {nameof(EventOutboxDequeueBase)}.");
-                    sent = await eod.DequeueAndSendAsync(MaxDequeueSize, PartitionKey, Destination, cancellationToken).ConfigureAwait(false);
-                }
-                while (sent > 0) ;
-            }
-            catch (Exception ex)
+            do
             {
-                Logger.LogError(ex, "Event Outbox dequeue and send failed: {Error}", ex.Message);
+                // As we want to tight loop the execution where there may be more in the queue, a new 'Scope' is used to ensure new instances of dependencies are used otherwise a disposed error may occur for the underlying transaction.
+                using var scope = scopedServiceProvider.CreateScope();
+                ExecutionContext.Reset();
+                var eod = EventOutboxDequeueFactory(scope.ServiceProvider) ?? throw new InvalidOperationException($"The {nameof(EventOutboxDequeueFactory)} function must return an instance of {nameof(EventOutboxDequeueBase)}.");
+                sent = await eod.DequeueAndSendAsync(MaxDequeueSize, PartitionKey, Destination, cancellationToken).ConfigureAwait(false);
             }
+            while (sent > 0) ;
+        }
+
+        /// <inheritdoc/>
+        protected override HealthCheckResult OnReportHealthStatus(Dictionary<string, object> data)
+        {
+            data.Add("maxDequeueSize", MaxDequeueSize);
+            data.Add("partitionKey", PartitionKey ?? "<all>");
+            data.Add("destination", Destination ?? "<all>");
+            data.Add("synchronizer", SynchronizationName ?? "<none>");
+
+            return base.OnReportHealthStatus(data);
         }
     }
 }

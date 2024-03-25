@@ -30,6 +30,7 @@ namespace CoreEx.Database
 
         private readonly Func<TConnection> _dbConnCreate = create.ThrowIfNull(nameof(create));
         private TConnection? _dbConn;
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         /// <inheritdoc/>
         public DbProviderFactory Provider { get; } = provider.ThrowIfNull(nameof(provider));
@@ -73,11 +74,28 @@ namespace CoreEx.Database
         {
             if (_dbConn == null)
             {
-                Logger?.LogDebug("Creating and opening the database connection. DatabaseId: {DatabaseId}", DatabaseId);
-                _dbConn = _dbConnCreate() ?? throw new InvalidOperationException($"The create function must create a valid {nameof(TConnection)} instance.");
-                await OnBeforeConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
-                await _dbConn.OpenAsync(cancellationToken).ConfigureAwait(false);
-                await OnConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
+                await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    if (_dbConn != null)
+                        return _dbConn;
+
+                    Logger?.LogDebug("Creating and opening the database connection. DatabaseId: {DatabaseId}", DatabaseId);
+                    _dbConn = _dbConnCreate() ?? throw new InvalidOperationException($"The create function must create a valid {nameof(TConnection)} instance.");
+                    await OnBeforeConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
+                    await _dbConn.OpenAsync(cancellationToken).ConfigureAwait(false);
+                    await OnConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Logger?.LogError(ex, "Error occured whilst creating and opening the database connection. DatabaseId: {DatabaseId}", DatabaseId);
+                    _dbConn = null;
+                    throw;
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
             }
 
             return _dbConn;

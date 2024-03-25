@@ -1,10 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Configuration;
 using CoreEx.Json;
 using CoreEx.Mapping;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Net.Http;
 using System.Threading;
@@ -24,16 +21,12 @@ namespace CoreEx.Http.Extended
         /// <param name="mapper">The <see cref="IMapper"/>.</param>
         /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
         /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
-        /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
-        /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
         /// <param name="onBeforeRequest">The optional <see cref="TypedHttpClientBase{TSelf}.OnBeforeRequest(HttpRequestMessage, CancellationToken)"/> function. Defaults to <c>null</c>.</param>
         /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
-        public TypedMappedHttpClient(HttpClient client, IMapper? mapper = null, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedMappedHttpClient>? logger = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) : base(client,
+        public TypedMappedHttpClient(HttpClient client, IMapper? mapper = null, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) : base(client,
             mapper ?? ExecutionContext.GetRequiredService<IMapper>(),
             jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? Json.JsonSerializer.Default,
-            executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext()),
-            settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings(),
-            logger ?? ExecutionContext.GetService<ILogger<TypedMappedHttpClient>>() ?? NullLoggerFactory.Instance.CreateLogger<TypedMappedHttpClient>()) 
+            executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext())) 
             => DefaultOptions.OnBeforeRequest(onBeforeRequest);
     }
 }

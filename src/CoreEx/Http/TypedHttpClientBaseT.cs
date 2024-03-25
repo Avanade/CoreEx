@@ -1,9 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
+using CoreEx.Http.Extended;
+using CoreEx.Json;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -11,14 +12,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using CoreEx.Abstractions;
-using CoreEx.Configuration;
-using CoreEx.Http.Extended;
-using CoreEx.Json;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Polly;
-using Polly.Extensions.Http;
 
 namespace CoreEx.Http
 {
@@ -28,8 +21,6 @@ namespace CoreEx.Http
     /// <typeparam name="TSelf">The self <see cref="Type"/> for support fluent-style method-chaining.</typeparam>
     public abstract class TypedHttpClientBase<TSelf> : TypedHttpClientBase, ITypedHttpClientOptions where TSelf : TypedHttpClientBase<TSelf>
     {
-        private static readonly Random _random = new(); // Used to add jitter (random 0-500ms) per retry.
-
         private TypedHttpClientOptions? _defaultOptions;
         private TypedHttpClientOptions? _sendOptions;
 
@@ -45,16 +36,9 @@ namespace CoreEx.Http
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
         /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
         /// <param name="executionContext">The optional <see cref="CoreEx.ExecutionContext"/>. Defaults to a new instance.</param>
-        /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
-        /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
-        public TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClientBase<TSelf>>? logger = null) : base(client, jsonSerializer)
+        public TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null) : base(client, jsonSerializer)
         {
             ExecutionContext = executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext());
-            Settings = settings ?? ExecutionContext.GetService<SettingsBase>() ?? new DefaultSettings();
-            Logger = logger ?? ExecutionContext.GetService<ILogger<TypedHttpClientBase<TSelf>>>() ?? NullLoggerFactory.Instance.CreateLogger<TypedHttpClientBase<TSelf>>();
-#pragma warning disable CS0618 // Type or member is obsolete
-            RequestLogger = HttpRequestLogger.Create(Settings, Logger);
-#pragma warning restore CS0618 // Type or member is obsolete
             OnDefaultOptionsConfiguration?.Invoke(DefaultOptions);
         }
 
@@ -64,32 +48,16 @@ namespace CoreEx.Http
         protected ExecutionContext ExecutionContext { get; }
 
         /// <summary>
-        /// Gets the <see cref="SettingsBase"/>.
-        /// </summary>
-        protected SettingsBase Settings { get; }
-
-        /// <summary>
-        /// Gets the <see cref="ILogger"/>.
-        /// </summary>
-        protected ILogger Logger { get; }
-
-        /// <summary>
-        /// Gets the <see cref="HttpRequestLogger"/>.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging/?view=aspnetcore-8.0 on how to implement.")]
-        protected HttpRequestLogger RequestLogger { get; }
-
-        /// <summary>
         /// Gets the default <see cref="TypedHttpClientOptions"/> used by all invocations (<see cref="Reset"/> after each <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>).
         /// </summary>
         /// <remarks>It is recommended that a <see cref="Reset"/> is performed after setting (unless set within the constructor) to ensure latest values are used.</remarks>
-        public TypedHttpClientOptions DefaultOptions => _defaultOptions ??= new TypedHttpClientOptions(this, Settings);
+        public TypedHttpClientOptions DefaultOptions => _defaultOptions ??= new TypedHttpClientOptions(this);
 
         /// <summary>
         /// Gets the <see cref="TypedHttpClientOptions"/> used <i>per</i> <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/> invocation then is immediately <see cref="Reset"/>.
         /// </summary>
         /// <remarks>This is <see cref="Reset"/> automatically after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>. The <see cref="Reset"/> will updated to the pre-configured <see cref="DefaultOptions"/>.</remarks>
-        public TypedHttpClientOptions SendOptions => _sendOptions ??= new TypedHttpClientOptions(Settings, _defaultOptions);
+        public TypedHttpClientOptions SendOptions => _sendOptions ??= new TypedHttpClientOptions(_defaultOptions);
 
         /// <inheritdoc/>
         bool ITypedHttpClientOptions.HasSendOptions => _sendOptions is not null;
@@ -101,24 +69,11 @@ namespace CoreEx.Http
         protected virtual IEnumerable<string> CorrelationHeaderNames => new string[] { HttpConsts.CorrelationIdHeaderName, "x-ms-client-tracking-id" };
 
         /// <summary>
-        /// Sets the underlying custom retry policy using the specified <see cref="PolicyBuilder{TResult}"/>.
-        /// </summary>
-        /// <param name="retryPolicy">The custom retry policy.</param>
-        /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/> with additional handling of <see cref="SocketException"/> and <see cref="TimeoutException"/>.
-        /// <para>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TSelf WithCustomRetryPolicy(PolicyBuilder<HttpResponseMessage> retryPolicy)
-        {
-            SendOptions.WithCustomRetryPolicy(retryPolicy);
-            return (TSelf)this;
-        }
-
-        /// <summary>
         /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.
         /// </summary>
         /// <param name="predicate">An optional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TSelf ThrowTransientException(Func<HttpResponseMessage?, Exception?, (bool result, string error)>? predicate = null)
         {
             SendOptions.ThrowTransientException(predicate);
@@ -130,26 +85,10 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.
-        /// <para>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TSelf ThrowKnownException(bool useContentAsErrorMessage = false)
         {
             SendOptions.ThrowKnownException(useContentAsErrorMessage);
-            return (TSelf)this;
-        }
-
-        /// <summary>
-        /// Indicates whether to perform a retry where an underlying transient error occurs.
-        /// </summary>
-        /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
-        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry.</param>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks><para>The <paramref name="count"/> is the number of additional retries that should be performed in addition to the initial request.</para>
-        /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TSelf WithRetry(int? count = null, double? seconds = null)
-        {
-            SendOptions.WithRetry(count, seconds);
             return (TSelf)this;
         }
 
@@ -218,31 +157,6 @@ namespace CoreEx.Http
         }
 
         /// <summary>
-        /// Sets timeout for given request
-        /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TSelf WithTimeout(TimeSpan timeout)
-        {
-            SendOptions.WithTimeout(timeout);
-            return (TSelf)this;
-        }
-
-        /// <summary>
-        /// Sets the maximum retry delay that polly retries will be capped with (this affects mostly 429 and 503 responses that can return Retry-After header).
-        /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks><para>Default is <c>30</c> seconds but it can be overridden for async calls (e.g. when using Azure Service Bus trigger).</para>
-        /// This references the equivalent method within the <see cref="SendOptions"/>. This is <see cref="Reset"/> after each invocation; see <see cref="SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TSelf WithMaxRetryDelay(TimeSpan maxRetryDelay)
-        {
-            SendOptions.WithMaxRetryDelay(maxRetryDelay);
-            return (TSelf)this;
-        }
-
-        /// <summary>
         /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
         /// </summary>
         /// <remarks>
@@ -302,73 +216,26 @@ namespace CoreEx.Http
         private async Task<HttpResponseMessage> SendInternalAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             HttpResponseMessage? response = null;
-            CancellationTokenSource? cts = null;
             var options = SendOptions;
 
-#pragma warning disable CS0618 // Type or member is obsolete
             try
             {
-                var sw = Stopwatch.StartNew();
                 CorrelationHeaderNames.ForEach(n => request.Headers.TryAddWithoutValidation(n, ExecutionContext.CorrelationId));
 
                 if (options.BeforeRequest != null)
                     await options.BeforeRequest(request, cancellationToken).ConfigureAwait(false);
 
                 await OnBeforeRequest(request, cancellationToken).ConfigureAwait(false);
-                await RequestLogger.LogRequestAsync(request, cancellationToken).ConfigureAwait(false);
 
-                var req = request;
-                response = await (options.CustomRetryPolicy ?? HttpPolicyExtensions.HandleTransientHttpError().Or<SocketException>().Or<TimeoutException>().OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests))
-                    .WaitAndRetryAsync(options.RetryCount ?? 0,
-                    sleepDurationProvider: (attempt, e, Context) =>
-                    {
-                        TimeSpan? delay = null;
-                        if (e.Result?.Headers.RetryAfter?.Delta != null)
-                            delay = e.Result.Headers.RetryAfter.Delta.Value;
-
-                        if (e.Result?.Headers.RetryAfter?.Date != null)
-                            delay = e.Result.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
-
-                        // Calculate exponential with jitter.
-                        delay ??= TimeSpan.FromSeconds(Math.Pow(options.RetrySeconds ?? 0, attempt)).Add(TimeSpan.FromMilliseconds(_random.Next(0, 500)));
-
-                        // Do not go over max delay.
-                        var maxDelay = options.MaxRetryDelay ?? Settings.HttpMaxRetryDelay;
-                        return delay.Value > maxDelay ? maxDelay : delay.Value;
-                    },
-                    onRetryAsync: async (result, timeSpan, retryCount, context) =>
-                    {
-                        if (result.Exception == null)
-                            Logger.LogWarning("Request failed with {HttpStatusCodeText} ({HttpStatusCode}). Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
-                                result.Result.StatusCode, (int)result.Result.StatusCode, timeSpan, retryCount);
-                        else
-                            Logger.LogWarning(result.Exception, "Request failed with '{ErrorMessage}' Waiting {HttpRetryTimeSpan} before next retry. Retry attempt {HttpRetryCount}.",
-                                result.Exception.Message, timeSpan, retryCount);
-
-                        // Clone and dispose of existing request to avoid error: The request message was already sent. Cannot send the same request message multiple times.
-                        var tmp = await CloneAsync(req).ConfigureAwait(false);
-                        req.Dispose();
-                        req = tmp;
-                        sw.Reset();
-                    })
-                    .ExecuteAsync(async () =>
-                    {
-                        try
-                        {
-                            return await Client.SendAsync(req, SetCancellationBasedOnTimeout(cancellationToken, out cts)).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                        {
-                            throw new TimeoutException("The configured timeout for the HTTP send has been exceeded and therefore terminated.");
-                        }
-                    }).ConfigureAwait(false); ;
-
-                await RequestLogger.LogResponseAsync(request, response, sw.Elapsed, cancellationToken).ConfigureAwait(false);
+                response = await Client.SendAsync(request, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is TimeoutException || ex is SocketException)
             {
                 // Both TimeoutException and SocketException are transient and indicate a connection was terminated.
-                throw new TransientException("Timeout when calling service.", ex);
+                if (options.ShouldThrowTransientException)
+                    throw new TransientException(ex.Message, ex);
+
+                throw;
             }
             catch (HttpRequestException hrex)
             {
@@ -378,12 +245,8 @@ namespace CoreEx.Http
 
                 throw;
             }
-            finally
-            {
-                cts?.Dispose();
-            }
 
-            // This is the result of the final request after leaving the retry policy logic.
+            // Further check if transient and throw accordingly.
             (bool wasTransient, string errorMsg) = options.IsTransientPredicate(response, null);
             if (options.ShouldThrowTransientException && wasTransient)
                 throw new TransientException(errorMsg);
@@ -402,28 +265,6 @@ namespace CoreEx.Http
                 throw new HttpRequestException($"Response status code {response.StatusCode}; expected one of the following: {string.Join(", ", options.ExpectedStatusCodes)}.");
 
             return response;
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
-
-        /// <summary>
-        /// Sets the cancellation based on the timeout.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        private CancellationToken SetCancellationBasedOnTimeout(CancellationToken cancellationToken, out CancellationTokenSource? cts)
-        {
-            var timeout = SendOptions.Timeout ?? TimeSpan.FromSeconds(Settings.GetValue<int?>($"{GetType().Name}__{nameof(SettingsBase.HttpTimeoutSeconds)}") ?? Settings.HttpTimeoutSeconds);
-            if (timeout == Timeout.InfiniteTimeSpan)
-            {
-                // No need to create a CTS if there's no timeout
-                cts = null;
-                return cancellationToken;
-            }
-            else
-            {
-                cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(timeout);
-                return cts.Token;
-            }
         }
 
         /// <summary>
@@ -432,58 +273,6 @@ namespace CoreEx.Http
         /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
         protected virtual Task OnBeforeRequest(HttpRequestMessage request, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        /// <summary>
-        /// Clones the <see cref="HttpRequestMessage"/>; inspired by <see href="https://stackoverflow.com/questions/18000583/re-send-httprequestmessage-exception"/>.
-        /// </summary>
-        private static async Task<HttpRequestMessage> CloneAsync(HttpRequestMessage request)
-        {
-            var clone = new HttpRequestMessage(request.Method, request.RequestUri)
-            {
-                Content = await CloneAsync(request.Content).ConfigureAwait(false),
-                Version = request.Version
-            };
-
-#if NETSTANDARD2_1
-            foreach (KeyValuePair<string, object?> prop in request.Properties)
-            {
-                clone.Properties.Add(prop.Key, prop.Value);
-            }
-#else
-            foreach (var prop in request.Options)
-            {
-                clone.Options.TryAdd(prop.Key, prop.Value);
-            }
-#endif
-
-            foreach (KeyValuePair<string, IEnumerable<string>> header in request.Headers)
-            {
-                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
-
-            return clone;
-        }
-
-        /// <summary>
-        /// Clones the <see cref="HttpContent"/>.
-        /// </summary>
-        private static async Task<HttpContent?> CloneAsync(HttpContent? content)
-        {
-            if (content == null)
-                return null;
-
-            var ms = new MemoryStream();
-            await content.CopyToAsync(ms).ConfigureAwait(false);
-            ms.Position = 0;
-
-            var clone = new StreamContent(ms);
-            foreach (KeyValuePair<string, IEnumerable<string>> header in content.Headers)
-            {
-                clone.Headers.Add(header.Key, header.Value);
-            }
-
-            return clone;
-        }
 
         #endregion
 

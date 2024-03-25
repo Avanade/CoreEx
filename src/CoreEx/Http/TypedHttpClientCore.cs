@@ -1,9 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Configuration;
 using CoreEx.Json;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -19,9 +16,7 @@ namespace CoreEx.Http
     /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
     /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
     /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
-    /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
-    /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
-    public abstract class TypedHttpClientCore<TSelf>(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClientCore<TSelf>>? logger = null) : TypedHttpClientBase<TSelf>(client, jsonSerializer, executionContext, settings, logger) where TSelf : TypedHttpClientCore<TSelf>
+    public abstract class TypedHttpClientCore<TSelf>(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null) : TypedHttpClientBase<TSelf>(client, jsonSerializer, executionContext) where TSelf : TypedHttpClientCore<TSelf>
     {
         #region HeadAsync
 

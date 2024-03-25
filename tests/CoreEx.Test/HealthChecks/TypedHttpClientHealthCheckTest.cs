@@ -1,19 +1,17 @@
-using System;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using CoreEx.Configuration;
-using CoreEx.HealthChecks;
 using CoreEx.Http;
+using CoreEx.Http.HealthChecks;
 using CoreEx.Json;
 using CoreEx.TestFunction;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.NUnit;
 
@@ -22,12 +20,8 @@ namespace CoreEx.Test.HealthChecks
     [TestFixture, NonParallelizable]
     public class TypedHttpClientHealthCheckTest
     {
-        public class TestHttpClient : TypedHttpClientBase<TestHttpClient>
+        public class TestHttpClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext) : TypedHttpClientBase<TestHttpClient>(client, jsonSerializer, executionContext)
         {
-            public TestHttpClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, SettingsBase settings, ILogger<TypedHttpClientBase<TestHttpClient>> logger) : base(client, jsonSerializer, executionContext, settings, logger)
-            {
-            }
-
             public override Task<HttpResult> HealthCheckAsync(CancellationToken cancellationToken = default)
             {
                 return base.HeadAsync("/health", null, null, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
@@ -127,8 +121,8 @@ namespace CoreEx.Test.HealthChecks
             var result = await target.CheckHealthAsync(context, CancellationToken.None);
 
             // Assert
-            result.Status.Should().Be(HealthStatus.Unhealthy, because: "No HttpClient injected");
-            result.Description.Should().Be("Typed Http client dependency for 'CoreEx.Test.HealthChecks.TypedHttpClientHealthCheckTest+TestHttpClient' not resolved");
+            result.Status.Should().Be(HealthStatus.Unhealthy, because: "No HttpClient injected.");
+            result.Description.Should().Be("Typed Http client dependency for 'CoreEx.Test.HealthChecks.TypedHttpClientHealthCheckTest+TestHttpClient' not resolved.");
         }
     }
 }

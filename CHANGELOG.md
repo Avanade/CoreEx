@@ -2,6 +2,18 @@
 
 Represents the **NuGet** versions.
 
+## v3.15.0
+- *Enhancement*: This is a clean-up version to remove all obsolete code and dependencies. This will result in a number of minor breaking changes, but will ensure that the codebase is up-to-date and maintainable.
+  - As per [`v3.14.0`](#v3.14.0) the previously obsoleted `TypedHttpClientBase` methods `WithRetry`, `WithTimeout`, `WithCustomRetryPolicy` and `WithMaxRetryDelay` are now removed; including `TypedHttpClientOptions`, `HttpRequestLogger` and related `SettingsBase` capabilities.
+  - Health checks:
+	- `CoreEx.Azure.HealthChecks` namespace and classes removed.
+	- `SqlServerHealthCheck` replaced with simple generic `DatabaseHealthCheck`.
+	- `IServiceCollection.AddDatabase` automatically adds `DatabaseHealthCheck`.
+	- `IServiceCollection.AddSqlServerEventOutboxHostedService` automatically adds `TimerHostedServiceHealthCheck`.
+	- `IServiceCollection.AddReferenceDataOrchestrator` automatically adds `ReferenceDataOrchestratorHealthCheck` (reports cache statistics).
+	- `HealthReportStatusWriter` added to support richer JSON reporting.
+	- Generally recommend using 3rd-party library to enable further health checks; for example: [`https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks`](https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks).
+
 ## v3.14.1
 - *Fixed*: The `Result.ValidatesAsync` extension method signature has had the value nullability corrected to enable fluent-style method-chaining.
 - *Fixed*: The fully qualified type and property name is now correctly used as the `LText.KeyAndOrText` when creating within the `PropertyExpression<TEntity, TProperty>` to enable a qualified _key_ that can be used by the `ITextProvider` to substitute the text at runtime; the existing text fallback behavior remains such that an appropriate text is used. The `PropertyExpression.CreatePropertyLTextKey` function can be overridden to change this behavior.

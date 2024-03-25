@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Configuration;
+using CoreEx.Hosting.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
@@ -17,7 +18,9 @@ namespace CoreEx.Hosting
     /// <param name="logger">The <see cref="ILogger"/>.</param>
     /// <param name="settings">The <see cref="SettingsBase"/>; defaults to instance from the <paramref name="serviceProvider"/> where not specified.</param>
     /// <param name="synchronizer">The <see cref="IServiceSynchronizer"/>; defaults to <see cref="ConcurrentSynchronizer"/> where not specified.</param>
-    public abstract class SynchronizedTimerHostedServiceBase<TSync>(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null, IServiceSynchronizer? synchronizer = null) : TimerHostedServiceBase(serviceProvider, logger, settings)
+    /// <param name="healthCheck">The optional <see cref="TimerHostedServiceHealthCheck"/> to report health.</param>
+    public abstract class SynchronizedTimerHostedServiceBase<TSync>(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null, IServiceSynchronizer? synchronizer = null, TimerHostedServiceHealthCheck? healthCheck = null) 
+        : TimerHostedServiceBase(serviceProvider, logger, settings, healthCheck)
     {
         /// <summary>
         /// Gets the <see cref="IServiceSynchronizer"/>.

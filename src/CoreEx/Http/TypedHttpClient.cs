@@ -1,9 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Configuration;
 using CoreEx.Json;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Net.Http;
 using System.Threading;
@@ -22,12 +19,10 @@ namespace CoreEx.Http
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
         /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
         /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
-        /// <param name="settings">The optional <see cref="SettingsBase"/>. Defaults to <see cref="DefaultSettings"/>.</param>
-        /// <param name="logger">The optional <see cref="ILogger"/>. Defaults to <see cref="NullLogger{T}"/>.</param>
         /// <param name="onBeforeRequest">The optional <see cref="TypedHttpClientBase{TSelf}.OnBeforeRequest(HttpRequestMessage, CancellationToken)"/> function. Defaults to <c>null</c>.</param>
         /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
-        public TypedHttpClient(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, SettingsBase? settings = null, ILogger<TypedHttpClient>? logger = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) 
-            : base(client, jsonSerializer, executionContext, settings, logger) 
+        public TypedHttpClient(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) 
+            : base(client, jsonSerializer, executionContext) 
             => DefaultOptions.OnBeforeRequest(onBeforeRequest);
     }
 }

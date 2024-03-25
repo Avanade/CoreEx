@@ -538,22 +538,80 @@ namespace CoreEx.Test.Framework.Http
         }
 
         [Test]
-        public void RetryServiceUnavailable()
+        public void InternalServerErrorAsTransient()
         {
             var mcf = MockHttpClientFactory.Create();
             var mc = mcf.CreateClient("Backend", "https://backend/");
-            mc.Request(HttpMethod.Post, "test").WithJsonBody(new { ClassName = "Retry" }).Respond.WithSequence(s =>
-            {
-                s.Respond().With(HttpStatusCode.InternalServerError);
-                s.Respond().With(HttpStatusCode.VariantAlsoNegotiates);
-                s.Respond().With(HttpStatusCode.BadGateway);
-                s.Respond().With(HttpStatusCode.LoopDetected);
-            });
+            mc.Request(HttpMethod.Post, "test").WithJsonBody(new { ClassName = "Retry" }).Respond.With(HttpStatusCode.InternalServerError);
 
             using var test = FunctionTester.Create<Startup>();
             var r = test.ConfigureServices(sc => mcf.Replace(sc))
                 .Type<BackendHttpClient>()
-                .Run(f => f.WithRetry().ThrowTransientException().PostAsync("test", new { ClassName = "Retry" } ))
+                .Run(f => f.ThrowTransientException().PostAsync("test", new { ClassName = "Retry" } ))
+                .AssertException<TransientException>();
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void ServiceUnavailableAsTransient()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Post, "test").WithJsonBody(new { ClassName = "Retry" }).Respond.With(HttpStatusCode.ServiceUnavailable);
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+                .Type<BackendHttpClient>()
+                .Run(f => f.ThrowTransientException().PostAsync("test", new { ClassName = "Retry" }))
+                .AssertException<TransientException>();
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void RequestTimeoutAsTransient()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Post, "test").WithJsonBody(new { ClassName = "Retry" }).Respond.With(HttpStatusCode.RequestTimeout);
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+                .Type<BackendHttpClient>()
+                .Run(f => f.ThrowTransientException().PostAsync("test", new { ClassName = "Retry" }))
+                .AssertException<TransientException>();
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void TooManyRequestsAsTransient()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Post, "test").WithJsonBody(new { ClassName = "Retry" }).Respond.With(HttpStatusCode.TooManyRequests);
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+                .Type<BackendHttpClient>()
+                .Run(f => f.ThrowTransientException().PostAsync("test", new { ClassName = "Retry" }))
+                .AssertException<TransientException>();
+
+            mcf.VerifyAll();
+        }
+
+        [Test]
+        public void SocketExceptionAsTransient()
+        {
+            var mcf = MockHttpClientFactory.Create();
+            var mc = mcf.CreateClient("Backend", "https://backend/");
+            mc.Request(HttpMethod.Post, "test").WithJsonBody(new { ClassName = "Retry" }).Respond.With(HttpStatusCode.TooManyRequests, _ => throw new System.Net.Sockets.SocketException());
+
+            using var test = FunctionTester.Create<Startup>();
+            var r = test.ConfigureServices(sc => mcf.Replace(sc))
+                .Type<BackendHttpClient>()
+                .Run(f => f.ThrowTransientException().PostAsync("test", new { ClassName = "Retry" }))
                 .AssertException<TransientException>();
 
             mcf.VerifyAll();

@@ -13,6 +13,7 @@ using CoreEx.Json;
 using CoreEx.Json.Merge;
 using CoreEx.Mapping;
 using CoreEx.RefData;
+using CoreEx.RefData.HealthChecks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
@@ -283,26 +284,35 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="createOrchestrator">The function to create the <see cref="ReferenceDataOrchestrator"/>.</param>
+        /// <param name="healthCheck">Indicates whether a corresponding <see cref="ReferenceDataOrchestratorHealthCheck"/> should be configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator)
-            => CheckServices(services).AddSingleton(sp => createOrchestrator(sp));
+        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator, bool healthCheck = true)
+        {
+            CheckServices(services).AddSingleton(sp => createOrchestrator(sp));
+            if (healthCheck)
+                services.AddHealthChecks().AddTypeActivatedCheck<ReferenceDataOrchestratorHealthCheck>(nameof(ReferenceDataOrchestrator));
+
+            return services;
+        }
 
         /// <summary>
         /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the <see cref="IReferenceDataProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="healthCheck">Indicates whether a corresponding <see cref="ReferenceDataOrchestratorHealthCheck"/> should be configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services)
-            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register());
+        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, bool healthCheck = true)
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register(), healthCheck);
 
         /// <summary>
         /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the specified <typeparamref name="TProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
         /// </summary>
         /// <typeparam name="TProvider">The <see cref="IReferenceDataProvider"/> to register.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="healthCheck">Indicates whether a corresponding <see cref="ReferenceDataOrchestratorHealthCheck"/> should be configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddReferenceDataOrchestrator<TProvider>(this IServiceCollection services) where TProvider : IReferenceDataProvider
-            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register<TProvider>());
+        public static IServiceCollection AddReferenceDataOrchestrator<TProvider>(this IServiceCollection services, bool healthCheck = true) where TProvider : IReferenceDataProvider
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register<TProvider>(), healthCheck);
 
         /// <summary>
         /// Adds the <see cref="RequestCache"/> as the <see cref="IRequestCache"/> scoped service.

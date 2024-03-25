@@ -2,15 +2,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using CoreEx.Http;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CoreEx.HealthChecks
+namespace CoreEx.Http.HealthChecks
 {
     /// <summary>
-    /// Health check for Typed Http clients inheriting from <see cref="TypedHttpClientCore{T}"/>.
+    /// Health check for typed <see cref="HttpClient"/> inheriting from <see cref="TypedHttpClientCore{T}"/>.
     /// </summary>
     public class TypedHttpClientCoreHealthCheck<T> : IHealthCheck where T : TypedHttpClientCore<T>
     {
@@ -33,7 +33,7 @@ namespace CoreEx.HealthChecks
         public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
         {
             if (_client == null)
-                return HealthCheckResult.Unhealthy($"Typed Http client dependency for '{typeof(T)}' not resolved", data: _data);
+                return new HealthCheckResult(context.Registration.FailureStatus, $"Typed Http client dependency for '{typeof(T)}' not resolved.", data: _data);
 
             try
             {

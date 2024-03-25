@@ -1,11 +1,14 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Configuration;
+using CoreEx.Hosting.HealthChecks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,11 +25,12 @@ namespace CoreEx.Hosting
     {
         private static readonly Random _random = new();
 
+        private readonly TimerHostedServiceHealthCheck? _healthCheck;
         private readonly object _lock = new();
+        private TimerHostedServiceStatus _status = TimerHostedServiceStatus.Initialized;
         private string? _name;
         private CancellationTokenSource? _cts;
         private Timer? _timer;
-        private DateTime _lastExecuted = DateTime.MinValue;
         private TimeSpan? _oneOffInterval;
         private Task? _executeTask;
         private bool _disposed;
@@ -37,11 +41,13 @@ namespace CoreEx.Hosting
         /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
         /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <param name="settings">The <see cref="SettingsBase"/>; defaults to instance from the <paramref name="serviceProvider"/> where not specified.</param>
-        public TimerHostedServiceBase(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null)
+        /// <param name="healthCheck">The optional <see cref="TimerHostedServiceHealthCheck"/> to report health.</param>
+        public TimerHostedServiceBase(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null, TimerHostedServiceHealthCheck? healthCheck = null)
         {
             ServiceProvider = serviceProvider.ThrowIfNull(nameof(serviceProvider));
             Logger = logger.ThrowIfNull(nameof(logger));
             Settings = settings ?? ServiceProvider.GetService<SettingsBase>() ?? new DefaultSettings(ServiceProvider.GetRequiredService<IConfiguration>());
+            _healthCheck = healthCheck;
         }
 
         /// <summary>
@@ -78,6 +84,31 @@ namespace CoreEx.Hosting
         public virtual TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(60);
 
         /// <summary>
+        /// Gets the current <see cref="TimerHostedServiceStatus"/>.
+        /// </summary>
+        public TimerHostedServiceStatus Status 
+        {
+            get => _status;
+            private set => _status = ReportHealthStatus(value);
+        }
+
+        /// <summary>
+        /// Gets the last execution <see cref="DateTime"/>.
+        /// </summary>
+        public DateTime LastExecuted { get; private set; } = DateTime.MinValue;
+
+        /// <summary>
+        /// Gets the last execution <see cref="Exception"/>; <c>null</c> indicates success.
+        /// </summary>
+        public Exception? LastException { get; private set; }
+
+        /// <summary>
+        /// Indicates whether to bubble exceptions from the <see cref="ExecuteAsync(IServiceProvider, CancellationToken)"/> method.
+        /// </summary>
+        /// <remarks>The default of <c>false</c> indicates that any <see cref="Exception"/> is to log and then swallowed; i.e. will continue and re-execute on next timer.</remarks>
+        public bool BubbleExceptionsFromExecuteAsync { get; protected set; }
+
+        /// <summary>
         /// Provides an opportunity to make a one-off change to the underlying timer to trigger using the specified <paramref name="oneOffInterval"/>.
         /// </summary>
         /// <param name="oneOffInterval">The one-off interval.</param>
@@ -97,7 +128,7 @@ namespace CoreEx.Hosting
                     _oneOffInterval = null;
 
                     // Where less time remaining than specified and requested to leave then do nothing.
-                    if (leaveWhereTimeRemainingIsLess && (DateTime.UtcNow - _lastExecuted) < oneOffInterval)
+                    if (leaveWhereTimeRemainingIsLess && (DateTime.UtcNow - LastExecuted) < oneOffInterval)
                         return;
 
                     _timer?.Change(oneOffInterval, oneOffInterval);
@@ -111,6 +142,7 @@ namespace CoreEx.Hosting
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         async Task IHostedService.StartAsync(CancellationToken cancellationToken)
         {
+            Status = TimerHostedServiceStatus.Starting;
             Logger.LogInformation("{ServiceName} started. Timer first/interval {FirstInterval}/{Interval}.", ServiceName, FirstInterval ?? Interval, Interval);
             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             await StartingAsync(_cts.Token).ConfigureAwait(false);
@@ -132,6 +164,7 @@ namespace CoreEx.Hosting
             lock (_lock)
             {
                 _timer!.Change(Timeout.Infinite, Timeout.Infinite);
+                Status = TimerHostedServiceStatus.Running;
                 Logger.LogDebug("{ServiceName} execution triggered by timer.", ServiceName);
 
                 _executeTask = Task.Run(async () => await ScopedExecuteAsync(_cts!.Token).ConfigureAwait(false));
@@ -142,8 +175,10 @@ namespace CoreEx.Hosting
             // Restart the timer.
             lock (_lock)
             {
+                Status = TimerHostedServiceStatus.Sleeping;
                 _executeTask = null;
-                _lastExecuted = DateTime.UtcNow;
+                LastExecuted = DateTime.UtcNow;
+                LastException = null;
 
                 if (_cts!.IsCancellationRequested)
                     return;
@@ -157,10 +192,10 @@ namespace CoreEx.Hosting
         }
 
         /// <summary>
-        /// Executes the data orchestration for the next outbox and/or incomplete outbox.
+        /// Orchestrates the scoped execution.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="Task"/> that represents the long running operations.</returns>
+        /// <returns>The <see cref="Task"/> that represents the long running operation.</returns>
         private Task ScopedExecuteAsync(CancellationToken cancellationToken) => ServiceInvoker.Current.InvokeAsync(this, async (_, cancellationToken) =>
         {
             // Create a scope in which to perform the execution.
@@ -176,8 +211,12 @@ namespace CoreEx.Hosting
                 if (ex is TaskCanceledException || (ex is AggregateException aex && aex.InnerException is TaskCanceledException))
                     return;
 
+                LastException = ex;
                 Logger.LogCritical(ex, "{ServiceName} failure as a result of an unexpected exception: {Error}", ServiceName, ex.Message);
-                throw;
+
+                // Only bubble where asked to do so; otherwise, swallow and continue.
+                if (BubbleExceptionsFromExecuteAsync)
+                    throw;
             }
         }, cancellationToken);
 
@@ -196,6 +235,7 @@ namespace CoreEx.Hosting
         /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
         async Task IHostedService.StopAsync(CancellationToken cancellationToken)
         {
+            Status = TimerHostedServiceStatus.Stopping;
             Logger.LogInformation("{ServiceName} stop requested.", ServiceName);
             _timer!.Change(Timeout.Infinite, Timeout.Infinite);
 
@@ -209,6 +249,8 @@ namespace CoreEx.Hosting
             }
 
             await StoppingAsync(cancellationToken).ConfigureAwait(false);
+
+            Status = TimerHostedServiceStatus.Stopped;
             Logger.LogInformation("{ServiceName} stopped.", ServiceName);
         }
 
@@ -217,6 +259,38 @@ namespace CoreEx.Hosting
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         protected virtual Task StoppingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        /// <summary>
+        /// Reports the <see cref="HealthCheckResult"/> on status change.
+        /// </summary>
+        /// <param name="status">The <see cref="TimerHostedServiceStatus"/>.</param>
+        /// <returns>The <paramref name="status"/>.</returns>
+        private TimerHostedServiceStatus ReportHealthStatus(TimerHostedServiceStatus status)
+        {
+            if (_healthCheck is not null)
+            {
+                var data = new Dictionary<string, object>
+                {
+                    { "service", ServiceName },
+                    { "status", status.ToString() },
+                    { "lastExecuted", LastExecuted },
+                    { "interval", Interval.ToString() },
+                    { "firstInterval", FirstInterval?.ToString() ?? Interval.ToString() }
+                };
+
+                _healthCheck.Result = OnReportHealthStatus(data);
+            }
+
+            return status;
+        }
+
+        /// <summary>
+        /// Provides an opportunity to override the health status reporting.
+        /// </summary>
+        /// <param name="data">The status data.</param>
+        /// <returns>The <see cref="HealthCheckResult"/>.</returns>
+        /// <remarks>Returns <see cref="HealthCheckResult.Healthy"/> where the <see cref="LastException"/> is <c>null</c>; otherwise, <see cref="HealthCheckResult.Unhealthy"/>.</remarks>
+        protected virtual HealthCheckResult OnReportHealthStatus(Dictionary<string, object> data) => LastException is null ? HealthCheckResult.Healthy(null, data) : HealthCheckResult.Unhealthy(null, LastException, data);
 
         /// <summary>
         /// Dispose of resources.
