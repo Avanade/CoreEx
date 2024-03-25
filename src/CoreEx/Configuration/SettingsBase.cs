@@ -1,12 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Hosting.Work;
-using CoreEx.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Runtime.CompilerServices;
 
 namespace CoreEx.Configuration
@@ -119,43 +117,15 @@ namespace CoreEx.Configuration
         }
 
         /// <summary>
-        /// Indicates whether the <see cref="TypedHttpClientBase{TSelf}"/> logs the request and response <see cref="HttpContent"/>. It is recommended that this is <b>only</b> used for development/debugging purposes.
+        /// Indicates whether to the include the underlying <see cref="Exception"/> content in the externally returned result.
         /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging/?view=aspnetcore-8.0 on how to implement.")]
-        public bool HttpLogContent => GetValue(nameof(HttpLogContent), false);
-
-        /// <summary>
-        /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> retry count. Defaults to <c>3</c>.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public int HttpRetryCount => GetValue(nameof(HttpRetryCount), 3);
-
-        /// <summary>
-        /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> retry delay in seconds. Defaults to <c>1.8</c>.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public double HttpRetrySeconds => GetValue(nameof(HttpRetrySeconds), 1.8d);
-
-        /// <summary>
-        /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> timeout. Defaults to <c>90</c> seconds.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public int HttpTimeoutSeconds => GetValue(defaultValue: 90);
-
-        /// <summary>
-        /// Gets the default <see cref="TypedHttpClientBase{TSelf}"/> maximum retry delay. Defaults to <c>2</c> minutes.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TimeSpan HttpMaxRetryDelay => TimeSpan.FromSeconds(GetValue(defaultValue: 120));
-
-        /// <summary>
-        /// Indicates whether to the include the underlying <see cref="Exception"/> content in the externally returned result. Defaults to <c>false</c>.
-        /// </summary>
+        /// <remarks>Defaults to <c>false</c>.</remarks>
         public bool IncludeExceptionInResult => GetValue(nameof(IncludeExceptionInResult), false);
 
         /// <summary>
-        /// Gets the default maximum event publish collection size. Defaults to <c>100</c>.
+        /// Gets the default maximum event publish collection size.
         /// </summary>
+        /// <remarks>Defaults to <c>100</c>.</remarks>
         public int MaxPublishCollSize => GetValue(nameof(MaxPublishCollSize), 100);
 
         /// <summary> 
@@ -164,33 +134,45 @@ namespace CoreEx.Configuration
         public DeploymentInfo Deployment { get; }
 
         /// <summary>
+        /// Indicates whether to include any extra Health Check data that might be considered sensitive.
+        /// </summary>
+        /// <remarks>Defaults to <c>false</c>.</remarks>
+        public bool IncludeSensitiveHealthCheckData => GetValue(nameof(IncludeSensitiveHealthCheckData), false);
+
+        /// <summary>
         /// Gets the <see cref="Entities.PagingArgs.DefaultTake"/>; i.e. page size.
         /// </summary>
+        /// <remarks>Defaults to <c>100</c>.</remarks>
         public long PagingDefaultTake => GetValue<long>(nameof(PagingDefaultTake), 100);
 
         /// <summary>
         /// Gets the <see cref="Entities.PagingArgs.MaxTake"/>; i.e. absolute maximum page size.
         /// </summary>
+        /// <remarks>Defaults to <c>1000</c>.</remarks>
         public long PagingMaxTake => GetValue<long>(nameof(PagingMaxTake), 1000);
 
         /// <summary>
-        /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/>. Defaults to <c>2</c> hours.
+        /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/>.
         /// </summary>
+        /// <remarks>Defaults to <c>2</c> hours.</remarks>
         public TimeSpan? RefDataCacheAbsoluteExpirationRelativeToNow => GetValue($"RefDataCache__{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", TimeSpan.FromHours(2));
 
         /// <summary>
-        /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.SlidingExpiration"/>. Defaults to <c>30</c> minutes.
+        /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.SlidingExpiration"/>. 
         /// </summary>
+        /// <remarks>Defaults to <c>30</c> minutes.</remarks>
         public TimeSpan? RefDataCacheSlidingExpiration => GetValue($"RefDataCache__{nameof(ICacheEntry.SlidingExpiration)}", TimeSpan.FromMinutes(30));
 
         /// <summary>
-        /// Gets the default validation use of JSON names. Defaults to <c>true</c>.
+        /// Indicates whether the validation (<c>CoreEx.Validation</c>) should use JSON names.
         /// </summary>
+        /// <remarks>Defaults to <c>true</c>.</remarks>
         public bool ValidationUseJsonNames => _validationUseJsonNames ??= GetValue(nameof(ValidationUseJsonNames), true);
 
         /// <summary>
-        /// Gets or sets the <see cref="WorkStateOrchestrator"/> <see cref="WorkStateOrchestrator.ExpiryTimeSpan"/>. Defaults to <c>1</c> hour.
+        /// Gets or sets the <see cref="WorkStateOrchestrator"/> <see cref="WorkStateOrchestrator.ExpiryTimeSpan"/>.
         /// </summary>
+        /// <remarks>Defaults to <c>1</c> hour.</remarks>
         public TimeSpan WorkerExpiryTimeSpan => GetValue(nameof(WorkerExpiryTimeSpan), TimeSpan.FromHours(1));
     }
 }

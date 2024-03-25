@@ -1,5 +1,4 @@
-﻿using CoreEx.HealthChecks;
-using CoreEx.Azure.ServiceBus;
+﻿using CoreEx.Azure.ServiceBus;
 using CoreEx.TestFunction.Services;
 using CoreEx.AspNetCore.HealthChecks;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
@@ -7,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using CoreEx.Events.Subscribing;
 using CoreEx.TestFunction.Subscribers;
 using CoreEx.AspNetCore.WebApis;
+using CoreEx.Http.HealthChecks;
 
 [assembly: FunctionsStartup(typeof(CoreEx.TestFunction.Startup))]
 
@@ -46,7 +46,6 @@ namespace CoreEx.TestFunction
 
             // Register the health checks.
             builder.Services
-                .AddScoped<HealthService>()
                 .AddHealthChecks()
                 .AddTypeActivatedCheck<TypedHttpClientCoreHealthCheck<BackendHttpClient>>("Backend");
 

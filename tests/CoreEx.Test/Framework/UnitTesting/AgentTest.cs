@@ -61,11 +61,8 @@ namespace CoreEx.Test.Framework.UnitTesting
                 .AssertContent("Catalog for 'abc'.");
         }
 
-        public class ProductAgent : CoreEx.Http.TypedHttpClientBase<ProductAgent>
+        public class ProductAgent(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext) : CoreEx.Http.TypedHttpClientBase<ProductAgent>(client, jsonSerializer, executionContext)
         {
-            public ProductAgent(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, SettingsBase settings, ILogger<ProductAgent> logger)
-                : base(client, jsonSerializer, executionContext, settings, logger) { }
-
             public Task<HttpResult<Product>> GetAsync(string id, CoreEx.Http.HttpRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
                 => GetAsync<Product>("products/{id}", requestOptions: requestOptions, args: new IHttpArg[] { new HttpArg<string>("id", id) }, cancellationToken: cancellationToken);
 

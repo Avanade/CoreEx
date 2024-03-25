@@ -1,11 +1,10 @@
-﻿using CoreEx.Azure.HealthChecks;
-using CoreEx.Database;
-using CoreEx.DataBase.HealthChecks;
+﻿using CoreEx.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using OpenTelemetry.Trace;
 using Az = Azure.Messaging.ServiceBus;
+using CoreEx.Database.HealthChecks;
 
 namespace My.Hr.Api;
 
@@ -52,10 +51,8 @@ public class Startup
 
         // Register the health checks.
         services
-            .AddScoped<HealthService>()
-            .AddHealthChecks()
-            .AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Health check for service bus verification queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
-            .AddTypeActivatedCheck<SqlServerHealthCheck>("SQL Server", HealthStatus.Unhealthy, tags: default!, timeout: TimeSpan.FromSeconds(15), nameof(HrSettings.ConnectionStrings__Database));
+            .AddHealthChecks();
+            //.AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Verification Queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
 
         services.AddControllers();
 
@@ -90,6 +87,7 @@ public class Startup
            .UseRouting()
            .UseAuthorization()
            .UseExecutionContext()
+           .UseHealthChecks("/healthz", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions { ResponseWriter = HealthReportStatusWriter.WriteJsonResults })
            .UseReferenceDataOrchestrator()
            .UseEndpoints(endpoints => endpoints.MapControllers());
 }

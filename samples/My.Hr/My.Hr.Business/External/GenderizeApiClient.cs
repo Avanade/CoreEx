@@ -5,8 +5,8 @@ namespace My.Hr.Business.External;
 /// </summary>
 public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
 {
-    public GenderizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings, ILogger<TypedHttpClientCore<GenderizeApiClient>> logger)
-        : base(client, jsonSerializer, executionContext, settings, logger)
+    public GenderizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings)
+        : base(client, jsonSerializer, executionContext)
     {
         if (!Uri.IsWellFormedUriString(settings.GenderizeApiClientApiEndpointUri, UriKind.Absolute))
             throw new InvalidOperationException(@$"The Api endpoint URI is not valid: {settings.GenderizeApiClientApiEndpointUri}. Provide valid Api endpoint URI in the configuration '{nameof(settings.GenderizeApiClientApiEndpointUri)}'.
@@ -23,8 +23,7 @@ public class GenderizeApiClient : TypedHttpClientCore<GenderizeApiClient>
     public async Task<GenderizeResponse> GetGenderAsync(string name)
     {
         var response = await
-            WithRetry(1, 5)
-            .ThrowTransientException()
+            ThrowTransientException()
             .GetAsync<GenderizeResponse>(string.Empty, null, HttpArgs.Create(new HttpArg<string>("name", name)));
 
         return response.Value;

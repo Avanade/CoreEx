@@ -5,8 +5,8 @@ namespace My.Hr.Business.External;
 /// </summary>
 public class NationalizeApiClient : TypedHttpClientCore<NationalizeApiClient>
 {
-    public NationalizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings, ILogger<TypedHttpClientCore<NationalizeApiClient>> logger)
-            : base(client, jsonSerializer, executionContext, settings, logger)
+    public NationalizeApiClient(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext, HrSettings settings)
+            : base(client, jsonSerializer, executionContext)
     {
         if (!Uri.IsWellFormedUriString(settings.NationalizeApiClientApiEndpointUri, UriKind.Absolute))
             throw new InvalidOperationException(@$"The Api endpoint URI is not valid: {settings.NationalizeApiClientApiEndpointUri}. Provide valid Api endpoint URI in the configuration '{nameof(settings.NationalizeApiClientApiEndpointUri)}'.
@@ -23,8 +23,7 @@ public class NationalizeApiClient : TypedHttpClientCore<NationalizeApiClient>
     public async Task<NationalizeResponse> GetNationalityAsync(string name)
     {
         var response = await
-            WithRetry(1, 5)
-            .ThrowTransientException()
+            ThrowTransientException()
             .GetAsync<NationalizeResponse>(string.Empty, null, HttpArgs.Create(new HttpArg<string>("name", name)));
 
         return response.Value;

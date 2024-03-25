@@ -150,8 +150,8 @@ namespace CoreEx.Http
                             return new ValidationException(mic);
                     }
 
-                case HttpStatusCode.Forbidden: return new AuthenticationException(message, new HttpRequestException(content));
-                case HttpStatusCode.Unauthorized: return new AuthorizationException(message, new HttpRequestException(content));
+                case HttpStatusCode.Unauthorized: return new AuthenticationException(message, new HttpRequestException(content));
+                case HttpStatusCode.Forbidden: return new AuthorizationException(message, new HttpRequestException(content));
                 case HttpStatusCode.PreconditionFailed: return new ConcurrencyException(message, new HttpRequestException(content));
                 case HttpStatusCode.NotFound: return new NotFoundException(message, new HttpRequestException(content));
                 case HttpStatusCode.ServiceUnavailable: return new TransientException(message, new HttpRequestException(content));

@@ -1,15 +1,11 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
-using CoreEx.Configuration;
-using Polly;
-using Polly.Extensions.Http;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,7 +16,6 @@ namespace CoreEx.Http.Extended
     /// </summary>
     public sealed class TypedHttpClientOptions
     {
-        private readonly SettingsBase _settings;
         private readonly TypedHttpClientOptions? _defaultOptions;
         private readonly ITypedHttpClientOptions? _owner;
         private List<HttpStatusCode>? _ensureStatusCodes;
@@ -28,11 +23,9 @@ namespace CoreEx.Http.Extended
         /// <summary>
         /// Initializes a new instance of the <see cref="TypedHttpClientOptions"/> class.
         /// </summary>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
         /// <param name="defaultOptions">Optional default <see cref="TypedHttpClientOptions"/> to copy from; also copied as a result of a <see cref="Reset"/>.</param>
-        public TypedHttpClientOptions(SettingsBase settings, TypedHttpClientOptions? defaultOptions = null)
+        public TypedHttpClientOptions(TypedHttpClientOptions? defaultOptions = null)
         {
-            _settings = settings.ThrowIfNull(nameof(settings));
             _defaultOptions = defaultOptions;
             if (_defaultOptions is not null)
                 Reset();
@@ -42,25 +35,11 @@ namespace CoreEx.Http.Extended
         /// Initializes a new instance of the <i>Default</i> <see cref="TypedHttpClientOptions"/> class.
         /// </summary>
         /// <param name="owner">The <see cref="ITypedHttpClientOptions"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        internal TypedHttpClientOptions(ITypedHttpClientOptions owner, SettingsBase settings)
+        internal TypedHttpClientOptions(ITypedHttpClientOptions owner)
         {
             _owner = owner;
-            _settings = settings.ThrowIfNull(nameof(settings));
             CheckDefaultNotBeingUpdatedInSendMode();
         }
-
-        /// <summary>
-        /// Gets the retry count; see <see cref="WithRetry(int?, double?)"/>.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public int? RetryCount { get; private set; }
-
-        /// <summary>
-        /// Gets the retry seconds; see <see cref="WithRetry(int?, double?)"/>.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public double? RetrySeconds { get; private set; }
 
         /// <summary>
         /// Indicates whether to ensure success; see <see cref="EnsureSuccess"/>.
@@ -93,23 +72,6 @@ namespace CoreEx.Http.Extended
         public bool ShouldThrowKnownUseContentAsMessage { get; private set; }
 
         /// <summary>
-        /// Gets the custom retry policy; see <see cref="WithCustomRetryPolicy(PolicyBuilder{HttpResponseMessage})"/>.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public PolicyBuilder<HttpResponseMessage>? CustomRetryPolicy { get; private set; }
-
-        /// <summary>
-        /// Gets the timeout; see <see cref="WithTimeout(TimeSpan)"/>.
-        /// </summary>
-        public TimeSpan? Timeout { get; private set; }
-
-        /// <summary>
-        /// Gets the maximum retry delay; see <see cref="WithMaxRetryDelay(TimeSpan)"/>.
-        /// </summary>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TimeSpan? MaxRetryDelay { get; private set; }
-
-        /// <summary>
         /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
         /// </summary>
         public bool ShouldNullOnNotFound { get; private set; }
@@ -129,25 +91,11 @@ namespace CoreEx.Http.Extended
         }
 
         /// <summary>
-        /// Sets the underlying retry policy using the specified custom <see cref="PolicyBuilder{TResult}"/>.
-        /// </summary>
-        /// <param name="retryPolicy">The custom retry policy.</param>
-        /// <remarks>Defaults to <see cref="HttpPolicyExtensions.HandleTransientHttpError"/> with additional handling of <see cref="SocketException"/> and <see cref="TimeoutException"/>.
-        /// <para>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TypedHttpClientOptions WithCustomRetryPolicy(PolicyBuilder<HttpResponseMessage> retryPolicy)
-        {
-            CheckDefaultNotBeingUpdatedInSendMode();
-            CustomRetryPolicy = retryPolicy.ThrowIfNull(nameof(retryPolicy));
-            return this;
-        }
-
-        /// <summary>
         /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.
         /// </summary>
         /// <param name="predicate">An optional predicate to determine whether the error is considered transient. Defaults to <see cref="TypedHttpClientBase.IsTransient(HttpResponseMessage?, Exception?)"/> where not specified.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TypedHttpClientOptions ThrowTransientException(Func<HttpResponseMessage?, Exception?, (bool result, string error)>? predicate = null)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
@@ -161,37 +109,12 @@ namespace CoreEx.Http.Extended
         /// </summary>
         /// <param name="useContentAsErrorMessage">Indicates whether to use the <see cref="HttpResponseMessage.Content"/> as the resulting exception message.</param>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This occurs outside of any <see cref="WithRetry(int?, double?)"/>.<para>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</para></remarks>
+        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
         public TypedHttpClientOptions ThrowKnownException(bool useContentAsErrorMessage = false)
         {
             CheckDefaultNotBeingUpdatedInSendMode();
             ShouldThrowKnownException = true;
             ShouldThrowKnownUseContentAsMessage = useContentAsErrorMessage;
-            return this;
-        }
-
-        /// <summary>
-        /// Indicates whether to perform a retry where an underlying transient error occurs.
-        /// </summary>
-        /// <param name="count">The number of times to retry. Defaults to <see cref="SettingsBase.HttpRetryCount"/>.</param>
-        /// <param name="seconds">The base number of seconds to delay between retries. Defaults to <see cref="SettingsBase.HttpRetrySeconds"/>. Delay will be exponential with each retry.</param>
-        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.
-        /// <para>The <paramref name="count"/> is the number of additional retries that should be performed in addition to the initial request.</para></remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TypedHttpClientOptions WithRetry(int? count = null, double? seconds = null)
-        {
-            CheckDefaultNotBeingUpdatedInSendMode();
-            var retryCount = (_owner is null ? null : _settings.GetValue<int?>($"{_owner.GetType().Name}__{nameof(SettingsBase.HttpRetryCount)}")) ?? _settings.HttpRetryCount;
-            var retrySeconds = (_owner is null ? null : _settings.GetValue<double?>($"{_owner.GetType().Name}__{nameof(SettingsBase.HttpRetrySeconds)}")) ?? _settings.HttpRetrySeconds;
-
-            RetryCount = count ?? retryCount;
-            if (RetryCount < 0)
-                RetryCount = retryCount;
-
-            RetrySeconds = seconds ?? retrySeconds;
-            if (RetrySeconds < 0)
-                RetrySeconds = retrySeconds;
-
             return this;
         }
 
@@ -269,33 +192,6 @@ namespace CoreEx.Http.Extended
         }
 
         /// <summary>
-        /// Sets timeout for given request
-        /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TypedHttpClientOptions WithTimeout(TimeSpan timeout)
-        {
-            CheckDefaultNotBeingUpdatedInSendMode();
-            Timeout = timeout;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets max retry delay that polly retries will be capped with (this affects mostly 429 and 503 responses that can return Retry-After header).
-        /// Default is 30s but it can be overridden for async calls (e.g. when using service bus trigger).
-        /// </summary>
-        /// <returns>This instance to support fluent-style method-chaining.</returns>
-        /// <remarks>This is <see cref="Reset"/> after each invocation; see <see cref="TypedHttpClientBase.SendAsync(HttpRequestMessage, CancellationToken)"/>.</remarks>
-        [Obsolete("This feature will soon be deprecated; please leverage IHttpClientFactory capabilies. See https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests on how to implement.")]
-        public TypedHttpClientOptions WithMaxRetryDelay(TimeSpan maxRetryDelay)
-        {
-            CheckDefaultNotBeingUpdatedInSendMode();
-            MaxRetryDelay = maxRetryDelay;
-            return this;
-        }
-
-        /// <summary>
         /// Indicates that a <c>null/default</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> (on <see cref="HttpMethod.Get"/> only).
         /// </summary>
         /// <returns>This instance to support fluent-style method-chaining.</returns>
@@ -325,41 +221,29 @@ namespace CoreEx.Http.Extended
         /// </summary>
         public void Reset()
         {
-#pragma warning disable CS0618 // Type or member is obsolete
             CheckDefaultNotBeingUpdatedInSendMode();
             if (_defaultOptions is null)
             {
-                CustomRetryPolicy = null;
-                RetryCount = null;
-                RetrySeconds = null;
                 ShouldThrowTransientException = false;
                 IsTransientPredicate = TypedHttpClientBase.IsTransient;
                 ShouldThrowKnownException = false;
                 ShouldThrowKnownUseContentAsMessage = false;
                 ShouldEnsureSuccess = false;
                 _ensureStatusCodes = null;
-                Timeout = null;
-                MaxRetryDelay = null;
                 ShouldNullOnNotFound = false;
                 BeforeRequest = null;
             }
             else
             {
-                CustomRetryPolicy = _defaultOptions.CustomRetryPolicy;
-                RetryCount = _defaultOptions.RetryCount;
-                RetrySeconds = _defaultOptions.RetrySeconds;
                 ShouldThrowTransientException = _defaultOptions.ShouldThrowTransientException;
                 IsTransientPredicate = _defaultOptions.IsTransientPredicate;
                 ShouldThrowKnownException = _defaultOptions.ShouldThrowKnownException;
                 ShouldThrowKnownUseContentAsMessage = _defaultOptions.ShouldThrowKnownUseContentAsMessage;
                 ShouldEnsureSuccess = _defaultOptions.ShouldEnsureSuccess;
                 _ensureStatusCodes = _defaultOptions.ExpectedStatusCodes == null ? null : new(_defaultOptions.ExpectedStatusCodes);
-                Timeout = _defaultOptions.Timeout;
-                MaxRetryDelay = _defaultOptions.MaxRetryDelay;
                 ShouldNullOnNotFound = _defaultOptions.ShouldNullOnNotFound;
                 BeforeRequest = _defaultOptions.BeforeRequest;
             }
-#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 }

@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Configuration;
 using CoreEx.Json;
 using CoreEx.Mapping;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -20,10 +18,8 @@ namespace CoreEx.Http.Extended
     /// <param name="mapper">The <see cref="IMapper"/>.</param>
     /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
     /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
-    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-    /// <param name="logger">The <see cref="ILogger"/>.</param>
-    public abstract class TypedMappedHttpClientBase<TSelf>(HttpClient client, IMapper mapper, IJsonSerializer jsonSerializer, ExecutionContext executionContext, SettingsBase settings, ILogger<TypedMappedHttpClientBase<TSelf>> logger)
-        : TypedHttpClientBase<TSelf>(client, jsonSerializer, executionContext, settings, logger), ITypedMappedHttpClient where TSelf : TypedMappedHttpClientBase<TSelf>
+    public abstract class TypedMappedHttpClientBase<TSelf>(HttpClient client, IMapper mapper, IJsonSerializer jsonSerializer, ExecutionContext executionContext)
+        : TypedHttpClientBase<TSelf>(client, jsonSerializer, executionContext), ITypedMappedHttpClient where TSelf : TypedMappedHttpClientBase<TSelf>
     {
         /// <summary>
         /// Gets the <see cref="IMapper"/>.

@@ -2,7 +2,6 @@
 global using CoreEx.Configuration;
 global using CoreEx.Entities;
 global using CoreEx.Events;
-global using CoreEx.HealthChecks;
 global using CoreEx.Http;
 global using CoreEx.Json;
 global using CoreEx.RefData;
