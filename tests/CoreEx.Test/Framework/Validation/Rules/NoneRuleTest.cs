@@ -28,7 +28,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.That(v1.HasErrors, Is.False);
 
             v1 = await (string.Empty).Validate("value").None().ValidateAsync();
-            Assert.That(v1.HasErrors, Is.True);
+            Assert.That(v1.HasErrors, Is.False);
+
+            v1 = await "  ".Validate("value").None().ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]

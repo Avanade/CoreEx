@@ -13,15 +13,18 @@ namespace CoreEx.Validation.Rules
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
     public class StringRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class
     {
+        private int _minLength = 0;
+        private int? _maxLength = null;
+
         /// <summary>
         /// Gets or sets the minimum length;
         /// </summary>
-        public int MinLength { get; set; }
+        public int MinLength { get => _minLength; set => _minLength = value >= 0 ? value : throw new ArgumentException($"{nameof(MinLength)} must be zero or greater.", nameof(MinLength)); }
 
         /// <summary>
         /// Gets or sets the maximum length.
         /// </summary>
-        public int? MaxLength { get; set; }
+        public int? MaxLength { get => _maxLength; set => _maxLength = value is null || value.Value > 0 ? value : throw new ArgumentException($"{nameof(MaxLength)} must be greater that zero.", nameof(MaxLength)); }
 
         /// <summary>
         /// Gets or sets the regex.
@@ -33,6 +36,12 @@ namespace CoreEx.Validation.Rules
         {
             if (string.IsNullOrEmpty(context.Value))
                 return Task.CompletedTask;
+
+            if (MinLength > 0 && MaxLength.HasValue && MinLength == MaxLength!.Value && context.Value.Length != MinLength)
+            {
+                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.ExactLengthFormat, MinLength);
+                return Task.CompletedTask;
+            }
 
             if (context.Value.Length < MinLength)
             {

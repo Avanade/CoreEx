@@ -87,5 +87,32 @@ namespace CoreEx.Test.Framework.Validation.Rules
             v1 = await ((string?)null).Validate("value").String(2, 5).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
+
+        [Test]
+        public async Task Validate_ExactLength()
+        {
+            var v1 = await "Abc".Validate("value").String(3, 3).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+
+            v1 = await "A".Validate("value").String(3, 3).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be exactly 3 characters in length."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
+
+            v1 = await "AAAA".Validate("value").Length(3).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be exactly 3 characters in length."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
+        }
     }
 }

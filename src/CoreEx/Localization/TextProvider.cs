@@ -16,7 +16,7 @@ namespace CoreEx.Localization
         /// Sets the <see cref="Current"/> <see cref="ITextProvider"/> instance explicitly.
         /// </summary>
         /// <param name="textProvider">The concrete <see cref="ITextProvider"/> instance.</param>
-        public static void SetTextProvider(ITextProvider textProvider) => _textProvider = textProvider.ThrowIfNull(nameof(textProvider));
+        public static void SetTextProvider(ITextProvider? textProvider) => _textProvider = textProvider;
 
         /// <summary>
         /// Gets the current <see cref="ITextProvider"/> instance using in the following order: <see cref="ExecutionContext.GetService{T}"/>, the explicit <see cref="SetTextProvider(ITextProvider)"/>, otherwise, <see cref="NullTextProvider"/>. 

@@ -2,6 +2,15 @@
 
 Represents the **NuGet** versions.
 
+## v3.16.0
+- *Enhancement*: Added basic [FluentValidator](https://docs.fluentvalidation.net/en/latest/) compatibility to the `CoreEx.Validation` by supporting _key_ (common) named capabilities:
+  - `AbstractValidator<T>` added as a wrapper for `Validator<T>`; with both supporting `RuleFor` method (wrapper for existing `Property`).
+  - `NotEmpty`, `NotNull`, `Empty`, `Null`, `InclusiveBetween`, `ExclusiveBetween`, `Equal`, `NotEqual`, `LessThan`, `LessThanOrEqualTo`, `GreaterThan`, `GreaterThanOrEqualTo`, `Matches`, `Length`, `MinimumLength`, `MaximumLength`, `PrecisionScale`, `EmailAddress` and `IsInEnum` extension methods added (invoking existing equivalents).
+  - `NullRule` and `NotNullRule` added to support the `Null` and `NotNull` capabilities specifically.
+  - `WithMessage` added to explcitly set the error message for a preceeding `IValueRule` (equivalent to specifying when invoking extension method).
+  - `ValidatorStrings` have had their fallback texts added to ensure an appropriate text is output where `ITextProvider` is not available.
+  - _Note:_ The above changes are to achieve a basic level of compatibility, they are not intended to implement the full capabilities of _FluentValidation_; nor, will it ever. The `CoreEx.FluentValidation` enables _FluentValidation_ to be used directly where required; also, the existing `CoreEx.Validation.InteropRule` enables interoperability between the two.
+
 ## v3.15.0
 - *Enhancement*: This is a clean-up version to remove all obsolete code and dependencies. This will result in a number of minor breaking changes, but will ensure that the codebase is up-to-date and maintainable.
   - As per [`v3.14.0`](#v3.14.0) the previously obsoleted `TypedHttpClientBase` methods `WithRetry`, `WithTimeout`, `WithCustomRetryPolicy` and `WithMaxRetryDelay` are now removed; including `TypedHttpClientOptions`, `HttpRequestLogger` and related `SettingsBase` capabilities.

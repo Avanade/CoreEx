@@ -17,9 +17,7 @@ namespace CoreEx.Validation.Rules
     {
         private readonly List<IPropertyRuleClause<TEntity>> _clauses = [];
 
-        /// <summary>
-        /// Gets or sets the error message format text (overrides the default).
-        /// </summary>
+        /// <inheritdoc/>
         public LText? ErrorText { get; set; }
 
         /// <summary>

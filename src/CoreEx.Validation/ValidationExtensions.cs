@@ -142,6 +142,29 @@ namespace CoreEx.Validation
         public static IPropertyRule<TEntity, TProperty> Mandatory<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new MandatoryRule<TEntity, TProperty> { ErrorText = errorText });
 
+        /// <summary>
+        /// Adds a not empty validation (<see cref="MandatoryRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        /// <remarks>This is a synonym for <see cref="Mandatory{TEntity, TProperty}(IPropertyRule{TEntity, TProperty}, Localization.LText?)"/>.</remarks>
+        public static IPropertyRule<TEntity, TProperty> NotEmpty<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new MandatoryRule<TEntity, TProperty> { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a not <c>null</c> validation (<see cref="NotNullRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> NotNull<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new NotNullRule<TEntity, TProperty> { ErrorText = errorText });
+
         #endregion
 
         #region None
@@ -156,6 +179,29 @@ namespace CoreEx.Validation
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
         public static IPropertyRule<TEntity, TProperty> None<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new NoneRule<TEntity, TProperty> { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds an empty validation (<see cref="NoneRule{TEntity, TProperty}"/>) where it is expected that the value equals its default.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        /// <remarks>This is a synonym for <see cref="None{TEntity, TProperty}(IPropertyRule{TEntity, TProperty}, Localization.LText?)"/>.</remarks>
+        public static IPropertyRule<TEntity, TProperty> Empty<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new NoneRule<TEntity, TProperty> { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <c>null</c> validation (<see cref="NoneRule{TEntity, TProperty}"/>) where it is expected that the value is <c>null</c>.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Null<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new NullRule<TEntity, TProperty> { ErrorText = errorText });
 
         #endregion
 
@@ -466,9 +512,225 @@ namespace CoreEx.Validation
         public static IPropertyRule<TEntity, TProperty> BetweenAsync<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, CancellationToken, Task<TProperty>> compareFromValueFunctionAsync, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValueFunctionAsync, compareToValueFunctionAsync, compareFromTextFunction, compareToTextFunction, exclusiveBetween) { ErrorText = errorText });
 
+        /// <summary>
+        /// Adds an inclusive between comparision validation against a specified from and to value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareFromValue">The compare from value.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareFromText">The compare from text to be passed for the error message (default is to use <paramref name="compareFromValue"/>).</param>
+        /// <param name="compareToText">The compare to text to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> InclusiveBetween<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareFromValue, TProperty compareToValue, LText? compareFromText = null, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValue, compareToValue, compareFromText, compareToText, false) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a inclusive between comparision validation against from and to values returned by functions (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareFromValueFunction">The compare from value function.</param>
+        /// <param name="compareToValueFunction">The compare to value function.</param>
+        /// <param name="compareFromTextFunction">The compare from text function (default is to use the result of the <paramref name="compareFromValueFunction"/>).</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> InclusiveBetween<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareFromValueFunction, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValueFunction, compareToValueFunction, compareFromTextFunction, compareToTextFunction, false) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds an exclusive between comparision validation against a specified from and to value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareFromValue">The compare from value.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareFromText">The compare from text to be passed for the error message (default is to use <paramref name="compareFromValue"/>).</param>
+        /// <param name="compareToText">The compare to text to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> ExclusiveBetween<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareFromValue, TProperty compareToValue, LText? compareFromText = null, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValue, compareToValue, compareFromText, compareToText, true) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a exclusive between comparision validation against from and to values returned by functions (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareFromValueFunction">The compare from value function.</param>
+        /// <param name="compareToValueFunction">The compare to value function.</param>
+        /// <param name="compareFromTextFunction">The compare from text function (default is to use the result of the <paramref name="compareFromValueFunction"/>).</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> ExclusiveBetween<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareFromValueFunction, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new BetweenRule<TEntity, TProperty>(compareFromValueFunction, compareToValueFunction, compareFromTextFunction, compareToTextFunction, true) { ErrorText = errorText });
+
         #endregion
 
         #region CompareValue
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.Equal"/> validation against a specified value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Equal<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.Equal, compareToValue, compareToText) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.Equal"/> validation against a value returned by a function (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValueFunction">The compare to function.</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Equal<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.Equal, compareToValueFunction, compareToTextFunction) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.NotEqual"/> validation against a specified value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> NotEqual<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.NotEqual, compareToValue, compareToText) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.NotEqual"/> validation against a value returned by a function (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValueFunction">The compare to function.</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> NotEqual<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.NotEqual, compareToValueFunction, compareToTextFunction) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.LessThan"/> validation against a specified value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> LessThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThan, compareToValue, compareToText) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.LessThan"/> validation against a value returned by a function (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValueFunction">The compare to function.</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> LessThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThan, compareToValueFunction, compareToTextFunction) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.LessThanEqual"/> validation against a specified value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> LessThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThanEqual, compareToValue, compareToText) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.LessThanEqual"/> validation against a value returned by a function (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValueFunction">The compare to function.</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> LessThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThanEqual, compareToValueFunction, compareToTextFunction) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.GreaterThan"/> validation against a specified value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> GreaterThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThan, compareToValue, compareToText) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.GreaterThan"/> validation against a value returned by a function (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValueFunction">The compare to function.</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> GreaterThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThan, compareToValueFunction, compareToTextFunction) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.GreaterThanEqual"/> validation against a specified value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValue">The compare to value.</param>
+        /// <param name="compareToText">The compare to text <see cref="LText"/> to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> GreaterThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareToValue, LText? compareToText = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThanEqual, compareToValue, compareToText) { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a comparision <see cref="CompareOperator.GreaterThanEqual"/> validation against a value returned by a function (<see cref="CompareValueRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="compareToValueFunction">The compare to function.</param>
+        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> GreaterThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThanEqual, compareToValueFunction, compareToTextFunction) { ErrorText = errorText });
 
         /// <summary>
         /// Adds a comparision validation against a specified value (see <see cref="CompareValueRule{TEntity, TProperty}"/>).
@@ -608,6 +870,50 @@ namespace CoreEx.Validation
         public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, Regex? regex = null, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new StringRule<TEntity> { Regex = regex, ErrorText = errorText });
 
+        /// <summary>
+        /// Adds a <see cref="string"/> validation with a <paramref name="regex"/> (see <see cref="StringRule{TEntity}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="regex">The <see cref="Regex"/>.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> Matches<TEntity>(this IPropertyRule<TEntity, string> rule, Regex? regex = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new StringRule<TEntity> { Regex = regex, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <see cref="string"/> validation with an exact length (see <see cref="StringRule{TEntity}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="exactLength">The exact string length.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> Length<TEntity>(this IPropertyRule<TEntity, string> rule, int exactLength, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new StringRule<TEntity> { MinLength = exactLength, MaxLength = exactLength, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <see cref="string"/> validation with a minimum length (see <see cref="StringRule{TEntity}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="minimumLength">The minimum string length.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> MinimumLength<TEntity>(this IPropertyRule<TEntity, string> rule, int minimumLength, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new StringRule<TEntity> { MinLength = minimumLength, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <see cref="string"/> validation with a maximum length (see <see cref="StringRule{TEntity}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="maximumLength">The maximum string length.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, string> MaximumLength<TEntity>(this IPropertyRule<TEntity, string> rule, int maximumLength, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new StringRule<TEntity> { MaxLength = maximumLength, ErrorText = errorText });
+
         #endregion
 
         #region Email
@@ -623,6 +929,19 @@ namespace CoreEx.Validation
         /// <remarks>The maximum length for an email address is '<c>254</c>' as per this <see href="https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address#:~:text=%20The%20length%20limits%20are%20as%20follows%3A%20,i.e.%2C%20example.com%20--%20254%20characters%20maximum.%20More%20">article</see>,
         /// hence the default.</remarks>
         public static IPropertyRule<TEntity, string> Email<TEntity>(this IPropertyRule<TEntity, string> rule, int? maxLength = 254, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new EmailRule<TEntity> { MaxLength = maxLength, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds an e-mail validation (see <see cref="EmailRule{TEntity}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, String}"/> being extended.</param>
+        /// <param name="maxLength">The maximum string length for the e-mail address; defaults to 254.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        /// <remarks>The maximum length for an email address is '<c>254</c>' as per this <see href="https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address#:~:text=%20The%20length%20limits%20are%20as%20follows%3A%20,i.e.%2C%20example.com%20--%20254%20characters%20maximum.%20More%20">article</see>,
+        /// hence the default.</remarks>
+        public static IPropertyRule<TEntity, string> EmailAddress<TEntity>(this IPropertyRule<TEntity, string> rule, int? maxLength = 254, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new EmailRule<TEntity> { MaxLength = maxLength, ErrorText = errorText });
 
         #endregion
@@ -649,6 +968,28 @@ namespace CoreEx.Validation
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
         public static IPropertyRule<TEntity, TProperty?> Enum<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, LText? errorText = null) where TEntity : class where TProperty : struct, Enum
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new NullableEnumRule<TEntity, TProperty> { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds an <see cref="System.Enum"/> validation to ensure that the value has been defined (see <see cref="EnumRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> IsInEnum<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, LText? errorText = null) where TEntity : class where TProperty : struct, Enum
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new EnumRule<TEntity, TProperty> { ErrorText = errorText });
+
+        /// <summary>
+        /// Adds an <see cref="System.Enum"/> validation to ensure that the value has been defined (see <see cref="NullableEnumRule{TEntity, TProperty}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty?> IsIsEnum<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, LText? errorText = null) where TEntity : class where TProperty : struct, Enum
             => rule.ThrowIfNull(nameof(rule)).AddRule(new NullableEnumRule<TEntity, TProperty> { ErrorText = errorText });
 
         /// <summary>
@@ -754,6 +1095,30 @@ namespace CoreEx.Validation
             => rule.ThrowIfNull(nameof(rule)).AddRule(new DecimalRule<TEntity, decimal?> { AllowNegatives = allowNegatives, MaxDigits = maxDigits, DecimalPlaces = decimalPlaces, ErrorText = errorText });
 
         /// <summary>
+        /// Adds a <see cref="Decimal"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="precision">The maximum digits (including decimal places).</param>
+        /// <param name="scale">The maximum number of decimal places.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, decimal> PrecisionScale<TEntity>(this IPropertyRule<TEntity, decimal> rule, int? precision = null, int? scale = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new DecimalRule<TEntity, decimal> { MaxDigits = precision, DecimalPlaces = scale, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <see cref="Nullable{Decimal}"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="precision">The maximum digits (including decimal places).</param>
+        /// <param name="scale">The maximum number of decimal places.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, decimal?> PrecisionScale<TEntity>(this IPropertyRule<TEntity, decimal?> rule, int? precision = null, int? scale = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new DecimalRule<TEntity, decimal?> { MaxDigits = precision, DecimalPlaces = scale, ErrorText = errorText });
+
+        /// <summary>
         /// Adds a <see cref="Single"/> validation (see <see cref="NumericRule{TEntity, Single}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
@@ -776,6 +1141,30 @@ namespace CoreEx.Validation
             => rule.ThrowIfNull(nameof(rule)).AddRule(new NumericRule<TEntity, float?> { AllowNegatives = allowNegatives, ErrorText = errorText });
 
         /// <summary>
+        /// Adds a <see cref="Single"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="precision">The maximum digits (including decimal places).</param>
+        /// <param name="scale">The maximum number of decimal places.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, float> PrecisionScale<TEntity>(this IPropertyRule<TEntity, float> rule, int? precision = null, int? scale = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new DecimalRule<TEntity, float> { MaxDigits = precision, DecimalPlaces = scale, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <see cref="Nullable{Single}"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="precision">The maximum digits (including decimal places).</param>
+        /// <param name="scale">The maximum number of decimal places.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, float?> PrecisionScale<TEntity>(this IPropertyRule<TEntity, float?> rule, int? precision = null, int? scale = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new DecimalRule<TEntity, float?> { MaxDigits = precision, DecimalPlaces = scale, ErrorText = errorText });
+
+        /// <summary>
         /// Adds a <see cref="Double"/> validation (see <see cref="NumericRule{TEntity, Double}"/>).
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
@@ -796,6 +1185,30 @@ namespace CoreEx.Validation
         /// <returns>A <see cref="IPropertyRule{TEntity, Double}"/>.</returns>
         public static IPropertyRule<TEntity, double?> Numeric<TEntity>(this IPropertyRule<TEntity, double?> rule, bool allowNegatives = false, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new NumericRule<TEntity, double?> { AllowNegatives = allowNegatives, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <see cref="Double"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="precision">The maximum digits (including decimal places).</param>
+        /// <param name="scale">The maximum number of decimal places.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, double> PrecisionScale<TEntity>(this IPropertyRule<TEntity, double> rule, int? precision = null, int? scale = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new DecimalRule<TEntity, double> { MaxDigits = precision, DecimalPlaces = scale, ErrorText = errorText });
+
+        /// <summary>
+        /// Adds a <see cref="Nullable{Double}"/> validation (see <see cref="DecimalRule{TEntity, Decimal}"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, Decimal}"/> being extended.</param>
+        /// <param name="precision">The maximum digits (including decimal places).</param>
+        /// <param name="scale">The maximum number of decimal places.</param>
+        /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, Decimal}"/>.</returns>
+        public static IPropertyRule<TEntity, double?> PrecisionScale<TEntity>(this IPropertyRule<TEntity, double?> rule, int? precision = null, int? scale = null, LText? errorText = null) where TEntity : class
+            => rule.ThrowIfNull(nameof(rule)).AddRule(new DecimalRule<TEntity, double?> { MaxDigits = precision, DecimalPlaces = scale, ErrorText = errorText });
 
         #endregion
 
