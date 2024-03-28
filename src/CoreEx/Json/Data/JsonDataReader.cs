@@ -115,7 +115,7 @@ namespace CoreEx.Json.Data
         /// <param name="json">The JSON <see cref="string"/>.</param>
         /// <param name="args">The optional <see cref="JsonDataReaderArgs"/>.</param>
         /// <returns>The <see cref="JsonDataReader"/>.</returns>
-        public static JsonDataReader ParseJson(string json, JsonDataReaderArgs? args = null) => new(JsonDocument.Parse(json) ?? throw new InvalidOperationException("JsonNode.Parse resulted in a null."), args, true);
+        public static JsonDataReader ParseJson([StringSyntax(StringSyntaxAttribute.Json)] string json, JsonDataReaderArgs? args = null) => new(JsonDocument.Parse(json) ?? throw new InvalidOperationException("JsonNode.Parse resulted in a null."), args, true);
 
         /// <summary>
         /// Reads and parses the JSON <see cref="Stream"/>.

@@ -3,6 +3,7 @@
 using CoreEx.Text.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -56,7 +57,7 @@ namespace CoreEx.Json.Compare
         /// <param name="right">The right JSON <see cref="string"/>.</param>
         /// <param name="pathsToIgnore">Optional list of paths to exclude from the comparison. Qualified paths, that include indexing, are also supported.</param>
         /// <returns>The <see cref="JsonElementComparerResult"/>.</returns>
-        public JsonElementComparerResult Compare(string left, string right, params string[] pathsToIgnore)
+        public JsonElementComparerResult Compare([StringSyntax(StringSyntaxAttribute.Json)] string left, [StringSyntax(StringSyntaxAttribute.Json)] string right, params string[] pathsToIgnore)
         {
             var ljr = new Utf8JsonReader(new BinaryData(left));
             if (!JsonElement.TryParseValue(ref ljr, out JsonElement? lje))
@@ -257,7 +258,7 @@ namespace CoreEx.Json.Compare
             => Options.PropertyNameComparer is null ? json.TryGetProperty(propertyName, out value) : json.TryGetProperty(propertyName, Options.PropertyNameComparer, out value);
 
         /// <inheritdoc/>
-        public bool Equals(string? x, string? y)
+        public bool Equals([StringSyntax(StringSyntaxAttribute.Json)] string? x, [StringSyntax(StringSyntaxAttribute.Json)] string? y)
         {
             if (x == null && y == null)
                 return true;
@@ -286,7 +287,7 @@ namespace CoreEx.Json.Compare
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(string json)
+        public int GetHashCode([StringSyntax(StringSyntaxAttribute.Json)] string json)
         {
             if (json == null)
                 return 0;

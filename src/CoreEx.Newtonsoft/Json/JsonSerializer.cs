@@ -67,13 +67,13 @@ namespace CoreEx.Newtonsoft.Json
         }
 
         /// <inheritdoc/>
-        public object? Deserialize(string json) => Deserialize(BinaryData.FromString(json));
+        public object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json) => Deserialize(BinaryData.FromString(json));
 
         /// <inheritdoc/>
-        public object? Deserialize(string json, Type type) => Deserialize(BinaryData.FromString(json), type);
+        public object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json, Type type) => Deserialize(BinaryData.FromString(json), type);
 
         /// <inheritdoc/>
-        public T? Deserialize<T>(string json) =>Deserialize<T>(BinaryData.FromString(json))!;
+        public T? Deserialize<T>([StringSyntax(StringSyntaxAttribute.Json)] string json) =>Deserialize<T>(BinaryData.FromString(json))!;
 
         /// <inheritdoc/>
         public object? Deserialize(BinaryData json) => Deserialize<dynamic>(json);

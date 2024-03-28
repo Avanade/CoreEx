@@ -21,13 +21,13 @@ namespace UnitTestEx.Json
         public object Options => _testJsonSerializer.Options;
 
         /// <inheritdoc/>
-        public object? Deserialize(string json) => _testJsonSerializer.Deserialize(json);
+        public object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json) => _testJsonSerializer.Deserialize(json);
 
         /// <inheritdoc/>
-        public object? Deserialize(string json, Type type) => _testJsonSerializer.Deserialize(json, type);
+        public object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json, Type type) => _testJsonSerializer.Deserialize(json, type);
 
         /// <inheritdoc/>
-        public T? Deserialize<T>(string json) => _testJsonSerializer.Deserialize<T>(json);
+        public T? Deserialize<T>([StringSyntax(StringSyntaxAttribute.Json)] string json) => _testJsonSerializer.Deserialize<T>(json);
 
         /// <inheritdoc/>
         public object? Deserialize(BinaryData json) => throw new NotImplementedException();

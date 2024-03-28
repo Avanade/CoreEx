@@ -71,13 +71,13 @@ namespace CoreEx.Text.Json
             => new(Stj.JsonSerializer.SerializeToUtf8Bytes(value, format == null || format.Value == JsonWriteFormat.None ? Options : IndentedOptions));
 
         /// <inheritdoc/>
-        public object? Deserialize(string json) => Stj.JsonSerializer.Deserialize<dynamic>(json, Options);
+        public object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json) => Stj.JsonSerializer.Deserialize<dynamic>(json, Options);
 
         /// <inheritdoc/>
-        public object? Deserialize(string json, Type type) => Stj.JsonSerializer.Deserialize(json, type, Options);
+        public object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json, Type type) => Stj.JsonSerializer.Deserialize(json, type, Options);
 
         /// <inheritdoc/>
-        public T? Deserialize<T>(string json) => Stj.JsonSerializer.Deserialize<T>(json, Options)!;
+        public T? Deserialize<T>([StringSyntax(StringSyntaxAttribute.Json)] string json) => Stj.JsonSerializer.Deserialize<T>(json, Options)!;
 
         /// <inheritdoc/>
         public object? Deserialize(BinaryData json) => Stj.JsonSerializer.Deserialize<dynamic>(json, Options);
