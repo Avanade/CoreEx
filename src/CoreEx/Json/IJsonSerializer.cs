@@ -40,7 +40,11 @@ namespace CoreEx.Json
         /// </summary>
         /// <param name="json">The JSON <see cref="string"/>.</param>
         /// <returns>The JSON object (as per the underlying implementation).</returns>
+#if NET7_0_OR_GREATER
         object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json);
+#else
+        object? Deserialize(string json);
+#endif
 
         /// <summary>
         /// Deserialize the JSON <see cref="string"/> to the specified <paramref name="type"/>.
@@ -48,7 +52,11 @@ namespace CoreEx.Json
         /// <param name="json">The JSON <see cref="string"/>.</param>
         /// <param name="type">The <see cref="Type"/> to convert to.</param>
         /// <returns>The corresponding typed value.</returns>
+#if NET7_0_OR_GREATER
         object? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json, Type type);
+#else
+        object? Deserialize(string json, Type type);
+#endif
 
         /// <summary>
         /// Deserialize the JSON <see cref="string"/> to the <see cref="Type"/> of <typeparamref name="T"/>.
@@ -56,7 +64,11 @@ namespace CoreEx.Json
         /// <typeparam name="T">The <see cref="Type"/> to convert to.</typeparam>
         /// <param name="json">The JSON <see cref="string"/>.</param>
         /// <returns>The corresponding typed value.</returns>
+#if NET7_0_OR_GREATER
         T? Deserialize<T>([StringSyntax(StringSyntaxAttribute.Json)] string json);
+#else
+        T? Deserialize<T>(string json);
+#endif
 
         /// <summary>
         /// Deserialize the JSON <see cref="BinaryData"/> to an underlying JSON object.

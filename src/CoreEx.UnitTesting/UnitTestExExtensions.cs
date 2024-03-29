@@ -103,7 +103,11 @@ namespace UnitTestEx
         /// <param name="requestUri">The requuest uri.</param>
         /// <param name="requestOptions">The optional <see cref="Ceh.HttpRequestOptions"/>.</param>
         /// <returns>The <see cref="HttpRequest"/>.</returns>
+#if NET7_0_OR_GREATER
         public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, [StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, Ceh.HttpRequestOptions? requestOptions = null)
+#else
+        public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, string? requestUri, Ceh.HttpRequestOptions? requestOptions = null)
+#endif
             where TEntryPoint : class, new() where TSelf : FunctionTesterBase<TEntryPoint, TSelf>
             => tester.CreateHttpRequest(httpMethod, requestUri).ApplyRequestOptions(requestOptions);
 
@@ -116,7 +120,11 @@ namespace UnitTestEx
         /// <param name="requestOptions">The optional <see cref="Ceh.HttpRequestOptions"/>.</param>
         /// <param name="requestModifier">The optional <see cref="HttpRequest"/> modifier.</param>
         /// <returns>The <see cref="HttpRequest"/>.</returns>
+#if NET7_0_OR_GREATER
         public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, [StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, Ceh.HttpRequestOptions? requestOptions = null, Action<HttpRequest>? requestModifier = null)
+#else
+        public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, string? requestUri, Ceh.HttpRequestOptions? requestOptions = null, Action<HttpRequest>? requestModifier = null)
+#endif
             where TEntryPoint : class, new() where TSelf : FunctionTesterBase<TEntryPoint, TSelf>
             => tester.CreateHttpRequest(httpMethod, requestUri, requestModifier).ApplyRequestOptions(requestOptions);
 
@@ -129,7 +137,11 @@ namespace UnitTestEx
         /// <param name="body">The optional body content.</param>
         /// <param name="requestOptions">The optional <see cref="Ceh.HttpRequestOptions"/>.</param>
         /// <returns>The <see cref="HttpRequest"/>.</returns>
+#if NET7_0_OR_GREATER
         public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, [StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, string? body, Ceh.HttpRequestOptions? requestOptions = null)
+#else
+        public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, string? requestUri, string? body, Ceh.HttpRequestOptions? requestOptions = null)
+#endif
             where TEntryPoint : class, new() where TSelf : FunctionTesterBase<TEntryPoint, TSelf>
             => tester.CreateHttpRequest(httpMethod, requestUri, body, null, null).ApplyRequestOptions(requestOptions);
 
@@ -143,7 +155,11 @@ namespace UnitTestEx
         /// <param name="contentType">The content type. Defaults to <see cref="MediaTypeNames.Text.Plain"/>.</param>
         /// <param name="requestOptions">The optional <see cref="Ceh.HttpRequestOptions"/>.</param>
         /// <returns>The <see cref="HttpRequest"/>.</returns>
+#if NET7_0_OR_GREATER
         public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, [StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, string? body, string? contentType, Ceh.HttpRequestOptions? requestOptions = null)
+#else
+        public static HttpRequest CreateHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, string? requestUri, string? body, string? contentType, Ceh.HttpRequestOptions? requestOptions = null)
+#endif
             where TEntryPoint : class, new() where TSelf : FunctionTesterBase<TEntryPoint, TSelf>
             => tester.CreateHttpRequest(httpMethod, requestUri, body, contentType, null).ApplyRequestOptions(requestOptions);
 
@@ -156,7 +172,11 @@ namespace UnitTestEx
         /// <param name="value">The value to JSON serialize.</param>
         /// <param name="requestOptions">The optional <see cref="Ceh.HttpRequestOptions"/> modifier.</param>
         /// <returns>The <see cref="HttpRequest"/>.</returns>
+#if NET7_0_OR_GREATER
         public static HttpRequest CreateJsonHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, [StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, object? value, Ceh.HttpRequestOptions? requestOptions)
+#else
+        public static HttpRequest CreateJsonHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, string? requestUri, object? value, Ceh.HttpRequestOptions? requestOptions)
+#endif
             where TEntryPoint : class, new() where TSelf : FunctionTesterBase<TEntryPoint, TSelf>
             => tester.CreateJsonHttpRequest(httpMethod, requestUri, value).ApplyRequestOptions(requestOptions);
 
@@ -170,7 +190,11 @@ namespace UnitTestEx
         /// <param name="requestOptions">The optional <see cref="Ceh.HttpRequestOptions"/> modifier.</param>
         /// <param name="requestModifier">The optional <see cref="HttpRequest"/> modifier.</param>
         /// <returns>The <see cref="HttpRequest"/>.</returns>
+#if NET7_0_OR_GREATER
         public static HttpRequest CreateJsonHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, [StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, object? value, Ceh.HttpRequestOptions? requestOptions, Action<HttpRequest>? requestModifier = null)
+#else
+        public static HttpRequest CreateJsonHttpRequest<TEntryPoint, TSelf>(this FunctionTesterBase<TEntryPoint, TSelf> tester, HttpMethod httpMethod, string? requestUri, object? value, Ceh.HttpRequestOptions? requestOptions, Action<HttpRequest>? requestModifier = null)
+#endif
             where TEntryPoint : class, new() where TSelf : FunctionTesterBase<TEntryPoint, TSelf>
             => tester.CreateJsonHttpRequest(httpMethod, requestUri, value, requestModifier).ApplyRequestOptions(requestOptions);
 
@@ -200,7 +224,11 @@ namespace UnitTestEx
         /// <param name="assertor">The assertor.</param>
         /// <param name="expectedUri">The expected <see cref="Uri"/>.</param>
         /// <returns>The <see cref="ActionResultAssertor"/> to support fluent-style method-chaining.</returns>
+#if NET7_0_OR_GREATER
+        public static ActionResultAssertor AssertLocationHeader(this ActionResultAssertor assertor, [StringSyntax(StringSyntaxAttribute.Uri)] Uri expectedUri)
+#else
         public static ActionResultAssertor AssertLocationHeader(this ActionResultAssertor assertor, Uri expectedUri)
+#endif
         {
             if (assertor.Result != null && assertor.Result is ValueContentResult vcr)
                 assertor.Owner.Implementor.AssertAreEqual(expectedUri, vcr.Location, $"Expected and Actual {nameof(ValueContentResult.Location)} values are not equal.");
@@ -257,7 +285,7 @@ namespace UnitTestEx
         public static ActionResultAssertor AssertLocationHeader<TValue>(this ActionResultAssertor assertor, Func<TValue, string> expected)
             => assertor.AssertLocationHeaderContains(expected.Invoke(assertor.GetValue<TValue>()!));
 
-        #endregion
+#endregion
 
         #region GenericTesterBase
 

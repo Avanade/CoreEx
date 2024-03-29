@@ -11,6 +11,8 @@ Represents the **NuGet** versions.
   - `ValidatorStrings` have had their fallback texts added to ensure an appropriate text is output where `ITextProvider` is not available.
   - _Note:_ The above changes are to achieve a basic level of compatibility, they are not intended to implement the full capabilities of _FluentValidation_; nor, will it ever. The `CoreEx.FluentValidation` enables _FluentValidation_ to be used directly where required; also, the existing `CoreEx.Validation.InteropRule` enables interoperability between the two.
 - *Enhancement*: Added `StringSyntaxAttribute` support to improve intellisense for JSON and URI specification.
+- *Enhancement*: Added `EventPublisherHealthCheck` that will send an `EventData` message to verify that the `IEventPublisher` is functioning correctly.
+  - _Note:_ only use where the corresponding subscriber(s)/consumer(s) are aware and can ignore/filter to avoid potential downstream challenges.
 
 ## v3.15.0
 - *Enhancement*: This is a clean-up version to remove all obsolete code and dependencies. This will result in a number of minor breaking changes, but will ensure that the codebase is up-to-date and maintainable.

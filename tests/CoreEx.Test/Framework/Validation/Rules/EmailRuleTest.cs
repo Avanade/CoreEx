@@ -11,7 +11,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public void OneTimeSetUp() => CoreEx.Localization.TextProvider.SetTextProvider(new ValidationTextProvider());
 
         [Test]
-        public async Task Validate()
+        public async Task Email()
         {
             var v1 = await ((string?)null).Validate().Email().ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
@@ -35,6 +35,34 @@ namespace CoreEx.Test.Framework.Validation.Rules
             Assert.That(v1.HasErrors, Is.False);
 
             v1 = await $"mynameis@{new string('x', 500)}.com".Validate().Email(null).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+        }
+
+        [Test]
+        public async Task EmailAddress()
+        {
+            var v1 = await ((string?)null).Validate().EmailAddress().ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+
+            v1 = await "blah@.com".Validate().EmailAddress().ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+
+            v1 = await "blah.com".Validate().EmailAddress().ValidateAsync();
+            Assert.That(v1.HasErrors, Is.True);
+
+            v1 = await "@blah.com".Validate().EmailAddress().ValidateAsync();
+            Assert.That(v1.HasErrors, Is.True);
+
+            v1 = await "blah@".Validate().EmailAddress().ValidateAsync();
+            Assert.That(v1.HasErrors, Is.True);
+
+            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().EmailAddress().ValidateAsync();
+            Assert.That(v1.HasErrors, Is.True);
+
+            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().EmailAddress(null).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+
+            v1 = await $"mynameis@{new string('x', 500)}.com".Validate().EmailAddress(null).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
     }

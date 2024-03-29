@@ -56,7 +56,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> GetMappedAsync<TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected async Task<HttpResult<TResponse>> GetMappedAsync<TResponse, TResponseHttp>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => MapResponse<TResponse, TResponseHttp>(await GetAsync<TResponseHttp>(requestUri, requestOptions, args, cancellationToken).ConfigureAwait(false));
 
         #region PostMappedAsync
@@ -72,7 +76,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
+#if NET7_0_OR_GREATER
         protected Task<HttpResult> PostMappedAsync<TRequest, TRequestHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected Task<HttpResult> PostMappedAsync<TRequest, TRequestHttp>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => PostAsync(requestUri, MapRequest<TRequest, TRequestHttp>(value, OperationTypes.Create), requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -85,7 +93,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> PostMappedAsync<TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected async Task<HttpResult<TResponse>> PostMappedAsync<TResponse, TResponseHttp>(string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => MapResponse<TResponse, TResponseHttp>(await PostAsync<TResponseHttp>(requestUri, requestOptions, args, cancellationToken).ConfigureAwait(false));
 
         /// <summary>
@@ -99,7 +111,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> PostMappedAsync<TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected async Task<HttpResult<TResponse>> PostMappedAsync<TResponse, TResponseHttp>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => MapResponse<TResponse, TResponseHttp>(await PostAsync<TResponseHttp>(requestUri, content, requestOptions, args, cancellationToken).ConfigureAwait(false));
 
         /// <summary>
@@ -115,7 +131,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> PostMappedAsync<TRequest, TRequestHttp, TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected async Task<HttpResult<TResponse>> PostMappedAsync<TRequest, TRequestHttp, TResponse, TResponseHttp>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => MapResponse<TResponse, TResponseHttp>(await PostAsync<TRequestHttp, TResponseHttp>(requestUri, MapRequest<TRequest, TRequestHttp>(value, OperationTypes.Create), requestOptions, args, cancellationToken).ConfigureAwait(false));
 
         #endregion
@@ -133,7 +153,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> PutMappedAsync<TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected async Task<HttpResult<TResponse>> PutMappedAsync<TResponse, TResponseHttp>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => MapResponse<TResponse, TResponseHttp>(await PutAsync<TResponseHttp>(requestUri, content, requestOptions, args, cancellationToken).ConfigureAwait(false));
 
         /// <summary>
@@ -147,7 +171,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpResult"/>.</returns>
+#if NET7_0_OR_GREATER
         protected Task<HttpResult> PutMappedAsync<TRequest, TRequestHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected Task<HttpResult> PutMappedAsync<TRequest, TRequestHttp>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => PutAsync(requestUri, MapRequest<TRequest, TRequestHttp>(value, OperationTypes.Create), requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -163,8 +191,12 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> PutMappedAsync<TRequest, TRequestHttp, TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
-            => MapResponse<TResponse, TResponseHttp>(await PutAsync<TRequestHttp, TResponseHttp>(requestUri, MapRequest<TRequest, TRequestHttp>(value, OperationTypes.Create), requestOptions, args, cancellationToken).ConfigureAwait(false));
+#else
+        protected async Task<HttpResult<TResponse>> PutMappedAsync<TRequest, TRequestHttp, TResponse, TResponseHttp>(string requestUri, TRequest value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
+           => MapResponse<TResponse, TResponseHttp>(await PutAsync<TRequestHttp, TResponseHttp>(requestUri, MapRequest<TRequest, TRequestHttp>(value, OperationTypes.Create), requestOptions, args, cancellationToken).ConfigureAwait(false));
 
         #endregion
 
@@ -181,7 +213,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> PatchMappedAsync<TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected async Task<HttpResult<TResponse>> PatchMappedAsync<TResponse, TResponseHttp>(string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => MapResponse<TResponse, TResponseHttp>(await PatchAsync<TResponseHttp>(requestUri, content, requestOptions, args, cancellationToken));
 
         /// <summary>
@@ -196,7 +232,11 @@ namespace CoreEx.Http.Extended
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
+#if NET7_0_OR_GREATER
         protected async Task<HttpResult<TResponse>> PatchMappedAsync<TResponse, TResponseHttp>([StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpPatchOption patchOption, [StringSyntax(StringSyntaxAttribute.Json)] string json, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
+        protected async Task<HttpResult<TResponse>> PatchMappedAsync<TResponse, TResponseHttp>(string requestUri, HttpPatchOption patchOption, string json, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => MapResponse<TResponse, TResponseHttp>(await PatchAsync<TResponseHttp>(requestUri, patchOption, json, requestOptions, args, cancellationToken));
 
         #endregion
