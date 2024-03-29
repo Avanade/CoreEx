@@ -18,6 +18,7 @@ Capability | Description
 -|-
 `Name` | Gets the underlying property/value name.
 `Text` | Gets/sets the friendly text name used in validation messages.
+`WithMessage` | Sets (overrides) the error message for the rule.
 
 The following represent access to clauses/conditions (support zero or more) to determine whether the `Rule` should be invoked:
 
@@ -44,14 +45,19 @@ Rule | Description
 `DecimalRule` | Represents a numeric rule that validates `DecimalPlaces` (fractional-part length) and `MaxDigits` (being the sum of the integer-part and fractional-part lengths). 
 `DictionaryRule` | Provides dictionary (`IDictionary`) validation including `MinCount`, `MaxCount` and per item validation `DictionaryRuleItem`. 
 `DuplicateRule` | Provides validation where the rule predicate must return `false` to not be considered a duplicate. 
+`EmailRule` | Provides e-mail validation.
 `EntityRule` | Provides entity validation.
 `EnumRule` | Provides [`Enum`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum) validation to ensure that the value has been defined.
 `EnumValueRule` | Provides `string` validation against an [`Enum`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum) value.
 `ExistsRule` | Provides validation where the rule predicate must return `true` or a value to verify it exists.
 `ImmutableRule` | Provides validation where the rule predicate must return `true` to be considered valid (has not been modified).
+`InteropRule` | Provides interoperability integration with other validation frameworks.
 `MandatoryRule` | Provides mandatory validation; determined as mandatory when it contains its default value.
 `MustRule` | Provides validation where the rule predicate must return `true` to be considered valid.
-`NumericRule` | Represents a numeric rule to validate whether negatives are allowed.
+`NoneRule` | Provides a rule to ensure value is its default value (opposite of `MandatoryRule`).
+`NotNullRule` | Provides validation where the value must not be `null`.
+`NumericRule` | Represents a numeric rule to validate precision, scale and whether negatives are allowed.
+`NullRule` | Provides validation where the value must be `null`.
 `OverrideRule` | Provides the ability to override the property value.
 `ReferenceDataCodeRule` | Provides validation for a `ReferenceDataBase.Code`; validates that it exists and that the corresponding `ReferenceDataBase.IsValid`.
 `ReferenceDataRule` | Provides validation for a `ReferenceDataBase`; validates that the `ReferenceDataBase.IsValid`.
@@ -91,17 +97,37 @@ Extension method | Description | Underlying rule
 `Default()` | Adds a property value override where the current value is the default for the `Type`. | `OverrideRule`
 `Dictionary()` | Adds a *dictionary* validation. | `DictionaryRule`
 `Duplicate()` | Adds a *duplicate* validation. | `DuplicateRule`
+`Empty()` | Adds a *none* validation. | `NoneRule`
+`Email()` | Adds an *e-mail* validation. | `EmailRule`
+`EmailAddress()` | Adds an *e-mail* validation. | `EmailRule`
 `Entity()` | Adds an *entity* validation. | `EntityValidationRule`
 `Entity().With<TValidator>()` | Adds an *entity* validation. | `EntityValidationRule`
 `EntityCollection()` | Adds an *entity collection* validation. | `EntityCollectionValidationRule`
 `Enum()` | Adds an *enum* validation for an `Enum` `Type`. | `EnumRule`
 `Enum().As<TEnum>()` | Adds an *enum* validation for a `string` `Type`. | `EnumValueRule`
+`Equal()` | Adds an *equal value comparison* validation. | `CompareValueRule`
+`ExclusiveBetween()` | Adds an exclusive *between comparision* validation. | `BetweenRule`
 `Exists()` | Adds an *exists* validation. | `ExistsRule`
+`GreaterThan()` | Adds a *greater than value comparison* validation. | `CompareValueRule`
+`GreaterThanOrEqualTo()` | Adds a *greater than or equal to value comparison* validation. | `CompareValueRule`
 `Immutable()` | Adds an *immutable* validation. | `ImmutableRule`
+`InclusiveBetween()` | Adds an inclusive *between comparision* validation. | `BetweenRule`
+`IsInEnum()` | Adds an *enum* validation for an `Enum` `Type`. | `EnumRule`
 `IsValid()` | Adds a *reference data* validation. | `ReferenceDataRule`
+`LessThan()` | Adds a *less than value comparison* validation. | `CompareValueRule`
+`LessThanOrEqualTo()` | Adds a *less than or equal to value comparison* validation. | `CompareValueRule`
+`Length()` | Adds a `string` exact length validation. | `StringRule`
 `Mandatory()` | Adds a *mandatory* validation. | `MandatoryRule`
+`Matches()` | Adds a `Regex` validation. | `StringRule`
+`MaximumLength()` | Adds a `string` maximum length validation. | `StringRule`
+`MinimumLength()` | Adds a `string` minimum length validation. | `StringRule`
 `Must()` | Adds a *must* validation. | `MustRule`
+`NotEmpty()` | Adds a *mandatory* validation. | `MandatoryRule`
+`NotEqual()` | Adds a *not equal value comparison* validation. | `CompareValueRule`
+`NotNull()` | Adds a not *null* validation. | `NotNullRule`
+`None()` | Adds a *none* validation. | `NoneRule`
 `Numeric()` | Adds a *numeric* validation. | `NumericRule` or `DecimalRule`
+`Null()` | Adds a *null* validation. | `NullRule`
 `Override` | Adds a property value override. | `OverrideRule`
 `RefData().As<TRef>()` | Adds a *reference data* validation for a `string` `Type`. | `ReferenceDataCodeRule`
 `RefDataCode` | Adds a *reference data code* validation. | `ReferenceDataCodeRule`
@@ -141,6 +167,7 @@ Property | Format string
 `DuplicateFormat` | {0} already exists and would result in a duplicate.
 `DuplicateValue2Format` | {0} contains duplicates; {2} value specified more than once.
 `DuplicateValueFormat` | {0} contains duplicates; {2} value '{3}' specified more than once.
+`ExactLengthFormat` | {0} must be exactly {2} characters in length.
 `ExistsFormat` | {0} is not found; a valid value is required.
 `ImmutableFormat` | {0} is not allowed to change; please reset value.
 `InvalidFormat` | {0} is invalid.
@@ -168,11 +195,11 @@ There are multiple means to leverage the validation framework.
 
 ### Entity-based validator class
 
-The primary means for an entity-based validator is to inherit from the `Validator` class. The instance should be instantiated once (and cached) where possible as the underlying property expressions can be a relatively expensive (performance) operation.
+The primary means for an entity-based validator is to inherit from the `Validator` class (or `AbstractValidator`). The instance should be instantiated once (and cached) where possible as the underlying property expressions can be a relatively expensive (performance) operation.
 
 Additionally, the `OnValidate` method can be overridden to add more complex and/or cross-property validations as required.
 
-Each property for the entity is configured using the `Property` method and a corresponding property expression. The property expression is advantageous as the friendly text name can be inferred (in order specified):
+Each property for the entity is configured using the `Property` method (or `RuleFor`) and a corresponding property expression. The property expression is advantageous as the friendly text name can be inferred (in order specified):
 - Use the `DisplayAttribute(Name="Product Code")` value; will be: "Product Code";
 - Use the property name `string CustomerNumber { get; set; }` formatted as Sentence Case; will be "Customer Number".
 - The resulting text from above is then passed through the text localization (`LText`) resource string replacement.
@@ -207,7 +234,7 @@ var result = await new PersonValidator().ValidateAsync(person);
 
 ### Entity-based inline validator
 
-The secondary means for an entity-based validator is to define and execute inline. The `HasProperty()` is used to create a property, with a corresponding action to enable validation configuration.
+The secondary means for an entity-based validator is to define and execute inline. The `HasProperty()` is used to create a property (or `HasRuleFor`), with a corresponding action to enable validation configuration.
 
 An example is as follows:
 
@@ -333,7 +360,7 @@ public class PersonValidator : Validator<Person>
         Property(x => x.FirstName).Mandatory().String(50);
         Property(x => x.LastName).Mandatory().String(50);
         Property(x => x.Gender).Mandatory().IsValid();
-        Property(x => x.Birthday).Mandatory().CompareValue(CompareOperator.LessThanEqual, DateTime.Now, "Today");
+        Property(x => x.Birthday).Mandatory().CompareValue(CompareOperator.LessThanEqual, () => DateTime.Now, "Today");
         Property(x => x.Address).Entity().With(_addressValidator);
     }
 }

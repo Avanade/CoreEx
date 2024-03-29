@@ -155,5 +155,39 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
         }
+
+        [Test]
+        public async Task Validate_InclusiveBetween()
+        {
+            var v1 = await 1.Validate("value").InclusiveBetween(2, 10).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be between 2 and 10."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
+
+            v1 = await 10.Validate("value").InclusiveBetween(1, 10).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+        }
+
+        [Test]
+        public async Task Validate_ExclusiveBetween()
+        {
+            var v1 = await 2.Validate("value").ExclusiveBetween(2, 10).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Value must be between 2 and 10 (exclusive)."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
+            });
+
+            v1 = await 9.Validate("value").ExclusiveBetween(1, 10).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+        }
     }
 }

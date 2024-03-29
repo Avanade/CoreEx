@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -46,7 +47,11 @@ namespace CoreEx.Http
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
+#if NET7_0_OR_GREATER
+        protected Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, [StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
         protected Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string requestUri, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => CreateRequestInternalAsync(method, requestUri, null, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -59,7 +64,11 @@ namespace CoreEx.Http
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
+#if NET7_0_OR_GREATER
+        protected Task<HttpRequestMessage> CreateContentRequestAsync(HttpMethod method, [StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
         protected Task<HttpRequestMessage> CreateContentRequestAsync(HttpMethod method, string requestUri, HttpContent content, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => CreateRequestInternalAsync(method, requestUri, content, requestOptions, args, cancellationToken);
 
         /// <summary>
@@ -73,7 +82,11 @@ namespace CoreEx.Http
         /// <param name="args">Zero or more <see cref="IHttpArg"/> objects for <paramref name="requestUri"/> templating, query string additions, and content body specification.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="HttpRequestMessage"/>.</returns>
+#if NET7_0_OR_GREATER
+        protected Task<HttpRequestMessage> CreateJsonRequestAsync<TReq>(HttpMethod method, [StringSyntax(StringSyntaxAttribute.Uri)] string requestUri, TReq value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#else
         protected Task<HttpRequestMessage> CreateJsonRequestAsync<TReq>(HttpMethod method, string requestUri, TReq value, HttpRequestOptions? requestOptions = null, IEnumerable<IHttpArg>? args = null, CancellationToken cancellationToken = default)
+#endif
             => CreateContentRequestAsync(method, requestUri, new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, MediaTypeNames.Application.Json), ApplyValueETagToRequestOptions(value, requestOptions), args, cancellationToken);
 
         /// <summary>

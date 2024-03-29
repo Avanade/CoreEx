@@ -44,6 +44,20 @@ namespace CoreEx.Validation
         public LText Text { get; set; }
 
         /// <inheritdoc/>
+        public LText? ErrorText { get; set; }
+
+        /// <inheritdoc/>
+        IPropertyRule<TEntity, TProperty> IPropertyRule<TEntity, TProperty>.WithMessage(LText errorText)
+        {
+            if (_rules.Count == 0)
+                ErrorText = errorText;
+            else
+                _rules.Last().ErrorText = errorText;
+
+            return this;
+        }
+
+        /// <inheritdoc/>
         IPropertyRule<TEntity, TProperty> IPropertyRule<TEntity, TProperty>.AddRule(IValueRule<TEntity, TProperty> rule) => AddRule(rule);
 
         /// <summary>
@@ -53,6 +67,8 @@ namespace CoreEx.Validation
         /// <returns>The <see cref="PropertyRuleBase{TEntity, TProperty}"/>.</returns>
         public PropertyRuleBase<TEntity, TProperty> AddRule(IValueRule<TEntity, TProperty> rule)
         {
+            rule.ThrowIfNull(nameof(rule)).ErrorText ??= ErrorText;  // Override the rule's error text where not already overridden.
+
             _rules.Add(rule);
             return this;
         }

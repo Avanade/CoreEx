@@ -5,6 +5,7 @@ using CoreEx.Caching;
 using CoreEx.Configuration;
 using CoreEx.Entities;
 using CoreEx.Events;
+using CoreEx.Events.HealthChecks;
 using CoreEx.Events.Subscribing;
 using CoreEx.Hosting;
 using CoreEx.Hosting.Work;
@@ -16,7 +17,9 @@ using CoreEx.RefData;
 using CoreEx.RefData.HealthChecks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
@@ -376,5 +379,30 @@ namespace Microsoft.Extensions.DependencyInjection
             configure?.Invoke(sp, wso);
             return wso;
         });
+
+        /// <summary>
+        /// Adds an <see cref="EventPublisherHealthCheck"/> that will publish and send a health-check <see cref="EventData"/> (message).
+        /// </summary>
+        /// <param name="builder">The <see cref="IHealthChecksBuilder"/>.</param>
+        /// <param name="name">The health check name. Defaults to '<c>EventPublisher</c>'.</param>
+        /// <param name="eventPublisherFactory">The <see cref="IEventPublisher"/> factory.</param>
+        /// <param name="configure">The optional action to configure the <see cref="EventPublisherHealthCheckOptions"/>.</param>
+        /// <param name="failureStatus">The <see cref="HealthStatus"/> that should be reported when the health check reports a failure. If the provided value is <c>null</c>, then <see cref="HealthStatus.Unhealthy"/> will be reported.</param>
+        /// <param name="tags">A list of tags that can be used for filtering health checks.</param>
+        /// <param name="timeout">An optional <see cref="TimeSpan"/> representing the timeout of the check.</param>
+        /// <remarks>Where the <paramref name="eventPublisherFactory"/> is not specified then the registered <see cref="IEventPublisher"/> will be used.
+        /// <para><i>Note:</i> Only use where the corresponding subscriber(s)/consumer(s) are aware and can ignore/filter to avoid potential downstream challenges.</para></remarks>
+        public static IHealthChecksBuilder AddEventPublisherHealthCheck(this IHealthChecksBuilder builder, string? name = null, Func<IServiceProvider, IEventPublisher>? eventPublisherFactory = null, Action<IServiceProvider, EventPublisherHealthCheckOptions>? configure = null, HealthStatus? failureStatus = default, IEnumerable<string>? tags = default, TimeSpan? timeout = default)
+        {
+            eventPublisherFactory.ThrowIfNull(nameof(eventPublisherFactory));
+
+            return builder.Add(new HealthCheckRegistration(name ?? "EventPublisher",sp =>
+            {
+                var ep = (eventPublisherFactory is null ? sp.GetService<IEventPublisher>() : eventPublisherFactory(sp)) ?? throw new InvalidOperationException("An IEventPublisher was either not registered or the factory returned null.");
+                var hc = new EventPublisherHealthCheck(ep);
+                configure?.Invoke(sp, hc.Options);
+                return hc;
+            }, failureStatus, tags, timeout));
+        }
     }
 }

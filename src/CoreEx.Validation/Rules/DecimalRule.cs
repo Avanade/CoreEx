@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CoreEx.Validation.Rules
 {
     /// <summary>
-    /// Represents a numeric rule that validates the maximum <see cref="DecimalPlaces"/> (fractional-part length) and <see cref="MaxDigits"/> (being the sum of the integer-part and fractional-part lengths).
+    /// Represents a numeric rule that validates the maximum <see cref="DecimalPlaces"/> (fractional-part length aka scale) and <see cref="MaxDigits"/> (being the sum of the integer-part and fractional-part lengths aka precision).
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
@@ -25,7 +24,7 @@ namespace CoreEx.Validation.Rules
         public DecimalRule() => ValidateWhenDefault = false;
 
         /// <summary>
-        /// Gets or sets the maximum digits being the sum of the integer-part and fractional-part (<see cref="DecimalPlaces"/>) lengths.
+        /// Gets or sets the maximum digits being the sum of the integer-part and fractional-part (<see cref="DecimalPlaces"/>) lengths; also known as precision.
         /// </summary>
         /// <remarks>For example, to validate a number with the pattern '999.99', then <see cref="MaxDigits"/> would be 5 and <see cref="DecimalPlaces"/> would be 2. Minimum specified value is 1.</remarks>
         public int? MaxDigits
@@ -42,7 +41,7 @@ namespace CoreEx.Validation.Rules
         }
 
         /// <summary>
-        /// Gets or sets the maximum supported number of decimal places (fractional-part length).
+        /// Gets or sets the maximum supported number of decimal places (fractional-part length); also known as scale.
         /// </summary>
         /// <remarks>Minimum specified value is 0.</remarks>
         public int? DecimalPlaces

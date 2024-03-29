@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Localization;
 using CoreEx.Validation.Clauses;
 using CoreEx.Validation.Rules;
 using System;
@@ -40,5 +41,12 @@ namespace CoreEx.Validation
             AddClause(new DependsOnClause<TEntity, TDependsProperty>(expression));
             return this;
         }
+
+        /// <summary>
+        /// Sets the <see cref="ValueRuleBase{TEntity, TProperty}.ErrorText"/> for the last <see cref="AddRule(IValueRule{TEntity, TProperty})">rule</see> added.
+        /// </summary>
+        /// <param name="errorText">The error message format text.</param>
+        /// <returns>The <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
+        IPropertyRule<TEntity, TProperty> WithMessage(LText errorText);
     }
 }

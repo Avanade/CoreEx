@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions.Reflection;
+using CoreEx.Localization;
 using CoreEx.Validation.Clauses;
 using CoreEx.Validation.Rules;
 using System;
@@ -62,6 +63,11 @@ namespace CoreEx.Validation
             base.AddRule(rule);
             return this;
         }
+
+        /// <summary>
+        /// Gets or sets the error message format text (overrides the default).
+        /// </summary>
+        LText? IValueRule<TEntity, TProperty>.ErrorText { get => throw new NotSupportedException("ErrorText should not bet set directly on a PropertyRule."); set => throw new NotSupportedException("ErrorText should not bet set directly on a PropertyRule."); }
 
         /// <inheritdoc/>
         void IValueRule<TEntity, TProperty>.AddClause(IPropertyRuleClause<TEntity> clause) => AddClause(clause);

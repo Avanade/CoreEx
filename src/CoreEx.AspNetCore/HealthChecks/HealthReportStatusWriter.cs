@@ -71,6 +71,8 @@ namespace CoreEx.AspNetCore.HealthChecks
                     {
                         var settings = ExecutionContext.GetService<SettingsBase>();
                         if (settings is not null && settings.IncludeExceptionInResult)
+                            jsonWriter.WriteString("exception", e.Value.Exception?.ToString());
+                        else
                             jsonWriter.WriteString("exception", e.Value.Exception?.Message);
                     }
 

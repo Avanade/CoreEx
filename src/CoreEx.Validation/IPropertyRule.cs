@@ -27,6 +27,11 @@ namespace CoreEx.Validation
         public LText Text { get; set; }
 
         /// <summary>
+        /// Gets or sets the error message format text (overrides the default) used for all validation errors.
+        /// </summary>
+        public LText? ErrorText { get; set; }
+
+        /// <summary>
         /// Executes the validation for the property value.
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>

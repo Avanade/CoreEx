@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Localization;
 using CoreEx.Validation.Clauses;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,11 @@ namespace CoreEx.Validation.Rules
     /// <typeparam name="TProperty">The value <see cref="System.Type"/>.</typeparam>
     public interface IValueRule<TEntity, out TProperty> where TEntity : class
     {
+        /// <summary>
+        /// Gets or sets the error message format text (overrides the default).
+        /// </summary>
+        LText? ErrorText { get; set; }
+
         /// <summary>
         /// Adds a <see cref="IPropertyRuleClause{TEntity}"/>.
         /// </summary>

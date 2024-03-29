@@ -92,6 +92,33 @@ namespace CoreEx.Validation
         }
 
         /// <summary>
+        /// Adds the <see cref="PropertyRule{TEntity, TProperty}"/> to the validator enabling additional configuration via the specified <paramref name="property"/> action.
+        /// </summary>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="propertyExpression">The <see cref="Expression"/> to reference the entity property.</param>
+        /// <param name="property">The action to act on the created <see cref="PropertyRule{TEntity, TProperty}"/>.</param>
+        /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
+        /// <remarks>This is a synonym for <see cref="HasProperty{TProperty}(Expression{Func{TEntity, TProperty}}, Action{IPropertyRule{TEntity, TProperty}}?)"/>.</remarks>
+        public Validator<TEntity> HasRuleFor<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, Action<IPropertyRule<TEntity, TProperty>>? property = null) => HasProperty(propertyExpression, property);
+
+        /// <summary>
+        /// Adds a <see cref="IncludeBaseRule{TEntity, TInclude}"/> to the validator to enable a same typed validator to be included within the validator rule set.
+        /// </summary>
+        /// <param name="include">The <see cref="IValidatorEx{TInclude}"/> to include (add).</param>
+        /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
+        public Validator<TEntity> Include(IValidatorEx<TEntity> include)
+        {
+            include.ThrowIfNull(nameof(include));
+
+            if (_currentRuleSet == null)
+                Rules.Add(new IncludeBaseRule<TEntity, TEntity>(include));
+            else
+                _currentRuleSet.Rules.Add(new IncludeBaseRule<TEntity, TEntity>(include));
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a <see cref="IncludeBaseRule{TEntity, TInclude}"/> to the validator to enable a base validator to be included within the validator rule set.
         /// </summary>
         /// <typeparam name="TInclude">The include <see cref="Type"/> in which <typeparamref name="TEntity"/> inherits from.</typeparam>
@@ -105,19 +132,12 @@ namespace CoreEx.Validation
                 throw new ArgumentException($"Type {typeof(TEntity).Name} must inherit from {typeof(TInclude).Name}.", nameof(include));
 
             if (_currentRuleSet == null)
-                base.Rules.Add(new IncludeBaseRule<TEntity, TInclude>(include));
+                Rules.Add(new IncludeBaseRule<TEntity, TInclude>(include));
             else
                 _currentRuleSet.Rules.Add(new IncludeBaseRule<TEntity, TInclude>(include));
 
             return this;
         }
-
-        /// <summary>
-        /// Adds a <see cref="IncludeBaseRule{TEntity, TInclude}"/> to the validator to enable a base validator to be included within the validator rule.
-        /// </summary>
-        /// <typeparam name="TInclude">The include <see cref="Type"/> in which <typeparamref name="TEntity"/> inherits from.</typeparam>
-        /// <returns>The <see cref="Validator{TEntity}"/>.</returns>
-        public Validator<TEntity> IncludeBase<TInclude>() where TInclude : class => IncludeBase(ExecutionContext.GetRequiredService<IValidatorEx<TInclude>>()!);
 
         /// <summary>
         /// Validate the entity value (post all configured property rules) enabling additional validation logic to be added.

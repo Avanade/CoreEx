@@ -37,6 +37,15 @@ namespace CoreEx.Validation
             return rule;
         }
 
+        /// <summary>
+        /// Adds a <see cref="PropertyRule{TEntity, TProperty}"/> to the validator.
+        /// </summary>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="propertyExpression">The <see cref="Expression"/> to reference the entity property.</param>
+        /// <returns>The <see cref="PropertyRule{TEntity, TProperty}"/>.</returns>
+        /// <remarks>This is a synonym for <see cref="Property{TProperty}(Expression{Func{TEntity, TProperty}})"/> to enable <see href="https://docs.fluentvalidation.net/en/latest/">FluentValidation</see> syntax.</remarks>
+        public virtual IPropertyRule<TEntity, TProperty> RuleFor<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression) => Property(propertyExpression);
+
         /// <inheritdoc/>
         public virtual Task<ValidationContext<TEntity>> ValidateAsync(TEntity value, ValidationArgs? args, CancellationToken cancellationToken = default) => throw new NotSupportedException("Validate is not supported by this class.");
     }

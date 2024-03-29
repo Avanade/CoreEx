@@ -192,6 +192,9 @@
   <data name="CoreEx.Validation.EmailFormat" xml:space="preserve">
     <value>{0} is not a valid e-mail address.</value>
   </data>
+  <data name="CoreEx.Validation.ExactLengthFormat" xml:space="preserve">
+    <value>{0} must be exactly {2} characters in length.</value>
+  </data>
   <data name="CoreEx.Validation.ExistsFormat" xml:space="preserve">
     <value>{0} is not found; a valid value is required.</value>
   </data>
