@@ -23,6 +23,8 @@ namespace CoreEx.Azure.Storage
         private readonly TableClient _workStateTableClient;
         private readonly TableClient _workDataTableClient;
         private readonly IJsonSerializer _jsonSerializer;
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
+        private volatile bool _firstTime = true;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TableWorkStatePersistence"/> class.
@@ -84,6 +86,7 @@ namespace CoreEx.Azure.Storage
             private const int _maxChunks = 15;
             private const int _maxSize = _chunkSize * _maxChunks;
             private readonly BinaryData?[] _data = new BinaryData?[_maxChunks];
+
             public WorkDataEntity(BinaryData data) : this()
             {
                 var arr = data.ToArray();
@@ -101,6 +104,7 @@ namespace CoreEx.Azure.Storage
                     _data[i++] = BinaryData.FromBytes(chunk);
                 }
             }
+
             public string PartitionKey { get; set; } = GetPartitionKey();
             public string RowKey { get; set; } = null!;
             public DateTimeOffset? Timestamp { get; set; }
@@ -149,9 +153,35 @@ namespace CoreEx.Azure.Storage
         /// </summary>
         private static string GetPartitionKey() => (ExecutionContext.HasCurrent ? ExecutionContext.Current.TenantId : null) ?? "default";
 
+        /// <summary>
+        /// Creates the tables if they do not already exist.
+        /// </summary>
+        private async Task CreateIfNotExistsAsync(CancellationToken cancellationToken)
+        {
+            if (_firstTime)
+            {
+                await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    if (_firstTime)
+                    {
+                        await _workDataTableClient.CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+                        await _workStateTableClient.CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+                        _firstTime = false;
+                    }
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            }
+        }
+
         /// <inheritdoc/>
         public async Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken)
         {
+            await CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+
             var er = await _workStateTableClient.GetEntityIfExistsAsync<WorkStateEntity>(GetPartitionKey(), id, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (!er.HasValue)
                 return null;
@@ -182,12 +212,16 @@ namespace CoreEx.Azure.Storage
         /// <summary>
         /// Performs an upsert (create/update).
         /// </summary>
-        private async Task UpsertAsync(WorkState state, CancellationToken cancellationToken)  
-            => await _workStateTableClient.UpsertEntityAsync(new WorkStateEntity(state), TableUpdateMode.Replace, cancellationToken).ConfigureAwait(false);
+        private async Task UpsertAsync(WorkState state, CancellationToken cancellationToken)
+        {
+            await CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+            await _workStateTableClient.UpsertEntityAsync(new WorkStateEntity(state), TableUpdateMode.Replace, cancellationToken).ConfigureAwait(false);
+        }
 
         /// <inheritdoc/>
         public async Task DeleteAsync(string id, CancellationToken cancellationToken)
         {
+            await CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
             await _workDataTableClient.DeleteEntityAsync(GetPartitionKey(), id, cancellationToken: cancellationToken).ConfigureAwait(false);
             await _workStateTableClient.DeleteEntityAsync(GetPartitionKey(), id, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -195,12 +229,17 @@ namespace CoreEx.Azure.Storage
         /// <inheritdoc/>
         public async Task<BinaryData?> GetDataAsync(string id, CancellationToken cancellationToken)
         {
+            await CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+
             var er = await _workDataTableClient.GetEntityIfExistsAsync<WorkDataEntity>(GetPartitionKey(), id, cancellationToken: cancellationToken).ConfigureAwait(false);
             return er.HasValue ? er.Value!.ToSingleData() : null;
         }
 
         /// <inheritdoc/>
-        public Task SetDataAsync(string id, BinaryData data, CancellationToken cancellationToken)
-            => _workDataTableClient.UpsertEntityAsync(new WorkDataEntity(data) { PartitionKey = GetPartitionKey(), RowKey = id }, TableUpdateMode.Replace, cancellationToken: cancellationToken);
+        public async Task SetDataAsync(string id, BinaryData data, CancellationToken cancellationToken)
+        {
+            await CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+            await _workDataTableClient.UpsertEntityAsync(new WorkDataEntity(data) { PartitionKey = GetPartitionKey(), RowKey = id }, TableUpdateMode.Replace, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
     }
 }

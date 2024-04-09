@@ -2,6 +2,20 @@
 
 Represents the **NuGet** versions.
 
+## v3.17.0
+- *Enhancement*: Additional `CoreEx.Validation` usability improvements:
+  - `Validator.CreateFor<T>` added to enable the creation of a `CommonValidator<T>` instance for a specified type `T` (more purposeful name); synonym for existing `CommonValidator.Create<T>` (unchanged).
+  - `Validator.Null<T>` added to enable simplified specification of a `IValidatorEx<T>` of `null` to avoid explicit `null` casting.
+  - `Collection` extension method has additional overload to pass in the `IValidatorEx<TItem>` to use for each item in the collection; versus, having to use `CollectionRuleItem.Create`.
+  - `Dictionary` extension method has additional overload to pass in the `IValidatorEx<TKey>` and `IValidator<TValue>` to use for each entry in the dictionary; versus, having to use `DictionaryRuleItem.Create`.
+  - `MinimumCount` and `MaximumCount` extension methods for `ICollection` added to enable explicit specification of these two basic validations. 
+  - `Validation.CreateCollection` renamed to `Validation.CreateForCollection` and creates a `CommonValidator<TColl>`.
+	- Existing `CollectionValidator` deprecated as the `CommonValidator<TColl>` offers same; removes duplication of capability.
+  - `Validation.CreateDictionary` renamed to `Validation.CreateForDictionary` and creates a `CommonValidator<TDict>`.
+	- Existing `DictionaryValidator` deprecated as the `CommonValidator<TDict>` offers same; removes duplication of capability.
+- *Enhancement*: Added `ServiceBusReceiverHealthCheck` to perform a peek message on the `ServiceBusReceiver` as a means to determine health. Use `IHealthChecksBuilder.AddServiceBusReceiverHealthCheck` to configure. 
+- *Fixed:* The `FileLockSynchronizer`, `BlobLeaseSynchronizer` and `TableWorkStatePersistence` have had any file/blob/table validations/manipulations moved from the constructor to limit critical failures at startup from a DI perspective; now only performed where required/used. This also allows improved health check opportunities as means to verify.
+
 ## v3.16.0
 - *Enhancement*: Added basic [FluentValidator](https://docs.fluentvalidation.net/en/latest/) compatibility to the `CoreEx.Validation` by supporting _key_ (common) named capabilities:
   - `AbstractValidator<T>` added as a wrapper for `Validator<T>`; with both supporting `RuleFor` method (wrapper for existing `Property`).

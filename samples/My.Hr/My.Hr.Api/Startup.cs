@@ -5,6 +5,9 @@ using Azure.Monitor.OpenTelemetry.AspNetCore;
 using OpenTelemetry.Trace;
 using Az = Azure.Messaging.ServiceBus;
 using CoreEx.Database.HealthChecks;
+using CoreEx.Azure.ServiceBus.HealthChecks;
+using Azure.Messaging.ServiceBus;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace My.Hr.Api;
 
@@ -51,8 +54,8 @@ public class Startup
 
         // Register the health checks.
         services
-            .AddHealthChecks();
-            //.AddTypeActivatedCheck<AzureServiceBusQueueHealthCheck>("Verification Queue", HealthStatus.Unhealthy, nameof(HrSettings.ServiceBusConnection), nameof(HrSettings.VerificationQueueName))
+            .AddHealthChecks()
+            .AddServiceBusReceiverHealthCheck(sp => sp.GetRequiredService<Az.ServiceBusClient>().CreateReceiver(sp.GetRequiredService<HrSettings>().VerificationQueueName), "verification-queue");
 
         services.AddControllers();
 

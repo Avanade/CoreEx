@@ -37,8 +37,6 @@ namespace CoreEx.Azure.Storage
         public BlobLeaseSynchronizer(BlobContainerClient client)
         { 
             _client = client.ThrowIfNull(nameof(client));
-            _client.CreateIfNotExists();
-
             _timer = new Lazy<Timer>(() => new Timer(_ =>
             {
                 foreach (var kvp in _dict.ToArray())
@@ -74,6 +72,8 @@ namespace CoreEx.Azure.Storage
 
                 _dict.GetOrAdd(GetName<T>(name), fn =>
                 {
+                    _client.CreateIfNotExists();
+
                     var blob = _client.GetBlobClient(GetName<T>(name));
                     try
                     {

@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions.Reflection;
 using CoreEx.Localization;
 using CoreEx.Results;
 using System;
@@ -23,10 +22,22 @@ namespace CoreEx.Validation
         /// </summary>
         public CommonValidator() : base(Validation.ValueNameDefault) { }
 
+        /// <summary>
+        /// Enables the validator to be further configured.
+        /// </summary>
+        /// <param name="validator">An action with the <see cref="CommonValidator{T}"/> to enable further configuration.</param>
+        /// <returns>The validator to support fluent-style method-chaining.</returns>
+        public CommonValidator<T> Configure(Action<CommonValidator<T>>? validator)
+        {
+            validator?.Invoke(this);
+            return this;
+        }
+
         /// <inheritdoc/>
+        /// <remarks>This method is <b>not supported</b> and as such will throw a <see cref="NotSupportedException"/>.</remarks>
         /// <exception cref="NotSupportedException"/>
         public override Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException("The ValidateAsync method is not supported for a CommonValueRule<T>.");
+            => throw new NotSupportedException("The ValidateAsync(CancellationToken) method is not supported for a CommonValidator<T> as no value has been specified; please use other overloads.");
 
         /// <summary>
         /// Validates the value.
@@ -86,7 +97,7 @@ namespace CoreEx.Validation
             var vc = new ValidationContext<ValidationValue<T>>(vv, new ValidationArgs
             {
                 Config = context.Parent.Config,
-                SelectedPropertyName = context.Name,
+                SelectedPropertyName = context.Parent.SelectedPropertyName,
                 FullyQualifiedEntityName = context.Parent.FullyQualifiedEntityName,
                 FullyQualifiedJsonEntityName = context.Parent.FullyQualifiedJsonEntityName,
                 UseJsonNames = context.UseJsonName

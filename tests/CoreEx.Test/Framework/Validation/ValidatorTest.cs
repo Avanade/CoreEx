@@ -489,7 +489,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_MaxCount()
         {
-            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()));
+            var vxc = Validator.CreateForCollection<List<TestItem>>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()));
             var tc = new List<TestItem> { new() { Id = "A", Text = "aaa" }, new() { Id = "B", Text = "bbb" }, new() { Id = "C", Text = "ccc" } };
 
             var r = await vxc.ValidateAsync(tc);
@@ -513,7 +513,25 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_MinCount()
         {
-            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 3, item: CollectionRuleItem.Create(new TestItemValidator()));
+            var vxc = Validator.CreateForCollection<List<TestItem>, TestItem>(new TestItemValidator(), minCount: 3);
+            var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
+
+            var r = await vxc.ValidateAsync(tc);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Text, Is.EqualTo("Value must have at least 3 item(s)."));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
+        }
+
+        [Test]
+        public async Task Coll_Validator_MinCount2()
+        {
+            var vxc = Validator.CreateFor<List<TestItem>>().Collection(new TestItemValidator(), minCount: 3).AsCommonValidator();
             var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
 
             var r = await vxc.ValidateAsync(tc);
@@ -531,7 +549,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_Duplicate()
         {
-            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
+            var vxc = Validator.CreateForCollection<List<TestItem>>(item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
             var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "A", Text = "A" } };
 
             var r = await vxc.ValidateAsync(tc);
@@ -549,7 +567,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_OK()
         {
-            var vxc = Validator.CreateCollection<List<TestItem>, TestItem>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
+            var vxc = Validator.CreateForCollection<List<TestItem>>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
             var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
 
             var r = await vxc.ValidateAsync(tc);
@@ -560,7 +578,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_Int_OK()
         {
-            var vxc = Validator.CreateCollection<List<int>, int>(minCount: 1, maxCount: 5);
+            var vxc = Validator.CreateForCollection<List<int>>(minCount: 1, maxCount: 5);
             var ic = new List<int> { 1, 2, 3, 4, 5 };
 
             var r = await vxc.ValidateAsync(ic);
@@ -571,7 +589,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_Int_Error()
         {
-            var vxc = Validator.CreateCollection<List<int>, int>(minCount: 1, maxCount: 3);
+            var vxc = Validator.CreateFor<List<int>>(v => v.Collection(1, 3));
             var ic = new List<int> { 1, 2, 3, 4, 5 };
 
             var r = await vxc.ValidateAsync(ic);
@@ -589,7 +607,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Dict_Validator_MaxCount()
         {
-            var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 1, maxCount: 2, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
+            var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>>(minCount: 1, maxCount: 2, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "aaa" } }, { "k2", new TestItem { Id = "B", Text = "bbb" } }, { "k3", new TestItem { Id = "C", Text = "ccc" } } };
 
             var r = await vxd.ValidateAsync(tc);
@@ -613,7 +631,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Dict_Validator_MinCount()
         {
-            var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 3, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
+            var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>>(minCount: 3, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2", new TestItem { Id = "B", Text = "B" } } };
 
             var r = await vxd.ValidateAsync(tc);
@@ -631,7 +649,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Dict_Validator_OK()
         {
-            var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 2, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
+            var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>, string, TestItem>(new TestItemValidator(), minCount: 2);
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2", new TestItem { Id = "B", Text = "B" } } };
 
             var r = await vxd.ValidateAsync(tc);
@@ -642,7 +660,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Dict_Validator_Int_OK()
         {
-            var vxd = Validator.CreateDictionary<Dictionary<string, int>, string, int>(minCount: 1, maxCount: 5);
+            var vxd = Validator.CreateForDictionary<Dictionary<string, int>>(minCount: 1, maxCount: 5);
             var id = new Dictionary<string, int> { { "k1", 1 }, { "k2", 2 }, { "k3", 3 }, { "k4", 4 }, { "k5", 5 } };
 
             var r = await vxd.ValidateAsync(id);
@@ -653,7 +671,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Dict_Validator_Int_Error()
         {
-            var vxd = Validator.CreateDictionary<Dictionary<string, int>, string, int>(minCount: 1, maxCount: 3);
+            var vxd = Validator.CreateForDictionary<Dictionary<string, int>>(minCount: 1, maxCount: 3);
             var id = new Dictionary<string, int> { { "k1", 1 }, { "k2", 2 }, { "k3", 3 }, { "k4", 4 }, { "k5", 5 } };
 
             var r = await vxd.ValidateAsync(id);
@@ -671,9 +689,8 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Dict_Validator_KeyError()
         {
-            var kv = CommonValidator.Create<string?>(x => x.Text("Key").Mandatory().String(2));
-
-            var vxd = Validator.CreateDictionary<Dictionary<string, TestItem>, string, TestItem>(minCount: 2, item: DictionaryRuleItem.Create(key: kv, value: new TestItemValidator()));
+            var kv = CommonValidator.Create<string>(x => x.Text("Key").Mandatory().String(2));
+            var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>, string, TestItem>(kv, new TestItemValidator(), minCount: 2);
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2x", new TestItem { Id = "B", Text = "B" } } };
 
             var r = await vxd.ValidateAsync(tc);

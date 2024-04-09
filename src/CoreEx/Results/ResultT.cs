@@ -155,7 +155,7 @@ namespace CoreEx.Results
         public static explicit operator Result(Result<T> result) => result.Bind();
 
         /// <summary>
-        /// Implicityly converts a <see cref="Value"/> to a <see cref="Result{T}"/> as <see cref="IsSuccess"/>.
+        /// Implicitly converts a <see cref="Value"/> to a <see cref="Result{T}"/> as <see cref="IsSuccess"/>.
         /// </summary>
         /// <param name="value">The underlying value.</param>
         public static implicit operator Result<T>(T value) => Result<T>.Ok(value);

@@ -35,8 +35,7 @@ namespace CoreEx.Events.Subscribing
         protected IValidator<TValue>? ValueValidator { get; set; } = valueValidator;
 
         /// <inheritdoc/>
-        /// <remarks>Caution where overridding this method as it contains the underlying functionality to invoke <see cref="ReceiveAsync(EventData{TValue}, EventSubscriberArgs, CancellationToken)"/> that is the <i>required</i> method to be overridden.</remarks>
-        public async override Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken)
+        public async sealed override Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken)
         {
             return await Result.Go(@event.ThrowIfNull(nameof(@event)))
                 .When(ed => ValueIsRequired && ed.Value is null, _ => Result<EventData>.ValidationError(EventSubscriberBase.RequiredErrorText))

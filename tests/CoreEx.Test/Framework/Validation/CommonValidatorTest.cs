@@ -13,8 +13,8 @@ namespace CoreEx.Test.Framework.Validation
         [OneTimeSetUp]
         public void OneTimeSetUp() => CoreEx.Localization.TextProvider.SetTextProvider(new ValidationTextProvider());
 
-        private static readonly CommonValidator<string> _cv = Validator.CreateCommon<string>(v => v.String(5).Must(x => x.Value != "XXXXX"));
-        private static readonly CommonValidator<int?> _cv2 = Validator.CreateCommon<int?>(v => v.Mandatory().CompareValue(CompareOperator.NotEqual, 1));
+        private static readonly CommonValidator<string> _cv = Validator.CreateFor<string>(v => v.String(5).Must(x => x.Value != "XXXXX"));
+        private static readonly CommonValidator<int?> _cv2 = Validator.CreateFor<int?>(v => v.Mandatory().CompareValue(CompareOperator.NotEqual, 1));
 
         [Test]
         public async Task Validate()
@@ -122,7 +122,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Common_FailureResult_ViaAdditional()
         {
-            var cv = Validator.CreateCommon<string>(v => v.String(5)).AdditionalAsync((c, _) => Task.FromResult(Result.NotFoundError()));
+            var cv = Validator.CreateFor<string>(v => v.String(5)).AdditionalAsync((c, _) => Task.FromResult(Result.NotFoundError()));
             var r = await cv.ValidateAsync("abc");
 
             Assert.That(r, Is.Not.Null);
@@ -138,7 +138,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Common_FailureResult_ViaCustom()
         {
-            var cv = Validator.CreateCommon<string>(v => v.String(5).Custom(ctx => Result.NotFoundError()));
+            var cv = CommonValidator.Create<string>(v => v.String(5).Custom(ctx => Result.NotFoundError()));
             var r = await cv.ValidateAsync("abc");
 
             Assert.That(r, Is.Not.Null);
@@ -154,7 +154,7 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Common_FailureResult_WithOwningValidator()
         {
-            var cv = Validator.CreateCommon<string>(v => v.String(5).Custom(ctx => Result.NotFoundError()));
+            var cv = CommonValidator.Create<string>(v => v.String(5).Custom(ctx => Result.NotFoundError()));
             var pv = Validator.Create<Person>().HasProperty(x => x.Name, p => p.Common(cv));
 
             var p = new Person { Name = "abc" };
@@ -167,6 +167,23 @@ namespace CoreEx.Test.Framework.Validation
             });
             Assert.That(r.FailureResult!.Value.Error, Is.Not.Null.And.TypeOf<NotFoundException>());
             Assert.Throws<NotFoundException>(() => r.ThrowOnError());
+        }
+
+        [Test]
+        public async Task CreateFor()
+        {
+            var cv = Validator.CreateFor<string>().Configure(v => v.MaximumLength(5));
+            var r = await cv.ValidateAsync("abcdef");
+
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Value must not exceed 5 characters in length."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
+            });
         }
 
         public class Person

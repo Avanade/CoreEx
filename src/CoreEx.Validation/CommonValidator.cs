@@ -5,20 +5,16 @@ using System;
 namespace CoreEx.Validation
 {
     /// <summary>
-    /// Provides access to the common validator capabilities.
+    /// Provides access to the common value validator capabilities.
     /// </summary>
     public static class CommonValidator
     {
         /// <summary>
-        /// Creates a new instance of the <see cref="CommonValidator{T}"/>.
+        /// Create a new instance of the <see cref="CommonValidator{T}"/>.
         /// </summary>
-        /// <param name="validator">An action with the <see cref="CommonValidator{T}"/>.</param>
+        /// <param name="configure">An action with the <see cref="CommonValidator{T}"/> to enable further configuration.</param>
         /// <returns>The <see cref="CommonValidator{T}"/>.</returns>
-        public static CommonValidator<T> Create<T>(Action<CommonValidator<T>> validator)
-        {
-            var cv = new CommonValidator<T>();
-            validator?.Invoke(cv);
-            return cv;
-        }
+        /// <remarks>This is a synonym for the <see cref="Validator.CreateFor{T}(Action{CommonValidator{T}})"/>.</remarks>
+        public static CommonValidator<T> Create<T>(Action<CommonValidator<T>>? configure = null) => new CommonValidator<T>().Configure(configure);
     }
 }

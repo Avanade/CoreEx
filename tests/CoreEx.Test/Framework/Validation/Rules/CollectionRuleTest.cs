@@ -97,12 +97,31 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_ItemInt()
         {
-            var iv = Validator.CreateCommon<int>(r => r.Text("Number").CompareValue(CompareOperator.LessThanEqual, 5));
+            var iv = Validator.CreateFor<int>(r => r.Text("Number").CompareValue(CompareOperator.LessThanEqual, 5));
 
             var v1 = await new int[] { 1, 2, 3, 4, 5 }.Validate("value").Collection(item: CollectionRuleItem.Create(iv)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
             v1 = await new int[] { 6, 2, 3, 4, 5 }.Validate("value").Collection(item: CollectionRuleItem.Create(iv)).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Number must be less than or equal to 5."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("value[0]"));
+            });
+        }
+
+        [Test]
+        public async Task Validate_ItemInt2()
+        {
+            var iv = Validator.CreateFor<int>(r => r.Text("Number").LessThanOrEqualTo(5));
+
+            var v1 = await new int[] { 1, 2, 3, 4, 5 }.Validate("value").Collection(iv).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+
+            v1 = await new int[] { 6, 2, 3, 4, 5 }.Validate("value").Collection(iv).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -263,12 +282,29 @@ namespace CoreEx.Test.Framework.Validation.Rules
         }
 
         [Test]
-        public async Task Validate_Ints()
+        public async Task Validate_Ints_MinCount()
         {
-            var v1 = await new int[] { 1, 2, 3, 4 }.Validate(name: "Array").Collection(maxCount: 5).ValidateAsync();
+            var v1 = await new int[] { 1, 2, 3, 4 }.Validate(name: "Array").MinimumCount(4).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await new int[] { 1, 2, 3, 4 }.Validate(name: "Array").Collection(maxCount: 3).ValidateAsync();
+            v1 = await new int[] { 1, 2, 3, 4 }.Validate(name: "Array").MinimumCount(5).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Array must have at least 5 item(s)."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("Array"));
+            });
+        }
+
+        [Test]
+        public async Task Validate_Ints2_MaxCount()
+        {
+            var v1 = await new int[] { 1, 2, 3, 4 }.Validate(name: "Array").MaximumCount(5).ValidateAsync();
+            Assert.That(v1.HasErrors, Is.False);
+
+            v1 = await new int[] { 1, 2, 3, 4 }.Validate(name: "Array").MaximumCount(3).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

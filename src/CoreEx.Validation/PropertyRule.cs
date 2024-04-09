@@ -79,6 +79,8 @@ namespace CoreEx.Validation
         Task IValueRule<TEntity, TProperty>.ValidateAsync(IPropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken) => throw new NotSupportedException("A property value validation should not occur directly on a PropertyRule.");
 
         /// <inheritdoc/>
+        /// <remarks>This method is <b>not supported</b> and as such will throw a <see cref="NotSupportedException"/>.</remarks>
+        /// <exception cref="NotSupportedException"/>
         public override Task<ValueValidatorResult<TEntity, TProperty>> ValidateAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException("The ValidateAsync method is not supported for a PropertyRule<TEntity, TProperty>.");
     }
 }
