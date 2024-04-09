@@ -35,7 +35,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 var hc = healthCheck ? new TimerHostedServiceHealthCheck() : null;
                 if (hc is not null)
                 {
-                    var sb = new StringBuilder("EventOutbox");
+                    var sb = new StringBuilder("sql-server-event-outbox");
                     if (partitionKey is not null)
                         sb.Append($"-PartitionKey-{partitionKey}");
 

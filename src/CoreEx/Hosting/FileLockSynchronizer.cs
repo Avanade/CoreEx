@@ -13,35 +13,24 @@ namespace CoreEx.Hosting
     /// </summary>
     /// <remarks>A lock file is created per <see cref="Type"/> with a name of <see cref="Type.FullName"/> and extension of '.lock'; e.g. '<c>Namespace.Class.lock</c>'. For this to function correctly all running
     /// instances must be referencing the same shared directory as specified by the <see cref="ConfigKey"/> (see <see cref="SettingsBase.GetValue{T}(string, T)"/>).</remarks>
-    public class FileLockSynchronizer : IServiceSynchronizer
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    public class FileLockSynchronizer(SettingsBase settings) : IServiceSynchronizer
     {
         /// <summary>
         /// Gets the configuration key that defines the directory path for the exclusive lock files.
         /// </summary>
         public const string ConfigKey = "FileLockSynchronizerPath";
 
-        private readonly string _path;
+        private readonly string _path = settings.ThrowIfNull(nameof(settings)).GetValue<string>(ConfigKey) ?? throw new ArgumentException($"Configuration setting '{ConfigKey}' either does not exist or has no value.", nameof(settings));
         private readonly ConcurrentDictionary<string, FileStream> _dict = new();
         private bool _disposed;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FileLockSynchronizer"/> class.
-        /// </summary>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        public FileLockSynchronizer(SettingsBase settings)
-        {
-            _path = settings.ThrowIfNull(nameof(settings)).GetValue<string>(ConfigKey);
-
-            if (string.IsNullOrEmpty(_path))
-                throw new ArgumentException($"Configuration setting '{ConfigKey}' either does not exist or has no value.", nameof(settings));
-
-            if (!Directory.Exists(_path))
-                throw new ArgumentException($"Configuration setting '{ConfigKey}' path does not exist: {_path}");
-        }
 
         /// <inheritdoc/>
         public bool Enter<T>(string? name = null)
         {
+            if (!Directory.Exists(_path))
+                throw new ArgumentException($"Configuration setting '{ConfigKey}' path does not exist: {_path}");
+
             var fn = Path.Combine(_path, $"{typeof(T).FullName}{(name == null ? "" : $".{name}")}.lock");
 
             try

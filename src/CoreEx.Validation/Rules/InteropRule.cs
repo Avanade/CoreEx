@@ -15,7 +15,7 @@ namespace CoreEx.Validation.Rules
     public class InteropRule<TEntity, TProperty, TValidator> : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : class? where TValidator : IValidator
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntityRule{TEntity, TProperty, TValidator}"/> class.
+        /// Initializes a new instance of the <see cref="InteropRule{TEntity, TProperty, TValidator}"/> class.
         /// </summary>
         /// <param name="validatorFunc">The function to return the <see cref="IValidator"/>.</param>
         public InteropRule(Func<TValidator> validatorFunc)
@@ -45,6 +45,12 @@ namespace CoreEx.Validation.Rules
                 return;
 
             var v = ValidatorFunc() ?? throw new InvalidOperationException($"The {nameof(ValidatorFunc)} must return a non-null value.");
+            if (v is CommonValidator<TProperty> cv) // Common validators need the originating context for best results.
+            {
+                await cv.ValidateAsync(context, cancellationToken).ConfigureAwait(false); 
+                return;
+            }
+
             if (v is IValidatorEx vex) // Use the "better" validator to enable.
             {
                 // Create the context args.

@@ -1298,10 +1298,10 @@ namespace CoreEx.Validation
         #region Collection
 
         /// <summary>
-        /// Adds a collection (<see cref="System.Collections.IEnumerable"/>) validation (see <see cref="CollectionRule{TEntity, TProperty}"/>).
+        /// Adds a collection (<see cref="System.Collections.IEnumerable"/>) validation (see <see cref="CollectionRule{TEntity, TProperty}"/>) where the <see cref="ICollectionRuleItem"/> can be specified.
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TProperty"></typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="minCount">The minimum count.</param>
         /// <param name="maxCount">The maximum count.</param>
@@ -1314,15 +1314,55 @@ namespace CoreEx.Validation
             return rule.ThrowIfNull(nameof(rule)).AddRule(cr);
         }
 
+        /// <summary>
+        /// Adds a collection (<see cref="System.Collections.IEnumerable"/>) validation (see <see cref="CollectionRule{TEntity, TProperty}"/>) for the specified <paramref name="itemValidator"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TItem">The property item <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="itemValidator">The property item <see cref="IValidatorEx{T}"/>.</param>
+        /// <param name="minCount">The minimum count.</param>
+        /// <param name="maxCount">The maximum count.</param>
+        /// <param name="allowNullItems">Indicates whether the underlying collection item must not be null.</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Collection<TEntity, TProperty, TItem>(this IPropertyRule<TEntity, TProperty> rule, IValidatorEx<TItem> itemValidator, int minCount = 0, int? maxCount = null, bool allowNullItems = false) where TEntity : class where TProperty : IEnumerable<TItem>?
+        {
+            var cr = new CollectionRule<TEntity, TProperty> { MinCount = minCount, MaxCount = maxCount, Item = CollectionRuleItem.Create(itemValidator), AllowNullItems = allowNullItems };
+            return rule.ThrowIfNull(nameof(rule)).AddRule(cr);
+        }
+
+        /// <summary>
+        /// Adds a collection (<see cref="System.Collections.ICollection"/>) minimum count validation (see <see cref="CollectionRule{TEntity, TProperty}.MinCount"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="minCount">The minimum count.</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> MinimumCount<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, int minCount) where TEntity : class where TProperty : System.Collections.ICollection?
+            => Collection(rule, minCount, null, null, true);
+
+        /// <summary>
+        /// Adds a collection (<see cref="System.Collections.ICollection"/>) maximum count validation (see <see cref="CollectionRule{TEntity, TProperty}.MaxCount"/>).
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="maxCount">The maximum count.</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> MaximumCount<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, int maxCount) where TEntity : class where TProperty : System.Collections.ICollection?
+            => Collection(rule, 0, maxCount, null, true);
+
         #endregion
 
         #region Dictionary
 
         /// <summary>
-        /// Adds a dictionary (<see cref="System.Collections.IDictionary"/>) validation (see <see cref="DictionaryRule{TEntity, TProperty}"/>).
+        /// Adds a dictionary (<see cref="System.Collections.IDictionary"/>) validation (see <see cref="DictionaryRule{TEntity, TProperty}"/>) where the <see cref="IDictionaryRuleItem"/> can be specified.
         /// </summary>
         /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TProperty"></typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
         /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
         /// <param name="minCount">The minimum count.</param>
         /// <param name="maxCount">The maximum count.</param>
@@ -1333,6 +1373,27 @@ namespace CoreEx.Validation
         public static IPropertyRule<TEntity, TProperty> Dictionary<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, int minCount = 0, int? maxCount = null, IDictionaryRuleItem? item = null, bool allowNullKeys = false, bool allowNullValues = false) where TEntity : class where TProperty : System.Collections.IDictionary?
         {
             var cr = new DictionaryRule<TEntity, TProperty> { MinCount = minCount, MaxCount = maxCount, Item = item, AllowNullKeys = allowNullKeys, AllowNullValues = allowNullValues };
+            return rule.ThrowIfNull(nameof(rule)).AddRule(cr);
+        }
+
+        /// <summary>
+        /// Adds a dictionary (<see cref="System.Collections.Generic.Dictionary{TKey, TValue}"/>) validation (see <see cref="DictionaryRule{TEntity, TProperty}"/>) for the specified <paramref name="keyValidator"/> and <paramref name="valueValidator"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TKey">The key <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <param name="keyValidator">The key <see cref="IValidatorEx{T}"/>.</param>
+        /// <param name="valueValidator">The value <see cref="IValidatorEx{T}"/>.</param>
+        /// <param name="minCount">The minimum count.</param>
+        /// <param name="maxCount">The maximum count.</param>
+        /// <param name="allowNullKeys">Indicates whether the underlying dictionary keys must not be null.</param>
+        /// <param name="allowNullValues">Indicates whether the underlying dictionary values must not be null.</param>
+        /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
+        public static IPropertyRule<TEntity, TProperty> Dictionary<TEntity, TProperty, TKey, TValue>(this IPropertyRule<TEntity, TProperty> rule, IValidatorEx<TKey>? keyValidator, IValidatorEx<TValue>? valueValidator, int minCount = 0, int? maxCount = null, bool allowNullKeys = false, bool allowNullValues = false) where TEntity : class where TProperty : Dictionary<TKey, TValue>? where TKey : notnull
+        {
+            var cr = new DictionaryRule<TEntity, TProperty> { MinCount = minCount, MaxCount = maxCount, Item = DictionaryRuleItem.Create(keyValidator, valueValidator), AllowNullKeys = allowNullKeys, AllowNullValues = allowNullValues };
             return rule.ThrowIfNull(nameof(rule)).AddRule(cr);
         }
 
@@ -1528,6 +1589,40 @@ namespace CoreEx.Validation
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
         public static ValueValidator<T?> Validate<T>(this T? value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) => new(value, name, text);
 #endif
+
+        #endregion
+
+        #region As
+
+        /// <summary>
+        /// Cast the <paramref name="rule"/> to the originating <see cref="CommonValidator{T}"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <returns>The <paramref name="rule"/> cast to a <see cref="CommonValidator{T}"/>; otherwise, throws an <see cref="InvalidCastException"/>.</returns>
+        public static CommonValidator<TProperty> AsCommonValidator<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
+            => rule is CommonValidator<TProperty> cv ? cv : throw new InvalidCastException("The rule is not an instance of CommonValidator<TEntity>.");
+
+        /// <summary>
+        /// Cast the <paramref name="rule"/> to the originating <see cref="ValueValidator{T}"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <returns>The <paramref name="rule"/> cast to a <see cref="ValueValidator{T}"/>; otherwise, throws an <see cref="InvalidCastException"/>.</returns>
+        public static ValueValidator<TProperty> AsValueValidator<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
+            => rule is ValueValidator<TProperty> vv ? vv : throw new InvalidCastException("The rule is not an instance of ValueValidator<TProperty>.");
+
+        /// <summary>
+        /// Cast the <paramref name="rule"/> to the originating <see cref="ValidatorBase{TEntity}"/>.
+        /// </summary>
+        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+        /// <returns>The <paramref name="rule"/> cast to a <see cref="ValidatorBase{TEntity}"/>; otherwise, throws an <see cref="InvalidCastException"/>.</returns>
+        public static ValidatorBase<TEntity> AsValidator<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
+            => rule is ValidatorBase<TEntity> vb ? vb : throw new InvalidCastException("The rule is not an instance of ValidatorBase<TEntity>.");
 
         #endregion
 

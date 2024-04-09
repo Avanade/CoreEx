@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Localization;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -36,6 +37,7 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>A <see cref="ValueValidatorResult{TEntity, TProperty}"/>.</returns>
+        /// <remarks>This may not be supported by all implementations; in which case a <see cref="NotSupportedException"/> may be thrown.</remarks>
         Task<IValidationResult> ValidateAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -44,6 +46,7 @@ namespace CoreEx.Validation
         /// <param name="throwOnError">Indicates whether to automatically throw a <see cref="ValidationException"/> where <see cref="IValidationResult.HasErrors"/>.</param>
         /// <param name="cancellationToken">>The <see cref="CancellationToken"/>.</param>
         /// <returns>A <see cref="ValueValidatorResult{TEntity, TProperty}"/>.</returns>
+        /// <remarks>This may not be supported by all implementations; in which case a <see cref="NotSupportedException"/> may be thrown.</remarks>
         public async Task<IValidationResult> ValidateAsync(bool throwOnError, CancellationToken cancellationToken = default)
         {
             var ir = await ValidateAsync(cancellationToken).ConfigureAwait(false);

@@ -288,12 +288,13 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="createOrchestrator">The function to create the <see cref="ReferenceDataOrchestrator"/>.</param>
         /// <param name="healthCheck">Indicates whether a corresponding <see cref="ReferenceDataOrchestratorHealthCheck"/> should be configured.</param>
+        /// <param name="healthCheckName">The health check name; defaults to '<c>reference-data-orchestrator</c>'.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator, bool healthCheck = true)
+        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> createOrchestrator, bool healthCheck = true, string? healthCheckName = "reference-data-orchestrator")
         {
             CheckServices(services).AddSingleton(sp => createOrchestrator(sp));
             if (healthCheck)
-                services.AddHealthChecks().AddTypeActivatedCheck<ReferenceDataOrchestratorHealthCheck>(nameof(ReferenceDataOrchestrator));
+                services.AddHealthChecks().AddTypeActivatedCheck<ReferenceDataOrchestratorHealthCheck>(healthCheckName ?? "reference-data-orchestrator");
 
             return services;
         }
@@ -303,9 +304,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="healthCheck">Indicates whether a corresponding <see cref="ReferenceDataOrchestratorHealthCheck"/> should be configured.</param>
+        /// <param name="healthCheckName">The health check name; defaults to '<c>reference-data-orchestrator</c>'.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, bool healthCheck = true)
-            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register(), healthCheck);
+        public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, bool healthCheck = true, string? healthCheckName = "reference-data-orchestrator")
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register(), healthCheck, healthCheckName);
 
         /// <summary>
         /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the specified <typeparamref name="TProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
@@ -313,9 +315,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparam name="TProvider">The <see cref="IReferenceDataProvider"/> to register.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <param name="healthCheck">Indicates whether a corresponding <see cref="ReferenceDataOrchestratorHealthCheck"/> should be configured.</param>
+        /// <param name="healthCheckName">The health check name; defaults to '<c>reference-data-orchestrator</c>'.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddReferenceDataOrchestrator<TProvider>(this IServiceCollection services, bool healthCheck = true) where TProvider : IReferenceDataProvider
-            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register<TProvider>(), healthCheck);
+        public static IServiceCollection AddReferenceDataOrchestrator<TProvider>(this IServiceCollection services, bool healthCheck = true, string? healthCheckName = "reference-data-orchestrator") where TProvider : IReferenceDataProvider
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register<TProvider>(), healthCheck, healthCheckName);
 
         /// <summary>
         /// Adds the <see cref="RequestCache"/> as the <see cref="IRequestCache"/> scoped service.
@@ -384,7 +387,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// Adds an <see cref="EventPublisherHealthCheck"/> that will publish and send a health-check <see cref="EventData"/> (message).
         /// </summary>
         /// <param name="builder">The <see cref="IHealthChecksBuilder"/>.</param>
-        /// <param name="name">The health check name. Defaults to '<c>EventPublisher</c>'.</param>
+        /// <param name="name">The health check name. Defaults to '<c>event-publisher</c>'.</param>
         /// <param name="eventPublisherFactory">The <see cref="IEventPublisher"/> factory.</param>
         /// <param name="configure">The optional action to configure the <see cref="EventPublisherHealthCheckOptions"/>.</param>
         /// <param name="failureStatus">The <see cref="HealthStatus"/> that should be reported when the health check reports a failure. If the provided value is <c>null</c>, then <see cref="HealthStatus.Unhealthy"/> will be reported.</param>
@@ -396,7 +399,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             eventPublisherFactory.ThrowIfNull(nameof(eventPublisherFactory));
 
-            return builder.Add(new HealthCheckRegistration(name ?? "EventPublisher",sp =>
+            return builder.Add(new HealthCheckRegistration(name ?? "event-publisher", sp =>
             {
                 var ep = (eventPublisherFactory is null ? sp.GetService<IEventPublisher>() : eventPublisherFactory(sp)) ?? throw new InvalidOperationException("An IEventPublisher was either not registered or the factory returned null.");
                 var hc = new EventPublisherHealthCheck(ep);

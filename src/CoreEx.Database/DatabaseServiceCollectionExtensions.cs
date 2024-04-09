@@ -22,7 +22,20 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddDatabase(this IServiceCollection services, Func<IServiceProvider, IDatabase> create, bool healthCheck = true)
         {
             services.AddScoped(sp => create(sp) ?? throw new InvalidOperationException($"An {nameof(IDatabase)} instance must be instantiated."));
-            return AddHealthCheck(services, healthCheck);
+            return AddHealthCheck(services, healthCheck, null);
+        }
+
+        /// <summary>
+        /// Adds an <see cref="IDatabase"/> as a scoped service including a corresponding health check.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="create">The function to create the <see cref="IDatabase"/> instance.</param>
+        /// <param name="healthCheckName">The health check name; defaults to '<c>database</c>'.</param>
+        /// <returns>The <see cref="IServiceCollection"/> to support fluent-style method-chaining.</returns>
+        public static IServiceCollection AddDatabase(this IServiceCollection services, Func<IServiceProvider, IDatabase> create, string? healthCheckName)
+        {
+            services.AddScoped(sp => create(sp) ?? throw new InvalidOperationException($"An {nameof(IDatabase)} instance must be instantiated."));
+            return AddHealthCheck(services, true, healthCheckName);
         }
 
         /// <summary>
@@ -35,16 +48,29 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddDatabase<TDb>(this IServiceCollection services, bool healthCheck = true) where TDb : class, IDatabase
         {
             services.AddScoped<IDatabase, TDb>();
-            return AddHealthCheck(services, healthCheck);
+            return AddHealthCheck(services, healthCheck, null);
+        }
+
+        /// <summary>
+        /// Adds an <see cref="IDatabase"/> as a scoped service including a corresponding health check.
+        /// </summary>
+        /// <typeparam name="TDb">The <see cref="IDatabase"/> <see cref="Type"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="healthCheckName">The health check name; defaults to '<c>database</c>'.</param>
+        /// <returns>The <see cref="IServiceCollection"/> to support fluent-style method-chaining.</returns>
+        public static IServiceCollection AddDatabase<TDb>(this IServiceCollection services, string? healthCheckName) where TDb : class, IDatabase
+        {
+            services.AddScoped<IDatabase, TDb>();
+            return AddHealthCheck(services, true, healthCheckName);
         }
 
         /// <summary>
         /// Adds the <see cref="DatabaseHealthCheck{TDatabase}"/> where configured to do so.
         /// </summary>
-        private static IServiceCollection AddHealthCheck(this IServiceCollection services, bool healthCheck)
+        private static IServiceCollection AddHealthCheck(this IServiceCollection services, bool healthCheck, string? healthCheckName)
         {
             if (healthCheck)
-                services.AddHealthChecks().AddTypeActivatedCheck<DatabaseHealthCheck<IDatabase>>("Database", HealthStatus.Unhealthy, tags: default!, timeout: TimeSpan.FromSeconds(30));
+                services.AddHealthChecks().AddTypeActivatedCheck<DatabaseHealthCheck<IDatabase>>(healthCheckName ?? "database", HealthStatus.Unhealthy, tags: default!, timeout: TimeSpan.FromSeconds(30));
 
             return services;
         }

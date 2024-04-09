@@ -120,7 +120,9 @@ Extension method | Description | Underlying rule
 `Mandatory()` | Adds a *mandatory* validation. | `MandatoryRule`
 `Matches()` | Adds a `Regex` validation. | `StringRule`
 `MaximumLength()` | Adds a `string` maximum length validation. | `StringRule`
+`MaximumCount()` | Adds an `ICollection` maximum count validation. | `CollectionRule`
 `MinimumLength()` | Adds a `string` minimum length validation. | `StringRule`
+`MinimumCount()` | Adds an `ICollection` minimum count validation. | `CollectionRule`
 `Must()` | Adds a *must* validation. | `MustRule`
 `NotEmpty()` | Adds a *mandatory* validation. | `MandatoryRule`
 `NotEqual()` | Adds a *not equal value comparison* validation. | `CompareValueRule`

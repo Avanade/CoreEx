@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CoreEx.Test.Framework.Validation
 {
-    [TestFixture]
+    [TestFixture, NonParallelizable]
     public class ReferenceDataValidatorTest
     {
         [OneTimeSetUp]
@@ -60,6 +60,52 @@ namespace CoreEx.Test.Framework.Validation
                 Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
                 Assert.That(r.Messages[0].Property, Is.EqualTo("EndDate"));
             });
+        }
+
+        [Test]
+        public async Task Validate_SupportsDescription()
+        {
+            ReferenceDataValidation.SupportsDescription = true;
+            var r = await GenderValidator.Default.ValidateAsync(new Gender { Id = 1, Code = "X", Text = "XX", Description = new string('x', 1001) });
+
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Description must not exceed 1000 characters in length."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Description"));
+            });
+
+            r = await GenderValidator.Default.ValidateAsync(new Gender { Id = 1, Code = "X", Text = "XX", Description = new string('x', 500) });
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
+
+            r = await GenderValidator.Default.ValidateAsync(new Gender { Id = 1, Code = "X", Text = "XX" });
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
+        }
+
+        [Test]
+        public async Task Validate_NoSupportsDescription()
+        {
+            ReferenceDataValidation.SupportsDescription = false;
+            var r = await GenderValidator.Default.ValidateAsync(new Gender { Id = 1, Code = "X", Text = "XX", Description = "XXX" });
+
+            Assert.That(r, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HasErrors, Is.True);
+                Assert.That(r.Messages!, Has.Count.EqualTo(1));
+                Assert.That(r.Messages![0].Text, Is.EqualTo("Description must not be specified."));
+                Assert.That(r.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(r.Messages[0].Property, Is.EqualTo("Description"));
+            });
+
+            r = await GenderValidator.Default.ValidateAsync(new Gender { Id = 1, Code = "X", Text = "XX" });
+            Assert.That(r, Is.Not.Null);
+            Assert.That(r.HasErrors, Is.False);
         }
     }
 }

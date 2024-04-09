@@ -20,7 +20,8 @@ namespace CoreEx.Validation
             Property(x => x.Id).Mandatory().Custom(ValidateId);
             Property(x => x.Code).Mandatory().String(ReferenceDataValidation.MaxCodeLength);
             Property(x => x.Text).Mandatory().String(ReferenceDataValidation.MaxTextLength);
-            Property(x => x.Description).String(ReferenceDataValidation.MaxDescriptionLength);
+            Property(x => x.Description).String(ReferenceDataValidation.MaxDescriptionLength).When(() => ReferenceDataValidation.SupportsDescription);
+            Property(x => x.Description).Empty().When(() => !ReferenceDataValidation.SupportsDescription);
             Property(x => x.EndDate).When(x => x.StartDate.HasValue && x.EndDate.HasValue).CompareProperty(CompareOperator.GreaterThanEqual, x => x.StartDate);
         }
 

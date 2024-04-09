@@ -43,11 +43,9 @@ namespace CoreEx.Test.Framework.Validation.Rules
             v1 = await new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" }, { "k3", "v3" } }.Validate("Dict").Dictionary(maxCount: 3).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            //v1 = await ((int[])null).Validate().Collection(1).RunAsync();
             v1 = await ((Dictionary<string, string>?)null).Validate().Collection(1).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            //v1 = await new int[0].Validate().Collection(1).RunAsync();
             v1 = await new Dictionary<string, string> { }.Validate("Dict").Dictionary(1).ValidateAsync();
             Assert.Multiple(() =>
             {
@@ -118,12 +116,12 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_Key()
         {
-            var kv = Validator.CreateCommon<string?>(r => r.Text("Key").Mandatory().String(2));
+            var kv = Validator.CreateFor<string>(r => r.Text("Key").Mandatory().String(2));
 
-            var v1 = await new Dictionary<string, int> { { "k1", 1 }, { "k2", 2 } }.Validate("Dict").Dictionary(item: DictionaryRuleItem.Create<string?, int>(kv)).ValidateAsync();
+            var v1 = await new Dictionary<string, int> { { "k1", 1 }, { "k2", 2 } }.Validate("Dict").Dictionary(item: DictionaryRuleItem.Create<string, int>(kv)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await new Dictionary<string, int> { { "k1", 1 }, { "k2x", 2 } }.Validate("Dict").Dictionary(item: DictionaryRuleItem.Create<string?, int>(kv)).ValidateAsync();
+            v1 = await new Dictionary<string, int> { { "k1", 1 }, { "k2x", 2 } }.Validate("Dict").Dictionary(kv, Validator.Null<int>()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -137,13 +135,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_KeyAndValue()
         {
-            var kv = Validator.CreateCommon<string?>(r => r.Text("Key").Mandatory().String(2));
-            var vv = Validator.CreateCommon<int>(r => r.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
+            var kv = Validator.CreateFor<string>(r => r.Text("Key").Mandatory().String(2));
+            var vv = Validator.CreateFor<int>(r => r.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
 
             var v1 = await new Dictionary<string, int> { { "k1", 1 }, { "k2", 2 } }.Validate("Dict").Dictionary(item: DictionaryRuleItem.Create(kv, vv)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await new Dictionary<string, int> { { "k1", 11 }, { "k2x", 2 } }.Validate("Dict").Dictionary(item: DictionaryRuleItem.Create(kv, vv)).ValidateAsync();
+            v1 = await new Dictionary<string, int> { { "k1", 11 }, { "k2x", 2 } }.Validate("Dict").Dictionary(kv, vv).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

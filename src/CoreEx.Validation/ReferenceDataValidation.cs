@@ -23,5 +23,10 @@ namespace CoreEx.Validation
         /// Gets or sets the maximum length for the <see cref="IReferenceData.Description"/>.
         /// </summary>
         public static int MaxDescriptionLength { get; set; } = 1000;
+
+        /// <summary>
+        /// Indicates whether the <see cref="IReferenceData.Description"/> is supported.
+        /// </summary>
+        public static bool SupportsDescription { get; set; } = false;
     }
 }

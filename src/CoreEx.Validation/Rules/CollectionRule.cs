@@ -73,6 +73,17 @@ namespace CoreEx.Validation.Rules
             if (context.Value == null)
                 return;
 
+            // Where only validating count on an icollection do it quickly and exit.
+            if (AllowNullItems && Item is null && context.Value is ICollection coll)
+            {
+                if (coll.Count < MinCount)
+                    context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MinCountFormat, MinCount);
+                else if (MaxCount.HasValue && coll.Count > MaxCount.Value)
+                    context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MaxCountFormat, MaxCount);
+
+                return;
+            }
+
             // Iterate through the collection validating each of the items.
             var i = 0;
             var hasNullItem = false;

@@ -2,11 +2,14 @@
 
 using CoreEx;
 using CoreEx.Azure.ServiceBus;
+using CoreEx.Azure.ServiceBus.HealthChecks;
 using CoreEx.Configuration;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using Asb = Azure.Messaging.ServiceBus;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -75,5 +78,24 @@ namespace Microsoft.Extensions.DependencyInjection
             configure?.Invoke(sp, sbp);
             return sbp;
         });
+
+        /// <summary>
+        /// Adds a <see cref="ServiceBusReceiverHealthCheck"/> that will peek a message from the Azure Service Bus receiver to confirm health.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHealthChecksBuilder"/>.</param>
+        /// <param name="name">The health check name. Defaults to '<c>azure-service-bus-receiver</c>'.</param>
+        /// <param name="serviceBusReceiverFactory">The <see cref="Asb.ServiceBusReceiver"/> factory.</param>
+        /// <param name="failureStatus">The <see cref="HealthStatus"/> that should be reported when the health check reports a failure. If the provided value is <c>null</c>, then <see cref="HealthStatus.Unhealthy"/> will be reported.</param>
+        /// <param name="tags">A list of tags that can be used for filtering health checks.</param>
+        /// <param name="timeout">An optional <see cref="TimeSpan"/> representing the timeout of the check.</param>
+        public static IHealthChecksBuilder AddServiceBusReceiverHealthCheck(this IHealthChecksBuilder builder, Func<IServiceProvider, Asb.ServiceBusReceiver> serviceBusReceiverFactory, string? name = null, HealthStatus? failureStatus = default, IEnumerable<string>? tags = default, TimeSpan? timeout = default)
+        {
+            serviceBusReceiverFactory.ThrowIfNull(nameof(serviceBusReceiverFactory));
+
+            return builder.Add(new HealthCheckRegistration(name ?? "azure-service-bus-receiver", sp =>
+            {                 
+                return new ServiceBusReceiverHealthCheck(() => serviceBusReceiverFactory(sp));
+            }, failureStatus, tags, timeout));
+        }
     }
 }
