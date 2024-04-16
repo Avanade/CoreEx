@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,13 @@ namespace CoreEx.Events
     public class NullEventSender : IEventSender
     {
         /// <inheritdoc/>
-        public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default)
+        {
+            AfterSend?.Invoke(this, EventArgs.Empty);
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public event EventHandler? AfterSend;
     }
 }

@@ -2,6 +2,17 @@
 
 Represents the **NuGet** versions.
 
+## v3.18.0
+- *Fixed*: Removed `Azure.Identity` dependency as no longer required; also see `https://github.com/advisories/GHSA-wvxc-855f-jvrv`.
+- *Fixed*: Removed `AspNetCore.HealthChecks.SqlServer` dependency as no longer required.
+- *Fixed:* Updated all dependencies to latest versions.
+- *Fixed*: `CoreEx.AutoMapper` updated to leverage latest major version (`13.0.1`); as such `netstandard` support dropped.
+- *Fixed*: The `TimerHostedServiceBase` was incorrectly resetting the `LastException` on sleep versus wake. 
+- *Fixed*: The `AddEventSender` dependency injection extension methods now correctly register as _Scoped_.
+- *Fixed*: Reduced `Logger.LogInformation` invocations (refactored to `Logger.LogDebug`) to reduce noise in the logs.
+- *Enhancement*: Added `AfterSend` event to `IEventSender` to enable post-send processing.
+- *Enhancement*: Added `EventOutboxHostedService.OneOffTrigger` method to enable a _one-off_ trigger interval to be specified for the registered (DI) instance.
+
 ## v3.17.0
 - *Enhancement*: Additional `CoreEx.Validation` usability improvements:
   - `Validator.CreateFor<T>` added to enable the creation of a `CommonValidator<T>` instance for a specified type `T` (more purposeful name); synonym for existing `CommonValidator.Create<T>` (unchanged).

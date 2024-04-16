@@ -143,7 +143,7 @@ namespace CoreEx.Azure.ServiceBus
 
                 // Invoke the actual function logic.
                 Result.Go(await function(@event!, args, ct).ConfigureAwait(false))
-                      .Then(() => Logger.LogInformation("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId))
+                      .Then(() => Logger.LogDebug("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId))
                       .ThrowOnError();
 
                 // Perform the complete/success instrumentation.
@@ -234,7 +234,7 @@ namespace CoreEx.Azure.ServiceBus
 
                 // Invoke the actual function logic.
                 Result.Go(await function(@event!, args, ct).ConfigureAwait(false))
-                      .Then(() => Logger.LogInformation("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId))
+                      .Then(() => Logger.LogDebug("{Type} executed successfully - Service Bus message '{Message}'.", GetType().Name, message.MessageId))
                       .ThrowOnError();
 
                 // Perform the complete/success instrumentation.

@@ -66,7 +66,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         public string DefaultDestination { get; set; } = "$default";
 
         /// <summary>
-        /// Sets the optional <see cref="IEventSender"/> to act as the primary <see cref="IEventSender"/> where <i>outbox enqueue</i> is to provide backup/audit capabilities.
+        /// Sets the <see cref="IEventSender"/> to act as the primary <see cref="IEventSender"/> where <i>outbox enqueue</i> is to provide backup/audit capabilities.
         /// </summary>
         public void SetPrimaryEventSender(IEventSender eventSender)
         {
@@ -125,6 +125,8 @@ namespace CoreEx.Database.SqlServer.Outbox
             sw.Stop();
             Logger.LogDebug("{EventCount} event(s) were enqueued; {SuccessCount} as sent, {ErrorCount} to be sent. [Sender={Sender}, Elapsed={Elapsed}ms]",
                 events.Count(), events.Count() - unsentEvents.Count, unsentEvents.Count, GetType().Name, sw.Elapsed.TotalMilliseconds);
+
+            AfterSend?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -163,5 +165,8 @@ namespace CoreEx.Database.SqlServer.Outbox
 
             return tvp;
         }
+
+        /// <inheritdoc/>
+        public event EventHandler? AfterSend;
     }
 }

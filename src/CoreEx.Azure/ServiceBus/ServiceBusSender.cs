@@ -126,7 +126,7 @@ namespace CoreEx.Azure.ServiceBus
 
                         try
                         {
-                            Logger.LogInformation("Sending {Count} message(s) to {Name}.", batch.Count, qn);
+                            Logger.LogDebug("Sending {Count} message(s) to {Name}.", batch.Count, qn);
                             await sender.SendMessagesAsync(batch, cancellationToken).ConfigureAwait(false);
                         }
                         catch (Exception ex)
@@ -139,6 +139,9 @@ namespace CoreEx.Azure.ServiceBus
                         unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id ?? string.Empty));
                     }
                 }
+
+                // Raise the event.
+                AfterSend?.Invoke(this, EventArgs.Empty);
             }, cancellationToken, nameof(SendAsync));
         }
 
@@ -146,5 +149,8 @@ namespace CoreEx.Azure.ServiceBus
         /// Prepend the sent stats to the message.
         /// </summary>
         private static string PrependStats(string message, int totalCount, int unsentCount) => $"{unsentCount} of the total {totalCount} events were not successfully sent. {message}";
+
+        /// <inheritdoc/>
+        public event EventHandler? AfterSend;
     }
 }

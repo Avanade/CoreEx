@@ -113,11 +113,15 @@ namespace CoreEx.Hosting
         /// </summary>
         /// <param name="oneOffInterval">The one-off interval.</param>
         /// <param name="leaveWhereTimeRemainingIsLess">Indicates whether to <i>not</i> adjust the time where the time remaining is less than the one-off interval specified.</param>
+        /// <remarks>A negative <paramref name="oneOffInterval"/> will have no effect.</remarks>
         protected void OneOffIntervalAdjust(TimeSpan oneOffInterval, bool leaveWhereTimeRemainingIsLess = false)
         {
+            if (oneOffInterval < TimeSpan.Zero)
+                return;
+
             lock (_lock)
             {
-                if (_disposed)
+                if (Status == TimerHostedServiceStatus.Stopping || Status == TimerHostedServiceStatus.Stopped)
                     return;
 
                 // Where already executing save the one-off value and use when ready.
@@ -135,6 +139,14 @@ namespace CoreEx.Hosting
                 }
             }
         }
+
+        /// <summary>
+        /// Provides an opportunity to explicitly trigger the service execution versus waiting for the next scheduled interval.
+        /// </summary>
+        /// <param name="oneOffInterval">The one-off interval before triggering; defaults to <c>null</c> which represents an immediate trigger.</param>
+        /// <param name="leaveWhereTimeRemainingIsLess">Indicates whether to <i>not</i> adjust the time where the time remaining is less than the one-off interval specified.</param>
+        /// <remarks>Invokes the <see cref="OneOffIntervalAdjust(TimeSpan, bool)"/>.</remarks>
+        public void OneOffTrigger(TimeSpan? oneOffInterval = null, bool leaveWhereTimeRemainingIsLess = true) => OneOffIntervalAdjust(oneOffInterval ?? TimeSpan.Zero, leaveWhereTimeRemainingIsLess);
 
         /// <summary>
         /// Triggered when the application host is ready to start the service.
@@ -165,6 +177,7 @@ namespace CoreEx.Hosting
             {
                 _timer!.Change(Timeout.Infinite, Timeout.Infinite);
                 Status = TimerHostedServiceStatus.Running;
+                LastException = null;
                 Logger.LogDebug("{ServiceName} execution triggered by timer.", ServiceName);
 
                 _executeTask = Task.Run(async () => await ScopedExecuteAsync(_cts!.Token).ConfigureAwait(false));
@@ -178,7 +191,6 @@ namespace CoreEx.Hosting
                 Status = TimerHostedServiceStatus.Sleeping;
                 _executeTask = null;
                 LastExecuted = DateTime.UtcNow;
-                LastException = null;
 
                 if (_cts!.IsCancellationRequested)
                     return;
@@ -301,10 +313,16 @@ namespace CoreEx.Hosting
             {
                 lock (_lock)
                 {
-                    _disposed = true;
-                    _timer?.Dispose();
-                    _cts?.Cancel();
-                    _cts?.Dispose();
+                    if (!_disposed)
+                    {
+                        Status = TimerHostedServiceStatus.Stopped;
+                        _timer?.Dispose();
+                        _cts?.Cancel();
+                        _cts?.Dispose();
+                        _timer = null;
+                        _cts = null;
+                        _disposed = true;
+                    }
                 }
             }
 

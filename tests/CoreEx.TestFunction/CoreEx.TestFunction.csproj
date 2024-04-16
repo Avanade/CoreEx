@@ -6,12 +6,12 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.AutoMapper\CoreEx.AutoMapper.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.FluentValidation\CoreEx.FluentValidation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Newtonsoft\CoreEx.Newtonsoft.csproj" />
