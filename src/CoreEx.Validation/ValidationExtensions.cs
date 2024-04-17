@@ -1280,7 +1280,7 @@ namespace CoreEx.Validation
         /// <param name="maxCount">The maximum count.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, TProperty}"/>.</returns>
-        public static IPropertyRule<TEntity, TProperty?> AreValid<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, bool allowDuplicates = false, int minCount = 0, int? maxCount = null, LText? errorText = null) where TEntity : class where TProperty : IReferenceDataCodeList
+        public static IPropertyRule<TEntity, TProperty> AreValid<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, bool allowDuplicates = false, int minCount = 0, int? maxCount = null, LText? errorText = null) where TEntity : class where TProperty : IReferenceDataCodeList?
             => rule.ThrowIfNull(nameof(rule)).AddRule(new ReferenceDataSidListRule<TEntity, TProperty> { AllowDuplicates = allowDuplicates, MinCount = minCount, MaxCount = maxCount, ErrorText = errorText });
 
         /// <summary>
@@ -1577,7 +1577,7 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T> Validate<T>(this T value, string? name = null, LText? text = null) => new(value, name, text);
+        public static ValueValidator<T> Validate<T>(this T? value, string? name = null, LText? text = null) => new(value, name, text);
 
         /// <summary>
         /// Enables (sets up) validation for a value.
@@ -1588,7 +1588,7 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T> Validate<T>(this T value, Action<ValueValidatorConfiguration<T>> configure, string? name = null, LText? text = null) 
+        public static ValueValidator<T> Validate<T>(this T? value, Action<ValueValidatorConfiguration<T>> configure, string? name = null, LText? text = null) 
             => new ValueValidator<T>(value, name, text).Configure(configure);
 
         /// <summary>
@@ -1600,7 +1600,7 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T> Validate<T>(this T value, CommonValidator<T> validator, string? name = null, LText? text = null)
+        public static ValueValidator<T> Validate<T>(this T? value, CommonValidator<T> validator, string? name = null, LText? text = null)
             => new ValueValidator<T>(value, name, text).Configure(c => c.Common(validator));
 #else
         /// <summary>
@@ -1611,7 +1611,7 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T> Validate<T>(this T value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) => new(value, name, text);
+        public static ValueValidator<T> Validate<T>(this T? value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) => new(value, name, text);
 
         /// <summary>
         /// Enables (sets up) validation for a value.
@@ -1622,7 +1622,7 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T> Validate<T>(this T value, Action<ValueValidatorConfiguration<T>> configure, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) 
+        public static ValueValidator<T> Validate<T>(this T? value, Action<ValueValidatorConfiguration<T>> configure, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) 
             => new ValueValidator<T>(value, name, text).Configure(configure);
 
         /// <summary>
@@ -1634,7 +1634,7 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T> Validate<T>(this T value, CommonValidator<T> validator, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null)
+        public static ValueValidator<T> Validate<T>(this T? value, CommonValidator<T> validator, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null)
             => new ValueValidator<T>(value, name, text).Configure(c => c.Common(validator));
 #endif
 
@@ -1649,7 +1649,7 @@ namespace CoreEx.Validation
         /// <param name="multiValidator">The <see cref="MultiValidator"/>.</param>
         /// <param name="validator">The <see cref="ValueValidator{T}"/>.</param>
         /// <returns>The (this) <see cref="MultiValidator"/>.</returns>
-        public static MultiValidator Add<T>(this MultiValidator multiValidator, ValueValidator<T?> validator)
+        public static MultiValidator Add<T>(this MultiValidator multiValidator, ValueValidator<T> validator)
         {
             validator.ThrowIfNull(nameof(validator));
             multiValidator.ThrowIfNull(nameof(multiValidator)).Validators.Add(async ct => await validator.ValidateAsync(ct).ConfigureAwait(false));

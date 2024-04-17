@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.RefData;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -12,7 +11,7 @@ namespace CoreEx.Validation.Rules
     /// <summary>
     /// Provides validation for a <see cref="IReferenceDataCodeList"/> including <see cref="MinCount"/>, <see cref="MaxCount"/>, per item <see cref="IReferenceData.IsValid"/>, and whether to <see cref="AllowDuplicates"/>.
     /// </summary>
-    public class ReferenceDataSidListRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty?> where TEntity : class where TProperty : IReferenceDataCodeList
+    public class ReferenceDataSidListRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IReferenceDataCodeList?
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataSidListRule{TEntity, TProperty}"/> class.
@@ -35,7 +34,7 @@ namespace CoreEx.Validation.Rules
         public bool AllowDuplicates { get; set; } = false;
 
         /// <inheritdoc/>
-        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty?> context, CancellationToken cancellationToken = default)
+        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
         {
             if (context.Value!.HasInvalidItems)
             {

@@ -186,6 +186,44 @@ namespace CoreEx.Test.Framework.Validation
             });
         }
 
+        [Test]
+        public async Task CommonExtensionMethod()
+        {
+            await CommonExtensionMethod(null, false);
+            await CommonExtensionMethod("12345", false);
+            await CommonExtensionMethod("1234567", true);
+        }
+
+        private async Task CommonExtensionMethod(string? accountId, bool expectErrors)
+        {
+            var r = await accountId.Validate().Configure(cv => cv.Common(Validators.String5)).ValidateAsync();
+            Assert.That(r.HasErrors, Is.EqualTo(expectErrors));
+        }
+
+        [Test]
+        public async Task CommonEntity()
+        {
+            var pv = new PersonValidator();
+            var r = await pv.ValidateAsync(new Person());
+            Assert.That(r.HasErrors, Is.False);
+
+            r = await pv.ValidateAsync(new Person { Name = "12345" });
+            Assert.That(r.HasErrors, Is.False);
+
+            r = await pv.ValidateAsync(new Person { Name = "12345678" });
+            Assert.That(r.HasErrors, Is.True);
+        }
+
+        public static class Validators
+        {
+            public static CommonValidator<string> String5 => CommonValidator.Create<string>(c => c.String(5));
+        }
+
+        public class PersonValidator : Validator<Person>
+        {
+            public PersonValidator() => HasProperty(x => x.Name, p => p.Common(Validators.String5));
+        }
+
         public class Person
         {
             public string? Name { get; set; }

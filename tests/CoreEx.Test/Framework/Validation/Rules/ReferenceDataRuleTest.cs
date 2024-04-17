@@ -137,5 +137,46 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
         }
+
+        [Test]
+        public async Task Entity_Sids()
+        {
+            IServiceCollection sc = new ServiceCollection();
+            sc.AddLogging();
+            sc.AddJsonSerializer();
+            sc.AddExecutionContext();
+            sc.AddScoped<RefDataProvider>();
+            sc.AddReferenceDataOrchestrator<RefDataProvider>();
+            var sp = sc.BuildServiceProvider();
+
+            ReferenceDataOrchestrator.SetCurrent(sp.GetRequiredService<ReferenceDataOrchestrator>());
+
+            using var scope = sp.CreateScope();
+            var ec = scope.ServiceProvider.GetService<ExecutionContext>();
+
+            var rde = new RDEntity() { Refs = ["X"] };
+            var v1 = await rde.Validate().Configure(c => c.Entity(new RDValidator())).ValidateAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(v1.Messages!, Has.Count.EqualTo(1));
+                Assert.That(v1.Messages![0].Text, Is.EqualTo("Refs contains one or more invalid items."));
+                Assert.That(v1.Messages[0].Type, Is.EqualTo(MessageType.Error));
+                Assert.That(v1.Messages[0].Property, Is.EqualTo("rde.Refs"));
+            });
+        }
+
+        public class RDEntity
+        {
+            public ReferenceDataCodeList<RefDataEx>? Refs { get; set; }
+        }
+
+        public class RDValidator : Validator<RDEntity>
+        {
+            public RDValidator()
+            {
+                HasProperty(x => x.Refs, p => p.AreValid());
+            }
+        }
     }
 }
