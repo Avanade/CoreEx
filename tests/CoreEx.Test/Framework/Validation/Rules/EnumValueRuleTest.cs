@@ -14,10 +14,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate()
         {
-            var v1 = await "A".Validate("value").Enum().As<AbcOption>().ValidateAsync();
+            var v1 = await "A".Validate("value").Configure(c => c.Enum().As<AbcOption>()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "a".Validate("value").Enum().As<AbcOption>().ValidateAsync();
+            v1 = await "a".Validate("value").Configure(c => c.Enum().As<AbcOption>()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -27,10 +27,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await "a".Validate("value").Enum().As<AbcOption>(true).ValidateAsync();
+            v1 = await "a".Validate("value").Configure(c => c.Enum().As<AbcOption>(true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "X".Validate("value").Enum().As<AbcOption>().ValidateAsync();
+            v1 = await "X".Validate("value").Configure(c => c.Enum().As<AbcOption>()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -40,14 +40,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await ((string?)null).Validate("value").Enum().As<AbcOption>().ValidateAsync();
+            v1 = await ((string?)null).Validate("value").Configure(c => c.Enum().As<AbcOption>()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
         public async Task ValidateAndOverride()
         {
-            var v1 = await "someoptionwithcasing".Validate("value").Enum().As<CaseOption>(true, false).ValidateAsync();
+            var v1 = await "someoptionwithcasing".Validate("value").Configure(c => c.Enum().As<CaseOption>(true, false)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.False);

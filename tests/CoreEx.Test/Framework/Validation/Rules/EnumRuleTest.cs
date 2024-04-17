@@ -14,10 +14,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate()
         {
-            var v1 = await ((AbcOption)1).Validate("value").Enum().ValidateAsync();
+            var v1 = await ((AbcOption)1).Validate("value").Configure(c => c.Enum()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await ((AbcOption)88).Validate("value").Enum().ValidateAsync();
+            v1 = await ((AbcOption)88).Validate("value").Configure(c => c.Enum()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

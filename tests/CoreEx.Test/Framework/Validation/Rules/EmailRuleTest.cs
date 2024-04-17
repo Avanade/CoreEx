@@ -13,56 +13,56 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Email()
         {
-            var v1 = await ((string?)null).Validate().Email().ValidateAsync();
+            var v1 = await ((string?)null).Validate().Configure(c => c.Email()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "blah@.com".Validate().Email().ValidateAsync();
+            v1 = await "blah@.com".Validate().Configure(c => c.Email()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "blah.com".Validate().Email().ValidateAsync();
+            v1 = await "blah.com".Validate().Configure(c => c.Email()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await "@blah.com".Validate().Email().ValidateAsync();
+            v1 = await "@blah.com".Validate().Configure(c => c.Email()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await "blah@".Validate().Email().ValidateAsync();
+            v1 = await "blah@".Validate().Configure(c => c.Email()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().Email().ValidateAsync();
+            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().Configure(c => c.Email()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().Email(null).ValidateAsync();
+            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().Configure(c => c.Email(null)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await $"mynameis@{new string('x', 500)}.com".Validate().Email(null).ValidateAsync();
+            v1 = await $"mynameis@{new string('x', 500)}.com".Validate().Configure(c => c.Email(null)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
         public async Task EmailAddress()
         {
-            var v1 = await ((string?)null).Validate().EmailAddress().ValidateAsync();
+            var v1 = await ((string?)null).Validate().Configure(c => c.EmailAddress()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "blah@.com".Validate().EmailAddress().ValidateAsync();
+            v1 = await "blah@.com".Validate().Configure(c => c.EmailAddress()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "blah.com".Validate().EmailAddress().ValidateAsync();
+            v1 = await "blah.com".Validate().Configure(c => c.EmailAddress()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await "@blah.com".Validate().EmailAddress().ValidateAsync();
+            v1 = await "@blah.com".Validate().Configure(c => c.EmailAddress()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await "blah@".Validate().EmailAddress().ValidateAsync();
+            v1 = await "blah@".Validate().Configure(c => c.EmailAddress()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().EmailAddress().ValidateAsync();
+            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().Configure(c => c.EmailAddress()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.True);
 
-            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().EmailAddress(null).ValidateAsync();
+            v1 = await $"mynameis@{new string('x', 250)}.com".Validate().Configure(c => c.EmailAddress(null)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await $"mynameis@{new string('x', 500)}.com".Validate().EmailAddress(null).ValidateAsync();
+            v1 = await $"mynameis@{new string('x', 500)}.com".Validate().Configure(c => c.EmailAddress(null)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
     }

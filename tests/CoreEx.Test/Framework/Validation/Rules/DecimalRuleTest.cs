@@ -15,10 +15,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_AllowNegatives()
         {
-            var v1 = await (123).Validate("value").Numeric().ValidateAsync();
+            var v1 = await (123).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (-123).Validate("value").Numeric().ValidateAsync();
+            v1 = await (-123).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -28,13 +28,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await (-123).Validate("value").Numeric(true).ValidateAsync();
+            v1 = await (-123).Validate("value").Configure(c => c.Numeric(true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            var v2 = await (123m).Validate("value").Numeric().ValidateAsync();
+            var v2 = await (123m).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.That(v2.HasErrors, Is.False);
 
-            v2 = await (-123m).Validate("value").Numeric().ValidateAsync();
+            v2 = await (-123m).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v2.HasErrors, Is.True);
@@ -44,20 +44,20 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v2.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v2 = await (-123m).Validate("value").Numeric(true).ValidateAsync();
+            v2 = await (-123m).Validate("value").Configure(c => c.Numeric(true)).ValidateAsync();
             Assert.That(v2.HasErrors, Is.False);
         }
 
         [Test]
         public async Task Validate_MaxDigits()
         {
-            var v1 = await (123).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
+            var v1 = await (123).Validate("value").Configure(c => c.Numeric(maxDigits: 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (12345).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
+            v1 = await (12345).Validate("value").Configure(c => c.Numeric(maxDigits: 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (123456).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
+            v1 = await (123456).Validate("value").Configure(c => c.Numeric(maxDigits: 5)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -67,13 +67,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            var v2 = await (12.34m).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
+            var v2 = await (12.34m).Validate("value").Configure(c => c.Numeric(maxDigits: 5)).ValidateAsync();
             Assert.That(v2.HasErrors, Is.False);
 
-            v2 = await (12.345m).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
+            v2 = await (12.345m).Validate("value").Configure(c => c.Numeric(maxDigits: 5)).ValidateAsync();
             Assert.That(v2.HasErrors, Is.False);
 
-            v2 = await (1.23456m).Validate("value").Numeric(maxDigits: 5).ValidateAsync();
+            v2 = await (1.23456m).Validate("value").Configure(c => c.Numeric(maxDigits: 5)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v2.HasErrors, Is.True);
@@ -87,13 +87,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_DecimalPlaces()
         {
-            var v1 = await (12.3m).Validate("value").Numeric(decimalPlaces: 2).ValidateAsync();
+            var v1 = await (12.3m).Validate("value").Configure(c => c.Numeric(decimalPlaces: 2)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (123.400m).Validate("value").Numeric(decimalPlaces: 2).ValidateAsync();
+            v1 = await (123.400m).Validate("value").Configure(c => c.Numeric(decimalPlaces: 2)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (0.123m).Validate("value").Numeric(decimalPlaces: 2).ValidateAsync();
+            v1 = await (0.123m).Validate("value").Configure(c => c.Numeric(decimalPlaces: 2)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -107,13 +107,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_MaxDigits_And_DecimalPlaces()
         {
-            var v1 = await (12.3m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            var v1 = await (12.3m).Validate("value").Configure(c => c.Numeric(maxDigits: 5, decimalPlaces: 2)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (123.400m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            v1 = await (123.400m).Validate("value").Configure(c => c.Numeric(maxDigits: 5, decimalPlaces: 2)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (0.123m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            v1 = await (0.123m).Validate("value").Configure(c => c.Numeric(maxDigits: 5, decimalPlaces: 2)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -123,7 +123,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await (1234.0m).Validate("value").Numeric(maxDigits: 5, decimalPlaces: 2).ValidateAsync();
+            v1 = await (1234.0m).Validate("value").Configure(c => c.Numeric(maxDigits: 5, decimalPlaces: 2)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -137,13 +137,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_PrecisionScale()
         {
-            var v1 = await (12.3m).Validate("value").PrecisionScale(precision: 5, scale: 2).ValidateAsync();
+            var v1 = await (12.3m).Validate("value").Configure(c => c.PrecisionScale(precision: 5, scale: 2)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (123.400m).Validate("value").PrecisionScale(precision: 5, scale: 2).ValidateAsync();
+            v1 = await (123.400m).Validate("value").Configure(c => c.PrecisionScale(precision: 5, scale: 2)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (0.123m).Validate("value").PrecisionScale(precision: 5, scale: 2).ValidateAsync();
+            v1 = await (0.123m).Validate("value").Configure(c => c.PrecisionScale(precision: 5, scale: 2)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -153,7 +153,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await (1234.0m).Validate("value").PrecisionScale(precision: 5, scale: 2).ValidateAsync();
+            v1 = await (1234.0m).Validate("value").Configure(c => c.PrecisionScale(precision: 5, scale: 2)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

@@ -31,10 +31,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            var v1 = await ((RefDataEx)"Aaa").Validate("value").IsValid().ValidateAsync();
+            var v1 = await ((RefDataEx)"Aaa").Validate("value").Configure(c => c.IsValid()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await ((RefDataEx)"Abc").Validate("value").IsValid().ValidateAsync();
+            v1 = await ((RefDataEx)"Abc").Validate("value").Configure(c => c.IsValid()).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -62,10 +62,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
             using var scope = sp.CreateScope();
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
-            var v1 = await "Aaa".Validate("value").RefDataCode().As<RefDataEx>().ValidateAsync();
+            var v1 = await "Aaa".Validate("value").Configure(c => c.RefDataCode().As<RefDataEx>()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "Abc".Validate("value").RefDataCode().As<RefDataEx>().ValidateAsync();
+            v1 = await "Abc".Validate("value").Configure(c => c.RefDataCode().As<RefDataEx>()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -93,7 +93,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             var ec = scope.ServiceProvider.GetService<ExecutionContext>();
 
             var sids = new ReferenceDataCodeList<RefDataEx>("Aaa", "Abc");
-            var v1 = await sids.Validate("value").AreValid().ValidateAsync();
+            var v1 = await sids.Validate("value").Configure(c => c.AreValid()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -104,7 +104,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             });
 
             sids = new ReferenceDataCodeList<RefDataEx>("Aaa", "Aaa");
-            v1 = await sids.Validate("value").AreValid().ValidateAsync();
+            v1 = await sids.Validate("value").Configure(c => c.AreValid()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -114,10 +114,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await sids.Validate("value").AreValid(allowDuplicates: true).ValidateAsync();
+            v1 = await sids.Validate("value").Configure(c => c.AreValid(allowDuplicates: true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await sids.Validate("value").AreValid(true, 5).ValidateAsync();
+            v1 = await sids.Validate("value").Configure(c => c.AreValid(true, 5)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -127,7 +127,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await sids.Validate("value").AreValid(true, maxCount: 1).ValidateAsync();
+            v1 = await sids.Validate("value").Configure(c => c.AreValid(true, maxCount: 1)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

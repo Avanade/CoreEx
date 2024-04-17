@@ -2,6 +2,20 @@
 
 Represents the **NuGet** versions.
 
+## v3.18.0
+- *Fixed*: Removed `Azure.Identity` dependency as no longer required; related to `https://github.com/advisories/GHSA-wvxc-855f-jvrv`.
+- *Fixed*: Removed `AspNetCore.HealthChecks.SqlServer` dependency as no longer required.
+- *Fixed:* Updated all dependencies to latest versions.
+- *Fixed*: `CoreEx.AutoMapper` updated to leverage latest major version (`13.0.1`); as such `netstandard` no longer supported.
+- *Fixed*: The `TimerHostedServiceBase` was incorrectly resetting the `LastException` on sleep versus wake. 
+- *Fixed*: The `AddEventSender` dependency injection extension methods now correctly register as _Scoped_.
+- *Fixed*: The `Logger.LogInformation` invocations refactored to `Logger.LogDebug` where applicable to reduce noise in the logs.
+- *Fixed*: The `IPropertyRule.ValidateAsync` method removed as it was not required and could lead to incorrect usage.
+- *Fixed:* The `ValueValidator` now only supports a `Configure` method to enable `IPropertyRule`-based configuration (versus directly).
+- *Fixed:* The `CommonValidator.ValidateAsync` is now internal as this was not intended and could lead to incorrect usage.
+- *Enhancement*: Added `AfterSend` event to `IEventSender` to enable post-send processing.
+- *Enhancement*: Added `EventOutboxHostedService.OneOffTrigger` method to enable a _one-off_ trigger interval to be specified for the registered (DI) instance.
+
 ## v3.17.0
 - *Enhancement*: Additional `CoreEx.Validation` usability improvements:
   - `Validator.CreateFor<T>` added to enable the creation of a `CommonValidator<T>` instance for a specified type `T` (more purposeful name); synonym for existing `CommonValidator.Create<T>` (unchanged).

@@ -40,7 +40,11 @@ namespace CoreEx.Events
                 i++;
             }
 
+            AfterSend?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;
         }
+
+        /// <inheritdoc/>
+        public event EventHandler? AfterSend;
     }
 }

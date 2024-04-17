@@ -14,10 +14,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_Value()
         {
-            var v1 = await 123.Validate("value").Immutable(x => true).ValidateAsync();
+            var v1 = await 123.Validate("value").Configure(c => c.Immutable(x => true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
             
-            v1 = await 123.Validate("value").Immutable(x => false).ValidateAsync();
+            v1 = await 123.Validate("value").Configure(c => c.Immutable(x => false)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -27,10 +27,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await 123.Validate("value").Immutable(() => true).ValidateAsync();
+            v1 = await 123.Validate("value").Configure(c => c.Immutable(() => true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 123.Validate("value").Immutable(() => false).ValidateAsync();
+            v1 = await 123.Validate("value").Configure(c => c.Immutable(() => false)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

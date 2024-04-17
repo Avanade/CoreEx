@@ -492,7 +492,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxc = Validator.CreateForCollection<List<TestItem>>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()));
             var tc = new List<TestItem> { new() { Id = "A", Text = "aaa" }, new() { Id = "B", Text = "bbb" }, new() { Id = "C", Text = "ccc" } };
 
-            var r = await vxc.ValidateAsync(tc);
+            var r = await tc.Validate(vxc, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -516,7 +516,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxc = Validator.CreateForCollection<List<TestItem>, TestItem>(new TestItemValidator(), minCount: 3);
             var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
 
-            var r = await vxc.ValidateAsync(tc);
+            var r = await tc.Validate(vxc, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -531,10 +531,10 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Coll_Validator_MinCount2()
         {
-            var vxc = Validator.CreateFor<List<TestItem>>().Collection(new TestItemValidator(), minCount: 3).AsCommonValidator();
+            var vxc = Validator.CreateFor<List<TestItem>>().Configure(c => c.Collection(new TestItemValidator(), minCount: 3));
             var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
 
-            var r = await vxc.ValidateAsync(tc);
+            var r = await tc.Validate(vxc, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -552,7 +552,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxc = Validator.CreateForCollection<List<TestItem>>(item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
             var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "A", Text = "A" } };
 
-            var r = await vxc.ValidateAsync(tc);
+            var r = await tc.Validate(vxc, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -570,7 +570,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxc = Validator.CreateForCollection<List<TestItem>>(minCount: 1, maxCount: 2, item: CollectionRuleItem.Create(new TestItemValidator()).DuplicateCheck(x => x.Id));
             var tc = new List<TestItem> { new() { Id = "A", Text = "A" }, new() { Id = "B", Text = "B" } };
 
-            var r = await vxc.ValidateAsync(tc);
+            var r = await tc.Validate(vxc, null).ValidateAsync();
 
             Assert.That(r.HasErrors, Is.False);
         }
@@ -581,7 +581,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxc = Validator.CreateForCollection<List<int>>(minCount: 1, maxCount: 5);
             var ic = new List<int> { 1, 2, 3, 4, 5 };
 
-            var r = await vxc.ValidateAsync(ic);
+            var r = await ic.Validate(vxc, null).ValidateAsync();
 
             Assert.That(r.HasErrors, Is.False);
         }
@@ -592,7 +592,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxc = Validator.CreateFor<List<int>>(v => v.Collection(1, 3));
             var ic = new List<int> { 1, 2, 3, 4, 5 };
 
-            var r = await vxc.ValidateAsync(ic);
+            var r = await ic.Validate(vxc, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -610,7 +610,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>>(minCount: 1, maxCount: 2, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "aaa" } }, { "k2", new TestItem { Id = "B", Text = "bbb" } }, { "k3", new TestItem { Id = "C", Text = "ccc" } } };
 
-            var r = await vxd.ValidateAsync(tc);
+            var r = await tc.Validate(vxd, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -634,7 +634,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>>(minCount: 3, item: DictionaryRuleItem.Create<string, TestItem>(value: new TestItemValidator()));
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2", new TestItem { Id = "B", Text = "B" } } };
 
-            var r = await vxd.ValidateAsync(tc);
+            var r = await tc.Validate(vxd, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -652,7 +652,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>, string, TestItem>(new TestItemValidator(), minCount: 2);
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2", new TestItem { Id = "B", Text = "B" } } };
 
-            var r = await vxd.ValidateAsync(tc);
+            var r = await tc.Validate(vxd, null).ValidateAsync();
 
             Assert.That(r.HasErrors, Is.False);
         }
@@ -663,7 +663,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxd = Validator.CreateForDictionary<Dictionary<string, int>>(minCount: 1, maxCount: 5);
             var id = new Dictionary<string, int> { { "k1", 1 }, { "k2", 2 }, { "k3", 3 }, { "k4", 4 }, { "k5", 5 } };
 
-            var r = await vxd.ValidateAsync(id);
+            var r = await id.Validate(vxd, null).ValidateAsync();
 
             Assert.That(r.HasErrors, Is.False);
         }
@@ -674,7 +674,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxd = Validator.CreateForDictionary<Dictionary<string, int>>(minCount: 1, maxCount: 3);
             var id = new Dictionary<string, int> { { "k1", 1 }, { "k2", 2 }, { "k3", 3 }, { "k4", 4 }, { "k5", 5 } };
 
-            var r = await vxd.ValidateAsync(id);
+            var r = await id.Validate(vxd, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {
@@ -693,7 +693,7 @@ namespace CoreEx.Test.Framework.Validation
             var vxd = Validator.CreateForDictionary<Dictionary<string, TestItem>, string, TestItem>(kv, new TestItemValidator(), minCount: 2);
             var tc = new Dictionary<string, TestItem> { { "k1", new TestItem { Id = "A", Text = "A" } }, { "k2x", new TestItem { Id = "B", Text = "B" } } };
 
-            var r = await vxd.ValidateAsync(tc);
+            var r = await tc.Validate(vxd, null).ValidateAsync();
 
             Assert.Multiple(() =>
             {

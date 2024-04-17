@@ -168,26 +168,40 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddEventPublisher<TEventPublisher>(this IServiceCollection services) where TEventPublisher : class, IEventPublisher => CheckServices(services).AddScoped<IEventPublisher, TEventPublisher>();
 
         /// <summary>
-        /// Adds the <see cref="LoggerEventSender"/> as the <see cref="IEventSender"/> singleton service.
+        /// Adds the <see cref="LoggerEventSender"/> as the <see cref="IEventSender"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddLoggerEventSender(this IServiceCollection services) => CheckServices(services).AddEventSender<LoggerEventSender>();
 
         /// <summary>
-        /// Adds the <see cref="NullEventSender"/> as the <see cref="IEventSender"/> singleton service.
+        /// Adds the <see cref="NullEventSender"/> as the <see cref="IEventSender"/> scoped service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddNullEventSender(this IServiceCollection services) => CheckServices(services).AddEventSender<NullEventSender>();
 
         /// <summary>
-        /// Adds the <typeparamref name="TEventSender"/> as the <see cref="IEventSender"/> singleton service.
+        /// Adds the <typeparamref name="TEventSender"/> as the <see cref="IEventSender"/> scoped service.
         /// </summary>
         /// <typeparam name="TEventSender">The <see cref="IEventSender"/> <see cref="Type"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddEventSender<TEventSender>(this IServiceCollection services) where TEventSender : class, IEventSender => CheckServices(services).AddSingleton<IEventSender, TEventSender>();
+        public static IServiceCollection AddEventSender<TEventSender>(this IServiceCollection services) where TEventSender : class, IEventSender => CheckServices(services).AddScoped<IEventSender, TEventSender>();
+
+        /// <summary>
+        /// Adds the <typeparamref name="TEventSender"/> as the <see cref="IEventSender"/> scoped service.
+        /// </summary>
+        /// <typeparam name="TEventSender">The <see cref="IEventSender"/> <see cref="Type"/>.</typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configure">The action to enable the <see cref="IEventSender"/> to be further configured.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddEventSender<TEventSender>(this IServiceCollection services, Action<IServiceProvider, TEventSender> configure) where TEventSender : class, IEventSender => CheckServices(services).AddScoped<IEventSender>(sp =>
+        {
+            var sender = ActivatorUtilities.CreateInstance<TEventSender>(sp);
+            configure(sp, sender);
+            return sender;
+        });
 
         /// <summary>
         /// Adds the <see cref="EventSubscriberOrchestrator"/> as a singleton service.

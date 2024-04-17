@@ -98,13 +98,13 @@ namespace CoreEx.Database.SqlServer.Outbox
                     return 0;
                 }
 
-                Logger.LogInformation("{EventCount} event(s) were dequeued. [Elapsed={Elapsed}ms]", events.Count(), sw.Elapsed.TotalMilliseconds);
+                Logger.LogDebug("{EventCount} event(s) were dequeued. [Elapsed={Elapsed}ms]", events.Count(), sw.Elapsed.TotalMilliseconds);
 
                 // Send the events.
                 sw = Stopwatch.StartNew();
                 await EventSender.SendAsync(events.ToArray(), cancellationToken).ConfigureAwait(false);
                 sw.Stop();
-                Logger.LogInformation("{EventCount} event(s) were sent successfully. [Sender={Sender}, Elapsed={Elapsed}ms]", events.Count(), EventSender.GetType().Name, sw.Elapsed.TotalMilliseconds);
+                Logger.LogDebug("{EventCount} event(s) were sent successfully. [Sender={Sender}, Elapsed={Elapsed}ms]", events.Count(), EventSender.GetType().Name, sw.Elapsed.TotalMilliseconds);
 
                 // Commit the transaction.
                 txn.Complete();

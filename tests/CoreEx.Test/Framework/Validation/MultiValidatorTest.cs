@@ -20,7 +20,7 @@ namespace CoreEx.Test.Framework.Validation
 
             var r = await MultiValidator.Create()
                 .Add(v1, new TestData { CountB = 0 })
-                .Add(1.Validate("value").Between(10, 20))
+                .Add(1.Validate("value").Configure(c => c.Between(10, 20)))
                 .ValidateAsync().ConfigureAwait(false);
             
             Assert.That(r, Is.Not.Null);
@@ -52,8 +52,8 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.CountB, p => p.Mandatory().CompareValue(CompareOperator.GreaterThan, 10));
 
             var r = await MultiValidator.Create()
-                .Add(new TestData { CountB = 0 }.Validate("value").Entity(v1))
-                .Add(1.Validate("id").Between(10, 20))
+                .Add(new TestData { CountB = 0 }.Validate("value").Configure(c => c.Entity(v1)))
+                .Add(1.Validate("id").Configure(c => c.Between(10, 20)))
                 .ValidateAsync().ConfigureAwait(false);
 
             Assert.That(r, Is.Not.Null);
@@ -87,8 +87,8 @@ namespace CoreEx.Test.Framework.Validation
                 .HasProperty(x => x.CountB, p => p.Mandatory().CompareValue(CompareOperator.GreaterThan, 10));
 
             var r = await MultiValidator.Create()
-                .Add(new TestData { Text = "XXXXXXXXXX", CountB = 11 }.Validate("value").Entity(v1))
-                .Add(15.Validate("id").Between(10, 20))
+                .Add(new TestData { Text = "XXXXXXXXXX", CountB = 11 }.Validate("value").Configure(c => c.Entity(v1)))
+                .Add(15.Validate("id").Configure(c => c.Between(10, 20)))
                 .ValidateAsync().ConfigureAwait(false);
 
             Assert.That(r, Is.Not.Null);

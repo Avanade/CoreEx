@@ -5,9 +5,11 @@ using CoreEx.Hosting;
 using CoreEx.Hosting.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +25,22 @@ namespace CoreEx.Database.SqlServer.Outbox
         private TimeSpan? _interval;
         private int? _maxDequeueSize;
         private string? _name;
+
+        /// <summary>
+        /// Provides an opportunity to make a one-off change to the underlying timer to trigger using the specified <paramref name="oneOffInterval"/> to the registered <see cref="EventOutboxHostedService"/>.
+        /// </summary>
+        /// <param name="serviceProvider">The <see cref="IServiceProvider"/> used to get the registered <see cref="EventOutboxHostedService"/>.</param>
+        /// <param name="oneOffInterval">The one-off interval before triggering; defaults to <c>null</c> which represents an immediate trigger.</param>
+        /// <param name="leaveWhereTimeRemainingIsLess">Indicates whether to <i>not</i> adjust the time where the time remaining is less than the one-off interval specified.</param>
+        /// <remarks>Where there is more than one instance registered, or none, then no action will be taken.
+        /// <para>This functionality is intended for low volume event publishing where there is need to bring forward the configured interval for a one-off execution. This is particularly useful where there is a need to publish
+        /// an event immediately versus waiting for the next scheduled execution.</para></remarks>
+        public static void OneOffTrigger(IServiceProvider serviceProvider, TimeSpan? oneOffInterval = null, bool leaveWhereTimeRemainingIsLess = true)
+        {
+            var services = serviceProvider.ThrowIfNull(nameof(serviceProvider)).GetServices<IHostedService>().OfType<EventOutboxHostedService>();
+            if (services.Count() == 1)
+                services.First().OneOffTrigger(oneOffInterval, leaveWhereTimeRemainingIsLess);
+        }
 
         /// <summary>
         /// Get or sets the configuration name for <see cref="Interval"/>. Defaults to '<c>Interval</c>'.

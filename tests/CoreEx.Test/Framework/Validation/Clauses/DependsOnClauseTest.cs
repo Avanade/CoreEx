@@ -18,7 +18,7 @@ namespace CoreEx.Test.Framework.Validation.Clauses
                 .HasProperty(x => x.CountA, p => p.Between(1, 10).DependsOn(x => x.Text));
 
             var td = new TestData { Text = null, CountA = 88 };
-            var v1 = await td.Validate("value").Entity(v).ValidateAsync();
+            var v1 = await td.Validate("value").Configure(c => c.Entity(v)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -27,7 +27,7 @@ namespace CoreEx.Test.Framework.Validation.Clauses
             });
 
             td = new TestData { Text = "xxx", CountA = 88 };
-            v1 = await td.Validate("value").Entity(v).ValidateAsync();
+            v1 = await td.Validate("value").Configure(c => c.Entity(v)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -36,7 +36,7 @@ namespace CoreEx.Test.Framework.Validation.Clauses
             });
 
             td = new TestData { Text = "xxx", CountA = 5 };
-            v1 = await td.Validate("value").Entity(v).ValidateAsync();
+            v1 = await td.Validate("value").Configure(c => c.Entity(v)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
     }

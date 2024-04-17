@@ -15,7 +15,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate()
         {
-            var v1 = await "Abc".Validate("value").Custom(x => { x.CreateErrorMessage("Test"); return Result.Success; }).ValidateAsync();
+            var v1 = await "Abc".Validate("value").Configure(c => c.Custom(x => { x.CreateErrorMessage("Test"); return Result.Success; })).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

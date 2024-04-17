@@ -14,13 +14,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate()
         {
-            var v1 = await 1.Validate("value").Between(1, 10).ValidateAsync();
+            var v1 = await 1.Validate("value").Configure(c => c.Between(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 5.Validate("value").Between(1, 10).ValidateAsync();
+            v1 = await 5.Validate("value").Configure(c => c.Between(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 1.Validate("value").Between(2, 10).ValidateAsync();
+            v1 = await 1.Validate("value").Configure(c => c.Between(2, 10)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -30,10 +30,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await 10.Validate("value").Between(1, 10).ValidateAsync();
+            v1 = await 10.Validate("value").Configure(c => c.Between(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 11.Validate("value").Between(1, 10, "One", "Ten").ValidateAsync();
+            v1 = await 11.Validate("value").Configure(c => c.Between(1, 10, "One", "Ten")).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -43,13 +43,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await 2.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await 2.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 5.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await 5.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 1.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await 1.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -59,10 +59,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await 9.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await 9.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 10.Validate("value").Between(1, 10, "One", "Ten", exclusiveBetween: true).ValidateAsync();
+            v1 = await 10.Validate("value").Configure(c => c.Between(1, 10, "One", "Ten", exclusiveBetween: true)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -77,7 +77,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate_Nullable()
         {
             int? v = null;
-            var v1 = await v.Validate("value").Between(1, 10).ValidateAsync();
+            var v1 = await v.Validate("value").Configure(c => c.Between(1, 10)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -88,15 +88,15 @@ namespace CoreEx.Test.Framework.Validation.Rules
             });
 
             v = 1;
-            v1 = await v.Validate("value").Between(1, 10).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
             v = 5;
-            v1 = await v.Validate("value").Between(1, 10).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
             v = 1;
-            v1 = await v.Validate("value").Between(2, 10).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(2, 10)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -107,11 +107,11 @@ namespace CoreEx.Test.Framework.Validation.Rules
             });
 
             v = 10;
-            v1 = await v.Validate("value").Between(1, 10).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
             v = 11;
-            v1 = await v.Validate("value").Between(1, 10, "One", "Ten").ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10, "One", "Ten")).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -122,15 +122,15 @@ namespace CoreEx.Test.Framework.Validation.Rules
             });
 
             v = 2;
-            v1 = await v.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
             v = 5;
-            v1 = await v.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
             v = 1;
-            v1 = await v.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -141,11 +141,11 @@ namespace CoreEx.Test.Framework.Validation.Rules
             });
 
             v = 9;
-            v1 = await v.Validate("value").Between(1, 10, exclusiveBetween: true).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10, exclusiveBetween: true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
             v = 10;
-            v1 = await v.Validate("value").Between(1, 10, "One", "Ten", exclusiveBetween: true).ValidateAsync();
+            v1 = await v.Validate("value").Configure(c => c.Between(1, 10, "One", "Ten", exclusiveBetween: true)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -159,7 +159,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_InclusiveBetween()
         {
-            var v1 = await 1.Validate("value").InclusiveBetween(2, 10).ValidateAsync();
+            var v1 = await 1.Validate("value").Configure(c => c.InclusiveBetween(2, 10)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -169,14 +169,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await 10.Validate("value").InclusiveBetween(1, 10).ValidateAsync();
+            v1 = await 10.Validate("value").Configure(c => c.InclusiveBetween(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
         public async Task Validate_ExclusiveBetween()
         {
-            var v1 = await 2.Validate("value").ExclusiveBetween(2, 10).ValidateAsync();
+            var v1 = await 2.Validate("value").Configure(c => c.ExclusiveBetween(2, 10)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -186,7 +186,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await 9.Validate("value").ExclusiveBetween(1, 10).ValidateAsync();
+            v1 = await 9.Validate("value").Configure(c => c.ExclusiveBetween(1, 10)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
     }

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,5 +20,10 @@ namespace CoreEx.Events
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="Task"/>.</returns>
         Task SendAsync(IEnumerable<EventSendData> events, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Occurs after a successful <see cref="SendAsync"/>.
+        /// </summary>
+        event EventHandler? AfterSend;
     }
 }

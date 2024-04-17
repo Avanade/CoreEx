@@ -159,7 +159,7 @@ namespace CoreEx.Solace.PubSub
 
                         try
                         {
-                            Logger.LogInformation("Sending {Count} message(s) to PubSub Broker.", messageBatch.Count);
+                            Logger.LogDebug("Sending {Count} message(s) to PubSub Broker.", messageBatch.Count);
                             var returnCode = session.Send([.. messageBatch], 0, messageBatch.Count, out int sentCount);
 
                             if (returnCode != ReturnCode.SOLCLIENT_OK)
@@ -174,7 +174,7 @@ namespace CoreEx.Solace.PubSub
                                 throw new InvalidOperationException("Not all messages in batch were sent; only {sentCount} of {messageBatch.Count} were sent.");
                             }
 
-                            Logger.LogInformation("Successful send of {Count} message(s).", messageBatch.Count);
+                            Logger.LogDebug("Successful send of {Count} message(s).", messageBatch.Count);
                         }
                         catch (Exception ex)
                         {
@@ -186,6 +186,9 @@ namespace CoreEx.Solace.PubSub
                         unsentEvents.RemoveAll(esd => sentIds.Contains(esd.Id ?? string.Empty));
                     }
                 }
+
+                // Raise the event.
+                AfterSend?.Invoke(this, EventArgs.Empty);
             }, nameof(SendAsync));
 
             return Task.CompletedTask;
@@ -211,5 +214,8 @@ namespace CoreEx.Solace.PubSub
         /// Prepend the sent stats to the message.
         /// </summary>
         private static string PrependStats(string message, int totalCount, int unsentCount) => $"{unsentCount} of the total {totalCount} events were not successfully sent. {message}";
+
+        /// <inheritdoc/>
+        public event EventHandler? AfterSend;
     }
 }

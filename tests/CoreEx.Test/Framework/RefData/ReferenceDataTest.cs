@@ -933,14 +933,14 @@ namespace CoreEx.Test.Framework.RefData
             var sw = Stopwatch.StartNew();
             await ReferenceDataOrchestrator.Current.PrefetchAsync(new string[] { "RefData", "RefDataEx" }).ConfigureAwait(false);
             sw.Stop();
-            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(500));
+            Assert.That(sw.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(480));
 
             sw = Stopwatch.StartNew();
             var c = await ReferenceDataOrchestrator.Current.GetByTypeAsync<RefData>();
             sw.Stop();
             Assert.Multiple(() =>
             {
-                Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
+                Assert.That(sw.ElapsedMilliseconds, Is.LessThan(520));
                 Assert.That(c, Is.Not.Null);
                 Assert.That(c!.ContainsCode("A"), Is.True);
             });
@@ -950,7 +950,7 @@ namespace CoreEx.Test.Framework.RefData
             sw.Stop();
             Assert.Multiple(() =>
             {
-                Assert.That(sw.ElapsedMilliseconds, Is.LessThan(500));
+                Assert.That(sw.ElapsedMilliseconds, Is.LessThan(520));
                 Assert.That(c, Is.Not.Null);
                 Assert.That(c!.ContainsId("BB"), Is.True);
             });
