@@ -19,7 +19,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate()
         {
             var te = new TestEntity { Item = new TestItem() };
-            var v1 = await te.Validate("entity", "EnTiTy").Entity(_tev).ValidateAsync();
+            var v1 = await te.Validate("entity", "EnTiTy").Configure(c => c.Entity(_tev)).ValidateAsync();
 
             Assert.Multiple(() =>
             {

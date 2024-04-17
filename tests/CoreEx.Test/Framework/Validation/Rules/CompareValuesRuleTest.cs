@@ -14,10 +14,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate()
         {
-            var v1 = await 1.Validate("value").CompareValues(new int[] { 1, 2 }).ValidateAsync();
+            var v1 = await 1.Validate("value").Configure(c => c.CompareValues(new int[] { 1, 2 })).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await 1.Validate("value").CompareValues(new int[] { 2, 3 }).ValidateAsync();
+            v1 = await 1.Validate("value").Configure(c => c.CompareValues(new int[] { 2, 3 })).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -31,10 +31,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_String()
         {
-            var v1 = await "A".Validate("value").CompareValues(new string[] { "A", "B" }).ValidateAsync();
+            var v1 = await "A".Validate("value").Configure(c => c.CompareValues(new string[] { "A", "B" })).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "C".Validate("value").CompareValues(new string[] { "A", "B" }).ValidateAsync();
+            v1 = await "C".Validate("value").Configure(c => c.CompareValues(new string[] { "A", "B" })).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -44,7 +44,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await "a".Validate("value").CompareValues(new string[] { "A", "B" }, true).ValidateAsync();
+            v1 = await "a".Validate("value").Configure(c => c.CompareValues(new string[] { "A", "B" }, true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 

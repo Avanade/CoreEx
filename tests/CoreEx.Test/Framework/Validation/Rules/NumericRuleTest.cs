@@ -14,10 +14,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_AllowNegatives()
         {
-            var v1 = await (123f).Validate("value").Numeric().ValidateAsync();
+            var v1 = await (123f).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (-123f).Validate("value").Numeric().ValidateAsync();
+            v1 = await (-123f).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -27,13 +27,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await (-123f).Validate("value").Numeric(true).ValidateAsync();
+            v1 = await (-123f).Validate("value").Configure(c => c.Numeric(true)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            var v2 = await (123d).Validate("value").Numeric().ValidateAsync();
+            var v2 = await (123d).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.That(v2.HasErrors, Is.False);
 
-            v2 = await (-123d).Validate("value").Numeric().ValidateAsync();
+            v2 = await (-123d).Validate("value").Configure(c => c.Numeric()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v2.HasErrors, Is.True);
@@ -43,7 +43,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v2.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v2 = await (-123d).Validate("value").Numeric(true).ValidateAsync();
+            v2 = await (-123d).Validate("value").Configure(c => c.Numeric(true)).ValidateAsync();
             Assert.That(v2.HasErrors, Is.False);
         }
     }

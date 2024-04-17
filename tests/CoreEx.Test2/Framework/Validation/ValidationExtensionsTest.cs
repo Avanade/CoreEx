@@ -28,7 +28,6 @@ namespace CoreEx.Test2.Framework.Validation
             {
                 var v2 = v;
                 var v3 = v.Email();
-                return v3;
             });
         }
     }

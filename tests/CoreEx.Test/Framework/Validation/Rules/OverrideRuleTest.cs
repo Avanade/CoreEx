@@ -13,7 +13,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public void Validate_Value()
         {
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await 123.Validate().Override(456).ValidateAsync());
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await 123.Validate().Configure(c => c.Override(456)).ValidateAsync());
         }
     }
 }

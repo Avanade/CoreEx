@@ -14,7 +14,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_String()
         {
-            var v1 = await "XXX".Validate("value").None().ValidateAsync();
+            var v1 = await "XXX".Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -24,20 +24,20 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await ((string?)null).Validate("value").None().ValidateAsync();
+            v1 = await ((string?)null).Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await (string.Empty).Validate("value").None().ValidateAsync();
+            v1 = await (string.Empty).Validate("value").Configure(c => c.Validate()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "  ".Validate("value").None().ValidateAsync();
+            v1 = await "  ".Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
         public async Task Validate_Int32()
         {
-            var v1 = await (123).Validate("value").None().ValidateAsync();
+            var v1 = await (123).Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -47,16 +47,16 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await (0).Validate("value").None().ValidateAsync();
+            v1 = await (0).Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            var v2 = await ((int?)123).Validate("value").None().ValidateAsync();
+            var v2 = await ((int?)123).Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.That(v2.HasErrors, Is.True);
 
-            v2 = await ((int?)0).Validate("value").None().ValidateAsync();
+            v2 = await ((int?)0).Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.That(v2.HasErrors, Is.True);
 
-            v2 = await ((int?)null).Validate("value").None().ValidateAsync();
+            v2 = await ((int?)null).Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.That(v2.HasErrors, Is.False);
         }
 
@@ -69,7 +69,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate_Entity()
         {
             Foo? foo = new();
-            var v1 = await foo.Validate("value").None().ValidateAsync();
+            var v1 = await foo.Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -80,7 +80,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
             });
 
             foo = null;
-            v1 = await foo.Validate("value").None().ValidateAsync();
+            v1 = await foo.Validate("value").Configure(c => c.None()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
     }

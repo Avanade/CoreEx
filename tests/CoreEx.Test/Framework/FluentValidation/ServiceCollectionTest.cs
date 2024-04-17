@@ -98,10 +98,10 @@ namespace CoreEx.Test.Framework.FluentValidation
 
             var sp = sc.BuildServiceProvider();
 
-            var rs = await new Product().Validate().Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
+            var rs = await new Product().Validate().Configure(c => c.Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap())).ValidateAsync();
             Assert.That(rs.HasErrors, Is.True);
 
-            rs = await new Product { Id = "XXX", Name = "Blah", Price = 1.5m }.Validate().Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
+            rs = await new Product { Id = "XXX", Name = "Blah", Price = 1.5m }.Validate(c => c.Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap())).ValidateAsync();
             Assert.That(rs.HasErrors, Is.False);
         }
 
@@ -113,10 +113,10 @@ namespace CoreEx.Test.Framework.FluentValidation
 
             var sp = sc.BuildServiceProvider();
 
-            var rs = await new Product().Validate().Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
+            var rs = await new Product().Validate().Configure(c => c.Mandatory().Interop(FluentValidator.Create<ProductValidator>(sp).Wrap())).ValidateAsync();
             Assert.That(rs.HasErrors, Is.True);
 
-            rs = await new Product { Id = "XXX", Name = "Blah", Price = 1.5m }.Validate().Mandatory().Interop(() => FluentValidator.Create<ProductValidator>(sp).Wrap()).ValidateAsync();
+            rs = await new Product { Id = "XXX", Name = "Blah", Price = 1.5m }.Validate().Configure(c => c.Mandatory().Interop(() => FluentValidator.Create<ProductValidator>(sp).Wrap())).ValidateAsync();
             Assert.That(rs.HasErrors, Is.False);
         }
     }

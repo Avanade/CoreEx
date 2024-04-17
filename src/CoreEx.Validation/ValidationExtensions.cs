@@ -1577,7 +1577,31 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T?> Validate<T>(this T? value, string? name = null, LText? text = null) => new(value, name, text);
+        public static ValueValidator<T> Validate<T>(this T value, string? name = null, LText? text = null) => new(value, name, text);
+
+        /// <summary>
+        /// Enables (sets up) validation for a value.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="configure">The value validation configuration logic.</param>
+        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+        /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
+        public static ValueValidator<T> Validate<T>(this T value, Action<ValueValidatorConfiguration<T>> configure, string? name = null, LText? text = null) 
+            => new ValueValidator<T>(value, name, text).Configure(configure);
+
+        /// <summary>
+        /// Enables (sets up) validation for a value.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="validator">The <see cref="CommonValidator{T}"/>.</param>
+        /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+        /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
+        public static ValueValidator<T> Validate<T>(this T value, CommonValidator<T> validator, string? name = null, LText? text = null)
+            => new ValueValidator<T>(value, name, text).Configure(c => c.Common(validator));
 #else
         /// <summary>
         /// Enables (sets up) validation for a value.
@@ -1587,42 +1611,32 @@ namespace CoreEx.Validation
         /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
-        public static ValueValidator<T?> Validate<T>(this T? value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) => new(value, name, text);
+        public static ValueValidator<T> Validate<T>(this T value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) => new(value, name, text);
+
+        /// <summary>
+        /// Enables (sets up) validation for a value.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="configure">The value validation configuration logic.</param>
+        /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+        /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
+        public static ValueValidator<T> Validate<T>(this T value, Action<ValueValidatorConfiguration<T>> configure, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null) 
+            => new ValueValidator<T>(value, name, text).Configure(configure);
+
+        /// <summary>
+        /// Enables (sets up) validation for a value.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="validator">The <see cref="CommonValidator{T}"/>.</param>
+        /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
+        /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+        /// <returns>A <see cref="ValueValidator{T}"/>.</returns>
+        public static ValueValidator<T> Validate<T>(this T value, CommonValidator<T> validator, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null)
+            => new ValueValidator<T>(value, name, text).Configure(c => c.Common(validator));
 #endif
-
-        #endregion
-
-        #region As
-
-        /// <summary>
-        /// Cast the <paramref name="rule"/> to the originating <see cref="CommonValidator{T}"/>.
-        /// </summary>
-        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
-        /// <returns>The <paramref name="rule"/> cast to a <see cref="CommonValidator{T}"/>; otherwise, throws an <see cref="InvalidCastException"/>.</returns>
-        public static CommonValidator<TProperty> AsCommonValidator<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
-            => rule is CommonValidator<TProperty> cv ? cv : throw new InvalidCastException("The rule is not an instance of CommonValidator<TEntity>.");
-
-        /// <summary>
-        /// Cast the <paramref name="rule"/> to the originating <see cref="ValueValidator{T}"/>.
-        /// </summary>
-        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
-        /// <returns>The <paramref name="rule"/> cast to a <see cref="ValueValidator{T}"/>; otherwise, throws an <see cref="InvalidCastException"/>.</returns>
-        public static ValueValidator<TProperty> AsValueValidator<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
-            => rule is ValueValidator<TProperty> vv ? vv : throw new InvalidCastException("The rule is not an instance of ValueValidator<TProperty>.");
-
-        /// <summary>
-        /// Cast the <paramref name="rule"/> to the originating <see cref="ValidatorBase{TEntity}"/>.
-        /// </summary>
-        /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-        /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
-        /// <returns>The <paramref name="rule"/> cast to a <see cref="ValidatorBase{TEntity}"/>; otherwise, throws an <see cref="InvalidCastException"/>.</returns>
-        public static ValidatorBase<TEntity> AsValidator<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
-            => rule is ValidatorBase<TEntity> vb ? vb : throw new InvalidCastException("The rule is not an instance of ValidatorBase<TEntity>.");
 
         #endregion
 
@@ -1642,20 +1656,6 @@ namespace CoreEx.Validation
             return multiValidator;
         }
 
-        /// <summary>
-        /// Adds a <see cref="IPropertyRule{TEntity, TProperty}"/> to the <see cref="MultiValidator"/>. 
-        /// </summary>
-        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-        /// <param name="multiValidator">The <see cref="MultiValidator"/>.</param>
-        /// <param name="validator">The <see cref="PropertyRuleBase{TEntity, TProperty}"/> <see cref="ValueValidator{T}"/>.</param>
-        /// <returns>The (this) <see cref="MultiValidator"/>.</returns>
-        public static MultiValidator Add<T>(this MultiValidator multiValidator, IPropertyRule<ValidationValue<T>, T> validator)
-        {
-            validator.ThrowIfNull(nameof(validator));
-            multiValidator.ThrowIfNull(nameof(multiValidator)).Validators.Add(validator.ValidateAsync);
-            return multiValidator;
-        }
-
         #endregion
 
         #region Result
@@ -1667,18 +1667,19 @@ namespace CoreEx.Validation
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="validator">The <see cref="ValueValidatorConfiguration{T}"/> function.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
-        public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Result<TEntity> result, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
+        public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Result<TEntity> result, Action<ValueValidatorConfiguration<TEntity>>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
         {
             validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
-                var vi = validator(v.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
-                var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
+                var vv = v.Validate(name, text);
+                vv.Configure(c => validator(c));
+                var vr = await vv.ValidateAsync(cancellationToken).ConfigureAwait(false);
                 return vr.ToResult<TEntity>();
             });
         }
@@ -1690,18 +1691,19 @@ namespace CoreEx.Validation
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="validator">The <see cref="ValueValidatorConfiguration{T}"/> function.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         /// <remarks>Where <see cref="IValidationResult.HasErrors"/> the corresponding <see cref="IResult.Error"/> will be updated with the <see cref="IValidationResult.ToException"/>.</remarks>
-        public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Task<Result<TEntity>> result, Func<IPropertyRule<ValidationValue<TEntity?>, TEntity?>, IPropertyRule<ValidationValue<TEntity?>, TEntity?>> validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
+        public static async Task<Result<TEntity>> ValidateAsync<TEntity>(this Task<Result<TEntity>> result, Action<ValueValidatorConfiguration<TEntity>>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default)
         {
             validator.ThrowIfNull(nameof(validator));
 
             return await result.ThenAsync(async v =>
             {
-                var vi = validator(v.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
-                var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
+                var vv = v.Validate(name, text);
+                vv.Configure(c => validator(c));
+                var vr = await vv.ValidateAsync(cancellationToken).ConfigureAwait(false);
                 return vr.ToResult<TEntity>();
             });
         }
@@ -1714,13 +1716,13 @@ namespace CoreEx.Validation
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="IResult"/>.</param>
         /// <param name="value">The value to validate.</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="validator">The <see cref="ValueValidatorConfiguration{T}"/>.</param>
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
         /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T>, IPropertyRule>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Action<ValueValidatorConfiguration<T>>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #else
         /// <summary>
         /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
@@ -1729,20 +1731,21 @@ namespace CoreEx.Validation
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="IResult"/>.</param>
         /// <param name="value">The value to validate.</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="validator">The <see cref="ValueValidatorConfiguration{T}"/>.</param>
         /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
         /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Func<IPropertyRule<ValidationValue<T?>, T>, IPropertyRule>? validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this TResult result, T value, Action<ValueValidatorConfiguration<T>>? validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #endif
         {
             if (validator is null || result.IsFailure)
                 return result;
 
-            var vi = validator(value.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
-            var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
+            var vv = value.Validate(name, text);
+            vv.Configure(c => validator(c));
+            var vr = await vv.ValidateAsync(cancellationToken).ConfigureAwait(false);
             return vr.HasErrors ? (TResult)result.ToFailure(vr.ToException()!) : result;           
         }
 
@@ -1754,13 +1757,13 @@ namespace CoreEx.Validation
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="IResult"/>.</param>
         /// <param name="value">The value to validate.</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="validator">The <see cref="ValueValidatorConfiguration{T}"/>.</param>
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
         /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T>, IPropertyRule>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Action<ValueValidatorConfiguration<T>>? validator, string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #else
         /// <summary>
         /// Executes the <paramref name="validator"/> for the specified <paramref name="value"/> where the <paramref name="result"/> is <see cref="Result.IsSuccess"/>.
@@ -1769,21 +1772,22 @@ namespace CoreEx.Validation
         /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="IResult"/>.</param>
         /// <param name="value">The value to validate.</param>
-        /// <param name="validator">The <see cref="IPropertyRule{TEntity, TProperty}"/> configuration function.</param>
+        /// <param name="validator">The <see cref="ValueValidatorConfiguration{T}"/>.</param>
         /// <param name="name">The value name (defaults to <paramref name="value"/> name using the <see cref="CallerArgumentExpressionAttribute"/>).</param>
         /// <param name="text">The <see cref="LText"/> to use for the <see cref="IValidationResult"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The resulting <see cref="IResult"/>.</returns>
         /// <remarks>Validation only occurs where the <paramref name="validator"/> is not <c>null</c>; otherwise, continues as expected.</remarks>
-        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Func<IPropertyRule<ValidationValue<T?>, T>, IPropertyRule>? validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
+        public static async Task<TResult> ValidatesAsync<TResult, T>(this Task<TResult> result, T value, Action<ValueValidatorConfiguration<T>>? validator, [CallerArgumentExpression(nameof(value))] string? name = default, LText? text = default, CancellationToken cancellationToken = default) where TResult : IResult
 #endif
         {
             var r = await result.ConfigureAwait(false);
             if (validator is null || r.IsFailure)
                 return r;
 
-            var vi = validator(value.Validate(name, text)) ?? throw new InvalidOperationException($"The {nameof(validator)} function must return a non-null instance to perform the requested validation.");
-            var vr = await vi.ValidateAsync(cancellationToken).ConfigureAwait(false);
+            var vv = value.Validate(name, text);
+            vv.Configure(c => validator(c));
+            var vr = await vv.ValidateAsync(cancellationToken).ConfigureAwait(false);
             return vr.HasErrors ? (TResult)r.ToFailure(vr.ToException()!) : r;
         }
 

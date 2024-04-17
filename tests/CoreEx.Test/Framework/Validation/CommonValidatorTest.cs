@@ -13,13 +13,13 @@ namespace CoreEx.Test.Framework.Validation
         [OneTimeSetUp]
         public void OneTimeSetUp() => CoreEx.Localization.TextProvider.SetTextProvider(new ValidationTextProvider());
 
-        private static readonly CommonValidator<string> _cv = Validator.CreateFor<string>(v => v.String(5).Must(x => x.Value != "XXXXX"));
+        private static readonly CommonValidator<string?> _cv = Validator.CreateFor<string?>(v => v.String(5).Must(x => x.Value != "XXXXX"));
         private static readonly CommonValidator<int?> _cv2 = Validator.CreateFor<int?>(v => v.Mandatory().CompareValue(CompareOperator.NotEqual, 1));
 
         [Test]
         public async Task Validate()
         {
-            var r = await _cv.ValidateAsync("XXXXXX");
+            var r = await "XXXXXX".Validate(_cv, null).ValidateAsync();
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
             {
@@ -30,7 +30,7 @@ namespace CoreEx.Test.Framework.Validation
                 Assert.That(r.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            r = await _cv.ValidateAsync("XXXXX", "Name");
+            r = await "XXXXX".Validate(_cv, "Name").ValidateAsync();
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
             {
@@ -41,7 +41,7 @@ namespace CoreEx.Test.Framework.Validation
                 Assert.That(r.Messages[0].Property, Is.EqualTo("Name"));
             });
 
-            r = await _cv.ValidateAsync("XXX", "Name");
+            r = await "XXX".Validate(_cv, "Name").ValidateAsync();
             Assert.That(r, Is.Not.Null);
             Assert.That(r.HasErrors, Is.False);
         }
@@ -89,7 +89,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Validate_Nullable()
         {
             int? v = 1;
-            var r = await _cv2.ValidateAsync(v);
+            var r = await v.Validate(_cv2, null).ValidateAsync();
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
             {
@@ -122,8 +122,8 @@ namespace CoreEx.Test.Framework.Validation
         [Test]
         public async Task Common_FailureResult_ViaAdditional()
         {
-            var cv = Validator.CreateFor<string>(v => v.String(5)).AdditionalAsync((c, _) => Task.FromResult(Result.NotFoundError()));
-            var r = await cv.ValidateAsync("abc");
+            var cv = Validator.CreateFor<string?>(v => v.String(5)).AdditionalAsync((c, _) => Task.FromResult(Result.NotFoundError()));
+            var r = await "abc".Validate(cv).ValidateAsync();
 
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
@@ -139,7 +139,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Common_FailureResult_ViaCustom()
         {
             var cv = CommonValidator.Create<string>(v => v.String(5).Custom(ctx => Result.NotFoundError()));
-            var r = await cv.ValidateAsync("abc");
+            var r = await "abc".Validate(cv).ValidateAsync();
 
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
@@ -173,7 +173,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task CreateFor()
         {
             var cv = Validator.CreateFor<string>().Configure(v => v.MaximumLength(5));
-            var r = await cv.ValidateAsync("abcdef");
+            var r = await "abcdef".Validate(cv, null).ValidateAsync();
 
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
@@ -208,7 +208,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Inherited_Basic()
         {
             var iv = new IntValidator();
-            var vr = await iv.ValidateAsync(8);
+            var vr = await 8.Validate(iv, null).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(vr.HasErrors, Is.True);
@@ -222,13 +222,13 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Inherited_Basic2()
         {
             var iv = new IntValidator();
-            var vr = await iv.ValidateAsync(28);
+            var vr = await 28.Validate(iv, "length").ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(vr.HasErrors, Is.True);
                 Assert.That(vr.Messages!, Has.Count.EqualTo(1));
                 Assert.That(vr.Messages![0].Text, Is.EqualTo("Count must be less than or equal to 20."));
-                Assert.That(vr.Messages[0].Property, Is.EqualTo("value"));
+                Assert.That(vr.Messages[0].Property, Is.EqualTo("length"));
             });
         }
 
@@ -236,7 +236,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Inherited_OnValidate()
         {
             var iv = new IntValidator();
-            var vr = await iv.ValidateAsync(11);
+            var vr = await 11.Validate(iv, null).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(vr.HasErrors, Is.True);

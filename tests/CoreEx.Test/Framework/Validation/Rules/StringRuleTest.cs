@@ -15,13 +15,13 @@ namespace CoreEx.Test.Framework.Validation.Rules
         [Test]
         public async Task Validate_MinLength()
         {
-            var v1 = await "Abc".Validate("value").String(2, 5).ValidateAsync();
+            var v1 = await "Abc".Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "Ab".Validate("value").String(2, 5).ValidateAsync();
+            v1 = await "Ab".Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "A".Validate("value").String(2, 5).ValidateAsync();
+            v1 = await "A".Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -31,23 +31,23 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await string.Empty.Validate("value").String(2, 5).ValidateAsync();
+            v1 = await string.Empty.Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await ((string?)null).Validate("value").String(2, 5).ValidateAsync();
+            v1 = await ((string?)null).Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
         public async Task Validate_MaxLength()
         {
-            var v1 = await "Abc".Validate("value").String(2, 5).ValidateAsync();
+            var v1 = await "Abc".Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "Abcde".Validate("value").String(2, 5).ValidateAsync();
+            v1 = await "Abcde".Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "Abcdef".Validate("value").String(2, 5).ValidateAsync();
+            v1 = await "Abcdef".Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -57,10 +57,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await string.Empty.Validate("value").String(2, 5).ValidateAsync();
+            v1 = await string.Empty.Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await ((string?)null).Validate("value").String(2, 5).ValidateAsync();
+            v1 = await ((string?)null).Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 
@@ -68,10 +68,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
         public async Task Validate_Regex()
         {
             var r = new Regex("[a-zA-Z]$");
-            var v1 = await "Abc".Validate("value").String(r).ValidateAsync();
+            var v1 = await "Abc".Validate("value").Configure(c => c.String(r)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "123".Validate("value").String(r).ValidateAsync();
+            v1 = await "123".Validate("value").Configure(c => c.String(r)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -81,20 +81,20 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await string.Empty.Validate("value").String(2, 5).ValidateAsync();
+            v1 = await string.Empty.Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await ((string?)null).Validate("value").String(2, 5).ValidateAsync();
+            v1 = await ((string?)null).Validate("value").Configure(c => c.String(2, 5)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
         }
 
         [Test]
         public async Task Validate_ExactLength()
         {
-            var v1 = await "Abc".Validate("value").String(3, 3).ValidateAsync();
+            var v1 = await "Abc".Validate("value").Configure(c => c.String(3, 3)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "A".Validate("value").String(3, 3).ValidateAsync();
+            v1 = await "A".Validate("value").Configure(c => c.String(3, 3)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
@@ -104,7 +104,7 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.Messages[0].Property, Is.EqualTo("value"));
             });
 
-            v1 = await "AAAA".Validate("value").Length(3).ValidateAsync();
+            v1 = await "AAAA".Validate("value").Configure(c => c.Length(3)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);

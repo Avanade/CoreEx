@@ -15,7 +15,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Run_With_NotNull()
         {
             string name = "George";
-            var r = await name.Validate().Mandatory().String(50).ValidateAsync();
+            var r = await name.Validate().Configure(c => c.Mandatory().String(50)).ValidateAsync();
             Assert.That(r, Is.Not.Null);
             Assert.That(r.HasErrors, Is.False);
         }
@@ -24,7 +24,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Run_With_Null()
         {
             string? name = null;
-            var r = await name.Validate().Mandatory().String(50).ValidateAsync();
+            var r = await name.Validate().Configure(c => c.Mandatory().String(50)).ValidateAsync();
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
             {
@@ -38,7 +38,7 @@ namespace CoreEx.Test.Framework.Validation
         public async Task Validate_With_FailureResult()
         {
             string name = "Bill";
-            var r = await name.Validate().Mandatory().Custom(ctx => Result.Go().When(() => ctx.Value == "Bill", () => Result.NotFoundError())).String(5).ValidateAsync();
+            var r = await name.Validate().Configure(c => c.Mandatory().Custom(ctx => Result.Go().When(() => ctx.Value == "Bill", () => Result.NotFoundError())).String(5)).ValidateAsync();
             Assert.That(r, Is.Not.Null);
             Assert.Multiple(() =>
             {

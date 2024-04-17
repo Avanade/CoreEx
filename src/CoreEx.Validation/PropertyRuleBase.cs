@@ -41,10 +41,10 @@ namespace CoreEx.Validation
         public string JsonName { get; internal set; }
 
         /// <inheritdoc/>
-        public LText Text { get; set; }
+        public virtual LText Text { get; set; }
 
         /// <inheritdoc/>
-        public LText? ErrorText { get; set; }
+        public virtual LText? ErrorText { get; set; }
 
         /// <inheritdoc/>
         IPropertyRule<TEntity, TProperty> IPropertyRule<TEntity, TProperty>.WithMessage(LText errorText)
@@ -74,7 +74,7 @@ namespace CoreEx.Validation
         }
 
         /// <summary>
-        /// Adds a clause (<see cref="IPropertyRuleClause{TEntity, TProperty}"/>) to the rule.
+        /// Adds a clause (<see cref="IPropertyRuleClause{TEntity, TProperty}"/>) to the last rule added.
         /// </summary>
         /// <param name="clause">The <see cref="IPropertyRuleClause{TEntity, TProperty}"/>.</param>
         public void AddClause(IPropertyRuleClause<TEntity> clause)
@@ -115,15 +115,5 @@ namespace CoreEx.Validation
                     break;
             }
         }
-
-        /// <summary>
-        /// Executes the validation for the property value.
-        /// </summary>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>A <see cref="ValueValidatorResult{TEntity, TProperty}"/>.</returns>
-        public abstract Task<ValueValidatorResult<TEntity, TProperty>> ValidateAsync(CancellationToken cancellationToken = default);
-
-        /// <inheritdoc/>
-        async Task<IValidationResult> IPropertyRule.ValidateAsync(CancellationToken cancellationToken) => await ValidateAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -78,7 +78,6 @@ namespace CoreEx.Test.Framework.Results
         [Test]
         public async Task Validation_Success_Other_Value()
         {
-            1.Validate().Mandatory().CompareValue(CompareOperator.LessThanEqual, 10);
             var r = await Result.Go().ValidatesAsync(1, v => v.Mandatory().CompareValue(CompareOperator.LessThanEqual, 10));
             Assert.That(r.IsSuccess, Is.True);
         }
@@ -95,9 +94,6 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_Success_Other_String()
         {
             string? email = "a@b";
-
-            IPropertyRule<ValidationValue<string?>, string> x = email.Validate().Email();
-
             var r = await Result.Go().ValidatesAsync(email, v => v.Email());
             Assert.That(r.IsSuccess, Is.True);
         }
@@ -106,9 +102,6 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_Success_Other_String2()
         {
             string email = "a@b";
-
-            email.Validate().Email();
-
             var r = await Result.Go(email).ValidatesAsync(email, v => v.Email());
             Assert.That(r.IsSuccess, Is.True);
         }
@@ -124,7 +117,7 @@ namespace CoreEx.Test.Framework.Results
                 return Result.Go(value)
                     .Required()
                     .Then(v => v.Id = id)
-                    .ThenAsync(v => v.Validate().Entity(_personValidator).ValidateAsync());
+                    .ThenAsync(v => v.Validate().Configure(c => c.Entity(_personValidator)).ValidateAsync());
             });
 
             Assert.That(r.IsSuccess, Is.True);
@@ -134,7 +127,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_MultiValidator_Success()
         {
             var value = new Person { Name = "Tom", Age = 18 };
-            var r = await Result.Go().ValidateAsync(() => MultiValidator.Create().Add(value.Validate().Mandatory().Entity(_personValidator)));
+            var r = await Result.Go().ValidateAsync(() => MultiValidator.Create().Add(value.Validate().Configure(c => c.Mandatory().Entity(_personValidator))));
             Assert.That(r.IsSuccess, Is.True);
         }
 
@@ -142,7 +135,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_MultiValidator_Failure()
         {
             var value = new Person { Name = "Tom" };
-            var r = await Result.Go().ValidateAsync(() => MultiValidator.Create().Add(value.Validate().Mandatory().Entity(_personValidator)));
+            var r = await Result.Go().ValidateAsync(() => MultiValidator.Create().Add(value.Validate().Configure(c => c.Mandatory().Entity(_personValidator))));
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [value.Age: Age must be greater than 0.]"));
         }
 
@@ -150,7 +143,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_MultiValidator_Value_Success()
         {
             var value = new Person { Name = "Tom", Age = 18 };
-            var r = await Result.Go(value).ValidateAsync(p => MultiValidator.Create().Add(p.Validate().Mandatory().Entity(_personValidator)));
+            var r = await Result.Go(value).ValidateAsync(p => MultiValidator.Create().Add(p.Validate().Configure(c => c.Mandatory().Entity(_personValidator))));
             Assert.That(r.IsSuccess, Is.True);
         }
 
@@ -158,7 +151,7 @@ namespace CoreEx.Test.Framework.Results
         public async Task Validation_MultiValidator_Value_Failure()
         {
             var value = new Person { Name = "Tom" };
-            var r = await Result.Go(value).ValidateAsync(_ => MultiValidator.Create().Add(value.Validate().Mandatory().Entity(_personValidator)));
+            var r = await Result.Go(value).ValidateAsync(_ => MultiValidator.Create().Add(value.Validate().Configure(c => c.Mandatory().Entity(_personValidator))));
             Assert.That(r.Error, Is.Not.Null.And.Message.EqualTo("A data validation error occurred. [value.Age: Age must be greater than 0.]"));
         }
 
