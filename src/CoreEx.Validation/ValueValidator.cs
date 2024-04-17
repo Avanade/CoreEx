@@ -22,7 +22,7 @@ namespace CoreEx.Validation
         /// <param name="value">The value to validate.</param>
         /// <param name="name">The value name (defaults to <see cref="Validation.ValueNameDefault"/>).</param>
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
-        internal ValueValidator(T value, string? name = null, LText? text = null)
+        internal ValueValidator(T? value, string? name = null, LText? text = null)
         {
             _configuration = new ValueValidatorConfiguration<T>(string.IsNullOrEmpty(name) ? Validation.ValueNameDefault : name, text);
             _validationValue = new ValidationValue<T>(null, value);
