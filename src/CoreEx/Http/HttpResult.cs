@@ -63,7 +63,7 @@ namespace CoreEx.Http
                 }
                 catch (Exception ex)
                 {
-                    return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to convert the content '{content}' [{MediaTypeNames.Text.Plain}] to Type {typeof(T).Name}.", ex));
+                    return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to convert the content [{MediaTypeNames.Text.Plain}] content to Type {typeof(T).Name}.", ex));
                 }
             }
 
@@ -84,7 +84,7 @@ namespace CoreEx.Http
             }
             catch (Exception ex)
             {
-                return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to deserialize the JSON content '{content}' [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] to Type {typeof(T).FullName}.", ex));
+                return new HttpResult<T>(response, content, new InvalidOperationException($"Unable to deserialize the JSON [{response.Content.Headers?.ContentType?.MediaType ?? "not specified"}] content to Type {typeof(T).FullName}.", ex));
             }
         }
 

@@ -141,5 +141,19 @@ namespace CoreEx.Test.Framework.Results
             var r = await Result.Go().AsTask();
             Assert.That(r, Is.EqualTo(Result.Success));
         }
+
+        [Test]
+        public void Success_Value()
+        {
+            var ir = (IResult)Result.Success;
+            Assert.That(ir.Value, Is.Null);
+        }
+
+        [Test]
+        public void Failure_Value()
+        {
+            var ir = (IResult)Result.Fail("On no!");
+            Assert.Throws<BusinessException>(() => _ = ir.Value);
+        }
     }
 }
