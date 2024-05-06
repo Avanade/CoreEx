@@ -41,7 +41,14 @@ namespace CoreEx.Results
         public Result(Exception error) => _error = error.ThrowIfNull(nameof(error));
 
         /// <inheritdoc/>
-        object? IResult.Value => null;
+        object? IResult.Value
+        {
+            get
+            {
+                ThrowOnError();
+                return null;
+            }
+        }
 
         /// <inheritdoc/>
         public Exception Error { get => _error ?? throw new InvalidOperationException($"The {nameof(Error)} cannot be accessed as the {nameof(Result)} is in a successful state."); }

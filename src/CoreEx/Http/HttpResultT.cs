@@ -30,7 +30,7 @@ namespace CoreEx.Http
         /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
         /// <param name="content">The <see cref="HttpResponseMessage.Content"/> as <see cref="BinaryData"/> (see <see cref="HttpContent.ReadAsByteArrayAsync()"/>).</param>
         /// <param name="internalException">The internal <see cref="Exception"/>.</param>
-        internal HttpResult(HttpResponseMessage response, BinaryData? content, Exception internalException) : this(response, content, default(T)!) => _internalException = internalException;
+        internal HttpResult(HttpResponseMessage response, BinaryData? content, Exception? internalException) : this(response, content, default(T)!) => _internalException = internalException;
 
         /// <summary>
         /// Gets the response value.
@@ -44,6 +44,11 @@ namespace CoreEx.Http
                 return _value;
             }
         }
+
+        /// <summary>
+        /// Gets the internal exception where the request/response handling was not successful; i.e. JSON deserialization error.
+        /// </summary>
+        public Exception? Exception => _internalException;
 
         /// <inheritdoc/>
         public override bool IsSuccess => _internalException is null && base.IsSuccess;
@@ -61,6 +66,9 @@ namespace CoreEx.Http
         {
             if (IsSuccess)
                 return this;
+
+            if (_internalException is not null)
+                throw _internalException;
 
             if (throwKnownException)
             {

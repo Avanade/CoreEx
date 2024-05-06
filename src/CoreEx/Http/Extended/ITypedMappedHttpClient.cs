@@ -23,7 +23,10 @@ namespace CoreEx.Http.Extended
         /// <typeparam name="TResponseHttp">The response HTTP <see cref="Type"/>.</typeparam>
         /// <param name="httpResult">The <see cref="HttpResult{T}"/>.</param>
         /// <returns>The mapped <see cref="HttpResult{T}"/>.</returns>
-        public HttpResult<TResponse> MapResponse<TResponse, TResponseHttp>(HttpResult<TResponseHttp> httpResult) => new(httpResult.Response, httpResult.BinaryContent, httpResult.IsSuccess && httpResult.Value is not null ? Mapper.Map<TResponse>(httpResult.Value, OperationTypes.Get) : default!);
+        public HttpResult<TResponse> MapResponse<TResponse, TResponseHttp>(HttpResult<TResponseHttp> httpResult)
+            => httpResult.ThrowIfNull().IsSuccess
+                ? new(httpResult.Response, httpResult.BinaryContent, Mapper.Map<TResponse>(httpResult.Value, OperationTypes.Get)!)
+                : new(httpResult.Response, httpResult.BinaryContent, httpResult.Exception);
 
         /// <summary>
         /// Maps the <typeparamref name="TRequest"/> <paramref name="value"/> to the <typeparamref name="TRequestHttp"/> <see cref="Type"/>.

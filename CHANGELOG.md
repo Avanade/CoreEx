@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.18.1
+- *Fixed*: The `ITypedMappedHttpClient.MapResponse` was not validating the input HTTP response correctly before mapping; resulted in a `null` success value versus the originating error/exception.
+- *Fixed*: The `HttpResult<T>.ThrowOnError` was not correctly throwing the internal exception. 
+
 ## v3.18.0
 - *Fixed*: Removed `Azure.Identity` dependency as no longer required; related to `https://github.com/advisories/GHSA-wvxc-855f-jvrv`.
 - *Fixed*: Removed `AspNetCore.HealthChecks.SqlServer` dependency as no longer required.

@@ -219,5 +219,12 @@ namespace CoreEx.Test.Framework.Results
                 Assert.That(r.Value, Is.EqualTo(1));
             });
         }
+
+        [Test]
+        public void Failure_Value()
+        {
+            var ir = (IResult)Result<int>.Fail("On no!");
+            Assert.Throws<BusinessException>(() => _ = ir.Value);
+        }
     }
 }
