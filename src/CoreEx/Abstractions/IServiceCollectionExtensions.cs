@@ -14,6 +14,7 @@ using CoreEx.Json;
 using CoreEx.Json.Merge;
 using CoreEx.Mapping;
 using CoreEx.RefData;
+using CoreEx.RefData.Caching;
 using CoreEx.RefData.HealthChecks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -321,7 +322,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="healthCheckName">The health check name; defaults to '<c>reference-data-orchestrator</c>'.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, bool healthCheck = true, string? healthCheckName = "reference-data-orchestrator")
-            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register(), healthCheck, healthCheckName);
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp, sp.GetService<IMemoryCache>(), sp.GetService<ICacheEntryConfig>()).Register(), healthCheck, healthCheckName);
 
         /// <summary>
         /// Adds the <see cref="ReferenceDataOrchestrator"/> using a <see cref="MemoryCache"/> as a singleton service automatically registering the specified <typeparamref name="TProvider"/> (see <see cref="ReferenceDataOrchestrator.Register"/>).
@@ -332,7 +333,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="healthCheckName">The health check name; defaults to '<c>reference-data-orchestrator</c>'.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
         public static IServiceCollection AddReferenceDataOrchestrator<TProvider>(this IServiceCollection services, bool healthCheck = true, string? healthCheckName = "reference-data-orchestrator") where TProvider : IReferenceDataProvider
-            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp).Register<TProvider>(), healthCheck, healthCheckName);
+            => AddReferenceDataOrchestrator(services, sp => new ReferenceDataOrchestrator(sp, sp.GetService<IMemoryCache>(), sp.GetService<ICacheEntryConfig>()).Register<TProvider>(), healthCheck, healthCheckName);
 
         /// <summary>
         /// Adds the <see cref="RequestCache"/> as the <see cref="IRequestCache"/> scoped service.

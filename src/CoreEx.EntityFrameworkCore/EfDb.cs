@@ -69,7 +69,7 @@ namespace CoreEx.EntityFrameworkCore
             if (args.ClearChangeTrackerAfterGet)
                 DbContext.ChangeTracker.Clear();
 
-            if (model == default || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
+            if (model == default || (args.FilterByTenantId && model is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
                 return Result<T?>.Ok(default!);
 
             var result = Mapper.Map<T>(model, OperationTypes.Get);
@@ -133,7 +133,7 @@ namespace CoreEx.EntityFrameworkCore
             {
                 // Check (find) if the entity exists.
                 var model = await DbContext.FindAsync<TModel>(GetEfKeys(value), ct).ConfigureAwait(false);
-                if (model == null || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
+                if (model == null || (args.FilterByTenantId && model is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
                     return Result<T>.NotFoundError();
 
                 // Check optimistic concurrency of etag/rowversion to ensure valid. This is needed as underlying EF uses the row version from the find above ignoring the value.ETag where overridden; this is needed to achieve.
@@ -172,7 +172,7 @@ namespace CoreEx.EntityFrameworkCore
             {
                 // A pre-read is required to get the row version for concurrency.
                 var model = await DbContext.FindAsync<TModel>([.. key.Args], ct).ConfigureAwait(false);
-                if (model == null)
+                if (model == null || (args.FilterByTenantId && model is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()))
                     return Result.NotFoundError();
 
                 // Delete; either logically or physically.
@@ -199,7 +199,7 @@ namespace CoreEx.EntityFrameworkCore
         /// </summary>
         /// <param name="value">The entity value.</param>
         /// <returns>The key values.</returns>
-        public virtual object?[] GetEfKeys<T>(T value) where T : IEntityKey => value.EntityKey.Args.ToArray();
+        public virtual object?[] GetEfKeys<T>(T value) where T : IEntityKey => [.. value.EntityKey.Args];
 
         /// <summary>
         /// Check the consistency of the save arguments.

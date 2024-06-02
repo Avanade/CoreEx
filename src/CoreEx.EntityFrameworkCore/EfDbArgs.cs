@@ -51,5 +51,15 @@ namespace CoreEx.EntityFrameworkCore
         /// Indicates whether the result should be <see cref="Entities.Cleaner.Clean{T}(T)">cleaned up</see>.
         /// </summary>
         public bool CleanUpResult { get; set; } = false;
+
+        /// <summary>
+        /// Indicates that when the underlying model implements <see cref="Entities.ITenantId.TenantId"/> it is to be filtered by the corresponding <see cref="GetTenantId"/> value. Defaults to <c>true</c>.
+        /// </summary>
+        public bool FilterByTenantId { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the <i>get</i> tenant identifier function; defaults to <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/>.
+        /// </summary>
+        public Func<string?> GetTenantId { get; set; } = () => ExecutionContext.HasCurrent ? ExecutionContext.Current.TenantId : null;
     }
 }

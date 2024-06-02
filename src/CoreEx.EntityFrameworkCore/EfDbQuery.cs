@@ -77,6 +77,10 @@ namespace CoreEx.EntityFrameworkCore
         private async readonly Task<Result<TResult?>> ExecuteQueryAsync<TResult>(Func<IQueryable<TModel>, CancellationToken, Task<TResult?>> executeAsync, string memberName, CancellationToken cancellationToken) => await EfDb.Invoker.InvokeAsync(EfDb, EfDb, _query, Args, async (_, efdb, query, args, ct) =>
         {
             var dbSet = args.QueryNoTracking ? efdb.DbContext.Set<TModel>().AsNoTracking() : efdb.DbContext.Set<TModel>();
+
+            if (args.FilterByTenantId && typeof(ITenantId).IsAssignableFrom(typeof(TModel)))
+                dbSet = dbSet.Where(x => ((ITenantId)x).TenantId == args.GetTenantId());
+
             return Result<TResult?>.Ok(await executeAsync((query == null) ? dbSet : query(dbSet), ct).ConfigureAwait(false));
         }, cancellationToken, memberName).ConfigureAwait(false);
 
