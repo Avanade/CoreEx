@@ -12,7 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="UnitTestEx.NUnit" Version="4.3.1" />
+    <PackageReference Include="UnitTestEx.NUnit" Version="4.4.0" />
   </ItemGroup>
 
   <ItemGroup>
