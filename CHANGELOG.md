@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.20.0
+- *Fixed*: Include all constructor parameters when using `AddReferenceDataOrchestrator`.
+- *Enhancement*: Integrated dynamic `ITenantId` filtering into `EfDb` (controlled with `EfDbArgs`). 
+
 ## v3.19.0
 - *Fixed:* Updated all dependencies to latest versions.
 - *Enhancement:* Added `DatabaseCommand.SelectAsync` and `SelectWithResultAsync` that has no integrated typing and mapping.
