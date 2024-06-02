@@ -593,5 +593,47 @@ namespace CoreEx.Database
                 return Result.Success;
             }, cancellationToken, memberName).ConfigureAwait(false);
         }
+
+        /// <summary>
+        /// Selects from the first result set using a <paramref name="func"/> to handle each <see cref="DatabaseRecord"/>.
+        /// </summary>
+        /// <param name="func">The <see cref="DatabaseRecord"/> handling function.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>The <paramref name="func"/> returns a <see cref="bool"/> that controls whether the next <see cref="DatabaseRecord"/> should be read. A value of <c>true</c> indicates that 
+        /// reading should continue; otherwise, <c>false</c> to stop.</remarks>
+        public async Task SelectAsync(Func<DatabaseRecord, bool> func, CancellationToken cancellationToken = default)
+            => (await SelectInternalAsync(func, nameof(SelectAsync), cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+        /// <summary>
+        /// Selects from the first result set using a <paramref name="func"/> to handle each <see cref="DatabaseRecord"/> with a <see cref="Result{T}"/>.
+        /// </summary>
+        /// <param name="func">The <see cref="DatabaseRecord"/> handling function.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>The <paramref name="func"/> returns a <see cref="bool"/> that controls whether the next <see cref="DatabaseRecord"/> should be read. A value of <c>true</c> indicates that 
+        /// reading should continue; otherwise, <c>false</c> to stop.</remarks>
+        public Task<Result> SelectWithResultAsync(Func<DatabaseRecord, bool> func, CancellationToken cancellationToken = default)
+            => SelectInternalAsync(func, nameof(SelectWithResultAsync), cancellationToken);
+
+        /// <summary>
+        /// Select the rows from the query internal.
+        /// </summary>
+        private async Task<Result> SelectInternalAsync(Func<DatabaseRecord, bool> func, string memberName, CancellationToken cancellationToken)
+        {
+            func.ThrowIfNull(nameof(func));
+
+            return await Database.Invoker.InvokeAsync(Database, func, async (_, action, ct) =>
+            {
+                using var cmd = await CreateDbCommandAsync(ct).ConfigureAwait(false);
+                using var dr = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+
+                while (await dr.ReadAsync(ct).ConfigureAwait(false))
+                {
+                    if (!action(new DatabaseRecord(Database, dr)))
+                        break;
+                }
+
+                return Result.Success;
+            }, cancellationToken, memberName).ConfigureAwait(false);
+        }
     }
 }

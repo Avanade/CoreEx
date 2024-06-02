@@ -67,7 +67,7 @@ namespace CoreEx.Http
         /// Gets the list of correlation header names.
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpConsts.CorrelationIdHeaderName"/> and '<c>x-ms-client-tracking-id</c>'.</remarks>
-        protected virtual IEnumerable<string> CorrelationHeaderNames => new string[] { HttpConsts.CorrelationIdHeaderName, "x-ms-client-tracking-id" };
+        protected virtual IEnumerable<string> CorrelationHeaderNames { get; } = [HttpConsts.CorrelationIdHeaderName, "x-ms-client-tracking-id"];
 
         /// <summary>
         /// Indicates whether to check the <see cref="HttpResponseMessage"/> and where considered a transient error then a <see cref="TransientException"/> will be thrown.

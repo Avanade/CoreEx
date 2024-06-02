@@ -499,12 +499,20 @@ namespace CoreEx.Validation
         /// <summary>
         /// Gets the friendly text and value for a property expression.
         /// </summary>
-        private object[] GetTextAndValue<TProperty>(PropertyExpression<TEntity, TProperty> propertyExpression) => new object[] { propertyExpression.Text, propertyExpression.GetValue(Value)! };
+        private object[] GetTextAndValue<TProperty>(PropertyExpression<TEntity, TProperty> propertyExpression) => [propertyExpression.Text, propertyExpression.GetValue(Value)!];
 
         /// <summary>
         /// Creates the property expression from the expression.
         /// </summary>
         private static PropertyExpression<TEntity, TProperty> CreatePropertyExpression<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression) => PropertyExpression.Create(propertyExpression);
+
+        /// <summary>
+        /// Gets the text for the specified property.
+        /// </summary>
+        /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+        /// <param name="propertyExpression">The property expression.</param>
+        /// <returns>The property text.</returns>
+        public LText GetText<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression) => CreatePropertyExpression(propertyExpression).Text;
 
         /// <summary>
         /// Creates the fully qualified name from an expression.
