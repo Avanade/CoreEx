@@ -22,7 +22,6 @@ namespace CoreEx.Cosmos
         private Action<RequestOptions>? _updateRequestOptionsAction;
         private Action<QueryRequestOptions>? _updateQueryRequestOptionsAction;
         private readonly ConcurrentDictionary<Key, Func<IQueryable, IQueryable>> _filters = new();
-        private PartitionKey? _partitionKey;
 
         /// <summary>
         /// Provides key as combination of model type and container identifier.
@@ -44,31 +43,16 @@ namespace CoreEx.Cosmos
         public CosmosDbInvoker Invoker { get; } = invoker ?? (_invoker ??= new CosmosDbInvoker());
 
         /// <inheritdoc/>
-        public virtual PartitionKey? PartitionKey => _partitionKey;
-
-        /// <inheritdoc/>
         public CosmosDbArgs DbArgs { get; set; } = new CosmosDbArgs();
-
-        /// <summary>
-        /// Uses (sets) the <see cref="PartitionKey"/>.
-        /// </summary>
-        /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.</param>
-        /// <returns>The <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</returns>
-        /// <remarks>As the <see cref="PartitionKey"/> property can be overridden by an inheritor this may have no affect.</remarks>
-        public CosmosDb UsePartitionKey(PartitionKey? partitionKey)
-        {
-            _partitionKey = partitionKey;
-            return this;
-        }
 
         /// <inheritdoc/>
         public Container GetCosmosContainer(string containerId) => Database.GetContainer(containerId);
 
         /// <inheritdoc/>
-        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId);
+        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId, dbArgs);
 
         /// <inheritdoc/>
-        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() => new(this, containerId);
+        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() => new(this, containerId, dbArgs);
 
         /// <inheritdoc/>
         public CosmosDbModelQuery<TModel> ModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) where TModel : class, IIdentifier<string>, new()
@@ -143,7 +127,7 @@ namespace CoreEx.Cosmos
         QueryRequestOptions ICosmosDb.GetQueryRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
         {
             var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
-            ro.PartitionKey ??= dbArgs.PartitionKey ?? PartitionKey;
+            ro.PartitionKey ??= dbArgs.PartitionKey ?? DbArgs.PartitionKey;
 
             UpdateQueryRequestOptions(ro);
             return ro;
@@ -153,7 +137,7 @@ namespace CoreEx.Cosmos
         QueryRequestOptions ICosmosDb.GetQueryRequestOptions<TModel>(CosmosDbArgs dbArgs) where TModel : class
         {
             var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
-            ro.PartitionKey ??= dbArgs.PartitionKey ?? PartitionKey;
+            ro.PartitionKey ??= dbArgs.PartitionKey ?? DbArgs.PartitionKey;
 
             UpdateQueryRequestOptions(ro);
             return ro;

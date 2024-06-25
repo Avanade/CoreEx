@@ -20,7 +20,8 @@ namespace CoreEx.Cosmos
     /// <remarks>Represents a special-purpose <b>CosmosDb</b> <see cref="Container"/> that houses an underlying <see cref="CosmosDbValue{TModel}.Value"/>, including <see cref="CosmosDbValue{TModel}.Type"/> name, and flexible <see cref="IIdentifier"/>, for persistence.</remarks>
     /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-    public class CosmosDbValueContainer<T, TModel>(ICosmosDb cosmosDb, string containerId) : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>>(cosmosDb, containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
+    /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
+    public class CosmosDbValueContainer<T, TModel>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>>(cosmosDb, containerId, dbArgs) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
     {
         private readonly string _typeName = typeof(TModel).Name;
 
@@ -46,11 +47,14 @@ namespace CoreEx.Cosmos
         {
             ((ICosmosDbValue)model).PrepareAfter(CosmosDb);
             var val = CosmosDb.Mapper.Map<TModel, T>(model.Value, OperationTypes.Get)!;
-            return CosmosDb.DbArgs.CleanUpResult ? Cleaner.Clean(val) : val;
+            if (val is IETag et && et.ETag != null)
+                et.ETag = ETagGenerator.ParseETag(et.ETag);
+            
+            return DbArgs.CleanUpResult ? Cleaner.Clean(val) : val;
         }
 
         /// <summary>
-        /// Check the value to determine whether users are authorised using the CosmosDbArgs.AuthorizationFilter.
+        /// Check the value to determine whether users are authorised using the CosmosDb.AuthorizationFilter.
         /// </summary>
         private Result CheckAuthorized(CosmosDbValue<TModel> model)
         {
@@ -69,7 +73,7 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param name="query">The function to perform additional query execution.</param>
         /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
-        public CosmosDbValueQuery<T, TModel> Query(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) => Query(new CosmosDbArgs(CosmosDb.DbArgs), query);
+        public CosmosDbValueQuery<T, TModel> Query(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) => Query(new CosmosDbArgs(DbArgs), query);
 
         /// <summary>
         /// Gets (creates) a <see cref="CosmosDbValueQuery{T, TModel}"/> to enable LINQ-style queries.
@@ -77,7 +81,7 @@ namespace CoreEx.Cosmos
         /// <param name="partitionKey">The <see cref="PartitionKey"/>.</param>
         /// <param name="query">The function to perform additional query execution.</param>
         /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
-        public CosmosDbValueQuery<T, TModel> Query(PartitionKey? partitionKey = null, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => Query(new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), query);
+        public CosmosDbValueQuery<T, TModel> Query(PartitionKey? partitionKey = null, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => Query(new CosmosDbArgs(DbArgs, partitionKey), query);
 
         /// <summary>
         /// Gets (creates) a <see cref="CosmosDbValueQuery{T, TModel}"/> to enable LINQ-style queries.
@@ -92,7 +96,7 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param name="query">The function to perform additional query execution.</param>
         /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
-        public CosmosDbValueModelQuery<TModel> ModelQuery(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) => ModelQuery(new CosmosDbArgs(CosmosDb.DbArgs), query);
+        public CosmosDbValueModelQuery<TModel> ModelQuery(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) => ModelQuery(new CosmosDbArgs(DbArgs), query);
 
         /// <summary>
         /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
@@ -100,7 +104,7 @@ namespace CoreEx.Cosmos
         /// <param name="partitionKey">The <see cref="PartitionKey"/>.</param>
         /// <param name="query">The function to perform additional query execution.</param>
         /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
-        public CosmosDbValueModelQuery<TModel> ModelQuery(PartitionKey? partitionKey = null, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => ModelQuery(new CosmosDbArgs(CosmosDb.DbArgs, partitionKey), query);
+        public CosmosDbValueModelQuery<TModel> ModelQuery(PartitionKey? partitionKey = null, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => ModelQuery(new CosmosDbArgs(DbArgs, partitionKey), query);
 
         /// <summary>
         /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
@@ -115,7 +119,7 @@ namespace CoreEx.Cosmos
         {
             try
             {
-                var val = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, args.PartitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
+                var val = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
 
                 // Check that the TypeName is the same.
                 if (val?.Resource == null || val.Resource.Type != _typeName)
@@ -125,7 +129,7 @@ namespace CoreEx.Cosmos
                     .Go(CheckAuthorized(val))
                     .ThenAs(() => GetResponseValue(val));
             }
-            catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return Result<T?>.None; }
+            catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return args.NullOnNotFound ? Result<T?>.None : Result<T?>.NotFoundError(); }
         }, cancellationToken, nameof(GetWithResultAsync));
 
         /// <inheritdoc/>
@@ -163,6 +167,9 @@ namespace CoreEx.Cosmos
             if (resp?.Resource == null || resp.Resource.Type != _typeName)
                 return Result<T>.NotFoundError();
 
+            if ((args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
+                return Result<T>.NotFoundError();
+
             return await Result
                 .Go(CheckAuthorized(resp.Resource))
                 .When(() => v is IETag etag2 && etag2.ETag != null && ETagGenerator.FormatETag(etag2.ETag) != resp.ETag, () => Result.ConcurrencyError())
@@ -190,10 +197,27 @@ namespace CoreEx.Cosmos
             {
                 // Must read existing to delete and to make sure we are deleting for the correct Type; don't just trust the key.
                 var ro = CosmosDb.GetItemRequestOptions<T, TModel>(args);
-                var pk = dbArgs.PartitionKey ?? CosmosDb.PartitionKey ?? PartitionKey.None;
+                var pk = dbArgs.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
                 var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, pk, ro, ct).ConfigureAwait(false);
                 if (resp?.Resource == null || resp.Resource.Type != _typeName)
-                    return Result.NotFoundError();
+                    return Result.Success;
+
+                if ((args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
+                    return Result.Success;
+
+                // Delete; either logically or physically.
+                if (resp.Resource is ILogicallyDeleted ild)
+                {
+                    ild.IsDeleted = true;
+                    return await Result
+                        .Go(CheckAuthorized(resp.Resource))
+                        .ThenAsync(async () =>
+                        {
+                            ro.SessionToken = resp.Headers?.Session;
+                            await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
+                            return Result.Success;
+                        });
+                }
 
                 return await Result
                     .Go(CheckAuthorized(resp.Resource))
@@ -201,7 +225,6 @@ namespace CoreEx.Cosmos
                     {
                         ro.SessionToken = resp.Headers?.Session;
                         await Container.DeleteItemAsync<T>(key, pk, ro, ct).ConfigureAwait(false);
-
                         return Result.Success;
                     });
             }

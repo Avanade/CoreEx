@@ -13,7 +13,7 @@ namespace CoreEx.Cosmos.Test
         {
             await TestSetUp.SetUpAsync("/filter", "/value/filter").ConfigureAwait(false);
             _db = new CosmosDb(auth: false, partitioning: true);
-            _db.UsePartitionKey(new PartitionKey("A"));
+            _db.DbArgs = new CosmosDbArgs(new PartitionKey("A"));
             _db.Persons1.UsePartitionKey(p => new PartitionKey(p.Filter));
             _db.Persons2.UsePartitionKey(p => new PartitionKey(p.Filter));
             _db.Persons3.UsePartitionKey(p => new PartitionKey(p.Filter));
