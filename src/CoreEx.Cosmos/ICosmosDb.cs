@@ -35,12 +35,6 @@ namespace CoreEx.Cosmos
         CosmosDbArgs DbArgs { get; }
 
         /// <summary>
-        /// Gets the default <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.
-        /// </summary>
-        /// <remarks>Where <c>null</c> and the underlying <b>CosmosDb</b> capability requires then <see cref="PartitionKey.None"/> will be used.</remarks>
-        PartitionKey? PartitionKey { get; }
-
-        /// <summary>
         /// Gets the specified <see cref="Container"/>.
         /// </summary>
         /// <param name="containerId">The <see cref="Container"/> identifier.</param>
@@ -53,8 +47,9 @@ namespace CoreEx.Cosmos
         /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
         /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <returns>The <see cref="CosmosDbContainer{T, TModel}"/>.</returns>
-        CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new();
+        CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new();
 
         /// <summary>
         /// Gets (creates) the <see cref="CosmosDbValueContainer{T, TModel}"/> for the specified <paramref name="containerId"/>.
@@ -62,8 +57,9 @@ namespace CoreEx.Cosmos
         /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
         /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
         /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <returns>The <see cref="CosmosDbValueContainer{T, TModel}"/>.</returns>
-        CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new();
+        CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new();
 
         /// <summary>
         /// Gets (creates) the <see cref="CosmosDbModelQuery{TModel}"/> for the specified <paramref name="containerId"/>.

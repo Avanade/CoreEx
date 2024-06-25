@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using Microsoft.Azure.Cosmos;
+using System;
 using System.Net;
 
 namespace CoreEx.Cosmos
@@ -26,7 +27,16 @@ namespace CoreEx.Cosmos
             ItemRequestOptions = template.ItemRequestOptions;
             QueryRequestOptions = template.QueryRequestOptions;
             NullOnNotFound = template.NullOnNotFound;
+            CleanUpResult = template.CleanUpResult;
+            FilterByTenantId = template.FilterByTenantId;
+            GetTenantId = template.GetTenantId;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CosmosDbArgs"/> struct.
+        /// </summary>
+        /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.</param>
+        public CosmosDbArgs(PartitionKey partitionKey) => PartitionKey = partitionKey;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CosmosDbArgs"/> struct for <b>Get</b>, <b>Create</b>, <b>Update</b>, and <b>Delete</b> operations with the specified <see cref="ItemRequestOptions"/>.
@@ -51,7 +61,7 @@ namespace CoreEx.Cosmos
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.
+        /// Gets the <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.
         /// </summary>
         public PartitionKey? PartitionKey { get; } = null;
 
@@ -74,5 +84,15 @@ namespace CoreEx.Cosmos
         /// Indicates whether the result should be <see cref="Entities.Cleaner.Clean{T}(T)">cleaned up</see>.
         /// </summary>
         public bool CleanUpResult { get; set; } = false;
+
+        /// <summary>
+        /// Indicates that when the underlying model implements <see cref="Entities.ITenantId.TenantId"/> it is to be filtered by the corresponding <see cref="GetTenantId"/> value. Defaults to <c>true</c>.
+        /// </summary>
+        public bool FilterByTenantId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <i>get</i> tenant identifier function; defaults to <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/>.
+        /// </summary>
+        public Func<string?> GetTenantId { get; set; } = () => ExecutionContext.HasCurrent ? ExecutionContext.Current.TenantId : null;
     }
 }

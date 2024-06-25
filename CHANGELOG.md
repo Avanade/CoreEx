@@ -2,6 +2,12 @@
 
 Represents the **NuGet** versions.
 
+## v3.21.0
+- *Enhancement*: `CoreEx.Cosmos` improvements:
+  - Added `CosmosDbArgs` to `CosmosDbContainerBase` to allow per container configuration where required.
+  - Partition key specification centralized into `CosmosDbArgs`.
+  - `ITenantId` and `ILogicallyDeleted` support integrated into `CosmosDbContainerBase`, etc. to offer consistent behavior with `EfDb`.
+
 ## v3.20.0
 - *Fixed*: Include all constructor parameters when using `AddReferenceDataOrchestrator`.
 - *Enhancement*: Integrated dynamic `ITenantId` filtering into `EfDb` (controlled with `EfDbArgs`). 

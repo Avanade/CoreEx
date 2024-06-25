@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using Microsoft.Azure.Cosmos;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
