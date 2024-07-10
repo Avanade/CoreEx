@@ -913,8 +913,11 @@ namespace CoreEx.Test.Framework.Mapping
         {
             var m = new Mapper();
             var r = m.TryGetMapper<PersonA, PersonA>(out var sm);
-            Assert.That(r, Is.True);
-            Assert.That(sm, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r, Is.True);
+                Assert.That(sm, Is.Not.Null);
+            });
 
             var p = new PersonA { Id = 88, Name = "blah" };
             var d = sm!.Map(p);
@@ -925,11 +928,18 @@ namespace CoreEx.Test.Framework.Mapping
         [Test]
         public void MapWithSameType_NotAllowed()
         {
-            var m = new Mapper();
-            m.MapSameTypeWithSourceValue = false;
+            var m = new Mapper
+            {
+                MapSameTypeWithSourceValue = false
+            };
+
             var r = m.TryGetMapper<PersonA, PersonA>(out var sm);
-            Assert.That(r, Is.False);
-            Assert.That(sm, Is.Null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(r, Is.False);
+                Assert.That(sm, Is.Null);
+            });
         }
 
         public class PersonAMapper : Mapper<PersonA, PersonB>
