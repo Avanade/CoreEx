@@ -908,6 +908,30 @@ namespace CoreEx.Test.Framework.Mapping
             Assert.That(pa2.Id, Is.EqualTo(88));
         }
 
+        [Test]
+        public void MapWithSameType_Allowed()
+        {
+            var m = new Mapper();
+            var r = m.TryGetMapper<PersonA, PersonA>(out var sm);
+            Assert.That(r, Is.True);
+            Assert.That(sm, Is.Not.Null);
+
+            var p = new PersonA { Id = 88, Name = "blah" };
+            var d = sm!.Map(p);
+            Assert.That(d, Is.Not.Null);
+            Assert.That(d, Is.SameAs(p));
+        }
+
+        [Test]
+        public void MapWithSameType_NotAllowed()
+        {
+            var m = new Mapper();
+            m.MapSameTypeWithSourceValue = false;
+            var r = m.TryGetMapper<PersonA, PersonA>(out var sm);
+            Assert.That(r, Is.False);
+            Assert.That(sm, Is.Null);
+        }
+
         public class PersonAMapper : Mapper<PersonA, PersonB>
         {
             public PersonAMapper()

@@ -1159,6 +1159,13 @@ namespace CoreEx.Test.Framework.RefData
                 Assert.That(td.RefData.IsValid, Is.True);
             });
         }
+
+        [Test]
+        public void GetAllTypesInNamespace()
+        {
+            var types = ReferenceDataOrchestrator.GetAllTypesInNamespace<RefData>().ToList();
+            Assert.That(types, Has.Count.EqualTo(5));
+        }
     }
 
     public class RefData : ReferenceDataBaseEx<int, RefData> 
