@@ -53,9 +53,17 @@ namespace CoreEx.Mapping
         }
 
         /// <summary>
-        /// Indicates whether to convert empty collections to <c>null</c> where supported. Defaults to <c>true</c>.
+        /// Indicates whether to convert empty collections to <c>null</c> where supported. 
         /// </summary>
+        /// <remarks>Defaults to <c>true</c>.</remarks>
         public bool ConvertEmptyCollectionsToNull { get; set; } = true;
+
+        /// <summary>
+        /// Indicates whether to allow same to same type mapping (where explicitly not registered) as always returning the source value.
+        /// </summary>
+        /// <remarks>Defaults to <c>true</c>.
+        /// <para>Creates and registers an instance of the <see cref="SameTypeMapper{TSame}"/> on first use.</para></remarks>
+        public bool MapSameTypeWithSourceValue { get; set; } = true;
 
         /// <summary>
         /// Register (adds) all the <see cref="IMapper{TSource, TDestination}"/> and <see cref="IBidirectionalMapper{TFrom, TTo}"/> types (instances) from the <see cref="Assembly"/> from the specified <typeparamref name="TAssembly"/> <see cref="Type"/>.
@@ -152,23 +160,8 @@ namespace CoreEx.Mapping
         /// <exception cref="InvalidOperationException">Thrown where not previously registered.</exception>
         public IMapperBase GetMapper(Type source, Type destination)
         { 
-            if (_mappers.TryGetValue((source, destination), out var mapper))
+            if (TryGetMapper(source, destination, out var mapper))
                 return mapper;
-
-            // Check if the types are collection and automatically create where possible.
-            var si = TypeReflector.GetCollectionItemType(source);
-            if (si.TypeCode == TypeReflectorTypeCode.ICollection)
-            {
-                var di = TypeReflector.GetCollectionItemType(destination);
-                if (di.TypeCode == TypeReflectorTypeCode.ICollection)
-                    return _mappers.GetOrAdd((source, destination), _ =>
-                    {
-                        var t = typeof(CollectionMapper<,,,>).MakeGenericType(source, si.ItemType!, destination, di.ItemType!);
-                        var mapper = (IMapperBase)Activator.CreateInstance(t)!;
-                        mapper.Owner = this;
-                        return mapper;
-                    });
-            }
 
             throw new InvalidOperationException($"No mapper has been registered for source '{source.FullName}' and destination '{destination.FullName}' types.");
         }
@@ -181,6 +174,73 @@ namespace CoreEx.Mapping
         /// <returns>The previously registered <see cref="IMapper{TSource, TDestination}"/>.</returns>
         /// <exception cref="InvalidOperationException">Thrown where not previously registered.</exception>
         public IMapper<TSource, TDestination> GetMapper<TSource, TDestination>() => (IMapper<TSource, TDestination>)GetMapper(typeof(TSource), typeof(TDestination));
+
+        /// <summary>
+        /// Try and get the mapper for the <paramref name="source"/> and <paramref name="destination"/> types.
+        /// </summary>
+        /// <param name="source">The source <see cref="Type"/>.</param>
+        /// <param name="destination">The destination <see cref="Type"/>.</param>
+        /// <param name="mapper">The previously registered <see cref="IMapper{TSource, TDestination}"/>.</param>
+        /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
+        public bool TryGetMapper(Type source, Type destination, [NotNullWhen(true)] out IMapperBase? mapper)
+        {
+            if (_mappers.TryGetValue((source, destination), out mapper))
+                return true;
+
+            // Check if the types are collection and automatically create where possible.
+            var si = TypeReflector.GetCollectionItemType(source);
+            if (si.TypeCode == TypeReflectorTypeCode.ICollection)
+            {
+                var di = TypeReflector.GetCollectionItemType(destination);
+                if (di.TypeCode == TypeReflectorTypeCode.ICollection)
+                {
+                    mapper = _mappers.GetOrAdd((source, destination), _ =>
+                    {
+                        var t = typeof(CollectionMapper<,,,>).MakeGenericType(source, si.ItemType!, destination, di.ItemType!);
+                        var mapper = (IMapperBase)Activator.CreateInstance(t)!;
+                        mapper.Owner = this;
+                        return mapper;
+                    });
+
+                    return true;
+                }
+            }
+
+            // Check if the types are the same and automatically create where configured to do so.
+            if (MapSameTypeWithSourceValue && si.TypeCode == TypeReflectorTypeCode.Complex && source == destination)
+            {
+                mapper = _mappers.GetOrAdd((source, destination), _ =>
+                {
+                    var t = typeof(SameTypeMapper<>).MakeGenericType(source);
+                    var mapper = (IMapperBase)Activator.CreateInstance(t)!;
+                    mapper.Owner = this;
+                    return mapper;
+                });
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Try and get the mapper for the <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> types.
+        /// </summary>
+        /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
+        /// <param name="mapper">The previously registered <see cref="IMapper{TSource, TDestination}"/>.</param>
+        /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
+        public bool TryGetMapper<TSource, TDestination>([NotNullWhen(true)] out IMapper<TSource, TDestination>? mapper)
+        { 
+            if (TryGetMapper(typeof(TSource), typeof(TDestination), out var m))
+            {
+                mapper = (IMapper<TSource, TDestination>)m;
+                return true;
+            }
+
+            mapper = default;
+            return false;
+        }
 
         /// <inheritdoc/>
         [return: NotNullIfNotNull(nameof(source))]
@@ -213,6 +273,53 @@ namespace CoreEx.Mapping
             /// <inheritdoc/>
             [return: NotNullIfNotNull(nameof(source))]
             public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Represents a same <see cref="Type"/> <see cref="IMapper"/>; i.e. where both the source and destination <see cref="Type"/> are the same.
+        /// </summary>
+        /// <typeparam name="TSame">The source and destination <see cref="Type"/>.</typeparam>
+        public class SameTypeMapper<TSame> : IMapper<TSame, TSame>
+        {
+            private Mapper? _mapper;
+
+            /// <inheritdoc/>
+            public Mapper Owner
+            {
+                get => _mapper ?? throw new InvalidOperationException("Owner has not been set to a non-null value; this is automatically performed when registered.");
+                set => _mapper = _mapper is null ? value : throw new InvalidOperationException("Owner can not be changed once set.");
+            }
+
+            /// <inheritdoc/>
+            /// <remarks>Throws a <see cref="NotSupportedException"/>.</remarks>
+            public TSame CreateDestination() => throw new NotSupportedException();
+
+            /// <inheritdoc/>
+            /// <remarks>Throws a <see cref="NotSupportedException"/>.</remarks>
+            public TSame CreateSource() => throw new NotSupportedException();
+
+            /// <inheritdoc/>
+            public bool InitializeDestination(TSame destination) => false;
+
+            /// <inheritdoc/>
+            /// <remarks>Returns <see cref="Entities.IInitial.IsInitial"/> where implemented; otherwise, <c>false</c>.</remarks>
+            public bool IsSourceInitial(TSame source) => source is Entities.IInitial ii && ii.IsInitial;
+
+            /// <inheritdoc/>
+            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
+            public TSame? Map(TSame? source, OperationTypes operationType = OperationTypes.Unspecified) => source;
+
+            /// <inheritdoc/>
+            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
+            public TSame? Map(TSame? source, TSame? destination, OperationTypes operationType = OperationTypes.Unspecified) => source;
+
+            /// <inheritdoc/>
+            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
+            object? IMapperBase.Map(object? source, OperationTypes operationType) => source;
+
+            /// <inheritdoc/>
+            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
+            object? IMapperBase.Map(object? source, object? destination, OperationTypes operationType) => destination;
         }
 
         /// <summary>

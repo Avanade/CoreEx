@@ -16,26 +16,17 @@ namespace CoreEx.Cosmos
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="Type"/> itself.</typeparam>
-    public abstract class CosmosDbQueryBase<T, TModel, TSelf> where T : class, new() where TModel : class, new() where TSelf : CosmosDbQueryBase<T, TModel, TSelf>
+    public abstract class CosmosDbQueryBase<T, TModel, TSelf>(ICosmosDbContainer container, CosmosDbArgs dbArgs) where T : class, new() where TModel : class, new() where TSelf : CosmosDbQueryBase<T, TModel, TSelf>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CosmosDbQueryBase{T, TModel, TSelf}"/> class.
-        /// </summary>
-        protected CosmosDbQueryBase(ICosmosDbContainer container, CosmosDbArgs dbArgs)
-        {
-            Container = container.ThrowIfNull(nameof(container));
-            QueryArgs = dbArgs;
-        }
-
         /// <summary>
         /// Gets the <see cref="ICosmosDbContainer"/>.
         /// </summary>
-        public ICosmosDbContainer Container { get; }
+        public ICosmosDbContainer Container { get; } = container.ThrowIfNull(nameof(container));
 
         /// <summary>
         /// Gets the <see cref="CosmosDbArgs"/>.
         /// </summary>
-        public CosmosDbArgs QueryArgs;
+        public CosmosDbArgs QueryArgs = dbArgs;
 
         /// <summary>
         /// Gets the <see cref="PagingResult"/>.

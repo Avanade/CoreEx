@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.21.1
+- *Fixed:* `Mapper.MapSameTypeWithSourceValue` added (defaults to `true`) to map the source value to the destination value where the types are the same; previously this would result in an exception unless added explicitly. The `Mapper.SameTypeMapper` enables.
+- *Fixed:* `ReferenceDataOrchestrator.GetAllTypesInNamespace` added to get all the `IReferenceData` types in the specified namespace. Needed for the likes of the `CosmosDbBatch.ImportValueBatchAsync` where a list of types is required.
+
 ## v3.21.0
 - *Enhancement*: `CoreEx.Cosmos` improvements:
   - Added `CosmosDbArgs` to `CosmosDbContainerBase` to allow per container configuration where required.

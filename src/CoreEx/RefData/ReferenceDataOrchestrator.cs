@@ -669,5 +669,13 @@ namespace CoreEx.RefData
             ((IReferenceData)rdx).SetInvalid();
             return rdx;
         }
+
+        /// <summary>
+        /// Gets all the <see cref="IReferenceData"/> types in the same namespace as <typeparamref name="TNamespace"/>.
+        /// </summary>
+        /// <typeparam name="TNamespace">The <see cref="Type"/> to infer the namespace.</typeparam>
+        /// <returns>The <see cref="Type"/> list.</returns>
+        public static IEnumerable<Type> GetAllTypesInNamespace<TNamespace>() => typeof(TNamespace).Assembly.GetTypes().Where(t => t.Namespace == typeof(TNamespace).Namespace && t.IsClass && !t.IsAbstract && typeof(IReferenceData).IsAssignableFrom(t));
+
     }
 }
