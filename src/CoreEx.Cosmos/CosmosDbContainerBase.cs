@@ -18,7 +18,7 @@ namespace CoreEx.Cosmos
     /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
     /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
-    public abstract class CosmosDbContainerBase<T, TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : ICosmosDbContainer<T, TModel> where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
+    public abstract class CosmosDbContainerBase<T, TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : ICosmosDbContainer<T, TModel> where T : class, IEntityKey, new() where TModel : class, IEntityKey, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
     {
         private CosmosDbArgs? _dbArgs = dbArgs;
         private Func<T, PartitionKey>? _partitionKey;
@@ -68,20 +68,12 @@ namespace CoreEx.Cosmos
         }
 
         /// <summary>
-        /// Gets the <b>CosmosDb</b> identifier from the <paramref name="key"/>.
-        /// </summary>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <returns>The <b>CosmosDb</b> identifier.</returns>
-        /// <remarks>Only supports a single key value; therefore, the <see cref="CompositeKey.Args"/> length must be one (1) otherwise throws a <see cref="NotSupportedException"/>.</remarks>
-        public string GetCosmosId(CompositeKey key) => key.Args.Length == 1 ? GetCosmosId(key.Args[0]) : throw new NotSupportedException("Only an underlying single key value that is a string is supported.");
-
-        /// <summary>
         /// Gets the <b>CosmosDb</b> identifier from the external <paramref name="id"/>.
         /// </summary>
         /// <param name="id">The external identifier.</param>
         /// <returns>The <b>CosmosDb</b> identifier.</returns>
-        /// <remarks>Uses the <see cref="CosmosDb.FormatIdentifier(object?)"/> to format the <paramref name="id"/> as a string (as required).</remarks>
-        public virtual string GetCosmosId(object? id) => CosmosDb.FormatIdentifier(id);
+        /// <remarks>Uses the <see cref="CosmosDbArgs.FormatIdentifier"/> to format the <paramref name="id"/> as a string (as required).</remarks>
+        public virtual string GetCosmosId(object? id) => DbArgs.FormatIdentifier(id);
 
         /// <summary>
         ///  Gets the <b>CosmosDb</b> representation key from the <paramref name="value"/>.

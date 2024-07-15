@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.RefData;
 using System;
-using System.Buffers;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Text;
-using System.Text.Json;
 
 namespace CoreEx.Entities
 {
@@ -13,6 +13,7 @@ namespace CoreEx.Entities
     /// </summary>
     /// <remarks>May contain zero or more <see cref="Args"/> that represent the composite key. A subset of the the .NET <see href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types">built-in types</see>
     /// are supported: <see cref="string"/>, <see cref="char"/>, <see cref="short"/>, <see cref="int"/>, <see cref="long"/>, <see cref="ushort"/>, <see cref="uint"/>, <see cref="ulong"/>, <see cref="Guid"/>, <see cref="DateTimeOffset"/> (converted to a <see cref="DateTime"/>) and <see cref="DateTime"/>.
+    /// Extended support is enabled for <see cref="IReferenceData"/> types such that the <see cref="IReferenceData.Code"/> is used.
     /// <para>A <see cref="CompositeKey"/> is not generally intended to be a first-class JSON-serialized property type, although is supported (see <see cref="CoreEx.Text.Json.CompositeKeyConverterFactory"/>); but, to be used in a read-only non-serialized manner to group (encapsulate) other properties
     /// into a single value. The <see cref="CompositeKey"/> is also used within the <see cref="IEntityKey"/>, <see cref="IIdentifier"/> and <see cref="IPrimaryKey"/>.</para><para>Example as follows:
     /// <code>
@@ -25,13 +26,14 @@ namespace CoreEx.Entities
     ///     public int ItemNumber { get; set; }
     ///     
     ///     [JsonIgnore()]
-    ///     public CompositeKey SalesOrderItemKey => CompositeKey.Create(SalesOrderNumber, SalesOrderItemNumber);
+    ///     public CompositeKey SalesOrderItemKey => CompositeKey.Create(OrderNumber, ItemNumber);
     /// }
     /// </code></para></remarks>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Diagnostics.DebuggerDisplay("Args = {ToString()}")]
     public readonly struct CompositeKey : IEquatable<CompositeKey>
     {
+        private static readonly string[] _singleEmptyArray = [string.Empty];
         private readonly ImmutableArray<object?> _args;
 
         /// <summary>
@@ -87,6 +89,7 @@ namespace CoreEx.Entities
                     ushort us => us,
                     uint ui => ui,
                     ulong ul => ul,
+                    IReferenceData rd => rd?.Code,
                     _ => throw new ArgumentException($"{nameof(CompositeKey)} argument Type '{args[idx]!.GetType().FullName}' is not supported; must be one of the following: "
                         + "string, char, short, int, long, ushort, uint, ulong, Guid, DateTime and DateTimeOffset.")
                 };
@@ -197,70 +200,45 @@ namespace CoreEx.Entities
         /// </summary>
         /// <param name="separator">The seperator character.</param>
         /// <returns>The composite key as a <see cref="string"/>.</returns>
-        /// <remarks>Each <see cref="Args"/> value is JSON-formatted to ensure consistency and portability.</remarks>
         public string? ToString(char separator)
         {
-            if (Args.Length == 0)
+            if (Args.Length == 0 || (Args.Length == 1 && Args[0] is null))
                 return null;
 
-            var index = 0;
+            if (Args.Length == 1 && Args[0] is string s)
+                return s;
+
             var sb = new StringBuilder();
-            var abw = new ArrayBufferWriter<byte>();
-            using var ujw = new Utf8JsonWriter(abw);
-
-            string? ssep = null;
-            string? usep = null;
-
-            foreach (var arg in Args)
+            for (int i = 0; i < Args.Length; i++)
             {
-                if (index > 0)
+                if (i > 0)
                     sb.Append(separator);
 
-                bool isString = JsonWrite(ujw, arg);
-                ujw.Flush();
-                if (abw.WrittenMemory.Length > 0 && !(isString && abw.WrittenMemory.Length <= 2))
-                {
-                    if (isString)
-                        sb.Append(new BinaryData(abw.WrittenMemory[1..^1]).ToString().Replace(ssep ??= new string(separator, 1), usep ??= $"\\u{(int)separator:x4}"));
-                    else
-                        sb.Append(new BinaryData(abw.WrittenMemory).ToString());
-                }
-
-                ujw.Reset();
-                abw.Clear();
-                index++;
+                if (Args[i] is not null)
+                    sb.Append(ConvertArgToString(Args[i]));
             }
 
             return sb.ToString();
         }
 
         /// <summary>
-        /// Writes the JSON name and argument value pair.
+        /// Convert the argument to a string.
         /// </summary>
-        private static bool JsonWrite(Utf8JsonWriter ujw, object? arg) => arg switch
+        private static string ConvertArgToString(object? arg) => arg switch
         {
-            string str => JsonWrite(() => ujw.WriteStringValue(str), true),
-            char c => JsonWrite(() => ujw.WriteStringValue(c.ToString()), true),
-            short s => JsonWrite(() => ujw.WriteNumberValue(s), false),
-            int i => JsonWrite(() => ujw.WriteNumberValue(i), false),
-            long l => JsonWrite(() => ujw.WriteNumberValue(l), false),
-            Guid g => JsonWrite(() => ujw.WriteStringValue(g), true),
-            DateTime d => JsonWrite(() => ujw.WriteStringValue(d), true),
-            DateTimeOffset o => JsonWrite(() => ujw.WriteStringValue(o), true),
-            ushort us => JsonWrite(() => ujw.WriteNumberValue(us), false),
-            uint ui => JsonWrite(() => ujw.WriteNumberValue(ui), false),
-            ulong ul => JsonWrite(() => ujw.WriteNumberValue(ul), false),
-            _ => false
+            string str => str,
+            char c => c.ToString(),
+            Guid g => g.ToString(),
+            int i => i.ToString(NumberFormatInfo.InvariantInfo),
+            long l => l.ToString(NumberFormatInfo.InvariantInfo),
+            short s => s.ToString(NumberFormatInfo.InvariantInfo),
+            DateTime d => d.ToString("O"),
+            DateTimeOffset o => o.ToString("O"),
+            uint ui => ui.ToString(NumberFormatInfo.InvariantInfo),
+            ulong ul => ul.ToString(NumberFormatInfo.InvariantInfo),
+            ushort us => us.ToString(NumberFormatInfo.InvariantInfo),
+            _ => throw new InvalidOperationException($"Type {arg!.GetType().Name} is not supported for a {nameof(ToString)}.")
         };
-
-        /// <summary>
-        /// Writes the JSON name and invokes action to write argument value.
-        /// </summary>
-        private static bool JsonWrite(Action action, bool isString)
-        {
-            action();
-            return isString;
-        }
 
         /// <summary>
         /// Returns the <see cref="CompositeKey"/> as a JSON <see cref="string"/>.
@@ -278,14 +256,59 @@ namespace CoreEx.Entities
         public static CompositeKey CreateFromJson(string json) => (string.IsNullOrEmpty(json) || json == "null") ? new CompositeKey() : Json.JsonSerializer.Default.Deserialize<CompositeKey>(json);
 
         /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where the key is of the <see cref="Type"/> specified.
+        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where the key is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <typeparam name="T">The key <see cref="Type"/>.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.
+        /// <para>There is no specific character escaping etc. performed automatically.</para></remarks>
+        public static bool TryCreateFromString<T>(string? key, out CompositeKey compositeKey) => TryCreateFromString(key, [typeof(T)], out compositeKey);
+
+        /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
+        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static bool TryCreateFromString<T1, T2>(string? key, out CompositeKey compositeKey) => TryCreateFromString(key, [typeof(T1), typeof(T2)], out compositeKey);
+
+        /// <summary>
+        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
+        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
+        /// <typeparam name="T3">The key <see cref="Type"/> for the third part.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static bool TryCreateFromString<T1, T2, T3>(string? key, out CompositeKey compositeKey) => TryCreateFromString(key, [typeof(T1), typeof(T2), typeof(T3)], out compositeKey);
+
+        /// <summary>
+        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="types">The <see cref="Type"/> array.</param>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
+        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
+        public static bool TryCreateFromString(string? key, Type[] types, out CompositeKey compositeKey) => TryCreateFromString(key, ',', types, out compositeKey);
+
+        /// <summary>
+        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where the key is of the <see cref="Type"/> specified.
         /// </summary>
         /// <typeparam name="T">The key <see cref="Type"/>.</typeparam>
         /// <param name="key">The key.</param>
         /// <param name="separator">The seperator character.</param>
-        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString<T>(string? key, char separator = ',') => CreateFromString(key, separator, [typeof(T)]);
+        public static bool TryCreateFromString<T>(string? key, char separator, out CompositeKey compositeKey) => TryCreateFromString(key, separator, [typeof(T)], out compositeKey);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
@@ -294,9 +317,10 @@ namespace CoreEx.Entities
         /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
         /// <param name="key">The key.</param>
         /// <param name="separator">The seperator character.</param>
-        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString<T1, T2>(string? key, char separator = ',') => CreateFromString(key, separator, [typeof(T1), typeof(T2)]);
+        public static bool TryCreateFromString<T1, T2>(string? key, char separator, out CompositeKey compositeKey) => TryCreateFromString(key, separator, [typeof(T1), typeof(T2)], out compositeKey);
 
         /// <summary>
         /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
@@ -306,40 +330,31 @@ namespace CoreEx.Entities
         /// <typeparam name="T3">The key <see cref="Type"/> for the third part.</typeparam>
         /// <param name="key">The key.</param>
         /// <param name="separator">The seperator character.</param>
-        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString<T1, T2, T3>(string? key, char separator = ',') => CreateFromString(key, separator, [typeof(T1), typeof(T2), typeof(T3)]);
+        public static bool TryCreateFromString<T1, T2, T3>(string? key, char separator, out CompositeKey compositeKey) => TryCreateFromString(key, separator, [typeof(T1), typeof(T2), typeof(T3)], out compositeKey);
 
         /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <param name="key">The key.</param>
-        /// <param name="types">The <see cref="Type"/> array.</param>
-        /// <returns>The <see cref="CompositeKey"/>.</returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString(string? key, params Type[] types) => CreateFromString(key, ',', types);
-
-        /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
+        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="separator">The seperator character.</param>
         /// <param name="types">The <see cref="Type"/> array.</param>
-        /// <returns>The <see cref="CompositeKey"/>.</returns>
+        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
+        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
         /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static CompositeKey CreateFromString(string? key, char separator, params Type[] types)
+        public static bool TryCreateFromString(string? key, char separator, Type[] types, out CompositeKey compositeKey)
         {
-            if (key is null)
-                return Empty;
-
-            var parts = key.Split(separator, StringSplitOptions.None);
-            if (types.Length == 0 && parts.Length == 1 && string.IsNullOrEmpty(parts[0]))
-                return new CompositeKey();
-
+            var parts = string.IsNullOrEmpty(key) ? _singleEmptyArray : key.Split(separator, StringSplitOptions.None);
             if (parts.Length != types.Length)
-                throw new ArgumentException("The number of parts within the key must equal the number of types specified", nameof(types));
+            {
+                compositeKey = Empty;
+                return false;
+            }
 
-            var args = new object?[parts.Length];
+            var args = new object?[types.Length];
+
             for (int i = 0; i < parts.Length; i++)
             {
                 var part = parts[i];
@@ -355,24 +370,39 @@ namespace CoreEx.Entities
                 else
                     type = types[i];
 
-                args[i] = type switch
+                if (!(type switch
                 {
-                    Type t when t == typeof(string) => part.Length == 0 ? null : JsonSerializer.Deserialize<string>($"\"{part}\""),
-                    Type t when t == typeof(char) => part.Length == 0 ? ' ' : JsonSerializer.Deserialize<char>($"\"{part}\""),
-                    Type t when t == typeof(short) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<short>(part),
-                    Type t when t == typeof(int) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<int>(part),
-                    Type t when t == typeof(long) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<long>(part),
-                    Type t when t == typeof(Guid) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<Guid>($"\"{part}\""),
-                    Type t when t == typeof(DateTime) => part.Length == 0 ? DateTime.MinValue : JsonSerializer.Deserialize<DateTime>($"\"{part}\""),
-                    Type t when t == typeof(DateTimeOffset) => part.Length == 0 ? DateTimeOffset.MinValue : JsonSerializer.Deserialize<DateTimeOffset>($"\"{part}\""),
-                    Type t when t == typeof(ushort) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<ushort>(part),
-                    Type t when t == typeof(uint) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<uint>(part),
-                    Type t when t == typeof(ulong) => part.Length == 0 ? 0 : JsonSerializer.Deserialize<ulong>(part),
-                    _ => throw new InvalidOperationException($"Type {types[i].Name} is not supported for a {nameof(CreateFromString)}.")
-                };
+                    Type t when t == typeof(string) => TryParse(args, i, () => (true, part.Length == 0 ? null : part)),
+                    Type t when t == typeof(char) => TryParse(args, i, () => part.Length == 0 ? (true, ' ') : (part.Length == 1 ? (true, part[0]) : (false, ' '))),
+                    Type t when t == typeof(short) => TryParse(args, i, () => short.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out short v) ? (true, v) : (false, 0)),
+                    Type t when t == typeof(int) => TryParse(args, i, () => int.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out int v) ? (true, v) : (false, 0)),
+                    Type t when t == typeof(long) => TryParse(args, i, () => long.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out long v) ? (true, v) : (false, 0)),
+                    Type t when t == typeof(Guid) => TryParse(args, i, () => Guid.TryParse(part, out Guid v) ? (true, v) : (false, Guid.Empty)),
+                    Type t when t == typeof(DateTime) => TryParse(args, i, () => DateTime.TryParseExact(part, "O", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.RoundtripKind, out DateTime v) ? (true, v) : (false, DateTime.MinValue)),
+                    Type t when t == typeof(DateTimeOffset) => TryParse(args, i, () => DateTimeOffset.TryParseExact(part, "O", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.RoundtripKind, out DateTimeOffset v) ? (true, v) : (false, DateTimeOffset.MinValue)),
+                    Type t when t == typeof(uint) => TryParse(args, i, () => uint.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out uint v) ? (true, v) : (false, 0)),
+                    Type t when t == typeof(ulong) => TryParse(args, i, () => ulong.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out ulong v) ? (true, v) : (false, 0)),
+                    Type t when t == typeof(ushort) => TryParse(args, i, () => ushort.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out ushort v) ? (true, v) : (false, 0)),
+                    _ => TryParse(args, i, () => (false, part))
+                }))
+                { 
+                    compositeKey = Empty;
+                    return false;
+                }
             }
 
-            return new CompositeKey(args);
+            compositeKey = new CompositeKey(args);
+            return true;
+        }
+
+        /// <summary>
+        /// Attempt parse and update the array.
+        /// </summary>
+        private static bool TryParse<T>(object?[] args, int index, Func<(bool, T)> parse)
+        {
+            (bool parsed, T value) = parse();
+            args[index] = value;
+            return parsed;
         }
     }
 }

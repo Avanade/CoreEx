@@ -48,7 +48,7 @@
         public async Task Get3Async()
         {
             var ex = Assert.ThrowsAsync<NotSupportedException>(() => _db.Persons3.GetAsync(DateTime.UtcNow));
-            Assert.That(ex.Message, Does.StartWith("An identifier must be one of the following Types: string, int, long, or Guid."), ex.Message);
+            Assert.That(ex.Message, Does.StartWith("An identifier must be one of the following types: string, int, long, Guid or CompositeKey."), ex.Message);
 
             Assert.That(await _db.Persons3.GetAsync(404.ToGuid()), Is.Null);
 

@@ -20,7 +20,7 @@ namespace CoreEx.Cosmos
     /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
     /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
-    public class CosmosDbContainer<T, TModel>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<T, TModel, CosmosDbContainer<T, TModel>>(cosmosDb, containerId, dbArgs) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new()
+    public class CosmosDbContainer<T, TModel>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<T, TModel, CosmosDbContainer<T, TModel>>(cosmosDb, containerId, dbArgs) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
     {
         /// <summary>
         /// Gets the <b>value</b> from the response updating any special properties as required.

@@ -22,13 +22,13 @@ namespace CoreEx.Cosmos
         /// <summary>
         /// Prepares the object before sending to Cosmos.
         /// </summary>
-        /// <param name="db">The <see cref="ICosmosDb"/>.</param>
-        void PrepareBefore(ICosmosDb db);
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        void PrepareBefore(CosmosDbArgs dbArgs);
 
         /// <summary>
         /// Prepares the object after getting from Cosmos.
         /// </summary>
-        /// <param name="db">The <see cref="ICosmosDb"/>.</param>
-        void PrepareAfter(ICosmosDb db);
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        void PrepareAfter(CosmosDbArgs dbArgs);
     }
 }

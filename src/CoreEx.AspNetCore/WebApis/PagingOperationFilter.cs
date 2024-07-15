@@ -46,19 +46,19 @@ namespace CoreEx.AspNetCore.WebApis
                 return;
 
             if (Fields.HasFlag(PagingOperationFilterFields.Skip))
-                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsSkipQueryStringName, "The specified number of elements in a sequence to bypass.", "number"));
+                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsSkipQueryStringName, "The specified number of elements in a sequence to bypass.", "number", "int64"));
 
             if (Fields.HasFlag(PagingOperationFilterFields.Page))
-                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsPageQueryStringName, "The page number for the elements in a sequence to select.", "number"));
+                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsPageQueryStringName, "The page number for the elements in a sequence to select.", "number", "int64"));
 
             if (Fields.HasFlag(PagingOperationFilterFields.Token))
                 operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsTokenQueryStringName, "The token to get the next page of elements.", "string"));
 
             if (Fields.HasFlag(PagingOperationFilterFields.Take))
-                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsTakeQueryStringName, "The specified number of contiguous elements from the start of a sequence.", "number"));
+                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsTakeQueryStringName, "The specified number of contiguous elements from the start of a sequence.", "number", "int64"));
 
             if (Fields.HasFlag(PagingOperationFilterFields.Size))
-                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsSizeQueryStringName, "The page size being the specified number of contiguous elements from the start of a sequence.", "number"));
+                operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsSizeQueryStringName, "The page size being the specified number of contiguous elements from the start of a sequence.", "number", "int64"));
 
             if (Fields.HasFlag(PagingOperationFilterFields.Count))
                 operation.Parameters.Add(CreateParameter(HttpConsts.PagingArgsCountQueryStringName, "Indicates whether to get the total count when performing the underlying query.", "boolean"));
@@ -67,13 +67,13 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Create the parameter definition.
         /// </summary>
-        private static OpenApiParameter CreateParameter(string name, string description, string typeName) => new()
+        private static OpenApiParameter CreateParameter(string name, string description, string typeName, string? format = null) => new()
         {
             Name = name,
             Description = description,
             In = ParameterLocation.Query,
             Required = false,
-            Schema = new OpenApiSchema { Type = typeName }
+            Schema = new OpenApiSchema { Type = typeName, Format = format }
         };
     }
 }

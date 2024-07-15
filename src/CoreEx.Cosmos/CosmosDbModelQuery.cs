@@ -17,7 +17,7 @@ namespace CoreEx.Cosmos
     /// <param name="container">The <see cref="ICosmosDbContainer"/>.</param>
     /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="query">A function to modify the underlying <see cref="IQueryable{T}"/>.</param>
-    public class CosmosDbModelQuery<TModel>(ICosmosDbContainer container, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) : CosmosDbModelQueryBase<TModel, CosmosDbModelQuery<TModel>>(container, dbArgs) where TModel : class, IIdentifier<string>, new()
+    public class CosmosDbModelQuery<TModel>(ICosmosDbContainer container, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) : CosmosDbModelQueryBase<TModel, CosmosDbModelQuery<TModel>>(container, dbArgs) where TModel : class, IEntityKey, new()
     {
         private readonly Func<IQueryable<TModel>, IQueryable<TModel>>? _query = query;
 

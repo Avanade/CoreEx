@@ -49,17 +49,17 @@ namespace CoreEx.Cosmos
         public Container GetCosmosContainer(string containerId) => Database.GetContainer(containerId);
 
         /// <inheritdoc/>
-        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId, dbArgs);
+        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new() => new(this, containerId, dbArgs);
 
         /// <inheritdoc/>
-        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() => new(this, containerId, dbArgs);
+        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new() => new(this, containerId, dbArgs);
 
         /// <inheritdoc/>
-        public CosmosDbModelQuery<TModel> ModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) where TModel : class, IIdentifier<string>, new()
+        public CosmosDbModelQuery<TModel> ModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) where TModel : class, IEntityKey, new()
             => new(new CosmosDbModelContainer(this, GetCosmosContainer(containerId)), dbArgs, query);
 
         /// <inheritdoc/>
-        public CosmosDbValueModelQuery<TModel> ValueModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) where TModel : class, IIdentifier<string>, new()
+        public CosmosDbValueModelQuery<TModel> ValueModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) where TModel : class, IEntityKey, new()
             => new(new CosmosDbModelContainer(this, GetCosmosContainer(containerId)), dbArgs, query);
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace CoreEx.Cosmos
         /// <inheritdoc/>
         ItemRequestOptions ICosmosDb.GetItemRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
         {
-            var iro = dbArgs.ItemRequestOptions ?? new ItemRequestOptions();
+            var iro = dbArgs.ItemRequestOptions ?? DbArgs.ItemRequestOptions ?? new ItemRequestOptions();
             UpdateItemRequestOptions(iro);
             return iro;
         }
@@ -126,7 +126,7 @@ namespace CoreEx.Cosmos
         /// <inheritdoc/>
         QueryRequestOptions ICosmosDb.GetQueryRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
         {
-            var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
+            var ro = dbArgs.QueryRequestOptions ?? DbArgs.QueryRequestOptions ?? new QueryRequestOptions();
             ro.PartitionKey ??= dbArgs.PartitionKey ?? DbArgs.PartitionKey;
 
             UpdateQueryRequestOptions(ro);
@@ -136,7 +136,7 @@ namespace CoreEx.Cosmos
         /// <inheritdoc/>
         QueryRequestOptions ICosmosDb.GetQueryRequestOptions<TModel>(CosmosDbArgs dbArgs) where TModel : class
         {
-            var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
+            var ro = dbArgs.QueryRequestOptions ?? DbArgs.QueryRequestOptions ?? new QueryRequestOptions();
             ro.PartitionKey ??= dbArgs.PartitionKey ?? DbArgs.PartitionKey;
 
             UpdateQueryRequestOptions(ro);
@@ -158,26 +158,6 @@ namespace CoreEx.Cosmos
             System.Net.HttpStatusCode.Conflict => Result.Fail(new DuplicateException(null, cex)),
             System.Net.HttpStatusCode.PreconditionFailed => Result.Fail(new ConcurrencyException(null, cex)),
             _ => Result.Fail(cex)
-        };
-
-        /// <inheritdoc/>
-        public virtual string FormatIdentifier(object? id) => id.ThrowIfNull(nameof(id)) switch
-        {
-            string si => si,
-            int ii => ii.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            long li => li.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            Guid gi => gi.ToString(),
-            _ => throw new NotSupportedException("An identifier must be one of the following Types: string, int, long, or Guid.")
-        };
-
-        /// <inheritdoc/>
-        public virtual object? ParseIdentifier(Type type, string? id) => type.ThrowIfNull(nameof(type)) switch
-        {
-            Type t when t == typeof(string) => id,
-            Type t when t == typeof(int) => id == null ? 0 : int.Parse(id, System.Globalization.CultureInfo.InvariantCulture),
-            Type t when t == typeof(long) => id == null ? 0 : long.Parse(id, System.Globalization.CultureInfo.InvariantCulture),
-            Type t when t == typeof(Guid) => id == null ? Guid.Empty : Guid.Parse(id),
-            _ => throw new NotSupportedException("An identifier must be one of the following Types: string, int, long, or Guid.")
         };
     }
 }

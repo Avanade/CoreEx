@@ -17,11 +17,11 @@ namespace CoreEx.Cosmos
     /// </summary>
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-    /// <remarks>Represents a special-purpose <b>CosmosDb</b> <see cref="Container"/> that houses an underlying <see cref="CosmosDbValue{TModel}.Value"/>, including <see cref="CosmosDbValue{TModel}.Type"/> name, and flexible <see cref="IIdentifier"/>, for persistence.</remarks>
+    /// <remarks>Represents a special-purpose <b>CosmosDb</b> <see cref="Container"/> that houses an underlying <see cref="CosmosDbValue{TModel}.Value"/>, including <see cref="CosmosDbValue{TModel}.Type"/> name, and flexible <see cref="IEntityKey"/>, for persistence.</remarks>
     /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
     /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
-    public class CosmosDbValueContainer<T, TModel>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>>(cosmosDb, containerId, dbArgs) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
+    public class CosmosDbValueContainer<T, TModel>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>>(cosmosDb, containerId, dbArgs) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
     {
         private readonly string _typeName = typeof(TModel).Name;
 
@@ -45,10 +45,15 @@ namespace CoreEx.Cosmos
         /// <returns>The entity value.</returns>
         internal T GetValue(CosmosDbValue<TModel> model)
         {
-            ((ICosmosDbValue)model).PrepareAfter(CosmosDb);
+            ((ICosmosDbValue)model).PrepareAfter(DbArgs);
             var val = CosmosDb.Mapper.Map<TModel, T>(model.Value, OperationTypes.Get)!;
-            if (val is IETag et && et.ETag != null)
-                et.ETag = ETagGenerator.ParseETag(et.ETag);
+            if (val is IETag et)
+            {
+                if (et.ETag is not null)
+                    et.ETag = ETagGenerator.ParseETag(et.ETag);
+                else
+                    et.ETag = ETagGenerator.ParseETag(model.ETag);
+            }
             
             return DbArgs.CleanUpResult ? Cleaner.Clean(val) : val;
         }
@@ -144,7 +149,7 @@ namespace CoreEx.Cosmos
                 .Go(CheckAuthorized(cvm))
                 .ThenAsAsync(async () =>
                 {
-                    ((ICosmosDbValue)cvm).PrepareBefore(CosmosDb);
+                    ((ICosmosDbValue)cvm).PrepareBefore(dbArgs);
 
                     var resp = await Container.CreateItemAsync(cvm, pk, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
                     return GetResponseValue(resp)!;
@@ -178,7 +183,7 @@ namespace CoreEx.Cosmos
                     ro.SessionToken = resp.Headers?.Session;
                     ChangeLog.PrepareUpdated(v);
                     CosmosDb.Mapper.Map(v, resp.Resource.Value, OperationTypes.Update);
-                    ((ICosmosDbValue)resp.Resource).PrepareBefore(CosmosDb);
+                    ((ICosmosDbValue)resp.Resource).PrepareBefore(dbArgs);
 
                     // Re-check auth to make sure not updating to something not allowed.
                     return CheckAuthorized(resp);
