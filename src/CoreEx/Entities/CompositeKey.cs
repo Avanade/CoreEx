@@ -404,5 +404,131 @@ namespace CoreEx.Entities
             args[index] = value;
             return parsed;
         }
+
+        /// <summary>
+        /// Implicitly converts a <see cref="string"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(string? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="short"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(short identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="short"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(short? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="int"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(int identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="int"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(int? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="long"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(long identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="long"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(long? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="Guid"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(Guid identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="Guid"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(Guid? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="char"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(char? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="char"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(char identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="DateTime"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(DateTime? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="DateTime"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(DateTime identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="DateTimeOffset"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(DateTimeOffset? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="DateTimeOffset"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(DateTimeOffset identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="ushort"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(ushort identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="ushort"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(ushort? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="uint"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(uint identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts an <see cref="uint"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(uint? identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="ulong"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(ulong identifier) => new(identifier);
+
+        /// <summary>
+        /// Implicitly converts a <see cref="ulong"/> to a <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        public static implicit operator CompositeKey(ulong? identifier) => new(identifier);
     }
 }

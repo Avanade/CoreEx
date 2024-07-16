@@ -35,7 +35,7 @@ namespace CoreEx.Cosmos
             if (!pagingSupported && Paging is not null)
                 throw new NotSupportedException("Paging is not supported when accessing AsQueryable directly; paging must be applied directly to the resulting IQueryable instance.");
 
-            IQueryable<TModel> query = Container.Container.GetItemLinqQueryable<TModel>(allowSynchronousQueryExecution: allowSynchronousQueryExecution, requestOptions: Container.CosmosDb.GetQueryRequestOptions<T, TModel>(QueryArgs));
+            IQueryable<TModel> query = Container.Container.GetItemLinqQueryable<TModel>(allowSynchronousQueryExecution: allowSynchronousQueryExecution, requestOptions: QueryArgs.GetQueryRequestOptions());
             query = _query == null ? query : _query(query);
 
             var filter = Container.CosmosDb.GetAuthorizeFilter<TModel>(Container.Container.Id);
@@ -61,7 +61,8 @@ namespace CoreEx.Cosmos
             {
                 foreach (var item in await iterator.ReadNextAsync(ct).ConfigureAwait(false))
                 {
-                    items.Add(Container.GetValue(item));
+                    if (item is not null)
+                        items.Add(Container.GetValue(item));
                 }
             }
 

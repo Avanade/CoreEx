@@ -1,11 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Cosmos.Model;
 using CoreEx.Entities;
 using CoreEx.Mapping;
 using CoreEx.Results;
 using Microsoft.Azure.Cosmos;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,12 +20,35 @@ namespace CoreEx.Cosmos
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <remarks>Represents a special-purpose <b>CosmosDb</b> <see cref="Container"/> that houses an underlying <see cref="CosmosDbValue{TModel}.Value"/>, including <see cref="CosmosDbValue{TModel}.Type"/> name, and flexible <see cref="IEntityKey"/>, for persistence.</remarks>
-    /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
-    /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
-    /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
-    public class CosmosDbValueContainer<T, TModel>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>>(cosmosDb, containerId, dbArgs) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
+    public class CosmosDbValueContainer<T, TModel> : CosmosDbContainerBase<T, TModel, CosmosDbValueContainer<T, TModel>> where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
     {
-        private readonly string _typeName = typeof(TModel).Name;
+        private readonly Lazy<CosmosDbValueModelContainer<TModel>> _modelContainer;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CosmosDbValueContainer{T, TModel}"/> class.
+        /// </summary>
+        /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
+        /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
+        /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
+        public CosmosDbValueContainer(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : base(cosmosDb, containerId, dbArgs)
+            => _modelContainer = new(() => new CosmosDbValueModelContainer<TModel>(CosmosDb, Container.Id, DbArgs));
+
+        /// <summary>
+        /// Gets the underlying <see cref="CosmosDbValueModelContainer{TModel}"/>.
+        /// </summary>
+        public CosmosDbValueModelContainer<TModel> ModelContainer => _modelContainer.Value;
+
+        /// <summary>
+        /// Sets the function to determine the <see cref="PartitionKey"/>; used for <see cref="CosmosDbValueModelContainer{TModel}.GetPartitionKey(CosmosDbValue{TModel}, CosmosDbArgs)"/> (only <b>Create</b> and <b>Update</b> operations).
+        /// </summary>
+        /// <param name="partitionKey">The function to determine the <see cref="PartitionKey"/>.</param>
+        /// <returns>The <see cref="CosmosDbValueContainer{T, TModel}"/> instance to support fluent-style method-chaining.</returns>
+        /// <remarks>This is used where there is a value and the corresponding <see cref="PartitionKey"/> needs to be dynamically determined.</remarks>
+        public CosmosDbValueContainer<T, TModel> UsePartitionKey(Func<CosmosDbValue<TModel>, PartitionKey> partitionKey)
+        {
+            ModelContainer.UsePartitionKey(partitionKey);
+            return this;
+        }
 
         /// <summary>
         /// Gets the <b>value</b> from the response updating any special properties as required.
@@ -43,8 +68,12 @@ namespace CoreEx.Cosmos
         /// </summary>
         /// <param>The model value.</param>
         /// <returns>The entity value.</returns>
-        internal T GetValue(CosmosDbValue<TModel> model)
+        [return: NotNullIfNotNull(nameof(model))]
+        public T? GetValue(CosmosDbValue<TModel>? model)
         {
+            if (model is null)
+                return default;
+
             ((ICosmosDbValue)model).PrepareAfter(DbArgs);
             var val = CosmosDb.Mapper.Map<TModel, T>(model.Value, OperationTypes.Get)!;
             if (val is IETag et)
@@ -56,21 +85,6 @@ namespace CoreEx.Cosmos
             }
             
             return DbArgs.CleanUpResult ? Cleaner.Clean(val) : val;
-        }
-
-        /// <summary>
-        /// Check the value to determine whether users are authorised using the CosmosDb.AuthorizationFilter.
-        /// </summary>
-        private Result CheckAuthorized(CosmosDbValue<TModel> model)
-        {
-            if (model != null && model.Value != default)
-            {
-                var filter = CosmosDb.GetAuthorizeFilter<TModel>(Container.Id);
-                if (filter != null && !((IQueryable<CosmosDbValue<TModel>>)filter(new CosmosDbValue<TModel>[] { model }.AsQueryable())).Any())
-                    return Result.AuthorizationError();
-            }
-
-            return Result.Success;
         }
 
         /// <summary>
@@ -96,144 +110,36 @@ namespace CoreEx.Cosmos
         /// <returns>The <see cref="CosmosDbValueQuery{T, TModel}"/>.</returns>
         public CosmosDbValueQuery<T, TModel> Query(CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, dbArgs, query);
 
-        /// <summary>
-        /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
-        /// </summary>
-        /// <param name="query">The function to perform additional query execution.</param>
-        /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
-        public CosmosDbValueModelQuery<TModel> ModelQuery(Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) => ModelQuery(new CosmosDbArgs(DbArgs), query);
-
-        /// <summary>
-        /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
-        /// </summary>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>.</param>
-        /// <param name="query">The function to perform additional query execution.</param>
-        /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
-        public CosmosDbValueModelQuery<TModel> ModelQuery(PartitionKey? partitionKey = null, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => ModelQuery(new CosmosDbArgs(DbArgs, partitionKey), query);
-
-        /// <summary>
-        /// Gets (creates) a <see cref="CosmosDbValueModelQuery{TModel}"/> to enable LINQ-style queries.
-        /// </summary>
-        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
-        /// <param name="query">The function to perform additional query execution.</param>
-        /// <returns>The <see cref="CosmosDbValueModelQuery{TModel}"/>.</returns>
-        public CosmosDbValueModelQuery<TModel> ModelQuery(CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query = null) => new(this, dbArgs, query);
+        /// <inheritdoc/>
+        public async override Task<Result<T?>> GetWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default)
+        {
+            var result = await ModelContainer.GetWithResultAsync(dbArgs, key, cancellationToken).ConfigureAwait(false);
+            return result.ThenAs(GetValue);
+        }
 
         /// <inheritdoc/>
-        public override Task<Result<T?>> GetWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (_, key, args, ct) =>
+        public async override Task<Result<T>> CreateWithResultAsync(CosmosDbArgs dbArgs, T value, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var val = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
-
-                // Check that the TypeName is the same.
-                if (val?.Resource == null || val.Resource.Type != _typeName)
-                    return args.NullOnNotFound ? Result<T?>.None : Result<T?>.NotFoundError();
-
-                return Result
-                    .Go(CheckAuthorized(val))
-                    .ThenAs(() => GetResponseValue(val));
-            }
-            catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return args.NullOnNotFound ? Result<T?>.None : Result<T?>.NotFoundError(); }
-        }, cancellationToken, nameof(GetWithResultAsync));
-
-        /// <inheritdoc/>
-        public override Task<Result<T>> CreateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value.ThrowIfNull(nameof(value)), dbArgs, async (_, v, args, ct) =>
-        {
-            var pk = GetPartitionKey(v);
-            ChangeLog.PrepareCreated(v);
-            TModel model = CosmosDb.Mapper.Map<T, TModel>(v, OperationTypes.Create)!;
-
+            ChangeLog.PrepareCreated(value.ThrowIfNull(nameof(value)));
+            TModel model = CosmosDb.Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
             var cvm = new CosmosDbValue<TModel>(model!);
-            return await Result
-                .Go(CheckAuthorized(cvm))
-                .ThenAsAsync(async () =>
-                {
-                    ((ICosmosDbValue)cvm).PrepareBefore(dbArgs);
 
-                    var resp = await Container.CreateItemAsync(cvm, pk, CosmosDb.GetItemRequestOptions<T, TModel>(args), ct).ConfigureAwait(false);
-                    return GetResponseValue(resp)!;
-                });
-        }, cancellationToken, nameof(CreateWithResultAsync));
+            var result = await ModelContainer.CreateWithResultAsync(dbArgs, cvm, cancellationToken).ConfigureAwait(false);
+            return result.ThenAs(model => GetValue(model)!);
+        }
 
         /// <inheritdoc/>
-        public override Task<Result<T>> UpdateWithResultAsync(T value, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, value.ThrowIfNull(nameof(value)), dbArgs, async (_, v, args, ct) =>
+        public async override Task<Result<T>> UpdateWithResultAsync(CosmosDbArgs dbArgs, T value, CancellationToken cancellationToken = default)
         {
-            var key = GetCosmosId(v);
-            var pk = GetPartitionKey(v);
+            ChangeLog.PrepareUpdated(value);
+            var model = CosmosDb.Mapper.Map<T, TModel>(value.ThrowIfNull(nameof(value)), OperationTypes.Update)!;
+            var cvm = new CosmosDbValue<TModel>(model!);
 
-            // Where supporting etag then use IfMatch for concurreny.
-            var ro = CosmosDb.GetItemRequestOptions<T, TModel>(args);
-            if (ro.IfMatchEtag == null && v is IETag etag && etag.ETag != null)
-                ro.IfMatchEtag = ETagGenerator.FormatETag(etag.ETag);
-
-            // Must read existing to update.
-            var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, pk, ro, ct).ConfigureAwait(false);
-            if (resp?.Resource == null || resp.Resource.Type != _typeName)
-                return Result<T>.NotFoundError();
-
-            if ((args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
-                return Result<T>.NotFoundError();
-
-            return await Result
-                .Go(CheckAuthorized(resp.Resource))
-                .When(() => v is IETag etag2 && etag2.ETag != null && ETagGenerator.FormatETag(etag2.ETag) != resp.ETag, () => Result.ConcurrencyError())
-                .Then(() =>
-                {
-                    ro.SessionToken = resp.Headers?.Session;
-                    ChangeLog.PrepareUpdated(v);
-                    CosmosDb.Mapper.Map(v, resp.Resource.Value, OperationTypes.Update);
-                    ((ICosmosDbValue)resp.Resource).PrepareBefore(dbArgs);
-
-                    // Re-check auth to make sure not updating to something not allowed.
-                    return CheckAuthorized(resp);
-                })
-                .ThenAsAsync(async () =>
-                {
-                    resp = await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
-                    return GetResponseValue(resp)!;
-                });
-        }, cancellationToken, nameof(UpdateWithResultAsync));
+            var result = await ModelContainer.UpdateWithResultInternalAsync(dbArgs, cvm, cvm => CosmosDb.Mapper.Map(value, cvm.Value, OperationTypes.Update), cancellationToken).ConfigureAwait(false);
+            return result.ThenAs(model => GetValue(model)!);
+        }
 
         /// <inheritdoc/>
-        public override Task<Result> DeleteWithResultAsync(object? id, CosmosDbArgs dbArgs, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(id), dbArgs, async (_, key, args, ct) =>
-        {
-            try
-            {
-                // Must read existing to delete and to make sure we are deleting for the correct Type; don't just trust the key.
-                var ro = CosmosDb.GetItemRequestOptions<T, TModel>(args);
-                var pk = dbArgs.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
-                var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(key, pk, ro, ct).ConfigureAwait(false);
-                if (resp?.Resource == null || resp.Resource.Type != _typeName)
-                    return Result.Success;
-
-                if ((args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
-                    return Result.Success;
-
-                // Delete; either logically or physically.
-                if (resp.Resource is ILogicallyDeleted ild)
-                {
-                    ild.IsDeleted = true;
-                    return await Result
-                        .Go(CheckAuthorized(resp.Resource))
-                        .ThenAsync(async () =>
-                        {
-                            ro.SessionToken = resp.Headers?.Session;
-                            await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
-                            return Result.Success;
-                        });
-                }
-
-                return await Result
-                    .Go(CheckAuthorized(resp.Resource))
-                    .ThenAsync(async () =>
-                    {
-                        ro.SessionToken = resp.Headers?.Session;
-                        await Container.DeleteItemAsync<T>(key, pk, ro, ct).ConfigureAwait(false);
-                        return Result.Success;
-                    });
-            }
-            catch (CosmosException cex) when (cex.StatusCode == System.Net.HttpStatusCode.NotFound) { return Result.NotFoundError(); }
-        }, cancellationToken, nameof(DeleteWithResultAsync));
+        public override Task<Result> DeleteWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default) => ModelContainer.DeleteWithResultAsync(dbArgs, key, cancellationToken);
     }
 }

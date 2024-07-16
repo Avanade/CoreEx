@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using Microsoft.Azure.Cosmos;
 
 namespace CoreEx.Cosmos
@@ -18,5 +19,17 @@ namespace CoreEx.Cosmos
         /// Gets the <see cref="Microsoft.Azure.Cosmos.Container"/>.
         /// </summary>
         Container Container { get; }
+
+        /// <summary>
+        /// Gets the Container-specific <see cref="CosmosDbArgs"/>.
+        /// </summary>
+        CosmosDbArgs DbArgs { get; }
+
+        /// <summary>
+        /// Gets the <b>CosmosDb</b> identifier from the <see cref="CompositeKey"/>.
+        /// </summary>
+        /// <param name="key">The <see cref="CompositeKey"/>.</param>
+        /// <returns>The <b>CosmosDb</b> identifier.</returns>
+        string GetCosmosId(CompositeKey key);
     }
 }

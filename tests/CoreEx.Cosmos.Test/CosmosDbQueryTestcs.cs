@@ -197,13 +197,13 @@
         public async Task ModelQuery_Paging3()
         {
             var pr = new Entities.PagingResult(Entities.PagingArgs.CreateSkipAndTake(1, 2, true));
-            var v = await _db.Persons3.ModelQuery(q => q.OrderBy(x => x.Id)).WithPaging(pr).ToArrayAsync();
+            var v = await _db.Persons3.ModelContainer.Query(q => q.OrderBy(x => x.Id)).WithPaging(pr).ToArrayAsync();
             Assert.That(v, Has.Length.EqualTo(2));
             Assert.That(v[0].Value.Name, Is.EqualTo("Gary"));
             Assert.That(v[1].Value.Name, Is.EqualTo("Greg"));
             Assert.That(pr.TotalCount, Is.EqualTo(5));
 
-            v = await _db.Persons3.ModelQuery(q => q.OrderBy(x => x.Value.Name)).WithPaging(1, 2).ToArrayAsync();
+            v = await _db.Persons3.ModelContainer.Query(q => q.OrderBy(x => x.Value.Name)).WithPaging(1, 2).ToArrayAsync();
             Assert.That(v, Has.Length.EqualTo(2));
             Assert.That(v[0].Value.Name, Is.EqualTo("Greg"));
             Assert.That(v[1].Value.Name, Is.EqualTo("Mike"));

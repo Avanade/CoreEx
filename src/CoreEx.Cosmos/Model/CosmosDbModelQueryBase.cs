@@ -8,7 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CoreEx.Cosmos
+namespace CoreEx.Cosmos.Model
 {
     /// <summary>
     /// Enables the common <b>CosmosDb</b> model-only query capabilities.
@@ -39,7 +39,7 @@ namespace CoreEx.Cosmos
         /// <returns>The <typeparamref name="TSelf"/> instance to suport fluent-style method-chaining.</returns>
         public TSelf WithPaging(PagingArgs? paging)
         {
-            Paging = paging == null ? null : (paging is PagingResult pr ? pr : new PagingResult(paging));
+            Paging = paging == null ? null : paging is PagingResult pr ? pr : new PagingResult(paging);
             return (TSelf)this;
         }
 

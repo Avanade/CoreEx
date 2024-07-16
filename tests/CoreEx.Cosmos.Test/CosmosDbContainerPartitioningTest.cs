@@ -16,16 +16,16 @@ namespace CoreEx.Cosmos.Test
             _db.DbArgs = new CosmosDbArgs(new PartitionKey("A"));
             _db.Persons1.UsePartitionKey(p => new PartitionKey(p.Filter));
             _db.Persons2.UsePartitionKey(p => new PartitionKey(p.Filter));
-            _db.Persons3.UsePartitionKey(p => new PartitionKey(p.Filter));
+            _db.Persons3.UsePartitionKey(p => new PartitionKey(p.Value.Filter));
         }
 
         [Test]
         public async Task Get1Async()
         {
-            var v = await _db.Persons1.GetAsync(1.ToGuid().ToString());
+            var v = await _db.Persons1.GetAsync(1.ToGuid());
             Assert.That(v, Is.Null);
 
-            v = await _db.Persons1.GetAsync(4.ToGuid().ToString());
+            v = await _db.Persons1.GetAsync(4.ToGuid());
             Assert.That(v, Is.Not.Null);
             Assert.That(v.Name, Is.EqualTo("Sally"));
         }
@@ -48,7 +48,7 @@ namespace CoreEx.Cosmos.Test
         [Test]
         public async Task Update1Async()
         {
-            var v = await _db.Persons1.GetAsync(4.ToGuid().ToString());
+            var v = await _db.Persons1.GetAsync(4.ToGuid());
             Assert.That(v, Is.Not.Null);
 
             v.Name += "X";
@@ -64,23 +64,23 @@ namespace CoreEx.Cosmos.Test
         [Test]
         public async Task Delete1Async()
         {
-            Assert.ThrowsAsync<NotFoundException>(() => _db.Persons1.DeleteAsync(1.ToGuid().ToString()));
+            Assert.ThrowsAsync<NotFoundException>(() => _db.Persons1.DeleteAsync(1.ToGuid()));
             var ir = await _db.Persons1.Container.ReadItemAsync<Person1>(1.ToGuid().ToString(), new PartitionKey("B")).ConfigureAwait(false);
             Assert.That(ir, Is.Not.Null);
             Assert.That(ir.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.OK));
 
-            await _db.Persons1.DeleteAsync(5.ToGuid().ToString());
-            var v = await _db.Persons1.GetAsync(5.ToGuid().ToString());
+            await _db.Persons1.DeleteAsync(5.ToGuid());
+            var v = await _db.Persons1.GetAsync(5.ToGuid());
             Assert.That(v, Is.Null);
         }
 
         [Test]
         public async Task Get2Async()
         {
-            var v = await _db.Persons2.GetAsync(1.ToGuid().ToString());
+            var v = await _db.Persons2.GetAsync(1.ToGuid());
             Assert.That(v, Is.Null);
 
-            v = await _db.Persons2.GetAsync(4.ToGuid().ToString());
+            v = await _db.Persons2.GetAsync(4.ToGuid());
             Assert.That(v, Is.Not.Null);
             Assert.That(v.Name, Is.EqualTo("Sally"));
         }
@@ -119,7 +119,7 @@ namespace CoreEx.Cosmos.Test
         [Test]
         public async Task Delete2Async()
         {
-            Assert.ThrowsAsync<NotFoundException>(() => _db.Persons2.DeleteAsync(1.ToGuid().ToString()));
+            Assert.ThrowsAsync<NotFoundException>(() => _db.Persons2.DeleteAsync(1.ToGuid()));
             var ir = await _db.Persons2.Container.ReadItemAsync<Person2>(1.ToGuid().ToString(), new PartitionKey("B")).ConfigureAwait(false);
             Assert.That(ir, Is.Not.Null);
             Assert.That(ir.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.OK));

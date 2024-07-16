@@ -4,7 +4,7 @@ using CoreEx.Entities;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
-namespace CoreEx.Cosmos
+namespace CoreEx.Cosmos.Model
 {
     /// <summary>
     /// Provides the base <b>CosmosDb</b> <b>model</b> capabilities.

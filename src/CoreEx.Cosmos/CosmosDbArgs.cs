@@ -74,9 +74,28 @@ namespace CoreEx.Cosmos
         public ItemRequestOptions? ItemRequestOptions { get; } = null;
 
         /// <summary>
+        /// Gets (or creates new) the <see cref="ItemRequestOptions"/>.
+        /// </summary>
+        public readonly ItemRequestOptions GetItemRequestOptions() => ItemRequestOptions ?? new ItemRequestOptions();
+
+        /// <summary>
         /// Gets the <see cref="Microsoft.Azure.Cosmos.QueryRequestOptions"/> used for <b>Query</b> (<seealso cref="ItemRequestOptions"/>).
         /// </summary>
         public QueryRequestOptions? QueryRequestOptions { get; } = null;
+
+        /// <summary>
+        /// Gets (or creates new) the <see cref="QueryRequestOptions"/>.
+        /// </summary>
+        public readonly QueryRequestOptions GetQueryRequestOptions() => UpdateQueryRequestionOptionsPartitionKey(QueryRequestOptions ?? new QueryRequestOptions());
+
+        /// <summary>
+        /// Updates the <see cref="QueryRequestOptions"/> with the <see cref="PartitionKey"/> where not already set.
+        /// </summary>
+        private readonly QueryRequestOptions UpdateQueryRequestionOptionsPartitionKey(QueryRequestOptions qro)
+        {
+            qro.PartitionKey ??= PartitionKey;
+            return qro;
+        }
 
         /// <summary>
         /// Indicates that a <c>null</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> on <b>Get</b>. 
@@ -99,13 +118,13 @@ namespace CoreEx.Cosmos
         public Func<string?> GetTenantId { get; set; } = () => ExecutionContext.HasCurrent ? ExecutionContext.Current.TenantId : null;
 
         /// <summary>
-        /// Formats an identifier to a <see cref="string"/> representation based on its underlying <see cref="Type"/> (used by <see cref="CosmosDbContainerBase{T, TModel, TSelf}.GetCosmosId(T)"/> and <see cref="ICosmosDbValue.PrepareBefore"/>).
+        /// Formats a <see cref="CompositeKey"/> to a <see cref="string"/> representation (used by <see cref="CosmosDbContainerBase{T, TModel, TSelf}.GetCosmosId(T)"/> and <see cref="ICosmosDbValue.PrepareBefore"/>).
         /// </summary>
         /// <returns>The identifier as a <see cref="string"/>.</returns>
-        public Func<object?, string> FormatIdentifier { get; set; } = DefaultFormatIdentifier;
+        public Func<CompositeKey, string?> FormatIdentifier { get; set; } = DefaultFormatIdentifier;
 
         /// <summary>
-        /// Parses a <see cref="string"/> identifier representation into its underlying <see cref="Type"/> (used by the <see cref="ICosmosDbValue.PrepareAfter"/>).
+        /// Parses a <see cref="string"/> identifier and updates the underlying value where it implements <see cref="IIdentifier.Id"/> (used by the <see cref="ICosmosDbValue.PrepareAfter"/>).
         /// </summary>
         /// <returns>The parsed identifier.</returns>
         public Action<object, string?> ParseIdentifier { get; set; } = DefaultParseIdentifier;
@@ -113,23 +132,14 @@ namespace CoreEx.Cosmos
         /// <summary>
         /// Provides the default <see cref="FormatIdentifier"/> implementation.
         /// </summary>
-        public static Func<object?, string> DefaultFormatIdentifier { get; } = id => id.ThrowIfNull(nameof(id)) switch
-        {
-            string s => s ?? throw new InvalidOperationException("The identifier must not be null."),
-            int i => i.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            long l => l.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            Guid g => g.ToString(),
-            CompositeKey ck => ck.ToString() ?? throw new InvalidOperationException("The identifier must not be null."),
-            _ => throw new NotSupportedException("An identifier must be one of the following types: string, int, long, Guid or CompositeKey.")
-        };
+        public static Func<CompositeKey, string?> DefaultFormatIdentifier { get; } = key => key.ToString();
 
         /// <summary>
         /// Provides the default <see cref="ParseIdentifier"/> implementation.
         /// </summary>
         public static Action<object, string?> DefaultParseIdentifier { get; } = (value, id) => 
         {
-            value.ThrowIfNull(nameof(value));
-            if (value is IIdentifier iid)
+            if (value.ThrowIfNull(nameof(value)) is IIdentifier iid)
             {
                 iid.Id = iid.IdType switch
                 {
@@ -139,8 +149,6 @@ namespace CoreEx.Cosmos
                     Type t when t == typeof(Guid) => id == null ? Guid.Empty : Guid.Parse(id),
                     _ => throw new NotSupportedException("An IIdentifier.IdType must be one of the following types: string, int, long, or Guid.")
                 };
-
-                return;
             }
         };
     }
