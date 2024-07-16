@@ -18,7 +18,7 @@ namespace CoreEx.Cosmos
     /// <param name="container">The <see cref="CosmosDbValueContainer{T, TModel}"/>.</param>
     /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="query">A function to modify the underlying <see cref="IQueryable{T}"/>.</param>
-    public class CosmosDbValueQuery<T, TModel>(CosmosDbValueContainer<T, TModel> container, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>>(container, dbArgs) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new()
+    public class CosmosDbValueQuery<T, TModel>(CosmosDbValueContainer<T, TModel> container, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>>(container, dbArgs) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
     {
         private readonly Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? _query = query;
 
@@ -35,7 +35,7 @@ namespace CoreEx.Cosmos
             if (!pagingSupported && Paging is not null)
                 throw new NotSupportedException("Paging is not supported when accessing AsQueryable directly; paging must be applied directly to the resulting IQueryable instance.");
 
-            IQueryable<CosmosDbValue<TModel>> query = Container.Container.GetItemLinqQueryable<CosmosDbValue<TModel>>(allowSynchronousQueryExecution: allowSynchronousQueryExecution, requestOptions: Container.CosmosDb.GetQueryRequestOptions<T, TModel>(QueryArgs));
+            IQueryable<CosmosDbValue<TModel>> query = Container.Container.GetItemLinqQueryable<CosmosDbValue<TModel>>(allowSynchronousQueryExecution: allowSynchronousQueryExecution, requestOptions: QueryArgs.GetQueryRequestOptions());
             query = (_query == null ? query : _query(query)).WhereType(typeof(TModel));
 
             var filter = Container.CosmosDb.GetAuthorizeFilter<TModel>(Container.Container.Id);

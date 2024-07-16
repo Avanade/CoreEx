@@ -2,6 +2,14 @@
 
 Represents the **NuGet** versions.
 
+## v3.22.0
+- *Enhancement:* Identifier parsing and `CompositeKey` formatting moved to the `CosmosDbArgs` to enable overriding where required.
+- *Enhancement:* Cosmos model constraint softened to allow for `IEntityKey` to support more flexible identifier scenarios.
+- *Enhancement:* All Cosmos methods updated to support `CompositeKey` versus `object` for identifier specification for greater flexibility.
+- *Enhancement:* `CosmosDbModelContainer` and `CosmosDbValueModelContainer` enable model-only access; also, all model capabilities housed under new `Model` namespace.
+- *Fixed:* `PagingOperationFilter` correctly specifies a format of `int64` for the `number`-type paging parameters.
+- *Fixed:* `CompositeKey` correctly supports `IReferenceData` types leveraging the underlying `IReferenceData.Code`.
+
 ## v3.21.1
 - *Fixed:* `Mapper.MapSameTypeWithSourceValue` added (defaults to `true`) to map the source value to the destination value where the types are the same; previously this would result in an exception unless added explicitly. The `Mapper.SameTypeMapper` enables.
 - *Fixed:* `ReferenceDataOrchestrator.GetAllTypesInNamespace` added to get all the `IReferenceData` types in the specified namespace. Needed for the likes of the `CosmosDbBatch.ImportValueBatchAsync` where a list of types is required.

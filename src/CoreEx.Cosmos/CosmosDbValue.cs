@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using CoreEx.Cosmos.Model;
 using CoreEx.Entities;
 using Newtonsoft.Json;
-using System;
 
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Represents a special-purpose <b>CosmosDb</b> object that houses an underlying model-<see cref="Value"/>, including <see cref="Type"/> name, and flexible <see cref="IIdentifier"/>, for persistence.
+    /// Represents a special-purpose <b>CosmosDb</b> object that houses an underlying model-<see cref="Value"/>, including <see cref="Type"/> name, and flexible <see cref="IEntityKey"/>, for persistence.
     /// </summary>
     /// <typeparam name="TModel">The model <see cref="Value"/> <see cref="Type"/>.</typeparam>
-    /// <remarks>The <see cref="CosmosDbModelBase.Id"/>, <see cref="Type"/> and <see cref="CosmosDbModelBase.ETag"/> are updated internally when interacting directly with <b>CosmosDB</b>.</remarks>
-    public sealed class CosmosDbValue<TModel> : CosmosDbModelBase, ICosmosDbValue where TModel : class, IIdentifier, new()
+    /// <remarks>The <see cref="CosmosDbModelBase.Id"/>, <see cref="Type"/> and <see cref="CosmosDbModelBase.ETag"/> are updated internally, where possible, when interacting directly with <b>CosmosDB</b>.</remarks>
+    public sealed class CosmosDbValue<TModel> : CosmosDbModelBase, ICosmosDbValue where TModel : class, IEntityKey, new()
     {
         private TModel _value;
 
@@ -52,14 +52,12 @@ namespace CoreEx.Cosmos
         /// </summary>
         object ICosmosDbValue.Value => _value;
 
-        /// <summary>
-        /// Prepares the object before sending to Cosmos.
-        /// </summary>
-        void ICosmosDbValue.PrepareBefore(ICosmosDb db)
+        /// <inheritdoc/>
+        void ICosmosDbValue.PrepareBefore(CosmosDbArgs dbArgs)
         {
             if (Value != default)
             {
-                Id = db.FormatIdentifier(Value.Id);
+                Id = dbArgs.FormatIdentifier(Value.EntityKey);
 
                 if (Value is IETag etag)
                     ETag = ETagGenerator.FormatETag(etag.ETag);
@@ -68,15 +66,13 @@ namespace CoreEx.Cosmos
             Type = typeof(TModel).Name;
         }
 
-        /// <summary>
-        /// Prepares the object after getting from Cosmos.
-        /// </summary>
-        void ICosmosDbValue.PrepareAfter(ICosmosDb db)
+        /// <inheritdoc/>
+        void ICosmosDbValue.PrepareAfter(CosmosDbArgs dbArgs)
         {
             if (Value == default)
                 return;
 
-            Value.Id = db.ParseIdentifier(Value.IdType, Id);
+            dbArgs.ParseIdentifier(Value, Id);
 
             if (Value is IETag etag)
                 etag.ETag = ETagGenerator.ParseETag(ETag);

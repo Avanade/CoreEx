@@ -20,7 +20,7 @@ namespace System.Linq
         /// <param name="query">The query.</param>
         /// <param name="typeName">The <see cref="CosmosDbValue{TModel}.Type"/> name.</param>
         /// <returns>The query.</returns>
-        public static IQueryable<CosmosDbValue<T>> WhereType<T>(this IQueryable<CosmosDbValue<T>> query, string typeName) where T : class, IIdentifier, new() => query.Where("type = @0", typeName.ThrowIfNull(nameof(typeName)));
+        public static IQueryable<CosmosDbValue<T>> WhereType<T>(this IQueryable<CosmosDbValue<T>> query, string typeName) where T : class, IEntityKey, new() => query.Where("type = @0", typeName.ThrowIfNull(nameof(typeName)));
 
         /// <summary>
         /// Filters a sequence of values based on the <see cref="CosmosDbValue{TModel}.Type"/> equalling the <paramref name="type"/> <see cref="System.Reflection.MemberInfo.Name"/>.
@@ -29,6 +29,6 @@ namespace System.Linq
         /// <param name="query">The query.</param>
         /// <param name="type">The <see cref="CosmosDbValue{TModel}.Type"/> <see cref="Type"/>.</param>
         /// <returns>The query.</returns>
-        public static IQueryable<CosmosDbValue<T>> WhereType<T>(this IQueryable<CosmosDbValue<T>> query, Type type) where T : class, IIdentifier, new() => query.WhereType(type.ThrowIfNull(nameof(type)).Name);
+        public static IQueryable<CosmosDbValue<T>> WhereType<T>(this IQueryable<CosmosDbValue<T>> query, Type type) where T : class, IEntityKey, new() => query.WhereType(type.ThrowIfNull(nameof(type)).Name);
     }
 }

@@ -16,7 +16,7 @@
         [Test]
         public async Task Get1Async()
         {
-            Assert.That(await _db.Persons1.GetAsync(404.ToGuid().ToString()), Is.Null);
+            Assert.That(await _db.Persons1.GetAsync(404.ToGuid()), Is.Null);
 
             var v = await _db.Persons1.GetAsync(1.ToGuid().ToString());
             Assert.That(v, Is.Not.Null);
@@ -29,7 +29,7 @@
         [Test]
         public async Task Get2Async()
         {
-            Assert.That(await _db.Persons2.GetAsync(404.ToGuid().ToString()), Is.Null);
+            Assert.That(await _db.Persons2.GetAsync(404.ToGuid()), Is.Null);
 
             var v = await _db.Persons2.GetAsync(1.ToGuid().ToString());
             Assert.That(v, Is.Not.Null);
@@ -47,9 +47,6 @@
         [Test]
         public async Task Get3Async()
         {
-            var ex = Assert.ThrowsAsync<NotSupportedException>(() => _db.Persons3.GetAsync(DateTime.UtcNow));
-            Assert.That(ex.Message, Does.StartWith("An identifier must be one of the following Types: string, int, long, or Guid."), ex.Message);
-
             Assert.That(await _db.Persons3.GetAsync(404.ToGuid()), Is.Null);
 
             var v = await _db.Persons3.GetAsync(1.ToGuid());

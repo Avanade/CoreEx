@@ -22,6 +22,6 @@ namespace CoreEx.Cosmos.Test
 
         public CosmosDbContainer<Person2, Person2> Persons2 => Container<Person2, Person2>("Persons2").UsePartitionKey(_partitioning ? v => new PartitionKey(v.Filter) : null!);
 
-        public CosmosDbValueContainer<Person3, Person3> Persons3 => ValueContainer<Person3, Person3>("Persons3").UsePartitionKey(_partitioning ? v => new PartitionKey(v.Filter) : null!);
+        public CosmosDbValueContainer<Person3, Person3> Persons3 => ValueContainer<Person3, Person3>("Persons3").UsePartitionKey(_partitioning ? v => new PartitionKey(v.Value.Filter) : null!);
     }
 }

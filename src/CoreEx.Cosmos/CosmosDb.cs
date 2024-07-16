@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Cosmos.Model;
 using CoreEx.Entities;
 using CoreEx.Mapping;
 using CoreEx.Results;
@@ -19,8 +20,6 @@ namespace CoreEx.Cosmos
     public class CosmosDb(Database database, IMapper mapper, CosmosDbInvoker? invoker = null) : ICosmosDb
     {
         private static CosmosDbInvoker? _invoker;
-        private Action<RequestOptions>? _updateRequestOptionsAction;
-        private Action<QueryRequestOptions>? _updateQueryRequestOptionsAction;
         private readonly ConcurrentDictionary<Key, Func<IQueryable, IQueryable>> _filters = new();
 
         /// <summary>
@@ -49,18 +48,16 @@ namespace CoreEx.Cosmos
         public Container GetCosmosContainer(string containerId) => Database.GetContainer(containerId);
 
         /// <inheritdoc/>
-        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier<string>, new() => new(this, containerId, dbArgs);
+        public CosmosDbContainer<T, TModel> Container<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new() => new(this, containerId, dbArgs);
 
         /// <inheritdoc/>
-        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IIdentifier, new() => new(this, containerId, dbArgs);
+        public CosmosDbValueContainer<T, TModel> ValueContainer<T, TModel>(string containerId, CosmosDbArgs? dbArgs = null) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new() => new(this, containerId, dbArgs);
 
         /// <inheritdoc/>
-        public CosmosDbModelQuery<TModel> ModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query) where TModel : class, IIdentifier<string>, new()
-            => new(new CosmosDbModelContainer(this, GetCosmosContainer(containerId)), dbArgs, query);
+        public CosmosDbModelContainer<TModel> ModelContainer<TModel>(string containerId, CosmosDbArgs? dbArgs = null) where TModel : class, IEntityKey, new() => new(this, containerId, dbArgs);
 
         /// <inheritdoc/>
-        public CosmosDbValueModelQuery<TModel> ValueModelQuery<TModel>(string containerId, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) where TModel : class, IIdentifier<string>, new()
-            => new(new CosmosDbModelContainer(this, GetCosmosContainer(containerId)), dbArgs, query);
+        public CosmosDbValueModelContainer<TModel> ValueModelContainer<TModel>(string containerId, CosmosDbArgs? dbArgs = null) where TModel : class, IEntityKey, new() => new(this, containerId, dbArgs);
 
         /// <summary>
         /// Sets the filter for all operations performed on the <typeparamref name="TModel"/> for the specified <paramref name="containerId"/> to ensure authorisation is applied. Applies automatically 
@@ -81,68 +78,6 @@ namespace CoreEx.Cosmos
         /// <inheritdoc/>
         public Func<IQueryable, IQueryable>? GetAuthorizeFilter<TModel>(string containerId) => _filters.TryGetValue(new Key(typeof(TModel), containerId.ThrowIfNull(nameof(containerId))), out var filter) ? filter : null;
 
-        /// <summary>
-        /// Sets the <see cref="Action"/> to update the <see cref="ItemRequestOptions"/> for the selected operation.
-        /// </summary>
-        /// <param name="updateItemRequestOptionsAction">The <see cref="Action"/> to update the <see cref="Microsoft.Azure.Cosmos.ItemRequestOptions"/>.</param>
-        /// <returns>This <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</returns>
-        public CosmosDb ItemRequestOptions(Action<RequestOptions> updateItemRequestOptionsAction)
-        {
-            _updateRequestOptionsAction = updateItemRequestOptionsAction.ThrowIfNull(nameof(updateItemRequestOptionsAction));
-            return this;
-        }
-
-        /// <summary>
-        /// Updates the <paramref name="itemRequestOptions"/> using the <see cref="Action"/> set with <see cref="ItemRequestOptions(Action{RequestOptions})"/>.
-        /// </summary>
-        /// <param name="itemRequestOptions">The <see cref="Microsoft.Azure.Cosmos.ItemRequestOptions"/>.</param>
-        public void UpdateItemRequestOptions(RequestOptions itemRequestOptions) => _updateRequestOptionsAction?.Invoke(itemRequestOptions.ThrowIfNull(nameof(itemRequestOptions)));
-
-        /// <inheritdoc/>
-        ItemRequestOptions ICosmosDb.GetItemRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
-        {
-            var iro = dbArgs.ItemRequestOptions ?? new ItemRequestOptions();
-            UpdateItemRequestOptions(iro);
-            return iro;
-        }
-
-        /// <summary>
-        /// Sets the <see cref="Action"/> to update the <see cref="QueryRequestOptions"/> for the selected operation.
-        /// </summary>
-        /// <param name="updateQueryRequestOptionsAction">The <see cref="Action"/> to update the <see cref="QueryRequestOptions"/>.</param>
-        /// <returns>This <see cref="CosmosDb"/> instance to support fluent-style method-chaining.</returns>
-        public CosmosDb QueryRequestOptions(Action<QueryRequestOptions> updateQueryRequestOptionsAction)
-        {
-            _updateQueryRequestOptionsAction = updateQueryRequestOptionsAction.ThrowIfNull(nameof(updateQueryRequestOptionsAction));
-            return this;
-        }
-
-        /// <summary>
-        /// Updates the <paramref name="queryRequestOptions"/> using the <see cref="Action"/> set with <see cref="QueryRequestOptions(Action{QueryRequestOptions})"/>.
-        /// </summary>
-        /// <param name="queryRequestOptions">The <see cref="Microsoft.Azure.Cosmos.QueryRequestOptions"/>.</param>
-        public void UpdateQueryRequestOptions(QueryRequestOptions queryRequestOptions) => _updateQueryRequestOptionsAction?.Invoke(queryRequestOptions.ThrowIfNull(nameof(queryRequestOptions)));
-
-        /// <inheritdoc/>
-        QueryRequestOptions ICosmosDb.GetQueryRequestOptions<T, TModel>(CosmosDbArgs dbArgs) where T : class where TModel : class
-        {
-            var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
-            ro.PartitionKey ??= dbArgs.PartitionKey ?? DbArgs.PartitionKey;
-
-            UpdateQueryRequestOptions(ro);
-            return ro;
-        }
-
-        /// <inheritdoc/>
-        QueryRequestOptions ICosmosDb.GetQueryRequestOptions<TModel>(CosmosDbArgs dbArgs) where TModel : class
-        {
-            var ro = dbArgs.QueryRequestOptions ?? new QueryRequestOptions();
-            ro.PartitionKey ??= dbArgs.PartitionKey ?? DbArgs.PartitionKey;
-
-            UpdateQueryRequestOptions(ro);
-            return ro;
-        }
-
         /// <inheritdoc/>
         public Result? HandleCosmosException(CosmosException cex) => OnCosmosException(cex);
 
@@ -158,26 +93,6 @@ namespace CoreEx.Cosmos
             System.Net.HttpStatusCode.Conflict => Result.Fail(new DuplicateException(null, cex)),
             System.Net.HttpStatusCode.PreconditionFailed => Result.Fail(new ConcurrencyException(null, cex)),
             _ => Result.Fail(cex)
-        };
-
-        /// <inheritdoc/>
-        public virtual string FormatIdentifier(object? id) => id.ThrowIfNull(nameof(id)) switch
-        {
-            string si => si,
-            int ii => ii.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            long li => li.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            Guid gi => gi.ToString(),
-            _ => throw new NotSupportedException("An identifier must be one of the following Types: string, int, long, or Guid.")
-        };
-
-        /// <inheritdoc/>
-        public virtual object? ParseIdentifier(Type type, string? id) => type.ThrowIfNull(nameof(type)) switch
-        {
-            Type t when t == typeof(string) => id,
-            Type t when t == typeof(int) => id == null ? 0 : int.Parse(id, System.Globalization.CultureInfo.InvariantCulture),
-            Type t when t == typeof(long) => id == null ? 0 : long.Parse(id, System.Globalization.CultureInfo.InvariantCulture),
-            Type t when t == typeof(Guid) => id == null ? Guid.Empty : Guid.Parse(id),
-            _ => throw new NotSupportedException("An identifier must be one of the following Types: string, int, long, or Guid.")
         };
     }
 }

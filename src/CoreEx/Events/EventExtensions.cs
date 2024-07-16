@@ -477,7 +477,7 @@ namespace CoreEx.Events
         /// <returns>The <see cref="EventData{T}"/>.</returns>
         /// <remarks>The <see cref="EventDataBase.Key"/> is automatically inferred from the <see cref="IEntityKey.EntityKey"/> where implemented.</remarks>
         public static EventData<T> CreateValueEvent<T>(this IEventPublisher publisher, T value, string? subject = null)
-            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Subject = subject }, value is IEntityKey ek ? ek.EntityKey : null);
+            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Subject = subject }, value is IEntityKey ek ? (CompositeKey?)ek.EntityKey : null);
 
         /// <summary>
         /// Creates an <see cref="EventData{T}"/>.
@@ -489,7 +489,7 @@ namespace CoreEx.Events
         /// <returns>The <see cref="EventData{T}"/>.</returns>
         /// <remarks>The <see cref="EventDataBase.Key"/> is automatically inferred from the <see cref="IEntityKey.EntityKey"/> where implemented.</remarks>
         public static EventData<T> CreateValueEvent<T>(this IEventPublisher publisher, T value, string? subject, string? action = null)
-            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Subject = subject, Action = action }, value is IEntityKey ek ? ek.EntityKey : null);
+            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Subject = subject, Action = action }, value is IEntityKey ek ? (CompositeKey?)ek.EntityKey : null);
 
         /// <summary>
         /// Creates an <see cref="EventData{T}"/> including the specified <paramref name="key"/>.
@@ -527,7 +527,7 @@ namespace CoreEx.Events
         /// <returns>The <see cref="EventData{T}"/>.</returns>
         /// <remarks>The <see cref="EventDataBase.Key"/> is automatically inferred from the <see cref="IEntityKey.EntityKey"/> where implemented.</remarks>
         public static EventData<T> CreateValueEvent<T>(this IEventPublisher publisher, T value, Uri source, string? subject = null)
-            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Source = source.ThrowIfNull(nameof(source)), Subject = subject }, value is IEntityKey ek ? ek.EntityKey : null);
+            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Source = source.ThrowIfNull(nameof(source)), Subject = subject }, value is IEntityKey ek ? (CompositeKey?)ek.EntityKey : null);
 
         /// <summary>
         /// Creates an <see cref="EventData{T}"/>.
@@ -540,7 +540,7 @@ namespace CoreEx.Events
         /// <returns>The <see cref="EventData{T}"/>.</returns>
         /// <remarks>The <see cref="EventDataBase.Key"/> is automatically inferred from the <see cref="IEntityKey.EntityKey"/> where implemented.</remarks>
         public static EventData<T> CreateValueEvent<T>(this IEventPublisher publisher, T value, Uri source, string? subject, string? action = null)
-            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Source = source.ThrowIfNull(nameof(source)), Subject = subject, Action = action }, value is IEntityKey ek ? ek.EntityKey : null);
+            => (EventData<T>)UpdateEventData(publisher, new EventData<T>() { Value = value.ThrowIfNull(nameof(value)), Source = source.ThrowIfNull(nameof(source)), Subject = subject, Action = action }, value is IEntityKey ek ? (CompositeKey?)ek.EntityKey : null);
 
         /// <summary>
         /// Creates an <see cref="EventData{T}"/> including the specified <paramref name="key"/>.
