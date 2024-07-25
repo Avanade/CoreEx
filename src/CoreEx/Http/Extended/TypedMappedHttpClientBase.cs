@@ -16,16 +16,17 @@ namespace CoreEx.Http.Extended
     /// </summary>
     /// <typeparam name="TSelf">The self <see cref="Type"/> for support fluent-style method-chaining.</typeparam>
     /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-    /// <param name="mapper">The <see cref="IMapper"/>.</param>
-    /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-    /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
-    public abstract class TypedMappedHttpClientBase<TSelf>(HttpClient client, IMapper mapper, IJsonSerializer jsonSerializer, ExecutionContext executionContext)
+    /// <param name="mapper">The optional <see cref="IMapper"/>.</param>
+    /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
+    /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
+    /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
+    public abstract class TypedMappedHttpClientBase<TSelf>(HttpClient client, IMapper? mapper = null, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null)
         : TypedHttpClientBase<TSelf>(client, jsonSerializer, executionContext), ITypedMappedHttpClient where TSelf : TypedMappedHttpClientBase<TSelf>
     {
         /// <summary>
         /// Gets the <see cref="IMapper"/>.
         /// </summary>
-        public IMapper Mapper { get; } = mapper.ThrowIfNull(nameof(mapper));
+        public IMapper Mapper { get; } = mapper ?? ExecutionContext.GetService<IMapper>() ?? throw new ArgumentNullException(nameof(mapper));
 
         /// <summary>
         /// Maps the <typeparamref name="TResponseHttp"/> value to the <typeparamref name="TResponse"/> <see cref="Type"/>.

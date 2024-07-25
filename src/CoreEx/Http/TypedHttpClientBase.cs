@@ -20,7 +20,8 @@ namespace CoreEx.Http
     /// Represents a typed <see cref="HttpClient"/> foundation wrapper.
     /// </summary>
     /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-    /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>..</param>
+    /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
+    /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
     public abstract class TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null)
     {
         /// <summary>
@@ -36,7 +37,7 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.
         /// </summary>
-        protected IJsonSerializer JsonSerializer { get; } = jsonSerializer ?? CoreEx.Json.JsonSerializer.Default;
+        protected IJsonSerializer JsonSerializer { get; } = jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? Json.JsonSerializer.Default;
 
         /// <summary>
         /// Create an <see cref="HttpRequestMessage"/> with no specified content.

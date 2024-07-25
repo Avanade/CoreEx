@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.Entities;
 using System;
 using System.Collections.Concurrent;
@@ -14,6 +15,26 @@ namespace CoreEx.Caching
     public class RequestCache : IRequestCache
     {
         private readonly Lazy<ConcurrentDictionary<(Type, CompositeKey), object?>> _caching = new(true);
+
+        /// <summary>
+        /// Gets the <see cref="CompositeKey"/> from the <paramref name="value"/> based on an order of precedence of <see cref="ICacheKey"/>, then <see cref="IEntityKey"/>, then <see cref="CompositeKey.Empty"/>.
+        /// </summary>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns>The resulting <see cref="CompositeKey"/>.</returns>
+        /// <remarks>Where the <paramref name="value"/> implements <see cref="ICacheKey"/> then the <see cref="ICacheKey.CacheKey"/> will be returned, then where implements <see cref="IEntityKey"/> then the <see cref="IEntityKey.EntityKey"/>
+        /// will be returned; otherwise, <see cref="CompositeKey.Empty"/> will be returned.</remarks>
+        internal static CompositeKey GetKeyFromValue<T>(T value) where T : IUniqueKey
+        {
+            if (value is null)
+                return CompositeKey.Empty;
+            else if (value is ICacheKey ck)
+                return ck.CacheKey;
+            else if (value is IEntityKey ek)
+                return ek.EntityKey;
+            else
+                return CompositeKey.Empty;
+        }
 
         /// <inheritdoc/>
         public bool TryGetValue<T>(CompositeKey key, out T? value)

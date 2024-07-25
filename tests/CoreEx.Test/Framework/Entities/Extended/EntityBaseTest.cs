@@ -886,6 +886,17 @@ namespace CoreEx.Test.Framework.Entities.Extended
             });
         }
 
+        [Test]
+        public void Dictionary_Person_Add_Infer_Key()
+        {
+            var pd = new PersonDictionary();
+            var p2 = new Person { Name = "mary", Age = 25 };
+            pd.AddRange([p2]);
+
+            Assert.That(pd, Has.Count.EqualTo(1));
+            Assert.That(pd.ContainsKey("mary"), Is.True);
+        }
+
         private static DateTime CreateDateTime() => new(2000, 01, 01, 12, 45, 59);
 
         public class Person : EntityBase, CoreEx.Entities.IPrimaryKey
