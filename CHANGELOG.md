@@ -5,6 +5,7 @@ Represents the **NuGet** versions.
 ## v3.23.0
 - *Enhancement:* Added `ICacheKey` and updated `RequestCache` accordingly to support, in addition to the existing `IEntityKey`, to enable additional caching key specification.
 - *Enhancement:* Added `ItemKeySelector` to `EntityBaseDictionary` to enable automatic inference of the key from an item being added.
+- *Fixed:* Updated all dependencies to latest versions.
 
 ## v3.22.0
 - *Enhancement:* Identifier parsing and `CompositeKey` formatting moved to the `CosmosDbArgs` to enable overriding where required.

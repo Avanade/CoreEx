@@ -12,7 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.22" />
+    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.27" />
   </ItemGroup>
 
   <ItemGroup>
