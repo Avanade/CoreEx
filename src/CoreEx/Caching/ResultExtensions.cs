@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.Entities;
 using CoreEx.Results;
 using System;
@@ -82,14 +83,14 @@ namespace CoreEx.Caching
         }
 
         /// <summary>
-        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> (using the underlying <see cref="IUniqueKey"/>).
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/> which must be an <see cref="IEntityKey"/>.</typeparam>
+        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/> which must be an <see cref="IUniqueKey"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
-        public static Result<T> CacheSet<T>(this Result<T> result, IRequestCache cache) where T : IEntityKey
+        public static Result<T> CacheSet<T>(this Result<T> result, IRequestCache cache) where T : IUniqueKey
         {
             cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.SetValue(r); });
@@ -111,14 +112,14 @@ namespace CoreEx.Caching
         }
 
         /// <summary>
-        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// Sets (caches) the <see cref="Result{T}.Value"/> into the supplied <paramref name="cache"/> (using the underlying <see cref="IUniqueKey"/>).
         /// </summary>
-        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/> which must be an <see cref="IEntityKey"/>.</typeparam>
+        /// <typeparam name="T">The <see cref="Result{T}"/> <see cref="Type"/> which must be an <see cref="IUniqueKey"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
-        public static Task<Result<T>> CacheSet<T>(this Task<Result<T>> result, IRequestCache cache) where T : IEntityKey
+        public static Task<Result<T>> CacheSet<T>(this Task<Result<T>> result, IRequestCache cache) where T : IUniqueKey
         {
             cache.ThrowIfNull(nameof(cache));
             return result.Then(r => { cache.SetValue(r); });
@@ -170,17 +171,17 @@ namespace CoreEx.Caching
         }
 
         /// <summary>
-        /// Removes the cached value associated with the specified <see cref="Type"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// Removes the cached value associated with the specified <see cref="Type"/> (using the underlying <see cref="IUniqueKey"/>).
         /// </summary>
         /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
-        public static Result<T> CacheRemove<T>(this Result<T> result, IRequestCache cache) where T : IEntityKey
+        public static Result<T> CacheRemove<T>(this Result<T> result, IRequestCache cache) where T : IUniqueKey
         {
             cache.ThrowIfNull(nameof(cache));
-            return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : r.EntityKey); });
+            return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : RequestCache.GetKeyFromValue(r)); });
         }
 
         /// <summary>
@@ -214,17 +215,17 @@ namespace CoreEx.Caching
         }
 
         /// <summary>
-        /// Removes the cached value associated with the specified <see cref="Type"/> (using the underlying <see cref="IEntityKey.EntityKey"/>).
+        /// Removes the cached value associated with the specified <see cref="Type"/> (using the underlying <see cref="IUniqueKey"/>).
         /// </summary>
         /// <typeparam name="T">The cached value <see cref="Type"/>.</typeparam>
         /// <param name="result">The <see cref="Result{T}"/>.</param>
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <returns>The resulting <see cref="Result{T}"/>.</returns>
         /// <remarks>The caching is only performed where the corresponding <paramref name="result"/> has <see cref="IResult.IsSuccess"/>.</remarks>
-        public static Task<Result<T>> CacheRemove<T>(this Task<Result<T>> result, IRequestCache cache) where T : IEntityKey
+        public static Task<Result<T>> CacheRemove<T>(this Task<Result<T>> result, IRequestCache cache) where T : IUniqueKey
         {
             cache.ThrowIfNull(nameof(cache));
-            return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : r.EntityKey); });
+            return result.Then(r => { cache.Remove<T>(r is null ? CompositeKey.Empty : RequestCache.GetKeyFromValue(r)); });
         }
     }
 }

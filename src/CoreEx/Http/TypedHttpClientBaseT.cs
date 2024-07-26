@@ -37,6 +37,7 @@ namespace CoreEx.Http
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
         /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
         /// <param name="executionContext">The optional <see cref="CoreEx.ExecutionContext"/>. Defaults to a new instance.</param>
+        /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
         public TypedHttpClientBase(HttpClient client, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null) : base(client, jsonSerializer)
         {
             ExecutionContext = executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext());

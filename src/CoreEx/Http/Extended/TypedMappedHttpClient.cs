@@ -18,15 +18,13 @@ namespace CoreEx.Http.Extended
         /// Initializes a new instance of the <see cref="TypedHttpClientCore{TBase}"/>.
         /// </summary>
         /// <param name="client">The underlying <see cref="HttpClient"/>.</param>
-        /// <param name="mapper">The <see cref="IMapper"/>.</param>
+        /// <param name="mapper">The optional <see cref="IMapper"/>.</param>
         /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>. Defaults to <see cref="Json.JsonSerializer.Default"/>.</param>
         /// <param name="executionContext">The optional <see cref="ExecutionContext"/>. Defaults to a new instance.</param>
         /// <param name="onBeforeRequest">The optional <see cref="TypedHttpClientBase{TSelf}.OnBeforeRequest(HttpRequestMessage, CancellationToken)"/> function. Defaults to <c>null</c>.</param>
         /// <remarks><see cref="ExecutionContext.GetService{T}"/> is used to default each parameter to a configured service where present before final described defaults.</remarks>
-        public TypedMappedHttpClient(HttpClient client, IMapper? mapper = null, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) : base(client,
-            mapper ?? ExecutionContext.GetRequiredService<IMapper>(),
-            jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? Json.JsonSerializer.Default,
-            executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : new ExecutionContext())) 
+        public TypedMappedHttpClient(HttpClient client, IMapper? mapper = null, IJsonSerializer? jsonSerializer = null, ExecutionContext? executionContext = null, Func<HttpRequestMessage, CancellationToken, Task>? onBeforeRequest = null) 
+            : base(client, mapper, jsonSerializer, executionContext) 
             => DefaultOptions.OnBeforeRequest(onBeforeRequest);
     }
 }

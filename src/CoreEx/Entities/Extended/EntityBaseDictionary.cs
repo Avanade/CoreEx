@@ -24,16 +24,34 @@ namespace CoreEx.Entities.Extended
         protected EntityBaseDictionary() : base(StringComparer.OrdinalIgnoreCase) => OnInitialization();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntityBaseDictionary{TEntity, TSelf}" /> class using the <see cref="StringComparer.OrdinalIgnoreCase"/> for the comparer adding the passed <paramref name="collection"/>.
+        /// Initializes a new instance of the <see cref="EntityBaseDictionary{TEntity, TSelf}" /> class using the <see cref="StringComparer.OrdinalIgnoreCase"/> for the comparer adding the passed <paramref name="items"/>.
         /// </summary>
-        /// <param name="collection">The items to add.</param>
-        protected EntityBaseDictionary(IEnumerable<KeyValuePair<string, TEntity>> collection) : base(collection, StringComparer.OrdinalIgnoreCase) => OnInitialization();
+        /// <param name="items">The items to add.</param>
+        protected EntityBaseDictionary(IEnumerable<KeyValuePair<string, TEntity>> items) : base(items, StringComparer.OrdinalIgnoreCase) => OnInitialization();
 
         /// <summary>
         /// Provides an opportunity to extend initialization when the object is constructed.
         /// </summary>
         /// <remarks>Added to support scenarios whether the class is defined using the likes of partial classes to provide a means to easily add functionality during the constructor process.</remarks>
         protected virtual void OnInitialization() { }
+
+        /// <summary>
+        /// Gets or sets the automatic key selector from the item where the key is not explicitly specified.
+        /// </summary>
+        /// <remarks>Default is to use the <see cref="IEntityKey.EntityKey"/> where implemented and results in a non-null <see cref="string"/>; otherwise, an <see cref="InvalidOperationException"/></remarks>
+        protected Func<TEntity, string> ItemKeySelector { get; set; } = item => (item is IEntityKey ek ? ek.EntityKey.ToString() : null) ?? throw new InvalidOperationException($"The item must implement {nameof(IEntityKey)} to automatically infer the key which also must not be null.");
+
+        /// <summary>
+        /// Adds a range of <paramref name="items"/> to the dictionary inferring the key from each item using the <see cref="ItemKeySelector"/>.
+        /// </summary>
+        /// <param name="items">The items to add.</param>
+        public void AddRange(IEnumerable<TEntity> items) => items.ForEach(Add);
+
+        /// <summary>
+        /// Adds an item to the dictionary inferring the key from the <paramref name="item"/> itself using the <see cref="ItemKeySelector"/>.
+        /// </summary>
+        /// <param name="item">The item to add.</param>
+        public void Add(TEntity item) => Add(ItemKeySelector(item), item);
 
         /// <summary>
         /// Creates a deep copy of the entity dictionary (all items will also be cloned).

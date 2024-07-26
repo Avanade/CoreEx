@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Abstractions;
 using CoreEx.Entities;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -13,14 +14,14 @@ namespace CoreEx.Caching
     public static class RequestCacheExtensions
     {
         /// <summary>
-        /// Gets the cached value associated with the specified <see cref="Type"/> and <see cref="IEntityKey"/>.
+        /// Gets the cached value associated with the specified <see cref="Type"/> and <see cref="IUniqueKey"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="key">The key of the value to get.</param>
         /// <param name="value">The cached value where found; otherwise, the default value for the <see cref="Type"/>.</param>
         /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        public static bool TryGetValue<T>(this IRequestCache cache, IEntityKey key, out T? value) => cache.TryGetValue((key.ThrowIfNull(nameof(key))).EntityKey, out value);
+        public static bool TryGetValue<T>(this IRequestCache cache, IUniqueKey key, out T? value) => cache.TryGetValue(RequestCache.GetKeyFromValue(key), out value);
 
         /// <summary>
         /// Gets the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/> (converted to a <see cref="CompositeKey"/>).
@@ -73,23 +74,23 @@ namespace CoreEx.Caching
         public static T? SetValue<T>(this IRequestCache cache, object? key, T? value) => cache.SetValue(new CompositeKey(key), value);
 
         /// <summary>
-        /// Sets (adds or overrides) the cache value for the specified <see cref="IEntityKey"/> <see cref="Type"/> and returns <paramref name="value"/>.
+        /// Sets (adds or overrides) the cache value for the specified <see cref="IUniqueKey"/> <see cref="Type"/> and returns <paramref name="value"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="value">The value to set.</param>
         /// <returns>The <paramref name="value"/>.</returns>
         [return: NotNullIfNotNull(nameof(value))]
-        public static T? SetValue<T>(this IRequestCache cache, T? value) where T : IEntityKey => value is null ? value : cache.SetValue(value.EntityKey, value);
+        public static T? SetValue<T>(this IRequestCache cache, T? value) where T : IUniqueKey => value is null ? value : cache.SetValue(RequestCache.GetKeyFromValue(value), value);
 
         /// <summary>
-        /// Removes the cached value associated with the specified <see cref="Type"/> and <see cref="IEntityKey"/>.
+        /// Removes the cached value associated with the specified <see cref="Type"/> and <see cref="IUniqueKey"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="cache">The <see cref="IRequestCache"/>.</param>
         /// <param name="key">The key of the value to remove.</param>
         /// <returns><c>true</c> where found and removed; otherwise, <c>false</c>.</returns>
-        public static bool Remove<T>(this IRequestCache cache, IEntityKey key) => cache.Remove<T>((key.ThrowIfNull(nameof(key))).EntityKey);
+        public static bool Remove<T>(this IRequestCache cache, IUniqueKey key) => cache.Remove<T>(RequestCache.GetKeyFromValue(key));
 
         /// <summary>
         /// Removes the cached value associated with the specified <see cref="Type"/> and <paramref name="key"/> (converted to a <see cref="CompositeKey"/>).
