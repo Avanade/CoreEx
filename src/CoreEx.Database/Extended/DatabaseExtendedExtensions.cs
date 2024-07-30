@@ -405,7 +405,7 @@ namespace CoreEx.Database.Extended
         /// <param name="mapper">The <see cref="IDatabaseMapper{T}"/>.</param>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public static Task DeleteWithResultAsync(this DatabaseCommand command, IDatabaseMapper mapper, CompositeKey key, CancellationToken cancellationToken = default)
+        public static Task<Result> DeleteWithResultAsync(this DatabaseCommand command, IDatabaseMapper mapper, CompositeKey key, CancellationToken cancellationToken = default)
             => DeleteWithResultAsync(command, new DatabaseArgs(command.Database.DbArgs, mapper), key, cancellationToken);
 
         #endregion

@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.23.2
+- *Fixed:* `DatabaseExtendedExtensions.DeleteWithResultAsync` corrected to return a `Task<Result>`.`
+
 ## v3.23.1
 - *Fixed:* Updated all dependencies to latest versions (specifically _UnitTestEx_).
 
