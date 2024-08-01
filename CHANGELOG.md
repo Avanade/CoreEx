@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.23.3
+- *Fixed:* Added `Result<T>.Adjusts` as wrapper for `ObjectExtensions.Adjust` to simplify support and resolve issue where the compiler sees the adjustment otherwise as a implicit cast resulting in an errant outcome.
+
 ## v3.23.2
 - *Fixed:* `DatabaseExtendedExtensions.DeleteWithResultAsync` corrected to return a `Task<Result>`.`
 

@@ -84,6 +84,21 @@ namespace CoreEx.Results
             => result.IsSuccess && result.Value == null ? throw new ArgumentNullException(name ?? Validation.Validation.ValueNameDefault) : result;
 
         /// <summary>
+        /// Enables adjustment (changes) to a <see cref="Result{T}.Value"/> via an <paramref name="adjuster"/> action where the <paramref name="result"/> is <see cref="Result{T}.IsSuccess"/>
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="adjuster">The adjusting action (invoked only where the underlying <see cref="Result{T}.Value"/> is not <c>null</c>).</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static Result<T> Adjusts<T>(this Result<T> result, Action<T> adjuster)
+        {
+            if (result.IsSuccess)
+                result.Value.Adjust(adjuster);
+
+            return result;
+        }
+
+        /// <summary>
         /// Checks whether the user has the required <paramref name="permission"/> (see <see cref="ExecutionContext.UserIsAuthorized(string)"/>).
         /// </summary>
         /// <typeparam name="TResult">The <see cref="Result"/> or <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
