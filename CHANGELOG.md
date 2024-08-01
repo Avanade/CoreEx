@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.23.4
+- *Fixed:* Added `Result<T>.AdjustsAsync` to support asynchronous adjustments.
+
 ## v3.23.3
 - *Fixed:* Added `Result<T>.Adjusts` as wrapper for `ObjectExtensions.Adjust` to simplify support and resolve issue where the compiler sees the adjustment otherwise as a implicit cast resulting in an errant outcome.
 
