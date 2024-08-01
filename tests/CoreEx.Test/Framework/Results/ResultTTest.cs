@@ -249,6 +249,64 @@ namespace CoreEx.Test.Framework.Results
             Assert.That(r2.IsSuccess, Is.False);
         }
 
+        [Test]
+        public async Task AdjustsAsync()
+        {
+            var r = Result<Person>.Ok(new Person());
+            var r2 = await r.AdjustsAsync(async v =>
+            {
+                await Task.CompletedTask;
+                v.Id = 2;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(r2.IsSuccess, Is.True);
+                Assert.That(r2.Value.Id, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public async Task Adjusts2Async()
+        {
+            var r = Result.GoAsync(async () =>
+            {
+                await Task.CompletedTask;
+                return new Person();
+            });
+
+            var r2 = await r.AdjustsAsync(async v =>
+            {
+                await Task.CompletedTask;
+                v.Id = 2;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(r2.IsSuccess, Is.True);
+                Assert.That(r2.Value.Id, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public async Task Adjusts2AsyncTightLoop()
+        {
+            for (int i = 0; i < 10000; i++)
+            {
+                var r = Result.GoAsync(async () =>
+                {
+                    await Task.CompletedTask;
+                    return new Person();
+                });
+
+                var r2 = await r.AdjustsAsync(async v =>
+                {
+                    await Task.CompletedTask;
+                    v.Id = 2;
+                });
+            }
+        }
+
         public class Person
         {
             public int Id { get; set; }

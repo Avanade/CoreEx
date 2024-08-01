@@ -99,6 +99,47 @@ namespace CoreEx.Results
         }
 
         /// <summary>
+        /// Enables adjustment (changes) to a <see cref="Result{T}.Value"/> via an <paramref name="adjuster"/> action where the <paramref name="result"/> is <see cref="Result{T}.IsSuccess"/>
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="adjuster">The adjusting action (invoked only where the underlying <see cref="Result{T}.Value"/> is not <c>null</c>).</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> Adjusts<T>(this Task<Result<T>> result, Action<T> adjuster)
+        {
+            var r = await result.ConfigureAwait(false);
+            return r.Adjusts(adjuster);
+        }
+
+        /// <summary>
+        /// Enables adjustment (changes) to a <see cref="Result{T}.Value"/> via an <paramref name="adjuster"/> action where the <paramref name="result"/> is <see cref="Result{T}.IsSuccess"/>
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="adjuster">The adjusting action (invoked only where the underlying <see cref="Result{T}.Value"/> is not <c>null</c>).</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> AdjustsAsync<T>(this Result<T> result, Func<T, Task> adjuster)
+        {
+            if (result.IsSuccess && result.Value is not null)
+                await adjuster(result.Value).ConfigureAwait(false);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Enables adjustment (changes) to a <see cref="Result{T}.Value"/> via an <paramref name="adjuster"/> action where the <paramref name="result"/> is <see cref="Result{T}.IsSuccess"/>
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Result{T}.Value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="result">The <see cref="Result{T}"/>.</param>
+        /// <param name="adjuster">The adjusting action (invoked only where the underlying <see cref="Result{T}.Value"/> is not <c>null</c>).</param>
+        /// <returns>The resulting <see cref="Result{T}"/>.</returns>
+        public static async Task<Result<T>> AdjustsAsync<T>(this Task<Result<T>> result, Func<T, Task> adjuster)
+        {
+            var r = await result.ConfigureAwait(false);
+            return await r.AdjustsAsync(adjuster).ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// Checks whether the user has the required <paramref name="permission"/> (see <see cref="ExecutionContext.UserIsAuthorized(string)"/>).
         /// </summary>
         /// <typeparam name="TResult">The <see cref="Result"/> or <see cref="Result{T}"/> <see cref="Type"/>.</typeparam>
