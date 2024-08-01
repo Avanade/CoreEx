@@ -226,5 +226,32 @@ namespace CoreEx.Test.Framework.Results
             var ir = (IResult)Result<int>.Fail("On no!");
             Assert.Throws<BusinessException>(() => _ = ir.Value);
         }
+
+        [Test]
+        public void Adjusts()
+        {
+            var r = Result<Person>.Ok(new Person());
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.IsSuccess, Is.True);
+                Assert.That(r.Value.Id, Is.EqualTo(0));
+            });
+
+            var r2 = r.Adjusts(v => v.Id = 2);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r2.IsSuccess, Is.True);
+                Assert.That(r2.Value.Id, Is.EqualTo(2));
+            });
+
+            r = Result<Person>.Fail(new BusinessException());
+            r2 = r.Adjusts(v => v.Id = 2);
+            Assert.That(r2.IsSuccess, Is.False);
+        }
+
+        public class Person
+        {
+            public int Id { get; set; }
+        }
     }
 }
