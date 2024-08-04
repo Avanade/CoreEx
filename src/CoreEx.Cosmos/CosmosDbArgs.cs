@@ -21,18 +21,18 @@ namespace CoreEx.Cosmos
         /// Initializes a new instance of the <see cref="CosmosDbArgs"/> struct.
         /// </summary>
         /// <param name="template">The template <see cref="CosmosDbArgs"/> to copy from.</param>
-        /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.</param>
+        /// <param name="partitionKey">The override <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.</param>
         public CosmosDbArgs(CosmosDbArgs template, PartitionKey? partitionKey = null)
         {
             PartitionKey = partitionKey ?? template.PartitionKey;
             ItemRequestOptions = template.ItemRequestOptions;
             QueryRequestOptions = template.QueryRequestOptions;
             NullOnNotFound = template.NullOnNotFound;
+            AutoMapETag = template.AutoMapETag;
             CleanUpResult = template.CleanUpResult;
             FilterByTenantId = template.FilterByTenantId;
             GetTenantId = template.GetTenantId;
             FormatIdentifier = template.FormatIdentifier;
-            ParseIdentifier = template.ParseIdentifier;
         }
 
         /// <summary>
@@ -98,12 +98,17 @@ namespace CoreEx.Cosmos
         }
 
         /// <summary>
-        /// Indicates that a <c>null</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> on <b>Get</b>. 
+        /// Indicates whether a <c>null</c> is to be returned where the <b>response</b> has a <see cref="HttpStatusCode"/> of <see cref="HttpStatusCode.NotFound"/> on <b>Get</b>. Defaults to <c>true</c>.
         /// </summary>
         public bool NullOnNotFound { get; set; } = true;
 
         /// <summary>
-        /// Indicates whether the result should be <see cref="Entities.Cleaner.Clean{T}(T)">cleaned up</see>.
+        /// Indicates whether when mapping the model to the corresponding entity that the <see cref="IETag.ETag"/> is to be automatically mapped. Defaults to <c>true</c>.
+        /// </summary>
+        public bool AutoMapETag { get; set; } = true;
+
+        /// <summary>
+        /// Indicates whether the result should be <see cref="Entities.Cleaner.Clean{T}(T)">cleaned up</see>. Defaults to <c>false</c>.
         /// </summary>
         public bool CleanUpResult { get; set; } = false;
 
@@ -121,35 +126,12 @@ namespace CoreEx.Cosmos
         /// Formats a <see cref="CompositeKey"/> to a <see cref="string"/> representation (used by <see cref="CosmosDbContainerBase{T, TModel, TSelf}.GetCosmosId(T)"/> and <see cref="ICosmosDbValue.PrepareBefore"/>).
         /// </summary>
         /// <returns>The identifier as a <see cref="string"/>.</returns>
+        /// <remarks>Defaults to <see cref="DefaultFormatIdentifier"/>.</remarks>
         public Func<CompositeKey, string?> FormatIdentifier { get; set; } = DefaultFormatIdentifier;
 
         /// <summary>
-        /// Parses a <see cref="string"/> identifier and updates the underlying value where it implements <see cref="IIdentifier.Id"/> (used by the <see cref="ICosmosDbValue.PrepareAfter"/>).
-        /// </summary>
-        /// <returns>The parsed identifier.</returns>
-        public Action<object, string?> ParseIdentifier { get; set; } = DefaultParseIdentifier;
-
-        /// <summary>
-        /// Provides the default <see cref="FormatIdentifier"/> implementation.
+        /// Provides the default <see cref="FormatIdentifier"/> implementation; being the <see cref="CompositeKey"/> <see cref="object.ToString"/>.
         /// </summary>
         public static Func<CompositeKey, string?> DefaultFormatIdentifier { get; } = key => key.ToString();
-
-        /// <summary>
-        /// Provides the default <see cref="ParseIdentifier"/> implementation.
-        /// </summary>
-        public static Action<object, string?> DefaultParseIdentifier { get; } = (value, id) => 
-        {
-            if (value.ThrowIfNull(nameof(value)) is IIdentifier iid)
-            {
-                iid.Id = iid.IdType switch
-                {
-                    Type t when t == typeof(string) => id,
-                    Type t when t == typeof(int) => id == null ? 0 : int.Parse(id, System.Globalization.CultureInfo.InvariantCulture),
-                    Type t when t == typeof(long) => id == null ? 0 : long.Parse(id, System.Globalization.CultureInfo.InvariantCulture),
-                    Type t when t == typeof(Guid) => id == null ? Guid.Empty : Guid.Parse(id),
-                    _ => throw new NotSupportedException("An IIdentifier.IdType must be one of the following types: string, int, long, or Guid.")
-                };
-            }
-        };
     }
 }

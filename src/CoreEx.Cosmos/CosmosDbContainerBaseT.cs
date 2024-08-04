@@ -18,7 +18,7 @@ namespace CoreEx.Cosmos
     /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
     /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
-    public abstract class CosmosDbContainerBase<T, TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<TSelf>(cosmosDb, containerId, dbArgs), ICosmosDbContainer<T, TModel>
+    public abstract class CosmosDbContainerBase<T, TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainer(cosmosDb, containerId, dbArgs), ICosmosDbContainer<T, TModel>
         where T : class, IEntityKey, new() where TModel : class, IEntityKey, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
     {
         /// <summary>
@@ -48,7 +48,7 @@ namespace CoreEx.Cosmos
         /// Gets the entity for the specified <paramref name="key"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         public async Task<T?> GetAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => await GetWithResultAsync(key, partitionKey, cancellationToken).ConfigureAwait(false);
@@ -57,7 +57,7 @@ namespace CoreEx.Cosmos
         /// Gets the entity for the specified <paramref name="key"/> with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The entity value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         public Task<Result<T?>> GetWithResultAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => GetWithResultAsync(new CosmosDbArgs(DbArgs, partitionKey), key, cancellationToken);
@@ -130,7 +130,7 @@ namespace CoreEx.Cosmos
         /// Deletes the entity for the specified <paramref name="key"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public async Task DeleteAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => (await DeleteWithResultAsync(key, partitionKey, cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
@@ -138,7 +138,7 @@ namespace CoreEx.Cosmos
         /// Deletes the entity for the specified <paramref name="key"/> with a <see cref="Result"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public Task<Result> DeleteWithResultAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => DeleteWithResultAsync(new CosmosDbArgs(DbArgs, partitionKey), key, cancellationToken);
 

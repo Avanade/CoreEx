@@ -67,7 +67,7 @@ namespace CoreEx.Cosmos.Batch
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static Task ImportBatchAsync<T, TModel>(this CosmosDbContainer<T, TModel> container, IEnumerable<TModel> items, Func<TModel, TModel>? modelUpdater = null, CosmosDbArgs? dbArgs = null, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
-            => ImportBatchAsync(container?.CosmosDb!, container?.Container.Id!, items, modelUpdater, dbArgs, cancellationToken);
+            => ImportBatchAsync(container?.CosmosDb!, container?.Container.Id!, items, modelUpdater, dbArgs ?? container.ThrowIfNull().DbArgs, cancellationToken);
 
         /// <summary>
         /// Imports (creates) a batch of named items from the <paramref name="jsonDataReader"/> into the specified <paramref name="containerId"/>.
@@ -106,7 +106,7 @@ namespace CoreEx.Cosmos.Batch
         /// <returns><c>true</c> indicates that one or more items were deserialized and imported; otherwise, <c>false</c> for none found.</returns>
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static Task<bool> ImportBatchAsync<T, TModel>(this CosmosDbContainer<T, TModel> container, JsonDataReader jsonDataReader, string? name = null, Func<TModel, TModel>? modelUpdater = null, CosmosDbArgs? dbArgs = null, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
-            => ImportBatchAsync(container?.CosmosDb!, container?.Container.Id!, jsonDataReader, name, modelUpdater, dbArgs, cancellationToken);
+            => ImportBatchAsync(container?.CosmosDb!, container?.Container.Id!, jsonDataReader, name, modelUpdater, dbArgs ?? container.ThrowIfNull().DbArgs, cancellationToken);
 
         /// <summary>
         /// Imports (creates) a batch of <see cref="CosmosDbValue{TModel}"/> <paramref name="items"/>.
@@ -154,7 +154,7 @@ namespace CoreEx.Cosmos.Batch
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static Task ImportValueBatchAsync<T, TModel>(this CosmosDbValueContainer<T, TModel> container, IEnumerable<TModel> items, Func<CosmosDbValue<TModel>, CosmosDbValue<TModel>>? modelUpdater = null, CosmosDbArgs? dbArgs = null, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
-            => ImportValueBatchAsync(container?.CosmosDb!, container?.Container.Id!, items, modelUpdater, dbArgs, cancellationToken);
+            => ImportValueBatchAsync(container?.CosmosDb!, container?.Container.Id!, items, modelUpdater, dbArgs ?? container.ThrowIfNull().DbArgs, cancellationToken);
 
         /// <summary>
         /// Imports (creates) a batch of named <see cref="CosmosDbValue{TModel}"/> items from the <paramref name="jsonDataReader"/> into the specified <paramref name="containerId"/>.
@@ -193,7 +193,7 @@ namespace CoreEx.Cosmos.Batch
         /// <returns><c>true</c> indicates that one or more items were deserialized and imported; otherwise, <c>false</c> for none found.</returns>
         /// <remarks>Each item is added individually and is not transactional.</remarks>
         public static Task<bool> ImportValueBatchAsync<T, TModel>(this CosmosDbValueContainer<T, TModel> container, JsonDataReader jsonDataReader, string? name = null, Func<CosmosDbValue<TModel>, CosmosDbValue<TModel>>? modelUpdater = null, CosmosDbArgs? dbArgs = null, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
-            => ImportValueBatchAsync(container?.CosmosDb!, container?.Container.Id!, jsonDataReader, name, modelUpdater, dbArgs, cancellationToken);
+            => ImportValueBatchAsync(container?.CosmosDb!, container?.Container.Id!, jsonDataReader, name, modelUpdater, dbArgs ?? container.ThrowIfNull().DbArgs, cancellationToken);
 
         /// <summary>
         /// Imports (creates) a batch of named <see cref="CosmosDbValue{TModel}"/> items from the <paramref name="jsonDataReader"/> into the specified <paramref name="containerId"/>.
