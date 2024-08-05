@@ -14,6 +14,6 @@ namespace CoreEx.Cosmos.Model
     /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
     /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
-    public abstract class CosmosDbModelContainerBase<TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainerBase<TSelf>(cosmosDb, containerId, dbArgs), ICosmosDbModelContainer<TModel>
+    public abstract class CosmosDbModelContainerBase<TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainer(cosmosDb, containerId, dbArgs), ICosmosDbModelContainer<TModel>
         where TModel : class, IEntityKey, new () where TSelf : CosmosDbModelContainerBase<TModel, TSelf> { }
 }

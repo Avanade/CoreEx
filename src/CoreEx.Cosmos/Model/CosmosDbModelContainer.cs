@@ -40,7 +40,7 @@ namespace CoreEx.Cosmos.Model
         /// <param name="model">The model to infer <see cref="PartitionKey"/> from.</param>
         /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <returns>The <see cref="PartitionKey"/>.</returns>
-        /// <exception cref="AuthorizationException">Will be thrown where the infered <see cref="PartitionKey"/> is not equal to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/> (where not <c>null</c>).</exception>
+        /// <exception cref="AuthorizationException">Will be thrown where the infered <see cref="PartitionKey"/> is not equal to <see cref="CosmosDbContainer.DbArgs"/> (where not <c>null</c>).</exception>
         public PartitionKey GetPartitionKey(TModel model, CosmosDbArgs dbArgs)
         {
             var dbpk = DbArgs.PartitionKey;
@@ -123,7 +123,7 @@ namespace CoreEx.Cosmos.Model
         /// Gets the model for the specified <paramref name="key"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The model value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         public async Task<TModel?> GetAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => await GetWithResultAsync(key, partitionKey, cancellationToken).ConfigureAwait(false);
@@ -132,7 +132,7 @@ namespace CoreEx.Cosmos.Model
         /// Gets the model for the specified <paramref name="key"/> with a <see cref="Result{T}"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The model value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
         public Task<Result<TModel?>> GetWithResultAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => GetWithResultAsync(new CosmosDbArgs(DbArgs, partitionKey), key, cancellationToken);
@@ -153,12 +153,12 @@ namespace CoreEx.Cosmos.Model
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The model value where found; otherwise, <c>null</c> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
-        public Task<Result<TModel?>> GetWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(key), dbArgs, async (_, key, args, ct) =>
+        public Task<Result<TModel?>> GetWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(key), dbArgs, async (_, id, args, ct) =>
         {
             try
             {
                 var pk = args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
-                var resp = await Container.ReadItemAsync<TModel>(key, pk, args.GetItemRequestOptions(), ct).ConfigureAwait(false);
+                var resp = await Container.ReadItemAsync<TModel>(id, pk, args.GetItemRequestOptions(), ct).ConfigureAwait(false);
                 if (resp.Resource == null || args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId() || resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value)
                     return args.NullOnNotFound ? Result<TModel?>.None : Result<TModel?>.NotFoundError();
 
@@ -259,9 +259,9 @@ namespace CoreEx.Cosmos.Model
                 ro.IfMatchEtag = ETagGenerator.FormatETag(etag.ETag);
 
             // Must read existing to update.
-            var key = GetCosmosId(m);
+            var id = GetCosmosId(m);
             var pk = GetPartitionKey(model, dbArgs);
-            var resp = await Container.ReadItemAsync<TModel>(key, pk, ro, ct).ConfigureAwait(false);
+            var resp = await Container.ReadItemAsync<TModel>(id, pk, ro, ct).ConfigureAwait(false);
             if (resp.Resource == null || (args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
                 return Result<TModel>.NotFoundError();
 
@@ -279,7 +279,7 @@ namespace CoreEx.Cosmos.Model
                 })
                 .ThenAsAsync(async () =>
                 {
-                    resp = await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
+                    resp = await Container.ReplaceItemAsync(resp.Resource, id, pk, ro, ct).ConfigureAwait(false);
                     return GetResponseValue(resp)!;
                 });
         }, cancellationToken, nameof(UpdateWithResultAsync));
@@ -302,7 +302,7 @@ namespace CoreEx.Cosmos.Model
         /// Deletes the model for the specified <paramref name="key"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public async Task DeleteAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => (await DeleteWithResultAsync(key, partitionKey, cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
@@ -310,7 +310,7 @@ namespace CoreEx.Cosmos.Model
         /// Deletes the model for the specified <paramref name="key"/> with a <see cref="Result"/>.
         /// </summary>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainerBase{TSelf}.DbArgs"/>.</param>
+        /// <param name="partitionKey">The <see cref="PartitionKey"/>. Defaults to <see cref="CosmosDbContainer.DbArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         public Task<Result> DeleteWithResultAsync(CompositeKey key, PartitionKey? partitionKey, CancellationToken cancellationToken = default) => DeleteWithResultAsync(new CosmosDbArgs(DbArgs, partitionKey), key, cancellationToken);
 
@@ -328,14 +328,14 @@ namespace CoreEx.Cosmos.Model
         /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        public Task<Result> DeleteWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(key), dbArgs, async (_, key, args, ct) =>
+        public Task<Result> DeleteWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default) => CosmosDb.Invoker.InvokeAsync(CosmosDb, GetCosmosId(key), dbArgs, async (_, id, args, ct) =>
         {
             try
             {
                 // Must read the existing to validate.
                 var ro = args.GetItemRequestOptions();
                 var pk = args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
-                var resp = await Container.ReadItemAsync<TModel>(key, pk, ro, ct).ConfigureAwait(false);
+                var resp = await Container.ReadItemAsync<TModel>(id, pk, ro, ct).ConfigureAwait(false);
                 if (resp.Resource == null || (args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()))
                     return Result.Success;
 
@@ -351,7 +351,7 @@ namespace CoreEx.Cosmos.Model
                         .ThenAsync(async () =>
                         {
                             ro.SessionToken = resp.Headers?.Session;
-                            await Container.ReplaceItemAsync(resp.Resource, key, pk, ro, ct).ConfigureAwait(false);
+                            await Container.ReplaceItemAsync(resp.Resource, id, pk, ro, ct).ConfigureAwait(false);
                             return Result.Success;
                         });
                 }
@@ -361,7 +361,7 @@ namespace CoreEx.Cosmos.Model
                     .ThenAsync(async () =>
                     {
                         ro.SessionToken = resp.Headers?.Session;
-                        await Container.DeleteItemAsync<TModel>(key, pk, ro, ct).ConfigureAwait(false);
+                        await Container.DeleteItemAsync<TModel>(id, pk, ro, ct).ConfigureAwait(false);
                         return Result.Success;
                     });
             }

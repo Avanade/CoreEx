@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.23.5
+- *Fixed:* `CosmosDbValue<TModel>.PrepareBefore` corrected to set the `PartitionKey` where the underlying `Value` implements `IPartitionKey`.
+- *Fixed:* `CosmosDbBatch` corrected to default to the `CosmosDbContainerBase<TSelf>.DbArgs` where not specified.
+- *Fixed:* `CosmosDbArgs.AutoMapETag` added, indicates whether when mapping the model to the corresponding entity that the `IETag.ETag` is to be automatically mapped (default is `true`, existing behavior).
+ 
 ## v3.23.4
 - *Fixed:* Added `Result<T>.AdjustsAsync` to support asynchronous adjustments.
 

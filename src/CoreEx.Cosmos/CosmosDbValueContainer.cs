@@ -76,7 +76,7 @@ namespace CoreEx.Cosmos
 
             ((ICosmosDbValue)model).PrepareAfter(DbArgs);
             var val = CosmosDb.Mapper.Map<TModel, T>(model.Value, OperationTypes.Get)!;
-            if (val is IETag et)
+            if (DbArgs.AutoMapETag && val is IETag et)
             {
                 if (et.ETag is not null)
                     et.ETag = ETagGenerator.ParseETag(et.ETag);

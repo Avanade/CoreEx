@@ -61,6 +61,9 @@ namespace CoreEx.Cosmos
 
                 if (Value is IETag etag)
                     ETag = ETagGenerator.FormatETag(etag.ETag);
+
+                if (Value is IPartitionKey pk)
+                    PartitionKey = pk.PartitionKey;
             }
 
             Type = typeof(TModel).Name;
@@ -71,8 +74,6 @@ namespace CoreEx.Cosmos
         {
             if (Value == default)
                 return;
-
-            dbArgs.ParseIdentifier(Value, Id);
 
             if (Value is IETag etag)
                 etag.ETag = ETagGenerator.ParseETag(ETag);
