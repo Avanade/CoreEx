@@ -34,5 +34,13 @@ namespace CoreEx.Entities.Extended
             clone.CopyFrom(from);
             return clone;
         }
+
+        /// <summary>
+        /// Creates n new <typeparamref name="T"/> instance and performs a <see cref="ICopyFrom.CopyFrom(object?)"/> using the specified <paramref name="from"/> value.
+        /// </summary>
+        /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
+        /// <param name="from">The from value.</param>
+        /// <returns>The new copied instance.</returns>
+        public static T CreateCopyFromAs<T>(this EntityBase from) where T : EntityBase, new() => new T().Adjust(v => v.CopyFrom(from));
     }
 }

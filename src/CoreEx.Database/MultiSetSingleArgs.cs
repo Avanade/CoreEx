@@ -15,12 +15,12 @@ namespace CoreEx.Database
         public bool IsMandatory { get; set; } = isMandatory;
 
         /// <summary>
-        /// Gets or sets the minimum number of rows allowed.
+        /// Gets the minimum number of rows allowed.
         /// </summary>
         public int MinRows => IsMandatory ? 1 : 0;
 
         /// <summary>
-        /// Gets or sets the maximum number of rows allowed.
+        /// Gets the maximum number of rows allowed.
         /// </summary>
         public int? MaxRows => 1;
 

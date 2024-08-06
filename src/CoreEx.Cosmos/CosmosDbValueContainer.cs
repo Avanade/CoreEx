@@ -31,7 +31,10 @@ namespace CoreEx.Cosmos
         /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
         /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
         public CosmosDbValueContainer(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : base(cosmosDb, containerId, dbArgs)
-            => _modelContainer = new(() => new CosmosDbValueModelContainer<TModel>(CosmosDb, Container.Id, DbArgs));
+        {
+            _modelContainer = new(() => new CosmosDbValueModelContainer<TModel>(CosmosDb, Container.Id, DbArgs));
+            IsCosmosDbValueEncapsulated = true;
+        }
 
         /// <summary>
         /// Gets the underlying <see cref="CosmosDbValueModelContainer{TModel}"/>.
@@ -60,16 +63,19 @@ namespace CoreEx.Cosmos
             if (resp?.Resource == null)
                 return default;
 
-            return GetValue(resp.Resource);
+            return MapToValue(resp.Resource);
         }
 
+        /// <inheritdoc/>
+        protected override T? MapToValue(object? model) => MapToValue((CosmosDbValue<TModel>)model!);
+
         /// <summary>
-        /// Gets the <b>value</b> formatting/updating any special properties as required.
+        /// Maps <paramref name="model"/> to the entity <b>value</b> formatting/updating any special properties as required.
         /// </summary>
         /// <param>The model value.</param>
         /// <returns>The entity value.</returns>
         [return: NotNullIfNotNull(nameof(model))]
-        public T? GetValue(CosmosDbValue<TModel>? model)
+        public T? MapToValue(CosmosDbValue<TModel>? model)
         {
             if (model is null)
                 return default;
@@ -114,7 +120,7 @@ namespace CoreEx.Cosmos
         public async override Task<Result<T?>> GetWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default)
         {
             var result = await ModelContainer.GetWithResultAsync(dbArgs, key, cancellationToken).ConfigureAwait(false);
-            return result.ThenAs(GetValue);
+            return result.ThenAs(MapToValue);
         }
 
         /// <inheritdoc/>
@@ -122,10 +128,10 @@ namespace CoreEx.Cosmos
         {
             ChangeLog.PrepareCreated(value.ThrowIfNull(nameof(value)));
             TModel model = CosmosDb.Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
-            var cvm = new CosmosDbValue<TModel>(model!);
+            var cvm = new CosmosDbValue<TModel>(ModelContainer.TypeName, model!);
 
             var result = await ModelContainer.CreateWithResultAsync(dbArgs, cvm, cancellationToken).ConfigureAwait(false);
-            return result.ThenAs(model => GetValue(model)!);
+            return result.ThenAs(model => MapToValue(model)!);
         }
 
         /// <inheritdoc/>
@@ -133,10 +139,10 @@ namespace CoreEx.Cosmos
         {
             ChangeLog.PrepareUpdated(value);
             var model = CosmosDb.Mapper.Map<T, TModel>(value.ThrowIfNull(nameof(value)), OperationTypes.Update)!;
-            var cvm = new CosmosDbValue<TModel>(model!);
+            var cvm = new CosmosDbValue<TModel>(ModelContainer.TypeName, model!);
 
             var result = await ModelContainer.UpdateWithResultInternalAsync(dbArgs, cvm, cvm => CosmosDb.Mapper.Map(value, cvm.Value, OperationTypes.Update), cancellationToken).ConfigureAwait(false);
-            return result.ThenAs(model => GetValue(model)!);
+            return result.ThenAs(model => MapToValue(model)!);
         }
 
         /// <inheritdoc/>

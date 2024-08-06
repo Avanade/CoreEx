@@ -49,13 +49,16 @@ namespace CoreEx.Cosmos
             return this;
         }
 
+        /// <inheritdoc/>
+        protected override T? MapToValue(object? model) => MapToValue((TModel?)model!);
+
         /// <summary>
-        /// Gets the <b>value</b> formatting/updating any special properties as required.
+        /// Maps <paramref name="model"/> to the entity <b>value</b> formatting/updating any special properties as required.
         /// </summary>
         /// <param>The model value.</param>
         /// <returns>The entity value.</returns>
         [return: NotNullIfNotNull(nameof(model))]
-        public T? GetValue(TModel? model)
+        public T? MapToValue(TModel? model)
         {
             var val = CosmosDb.Mapper.Map<TModel, T>(model, OperationTypes.Get)!;
             if (DbArgs.AutoMapETag && val is IETag et && et.ETag != null)
@@ -91,7 +94,7 @@ namespace CoreEx.Cosmos
         public async override Task<Result<T?>> GetWithResultAsync(CosmosDbArgs dbArgs, CompositeKey key, CancellationToken cancellationToken = default)
         {
             var result = await ModelContainer.GetWithResultAsync(dbArgs, key, cancellationToken).ConfigureAwait(false);
-            return result.ThenAs(GetValue);
+            return result.ThenAs(MapToValue);
         }
 
         /// <inheritdoc/>
@@ -101,7 +104,7 @@ namespace CoreEx.Cosmos
             TModel model = CosmosDb.Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
 
             var result = await ModelContainer.CreateWithResultAsync(dbArgs, model, cancellationToken).ConfigureAwait(false);
-            return result.ThenAs(model => GetValue(model)!);
+            return result.ThenAs(model => MapToValue(model)!);
         }
 
         /// <inheritdoc/>
@@ -110,7 +113,7 @@ namespace CoreEx.Cosmos
             ChangeLog.PrepareUpdated(value);
             var model = CosmosDb.Mapper.Map<T, TModel>(value.ThrowIfNull(nameof(value)), OperationTypes.Update)!;
             var result = await ModelContainer.UpdateWithResultInternalAsync(dbArgs, model, m => CosmosDb.Mapper.Map(value, m, OperationTypes.Update), cancellationToken).ConfigureAwait(false);
-            return result.ThenAs(model => GetValue(model)!);
+            return result.ThenAs(model => MapToValue(model)!);
         }
 
         /// <inheritdoc/>

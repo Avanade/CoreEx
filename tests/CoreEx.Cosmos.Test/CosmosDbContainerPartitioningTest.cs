@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Cosmos;
+using CoreEx.Cosmos.Extended;
 
 namespace CoreEx.Cosmos.Test
 {
@@ -182,6 +183,21 @@ namespace CoreEx.Cosmos.Test
             await _db.Persons3.DeleteAsync(5.ToGuid());
             var v = await _db.Persons3.GetAsync(5.ToGuid());
             Assert.That(v, Is.Null);
+        }
+
+        [Test]
+        public async Task SelectMultiSetAsync()
+        {
+            Person3[] people = Array.Empty<Person3>();
+            var hasPerson = false;
+
+            var result = await _db.SelectMultiSetWithResultAsync(new PartitionKey("A"),
+                _db.Persons3.CreateMultiSetCollArgs(r => people = r.ToArray()),
+                _db.Persons3X.CreateMultiSetSingleArgs(r => hasPerson = true, isMandatory: false));
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(people, Has.Length.EqualTo(3));
+            Assert.That(hasPerson, Is.False);
         }
     }
 }

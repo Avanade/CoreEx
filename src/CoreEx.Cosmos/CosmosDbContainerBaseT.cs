@@ -21,6 +21,33 @@ namespace CoreEx.Cosmos
     public abstract class CosmosDbContainerBase<T, TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainer(cosmosDb, containerId, dbArgs), ICosmosDbContainer<T, TModel>
         where T : class, IEntityKey, new() where TModel : class, IEntityKey, new() where TSelf : CosmosDbContainerBase<T, TModel, TSelf>
     {
+        /// <inheritdoc/>
+        Type ICosmosDbContainer.EntityType => typeof(T);
+
+        /// <inheritdoc/>
+        Type ICosmosDbContainer.ModelType => typeof(TModel);
+
+        /// <inheritdoc/>
+        Type ICosmosDbContainer.ModelValueType => typeof(CosmosDbValue<TModel>);
+
+        /// <inheritdoc/>
+        bool ICosmosDbContainer.IsCosmosDbValueEncapsulated => IsCosmosDbValueEncapsulated;
+
+        /// <summary>
+        /// Indicates whether the <typeparamref name="TModel"/> is encapsulated within a <see cref="CosmosDbValue{TModel}"/>.
+        /// </summary>
+        protected bool IsCosmosDbValueEncapsulated { get; set; } = false;
+
+        /// <inheritdoc/>
+        object? ICosmosDbContainer.MapToValue(object? model) => MapToValue(model);
+
+        /// <summary>
+        /// Maps the model into the entity value.
+        /// </summary>
+        /// <param name="model">The model value (also depends on <see cref="IsCosmosDbValueEncapsulated"/>).</param>
+        /// <returns>The entity value.</returns>
+        protected abstract T? MapToValue(object? model);
+
         /// <summary>
         /// Gets the <b>CosmosDb</b> identifier from the <paramref name="value"/> <see cref="IEntityKey.EntityKey"/>.
         /// </summary>

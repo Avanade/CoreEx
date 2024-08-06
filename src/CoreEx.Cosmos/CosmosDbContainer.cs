@@ -12,7 +12,7 @@ namespace CoreEx.Cosmos
     /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
     /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
-    public class CosmosDbContainer(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : ICosmosDbContainer
+    public class CosmosDbContainer(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : ICosmosDbContainerCore
     {
         private CosmosDbArgs? _dbArgs = dbArgs;
 
@@ -38,6 +38,6 @@ namespace CoreEx.Cosmos
         /// <param name="key">The <see cref="CompositeKey"/>.</param>
         /// <returns>The <b>CosmosDb</b> identifier.</returns>
         /// <remarks>Uses the <see cref="CosmosDbArgs.FormatIdentifier"/> to format the <paramref name="key"/> as a string (as required).</remarks>
-        public virtual string GetCosmosId(CompositeKey key) => DbArgs.FormatIdentifier(key) ?? throw new InvalidOperationException("The CompositeKey formatting must not result in a null.");
+        public virtual string GetCosmosId(CompositeKey key) => DbArgs.FormatIdentifier(key) ?? throw new InvalidOperationException("The CompositeKey formatting into an identifier must not result in a null.");
     }
 }

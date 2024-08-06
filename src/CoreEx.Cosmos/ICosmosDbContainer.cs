@@ -1,35 +1,39 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Entities;
-using Microsoft.Azure.Cosmos;
+using System;
 
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Enables the common <see cref="Microsoft.Azure.Cosmos.Container"/> capabilities.
+    /// Enables the entity and model <see cref="Microsoft.Azure.Cosmos.Container"/> capabilities.
     /// </summary>
-    public interface ICosmosDbContainer
+    public interface ICosmosDbContainer : ICosmosDbContainerCore
     {
         /// <summary>
-        /// Gets the owning <see cref="ICosmosDb"/>.
+        /// Gets the underlying entity <see cref="Type"/>.
         /// </summary>
-        ICosmosDb CosmosDb { get; }
+        Type EntityType { get; }
 
         /// <summary>
-        /// Gets the <see cref="Microsoft.Azure.Cosmos.Container"/>.
+        /// Gets the underlying Cosmos model <see cref="Type"/>.
         /// </summary>
-        Container Container { get; }
+        Type ModelType { get; }
 
         /// <summary>
-        /// Gets the Container-specific <see cref="CosmosDbArgs"/>.
+        /// Gets the underlying Cosmos model <see cref="CosmosDbValue{TModel}"/> <see cref="Type"/>.
         /// </summary>
-        CosmosDbArgs DbArgs { get; }
+        Type ModelValueType { get; }
 
         /// <summary>
-        /// Gets the <b>CosmosDb</b> identifier from the <see cref="CompositeKey"/>.
+        /// Indicates whether the <see cref="ModelType"/> is encapsulated within a <see cref="CosmosDbValue{TModel}"/>.
         /// </summary>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <returns>The <b>CosmosDb</b> identifier.</returns>
-        string GetCosmosId(CompositeKey key);
+        bool IsCosmosDbValueEncapsulated { get; }
+
+        /// <summary>
+        /// Maps the model into the entity value.
+        /// </summary>
+        /// <param name="model">The model value (also depends on <see cref="IsCosmosDbValueEncapsulated"/>).</param>
+        /// <returns>The entity value.</returns>
+        object? MapToValue(object? model);
     }
 }

@@ -26,12 +26,12 @@ namespace CoreEx.Database
         }
 
         /// <summary>
-        /// Gets or sets the minimum number of rows allowed.
+        /// Gets the minimum number of rows allowed.
         /// </summary>
         public int MinRows { get; }
 
         /// <summary>
-        /// Gets or sets the maximum number of rows allowed.
+        /// Gets the maximum number of rows allowed.
         /// </summary>
         public int? MaxRows { get; }
 

@@ -36,6 +36,17 @@ namespace CoreEx.Cosmos
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CosmosDbValue{TModel}"/> class with a <paramref name="type"/> and <paramref name="value"/>.
+        /// </summary>
+        /// <param name="type">The <see cref="Type"/> name override.</param>
+        /// <param name="value">The value.</param>
+        public CosmosDbValue(string? type, TModel value)
+        {
+            Type = type ?? typeof(TModel).Name;
+            _value = value.ThrowIfNull(nameof(value));
+        }
+
+        /// <summary>
         /// Gets or sets the <see cref="Type"/> name.
         /// </summary>
         [JsonProperty("type")]
@@ -53,7 +64,7 @@ namespace CoreEx.Cosmos
         object ICosmosDbValue.Value => _value;
 
         /// <inheritdoc/>
-        void ICosmosDbValue.PrepareBefore(CosmosDbArgs dbArgs)
+        void ICosmosDbValue.PrepareBefore(CosmosDbArgs dbArgs, string? typeName)
         {
             if (Value != default)
             {
@@ -66,7 +77,8 @@ namespace CoreEx.Cosmos
                     PartitionKey = pk.PartitionKey;
             }
 
-            Type = typeof(TModel).Name;
+            if (!string.IsNullOrEmpty(typeName))
+                Type = typeName;
         }
 
         /// <inheritdoc/>

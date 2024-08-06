@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.24.0
+- *Enhancement:* `CosmosDb.SelectMultiSetWithResultAsync` and `SelectMultiSetAsync` added to enable the selection of multiple sets of data in a single operation; see also `MultiSetSingleArgs` and `MultiSetCollArgs`.
+- *Enhancement:* `CosmosDbValue.Type` is now updatable and defaults from `CosmosDbValueModelContainer<TModel>.TypeName` (updateable using `UseTypeName`).
+
 ## v3.23.5
 - *Fixed:* `CosmosDbValue<TModel>.PrepareBefore` corrected to set the `PartitionKey` where the underlying `Value` implements `IPartitionKey`.
 - *Fixed:* `CosmosDbBatch` corrected to default to the `CosmosDbContainerBase<TSelf>.DbArgs` where not specified.
