@@ -13,8 +13,10 @@ namespace CoreEx.Cosmos.Test
         public async Task SetUp()
         {
             await TestSetUp.SetUpAsync("/filter", "/value/filter").ConfigureAwait(false);
-            _db = new CosmosDb(auth: false, partitioning: true);
-            _db.DbArgs = new CosmosDbArgs(new PartitionKey("A"));
+            _db = new CosmosDb(auth: false, partitioning: true)
+            {
+                DbArgs = new CosmosDbArgs(new PartitionKey("A"))
+            };
             _db.Persons1.UsePartitionKey(p => new PartitionKey(p.Filter));
             _db.Persons2.UsePartitionKey(p => new PartitionKey(p.Filter));
             _db.Persons3.UsePartitionKey(p => new PartitionKey(p.Value.Filter));
@@ -195,9 +197,12 @@ namespace CoreEx.Cosmos.Test
                 _db.Persons3.CreateMultiSetCollArgs(r => people = r.ToArray()),
                 _db.Persons3X.CreateMultiSetSingleArgs(r => hasPerson = true, isMandatory: false));
 
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(people, Has.Length.EqualTo(3));
-            Assert.That(hasPerson, Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(people, Has.Length.EqualTo(3));
+                Assert.That(hasPerson, Is.False);
+            });
         }
     }
 }

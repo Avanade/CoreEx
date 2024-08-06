@@ -173,7 +173,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
         public void Person_CreateFrom()
         {
             var p2 = new Person { Name = "sarah", Age = 29, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) } };
-            var p1 = p2.CreateFromAs<Person>();
+            var p1 = p2.CopyFromAs<Person>();
 
             Assert.Multiple(() =>
             {
@@ -793,7 +793,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             pc.Remove(p3);
             Assert.That(pc.IsAnyDuplicates(), Is.False);
 
-            pc = new PersonCollection { null!, null! };
+            pc = [null!, null!];
             Assert.That(pc.IsAnyDuplicates(), Is.True);
 
             pc.RemoveAt(0);
