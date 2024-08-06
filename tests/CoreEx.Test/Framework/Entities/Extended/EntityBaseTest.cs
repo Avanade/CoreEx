@@ -170,6 +170,23 @@ namespace CoreEx.Test.Framework.Entities.Extended
         }
 
         [Test]
+        public void Person_CreateFrom()
+        {
+            var p2 = new Person { Name = "sarah", Age = 29, ChangeLog = new ChangeLogEx { CreatedBy = "username", CreatedDate = CreateDateTime(), UpdatedBy = "username2", UpdatedDate = CreateDateTime().AddDays(1) } };
+            var p1 = p2.CopyFromAs<Person>();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(p1.Name, Is.EqualTo("sarah"));
+                Assert.That(p1.Age, Is.EqualTo(29));
+                Assert.That(p1.ChangeLog!.CreatedBy, Is.EqualTo("username"));
+                Assert.That(p1.ChangeLog.CreatedDate, Is.EqualTo(CreateDateTime()));
+                Assert.That(p1.ChangeLog.UpdatedBy, Is.EqualTo("username2"));
+                Assert.That(p1.ChangeLog.UpdatedDate, Is.EqualTo(CreateDateTime().AddDays(1)));
+            });
+        }
+
+        [Test]
         public void Person_CopyFrom_Hierarchy()
         {
             var p1 = new Person { Name = "dave", Age = 30 };
@@ -776,7 +793,7 @@ namespace CoreEx.Test.Framework.Entities.Extended
             pc.Remove(p3);
             Assert.That(pc.IsAnyDuplicates(), Is.False);
 
-            pc = new PersonCollection { null!, null! };
+            pc = [null!, null!];
             Assert.That(pc.IsAnyDuplicates(), Is.True);
 
             pc.RemoveAt(0);

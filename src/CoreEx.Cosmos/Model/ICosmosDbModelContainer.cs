@@ -9,5 +9,5 @@ namespace CoreEx.Cosmos.Model
     /// Enables the model-only <see cref="Container"/>.
     /// </summary>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-    public interface ICosmosDbModelContainer<TModel> : ICosmosDbContainer where TModel : class, new() { }
+    public interface ICosmosDbModelContainer<TModel> : ICosmosDbContainerCore where TModel : class, new() { }
 }

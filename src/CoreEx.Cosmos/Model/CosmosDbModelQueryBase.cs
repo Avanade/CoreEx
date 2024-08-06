@@ -15,12 +15,12 @@ namespace CoreEx.Cosmos.Model
     /// </summary>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="Type"/> itself.</typeparam>
-    public abstract class CosmosDbModelQueryBase<TModel, TSelf>(ICosmosDbContainer container, CosmosDbArgs dbArgs) where TModel : new() where TSelf : CosmosDbModelQueryBase<TModel, TSelf>
+    public abstract class CosmosDbModelQueryBase<TModel, TSelf>(ICosmosDbContainerCore container, CosmosDbArgs dbArgs) where TModel : new() where TSelf : CosmosDbModelQueryBase<TModel, TSelf>
     {
         /// <summary>
-        /// Gets the <see cref="ICosmosDbContainer"/>.
+        /// Gets the <see cref="ICosmosDbContainerCore"/>.
         /// </summary>
-        public ICosmosDbContainer Container { get; } = container.ThrowIfNull(nameof(container));
+        public ICosmosDbContainerCore Container { get; } = container.ThrowIfNull(nameof(container));
 
         /// <summary>
         /// Gets the <see cref="CosmosDbArgs"/>.

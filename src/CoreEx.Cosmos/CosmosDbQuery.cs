@@ -62,7 +62,7 @@ namespace CoreEx.Cosmos
                 foreach (var item in await iterator.ReadNextAsync(ct).ConfigureAwait(false))
                 {
                     if (item is not null)
-                        items.Add(Container.GetValue(item));
+                        items.Add(Container.MapToValue(item));
                 }
             }
 

@@ -10,9 +10,9 @@ namespace CoreEx.Cosmos
     public interface ICosmosDbValue : IIdentifier<string>
     {
         /// <summary>
-        /// Gets or sets the <see cref="Type"/> name.
+        /// Gets or sets the <see cref="System.Type"/> name.
         /// </summary>
-        string? Type { get; }
+        string Type { get; }
 
         /// <summary>
         /// Gets the model value.
@@ -23,7 +23,8 @@ namespace CoreEx.Cosmos
         /// Prepares the object before sending to Cosmos.
         /// </summary>
         /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
-        void PrepareBefore(CosmosDbArgs dbArgs);
+        /// <param name="typeName">The <see cref="Type"/> name override.</param>
+        void PrepareBefore(CosmosDbArgs dbArgs, string? typeName);
 
         /// <summary>
         /// Prepares the object after getting from Cosmos.

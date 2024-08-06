@@ -27,7 +27,25 @@ namespace CoreEx
         public static T? Adjust<T>(this T? value, Action<T> adjuster)
         {
             if (value is not null)
-                adjuster?.Invoke(value.ThrowIfNull(nameof(value)));
+                adjuster?.Invoke(value);
+
+            return value!;
+        }
+
+        /// <summary>
+        /// Enables adjustment (changes) to a <paramref name="value"/> via an <paramref name="adjuster"/> action when the <paramref name="predicate"/> is <c>true</c>.
+        /// </summary>
+        /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value to adjust.</param>
+        /// <param name="predicate">The <see cref="Predicate{T}"/> that determines whether the <paramref name="predicate"/> is invoked.</param>
+        /// <param name="adjuster">The adjusting action (invoked only where the <paramref name="value"/> is not <c>null</c> and the <paramref name="predicate"/> results in <c>true</c>).</param>
+        /// <returns>The adjusted value (same instance).</returns>
+        /// <remarks>Useful in scenarios to in-line simple changes to a value to simplify code.</remarks>
+        [return: NotNullIfNotNull(nameof(value))]
+        public static T? AdjustWhen<T>(this T? value, Predicate<T> predicate, Action<T> adjuster)
+        {
+            if (value is not null && predicate(value))
+                adjuster?.Invoke(value);
 
             return value!;
         }
