@@ -157,7 +157,20 @@ namespace CoreEx.Cosmos
         /// <param name="multiSetArgs">One or more <see cref="IMultiSetArgs"/>.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>The <paramref name="multiSetArgs"/> must all be from the same <see cref="CosmosDb"/>, be of type <see cref="CosmosDbValueContainer{T, TModel}"/>, and reference the same <see cref="Container.Id"/>. Each 
-        /// <paramref name="multiSetArgs"/> is verified and executed in the order specified. The underlying SQL will be automatically created from the specified <paramref name="multiSetArgs"/> where not explicitly supplied.</remarks>
+        /// <paramref name="multiSetArgs"/> is verified and executed in the order specified.
+        /// <para>The underlying SQL will be automatically created from the specified <paramref name="multiSetArgs"/> where not explicitly supplied. Essentially, it is a simple query where all <i>types</i> inferred from the <paramref name="multiSetArgs"/>
+        /// are included, for example: <c>SELECT * FROM c WHERE c.type in ("TypeNameA", "TypeNameB")</c></para>
+        /// <para>Example usage is:
+        /// <code>
+        /// private async Task&lt;Result&lt;MemberDetail?&gt;&gt; GetDetailOnImplementationAsync(int id)
+        /// {
+        ///     MemberDetail? md = null;
+        ///     return await Result.GoAsync(() =&gt; _cosmos.SelectMultiSetWithResultAsync(new AzCosmos.PartitionKey(id.ToString()),
+        ///             _cosmos.Members.CreateMultiSetSingleArgs(m =&gt; md = m.CreateCopyFromAs&lt;MemberDetail&gt;(), isMandatory: false, stopOnNull: true),
+        ///             _cosmos.MemberAddresses.CreateMultiSetCollArgs(mac =&gt; md.Adjust(x =&gt; x.Addresses = new (mac))))) 
+        ///         .ThenAs(() =&gt; md).ConfigureAwait(false);
+        /// }
+        /// </code></para></remarks>
         public async Task<Result> SelectMultiSetWithResultAsync(PartitionKey partitionKey, string? sql, IEnumerable<IMultiSetArgs> multiSetArgs, CancellationToken cancellationToken = default)
         {
             // Verify that the multi set arguments are valid for this type of get query.
