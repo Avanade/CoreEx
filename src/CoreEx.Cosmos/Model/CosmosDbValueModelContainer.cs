@@ -75,10 +75,29 @@ namespace CoreEx.Cosmos.Model
         /// <returns>The entity value.</returns>
         internal static CosmosDbValue<TModel>? GetResponseValue(Response<CosmosDbValue<TModel>> resp) => resp?.Resource;
 
+        /// <inheritdoc/>
+        protected override bool IsModelValid(object? model, CosmosDbArgs args, bool checkAuthorized) => IsModelValid((CosmosDbValue<TModel>?)model, args, checkAuthorized);
+
         /// <summary>
-        /// Check the value to determine whether users are authorised using the CosmosDb.AuthorizationFilter.
+        /// Checks whether the <paramref name="model"/> is in a valid state for the operation.
         /// </summary>
-        private Result CheckAuthorized(CosmosDbValue<TModel> model)
+        /// <param name="model">The model value.</param>
+        /// <param name="args">The specific <see cref="CosmosDbArgs"/> for the operation.</param>
+        /// <param name="checkAuthorized">Indicates whether an additional authorization check should be performed against the <paramref name="model"/>.</param>
+        /// <returns><c>true</c> indicates that the model is in a valid state; otherwise, <c>false</c>.</returns>
+        public bool IsModelValid(CosmosDbValue<TModel>? model, CosmosDbArgs args, bool checkAuthorized)
+            => !(model == null 
+                || model.Type != TypeName 
+                || (args.FilterByTenantId && model.Value is ITenantId tenantId && tenantId.TenantId != args.GetTenantId()) 
+                || (model.Value is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value)
+                || (checkAuthorized && IsAuthorized(model).IsFailure));
+
+        /// <summary>
+        /// Checks the value to determine whether the user is authorized with the <see cref="CosmosDb.GetAuthorizeFilter{TModel}(string)"/>.
+        /// </summary>
+        /// <param name="model">The model value.</param>
+        /// <remarks>Either <see cref="Result.Success"/> or <see cref="Result.AuthorizationError"/>.</remarks>
+        public Result IsAuthorized(CosmosDbValue<TModel> model)
         {
             if (model != null && model.Value != default)
             {
@@ -169,10 +188,10 @@ namespace CoreEx.Cosmos.Model
             {
                 var pk = args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
                 var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(id, pk, args.GetItemRequestOptions(), ct).ConfigureAwait(false);
-                if (resp.Resource == null || resp.Resource.Type != TypeName || args.FilterByTenantId && resp.Resource.Value is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId() || resp.Resource.Value is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value)
+                if (!IsModelValid(resp.Resource, args, false))
                     return args.NullOnNotFound ? Result<CosmosDbValue<TModel>?>.None : Result<CosmosDbValue<TModel>?>.NotFoundError();
 
-                return Result.Go(CheckAuthorized(resp)).ThenAs(() => GetResponseValue(resp));
+                return Result.Go(IsAuthorized(resp)).ThenAs(() => GetResponseValue(resp));
             }
             catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return args.NullOnNotFound ? Result<CosmosDbValue<TModel>?>.None : Result<CosmosDbValue<TModel>?>.NotFoundError(); }
         }, cancellationToken, nameof(GetWithResultAsync));
@@ -214,7 +233,7 @@ namespace CoreEx.Cosmos.Model
             Cleaner.ResetTenantId(m);
             var pk = GetPartitionKey(m, dbArgs);
             return await Result
-                .Go(CheckAuthorized(m))
+                .Go(IsAuthorized(m))
                 .ThenAsAsync(async () =>
                 {
                     ((ICosmosDbValue)m).PrepareBefore(dbArgs, TypeName);
@@ -277,14 +296,11 @@ namespace CoreEx.Cosmos.Model
             var id = m.Id;
             var pk = GetPartitionKey(m, dbArgs);
             var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(id, pk, ro, ct).ConfigureAwait(false);
-            if (resp?.Resource == null || resp.Resource.Type != TypeName)
-                return Result<CosmosDbValue<TModel>>.NotFoundError();
-
-            if ((args.FilterByTenantId && resp.Resource.Value is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (resp.Resource.Value is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
+            if (!IsModelValid(resp.Resource, args, false))
                 return Result<CosmosDbValue<TModel>>.NotFoundError();
 
             return await Result
-                .Go(CheckAuthorized(resp.Resource))
+                .Go(IsAuthorized(resp.Resource))
                 .When(() => m is IETag etag2 && etag2.ETag != null && ETagGenerator.FormatETag(etag2.ETag) != resp.ETag, () => Result.ConcurrencyError())
                 .Then(() =>
                 {
@@ -294,7 +310,7 @@ namespace CoreEx.Cosmos.Model
                     ((ICosmosDbValue)resp.Resource).PrepareBefore(dbArgs, TypeName);
 
                     // Re-check auth to make sure not updating to something not allowed.
-                    return CheckAuthorized(resp);
+                    return IsAuthorized(resp);
                 })
                 .ThenAsAsync(async () =>
                 {
@@ -355,10 +371,7 @@ namespace CoreEx.Cosmos.Model
                 var ro = args.GetItemRequestOptions();
                 var pk = args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
                 var resp = await Container.ReadItemAsync<CosmosDbValue<TModel>>(id, pk, ro, ct).ConfigureAwait(false);
-                if (resp?.Resource == null || resp.Resource.Type != TypeName)
-                    return Result.Success;
-
-                if ((args.FilterByTenantId && resp.Resource.Value is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()))
+                if (!IsModelValid(resp.Resource, args, false))
                     return Result.Success;
 
                 // Delete; either logically or physically.
@@ -369,7 +382,7 @@ namespace CoreEx.Cosmos.Model
 
                     ild.IsDeleted = true;
                     return await Result
-                        .Go(CheckAuthorized(resp.Resource))
+                        .Go(IsAuthorized(resp.Resource))
                         .ThenAsync(async () =>
                         {
                             ro.SessionToken = resp.Headers?.Session;
@@ -379,7 +392,7 @@ namespace CoreEx.Cosmos.Model
                 }
 
                 return await Result
-                    .Go(CheckAuthorized(resp.Resource))
+                    .Go(IsAuthorized(resp.Resource))
                     .ThenAsync(async () =>
                     {
                         ro.SessionToken = resp.Headers?.Session;

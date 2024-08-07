@@ -31,12 +31,24 @@ namespace CoreEx.Cosmos
         Type ICosmosDbContainer.ModelValueType => typeof(CosmosDbValue<TModel>);
 
         /// <inheritdoc/>
-        bool ICosmosDbContainer.IsCosmosDbValueEncapsulated => IsCosmosDbValueEncapsulated;
+        bool ICosmosDbContainer.IsCosmosDbValueModel => IsCosmosDbValueModel;
 
         /// <summary>
         /// Indicates whether the <typeparamref name="TModel"/> is encapsulated within a <see cref="CosmosDbValue{TModel}"/>.
         /// </summary>
-        protected bool IsCosmosDbValueEncapsulated { get; set; } = false;
+        protected bool IsCosmosDbValueModel { get; set; } = false;
+
+        /// <inheritdoc/>
+        bool ICosmosDbContainer.IsModelValid(object? model, CoreEx.Cosmos.CosmosDbArgs args, bool checkAuthorized) => IsModelValid(model, args, checkAuthorized);
+
+        /// <summary>
+        /// Checks whether the <paramref name="model"/> is in a valid state for the operation.
+        /// </summary>
+        /// <param name="model">The model value (also depends on <see cref="IsCosmosDbValueModel"/>).</param>
+        /// <param name="args">The specific <see cref="CosmosDbArgs"/> for the operation.</param>
+        /// <param name="checkAuthorized">Indicates whether an additional authorization check should be performed against the <paramref name="model"/>.</param>
+        /// <returns><c>true</c> indicates that the model is in a valid state; otherwise, <c>false</c>.</returns>
+        protected abstract bool IsModelValid(object? model, CosmosDbArgs args, bool checkAuthorized);
 
         /// <inheritdoc/>
         object? ICosmosDbContainer.MapToValue(object? model) => MapToValue(model);
@@ -44,7 +56,7 @@ namespace CoreEx.Cosmos
         /// <summary>
         /// Maps the model into the entity value.
         /// </summary>
-        /// <param name="model">The model value (also depends on <see cref="IsCosmosDbValueEncapsulated"/>).</param>
+        /// <param name="model">The model value (also depends on <see cref="IsCosmosDbValueModel"/>).</param>
         /// <returns>The entity value.</returns>
         protected abstract T? MapToValue(object? model);
 

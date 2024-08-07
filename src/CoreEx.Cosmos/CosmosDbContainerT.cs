@@ -50,6 +50,9 @@ namespace CoreEx.Cosmos
         }
 
         /// <inheritdoc/>
+        protected override bool IsModelValid(object? model, CosmosDbArgs args, bool checkAuthorized) => ModelContainer.IsModelValid((TModel?)model, args, checkAuthorized);
+
+        /// <inheritdoc/>
         protected override T? MapToValue(object? model) => MapToValue((TModel?)model!);
 
         /// <summary>

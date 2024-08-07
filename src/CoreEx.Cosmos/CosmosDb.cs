@@ -181,7 +181,7 @@ namespace CoreEx.Cosmos
             if (multiSetList.Any(x => x.Container.CosmosDb != this))
                 throw new ArgumentException($"All {nameof(IMultiSetArgs)} containers must be from this same database.", nameof(multiSetArgs));
 
-            if (multiSetList.Any(x => !x.Container.IsCosmosDbValueEncapsulated))
+            if (multiSetList.Any(x => !x.Container.IsCosmosDbValueModel))
                 throw new ArgumentException($"All {nameof(IMultiSetArgs)} containers must be of type CosmosDbValueContainer.", nameof(multiSetArgs));
 
             var container = multiSetList[0].Container;
@@ -231,6 +231,9 @@ namespace CoreEx.Cosmos
                         var model = isStj 
                             ? jd.Deserialize(msa.Container.ModelValueType, (JsonSerializerOptions)js.Options) 
                             : js.Deserialize(jd.ToString(), msa.Container.ModelValueType);
+
+                        if (!msa.Container.IsModelValid(model, msa.Container.DbArgs, true))
+                            continue;
 
                         var result = msa.AddItem(msa.Container.MapToValue(model));
                         if (result.IsFailure)

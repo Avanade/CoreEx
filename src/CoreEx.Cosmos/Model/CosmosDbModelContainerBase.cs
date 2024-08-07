@@ -15,5 +15,18 @@ namespace CoreEx.Cosmos.Model
     /// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier.</param>
     /// <param name="dbArgs">The optional <see cref="CosmosDbArgs"/>.</param>
     public abstract class CosmosDbModelContainerBase<TModel, TSelf>(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : CosmosDbContainer(cosmosDb, containerId, dbArgs), ICosmosDbModelContainer<TModel>
-        where TModel : class, IEntityKey, new () where TSelf : CosmosDbModelContainerBase<TModel, TSelf> { }
+        where TModel : class, IEntityKey, new () where TSelf : CosmosDbModelContainerBase<TModel, TSelf>
+    {
+        /// <inheritdoc/>
+        bool ICosmosDbModelContainer.IsModelValid(object? model, CoreEx.Cosmos.CosmosDbArgs args, bool checkAuthorized) => IsModelValid(model, args, checkAuthorized);
+
+        /// <summary>
+        /// Checks whether the <paramref name="model"/> is in a valid state for the operation.
+        /// </summary>
+        /// <param name="model">The model to be checked.</param>
+        /// <param name="args">The specific <see cref="CosmosDbArgs"/> for the operation.</param>
+        /// <param name="checkAuthorized">Indicates whether an additional authorization check should be performed against the <paramref name="model"/>.</param>
+        /// <returns><c>true</c> indicates that the model is in a valid state; otherwise, <c>false</c>.</returns>
+        protected abstract bool IsModelValid(object? model, CosmosDbArgs args, bool checkAuthorized);
+    }
 }
