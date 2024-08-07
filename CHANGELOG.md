@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.24.1
+- *Fixed*: `CosmosDb.SelectMultiSetWithResultAsync` updated to skip items that are not considered valid; ensures same outcome as if using a `CosmosDbModelQueryBase` with respect to filtering.
+
 ## v3.24.0
 - *Enhancement:* `CosmosDb.SelectMultiSetWithResultAsync` and `SelectMultiSetAsync` added to enable the selection of multiple sets of data in a single operation; see also `MultiSetSingleArgs` and `MultiSetCollArgs`.
 - *Enhancement:* `CosmosDbValue.Type` is now updatable and defaults from `CosmosDbValueModelContainer<TModel>.TypeName` (updateable using `UseTypeName`).

@@ -65,10 +65,28 @@ namespace CoreEx.Cosmos.Model
         /// <returns>The entity value.</returns>
         internal static TModel? GetResponseValue(Response<TModel> resp) => resp?.Resource == null ? default : resp.Resource;
 
+        /// <inheritdoc/>
+        protected override bool IsModelValid(object? model, CosmosDbArgs args, bool checkAuthorized) => IsModelValid((TModel?)model, args, checkAuthorized);
+
         /// <summary>
-        /// Check the value to determine whether the user is authorized using the <see cref="CosmosDb.GetAuthorizeFilter{TModel}(string)"/>.
+        /// Checks whether the <paramref name="model"/> is in a valid state for the operation.
         /// </summary>
-        internal Result CheckAuthorized(TModel model)
+        /// <param name="model">The model value.</param>
+        /// <param name="args">The specific <see cref="CosmosDbArgs"/> for the operation.</param>
+        /// <param name="checkAuthorized">Indicates whether an additional authorization check should be performed against the <paramref name="model"/>.</param>
+        /// <returns><c>true</c> indicates that the model is in a valid state; otherwise, <c>false</c>.</returns>
+        public bool IsModelValid(TModel? model, CosmosDbArgs args, bool checkAuthorized)
+            => !(model == null
+                || (args.FilterByTenantId && model is ITenantId tenantId && tenantId.TenantId != args.GetTenantId())
+                || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value)
+                || (checkAuthorized && IsAuthorized(model).IsFailure));
+
+        /// <summary>
+        /// Checks the value to determine whether the user is authorized with the <see cref="CosmosDb.GetAuthorizeFilter{TModel}(string)"/>.
+        /// </summary>
+        /// <param name="model">The model value.</param>
+        /// <remarks>Either <see cref="Result.Success"/> or <see cref="Result.AuthorizationError"/>.</remarks>
+        public Result IsAuthorized(TModel model)
         {
             if (model != default)
             {
@@ -159,10 +177,10 @@ namespace CoreEx.Cosmos.Model
             {
                 var pk = args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
                 var resp = await Container.ReadItemAsync<TModel>(id, pk, args.GetItemRequestOptions(), ct).ConfigureAwait(false);
-                if (resp.Resource == null || args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId() || resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value)
+                if (!IsModelValid(resp.Resource, args, false))
                     return args.NullOnNotFound ? Result<TModel?>.None : Result<TModel?>.NotFoundError();
 
-                return Result.Go(CheckAuthorized(resp)).ThenAs(() => GetResponseValue(resp));
+                return Result.Go(IsAuthorized(resp)).ThenAs(() => GetResponseValue(resp));
             }
             catch (CosmosException dcex) when (args.NullOnNotFound && dcex.StatusCode == System.Net.HttpStatusCode.NotFound) { return args.NullOnNotFound ? Result<TModel?>.None : Result<TModel?>.NotFoundError(); }
         }, cancellationToken, nameof(GetWithResultAsync));
@@ -204,7 +222,7 @@ namespace CoreEx.Cosmos.Model
             Cleaner.ResetTenantId(m);
             var pk = GetPartitionKey(model, dbArgs);
             return await Result
-                .Go(CheckAuthorized(model))
+                .Go(IsAuthorized(model))
                 .ThenAsAsync(() => Container.CreateItemAsync(model, pk, args.GetItemRequestOptions(), ct))
                 .ThenAs(resp => GetResponseValue(resp!)!);
         }, cancellationToken, nameof(CreateWithResultAsync));
@@ -262,11 +280,11 @@ namespace CoreEx.Cosmos.Model
             var id = GetCosmosId(m);
             var pk = GetPartitionKey(model, dbArgs);
             var resp = await Container.ReadItemAsync<TModel>(id, pk, ro, ct).ConfigureAwait(false);
-            if (resp.Resource == null || (args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()) || (resp.Resource is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value))
+            if (!IsModelValid(resp.Resource, args, false))
                 return Result<TModel>.NotFoundError();
 
             return await Result
-                .Go(CheckAuthorized(resp))
+                .Go(IsAuthorized(resp))
                 .When(() => m is IETag etag2 && etag2.ETag != null && ETagGenerator.FormatETag(etag2.ETag) != resp.ETag, () => Result.ConcurrencyError())
                 .Then(() =>
                 {
@@ -275,7 +293,7 @@ namespace CoreEx.Cosmos.Model
                     Cleaner.ResetTenantId(resp.Resource);
 
                     // Re-check auth to make sure not updating to something not allowed.
-                    return CheckAuthorized(resp);
+                    return IsAuthorized(resp);
                 })
                 .ThenAsAsync(async () =>
                 {
@@ -336,7 +354,7 @@ namespace CoreEx.Cosmos.Model
                 var ro = args.GetItemRequestOptions();
                 var pk = args.PartitionKey ?? DbArgs.PartitionKey ?? PartitionKey.None;
                 var resp = await Container.ReadItemAsync<TModel>(id, pk, ro, ct).ConfigureAwait(false);
-                if (resp.Resource == null || (args.FilterByTenantId && resp.Resource is ITenantId tenantId && tenantId.TenantId != DbArgs.GetTenantId()))
+                if (!IsModelValid(resp.Resource, args, false))
                     return Result.Success;
 
                 // Delete; either logically or physically.
@@ -347,7 +365,7 @@ namespace CoreEx.Cosmos.Model
 
                     ild.IsDeleted = true;
                     return await Result
-                        .Go(CheckAuthorized(resp.Resource))
+                        .Go(IsAuthorized(resp.Resource))
                         .ThenAsync(async () =>
                         {
                             ro.SessionToken = resp.Headers?.Session;
@@ -357,7 +375,7 @@ namespace CoreEx.Cosmos.Model
                 }
 
                 return await Result
-                    .Go(CheckAuthorized(resp.Resource))
+                    .Go(IsAuthorized(resp.Resource))
                     .ThenAsync(async () =>
                     {
                         ro.SessionToken = resp.Headers?.Session;

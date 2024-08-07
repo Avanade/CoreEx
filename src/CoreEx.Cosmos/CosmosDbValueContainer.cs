@@ -33,7 +33,7 @@ namespace CoreEx.Cosmos
         public CosmosDbValueContainer(ICosmosDb cosmosDb, string containerId, CosmosDbArgs? dbArgs = null) : base(cosmosDb, containerId, dbArgs)
         {
             _modelContainer = new(() => new CosmosDbValueModelContainer<TModel>(CosmosDb, Container.Id, DbArgs));
-            IsCosmosDbValueEncapsulated = true;
+            IsCosmosDbValueModel = true;
         }
 
         /// <summary>
@@ -65,6 +65,9 @@ namespace CoreEx.Cosmos
 
             return MapToValue(resp.Resource);
         }
+
+        /// <inheritdoc/>
+        protected override bool IsModelValid(object? model, CosmosDbArgs args, bool checkAuthorized) => ModelContainer.IsModelValid((CosmosDbValue<TModel>?)model, args, checkAuthorized);
 
         /// <inheritdoc/>
         protected override T? MapToValue(object? model) => MapToValue((CosmosDbValue<TModel>)model!);
