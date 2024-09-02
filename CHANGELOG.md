@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.25.0
+- *Fixed:* Fixed missing `IServiceCollection.AddCosmosDb` including corresponding `CosmosDbHealthCheck`.
+- *Fixed:* Added `JsonIgnore` to all interfaces that have a `CompositeKey` property as not intended to be serialized by default.
+- *Fixed:* Fixed `ReferenceDataCollectionBase<TId, TRef, TSelf>` constructor which was hiding `sortOrder` and `codeComparer` parameters.
+
 ## v3.24.1
 - *Fixed*: `CosmosDb.SelectMultiSetWithResultAsync` updated to skip items that are not considered valid; ensures same outcome as if using a `CosmosDbModelQueryBase` with respect to filtering.
 

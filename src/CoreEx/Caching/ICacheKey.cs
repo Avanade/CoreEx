@@ -2,6 +2,7 @@
 
 using CoreEx.Abstractions;
 using CoreEx.Entities;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Caching
 {
@@ -13,6 +14,7 @@ namespace CoreEx.Caching
         /// <summary>
         /// Gets the cache key.
         /// </summary>
+        [JsonIgnore]
         public CompositeKey CacheKey { get; }
     }
 }

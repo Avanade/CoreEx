@@ -37,6 +37,5 @@ public class ReferenceDataController : ControllerBase
 
     [HttpGet()]
     [ProducesResponseType(typeof(ReferenceDataMultiDictionary), (int)HttpStatusCode.OK)]
-    [ApiExplorerSettings(IgnoreApi = true)]
     public Task<IActionResult> GetNamed() => _webApi.GetAsync(Request, p => _orchestrator.GetNamedAsync(p.RequestOptions));
 }

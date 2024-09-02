@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Abstractions;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Entities
 {
@@ -14,6 +15,7 @@ namespace CoreEx.Entities
         /// Gets the key for the entity as a <see cref="CompositeKey"/>.
         /// </summary>
         /// <returns>The key represented as a <see cref="CompositeKey"/>.</returns>
+        [JsonIgnore]
         CompositeKey EntityKey { get; }
     }
 }

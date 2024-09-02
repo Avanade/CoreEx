@@ -15,8 +15,15 @@ namespace CoreEx.RefData
     /// <typeparam name="TId">The <see cref="IIdentifier.Id"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TRef">The <see cref="IReferenceData{TId}"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="ReferenceDataCollectionBase{TId, TRef, TSelf}"/> itself.</typeparam>
-    public abstract class ReferenceDataCollectionBase<TId, TRef, TSelf> : ReferenceDataCollection<TId, TRef> where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId> where TSelf : ReferenceDataCollectionBase<TId, TRef, TSelf>, new()
+    /// <param name="sortOrder">The <see cref="ReferenceDataSortOrder"/>. Defaults to <see cref="ReferenceDataSortOrder.SortOrder"/>.</param>
+    /// <param name="codeComparer">The <see cref="StringComparer"/> for <see cref="IReferenceData.Code"/> comparisons. Defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>.</param>
+    public abstract class ReferenceDataCollectionBase<TId, TRef, TSelf>(ReferenceDataSortOrder sortOrder, StringComparer? codeComparer = null) : ReferenceDataCollection<TId, TRef>(sortOrder, codeComparer) where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId> where TSelf : ReferenceDataCollectionBase<TId, TRef, TSelf>, new()
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceDataCollectionBase{TId, TRef, TSelf}"/> class.
+        /// </summary>
+        public ReferenceDataCollectionBase() : this(ReferenceDataSortOrder.SortOrder, null) { }
+
         /// <summary>
         /// Creates an instance of <typeparamref name="TSelf"/> and adds from the <paramref name="source"/>.
         /// </summary>

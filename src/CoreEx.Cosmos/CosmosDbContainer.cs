@@ -20,7 +20,7 @@ namespace CoreEx.Cosmos
         public ICosmosDb CosmosDb { get; } = cosmosDb.ThrowIfNull(nameof(cosmosDb));
 
         /// <inheritdoc/>
-        public Container Container { get; } = cosmosDb.GetCosmosContainer(containerId);
+        public Container Container { get; } = cosmosDb.GetCosmosContainer(containerId.ThrowIfNullOrEmpty(nameof(containerId)));
 
         /// <summary>
         /// Gets or sets the Container-specific <see cref="CosmosDbArgs"/>.
