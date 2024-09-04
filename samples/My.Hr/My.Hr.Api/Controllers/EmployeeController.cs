@@ -31,8 +31,9 @@ public class EmployeeController : ControllerBase
     [HttpGet("")]
     [ProducesResponseType(typeof(IEnumerable<Employee>), (int)HttpStatusCode.OK)]
     [Paging]
+    [Query]
     public Task<IActionResult> GetAllAsync()
-        => _webApi.GetAsync(Request, p => _service.GetAllAsync(p.RequestOptions.Paging));
+        => _webApi.GetAsync(Request, p => _service.GetAllAsync(p.RequestOptions.Query, p.RequestOptions.Paging));
 
     /// <summary>
     /// Creates a new <see cref="Employee"/>.

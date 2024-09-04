@@ -44,7 +44,7 @@ public class EmployeeFunction
     [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: MediaTypeNames.Application.Json, bodyType: typeof(List<Employee>), Description = "Employee records")]
     public Task<IActionResult> GetAllAsync([HttpTrigger(AuthorizationLevel.Function, "get", Route = "api/employees")] HttpRequest request)
-        => _webApi.GetAsync(request, p => _service.GetAllAsync(p.RequestOptions.Paging));
+        => _webApi.GetAsync(request, p => _service.GetAllAsync(p.RequestOptions.Query, p.RequestOptions.Paging));
 
     [FunctionName("Create")]
     [OpenApiOperation(operationId: "Create", tags: new[] { "employee" })]

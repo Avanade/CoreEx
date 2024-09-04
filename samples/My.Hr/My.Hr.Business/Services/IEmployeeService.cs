@@ -4,7 +4,7 @@
     {
         Task<Employee?> GetEmployeeAsync(Guid id);
 
-        Task<EmployeeCollectionResult> GetAllAsync(PagingArgs? paging);
+        Task<EmployeeCollectionResult> GetAllAsync(QueryArgs? query, PagingArgs? paging);
 
         Task<Employee> AddEmployeeAsync(Employee employee);
 

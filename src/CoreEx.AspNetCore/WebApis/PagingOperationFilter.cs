@@ -9,7 +9,7 @@ using System.Linq;
 namespace CoreEx.AspNetCore.WebApis
 {
     /// <summary>
-    /// A <i>Swagger/Swashbuckle</i> <see cref="IOperationFilter"/> to add the <see cref="PagingArgs"/> paramaters from the specification of the <see cref="PagingAttribute"/>.
+    /// A <i>Swagger/Swashbuckle</i> <see cref="IOperationFilter"/> to add the <see cref="PagingArgs"/> parameters from the specification of the <see cref="PagingAttribute"/>.
     /// </summary>
     /// <remarks>The <see cref="PagingOperationFilter"/> must be added when registering services (DI) during application startup; example as follows:
     /// <code>
@@ -67,7 +67,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Create the parameter definition.
         /// </summary>
-        private static OpenApiParameter CreateParameter(string name, string description, string typeName, string? format = null) => new()
+        internal static OpenApiParameter CreateParameter(string name, string description, string typeName, string? format = null) => new()
         {
             Name = name,
             Description = description,

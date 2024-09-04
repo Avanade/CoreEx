@@ -115,7 +115,7 @@ namespace System.Linq
             query.ThrowIfNull(nameof(query));
             property.ThrowIfNull(nameof(property));
 
-            var wc = wildcard ?? Wildcard.Default ?? Wildcard.MultiAll;
+            var wc = wildcard ?? Wildcard.Default ?? Wildcard.MultiBasic;
             var wr = wc.Parse(text).ThrowOnError();
 
             // Exit stage left where nothing to do.

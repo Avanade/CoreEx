@@ -35,6 +35,13 @@ namespace CoreEx.Test.Framework.Mapping.Converters
             });
         }
 
+        [Test]
+        public void Convert_StringToDateTime()
+        {
+            var now = DateTime.Now;
+            Assert.That(TypeToStringConverter<DateTime>.Default.ToSource.Convert(now.ToString("O")), Is.EqualTo(now));
+        }
+
         public enum TestOption
         {
             None = 0,

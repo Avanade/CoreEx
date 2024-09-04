@@ -52,7 +52,7 @@ namespace CoreEx.Wildcards
         /// <summary>
         /// Gets or sets the default <see cref="Wildcard"/> settings (defaults to <see cref="WildcardSelection.MultiAll"/>.
         /// </summary>
-        public static Wildcard Default { get; set; } = MultiAll;
+        public static Wildcard Default { get; set; } = MultiBasic;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Wildcard"/> class.

@@ -25,7 +25,7 @@ namespace CoreEx.Validation.Rules
         /// <inheritdoc/>
         protected override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
         {
-            var wildcard = Wildcard ?? Wildcard.Default ?? Wildcard.MultiAll;
+            var wildcard = Wildcard ?? Wildcard.Default ?? Wildcard.MultiBasic;
             if (wildcard != null && !wildcard.Validate(context.Value))
                 context.CreateErrorMessage(ErrorText ?? ValidatorStrings.WildcardFormat);
 

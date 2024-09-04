@@ -1,7 +1,21 @@
+using CoreEx.Data;
+
 namespace My.Hr.Business.Services;
 
 public class EmployeeService : IEmployeeService
 {
+    private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
+        .WithFilter(filter => filter
+            .AddField<string>("LastName", c => c.SupportKinds(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+            .AddField<string>("FirstName", c => c.SupportKinds(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+            .AddField<DateTime>("StartDate")
+            .AddField<DateTime>("TerminationDate")
+            .AddField<string>(nameof(Employee.Gender), c => c.WithConverter(v => Gender.ConvertFromCode(v))))
+        .WithOrderBy(orderBy => orderBy
+            .AddField("LastName")
+            .AddField("FirstName"))
+        .WithDefaultOrderBy("LastName, FirstName");
+
     private readonly HrDbContext _dbContext;
     private readonly IEventPublisher _publisher;
     private readonly HrSettings _settings;
@@ -16,8 +30,8 @@ public class EmployeeService : IEmployeeService
     public async Task<Employee?> GetEmployeeAsync(Guid id) 
         => await _dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
 
-    public Task<EmployeeCollectionResult> GetAllAsync(PagingArgs? paging) 
-        => _dbContext.Employees.OrderBy(x => x.LastName).ThenBy(x => x.FirstName).ToCollectionResultAsync<EmployeeCollectionResult, EmployeeCollection, Employee>(paging);
+    public Task<EmployeeCollectionResult> GetAllAsync(QueryArgs? query, PagingArgs? paging) 
+        => _dbContext.Employees.WithQuery(_queryConfig, query).ToCollectionResultAsync<EmployeeCollectionResult, EmployeeCollection, Employee>(paging);
 
     public async Task<Employee> AddEmployeeAsync(Employee employee)
     {

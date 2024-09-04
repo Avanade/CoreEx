@@ -46,7 +46,7 @@ namespace CoreEx.Database
         public DatabaseWildcard(Wildcard? wildcard = null, char multiWildcard = MultiWildcardCharacter, char singleWildcard = SingleWildcardCharacter, char[]? charactersToEscape = null, string? escapeFormat = null)
 #pragma warning restore CS8618
         {
-            Wildcard = wildcard ?? Wildcard.Default ?? Wildcard.MultiAll;
+            Wildcard = wildcard ?? Wildcard.Default ?? Wildcard.MultiBasic;
             MultiWildcard = multiWildcard;
             SingleWildcard = singleWildcard;
             CharactersToEscape = new List<char>(charactersToEscape ?? DefaultCharactersToEscape);
@@ -98,7 +98,7 @@ namespace CoreEx.Database
         /// <returns>The SQL LIKE wildcard.</returns>
         public string? Replace(string? text)
         {
-            var wc = Wildcard ?? Wildcard.Default ?? Wildcard.MultiAll;
+            var wc = Wildcard ?? Wildcard.Default ?? Wildcard.MultiBasic;
             var wr = wc.Parse(text).ThrowOnError();
 
             if (wr.Selection.HasFlag(WildcardSelection.None) || (wr.Selection.HasFlag(WildcardSelection.Single) && wr.Selection.HasFlag(WildcardSelection.MultiWildcard)))

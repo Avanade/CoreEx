@@ -142,6 +142,36 @@ namespace My.Hr.UnitTest
         }
 
         [Test]
+        public void B120_GetAll_Filter_LastName()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.GetAllAsync(), requestOptions: HttpRequestOptions.Create().Filter("startswith(lastname, 's')"))
+                .AssertOK()
+                .GetValue<EmployeeCollectionResult>();
+
+            Assert.That(v?.Items, Is.Not.Null);
+            Assert.That(v!.Items, Has.Count.EqualTo(2));
+            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Smith", "Smithers" }));
+        }
+
+        [Test]
+        public void B130_GetAll_Filter_StartDateAndGenders_OrderBy_FirstName()
+        {
+            using var test = ApiTester.Create<Startup>();
+
+            var v = test.Controller<EmployeeController>()
+                .Run(c => c.GetAllAsync(), requestOptions: HttpRequestOptions.Create().Filter("startdate ge 2010-01-01 and gender in ('m','f')").OrderBy("lastname desc"))
+                .AssertOK()
+                .GetValue<EmployeeCollectionResult>();
+
+            Assert.That(v?.Items, Is.Not.Null);
+            Assert.That(v!.Items, Has.Count.EqualTo(2));
+            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Smith", "Browne" }));
+        }
+
+        [Test]
         public void C100_Create_Error()
         {
             using var test = ApiTester.Create<Startup>();

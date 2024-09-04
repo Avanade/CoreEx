@@ -19,6 +19,13 @@ namespace CoreEx.Http
     public class HttpRequestOptions
     {
         /// <summary>
+        /// Creates a new instance of the <see cref="HttpRequestOptions"/> class.
+        /// </summary>
+        /// <param name="paging">The optional <see cref="PagingArgs"/>.</param>
+        /// <returns>The <see cref="HttpRequestOptions"/>.</returns>
+        public static HttpRequestOptions Create(PagingArgs? paging = null) => new() { Paging = paging };
+
+        /// <summary>
         /// Gets or sets the <see cref="IncludeFields"/> query string name.
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpConsts.IncludeFieldsQueryStringName"/>.</remarks>
@@ -116,9 +123,38 @@ namespace CoreEx.Http
         }
 
         /// <summary>
+        /// Updates (overrides) the <see cref="Query"/> <see cref="QueryArgs.Filter"/> using a basic dynamic <i>OData-esque</i> <c>$filter</c> statement.
+        /// </summary>
+        /// <param name="filter">The filter.</param>
+        /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
+        public HttpRequestOptions Filter(string? filter)
+        {
+            Query ??= new QueryArgs();
+            Query.Filter = filter;
+            return this;
+        }
+
+        /// <summary>
+        /// Updates (overrides) the <see cref="Query"/> <see cref="QueryArgs.OrderBy"/> using a basic dynamic <i>OData-esque</i> <c>$orderby</c> statement.
+        /// </summary>
+        /// <param name="orderby">The order by.</param>
+        /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
+        public HttpRequestOptions OrderBy(string orderby)
+        {
+            Query ??= new QueryArgs();
+            Query.OrderBy = orderby;
+            return this;
+        }
+
+        /// <summary>
         /// Gets or sets the <see cref="PagingArgs"/>.
         /// </summary>
         public PagingArgs? Paging { get; set; }
+
+        /// <summary>
+        /// Gets or sets the dynamic <see cref="QueryArgs"/>.
+        /// </summary>
+        public QueryArgs? Query { get; set; }
 
         /// <summary>
         /// Gets or sets the optional query string value to include within the <see cref="Uri.Query"/>.
@@ -156,7 +192,7 @@ namespace CoreEx.Http
             if (queryString is not null)
                 AddNameValueCollection(sb, queryString);
 
-            if (Paging != null)
+            if (Paging is not null)
             {
                 switch (Paging.Option)
                 {
@@ -179,6 +215,15 @@ namespace CoreEx.Http
 
                 if (Paging.IsGetCount)
                     AddNameValuePair(sb, QueryStringNamePagingArgsCount, "true", false);
+            }
+
+            if (Query is not null)
+            {
+                if (!string.IsNullOrEmpty(Query.Filter))
+                    AddNameValuePair(sb, HttpConsts.QueryArgsFilterQueryStringName, Query.Filter, true);
+
+                if (!string.IsNullOrEmpty(Query.OrderBy))
+                    AddNameValuePair(sb, HttpConsts.QueryArgsOrderByQueryStringName, Query.OrderBy, true);
             }
 
             if (IncludeFields != null && IncludeFields.Count > 0)
