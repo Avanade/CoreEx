@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using CoreEx.Entities;
 using System.Threading.Tasks;
+using CoreEx.Wildcards;
 
 namespace CoreEx.Test.Framework.Validation.Rules
 {
@@ -26,10 +27,10 @@ namespace CoreEx.Test.Framework.Validation.Rules
             v1 = await "*xxxx*".Validate("value").Configure(c => c.Wildcard()).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "x*x".Validate("value").Configure(c => c.Wildcard()).ValidateAsync();
+            v1 = await "x*x".Validate("value").Configure(c => c.Wildcard(wildcard: Wildcard.MultiAll)).ValidateAsync();
             Assert.That(v1.HasErrors, Is.False);
 
-            v1 = await "x?x".Validate("value").Configure(c => c.Wildcard()).ValidateAsync();
+            v1 = await "x?x".Validate("value").Configure(c => c.Wildcard(wildcard: Wildcard.MultiAll)).ValidateAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(v1.HasErrors, Is.True);
