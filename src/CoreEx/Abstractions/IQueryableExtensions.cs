@@ -1,11 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx;
-using CoreEx.Data;
 using CoreEx.Entities;
 using CoreEx.Wildcards;
 using System.Collections.Generic;
-using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
 
 namespace System.Linq
@@ -217,66 +215,6 @@ namespace System.Linq
 
             // Create the final lambda expression.
             return query.Where(Expression.Lambda<Func<TElement, bool>>(exp, property.Parameters));
-        }
-
-        /// <summary>
-        /// Adds a dynamic query (filtering and sorting) as specified by the <paramref name="queryArgs"/>.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> being queried.</typeparam>
-        /// <param name="query">The query.</param>
-        /// <param name="queryConfig">The <see cref="QueryArgsConfig"/>.</param>
-        /// <param name="queryArgs">The <see cref="QueryArgs"/>.</param>
-        /// <returns>The query.</returns>
-        public static IQueryable<T> WithQuery<T>(this IQueryable<T> query, QueryArgsConfig queryConfig, QueryArgs? queryArgs)
-        {
-            queryConfig.ThrowIfNull(nameof(queryConfig));
-
-            if (queryArgs is not null && !string.IsNullOrEmpty(queryArgs.Filter))
-            {
-                if (!queryConfig.HasFilterParser)
-                    throw new QueryFilterParserException("Filter is invalid: is not supported.");
-
-                var filter = queryConfig.FilterParser.Parse(queryArgs.Filter);
-
-                try
-                {
-                    query = query.Where(filter.FilterBuilder.ToString(), [.. filter.Args]);
-                }
-                catch
-                {
-                    throw new QueryFilterParserException("Filter is invalid: there is a syntax error.");
-                }
-            }
-
-            if (queryArgs is not null && !string.IsNullOrEmpty(queryArgs.OrderBy))
-            {
-                if (!queryConfig.HasOrderByParser)
-                    throw new QueryOrderByParserException("Order By is invalid: is not supported.");
-
-                var orderBy = queryConfig.OrderByParser.Parse(queryArgs.OrderBy);
-
-                try
-                {
-                    query = query.OrderBy(orderBy);
-                }
-                catch
-                {
-                    throw new QueryOrderByParserException("Order By is invalid: there is a syntax error.");
-                }
-            }
-            else if (queryConfig.DefaultOrderBy is not null)
-            {
-                try
-                {
-                    query = query.OrderBy(queryConfig.DefaultOrderBy);
-                }
-                catch
-                {
-                    throw new QueryOrderByParserException("Order By is invalid: there is a syntax error.");
-                }
-            }
-
-            return query;
         }
     }
 }

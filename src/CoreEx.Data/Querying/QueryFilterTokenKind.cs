@@ -2,10 +2,10 @@
 
 using System;
 
-namespace CoreEx.Data
+namespace CoreEx.Data.Querying
 {
     /// <summary>
-    /// Respresents the <see cref="QueryFilterToken"/> kind.
+    /// Provides the <see cref="QueryFilterToken"/> kind.
     /// </summary>
     [Flags]
     public enum QueryFilterTokenKind
@@ -31,24 +31,24 @@ namespace CoreEx.Data
         NotEqual = 8,
 
         /// <summary>
-        /// The greater than operator token.
-        /// </summary>
-        GreaterThan = 16,
-
-        /// <summary>
-        /// The greater than or equal operator token.
-        /// </summary>
-        GreaterThanOrEqual = 32,
-
-        /// <summary>
         /// The less than operator token.
         /// </summary>
-        LessThan = 64,
+        LessThan = 16,
 
         /// <summary>
         /// The less than or equal operator token.
         /// </summary>
-        LessThanOrEqual = 128,
+        LessThanOrEqual = 32,
+
+        /// <summary>
+        /// The greater than or equal operator token.
+        /// </summary>
+        GreaterThanOrEqual = 64,
+
+        /// <summary>
+        /// The greater than operator token.
+        /// </summary>
+        GreaterThan = 128,
 
         /// <summary>
         /// The value token.
@@ -106,14 +106,14 @@ namespace CoreEx.Data
         StartsWith = 262144,
 
         /// <summary>
-        /// The ends with token.
-        /// </summary>
-        EndsWith = 524288,
-
-        /// <summary>
         /// The contains token.
         /// </summary>
-        Contains = 1048576,
+        Contains = 524288,
+
+        /// <summary>
+        /// The ends with token.
+        /// </summary>
+        EndsWith = 1048576,
 
         /// <summary>
         /// The logical IN operator token.

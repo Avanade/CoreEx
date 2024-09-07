@@ -23,8 +23,8 @@ namespace CoreEx.AspNetCore.WebApis
         OrderBy = 2,
 
         /// <summary>
-        /// Indicates to include all fields.
+        /// Indicates to include both the <see cref="Filter"/> and <see cref="OrderBy"/>.
         /// </summary>
-        All = Filter | OrderBy
+        FilterAndOrderby = Filter | OrderBy
     }
 }

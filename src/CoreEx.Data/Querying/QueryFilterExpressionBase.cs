@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Data
+namespace CoreEx.Data.Querying
 {
     /// <summary>
     /// Provides a query filter expression.
@@ -64,6 +64,12 @@ namespace CoreEx.Data
         /// <param name="index">The <paramref name="token"/> index.</param>
         /// <param name="token">The <see cref="QueryFilterToken"/>.</param>
         protected abstract void AddToken(int index, QueryFilterToken token);
+
+        /// <summary>
+        /// Gets the underlying <see cref="IQueryFilterFieldConfig"/> used in the expression.
+        /// </summary>
+        /// <returns>The field <see cref="IQueryFilterFieldConfig"/> where applicable; otherwise, <see langword="null"/>.</returns>
+        protected abstract IQueryFilterFieldConfig? GetFieldConfig();
 
         /// <summary>
         /// Converts the query filter expression into the corresponding dynamic LINQ appending to the <paramref name="result"/>.

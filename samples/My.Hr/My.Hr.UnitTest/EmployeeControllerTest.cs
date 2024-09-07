@@ -116,7 +116,7 @@ namespace My.Hr.UnitTest
             var x = TestSetUp.Extensions;
 
             var v = test.Controller<EmployeeController>()
-                .Run(c => c.GetAllAsync(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, true) })
+                .Run(c => c.GetAllAsync(), requestOptions: HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(1, 2, true)))
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
@@ -133,7 +133,7 @@ namespace My.Hr.UnitTest
             using var test = ApiTester.Create<Startup>();
 
             var v = test.Controller<EmployeeController>()
-                .Run(c => c.GetAllAsync(), requestOptions: new HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2) }.Include("lastname"))
+                .Run(c => c.GetAllAsync(), requestOptions: HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(1, 2)).Include("lastname"))
                 .AssertOK()
                 .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")
                 .GetValue<EmployeeCollectionResult>();

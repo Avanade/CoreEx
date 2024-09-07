@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Data
+namespace CoreEx.Data.Querying
 {
     /// <summary>
     /// Represents a query filter <see cref="QueryFilterTokenKind.Logical"/> expression.
@@ -26,7 +26,7 @@ namespace CoreEx.Data
             _isComplete = token.Kind == QueryFilterTokenKind.OpenParenthesis;
             return _isComplete 
                 ? false
-                : throw new QueryFilterParserException($"Filter is invalid: A '{_not.GetRawToken(Filter).ToString()}' expects an opening '(' to start an expression versus a syntactically incorrect '{token.GetValueToken(Filter)}' token.");
+                : throw new QueryFilterParserException($"A '{_not.GetRawToken(Filter).ToString()}' expects an opening '(' to start an expression versus a syntactically incorrect '{token.GetValueToken(Filter)}' token.");
         }
 
         /// <inheritdoc/>
@@ -50,5 +50,8 @@ namespace CoreEx.Data
             if (_not.Kind != QueryFilterTokenKind.Unspecified)
                 result.Append(_not.ToLinq(Filter));
         }
+
+        /// <inheritdoc/>
+        protected override IQueryFilterFieldConfig? GetFieldConfig() => null;
     }
 }

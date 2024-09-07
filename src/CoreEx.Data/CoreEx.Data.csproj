@@ -2,17 +2,20 @@
 
   <PropertyGroup>
     <TargetFrameworks>net6.0;net7.0;net8.0;netstandard2.1</TargetFrameworks>
-    <RootNamespace>CoreEx.Database</RootNamespace>
+    <RootNamespace>CoreEx.Data</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx .NET Relational Database extras.</Title>
-    <Description>CoreEx .NET Relational Database extras.</Description>
-    <PackageTags>coreex db database sql ado.net relational</PackageTags>
+    <Title>CoreEx .NET Data extras.</Title>
+    <Description>CoreEx .NET Data extras.</Description>
+    <PackageTags>coreex api data odata filter order linq</PackageTags>
   </PropertyGroup>
 
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.4.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 

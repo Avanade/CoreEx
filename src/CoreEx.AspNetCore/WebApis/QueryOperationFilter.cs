@@ -6,7 +6,6 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Linq;
 
-
 namespace CoreEx.AspNetCore.WebApis
 {
     /// <summary>
@@ -20,7 +19,7 @@ namespace CoreEx.AspNetCore.WebApis
     public class QueryOperationFilter : IOperationFilter
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QueryOperationFilter"/> class with a default of <see cref="QueryOperationFilterFields.All"/>.
+        /// Initializes a new instance of the <see cref="QueryOperationFilter"/> class with a default of <see cref="QueryOperationFilterFields.FilterAndOrderby"/>.
         /// </summary>
         public QueryOperationFilter() { }
 
@@ -33,7 +32,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Gets the <see cref="QueryOperationFilterFields"/> to apply.
         /// </summary>
-        public QueryOperationFilterFields Fields { get; } = QueryOperationFilterFields.All;
+        public QueryOperationFilterFields Fields { get; } = QueryOperationFilterFields.FilterAndOrderby;
 
         /// <summary>
         /// Applies the filter.
@@ -47,10 +46,10 @@ namespace CoreEx.AspNetCore.WebApis
                 return;
 
             if (Fields.HasFlag(QueryOperationFilterFields.Filter))
-                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsFilterQueryStringName, "The basic dynamic OData-esque filter specification.", "string", null));
+                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsFilterQueryStringName, "The basic dynamic OData-like filter specification.", "string", null));
 
             if (Fields.HasFlag(QueryOperationFilterFields.OrderBy))
-                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsOrderByQueryStringName, "The basic dynamic OData-esque order-by specificationswagger paramters .", "string", null));
+                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsOrderByQueryStringName, "The basic dynamic OData-like order-by specificationswagger paramters .", "string", null));
         }
     }
 }

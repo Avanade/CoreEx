@@ -1,6 +1,7 @@
-﻿using CoreEx.Data;
+﻿using CoreEx.Data.Querying;
 using NUnit.Framework;
 using System;
+using System.Linq;
 
 namespace CoreEx.Test.Framework.Data
 {
@@ -16,22 +17,32 @@ namespace CoreEx.Test.Framework.Data
                 .AddField<int>("Age")
                 .AddField<decimal>("Salary")
                 .AddField<bool>("IsOld"))
-            .WithDefaultOrderBy("LastName, FirstName");
+            .WithOrderBy(order => order.WithDefault("LastName, FirstName"));
 
-        private void AssertFilter(string filter, string expected, params object[] expectedArgs)
+        private static void AssertFilter(string filter, string expected, params object[] expectedArgs) => AssertFilter(_queryConfig, filter, expected, expectedArgs);
+
+        private static void AssertFilter(QueryArgsConfig config, string? filter, string expected, params object[] expectedArgs)
         {
-            var result = _queryConfig.FilterParser.Parse(filter);
+            var result = config.FilterParser.Parse(filter);
             Assert.Multiple(() =>
             {
-                Assert.That(result.FilterBuilder.ToString(), Is.EqualTo(expected));
+                Assert.That(result.ToString(), Is.EqualTo(expected));
                 Assert.That(result.Args, Is.EquivalentTo(expectedArgs));
             });
         }
 
-        private void AssertException(string filter, string expected)
+        private static void AssertException(string? filter, string expected) => AssertException(_queryConfig, filter, expected);
+
+        private static void AssertException(QueryArgsConfig config, string? filter, string expected)
         {
-            var ex = Assert.Throws<QueryFilterParserException>(() => _queryConfig.FilterParser.Parse(filter));
-            Assert.That(ex.Message, Does.StartWith($"Filter is invalid: {expected}"));
+            var ex = Assert.Throws<QueryFilterParserException>(() => config.FilterParser.Parse(filter));
+            Assert.That(ex.Messages, Is.Not.Null);
+            Assert.That(ex.Messages, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ex.Messages.First().Property, Is.EqualTo("$filter"));
+                Assert.That(ex.Messages.First().Text, Does.StartWith(expected));
+            });
         }
 
         [Test]
@@ -87,7 +98,7 @@ namespace CoreEx.Test.Framework.Data
             AssertException("age apple", "Field 'age' does not support 'apple' as an operator.");
             AssertException("age 'apple'", "Field 'age' does not support ''apple'' as an operator.");
             AssertException("age eq 'apple'", "Field 'age' constant 'apple' must not be specified as a Literal where the underlying type is not a string.");
-            AssertException("age eq 1990-01-01", "Field 'age' has a Value '1990-01-01' that is not a valid Int32.");
+            AssertException("age eq 1990-01-01", "Field 'age' has a value '1990-01-01' that is not a valid Int32.");
             AssertException("null eq null", "There is a 'null' positioning that is syntactically incorrect.");
             AssertException("true eq null", "There is a 'true' positioning that is syntactically incorrect.");
             AssertException("false eq null", "There is a 'false' positioning that is syntactically incorrect.");
@@ -151,6 +162,86 @@ namespace CoreEx.Test.Framework.Data
 
             AssertException("age eq 1 and not age eq 2", "A 'not' expects an opening '(' to start an expression versus a syntactically incorrect 'age' token.");
             AssertException("age  eq  1  not", "There is a 'not' positioning that is syntactically incorrect.");
+        }
+
+        [Test]
+        public void Parse_Field_Default()
+        {
+            var config = QueryArgsConfig.Create()
+                .WithFilter(filter => filter
+                    .AddField<string>("LastName", c => c.Default(new QueryStatement("LastName == @0", "Brown")))
+                    .AddField<string>("FirstName")
+                    .Default(new QueryStatement("FirstName == @0", "Zoe")));
+
+            AssertFilter(config, "lastname eq 'Smith'", "LastName == @0", "Smith");
+            AssertFilter(config, null, "LastName == @0", "Brown");
+            AssertFilter(config, "firstname eq 'Jenny'", "FirstName == @0 && LastName == @1", "Jenny", "Brown");
+        }
+
+        [Test]
+        public void Parse_Default()
+        {
+            var config = QueryArgsConfig.Create()
+                .WithFilter(filter => filter
+                    .AddField<string>("LastName")
+                    .AddField<string>("FirstName")
+                    .Default(new QueryStatement("FirstName == @0", "Zoe")));
+
+            AssertFilter(config, "lastname eq 'Smith'", "LastName == @0", "Smith");
+            AssertFilter(config, "", "FirstName == @0", "Zoe");
+            AssertFilter(config, null, "FirstName == @0", "Zoe");
+        }
+
+        [Test]
+        public void Parse_Field_OnQuery()
+        {
+            var config = QueryArgsConfig.Create()
+                .WithFilter(filter => filter
+                    .AddField<string>("LastName")
+                    .AddField<string>("FirstName")
+                    .OnQuery(result =>
+                    {
+                        if (!result.Fields.Contains("LastName"))
+                            result.Append(new QueryStatement("LastName != null"));
+
+                        if (result.Fields.Count > 1)
+                            throw new QueryFilterParserException("Only a single field filter is allowed.");
+                    }));
+
+            AssertFilter(config, "lastname eq 'Smith'", "LastName == @0", "Smith");
+            AssertFilter(config, "firstname eq 'Angela'", "FirstName == @0 && LastName != null", "Angela");
+            AssertFilter(config, null, "LastName != null");
+
+            AssertException(config, "lastname eq 'Smith' and firstname eq 'Angela'", "Only a single field filter is allowed.");
+        }
+
+        [Test]
+        public void Parse_Null()
+        {
+            var config = QueryArgsConfig.Create()
+                .WithFilter(filter => filter
+                    .AddNullField("Terminated", "TerminatedDate"));
+
+            AssertFilter(config, "terminated eq null", "TerminatedDate == null");
+            AssertFilter(config, "terminated ne null", "TerminatedDate != null");
+
+            AssertException(config, "terminated eq 13", "Field 'terminated' with value '13' is invalid: Only null comparisons are supported.");
+            AssertException(config, "terminated gt null", "Field 'terminated' does not support the 'gt' operator.");
+        }
+
+        [Test]
+        public void ToStringHelp()
+        {
+            var s = _queryConfig.FilterParser.ToString();
+            Console.WriteLine(s);
+            Assert.That(s, Is.EqualTo(@"Filter fields as follows:
+- lastname (string): eq, ne, lt, le, ge, gt, startswith, contains, endswith
+- firstname (string): eq, ne, lt, le, ge, gt, startswith, contains, endswith
+- code (string): eq, ne, lt, le, ge, gt
+- birthday (datetime): eq, ne, lt, le, ge, gt
+- age (int32): eq, ne, lt, le, ge, gt
+- salary (decimal): eq, ne, lt, le, ge, gt
+- isold (boolean): eq, ne"));
         }
     }
 }

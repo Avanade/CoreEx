@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx.Data
+namespace CoreEx.Data.Querying
 {
     /// <summary>
     /// Represents a <see cref="QueryFilterParser"/> token.
@@ -51,26 +51,33 @@ namespace CoreEx.Data
         }
 
         /// <summary>
-        /// Performs a <see cref="GetValueToken"/> and converts using the <paramref name="config">configured</paramref> <see cref="QueryFilterFieldConfigBase.ConvertToValue(string)"/>.
+        /// Performs a <see cref="GetValueToken"/> and converts using the <paramref name="config">configured</paramref> <see cref="QueryFilterFieldConfigBase.ConvertToValue(QueryFilterToken, QueryFilterToken, string)"/>.
         /// </summary>
+        /// <param name="operation">The operation <see cref="QueryFilterToken"/> being performed on the <paramref name="field"/>.</param>
         /// <param name="field">The field <see cref="QueryFilterToken"/>.</param>
         /// <param name="config">The <see cref="QueryFilterFieldConfigBase"/>.</param>
         /// <param name="filter">The query filter.</param>
         /// <returns>The converted value.</returns>
-        public readonly object? GetConvertedValue(QueryFilterToken field, IQueryFilterFieldConfig config, string filter)
+        public readonly object GetConvertedValue(QueryFilterToken operation, QueryFilterToken field, IQueryFilterFieldConfig config, string filter)
         {
             if (Kind != QueryFilterTokenKind.Value && Kind != QueryFilterTokenKind.Literal)
                 throw new InvalidOperationException($"A {nameof(GetConvertedValue)} for a token with a {nameof(Kind)} of '{Kind}' is not supported.");
 
-            string text = GetValueToken(filter);
-
             try
             {
-                return config.ConvertToValue(text);
+                return config.ConvertToValue(operation, this, filter) ?? throw new InvalidOperationException($"Field '{field.GetRawToken(filter).ToString()}' has a value '{GetValueToken(filter)}' which has been converted to null.");
             }
-            catch (Exception ex) when (ex is not QueryFilterParserException)
+            catch (QueryFilterParserException)
             {
-                throw new QueryFilterParserException($"Filter is invalid: Field '{field.GetRawToken(filter).ToString()}' has a {Kind} '{text}' that is not a valid {config.Type.Name}.");
+                throw;
+            }
+            catch (ValidationException ex)
+            {
+                throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' with value '{GetValueToken(filter)}' is invalid: {ex.Message}");
+            }
+            catch (Exception)
+            {
+                throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' has a value '{GetValueToken(filter)}' that is not a valid {config.Type.Name}.");
             }
         }
 

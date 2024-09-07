@@ -1,10 +1,13 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Mapping.Converters;
+using CoreEx.RefData;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Text;
 
-namespace CoreEx.Data
+namespace CoreEx.Data.Querying
 {
     /// <summary>
     /// Represents a basic query filter parser with explicitly defined field support.
@@ -15,28 +18,97 @@ namespace CoreEx.Data
     public class QueryFilterParser()
     {
         private readonly Dictionary<string, IQueryFilterFieldConfig> _fields = new(StringComparer.OrdinalIgnoreCase);
+        private QueryStatement? _defaultStatement;
+        private Action<QueryFilterParserResult>? _onQuery;
 
         /// <summary>
-        /// Adds a <see cref="QueryFilterFieldConfig{T}"/> to the parser for the specified <paramref name="name"/> as-is.
+        /// Adds a <see cref="QueryFilterFieldConfig{T}"/> to the parser for the specified <paramref name="field"/> as-is.
         /// </summary>
-        /// <param name="name">The field name used in the query filter specified with the correct casing.</param>
+        /// <param name="field">The field name used in the query filter specified with the correct casing.</param>
         /// <param name="configure">The optional action enabling further field configuration.</param>
         /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
-        public QueryFilterParser AddField<T>(string name, Action<QueryFilterFieldConfig<T>>? configure = null) where T : notnull => AddField(name, null, configure);
+        public QueryFilterParser AddField<T>(string field, Action<QueryFilterFieldConfig<T>>? configure = null) where T : notnull => AddField(field, null, configure);
 
         /// <summary>
-        /// Adds a <see cref="QueryFilterFieldConfig{T}"/> to the parser using the specified <paramref name="overrideName"/> (overrides the <see cref="QueryFilterTokenKind.Field"/> <paramref name="name"/>).
+        /// Adds a <see cref="QueryFilterFieldConfig{T}"/> to the parser using the specified <paramref name="field"/> and <paramref name="model"/> (overrides the <see cref="QueryFilterTokenKind.Field"/> <paramref name="field"/>).
         /// </summary>
-        /// <param name="name">The field name used in the query filter.</param>
-        /// <param name="overrideName">The field name override.</param>
+        /// <param name="field">The field name used in the query filter.</param>
+        /// <param name="model">The model name (defaults to <paramref name="field"/>).</param>
         /// <param name="configure">The optional action to perform further field configuration.</param>
         /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
-        /// <remarks>Where the <typeparamref name="T"/> is not a string then will automatically set the <see cref="Converter"/> to <see cref="StringToTypeConverter{T}.Default"/></remarks>
-        public QueryFilterParser AddField<T>(string name, string? overrideName, Action<QueryFilterFieldConfig<T>>? configure = null) where T : notnull
+        public QueryFilterParser AddField<T>(string field, string? model, Action<QueryFilterFieldConfig<T>>? configure = null) where T : notnull
         {
-            var config = new QueryFilterFieldConfig<T>(this, name, overrideName);
+            var config = new QueryFilterFieldConfig<T>(this, field, model);
             configure?.Invoke(config);
-            _fields.Add(name, config);
+            _fields.Add(field, config);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a <see cref="QueryFilterReferenceDataFieldConfig{T}"/> to the parser for the specified <paramref name="field"/> as-is.
+        /// </summary>
+        /// <param name="field">The field name used in the query filter specified with the correct casing.</param>
+        /// <param name="configure">The optional action enabling further field configuration.</param>
+        /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
+        public QueryFilterParser AddReferenceDataField<TRef>(string field, Action<QueryFilterReferenceDataFieldConfig<TRef>>? configure = null) where TRef : IReferenceData, new() => AddReferenceDataField(field, null, configure);
+
+        /// <summary>
+        /// Adds a <see cref="QueryFilterReferenceDataFieldConfig{T}"/> to the parser using the specified <paramref name="field"/> and <paramref name="model"/> (overrides the <see cref="QueryFilterTokenKind.Field"/> <paramref name="field"/>).
+        /// </summary>
+        /// <param name="field">The field name used in the query filter.</param>
+        /// <param name="model">The model name (defaults to <paramref name="field"/>).</param>
+        /// <param name="configure">The optional action to perform further field configuration.</param>
+        /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
+        public QueryFilterParser AddReferenceDataField<TRef>(string field, string? model, Action<QueryFilterReferenceDataFieldConfig<TRef>>? configure = null) where TRef : IReferenceData, new()
+        {
+            var config = new QueryFilterReferenceDataFieldConfig<TRef>(this, field, model);
+            configure?.Invoke(config);
+            _fields.Add(field, config);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a <see cref="QueryFilterNullFieldConfig"/> to the parser using the specified <paramref name="field"/> as-is.
+        /// </summary>
+        /// <param name="field">The field name used in the query filter.</param>
+        /// <param name="configure">The optional action to perform further field configuration.</param>
+        /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
+        public QueryFilterParser AddNullField(string field, Action<QueryFilterNullFieldConfig>? configure = null) => AddNullField(field, null, configure);
+
+        /// <summary>
+        /// Adds a <see cref="QueryFilterNullFieldConfig"/> to the parser using the specified <paramref name="field"/> and <paramref name="model"/> (overrides the <see cref="QueryFilterTokenKind.Field"/> <paramref name="field"/>).
+        /// </summary>
+        /// <param name="field">The field name used in the query filter.</param>
+        /// <param name="model">The model name (defaults to <paramref name="field"/>).</param>
+        /// <param name="configure">The optional action to perform further field configuration.</param>
+        /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
+        public QueryFilterParser AddNullField(string field, string? model, Action<QueryFilterNullFieldConfig>? configure = null)
+        {
+            var config = new QueryFilterNullFieldConfig(this, field, model);
+            configure?.Invoke(config);
+            _fields.Add(field, config);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets (overrides) the default LINQ <see cref="QueryStatement"/> to be used where no field filtering is specified (including defaults).
+        /// </summary>
+        public QueryFilterParser Default(QueryStatement statement)
+        {
+            _defaultStatement = statement;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets (overrides) the action to be invoked where the query has been successfully parsed and is ready for execution.
+        /// </summary>
+        /// <param name="onQuery">The action to invoke.</param>
+        /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>The <see cref="QueryFilterParserResult"/> can be further maintained as required.
+        /// <para>Additionally, this is a opportunity to further validate the query as needed. Throw a <see cref="QueryFilterParserException"/> to have the validation message formatted correctly and consistently.</para></remarks>
+        public QueryFilterParser OnQuery(Action<QueryFilterParserResult>? onQuery)
+        {
+            _onQuery = onQuery;
             return this;
         }
 
@@ -44,6 +116,14 @@ namespace CoreEx.Data
         /// Indicates that at least a single field has been configured.
         /// </summary>
         public bool HasFields => _fields.Count > 0;
+
+        /// <summary>
+        /// Trys and gets the specified <paramref name="field"/> <paramref name="config"/>.
+        /// </summary>
+        /// <param name="field">The field name used in the query filter.</param>
+        /// <param name="config">The <see cref="IQueryFilterFieldConfig"/> where found.</param>
+        /// <returns><see langword="true"/> where found; otherwise, <see langword="false"/>.</returns>
+        public bool TryGetField(string field, [NotNullWhen(true)] out IQueryFilterFieldConfig? config) => _fields.TryGetValue(field, out config);
 
         /// <summary>
         /// Gets the <see cref="IQueryFilterFieldConfig"/> for the specified <paramref name="token"/> and automatically throws a <see cref="QueryFilterParserException"/> where not found.
@@ -59,7 +139,7 @@ namespace CoreEx.Data
             var name = token.GetRawToken(filter).ToString();
             return _fields.TryGetValue(name, out var config) 
                 ? config 
-                : throw new QueryFilterParserException($"Filter is invalid: {QueryFilterTokenKind.Field} '{name}' is not supported.");
+                : throw new QueryFilterParserException($"{QueryFilterTokenKind.Field} '{name}' is not supported.");
         }
 
         /// <summary>
@@ -67,18 +147,29 @@ namespace CoreEx.Data
         /// </summary>
         /// <param name="filter">The query filter.</param>
         /// <returns>The <see cref="QueryFilterParserResult"/>.</returns>
-        [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(filter))]
-        public QueryFilterParserResult? Parse(string? filter)
+        /// <remarks>Leverages the <see cref="GetExpressions(string?)"/> to perform the actual parsing.</remarks>
+        public QueryFilterParserResult Parse(string? filter)
         {
-            if (string.IsNullOrEmpty(filter))
-                return null;
-
             var result = new QueryFilterParserResult();
 
+            // Append all the expressions to the resulting LINQ whilst parsing.
             foreach (var expression in GetExpressions(filter))
             {
                 WriteToResult(expression, result);
             }
+
+            // Append any default statements where no fields are in the filter.
+            var needsAnd = result.FilterBuilder.Length > 0;
+            foreach (var statement in _fields.Where(x => x.Value.DefaultStatement is not null && !result.Fields.Contains(x.Key)).Select(x => x.Value.DefaultStatement!))
+            {
+                result.Append(statement);
+            }
+
+            // Uses the default statement where no fields were specified (or defaulted).
+            result.Default(_defaultStatement);
+
+            // Last chance ;-)
+            _onQuery?.Invoke(result);
 
             return result;
         }
@@ -132,7 +223,7 @@ namespace CoreEx.Data
                         else if (t.Kind == QueryFilterTokenKind.OpenParenthesis)
                         {
                             if (!canOpenParen)
-                                throw new QueryFilterParserException($"Filter is invalid: There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
+                                throw new QueryFilterParserException($"There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
 
                             current = new QueryFilterOpenParenthesisExpression(this, filter, t);
                             parenDepth++;
@@ -141,10 +232,10 @@ namespace CoreEx.Data
                         else if (t.Kind == QueryFilterTokenKind.CloseParenthesis)
                         {
                             if (canOpenParen)
-                                throw new QueryFilterParserException($"Filter is invalid: There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
+                                throw new QueryFilterParserException($"There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
 
                             if (parenDepth == 0)
-                                throw new QueryFilterParserException($"Filter is invalid: There is a closing '{t.GetRawToken(filter).ToString()}' that has no matching opening '('.");
+                                throw new QueryFilterParserException($"There is a closing '{t.GetRawToken(filter).ToString()}' that has no matching opening '('.");
 
                             current = new QueryFilterCloseParenthesisExpression(this, filter, t);
                             parenDepth--;
@@ -154,30 +245,30 @@ namespace CoreEx.Data
                         else if (QueryFilterTokenKind.Logical.HasFlag(t.Kind))
                         {
                             if (!canLogical)
-                                throw new QueryFilterParserException($"Filter is invalid: There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
+                                throw new QueryFilterParserException($"There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
 
                             current = new QueryFilterLogicalExpression(this, filter, t);
                             canOpenParen = true;
                             canLogical = false;
                         }
                         else
-                            throw new QueryFilterParserException($"Filter is invalid: There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
+                            throw new QueryFilterParserException($"There is a '{t.GetRawToken(filter).ToString()}' positioning that is syntactically incorrect.");
                     }
                 }
 
                 if (current is not null)
                 {
                     if (!current.IsComplete)
-                        throw new QueryFilterParserException("Filter is invalid: The final expression is incomplete.");
+                        throw new QueryFilterParserException("The final expression is incomplete.");
 
                     yield return current;
                 }
 
                 if (parenDepth != 0)
-                    throw new QueryFilterParserException("Filter is invalid: There is an opening '(' that has no matching closing ')'.");
+                    throw new QueryFilterParserException("There is an opening '(' that has no matching closing ')'.");
 
                 if (!canLogical)
-                    throw new QueryFilterParserException("Filter is invalid: The final expression is incomplete.");
+                    throw new QueryFilterParserException("The final expression is incomplete.");
             }
         }
 
@@ -211,7 +302,7 @@ namespace CoreEx.Data
                     var span = filter.AsSpan()[(i + 1)..];
                     var j = FindEndOfLiteral(ref span);
                     if (j == -1)
-                        throw new QueryFilterParserException($"Filter is invalid: A {QueryFilterTokenKind.Literal} has not been terminated.");
+                        throw new QueryFilterParserException($"A {QueryFilterTokenKind.Literal} has not been terminated.");
 
                     yield return new QueryFilterToken(QueryFilterTokenKind.Literal, i, j + 1);
                     i += j;
@@ -322,5 +413,52 @@ namespace CoreEx.Data
         /// <param name="result">The <see cref="QueryFilterParserResult"/>.</param>
         /// <remarks>Override this method to provide a custom dynamic LINQ conversion.</remarks>
         protected virtual void WriteToResult(QueryFilterExpressionBase expression, QueryFilterParserResult result) => expression.WriteToResult(result);
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            var sb = new StringBuilder("Filter fields as follows:");
+            foreach (var field in _fields)
+            {
+                sb.AppendLine().Append("- ").Append(field.Key.ToLower()).Append(" (").Append(field.Value.Type.Name.ToLower()).Append("): ");
+
+                var first = true;
+                foreach (var e in Enum.GetValues(typeof(QueryFilterTokenKind)))
+                {
+                    if (field.Value.SupportedKinds.HasFlag((QueryFilterTokenKind)e))
+                    {
+                        var op = GetODataOperator((QueryFilterTokenKind)e);
+                        if (op is not null)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                sb.Append(", ");
+
+                            sb.Append(op);
+                        }
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Gets the ODATA operator.
+        /// </summary>
+        private static string? GetODataOperator(QueryFilterTokenKind kind) => kind switch
+        {
+            QueryFilterTokenKind.Equal => "eq",
+            QueryFilterTokenKind.NotEqual => "ne",
+            QueryFilterTokenKind.GreaterThan => "gt",
+            QueryFilterTokenKind.GreaterThanOrEqual => "ge",
+            QueryFilterTokenKind.LessThan => "lt",
+            QueryFilterTokenKind.LessThanOrEqual => "le",
+            QueryFilterTokenKind.StartsWith => "startswith",
+            QueryFilterTokenKind.EndsWith => "endswith",
+            QueryFilterTokenKind.Contains => "contains",
+            _ => null
+        };
     }
 }

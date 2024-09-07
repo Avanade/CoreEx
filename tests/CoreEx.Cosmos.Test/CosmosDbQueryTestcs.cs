@@ -1,4 +1,7 @@
-﻿namespace CoreEx.Cosmos.Test
+﻿using CoreEx.Data.Querying;
+using CoreEx.Entities;
+
+namespace CoreEx.Cosmos.Test
 {
     [TestFixture]
     [Category("WithCosmos")]
@@ -207,6 +210,20 @@
             Assert.That(v, Has.Length.EqualTo(2));
             Assert.That(v[0].Value.Name, Is.EqualTo("Greg"));
             Assert.That(v[1].Value.Name, Is.EqualTo("Mike"));
+        }
+
+        [Test]
+        public async Task ModelQuery_WithFilter()
+        {
+            var qac = QueryArgsConfig.Create()
+                .WithFilter(f => f
+                    .AddField<string>("Name", "Value.Name", c => c.SupportKinds(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+                    .AddField<bool>("Birthday", "Value.Birthday"));
+
+            var v = await _db.Persons3.ModelContainer.Query(q => q.Where(qac, QueryArgs.Create("endswith(name, 'Y')")).OrderBy(x => x.Id)).ToArrayAsync();
+            Assert.That(v, Has.Length.EqualTo(2));
+            Assert.That(v[0].Value.Name, Is.EqualTo("Gary"));
+            Assert.That(v[1].Value.Name, Is.EqualTo("Sally"));
         }
     }
 }

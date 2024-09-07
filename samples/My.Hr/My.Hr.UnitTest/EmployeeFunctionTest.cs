@@ -112,7 +112,7 @@ namespace My.Hr.UnitTest
             using var test = FunctionTester.Create<Startup>();
 
             var v = test.HttpTrigger<EmployeeFunction>()
-                .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", new CoreEx.Http.HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, true) })))
+                .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", CoreEx.Http.HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(1, 2, true)))))
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
@@ -129,7 +129,7 @@ namespace My.Hr.UnitTest
             using var test = FunctionTester.Create<Startup>();
 
             var v = test.HttpTrigger<EmployeeFunction>()
-                .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", new CoreEx.Http.HttpRequestOptions { Paging = PagingArgs.CreateSkipAndTake(1, 2, false) }.Include("lastname"))))
+                .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", CoreEx.Http.HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(1, 2, false)).Include("lastname"))))
                 .AssertOK()
                 .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")
                 .GetValue<EmployeeCollectionResult>();

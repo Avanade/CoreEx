@@ -72,12 +72,12 @@ namespace CoreEx.Http
         #region QueryStringName
 
         /// <summary>
-        /// Gets or sets the <see cref="HttpRequestOptions.IncludeFields"/> query string name.
+        /// Gets or sets the <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.IncludeFields"/> query string name.
         /// </summary>
         public static string IncludeFieldsQueryStringName { get; set; } = "$fields";
 
         /// <summary>
-        /// Gets or sets the <see cref="HttpRequestOptions.ExcludeFields"/> query string name.
+        /// Gets or sets the <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.IncludeFields"/> query string name.
         /// </summary>
         public static string ExcludeFieldsQueryStringName { get; set; } = "$exclude";
 
@@ -172,12 +172,12 @@ namespace CoreEx.Http
         public static List<string> QueryArgsOrderByQueryStringNames { get; set; } = new List<string>(["$orderby", "$order-by"]);
 
         /// <summary>
-        /// Gets or sets the list of possible <see cref="HttpRequestOptions.IncludeFields"/> query string names.
+        /// Gets or sets the list of possible <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.IncludeFields"/> query string names.
         /// </summary>
         public static List<string> IncludeFieldsQueryStringNames { get; set; } = new List<string>(["$fields", "$includeFields", "$include", "include-fields"]);
 
         /// <summary>
-        /// Gets or sets the list of possible <see cref="HttpRequestOptions.ExcludeFields"/> query string names.
+        /// Gets or sets the list of possible<see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.ExcludeFields"/> query string names.
         /// </summary>
         public static List<string> ExcludeFieldsQueryStringNames { get; set; } = new List<string>(["$excludeFields", "$exclude", "exclude-fields"]);
 

@@ -3,7 +3,7 @@
 using CoreEx.Mapping.Converters;
 using System;
 
-namespace CoreEx.Data
+namespace CoreEx.Data.Querying
 {
     /// <summary>
     /// Provides the <see cref="QueryFilterParser"/> field configuration.
@@ -11,11 +11,40 @@ namespace CoreEx.Data
     /// <typeparam name="T">The field type.</typeparam>
     /// <param name="parser">The owning <see cref="QueryFilterParser"/>.</param>
     /// <param name="field">The field name.</param>
-    /// <param name="overrideName">The field name override.</param>
-    public sealed class QueryFilterFieldConfig<T>(QueryFilterParser parser, string field, string? overrideName) : QueryFilterFieldConfigBase<QueryFilterFieldConfig<T>>(parser, typeof(T), field, overrideName)
+    /// <param name="model">The model name (defaults to <paramref name="field"/>.</param>
+    public class QueryFilterFieldConfig<T>(QueryFilterParser parser, string field, string? model) : QueryFilterFieldConfigBase<QueryFilterFieldConfig<T>>(parser, typeof(T), field, model)
     {
         private IConverter<string, T> _converter = StringToTypeConverter<T>.Default;
         private Func<T, object>? _converterFunc;
+
+        /// <summary>
+        /// Sets (overrides) the <see cref="QueryFilterFieldConfigBase.SupportedKinds"/>.
+        /// </summary>
+        /// <param name="kinds">The supported <see cref="QueryFilterTokenKind"/> flags.</param>
+        /// <returns>The <see cref="QueryFilterFieldConfig{T}"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>The default is <see cref="QueryFilterTokenKind.Operator"/>.</remarks>
+        public QueryFilterFieldConfig<T> SupportKinds(QueryFilterTokenKind kinds)
+        {
+            if (((IQueryFilterFieldConfig)this).IsTypeBoolean)
+                throw new NotSupportedException($"{nameof(SupportKinds)} is not supported where {nameof(IQueryFilterFieldConfig.IsTypeBoolean)}.");
+
+            SupportedKinds = kinds;
+            return this;
+        }
+
+        /// <summary>
+        /// Indicates that the operation should ignore case by performing an explicit <see cref="string.ToUpper()"/> comparison and value conversion.
+        /// </summary>
+        /// <returns>The <see cref="QueryFilterFieldConfig{T}"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>Sets the <see cref="QueryFilterFieldConfigBase.IsToUpper"/> to <see langword="true"/>.</remarks>
+        public QueryFilterFieldConfig<T> UseUpperCase()
+        {
+            if (!((IQueryFilterFieldConfig)this).IsTypeString)
+                throw new ArgumentException($"A {nameof(UseUpperCase)} can only be specified where the field type is a string.");
+
+            IsToUpper = true;
+            return this;
+        }
 
         /// <summary>
         /// Sets the <paramref name="converter"/> to convert the field value from a <see cref="string"/> to the field type <typeparamref name="T"/>.
@@ -41,25 +70,25 @@ namespace CoreEx.Data
         }
 
         /// <inheritdoc/>
-        protected override object? ConvertToValue(string text)
+        protected override object ConvertToValue(QueryFilterToken operation, QueryFilterToken field, string filter)
         {
             // Convert from string to the underlying type and consider the upper case requirements.
-            T value = _converter.ConvertToDestination(text);
+            T value = _converter.ConvertToDestination(field.GetValueToken(filter));
             if (typeof(T) == typeof(string))
             {
                 var str = value?.ToString();
                 if (str is null)
-                    return null;
+                    return null!;
 
-                if (IsIgnoreCase)
+                if (IsToUpper)
                     str = str?.ToUpper(System.Globalization.CultureInfo.CurrentCulture);
                 
                 value = _converter.ConvertToDestination(str!);
-                return _converterFunc?.Invoke(value) ?? value;
+                return _converterFunc?.Invoke(value) ?? value!;
             }
 
             // Convert the underlying type to the final value.
-            return _converterFunc?.Invoke(value) ?? value;
+            return _converterFunc?.Invoke(value) ?? value!;
         }
     }
 }

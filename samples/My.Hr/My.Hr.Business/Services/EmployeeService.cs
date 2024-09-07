@@ -1,4 +1,4 @@
-using CoreEx.Data;
+using CoreEx.Data.Querying;
 
 namespace My.Hr.Business.Services;
 
@@ -13,8 +13,8 @@ public class EmployeeService : IEmployeeService
             .AddField<string>(nameof(Employee.Gender), c => c.WithConverter(v => Gender.ConvertFromCode(v))))
         .WithOrderBy(orderBy => orderBy
             .AddField("LastName")
-            .AddField("FirstName"))
-        .WithDefaultOrderBy("LastName, FirstName");
+            .AddField("FirstName")
+            .WithDefault("LastName, FirstName"));
 
     private readonly HrDbContext _dbContext;
     private readonly IEventPublisher _publisher;
@@ -31,7 +31,7 @@ public class EmployeeService : IEmployeeService
         => await _dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
 
     public Task<EmployeeCollectionResult> GetAllAsync(QueryArgs? query, PagingArgs? paging) 
-        => _dbContext.Employees.WithQuery(_queryConfig, query).ToCollectionResultAsync<EmployeeCollectionResult, EmployeeCollection, Employee>(paging);
+        => _dbContext.Employees.Where(_queryConfig, query).OrderBy(_queryConfig, query).ToCollectionResultAsync<EmployeeCollectionResult, EmployeeCollection, Employee>(paging);
 
     public async Task<Employee> AddEmployeeAsync(Employee employee)
     {

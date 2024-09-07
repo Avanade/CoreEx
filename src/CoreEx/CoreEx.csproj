@@ -67,7 +67,6 @@
   <ItemGroup>
     <PackageReference Include="CloudNative.CloudEvents.SystemTextJson" Version="2.7.1" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.4.5" />
     <PackageReference Include="YamlDotNet" Version="16.0.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
   </ItemGroup>
