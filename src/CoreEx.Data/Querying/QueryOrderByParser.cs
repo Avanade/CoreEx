@@ -83,6 +83,9 @@ namespace CoreEx.Data.Querying
         /// <returns>The dynamic LINQ equivalent.</returns>
         public string Parse(string? orderBy)
         {
+            if (!string.IsNullOrEmpty(orderBy) && orderBy.Equals("help", StringComparison.OrdinalIgnoreCase))
+                throw new QueryOrderByParserException(ToString());
+
             var fields = new List<string>();
             var sb = new StringBuilder();
 
@@ -133,5 +136,8 @@ namespace CoreEx.Data.Querying
 
             return sb.ToString();
         }
+
+        /// <inheritdoc/>
+        public override string ToString() => _fields.Count == 0 ? "OrderBy statement is not currently supported." : $"Supported field(s) are as follows: {string.Join(", ", _fields.Values.Select(x => x.Field))}.";
     }
 }

@@ -15,18 +15,18 @@ namespace CoreEx.Data.Querying
     public class QueryFilterFieldConfig<T>(QueryFilterParser parser, string field, string? model) : QueryFilterFieldConfigBase<QueryFilterFieldConfig<T>>(parser, typeof(T), field, model)
     {
         private IConverter<string, T> _converter = StringToTypeConverter<T>.Default;
-        private Func<T, object>? _converterFunc;
+        private Func<T, object>? _valueFunc;
 
         /// <summary>
-        /// Sets (overrides) the <see cref="QueryFilterFieldConfigBase.SupportedKinds"/>.
+        /// Sets (overrides) the operator <see cref="QueryFilterFieldConfigBase.SupportedKinds"/>.
         /// </summary>
         /// <param name="kinds">The supported <see cref="QueryFilterTokenKind"/> flags.</param>
         /// <returns>The <see cref="QueryFilterFieldConfig{T}"/> to support fluent-style method-chaining.</returns>
         /// <remarks>The default is <see cref="QueryFilterTokenKind.Operator"/>.</remarks>
-        public QueryFilterFieldConfig<T> SupportKinds(QueryFilterTokenKind kinds)
+        public QueryFilterFieldConfig<T> Operators(QueryFilterTokenKind kinds)
         {
             if (((IQueryFilterFieldConfig)this).IsTypeBoolean)
-                throw new NotSupportedException($"{nameof(SupportKinds)} is not supported where {nameof(IQueryFilterFieldConfig.IsTypeBoolean)}.");
+                throw new NotSupportedException($"{nameof(Operators)} is not supported where {nameof(IQueryFilterFieldConfig.IsTypeBoolean)}.");
 
             SupportedKinds = kinds;
             return this;
@@ -47,11 +47,11 @@ namespace CoreEx.Data.Querying
         }
 
         /// <summary>
-        /// Sets the <paramref name="converter"/> to convert the field value from a <see cref="string"/> to the field type <typeparamref name="T"/>.
+        /// Sets (overrides) the <paramref name="converter"/> to convert the field value from a <see cref="string"/> to the field type <typeparamref name="T"/>.
         /// </summary>
         /// <param name="converter">The <see cref="IConverter{TSource, TDestination}"/>.</param>
         /// <returns>The <see cref="QueryFilterFieldConfig{T}"/> to support fluent-style method-chaining.</returns>
-        /// <remarks>The <paramref name="converter"/> is invoked before the <see cref="WithConverter(Func{T, object}?)"/> as the resultung value is passed through to enable further conversion and/or where applicable.</remarks>
+        /// <remarks>The <paramref name="converter"/> is invoked before the <see cref="WithValue(Func{T, object}?)"/> as the resulting value is passed through to enable further conversion and/or validation where applicable.</remarks>
         public QueryFilterFieldConfig<T> WithConverter(IConverter<string, T> converter)
         {
             _converter = converter.ThrowIfNull(nameof(converter));
@@ -59,13 +59,15 @@ namespace CoreEx.Data.Querying
         }
 
         /// <summary>
-        /// Sets the <paramref name="converter"/> to convert the field <typeparamref name="T"/> value to the final <see cref="object"/> value that will be used in the LINQ query.
+        /// Sets (overrides) the <paramref name="value"/> function to, a) further convert the field <typeparamref name="T"/> value to the final <see cref="object"/> value that will be used in the LINQ query; and/or, b) to provide additional validation.
         /// </summary>
-        /// <param name="converter">The conversion query.</param>
+        /// <param name="value">The value function.</param>
         /// <returns>The final <see cref="object"/> value that will be used in the LINQ query.</returns>
-        public QueryFilterFieldConfig<T> WithConverter(Func<T, object>? converter)
+        /// <remarks>This is an opportunity to further validate the query as needed. Throw a <see cref="FormatException"/> to have the validation message formatted correctly and consistently.
+        /// <para>This in invoked after the <see cref="WithConverter(IConverter{string, T})"/> has been invoked.</para></remarks>
+        public QueryFilterFieldConfig<T> WithValue(Func<T, object>? value)
         {
-            _converterFunc = converter;
+            _valueFunc = value;
             return this;
         }
 
@@ -84,11 +86,11 @@ namespace CoreEx.Data.Querying
                     str = str?.ToUpper(System.Globalization.CultureInfo.CurrentCulture);
                 
                 value = _converter.ConvertToDestination(str!);
-                return _converterFunc?.Invoke(value) ?? value!;
+                return _valueFunc?.Invoke(value) ?? value!;
             }
 
             // Convert the underlying type to the final value.
-            return _converterFunc?.Invoke(value) ?? value!;
+            return _valueFunc?.Invoke(value) ?? value!;
         }
     }
 }

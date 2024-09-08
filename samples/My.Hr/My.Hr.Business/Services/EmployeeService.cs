@@ -6,11 +6,15 @@ public class EmployeeService : IEmployeeService
 {
     private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
         .WithFilter(filter => filter
-            .AddField<string>("LastName", c => c.SupportKinds(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
-            .AddField<string>("FirstName", c => c.SupportKinds(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+            .AddField<string>("LastName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+            .AddField<string>("FirstName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
             .AddField<DateTime>("StartDate")
             .AddField<DateTime>("TerminationDate")
-            .AddField<string>(nameof(Employee.Gender), c => c.WithConverter(v => Gender.ConvertFromCode(v))))
+            .AddField<string>(nameof(Employee.Gender), c => c.WithValue(v =>
+            {
+                var g = Gender.ConvertFromCode(v);
+                return g is not null && g.IsValid ? g : throw new FormatException("Gender is invalid.");
+            })))
         .WithOrderBy(orderBy => orderBy
             .AddField("LastName")
             .AddField("FirstName")

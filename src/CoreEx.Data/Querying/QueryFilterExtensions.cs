@@ -35,7 +35,7 @@ namespace System.Linq
         {
             queryConfig.ThrowIfNull(nameof(queryConfig));
             if (!queryConfig.HasFilterParser)
-                throw new QueryFilterParserException("Capability is not currently supported.");
+                throw new QueryFilterParserException("Filter statement is not currently supported.");
 
             var result = queryConfig.FilterParser.Parse(filter);
             var linq = result.ToString();
@@ -56,7 +56,7 @@ namespace System.Linq
             queryConfig.ThrowIfNull(nameof(queryConfig));
 
             if (!queryConfig.HasOrderByParser)
-                throw new QueryOrderByParserException("Capability is not currently supported.");
+                throw new QueryOrderByParserException("OrderBy statement is not currently supported.");
 
             return string.IsNullOrEmpty(queryArgs?.OrderBy) 
                 ? (queryConfig.OrderByParser.DefaultOrderBy is null ? query : query.OrderBy(queryConfig.OrderByParser.DefaultOrderBy))

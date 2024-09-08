@@ -71,7 +71,7 @@ namespace CoreEx.Data.Querying
             {
                 throw;
             }
-            catch (ValidationException ex)
+            catch (Exception ex) when (ex is FormatException || ex is InvalidCastException || ex is ValidationException)
             {
                 throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' with value '{GetValueToken(filter)}' is invalid: {ex.Message}");
             }

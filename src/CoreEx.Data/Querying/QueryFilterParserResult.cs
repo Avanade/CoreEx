@@ -74,7 +74,7 @@ namespace CoreEx.Data.Querying
         /// </summary>
         /// <param name="statement">The <see cref="QueryStatement"/>.</param>
         /// <remarks>Also appends an '<c> &amp;&amp; </c>' (and) prior to the <paramref name="statement"/> where neccessary.</remarks>
-        public void Append(QueryStatement statement)
+        public void AppendStatement(QueryStatement statement)
         {
             if (FilterBuilder.Length > 0)
                 FilterBuilder.Append(" && ");

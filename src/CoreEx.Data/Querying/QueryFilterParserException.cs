@@ -17,6 +17,6 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// Gets the <see cref="LText.FallbackText"/> <see cref="Exception.Message"/>
         /// </summary>
-        internal const string FallbackMessage = "A query validation error occurred.";
+        internal const string FallbackMessage = "A query parsing error occurred.";
     }
 }

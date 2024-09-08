@@ -10,8 +10,8 @@ namespace CoreEx.Test.Framework.Data
     {
         private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
             .WithFilter(filter => filter
-                .AddField<string>("LastName", c => c.SupportKinds(QueryFilterTokenKind.AllStringOperators).AlsoCheckNotNull())
-                .AddField<string>("FirstName", c => c.SupportKinds(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+                .AddField<string>("LastName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).AlsoCheckNotNull())
+                .AddField<string>("FirstName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
                 .AddField<string>("Code")
                 .AddField<DateTime>("Birthday", "BirthDate")
                 .AddField<int>("Age")
@@ -202,7 +202,7 @@ namespace CoreEx.Test.Framework.Data
                     .OnQuery(result =>
                     {
                         if (!result.Fields.Contains("LastName"))
-                            result.Append(new QueryStatement("LastName != null"));
+                            result.AppendStatement(new QueryStatement("LastName != null"));
 
                         if (result.Fields.Count > 1)
                             throw new QueryFilterParserException("Only a single field filter is allowed.");
@@ -234,14 +234,14 @@ namespace CoreEx.Test.Framework.Data
         {
             var s = _queryConfig.FilterParser.ToString();
             Console.WriteLine(s);
-            Assert.That(s, Is.EqualTo(@"Filter fields as follows:
-- lastname (string): eq, ne, lt, le, ge, gt, startswith, contains, endswith
-- firstname (string): eq, ne, lt, le, ge, gt, startswith, contains, endswith
-- code (string): eq, ne, lt, le, ge, gt
-- birthday (datetime): eq, ne, lt, le, ge, gt
-- age (int32): eq, ne, lt, le, ge, gt
-- salary (decimal): eq, ne, lt, le, ge, gt
-- isold (boolean): eq, ne"));
+            Assert.That(s, Is.EqualTo(@"Supported field(s) are as follows:
+LastName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, StartsWith, Contains, EndsWith)
+FirstName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, StartsWith, Contains, EndsWith)
+Code (Type: String, Operations: EQ, NE, LT, LE, GE, GT)
+Birthday (Type: DateTime, Operations: EQ, NE, LT, LE, GE, GT)
+Age (Type: Int32, Operations: EQ, NE, LT, LE, GE, GT)
+Salary (Type: Decimal, Operations: EQ, NE, LT, LE, GE, GT)
+IsOld (Type: Boolean, Operations: EQ, NE)"));
         }
     }
 }

@@ -25,9 +25,9 @@ namespace CoreEx.Data.Querying
         public QueryFilterParser FilterParser => _filterParser ??= new QueryFilterParser();
 
         /// <summary>
-        /// Indicates whether there is a <see cref="FilterParser"/> and it has at least one field configured.
+        /// Indicates whether there is a <see cref="FilterParser"/>.
         /// </summary>
-        public bool HasFilterParser => _filterParser is not null && _filterParser.HasFields;
+        public bool HasFilterParser => _filterParser is not null;
 
         /// <summary>
         /// Gets the <see cref="QueryOrderByParser"/>.

@@ -14,7 +14,17 @@ namespace CoreEx.Data.Querying
     /// </summary>
     /// <remarks>Enables basic query filtering with similar syntax to the OData <c><see href="https://docs.oasis-open.org/odata/odata/v4.01/cs01/part2-url-conventions/odata-v4.01-cs01-part2-url-conventions.html#sec_SystemQueryOptionfilter">$filter</see></c>.
     /// Support is limited to the filter tokens as specified by the <see cref="QueryFilterTokenKind"/>.  
-    /// <para>This is <b>not</b> intended to be a replacement for OData, GraphQL, etc. but to provide a limited, explicitly supported, dynamic capability to filter an underlying query.</para></remarks>
+    /// <para>This is <b>not</b> intended to be a replacement for OData, GraphQL, etc. but to provide a limited, explicitly supported, dynamic capability to filter an underlying query.</para>
+    /// <para>Example configuration is as follows:
+    /// <code>
+    /// private static readonly QueryArgsConfig _config = QueryArgsConfig.Create()
+    ///     .WithFilter(filter =&gt; filter
+    ///         .AddField&lt;string&gt;(nameof(Employee.LastName), c =&gt; c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+    ///         .AddField&lt;string&gt;(nameof(Employee.FirstName), c =&gt; c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+    ///         .AddReferenceDataField&lt;Gender&gt;(nameof(Employee.Gender), nameof(EfModel.Employee.GenderCode), c =&gt; c.MustBeValid())
+    ///         .AddField&lt;DateTime&gt;(nameof(Employee.StartDate))
+    ///         .AddNullField(nameof(Employee.Termination), nameof(EfModel.Employee.TerminationDate), c =&gt; c.Default(new QueryStatement($"{nameof(EfModel.Employee.TerminationDate)} == null"))));
+    /// </code></para></remarks>
     public class QueryFilterParser()
     {
         private readonly Dictionary<string, IQueryFilterFieldConfig> _fields = new(StringComparer.OrdinalIgnoreCase);
@@ -105,7 +115,7 @@ namespace CoreEx.Data.Querying
         /// <param name="onQuery">The action to invoke.</param>
         /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
         /// <remarks>The <see cref="QueryFilterParserResult"/> can be further maintained as required.
-        /// <para>Additionally, this is a opportunity to further validate the query as needed. Throw a <see cref="QueryFilterParserException"/> to have the validation message formatted correctly and consistently.</para></remarks>
+        /// <para>Additionally, this is an opportunity to further validate the query as needed. Throw a <see cref="QueryFilterParserException"/> to have the validation message formatted correctly and consistently.</para></remarks>
         public QueryFilterParser OnQuery(Action<QueryFilterParserResult>? onQuery)
         {
             _onQuery = onQuery;
@@ -150,6 +160,9 @@ namespace CoreEx.Data.Querying
         /// <remarks>Leverages the <see cref="GetExpressions(string?)"/> to perform the actual parsing.</remarks>
         public QueryFilterParserResult Parse(string? filter)
         {
+            if (!string.IsNullOrEmpty(filter) && filter.Equals("help", StringComparison.OrdinalIgnoreCase))
+                throw new QueryFilterParserException(ToString());
+
             var result = new QueryFilterParserResult();
 
             // Append all the expressions to the resulting LINQ whilst parsing.
@@ -162,7 +175,7 @@ namespace CoreEx.Data.Querying
             var needsAnd = result.FilterBuilder.Length > 0;
             foreach (var statement in _fields.Where(x => x.Value.DefaultStatement is not null && !result.Fields.Contains(x.Key)).Select(x => x.Value.DefaultStatement!))
             {
-                result.Append(statement);
+                result.AppendStatement(statement);
             }
 
             // Uses the default statement where no fields were specified (or defaulted).
@@ -417,10 +430,13 @@ namespace CoreEx.Data.Querying
         /// <inheritdoc/>
         public override string ToString()
         {
-            var sb = new StringBuilder("Filter fields as follows:");
+            if (!HasFields)
+                return "Filter statement is not currently supported.";
+
+            var sb = new StringBuilder("Supported field(s) are as follows:");
             foreach (var field in _fields)
             {
-                sb.AppendLine().Append("- ").Append(field.Key.ToLower()).Append(" (").Append(field.Value.Type.Name.ToLower()).Append("): ");
+                sb.AppendLine().Append(field.Key).Append(" (Type: ").Append(field.Value.Type.Name).Append(", Operations: ");
 
                 var first = true;
                 foreach (var e in Enum.GetValues(typeof(QueryFilterTokenKind)))
@@ -439,6 +455,8 @@ namespace CoreEx.Data.Querying
                         }
                     }
                 }
+
+                sb.Append(')');
             }
 
             return sb.ToString();
@@ -449,15 +467,15 @@ namespace CoreEx.Data.Querying
         /// </summary>
         private static string? GetODataOperator(QueryFilterTokenKind kind) => kind switch
         {
-            QueryFilterTokenKind.Equal => "eq",
-            QueryFilterTokenKind.NotEqual => "ne",
-            QueryFilterTokenKind.GreaterThan => "gt",
-            QueryFilterTokenKind.GreaterThanOrEqual => "ge",
-            QueryFilterTokenKind.LessThan => "lt",
-            QueryFilterTokenKind.LessThanOrEqual => "le",
-            QueryFilterTokenKind.StartsWith => "startswith",
-            QueryFilterTokenKind.EndsWith => "endswith",
-            QueryFilterTokenKind.Contains => "contains",
+            QueryFilterTokenKind.Equal => "EQ",
+            QueryFilterTokenKind.NotEqual => "NE",
+            QueryFilterTokenKind.GreaterThan => "GT",
+            QueryFilterTokenKind.GreaterThanOrEqual => "GE",
+            QueryFilterTokenKind.LessThan => "LT",
+            QueryFilterTokenKind.LessThanOrEqual => "LE",
+            QueryFilterTokenKind.StartsWith => nameof(QueryFilterTokenKind.StartsWith),
+            QueryFilterTokenKind.EndsWith => nameof(QueryFilterTokenKind.EndsWith),
+            QueryFilterTokenKind.Contains => nameof(QueryFilterTokenKind.Contains),
             _ => null
         };
     }

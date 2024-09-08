@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
+
 namespace CoreEx.Data.Querying
 {
     /// <summary>
@@ -17,6 +19,6 @@ namespace CoreEx.Data.Querying
 
         /// <inheritdoc/>
         protected override object ConvertToValue(QueryFilterToken operation, QueryFilterToken field, string filter)
-            => throw new ValidationException("Only null comparisons are supported.");
+            => throw new FormatException("Only null comparisons are supported.");
     }
 }

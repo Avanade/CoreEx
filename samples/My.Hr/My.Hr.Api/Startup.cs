@@ -75,7 +75,6 @@ public class Startup
             options.OperationFilter<AcceptsBodyOperationFilter>();  // Needed to support AcceptsBodyAttribue where body parameter not explicitly defined.
             options.OperationFilter<PagingOperationFilter>(PagingOperationFilterFields.SkipTake);  // Needed to support PagingAttribute where PagingArgs parameter not explicitly defined.
             options.OperationFilter<QueryOperationFilter>(QueryOperationFilterFields.FilterAndOrderby);  // Needed to support QueryAttribute where QueryArgs parameter not explicitly defined.
-
         });
     }
 

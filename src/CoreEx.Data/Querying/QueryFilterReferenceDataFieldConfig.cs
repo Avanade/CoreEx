@@ -14,7 +14,8 @@ namespace CoreEx.Data.Querying
     public class QueryFilterReferenceDataFieldConfig<TRef> : QueryFilterFieldConfigBase<QueryFilterFieldConfig<TRef>> where TRef : IReferenceData, new()
     {
         private bool _useIdentifier;
-        private bool _mustBeValid;
+        private bool _mustBeValid = true;
+        private Func<TRef, TRef>? _valueFunc;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="QueryFilterReferenceDataFieldConfig{TRef}"/> class.
@@ -51,6 +52,18 @@ namespace CoreEx.Data.Querying
             return this;
         }
 
+        /// <summary>
+        /// Sets (overrides) the <paramref name="value"/> function to, a) further convert the field <typeparamref name="TRef"/> value; and/or, b) to provide additional validation.
+        /// </summary>
+        /// <param name="value">The value function.</param>
+        /// <returns>The final value that will be used in the LINQ query.</returns>
+        /// <remarks>This is an opportunity to further validate the query as needed. Throw a <see cref="FormatException"/> to have the validation message formatted correctly and consistently.</remarks>
+        public QueryFilterReferenceDataFieldConfig<TRef> WithValue(Func<TRef, TRef>? value)
+        {
+            _valueFunc = value;
+            return this;
+        }
+
         /// <inheritdoc/>
         protected override object ConvertToValue(QueryFilterToken operation, QueryFilterToken field, string filter)
         {
@@ -59,6 +72,9 @@ namespace CoreEx.Data.Querying
 
             if (_mustBeValid && !value.IsValid)
                 throw new FormatException("Reference data code is invalid.");
+
+            if (_valueFunc is not null)
+                value = _valueFunc.Invoke(value) ?? throw new FormatException("Reference data code is invalid.");
 
             return _useIdentifier
                 ? (value.Id is null ? string.Empty : value.Id)
