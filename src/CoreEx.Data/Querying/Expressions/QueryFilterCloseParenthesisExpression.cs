@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Data.Querying
+namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
     /// Represents a query filter <see cref="QueryFilterTokenKind.CloseParenthesis"/> expression.

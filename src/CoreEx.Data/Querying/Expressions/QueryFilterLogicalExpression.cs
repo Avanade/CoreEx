@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Data.Querying
+namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
     /// Represents a query filter <see cref="QueryFilterTokenKind.Logical"/> expression.
@@ -24,7 +24,7 @@ namespace CoreEx.Data.Querying
                 return token.Kind == QueryFilterTokenKind.Not;
 
             _isComplete = token.Kind == QueryFilterTokenKind.OpenParenthesis;
-            return _isComplete 
+            return _isComplete
                 ? false
                 : throw new QueryFilterParserException($"A '{_not.GetRawToken(Filter).ToString()}' expects an opening '(' to start an expression versus a syntactically incorrect '{token.GetValueToken(Filter)}' token.");
         }

@@ -2,7 +2,7 @@
 
 using System.Collections.Generic;
 
-namespace CoreEx.Data.Querying
+namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
     /// Represents a query filter <see cref="QueryFilterTokenKind.Operator"/> expression.
@@ -38,7 +38,7 @@ namespace CoreEx.Data.Querying
         public override bool IsComplete => _isComplete;
 
         /// <inheritdoc/>
-        public override bool CanAddToken(QueryFilterToken token) => !_isComplete || (TokenCount == 1 && QueryFilterTokenKind.Operator.HasFlag(token.Kind));
+        public override bool CanAddToken(QueryFilterToken token) => !_isComplete || TokenCount == 1 && QueryFilterTokenKind.Operator.HasFlag(token.Kind);
 
         /// <inheritdoc/>
         protected override void AddToken(int index, QueryFilterToken token)

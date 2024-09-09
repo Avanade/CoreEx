@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-namespace CoreEx.Data.Querying
+namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
     /// Represents a query filter <see cref="QueryFilterTokenKind.StringFunction"/> expression.
@@ -40,7 +40,7 @@ namespace CoreEx.Data.Querying
 
         /// <inheritdoc/>
         protected override void AddToken(int index, QueryFilterToken token)
-        { 
+        {
             switch (index)
             {
                 case 0:
