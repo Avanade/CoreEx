@@ -50,6 +50,7 @@ namespace CoreEx.Data.Querying
         /// <inheritdoc/>
         string? IQueryFilterFieldConfig.Model => _model ?? _field;
 
+        /// <inheritdoc/>
         bool IQueryFilterFieldConfig.IsTypeString => IsTypeString;
 
         /// <summary>
