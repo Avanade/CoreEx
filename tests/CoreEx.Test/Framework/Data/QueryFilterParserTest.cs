@@ -235,12 +235,12 @@ namespace CoreEx.Test.Framework.Data
             var s = _queryConfig.FilterParser.ToString();
             Console.WriteLine(s);
             Assert.That(s, Is.EqualTo(@"Supported field(s) are as follows:
-LastName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, StartsWith, Contains, EndsWith)
-FirstName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, StartsWith, Contains, EndsWith)
-Code (Type: String, Operations: EQ, NE, LT, LE, GE, GT)
-Birthday (Type: DateTime, Operations: EQ, NE, LT, LE, GE, GT)
-Age (Type: Int32, Operations: EQ, NE, LT, LE, GE, GT)
-Salary (Type: Decimal, Operations: EQ, NE, LT, LE, GE, GT)
+LastName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+FirstName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+Code (Type: String, Operations: EQ, NE, LT, LE, GE, GT, IN)
+Birthday (Type: DateTime, Operations: EQ, NE, LT, LE, GE, GT, IN)
+Age (Type: Int32, Operations: EQ, NE, LT, LE, GE, GT, IN)
+Salary (Type: Decimal, Operations: EQ, NE, LT, LE, GE, GT, IN)
 IsOld (Type: Boolean, Operations: EQ, NE)"));
         }
     }

@@ -473,6 +473,7 @@ namespace CoreEx.Data.Querying
             QueryFilterTokenKind.GreaterThanOrEqual => "GE",
             QueryFilterTokenKind.LessThan => "LT",
             QueryFilterTokenKind.LessThanOrEqual => "LE",
+            QueryFilterTokenKind.In => "IN",
             QueryFilterTokenKind.StartsWith => nameof(QueryFilterTokenKind.StartsWith),
             QueryFilterTokenKind.EndsWith => nameof(QueryFilterTokenKind.EndsWith),
             QueryFilterTokenKind.Contains => nameof(QueryFilterTokenKind.Contains),

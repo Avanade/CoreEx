@@ -51,74 +51,74 @@ namespace CoreEx.Data.Querying
         GreaterThan = 128,
 
         /// <summary>
+        /// The logical IN operator token.
+        /// </summary>
+        In = 256,
+
+        /// <summary>
         /// The value token.
         /// </summary>
-        Value = 256,
+        Value = 512,
 
         /// <summary>
         /// The string literal token.
         /// </summary>
-        Literal = 512,
+        Literal = 1024,
 
         /// <summary>
         /// The <see langword="true"/> token.
         /// </summary>
-        True = 1024,
+        True = 2048,
 
         /// <summary>
         /// The <see langword="false"/> token.
         /// </summary>
-        False = 2048,
+        False = 4096,
 
         /// <summary>
         /// The <see langword="null"/> token.
         /// </summary>
-        Null = 4096,
+        Null = 8192,
 
         /// <summary>
         /// The logical AND operator token.
         /// </summary>
-        And = 8192,
+        And = 16384,
 
         /// <summary>
         /// The logical OR operator token.
         /// </summary>
-        Or = 16384,
+        Or = 32768,
 
         /// <summary>
         /// The open parenthesis token.
         /// </summary>
-        OpenParenthesis = 32768,
+        OpenParenthesis = 65536,
 
         /// <summary>
         /// The close parenthesis token.
         /// </summary>
-        CloseParenthesis = 65536,
+        CloseParenthesis = 131072,
 
         /// <summary>
         /// The comma token.
         /// </summary>
-        Comma = 131072,
+        Comma = 262144,
 
         /// <summary>
         /// The starts with token.
         /// </summary>
-        StartsWith = 262144,
+        StartsWith = 524288,
 
         /// <summary>
         /// The contains token.
         /// </summary>
-        Contains = 524288,
+        Contains = 1048576,
 
         /// <summary>
         /// The ends with token.
         /// </summary>
-        EndsWith = 1048576,
-
-        /// <summary>
-        /// The logical IN operator token.
-        /// </summary>
-        In = 2097152,
+        EndsWith = 2097152,
 
         /// <summary>
         /// The logical NOT operator token.
