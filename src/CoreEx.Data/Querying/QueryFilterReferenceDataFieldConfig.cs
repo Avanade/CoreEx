@@ -71,10 +71,10 @@ namespace CoreEx.Data.Querying
             TRef value = ReferenceDataOrchestrator.ConvertFromCode<TRef>(text);
 
             if (_mustBeValid && !value.IsValid)
-                throw new FormatException("Reference data code is invalid.");
+                throw new FormatException($"Not a valid {typeof(TRef).Name}.");
 
             if (_valueFunc is not null)
-                value = _valueFunc.Invoke(value) ?? throw new FormatException("Reference data code is invalid.");
+                value = _valueFunc.Invoke(value) ?? throw new FormatException($"Not a valid {typeof(TRef).Name}.");
 
             return _useIdentifier
                 ? (value.Id is null ? string.Empty : value.Id)
