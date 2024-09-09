@@ -14,9 +14,9 @@ The motivation is to simplify and improve the data access experience.
 
 It is not always possible to implement the likes of OData and/or GraphQL on an underlying data source. This could be related to the complexity of the implementation, the desire to hide the underlying data structure, and/or limit the types of operations performed to manage the underlying performance.
 
-However, the desire to provide a similar experience to the client remains. The `CoreEx.Data.Querying` namespace enables the client to perform OData-like queries (limited to `$filter` and `$orderby`) on an underlying data source, in a structured and controlled manner.
+However, the desire to provide a similar experience to the client remains. The `CoreEx.Data.Querying` namespace enables the client to perform OData-like queries (limited to [`$filter`](https://docs.oasis-open.org/odata/odata/v4.01/cs01/part2-url-conventions/odata-v4.01-cs01-part2-url-conventions.html#sec_SystemQueryOptionfilter) and [`$orderby`](https://docs.oasis-open.org/odata/odata/v4.01/cs01/part2-url-conventions/odata-v4.01-cs01-part2-url-conventions.html#_Toc505773299)) on an underlying data source, in a structured and controlled manner.
 
-_Note:_ This is **not** intended to be a replacement for OData, GraphQL, etc. but to provide a limited, explicitly supported, dynamic capability to filter an underlying query.
+_Note:_ This is **not** intended to be a replacement for [OData](https://learn.microsoft.com/en-us/odata/webapi-8/overview), [GraphQL](https://github.com/graphql-dotnet/graphql-dotnet), etc. but to provide a limited, explicitly supported, dynamic capability to filter an underlying query.
 
 <br/>
 
@@ -92,7 +92,7 @@ private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
 
 ### Usage
 
-The configuration is then used to parse and apply the filter and/or order-by to the underlying query using the new `Where` and `OrderBy` extension methods.
+The configuration is then used to parse and apply the filter and/or order-by to the underlying query using the new `IQueryable<T>.Where` and `IQueryable<T>.OrderBy` extension methods.
 
 ``` csharp
 var query = new QueryArgs

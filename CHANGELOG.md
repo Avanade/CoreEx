@@ -3,12 +3,12 @@
 Represents the **NuGet** versions.
 
 ## v3.25.0
-- *Enhancement:* Added new `CoreEx.Data` project/package to encapsulate all generic data-related capabilities, specifically the new `QueryFilterParser` and `QueryOrderByParser` classes. These enable a limited, explicitly supported, dynamic capability to [`$filter`](https://docs.oasis-open.org/odata/odata/v4.01/cs01/part2-url-conventions/odata-v4.01-cs01-part2-url-conventions.html#sec_SystemQueryOptionfilter) and `$orderby` an underlying query similar to _OData_. This is **not** intended to be a replacement for the full capabilities of OData, GraphQL, etc. but to offer basic dynamic flexibility where needed.
-  - Added `IQueryable<T>.WithQuery()` that will use the aforementioned parsers configured within the new `QueryArgsConfig` and `Entity.QueryArgs` and apply leveraging `System.Linq.Dynamic.Core`.
+- *Enhancement:* Added new `CoreEx.Data` project/package to encapsulate all generic data-related capabilities, specifically the new `QueryFilterParser` and `QueryOrderByParser` classes. These enable a limited, explicitly supported, dynamic capability to `$filter` and `$orderby` an underlying query _similar_ to _OData_. This is **not** intended to be a replacement for the full capabilities of OData, GraphQL, etc. but to offer basic dynamic flexibility where needed.
+  - Added `IQueryable<T>.Where()` and `IQueryable<T>.OrderBy` extension method that will use the aforementioned parsers configured within the new `QueryArgsConfig` and `QueryArgs` and apply leveraging `System.Linq.Dynamic.Core`.
   - Updated `HttpRequestOptions` and `WebApiRequestOptions` to support `QueryArgs` (`$filter` and `$orderby` query string arguments) similar to the existing `PagingArgs`.
   - Added `QueryAttribute` to enable _Swagger/Swashbuckle_ generated documentation.
 - *Fixed:* Fixed missing `IServiceCollection.AddCosmosDb` including corresponding `CosmosDbHealthCheck`.
-- *Fixed:* Added `JsonIgnore` to all interfaces that have a `CompositeKey` property as not intended to be serialized by default.
+- *Fixed:* Added `JsonIgnore` to all interfaces that have a `CompositeKey` property as _not_ intended to be serialized by default.
 - *Fixed:* Fixed `ReferenceDataCollectionBase<TId, TRef, TSelf>` constructor which was hiding `sortOrder` and `codeComparer` parameters.
 
 ## v3.24.1
