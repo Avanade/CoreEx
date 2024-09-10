@@ -32,7 +32,25 @@ namespace CoreEx.Http
                 return requestOptions;
 
             requestOptions ??= new HttpRequestOptions();
-            requestOptions.Paging = paging;
+            requestOptions.WithPaging(paging);
+            return requestOptions;
+        }
+
+        /// <summary>
+        /// Includes the <paramref name="query"/> by updating <paramref name="requestOptions"/> <see cref="HttpRequestOptions.Query"/>.
+        /// </summary>
+        /// <param name="requestOptions">The <see cref="HttpRequestOptions"/> (can be <c>null</c>).</param>
+        /// <param name="query">The <see cref="QueryArgs"/>.</param>
+        /// <returns>The <see cref="HttpRequestOptions"/>.</returns>
+        /// <remarks>Will create a new <see cref="HttpRequestOptions"/> where the <paramref name="requestOptions"/> is <c>null</c> and the corresponding <paramref name="query"/> is not <c>null</c>; otherwise, overrides the 
+        /// existing <paramref name="requestOptions"/> <see cref="HttpRequestOptions.Query"/>.</remarks>
+        public static HttpRequestOptions? IncludeQuery(this HttpRequestOptions? requestOptions, QueryArgs? query)
+        {
+            if (requestOptions == null && query == null)
+                return requestOptions;
+
+            requestOptions ??= new HttpRequestOptions();
+            requestOptions.WithQuery(query);
             return requestOptions;
         }
     }

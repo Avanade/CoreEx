@@ -38,7 +38,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest");
-            var ro = new HttpRequestOptions { ETag = "etag-value", IncludeText = true, IncludeInactive = true, Paging = PagingArgs.CreateSkipAndTake(20, 25, true), UrlQueryString = "fruit=apples" }.Include("fielda", "fieldb").Exclude("fieldc");
+            var ro = new HttpRequestOptions() { ETag = "etag-value", IncludeText = true, IncludeInactive = true, UrlQueryString = "fruit=apples" }.WithPaging(PagingArgs.CreateSkipAndTake(20, 25, true)).Include("fielda", "fieldb").Exclude("fieldc");
             
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.QueryString.Value, Is.EqualTo("?$skip=20&$take=25&$count=true&$fields=fielda,fieldb&$exclude=fieldc&$text=true&$inactive=true&fruit=apples"));
@@ -70,7 +70,7 @@ namespace CoreEx.Test.Framework.WebApis
         {
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest");
-            var ro = new HttpRequestOptions { ETag = "etag-value", IncludeText = true, IncludeInactive = true, Paging = PagingArgs.CreateTokenAndTake("token", 25, true), UrlQueryString = "fruit=apples" }.Include("fielda", "fieldb").Exclude("fieldc");
+            var ro = new HttpRequestOptions { ETag = "etag-value", IncludeText = true, IncludeInactive = true, UrlQueryString = "fruit=apples" }.WithPaging(PagingArgs.CreateTokenAndTake("token", 25, true)).Include("fielda", "fieldb").Exclude("fieldc");
 
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.QueryString.Value, Is.EqualTo("?$token=token&$take=25&$count=true&$fields=fielda,fieldb&$exclude=fieldc&$text=true&$inactive=true&fruit=apples"));

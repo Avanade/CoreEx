@@ -60,9 +60,14 @@ namespace CoreEx.AspNetCore.WebApis
         public string[]? ExcludeFields { get; private set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="PagingArgs"/>.
+        /// Gets the <see cref="PagingArgs"/>.
         /// </summary>
         public PagingArgs? Paging { get; private set; }
+
+        /// <summary>
+        /// Gets the dynamic <see cref="QueryArgs"/>.
+        /// </summary>
+        public QueryArgs? Query { get; private set; }
 
         /// <summary>
         /// Indicates whether to include any related texts for the item(s).
@@ -96,6 +101,7 @@ namespace CoreEx.AspNetCore.WebApis
             IncludeInactive = HttpExtensions.ParseBoolValue(GetNamedQueryString(query, HttpConsts.IncludeInactiveQueryStringNames, "true"));
 
             Paging = GetPagingArgs(query);
+            Query = GetQueryArgs(query);
             return true;
         }
 
@@ -104,9 +110,6 @@ namespace CoreEx.AspNetCore.WebApis
         /// </summary>
         private static PagingArgs? GetPagingArgs(IQueryCollection query)
         {
-            if (query == null || query.Count == 0)
-                return null;
-
             long? skip = HttpExtensions.ParseLongValue(GetNamedQueryString(query, HttpConsts.PagingArgsSkipQueryStringNames));
             long? take = HttpExtensions.ParseLongValue(GetNamedQueryString(query, HttpConsts.PagingArgsTakeQueryStringNames));
             long? page = skip.HasValue ? null : HttpExtensions.ParseLongValue(GetNamedQueryString(query, HttpConsts.PagingArgsPageQueryStringNames));
@@ -139,6 +142,16 @@ namespace CoreEx.AspNetCore.WebApis
 
             var val = q.Value.FirstOrDefault();
             return string.IsNullOrEmpty(val) ? defaultValue : val;
+        }
+
+        /// <summary>
+        /// Gets the <see cref="QueryArgs"/> from an <see cref="IQueryCollection"/>.
+        /// </summary>
+        private static QueryArgs? GetQueryArgs(IQueryCollection query)
+        {
+            var filter = GetNamedQueryString(query, HttpConsts.QueryArgsFilterQueryStringNames);
+            var orderBy = GetNamedQueryString(query, HttpConsts.QueryArgsOrderByQueryStringNames);
+            return string.IsNullOrEmpty(filter) && string.IsNullOrEmpty(orderBy) ? null : new QueryArgs { Filter = filter, OrderBy = orderBy };
         }
     }
 }

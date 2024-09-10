@@ -73,7 +73,8 @@ public class Startup
             var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
             options.OperationFilter<AcceptsBodyOperationFilter>();  // Needed to support AcceptsBodyAttribue where body parameter not explicitly defined.
-            options.OperationFilter<PagingOperationFilter>(PagingOperationFilterFields.TokenTake);  // Needed to support PagingAttribue where PagingArgs parameter not explicitly defined.
+            options.OperationFilter<PagingOperationFilter>(PagingOperationFilterFields.SkipTake);  // Needed to support PagingAttribute where PagingArgs parameter not explicitly defined.
+            options.OperationFilter<QueryOperationFilter>(QueryOperationFilterFields.FilterAndOrderby);  // Needed to support QueryAttribute where QueryArgs parameter not explicitly defined.
         });
     }
 

@@ -3,7 +3,6 @@
 using CoreEx.Entities;
 using CoreEx.RefData;
 using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Net.Http;
@@ -19,13 +18,20 @@ namespace CoreEx.Http
     public class HttpRequestOptions
     {
         /// <summary>
-        /// Gets or sets the <see cref="IncludeFields"/> query string name.
+        /// Creates a new instance of the <see cref="HttpRequestOptions"/> class.
+        /// </summary>
+        /// <param name="paging">The optional <see cref="PagingArgs"/>.</param>
+        /// <returns>The <see cref="HttpRequestOptions"/>.</returns>
+        public static HttpRequestOptions Create(PagingArgs? paging = null) => new() { Paging = paging };
+
+        /// <summary>
+        /// Gets or sets the <see cref="QueryArgs.IncludeFields"/> query string name.
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpConsts.IncludeFieldsQueryStringName"/>.</remarks>
         public string QueryStringNameIncludeFields { get; set; } = HttpConsts.IncludeFieldsQueryStringName;
 
         /// <summary>
-        /// Gets or sets the <see cref="ExcludeFields"/> query string name.
+        /// Gets or sets the <see cref="QueryArgs.ExcludeFields"/> query string name.
         /// </summary>
         /// <remarks>Defaults to <see cref="HttpConsts.ExcludeFieldsQueryStringName"/>.</remarks>
         public string QueryStringNameExcludeFields { get; set; } = HttpConsts.ExcludeFieldsQueryStringName;
@@ -84,41 +90,84 @@ namespace CoreEx.Http
         public string? ETag { get; set; }
 
         /// <summary>
-        /// Gets or sets the list of <b>included</b> fields (JSON property names) to limit the serialized data payload (results in url query string: "$fields=x,y,z").
-        /// </summary>
-        public List<string>? IncludeFields { get; set; }
-
-        /// <summary>
-        /// Gets or sets the list of <b>excluded</b> fields (JSON property names) to limit the serialized data payload (results in url query string: "$excludefields=x,y,z").
-        /// </summary>
-        public List<string>? ExcludeFields { get; set; }
-
-        /// <summary>
-        /// Appends the <paramref name="fields"/> to the <see cref="IncludeFields"/>.
+        /// Appends the <paramref name="fields"/> to the <see cref="QueryArgs"/> <see cref="QueryArgs.IncludeFields"/>.
         /// </summary>
         /// <param name="fields">The fields to append.</param>
         /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
         public HttpRequestOptions Include(params string[] fields)
         {
-            (IncludeFields ??= []).AddRange(fields);
+            Query ??= new QueryArgs();
+            Query.Include(fields);
             return this;
         }
 
         /// <summary>
-        /// Appends the <paramref name="fields"/> to the <see cref="ExcludeFields"/>.
+        /// Appends the <paramref name="fields"/> to the <see cref="QueryArgs"/> <see cref="QueryArgs.ExcludeFields"/>.
         /// </summary>
         /// <param name="fields">The fields to append.</param>
         /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
         public HttpRequestOptions Exclude(params string[] fields)
         {
-            (ExcludeFields ??= []).AddRange(fields);
+            Query ??= new QueryArgs();
+            Query.Exclude(fields);
             return this;
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="PagingArgs"/>.
+        /// Updates (overrides) the <see cref="Query"/> <see cref="QueryArgs.Filter"/> using a basic dynamic <i>OData-like</i> <c>$filter</c> statement.
         /// </summary>
-        public PagingArgs? Paging { get; set; }
+        /// <param name="filter">The filter.</param>
+        /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
+        public HttpRequestOptions Filter(string? filter)
+        {
+            Query ??= new QueryArgs();
+            Query.Filter = filter;
+            return this;
+        }
+
+        /// <summary>
+        /// Updates (overrides) the <see cref="Query"/> <see cref="QueryArgs.OrderBy"/> using a basic dynamic <i>OData-like</i> <c>$orderby</c> statement.
+        /// </summary>
+        /// <param name="orderby">The order by.</param>
+        /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
+        public HttpRequestOptions OrderBy(string orderby)
+        {
+            Query ??= new QueryArgs();
+            Query.OrderBy = orderby;
+            return this;
+        }
+
+        /// <summary>
+        /// Updates (overrides) the <see cref="Query"/>.
+        /// </summary>
+        /// <param name="query">The <see cref="QueryArgs"/>.</param>
+        /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
+        public HttpRequestOptions WithQuery(QueryArgs? query)
+        {
+            Query = query;
+            return this;
+        }
+
+        /// <summary>
+        /// Updates (overrides) the <see cref="Paging"/>.
+        /// </summary>
+        /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+        /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
+        public HttpRequestOptions WithPaging(PagingArgs? paging)
+        {
+            Paging = paging;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the <see cref="PagingArgs"/>.
+        /// </summary>
+        public PagingArgs? Paging { get; private set; }
+
+        /// <summary>
+        /// Gets the dynamic <see cref="QueryArgs"/>.
+        /// </summary>
+        public QueryArgs? Query { get; private set; }
 
         /// <summary>
         /// Gets or sets the optional query string value to include within the <see cref="Uri.Query"/>.
@@ -156,7 +205,7 @@ namespace CoreEx.Http
             if (queryString is not null)
                 AddNameValueCollection(sb, queryString);
 
-            if (Paging != null)
+            if (Paging is not null)
             {
                 switch (Paging.Option)
                 {
@@ -181,11 +230,20 @@ namespace CoreEx.Http
                     AddNameValuePair(sb, QueryStringNamePagingArgsCount, "true", false);
             }
 
-            if (IncludeFields != null && IncludeFields.Count > 0)
-                AddNameValuePairs(sb, QueryStringNameIncludeFields, IncludeFields.Where(x => !string.IsNullOrEmpty(x)).Select(x => HttpUtility.UrlEncode(x)).ToArray(), false, true);
+            if (Query is not null)
+            {
+                if (!string.IsNullOrEmpty(Query.Filter))
+                    AddNameValuePair(sb, HttpConsts.QueryArgsFilterQueryStringName, Query.Filter, true);
 
-            if (ExcludeFields != null && ExcludeFields.Count > 0)
-                AddNameValuePairs(sb, QueryStringNameExcludeFields, ExcludeFields.Where(x => !string.IsNullOrEmpty(x)).Select(x => HttpUtility.UrlEncode(x)).ToArray(), false, true);
+                if (!string.IsNullOrEmpty(Query.OrderBy))
+                    AddNameValuePair(sb, HttpConsts.QueryArgsOrderByQueryStringName, Query.OrderBy, true);
+
+                if (Query.IncludeFields != null && Query.IncludeFields.Count > 0)
+                    AddNameValuePairs(sb, QueryStringNameIncludeFields, Query.IncludeFields.Where(x => !string.IsNullOrEmpty(x)).Select(x => HttpUtility.UrlEncode(x)).ToArray(), false, true);
+
+                if (Query.ExcludeFields != null && Query.ExcludeFields.Count > 0)
+                    AddNameValuePairs(sb, QueryStringNameExcludeFields, Query.ExcludeFields.Where(x => !string.IsNullOrEmpty(x)).Select(x => HttpUtility.UrlEncode(x)).ToArray(), false, true);
+            }
 
             if (IncludeText)
                 AddNameValuePair(sb, QueryStringNameIncludeText, "true", false);

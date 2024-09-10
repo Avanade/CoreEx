@@ -117,5 +117,35 @@ namespace CoreEx
             return value;
         }
 #endif
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// Throws an <see cref="ArgumentNullException"/> if the <paramref name="value"/> is <c>null</c> or <see cref="string.Empty"/>.
+        /// </summary>
+        /// <param name="value">The value to validate as non-null.</param>
+        /// <param name="paramName">The name of the parameter with which the <paramref name="value"/> corresponds.</param>
+        /// <returns>The <paramref name="value"/> to support fluent-style method-chaining.</returns>
+        public static string? ThrowIfEmpty(this string? value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
+        {
+            if (value is not null && 0 == value.Length)
+                throw new ArgumentException("The value cannot be an empty string.", paramName);
+
+            return value;
+        }
+#else
+        /// <summary>
+        /// Throws an <see cref="ArgumentNullException"/> if the <paramref name="value"/> is <c>null</c> or <see cref="string.Empty"/>.
+        /// </summary>
+        /// <param name="value">The value to validate as non-null.</param>
+        /// <param name="paramName">The name of the parameter with which the <paramref name="value"/> corresponds.</param>
+        /// <returns>The <paramref name="value"/> to support fluent-style method-chaining.</returns>
+        public static string? ThrowIfEmpty(this string? value, string? paramName = "value")
+        {
+            if (value is not null && 0 == value.Length)
+                throw new ArgumentException("The value cannot be an empty string.", paramName);
+
+            return value;
+        }
+#endif
     }
 }

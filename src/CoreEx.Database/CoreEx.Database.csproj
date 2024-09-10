@@ -12,6 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 

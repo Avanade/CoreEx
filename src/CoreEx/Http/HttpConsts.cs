@@ -72,12 +72,12 @@ namespace CoreEx.Http
         #region QueryStringName
 
         /// <summary>
-        /// Gets or sets the <see cref="HttpRequestOptions.IncludeFields"/> query string name.
+        /// Gets or sets the <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.IncludeFields"/> query string name.
         /// </summary>
         public static string IncludeFieldsQueryStringName { get; set; } = "$fields";
 
         /// <summary>
-        /// Gets or sets the <see cref="HttpRequestOptions.ExcludeFields"/> query string name.
+        /// Gets or sets the <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.IncludeFields"/> query string name.
         /// </summary>
         public static string ExcludeFieldsQueryStringName { get; set; } = "$exclude";
 
@@ -112,6 +112,16 @@ namespace CoreEx.Http
         public static string PagingArgsCountQueryStringName { get; set; } = "$count";
 
         /// <summary>
+        /// Gets or sets the <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.Filter"/> query string name.
+        /// </summary>
+        public static string QueryArgsFilterQueryStringName { get; set; } = "$filter";
+
+        /// <summary>
+        /// Gets or sets the <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.OrderBy"/> query string name.
+        /// </summary>
+        public static string QueryArgsOrderByQueryStringName { get; set; } = "$orderby";
+
+        /// <summary>
         /// Gets or sets the <see cref="HttpRequestOptions.IncludeText"/> query string name.
         /// </summary>
         /// <remarks>See <see cref="ExecutionContext.IsTextSerializationEnabled"/>.</remarks>
@@ -129,47 +139,57 @@ namespace CoreEx.Http
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Page"/> query string names.
         /// </summary>
-        public static List<string> PagingArgsPageQueryStringNames { get; set; } = new List<string>(new string[] { "$page", "$pageNumber", "paging-page" });
+        public static List<string> PagingArgsPageQueryStringNames { get; set; } = new List<string>(["$page", "$pageNumber", "paging-page"]);
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Skip"/> query string names.
         /// </summary>
-        public static List<string> PagingArgsSkipQueryStringNames { get; set; } = new List<string>(new string[] { "$skip", "$offset", "paging-skip" });
+        public static List<string> PagingArgsSkipQueryStringNames { get; set; } = new List<string>(["$skip", "$offset", "paging-skip"]);
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Take"/> query string names.
         /// </summary>
-        public static List<string> PagingArgsTakeQueryStringNames { get; set; } = new List<string>(new string[] { "$take", "$top", "$size", "$pageSize", "$limit", "paging-take", "paging-size", "paging-limit" });
+        public static List<string> PagingArgsTakeQueryStringNames { get; set; } = new List<string>(["$take", "$top", "$size", "$pageSize", "$limit", "paging-take", "paging-size", "paging-limit"]);
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.Take"/> query string names.
         /// </summary>
-        public static List<string> PagingArgsTokenQueryStringNames { get; set; } = new List<string>(new string[] { "$token", "$after", "$cursor", "paging-token", "paging-after", "paging-cursor" });
+        public static List<string> PagingArgsTokenQueryStringNames { get; set; } = new List<string>(["$token", "$after", "$cursor", "paging-token", "paging-after", "paging-cursor"]);
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="PagingArgs.IsGetCount"/> query string names.
         /// </summary>
-        public static List<string> PagingArgsCountQueryStringNames { get; set; } = new List<string>(new string[] { "$count", "$totalCount", "paging-count" });
+        public static List<string> PagingArgsCountQueryStringNames { get; set; } = new List<string>(["$count", "$totalCount", "paging-count"]);
 
         /// <summary>
-        /// Gets or sets the list of possible <see cref="HttpRequestOptions.IncludeFields"/> query string names.
+        /// Gets or sets the list of possible <see cref="QueryArgs.Filter"/> query string names.
         /// </summary>
-        public static List<string> IncludeFieldsQueryStringNames { get; set; } = new List<string>(new string[] { "$fields", "$includeFields", "$include", "include-fields" });
+        public static List<string> QueryArgsFilterQueryStringNames { get; set; } = new List<string>(["$filter"]);
 
         /// <summary>
-        /// Gets or sets the list of possible <see cref="HttpRequestOptions.ExcludeFields"/> query string names.
+        /// Gets or sets the list of possible <see cref="QueryArgs.OrderBy"/> query string names.
         /// </summary>
-        public static List<string> ExcludeFieldsQueryStringNames { get; set; } = new List<string>(new string[] { "$excludeFields", "$exclude", "exclude-fields" });
+        public static List<string> QueryArgsOrderByQueryStringNames { get; set; } = new List<string>(["$orderby", "$order-by"]);
+
+        /// <summary>
+        /// Gets or sets the list of possible <see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.IncludeFields"/> query string names.
+        /// </summary>
+        public static List<string> IncludeFieldsQueryStringNames { get; set; } = new List<string>(["$fields", "$includeFields", "$include", "include-fields"]);
+
+        /// <summary>
+        /// Gets or sets the list of possible<see cref="HttpRequestOptions.Query"/> <see cref="QueryArgs.ExcludeFields"/> query string names.
+        /// </summary>
+        public static List<string> ExcludeFieldsQueryStringNames { get; set; } = new List<string>(["$excludeFields", "$exclude", "exclude-fields"]);
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="HttpRequestOptions.IncludeText"/> query string names.
         /// </summary>
-        public static List<string> IncludeTextQueryStringNames { get; set; } = new List<string>(new string[] { "$text", "$includeText", "include-text" });
+        public static List<string> IncludeTextQueryStringNames { get; set; } = new List<string>(["$text", "$includeText", "include-text"]);
 
         /// <summary>
         /// Gets or sets the list of possible <see cref="HttpRequestOptions.IncludeInactive"/> query string names.
         /// </summary>
-        public static List<string> IncludeInactiveQueryStringNames { get; set; } = new List<string>(new string[] { "$inactive", "$includeInactive", "include-inactive" });
+        public static List<string> IncludeInactiveQueryStringNames { get; set; } = new List<string>(["$inactive", "$includeInactive", "include-inactive"]);
 
         #endregion
 

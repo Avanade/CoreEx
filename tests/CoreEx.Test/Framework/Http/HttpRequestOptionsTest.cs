@@ -32,22 +32,22 @@ namespace CoreEx.Test.Framework.Http
         public void Paging()
         {
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
-            var ro = new HttpRequestOptions() { Paging = PagingArgs.CreateSkipAndTake(20, 25) };
+            var ro = HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(20, 25));
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$skip=20&$take=25"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
-            ro = new HttpRequestOptions() { Paging = PagingArgs.CreateSkipAndTake(20, 25, true) };
+            ro = HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(20, 25, true));
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$skip=20&$take=25&$count=true"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
-            ro = new HttpRequestOptions() { Paging = PagingArgs.CreatePageAndSize(2, 25) };
+            ro = HttpRequestOptions.Create(PagingArgs.CreatePageAndSize(2, 25));
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$page=2&$size=25"));
 
             hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
-            ro = new HttpRequestOptions() { Paging = PagingArgs.CreatePageAndSize(2, 25, true) };
+            ro = HttpRequestOptions.Create(PagingArgs.CreatePageAndSize(2, 25, true));
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$page=2&$size=25&$count=true"));
         }

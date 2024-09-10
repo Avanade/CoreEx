@@ -333,8 +333,8 @@ namespace CoreEx.Test.Framework.Wildcards
                 Assert.That(GetPeople().WhereWildcard(x => x.First, "*IM*", ignoreCase: false).SingleOrDefault(), Is.Null);
 
                 // Regex-based: embedded.
-                Assert.That(GetPeople().WhereWildcard(x => x.First, "S*N").Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
-                Assert.That(GetPeople().WhereWildcard(x => x.First, "S*N", ignoreCase: false).Select(x => x.Last).SingleOrDefault(), Is.Null);
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "S*N", wildcard: Wildcard.MultiAll).Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Reynolds"));
+                Assert.That(GetPeople().WhereWildcard(x => x.First, "S*N", ignoreCase: false, wildcard: Wildcard.MultiAll).Select(x => x.Last).SingleOrDefault(), Is.Null);
 
                 // Regex-based: single-char match.
                 Assert.That(GetPeople().WhereWildcard(x => x.First, "G?RY", wildcard: Wildcard.BothAll).Select(x => x.Last).SingleOrDefault(), Is.EqualTo("Lawson"));
