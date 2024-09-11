@@ -17,8 +17,5 @@ namespace CoreEx.Data.Querying.Expressions
 
         /// <inheritdoc/>
         public override void WriteToResult(QueryFilterParserResult result) => result.Append(_syntax.ToLinq(Filter));
-
-        /// <inheritdoc/>
-        protected override IQueryFilterFieldConfig? GetFieldConfig() => null;
     }
 }

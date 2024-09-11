@@ -50,8 +50,5 @@ namespace CoreEx.Data.Querying.Expressions
             if (_not.Kind != QueryFilterTokenKind.Unspecified)
                 result.Append(_not.ToLinq(Filter));
         }
-
-        /// <inheritdoc/>
-        protected override IQueryFilterFieldConfig? GetFieldConfig() => null;
     }
 }

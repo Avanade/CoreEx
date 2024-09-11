@@ -169,6 +169,13 @@ namespace CoreEx.Data.Querying
             // Append all the expressions to the resulting LINQ whilst parsing.
             foreach (var expression in GetExpressions(filter))
             {
+                if (expression is IQueryFilterFieldStatementExpression fse)
+                {
+                    result.Fields.Add(fse.FieldConfig.Field);
+                    if (fse.FieldConfig.ResultWriter is not null && fse.FieldConfig.ResultWriter.Invoke(fse, result))
+                        continue;
+                }
+
                 WriteToResult(expression, result);
             }
 

@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
+
 namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
@@ -8,8 +10,9 @@ namespace CoreEx.Data.Querying.Expressions
     /// <param name="parser">The <see cref="QueryFilterParser"/>.</param>
     /// <param name="filter">The originating query filter.</param>
     /// <param name="function">The function <see cref="QueryFilterOperatorExpression"/></param>
-    public sealed class QueryFilterStringFunctionExpression(QueryFilterParser parser, string filter, QueryFilterToken function) : QueryFilterExpressionBase(parser, filter, function)
+    public sealed class QueryFilterStringFunctionExpression(QueryFilterParser parser, string filter, QueryFilterToken function) : QueryFilterExpressionBase(parser, filter, function), IQueryFilterFieldStatementExpression
     {
+        private IQueryFilterFieldConfig? _fieldConfig;
         private bool _isComplete;
 
         /// <summary>
@@ -20,7 +23,7 @@ namespace CoreEx.Data.Querying.Expressions
         /// <summary>
         /// Gets the <see cref="IQueryFilterFieldConfig"/>.
         /// </summary>
-        public IQueryFilterFieldConfig? FieldConfig { get; private set; }
+        public IQueryFilterFieldConfig FieldConfig => _fieldConfig ?? throw new InvalidOperationException($"{nameof(FieldConfig)} must be set before it can be accessed.");
 
         /// <summary>
         /// Gets the field <see cref="QueryFilterToken"/>.
@@ -55,9 +58,9 @@ namespace CoreEx.Data.Querying.Expressions
 
                 case 2:
                     Field = token;
-                    FieldConfig = Parser.GetFieldConfig(Field, Filter);
+                    _fieldConfig = Parser.GetFieldConfig(Field, Filter);
 
-                    if (!FieldConfig!.SupportedKinds.HasFlag(Function.Kind))
+                    if (!FieldConfig.SupportedKinds.HasFlag(Function.Kind))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' does not support the '{Function.GetRawToken(Filter).ToString()}' function.");
 
                     break;
@@ -72,7 +75,7 @@ namespace CoreEx.Data.Querying.Expressions
                     if (token.Kind == QueryFilterTokenKind.Null)
                         throw new QueryFilterParserException($"A '{Function.GetRawToken(Filter).ToString()}' function references a null constant which is not supported.");
 
-                    FieldConfig!.ValidateConstant(Field, token, Filter);
+                    FieldConfig.ValidateConstant(Field, token, Filter);
                     Constant = token;
                     break;
 
@@ -85,12 +88,16 @@ namespace CoreEx.Data.Querying.Expressions
             }
         }
 
+        /// <summary>
+        /// Gets the converted <see cref="Constant"/> value.
+        /// </summary>
+        /// <returns>The converted value.</returns>
+        public object GetConstantValue() => Constant!.GetConvertedValue(Function, Field, FieldConfig, Filter);
+
         /// <inheritdoc/>
         public override void WriteToResult(QueryFilterParserResult result)
         {
-            result.Fields.Add(FieldConfig!.Field);
-
-            if (FieldConfig!.IsCheckForNotNull)
+            if (FieldConfig.IsCheckForNotNull)
             {
                 result.Append('(');
                 result.FilterBuilder.Append(FieldConfig.Model);
@@ -107,11 +114,8 @@ namespace CoreEx.Data.Querying.Expressions
             result.AppendValue(Constant.GetConvertedValue(Function, Field, FieldConfig, Filter));
             result.FilterBuilder.Append(')');
 
-            if (FieldConfig!.IsCheckForNotNull)
+            if (FieldConfig.IsCheckForNotNull)
                 result.FilterBuilder.Append(')');
         }
-
-        /// <inheritdoc/>
-        protected override IQueryFilterFieldConfig? GetFieldConfig() => FieldConfig;
     }
 }

@@ -87,6 +87,14 @@ namespace CoreEx.Data.Querying
         protected bool IsToUpper { get; set; } = false;
 
         /// <inheritdoc/>
+        bool IQueryFilterFieldConfig.IsNullable => IsNullable;
+
+        /// <summary>
+        /// Indicates whether the field can be <see langword="null"/> or not.
+        /// </summary>
+        protected bool IsNullable { get; set; } = false;
+
+        /// <inheritdoc/>
         bool IQueryFilterFieldConfig.IsCheckForNotNull => IsCheckForNotNull;
 
         /// <summary>
@@ -101,6 +109,14 @@ namespace CoreEx.Data.Querying
         /// Gets the default LINQ <see cref="QueryStatement"/> to be used where no filtering is specified.
         /// </summary>
         protected QueryStatement? DefaultStatement { get; set; }
+
+        /// <inheritdoc/>
+        QueryFilterFieldResultWriter? IQueryFilterFieldConfig.ResultWriter => ResultWriter;
+
+        /// <summary>
+        /// Gets the <see cref="QueryFilterFieldResultWriter"/>.
+        /// </summary>
+        protected QueryFilterFieldResultWriter? ResultWriter { get; set; }
 
         /// <inheritdoc/>
         object? IQueryFilterFieldConfig.ConvertToValue(QueryFilterToken operation, QueryFilterToken field, string filter) => ConvertToValue(operation, field, filter);
@@ -125,6 +141,9 @@ namespace CoreEx.Data.Querying
         {
             if (!QueryFilterTokenKind.Constant.HasFlag(constant.Kind))
                 throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' constant '{constant.GetValueToken(filter)}' is not considered valid.");
+
+            if (constant.Kind == QueryFilterTokenKind.Null && !IsNullable)
+                throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' constant '{constant.GetValueToken(filter)}' is not supported.");
 
             if (IsTypeString)
             {

@@ -15,7 +15,11 @@ namespace CoreEx.Data.Querying
         /// <param name="parser">The owning <see cref="QueryFilterParser"/>.</param>
         /// <param name="field">The field name.</param>
         /// <param name="model">The model name (defaults to <paramref name="field"/>.</param>
-        public QueryFilterNullFieldConfig(QueryFilterParser parser, string field, string? model) : base(parser, typeof(object), field, model) => SupportedKinds = QueryFilterTokenKind.Equal | QueryFilterTokenKind.NotEqual;
+        public QueryFilterNullFieldConfig(QueryFilterParser parser, string field, string? model) : base(parser, typeof(object), field, model)
+        {
+            SupportedKinds = QueryFilterTokenKind.Equal | QueryFilterTokenKind.NotEqual;
+            IsNullable = true;
+        }
 
         /// <inheritdoc/>
         protected override object ConvertToValue(QueryFilterToken operation, QueryFilterToken field, string filter)

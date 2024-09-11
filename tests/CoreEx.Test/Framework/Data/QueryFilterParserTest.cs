@@ -1,4 +1,5 @@
 ﻿using CoreEx.Data.Querying;
+using CoreEx.Data.Querying.Expressions;
 using NUnit.Framework;
 using System;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace CoreEx.Test.Framework.Data
                 .AddField<DateTime>("Birthday", "BirthDate")
                 .AddField<int>("Age")
                 .AddField<decimal>("Salary")
-                .AddField<bool>("IsOld"))
+                .AddField<bool>("IsOld", c => c.Nullable()))
             .WithOrderBy(order => order.WithDefault("LastName, FirstName"));
 
         private static void AssertFilter(string filter, string expected, params object[] expectedArgs) => AssertFilter(_queryConfig, filter, expected, expectedArgs);
@@ -117,6 +118,7 @@ namespace CoreEx.Test.Framework.Data
             AssertException("age ( 1", "Field 'age' does not support '(' as an operator.");
             AssertException("age eq (", "Field 'age' constant '(' is not considered valid.");
             AssertException("age eq )", "Field 'age' constant ')' is not considered valid.");
+            AssertException("age eq null", "Field 'age' constant 'null' is not supported.");
         }
 
         [Test]
@@ -227,6 +229,29 @@ namespace CoreEx.Test.Framework.Data
 
             AssertException(config, "terminated eq 13", "Field 'terminated' with value '13' is invalid: Only null comparisons are supported.");
             AssertException(config, "terminated gt null", "Field 'terminated' does not support the 'gt' operator.");
+        }
+
+        [Test]
+        public void Parse_StatementWriter()
+        {
+            static bool LastNameWriter(IQueryFilterFieldStatementExpression expression, QueryFilterParserResult result)
+            {
+                if (expression is QueryFilterOperatorExpression oex && oex.Operator.Kind == QueryFilterTokenKind.Equal)
+                {
+                    result.AppendStatement(new QueryStatement("LastName EQUALS @0", oex.GetConstantValue(0)));
+                    return true;
+                }
+
+                return false;
+            }
+
+            var config = QueryArgsConfig.Create()
+                .WithFilter(filter => filter
+                    .AddField<string>("LastName", c => c.StatementWriter(LastNameWriter))
+                    .AddField<string>("FirstName"));
+
+            AssertFilter(config, "lastname ne 'abc'", "LastName != @0", "abc");
+            AssertFilter(config, "lastname eq 'abc'", "LastName EQUALS @0", "abc");
         }
 
         [Test]

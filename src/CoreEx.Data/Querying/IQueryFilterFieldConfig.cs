@@ -54,6 +54,11 @@ namespace CoreEx.Data.Querying
         bool IsToUpper { get; }
 
         /// <summary>
+        /// Indicates whether the field can be <see langword="null"/> or not.
+        /// </summary>
+        bool IsNullable { get; }
+
+        /// <summary>
         /// Indicates whether a not-<see langword="null"/> check should also be performed before the comparion occurs.
         /// </summary>
         bool IsCheckForNotNull { get; }
@@ -80,5 +85,10 @@ namespace CoreEx.Data.Querying
         /// <param name="constant">The constant <see cref="QueryFilterToken"/>.</param>
         /// <param name="filter">The query filter.</param>
         void ValidateConstant(QueryFilterToken field, QueryFilterToken constant, string filter);
+
+        /// <summary>
+        /// Gets the <see cref="QueryFilterFieldResultWriter"/>.
+        /// </summary>
+        QueryFilterFieldResultWriter? ResultWriter { get; }
     }
 }
