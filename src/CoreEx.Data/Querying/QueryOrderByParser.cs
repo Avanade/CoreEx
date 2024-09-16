@@ -11,15 +11,22 @@ namespace CoreEx.Data.Querying
     /// Represents a basic query sort order by parser with explicitly defined field support.
     /// </summary>
     /// <remarks>This is <b>not</b> intended to be a replacement for OData, GraphQL, etc. but to provide a limited, explicitly supported, dynamic capability to sort an underlying query.</remarks>
-    public sealed class QueryOrderByParser
+    /// <param name="owner">The owning <see cref="QueryArgsConfig"/>.</param>
+    public sealed class QueryOrderByParser(QueryArgsConfig owner)
     {
         private readonly Dictionary<string, QueryOrderByFieldConfig> _fields = new(StringComparer.OrdinalIgnoreCase);
         private Action<string[]>? _validator;
+        private string? _helpText;
+
+        /// <summary>
+        /// Gets the owning <see cref="QueryArgsConfig"/>.
+        /// </summary>
+        public QueryArgsConfig Owner => owner.ThrowIfNull(nameof(owner));
 
         /// <summary>
         /// Gets the default order-by dynamic LINQ statement.
         /// </summary>
-        /// <remarks>To avoid unnecessary parsing this should have been specified as a valid dynamic LINQ statement.</remarks>
+        /// <remarks>To avoid unnecessary parsing this should be specified as a valid dynamic LINQ statement.</remarks>
         public string? DefaultOrderBy { get; private set; }
 
         /// <summary>
@@ -64,13 +71,24 @@ namespace CoreEx.Data.Querying
         }
 
         /// <summary>
-        /// Adds (overrides) a <paramref name="validator"/> that can be used to further validate the fields specified in the order by.
+        /// Sets (override) the additional help text.
+        /// </summary>
+        /// <param name="text">The additional help text.</param>
+        /// <returns>The <see cref="QueryOrderByParser"/> to support fluent-style method-chaining.</returns>
+        public QueryOrderByParser WithHelpText(string text)
+        {
+            _helpText = text;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets (overrides) a <paramref name="validator"/> that can be used to further validate the fields specified in the order by.
         /// </summary>
         /// <param name="validator">The validator action.</param>
         /// <returns>The <see cref="QueryOrderByParser"/> to support fluent-style method-chaining.</returns>
         /// <remarks>Throw a <see cref="QueryOrderByParserException"/> to have the validation message formatted correctly and consistently.
         /// <para>The <c>string[]</c> passed into the validator will contain the parsed fields (names) in the order in which they were specified.</para></remarks>
-        public QueryOrderByParser Validate(Action<string[]>? validator)
+        public QueryOrderByParser WithValidator(Action<string[]>? validator)
         {
             _validator = validator;
             return this;
@@ -101,7 +119,7 @@ namespace CoreEx.Data.Querying
                 if (parts.Length == 0)
                     continue;
                 else if (parts.Length > 2)
-                    throw new QueryOrderByParserException("Invalid syntax.");
+                    throw new QueryOrderByParserException("Statement is syntactically incorrect.");
 
 #if NET6_0_OR_GREATER
                 var field = parts[0];
@@ -118,12 +136,17 @@ namespace CoreEx.Data.Querying
                 var dir = parts.Length == 2 ? parts[1].Trim() : null;
                 if (dir is not null)
                 {
-                    if (dir.Length > 2 && nameof(QueryOrderByDirection.Ascending).StartsWith(dir, StringComparison.OrdinalIgnoreCase))
-                        sb.Append(" asc");
-                    else if (dir.Length > 3 && nameof(QueryOrderByDirection.Descending).StartsWith(dir, StringComparison.OrdinalIgnoreCase))
+                    var direction = QueryOrderByDirection.Ascending;
+                    if (dir.Length > 3 && nameof(QueryOrderByDirection.Descending).StartsWith(dir, StringComparison.OrdinalIgnoreCase))
+                    {
                         sb.Append(" desc");
-                    else
-                        throw new QueryOrderByParserException($"Direction '{dir}' must be either 'asc' (ascending) or 'desc' (descending).");
+                        direction = QueryOrderByDirection.Descending;
+                    }
+                    else if (!(dir.Length > 2 && nameof(QueryOrderByDirection.Ascending).StartsWith(dir, StringComparison.OrdinalIgnoreCase)))
+                        throw new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; must be either 'asc' (ascending) or 'desc' (descending).");
+
+                    if (!config.Direction.HasFlag(direction))
+                        throw new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; not supported.");
                 }
 
                 if (fields.Contains(config.Field))
@@ -138,6 +161,21 @@ namespace CoreEx.Data.Querying
         }
 
         /// <inheritdoc/>
-        public override string ToString() => _fields.Count == 0 ? "OrderBy statement is not currently supported." : $"Supported field(s) are as follows: {string.Join(", ", _fields.Values.Select(x => x.Field))}.";
+        public override string ToString()
+        {
+            if (!HasFields)
+                return "Order-By statement is not currently supported.";
+
+            var sb = new StringBuilder("Order-by field(s) are as follows:");
+            foreach (var field in _fields)
+            {
+                sb.AppendLine().Append(field.Key).Append(" (Direction: ").Append(field.Value.Direction).Append(')');
+            }
+
+            if (!string.IsNullOrEmpty(_helpText))
+                sb.AppendLine().Append(_helpText);
+
+            return sb.ToString();
+        }
     }
 }

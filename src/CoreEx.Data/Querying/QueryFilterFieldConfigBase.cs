@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Data.Querying.Expressions;
 using CoreEx.Mapping.Converters;
 using System;
+using System.Text;
 
 namespace CoreEx.Data.Querying
 {
@@ -33,22 +35,37 @@ namespace CoreEx.Data.Querying
             IsTypeBoolean = type == typeof(bool);
 
             if (IsTypeBoolean)
-                SupportedKinds = QueryFilterTokenKind.Equal | QueryFilterTokenKind.NotEqual;
+                Operators = QueryFilterOperator.Equal | QueryFilterOperator.NotEqual;
             else
-                SupportedKinds = QueryFilterTokenKind.Operator;
+                Operators = QueryFilterOperator.ComparisonOperators;
         }
 
         /// <inheritdoc/>
         QueryFilterParser IQueryFilterFieldConfig.Parser => _parser;
 
         /// <inheritdoc/>
-        Type IQueryFilterFieldConfig.Type => _type;
+        Type IQueryFilterFieldConfig.Type => Type;
+
+        /// <summary>
+        /// Gets the field type.
+        /// </summary>
+        protected Type Type => _type;
 
         /// <inheritdoc/>
-        string IQueryFilterFieldConfig.Field => _field;
+        string IQueryFilterFieldConfig.Field => Field;
+
+        /// <summary>
+        /// Gets the field name.
+        /// </summary>
+        protected string Field => _field;
 
         /// <inheritdoc/>
-        string? IQueryFilterFieldConfig.Model => _model ?? _field;
+        string? IQueryFilterFieldConfig.Model => Model;
+
+        /// <summary>
+        /// Gets the model name to be used for the dynamic LINQ expression.
+        /// </summary>
+        protected string? Model => _model ?? _field;
 
         /// <inheritdoc/>
         bool IQueryFilterFieldConfig.IsTypeString => IsTypeString;
@@ -69,13 +86,13 @@ namespace CoreEx.Data.Querying
         protected bool IsTypeBoolean { get; set; }
 
         /// <inheritdoc/>
-        QueryFilterTokenKind IQueryFilterFieldConfig.SupportedKinds => SupportedKinds;
+        QueryFilterOperator IQueryFilterFieldConfig.Operators => Operators;
 
         /// <summary>
-        /// Gets the supported kinds.
+        /// Gets the supported <see cref="QueryFilterOperator"/>(s).
         /// </summary>
-        /// <remarks>Where <see cref="IQueryFilterFieldConfig.IsTypeBoolean"/> defaults to both <see cref="QueryFilterTokenKind.Equal"/> and <see cref="QueryFilterTokenKind.NotEqual"/>; otherwise, defaults to <see cref="QueryFilterTokenKind.Operator"/>.</remarks>
-        protected QueryFilterTokenKind SupportedKinds { get; set; }
+        /// <remarks>Where <see cref="IQueryFilterFieldConfig.IsTypeBoolean"/> defaults to both <see cref="QueryFilterOperator.Equal"/> and <see cref="QueryFilterOperator.NotEqual"/>; otherwise, defaults to <see cref="QueryFilterOperator.ComparisonOperators"/>.</remarks>
+        protected QueryFilterOperator Operators { get; set; }
 
         /// <inheritdoc/>
         bool IQueryFilterFieldConfig.IsToUpper => IsToUpper;
@@ -85,6 +102,14 @@ namespace CoreEx.Data.Querying
         /// </summary>
         /// <remarks>This is only applicable where the <see cref="IQueryFilterFieldConfig.IsTypeString"/>.</remarks>
         protected bool IsToUpper { get; set; } = false;
+
+        /// <inheritdoc/>
+        bool IQueryFilterFieldConfig.IsNullable => IsNullable;
+
+        /// <summary>
+        /// Indicates whether the field can be <see langword="null"/> or not.
+        /// </summary>
+        protected bool IsNullable { get; set; } = false;
 
         /// <inheritdoc/>
         bool IQueryFilterFieldConfig.IsCheckForNotNull => IsCheckForNotNull;
@@ -98,9 +123,25 @@ namespace CoreEx.Data.Querying
         QueryStatement? IQueryFilterFieldConfig.DefaultStatement => DefaultStatement;
 
         /// <summary>
-        /// Gets the default LINQ <see cref="QueryStatement"/> to be used where no filtering is specified.
+        /// Gets or sets the default LINQ <see cref="QueryStatement"/> to be used where no filtering is specified.
         /// </summary>
         protected QueryStatement? DefaultStatement { get; set; }
+
+        /// <inheritdoc/>
+        QueryFilterFieldResultWriter? IQueryFilterFieldConfig.ResultWriter => ResultWriter;
+
+        /// <summary>
+        /// Gets or sets the <see cref="QueryFilterFieldResultWriter"/>.
+        /// </summary>
+        protected QueryFilterFieldResultWriter? ResultWriter { get; set; }
+
+        /// <inheritdoc/>
+        string? IQueryFilterFieldConfig.HelpText => HelpText;
+
+        /// <summary>
+        /// Gets or sets the additional help text.
+        /// </summary>
+        protected string? HelpText { get; set; }
 
         /// <inheritdoc/>
         object? IQueryFilterFieldConfig.ConvertToValue(QueryFilterToken operation, QueryFilterToken field, string filter) => ConvertToValue(operation, field, filter);
@@ -126,6 +167,9 @@ namespace CoreEx.Data.Querying
             if (!QueryFilterTokenKind.Constant.HasFlag(constant.Kind))
                 throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' constant '{constant.GetValueToken(filter)}' is not considered valid.");
 
+            if (constant.Kind == QueryFilterTokenKind.Null && !IsNullable)
+                throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' constant '{constant.GetValueToken(filter)}' is not supported.");
+
             if (IsTypeString)
             {
                 if (!(constant.Kind == QueryFilterTokenKind.Literal || constant.Kind == QueryFilterTokenKind.Null))
@@ -142,5 +186,76 @@ namespace CoreEx.Data.Querying
                     throw new QueryFilterParserException($"Field '{field.GetRawToken(filter).ToString()}' constant '{constant.GetValueToken(filter)}' must not be specified as a {QueryFilterTokenKind.Literal} where the underlying type is not a string.");
             }
         }
+
+        /// <inheritdoc/>
+        public override string ToString() => AppendToString(new StringBuilder()).ToString();
+
+        /// <summary>
+        /// Appends the field configuration to the <paramref name="stringBuilder"/>.
+        /// </summary>
+        /// <param name="stringBuilder">The <see cref="StringBuilder"/>.</param>
+        /// <returns>The <paramref name="stringBuilder"/>.</returns>
+        public virtual StringBuilder AppendToString(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append(_field);
+            stringBuilder.Append(" (Type: ").Append(_type.Name);
+            stringBuilder.Append(", Null: ").Append(IsNullable ? "true" : "false");
+            stringBuilder.Append(", Operators: ");
+
+            AppendOperatorsToString(stringBuilder);
+
+            stringBuilder.Append(')');
+            if (!string.IsNullOrEmpty(HelpText))
+                stringBuilder.Append(" - ").Append(HelpText);
+
+            return stringBuilder;
+        }
+
+        /// <summary>
+        /// Appends the <see cref="Operators"/> to the <paramref name="stringBuilder"/>.
+        /// </summary>
+        /// <param name="stringBuilder">The <see cref="StringBuilder"/>.</param>
+        /// <returns>The <paramref name="stringBuilder"/>.</returns>
+        protected StringBuilder AppendOperatorsToString(StringBuilder stringBuilder)
+        {
+            var first = true;
+            foreach (var e in Enum.GetValues(typeof(QueryFilterOperator)))
+            {
+                if (Operators.HasFlag((QueryFilterOperator)e))
+                {
+                    var op = GetODataOperator((QueryFilterOperator)e);
+                    if (op is not null)
+                    {
+                        if (first)
+                            first = false;
+                        else
+                            stringBuilder.Append(", ");
+
+                        stringBuilder.Append(op);
+                    }
+                }
+            }
+
+            return stringBuilder;
+        }
+
+        /// <summary>
+        /// Gets the ODATA operator for the specified <paramref name="operator"/>
+        /// </summary>
+        /// <param name="operator">The <see cref="QueryFilterOperator"/>.</param>
+        protected static string? GetODataOperator(QueryFilterOperator @operator) => @operator switch
+        {
+            QueryFilterOperator.Equal => "EQ",
+            QueryFilterOperator.NotEqual => "NE",
+            QueryFilterOperator.GreaterThan => "GT",
+            QueryFilterOperator.GreaterThanOrEqual => "GE",
+            QueryFilterOperator.LessThan => "LT",
+            QueryFilterOperator.LessThanOrEqual => "LE",
+            QueryFilterOperator.In => "IN",
+            QueryFilterOperator.StartsWith => nameof(QueryFilterOperator.StartsWith),
+            QueryFilterOperator.EndsWith => nameof(QueryFilterOperator.EndsWith),
+            QueryFilterOperator.Contains => nameof(QueryFilterOperator.Contains),
+            _ => null
+        };
     }
 }

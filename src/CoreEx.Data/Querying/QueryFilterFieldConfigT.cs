@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Data.Querying.Expressions;
 using CoreEx.Mapping.Converters;
 using System;
 
@@ -18,17 +19,17 @@ namespace CoreEx.Data.Querying
         private Func<T, object>? _valueFunc;
 
         /// <summary>
-        /// Sets (overrides) the operator <see cref="QueryFilterFieldConfigBase.SupportedKinds"/>.
+        /// Sets (overrides) the operator <see cref="QueryFilterFieldConfigBase.Operators"/>.
         /// </summary>
-        /// <param name="kinds">The supported <see cref="QueryFilterTokenKind"/> flags.</param>
+        /// <param name="operators">The supported <see cref="QueryFilterOperator"/>(s).</param>
         /// <returns>The <see cref="QueryFilterFieldConfig{T}"/> to support fluent-style method-chaining.</returns>
-        /// <remarks>The default is <see cref="QueryFilterTokenKind.Operator"/>.</remarks>
-        public QueryFilterFieldConfig<T> Operators(QueryFilterTokenKind kinds)
+        /// <remarks>The default is <see cref="QueryFilterTokenKind.ComparisonOperators"/>.</remarks>
+        public QueryFilterFieldConfig<T> WithOperators(QueryFilterOperator operators)
         {
             if (((IQueryFilterFieldConfig)this).IsTypeBoolean)
-                throw new NotSupportedException($"{nameof(Operators)} is not supported where {nameof(IQueryFilterFieldConfig.IsTypeBoolean)}.");
+                throw new NotSupportedException($"{nameof(WithOperators)} is not supported where {nameof(IQueryFilterFieldConfig.IsTypeBoolean)}.");
 
-            SupportedKinds = kinds;
+            Operators = operators;
             return this;
         }
 
@@ -37,10 +38,10 @@ namespace CoreEx.Data.Querying
         /// </summary>
         /// <returns>The <see cref="QueryFilterFieldConfig{T}"/> to support fluent-style method-chaining.</returns>
         /// <remarks>Sets the <see cref="QueryFilterFieldConfigBase.IsToUpper"/> to <see langword="true"/>.</remarks>
-        public QueryFilterFieldConfig<T> UseUpperCase()
+        public QueryFilterFieldConfig<T> WithUpperCase()
         {
             if (!((IQueryFilterFieldConfig)this).IsTypeString)
-                throw new ArgumentException($"A {nameof(UseUpperCase)} can only be specified where the field type is a string.");
+                throw new ArgumentException($"A {nameof(WithUpperCase)} can only be specified where the field type is a string.");
 
             IsToUpper = true;
             return this;

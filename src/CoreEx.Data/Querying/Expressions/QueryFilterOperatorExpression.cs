@@ -1,23 +1,25 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using System;
 using System.Collections.Generic;
 
 namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
-    /// Represents a query filter <see cref="QueryFilterTokenKind.Operator"/> expression.
+    /// Represents a query filter <see cref="QueryFilterTokenKind.ComparisonOperators"/> expression.
     /// </summary>
     /// <param name="parser">The <see cref="QueryFilterParser"/>.</param>
     /// <param name="filter">The originating query filter.</param>
     /// <param name="field">The field <see cref="QueryFilterToken"/>.</param>
-    public sealed class QueryFilterOperatorExpression(QueryFilterParser parser, string filter, QueryFilterToken field) : QueryFilterExpressionBase(parser, filter, field)
+    public sealed class QueryFilterOperatorExpression(QueryFilterParser parser, string filter, QueryFilterToken field) : QueryFilterExpressionBase(parser, filter, field), IQueryFilterFieldStatementExpression
     {
+        private IQueryFilterFieldConfig? _fieldConfig;
         private bool _isComplete;
 
         /// <summary>
         /// Gets the field <see cref="IQueryFilterFieldConfig"/>.
         /// </summary>
-        public IQueryFilterFieldConfig? FieldConfig { get; private set; }
+        public IQueryFilterFieldConfig FieldConfig => _fieldConfig ?? throw new InvalidOperationException($"{nameof(FieldConfig)} must be set before it can be accessed.");
 
         /// <summary>
         /// Gets the field <see cref="QueryFilterToken"/>.
@@ -38,7 +40,7 @@ namespace CoreEx.Data.Querying.Expressions
         public override bool IsComplete => _isComplete;
 
         /// <inheritdoc/>
-        public override bool CanAddToken(QueryFilterToken token) => !_isComplete || TokenCount == 1 && QueryFilterTokenKind.Operator.HasFlag(token.Kind);
+        public override bool CanAddToken(QueryFilterToken token) => !_isComplete || TokenCount == 1 && QueryFilterTokenKind.ComparisonOperators.HasFlag(token.Kind);
 
         /// <inheritdoc/>
         protected override void AddToken(int index, QueryFilterToken token)
@@ -47,7 +49,7 @@ namespace CoreEx.Data.Querying.Expressions
             {
                 case 0:
                     Field = token;
-                    FieldConfig = Parser.GetFieldConfig(Field, Filter);
+                    _fieldConfig = Parser.GetFieldConfig(Field, Filter);
                     _isComplete = FieldConfig.IsTypeBoolean;
                     break;
 
@@ -55,7 +57,8 @@ namespace CoreEx.Data.Querying.Expressions
                     if (!QueryFilterTokenKind.AllStringOperators.HasFlag(token.Kind))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' does not support '{token.GetRawToken(Filter).ToString()}' as an operator.");
 
-                    if (!FieldConfig!.SupportedKinds.HasFlag(token.Kind))
+                    var op = (QueryFilterOperator)(int)token.Kind; 
+                    if (!FieldConfig.Operators.HasFlag(op))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' does not support the '{token.GetRawToken(Filter).ToString()}' operator.");
 
                     _isComplete = false;
@@ -71,10 +74,10 @@ namespace CoreEx.Data.Querying.Expressions
                         break;
                     }
 
-                    if (token.Kind == QueryFilterTokenKind.Null && !QueryFilterTokenKind.EqualityOperator.HasFlag(Operator.Kind))
+                    if (token.Kind == QueryFilterTokenKind.Null && !QueryFilterTokenKind.EqualityOperators.HasFlag(Operator.Kind))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' constant must not be null for an '{Operator.GetRawToken(Filter).ToString()}' operator.");
 
-                    FieldConfig!.ValidateConstant(Field, token, Filter);
+                    FieldConfig.ValidateConstant(Field, token, Filter);
                     Constants.Add(token);
                     _isComplete = true;
                     break;
@@ -91,7 +94,7 @@ namespace CoreEx.Data.Querying.Expressions
                         if (token.Kind == QueryFilterTokenKind.Null)
                             throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' constant must not be null for an '{Operator.GetRawToken(Filter).ToString()}' operator.");
 
-                        FieldConfig!.ValidateConstant(Field, token, Filter);
+                        FieldConfig.ValidateConstant(Field, token, Filter);
                         Constants.Add(token);
                     }
                     else
@@ -113,19 +116,24 @@ namespace CoreEx.Data.Querying.Expressions
             }
         }
 
+        /// <summary>
+        /// Gets the converted <see cref="Constants"/> value using the specified <paramref name="index"/>.
+        /// </summary>
+        /// <param name="index">The <see cref="Constants"/> index.</param>
+        /// <returns>The converted value.</returns>
+        public object GetConstantValue(int index) => Constants[index].GetConvertedValue(Operator, Field, FieldConfig, Filter);
+
         /// <inheritdoc/>
         public override void WriteToResult(QueryFilterParserResult result)
         {
-            result.Fields.Add(FieldConfig!.Field);
-
-            if (Operator.Kind != QueryFilterTokenKind.In && (Constants.Count == 0 || Constants[0].Kind != QueryFilterTokenKind.Null) && FieldConfig!.IsCheckForNotNull)
+            if (Operator.Kind != QueryFilterTokenKind.In && (Constants.Count == 0 || Constants[0].Kind != QueryFilterTokenKind.Null) && FieldConfig.IsCheckForNotNull)
             {
                 result.Append("(");
                 result.FilterBuilder.Append(FieldConfig.Model);
                 result.FilterBuilder.Append(" != null && ");
             }
 
-            result.Append(FieldConfig!.Model);
+            result.Append(FieldConfig.Model);
 
             if (Constants.Count > 0)
             {
@@ -144,7 +152,7 @@ namespace CoreEx.Data.Querying.Expressions
                         if (i > 0)
                             result.FilterBuilder.Append(", ");
 
-                        result.AppendValue(Constants[i].GetConvertedValue(Operator, Field, FieldConfig, Filter));
+                        result.AppendValue(GetConstantValue(i));
                     }
 
                     result.FilterBuilder.Append(')');
@@ -152,17 +160,14 @@ namespace CoreEx.Data.Querying.Expressions
                 else
                 {
                     if (Constants[0].Kind == QueryFilterTokenKind.Value || Constants[0].Kind == QueryFilterTokenKind.Literal)
-                        result.AppendValue(Constants[0].GetConvertedValue(Operator, Field, FieldConfig, Filter));
+                        result.AppendValue(GetConstantValue(0));
                     else
                         result.FilterBuilder.Append(Constants[0].ToLinq(Filter));
                 }
             }
 
-            if (Operator.Kind != QueryFilterTokenKind.In && (Constants.Count == 0 || Constants[0].Kind != QueryFilterTokenKind.Null) && FieldConfig!.IsCheckForNotNull)
+            if (Operator.Kind != QueryFilterTokenKind.In && (Constants.Count == 0 || Constants[0].Kind != QueryFilterTokenKind.Null) && FieldConfig.IsCheckForNotNull)
                 result.FilterBuilder.Append(')');
         }
-
-        /// <inheritdoc/>
-        protected override IQueryFilterFieldConfig? GetFieldConfig() => FieldConfig;
     }
 }

@@ -8,7 +8,7 @@ namespace CoreEx.Data.Querying
     /// <param name="parser">The owning <see cref="QueryOrderByParser"/>.</param>
     /// <param name="field">The field name.</param>
     /// <param name="model">The model name (defaults to <paramref name="field"/>.</param>
-    public class QueryOrderByFieldConfig(QueryOrderByParser parser, string field, string? model)
+    public sealed class QueryOrderByFieldConfig(QueryOrderByParser parser, string field, string? model)
     {
         private readonly string? _model = model;
 
@@ -32,17 +32,33 @@ namespace CoreEx.Data.Querying
         /// Gets the supported <see cref="QueryOrderByDirection"/>.
         /// </summary>
         /// <remarks>Defaults to <see cref="QueryOrderByDirection.Both"/>.</remarks>
-        public QueryOrderByDirection SupportedDirection { get; private set; } = QueryOrderByDirection.Both;
+        public QueryOrderByDirection Direction { get; private set; } = QueryOrderByDirection.Both;
 
         /// <summary>
-        /// Sets (overrides) the <see cref="SupportedDirection"/>.
+        /// Gets the additional help text.
+        /// </summary>
+        public string? HelpText { get; private set; }
+
+        /// <summary>
+        /// Sets (overrides) the <see cref="Direction"/>.
         /// </summary>
         /// <param name="supportedDirection">The <see cref="QueryOrderByDirection"/>.</param>
         /// <returns>The <see cref="QueryOrderByFieldConfig"/> to support fluent-style method-chaining.</returns>
         /// <remarks>The default is <see cref="QueryOrderByDirection.Both"/>.</remarks>
-        public QueryOrderByFieldConfig Supports(QueryOrderByDirection supportedDirection)
+        public QueryOrderByFieldConfig WithDirection(QueryOrderByDirection supportedDirection)
         {
-            SupportedDirection = supportedDirection;
+            Direction = supportedDirection;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets (overrides) the additional help text.
+        /// </summary>
+        /// <param name="text">The additional help text.</param>
+        /// <returns>The <see cref="QueryOrderByFieldConfig"/> to support fluent-style method-chaining.</returns>
+        public QueryOrderByFieldConfig WithHelpText(string text)
+        {
+            HelpText = text.ThrowIfNullOrEmpty(nameof(text));
             return this;
         }
     }

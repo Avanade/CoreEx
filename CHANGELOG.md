@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.25.1
+- *Fixed:* Extend `QueryFilterFieldConfigBase` to include `AsNullable()` to specifiy whether the field supports `null`.
+- *Fixed:* Extend `QueryFilterFieldConfigBase` to include `WithResultWriter()` to specify a function to override the corresponding LINQ statement result writing.
+- *Fixed:* Adjusted the fluent-style method-chaining interface to improve usability (and consistency).
+
 ## v3.25.0
 - *Enhancement:* Added new `CoreEx.Data` project/package to encapsulate all generic data-related capabilities, specifically the new `QueryFilterParser` and `QueryOrderByParser` classes. These enable a limited, explicitly supported, dynamic capability to `$filter` and `$orderby` an underlying query _similar_ to _OData_. This is **not** intended to be a replacement for the full capabilities of OData, GraphQL, etc. but to offer basic dynamic flexibility where needed.
   - Added `IQueryable<T>.Where()` and `IQueryable<T>.OrderBy` extension method that will use the aforementioned parsers configured within the new `QueryArgsConfig` and `QueryArgs` and apply leveraging `System.Linq.Dynamic.Core`.

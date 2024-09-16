@@ -1,4 +1,5 @@
 ﻿using CoreEx.Data.Querying;
+using CoreEx.Data.Querying.Expressions;
 using CoreEx.Entities;
 
 namespace CoreEx.Cosmos.Test
@@ -217,7 +218,7 @@ namespace CoreEx.Cosmos.Test
         {
             var qac = QueryArgsConfig.Create()
                 .WithFilter(f => f
-                    .AddField<string>("Name", "Value.Name", c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+                    .AddField<string>("Name", "Value.Name", c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
                     .AddField<bool>("Birthday", "Value.Birthday"));
 
             var v = await _db.Persons3.ModelContainer.Query(q => q.Where(qac, QueryArgs.Create("endswith(name, 'Y')")).OrderBy(x => x.Id)).ToArrayAsync();

@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx.Data.Querying
+namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
     /// Provides the <see cref="QueryFilterToken"/> kind.
@@ -128,12 +128,12 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// An expression operator token.
         /// </summary>
-        Operator = Equal | NotEqual | GreaterThan | GreaterThanOrEqual | LessThan | LessThanOrEqual | In,
+        ComparisonOperators = Equal | NotEqual | GreaterThan | GreaterThanOrEqual | LessThan | LessThanOrEqual | In,
 
         /// <summary>
         /// An expression equality operator token.
         /// </summary>
-        EqualityOperator = Equal | NotEqual | In,
+        EqualityOperators = Equal | NotEqual | In,
 
         /// <summary>
         /// An expression constant token.
@@ -153,11 +153,11 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// A string oriented function-based operator.
         /// </summary>
-        StringFunction = StartsWith | EndsWith | Contains,
+        StringFunctions = StartsWith | EndsWith | Contains,
 
         /// <summary>
         /// All string oriented operators.
         /// </summary>
-        AllStringOperators = Operator | StringFunction
+        AllStringOperators = ComparisonOperators | StringFunctions
     }
 }

@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Data.Querying.Expressions;
 using CoreEx.Mapping.Converters;
 using System;
+using System.Text;
 
 namespace CoreEx.Data.Querying
 {
@@ -44,14 +46,19 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// Gets the supported kinds.
         /// </summary>
-        /// <remarks>Where <see cref="IsTypeBoolean"/> defaults to both <see cref="QueryFilterTokenKind.Equal"/> and <see cref="QueryFilterTokenKind.NotEqual"/> only; otherwise, defaults to <see cref="QueryFilterTokenKind.Operator"/>.</remarks>
-        QueryFilterTokenKind SupportedKinds { get; }
+        /// <remarks>Where <see cref="IsTypeBoolean"/> defaults to both <see cref="QueryFilterOperator.Equal"/> and <see cref="QueryFilterOperator.NotEqual"/> only; otherwise, defaults to <see cref="QueryFilterOperator.ComparisonOperators"/>.</remarks>
+        QueryFilterOperator Operators { get; }
 
         /// <summary>
         /// Indicates whether the comparison should ignore case or not; will use <see cref="string.ToUpper()"/> when selected for comparisons.
         /// </summary>
         /// <remarks>This is only applicable where the <see cref="IsTypeString"/>.</remarks>
         bool IsToUpper { get; }
+
+        /// <summary>
+        /// Indicates whether the field can be <see langword="null"/> or not.
+        /// </summary>
+        bool IsNullable { get; }
 
         /// <summary>
         /// Indicates whether a not-<see langword="null"/> check should also be performed before the comparion occurs.
@@ -62,6 +69,11 @@ namespace CoreEx.Data.Querying
         /// Gets the default LINQ <see cref="QueryStatement"/> to be used where no filtering is specified.
         /// </summary>
         QueryStatement? DefaultStatement { get; }
+
+        /// <summary>
+        /// Gets the additional help text.
+        /// </summary>
+        string? HelpText { get; }
 
         /// <summary>
         /// Converts <paramref name="field"/> to the destination type using the <see cref="Converter"/> configurations where specified.
@@ -80,5 +92,17 @@ namespace CoreEx.Data.Querying
         /// <param name="constant">The constant <see cref="QueryFilterToken"/>.</param>
         /// <param name="filter">The query filter.</param>
         void ValidateConstant(QueryFilterToken field, QueryFilterToken constant, string filter);
+
+        /// <summary>
+        /// Gets the <see cref="QueryFilterFieldResultWriter"/>.
+        /// </summary>
+        QueryFilterFieldResultWriter? ResultWriter { get; }
+
+        /// <summary>
+        /// Appends the field configuration to the <paramref name="stringBuilder"/>.
+        /// </summary>
+        /// <param name="stringBuilder">The <see cref="StringBuilder"/>.</param>
+        /// <returns>The <paramref name="stringBuilder"/>.</returns>
+        StringBuilder AppendToString(StringBuilder stringBuilder);
     }
 }

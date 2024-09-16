@@ -18,6 +18,8 @@ However, the desire to provide a similar experience to the client remains. The `
 
 _Note:_ This is **not** intended to be a replacement for [OData](https://learn.microsoft.com/en-us/odata/webapi-8/overview), [GraphQL](https://github.com/graphql-dotnet/graphql-dotnet), etc. but to provide a limited, explicitly supported, dynamic capability to filter an underlying query.
 
+Where this capability is different is that the separation from the API contract and the underlying data source schema is maintained. This is achieved by using configuration to explicitly define the fields that can be filtered and ordered, whilst also defining their relationship to the data source. This is in contrast to OData and GraphQL where the data source schema is largely exposed to the client.
+
 <br/>
 
 ### Features
@@ -75,13 +77,13 @@ This contains the following key capabilities:
 Each of these properties have the ability to _explicitly_ add fields and their corresponding configuration. An example is as follows:
 
 ``` csharp
-private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
+private static readonly QueryArgsConfig _config = QueryArgsConfig.Create()
     .WithFilter(filter => filter
-        .AddField<string>(nameof(Employee.LastName), c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
-        .AddField<string>(nameof(Employee.FirstName), c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+        .AddField<string>(nameof(Employee.LastName), c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
+        .AddField<string>(nameof(Employee.FirstName), c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
         .AddReferenceDataField<Gender>(nameof(Employee.Gender), nameof(EfModel.Employee.GenderCode))
         .AddField<DateTime>(nameof(Employee.StartDate))
-        .AddNullField(nameof(Employee.Termination), nameof(EfModel.Employee.TerminationDate), c => c.Default(new QueryStatement($"{nameof(EfModel.Employee.TerminationDate)} == null"))))
+        .AddNullField(nameof(Employee.Termination), nameof(EfModel.Employee.TerminationDate), c => c.WithDefault(new QueryStatement($"{nameof(EfModel.Employee.TerminationDate)} == null"))))
     .WithOrderBy(orderby => orderby
         .AddField(nameof(Employee.LastName))
         .AddField(nameof(Employee.FirstName))
@@ -97,8 +99,8 @@ The configuration is then used to parse and apply the filter and/or order-by to 
 ``` csharp
 var query = new QueryArgs
 {
-	Filter = "LastName eq 'Doe' and startswith(firstname, 'a')",
-	OrderBy = "LastName desc, FirstName"
+    Filter = "LastName eq 'Doe' and startswith(firstname, 'a')",
+    OrderBy = "LastName desc, FirstName"
 };
 
 return _dbContext.Employees.Where(_queryConfig, query).OrderBy(_queryConfig, query).ToCollectionResultAsync<EmployeeCollectionResult, EmployeeCollection, Employee>(paging);

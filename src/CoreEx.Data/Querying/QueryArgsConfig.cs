@@ -22,7 +22,7 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// Gets the <see cref="QueryFilterParser"/>.
         /// </summary>
-        public QueryFilterParser FilterParser => _filterParser ??= new QueryFilterParser();
+        public QueryFilterParser FilterParser => _filterParser ??= new QueryFilterParser(this);
 
         /// <summary>
         /// Indicates whether there is a <see cref="FilterParser"/>.
@@ -32,7 +32,7 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// Gets the <see cref="QueryOrderByParser"/>.
         /// </summary>
-        public QueryOrderByParser OrderByParser => _orderByParser ??= new QueryOrderByParser();
+        public QueryOrderByParser OrderByParser => _orderByParser ??= new QueryOrderByParser(this);
 
         /// <summary>
         /// Indicates whether there is an <see cref="OrderByParser"/>.

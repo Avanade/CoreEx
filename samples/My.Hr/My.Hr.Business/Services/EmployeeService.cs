@@ -6,8 +6,8 @@ public class EmployeeService : IEmployeeService
 {
     private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
         .WithFilter(filter => filter
-            .AddField<string>("LastName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
-            .AddField<string>("FirstName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+            .AddField<string>("LastName", c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
+            .AddField<string>("FirstName", c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
             .AddField<DateTime>("StartDate")
             .AddField<DateTime>("TerminationDate")
             .AddField<string>(nameof(Employee.Gender), c => c.WithValue(v =>

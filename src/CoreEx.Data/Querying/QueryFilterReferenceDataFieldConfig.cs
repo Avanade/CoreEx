@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Data.Querying.Expressions;
 using CoreEx.Entities;
 using CoreEx.RefData;
 using System;
@@ -10,7 +11,7 @@ namespace CoreEx.Data.Querying
     /// Provides the <see cref="QueryFilterParser"/> <see cref="IReferenceData"/> field configuration.
     /// </summary>
     /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
-    /// <remarks>This will automatically set the <see cref="QueryFilterFieldConfigBase.SupportedKinds"/> to be <see cref="QueryFilterTokenKind.EqualityOperator"/> only.</remarks>
+    /// <remarks>Defaults the <see cref="QueryFilterFieldConfigBase.Operators"/> to <see cref="QueryFilterOperator.EqualityOperators"/> only.</remarks>
     public class QueryFilterReferenceDataFieldConfig<TRef> : QueryFilterFieldConfigBase<QueryFilterFieldConfig<TRef>> where TRef : IReferenceData, new()
     {
         private bool _useIdentifier;
@@ -25,7 +26,7 @@ namespace CoreEx.Data.Querying
         /// <param name="model">The model name (defaults to <paramref name="field"/>.</param>
         public QueryFilterReferenceDataFieldConfig(QueryFilterParser parser, string field, string? model) : base(parser, typeof(TRef), field, model)
         {
-            SupportedKinds = QueryFilterTokenKind.EqualityOperator;
+            Operators = QueryFilterOperator.EqualityOperators;
             IsTypeString = true;
         }
 
@@ -33,7 +34,7 @@ namespace CoreEx.Data.Querying
         /// Indicates that the <see cref="IReferenceData"/> <see cref="IIdentifier.Id"/> is to be used as the value for the query (versus the originating filter value being the <see cref="IReferenceData.Code"/>).
         /// </summary>
         /// <returns>The <see cref="QueryFilterFieldConfig{T}"/> to support fluent-style method-chaining.</returns>
-        /// <remarks>This will automatically set the <see cref="QueryFilterFieldConfigBase.SupportedKinds"/> to be <see cref="QueryFilterTokenKind.EqualityOperator"/> only as other operators are nonsensical in this context.</remarks>
+        /// <remarks>This will automatically set the <see cref="QueryFilterFieldConfigBase.Operators"/> to be <see cref="QueryFilterOperator.EqualityOperators"/> only as other operators are nonsensical in this context.</remarks>
         public QueryFilterReferenceDataFieldConfig<TRef> UseIdentifier()
         {
             _useIdentifier = true;

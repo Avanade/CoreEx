@@ -66,12 +66,6 @@ namespace CoreEx.Data.Querying.Expressions
         protected abstract void AddToken(int index, QueryFilterToken token);
 
         /// <summary>
-        /// Gets the underlying <see cref="IQueryFilterFieldConfig"/> used in the expression.
-        /// </summary>
-        /// <returns>The field <see cref="IQueryFilterFieldConfig"/> where applicable; otherwise, <see langword="null"/>.</returns>
-        protected abstract IQueryFilterFieldConfig? GetFieldConfig();
-
-        /// <summary>
         /// Converts the query filter expression into the corresponding dynamic LINQ appending to the <paramref name="result"/>.
         /// </summary>
         /// <param name="result">The <see cref="QueryFilterParserResult"/>.</param>
