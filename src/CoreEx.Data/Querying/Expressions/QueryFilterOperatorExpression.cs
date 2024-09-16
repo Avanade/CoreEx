@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
-    /// Represents a query filter <see cref="QueryFilterTokenKind.Operator"/> expression.
+    /// Represents a query filter <see cref="QueryFilterTokenKind.ComparisonOperators"/> expression.
     /// </summary>
     /// <param name="parser">The <see cref="QueryFilterParser"/>.</param>
     /// <param name="filter">The originating query filter.</param>
@@ -40,7 +40,7 @@ namespace CoreEx.Data.Querying.Expressions
         public override bool IsComplete => _isComplete;
 
         /// <inheritdoc/>
-        public override bool CanAddToken(QueryFilterToken token) => !_isComplete || TokenCount == 1 && QueryFilterTokenKind.Operator.HasFlag(token.Kind);
+        public override bool CanAddToken(QueryFilterToken token) => !_isComplete || TokenCount == 1 && QueryFilterTokenKind.ComparisonOperators.HasFlag(token.Kind);
 
         /// <inheritdoc/>
         protected override void AddToken(int index, QueryFilterToken token)
@@ -57,7 +57,8 @@ namespace CoreEx.Data.Querying.Expressions
                     if (!QueryFilterTokenKind.AllStringOperators.HasFlag(token.Kind))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' does not support '{token.GetRawToken(Filter).ToString()}' as an operator.");
 
-                    if (!FieldConfig.SupportedKinds.HasFlag(token.Kind))
+                    var op = (QueryFilterOperator)(int)token.Kind; 
+                    if (!FieldConfig.Operators.HasFlag(op))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' does not support the '{token.GetRawToken(Filter).ToString()}' operator.");
 
                     _isComplete = false;
@@ -73,7 +74,7 @@ namespace CoreEx.Data.Querying.Expressions
                         break;
                     }
 
-                    if (token.Kind == QueryFilterTokenKind.Null && !QueryFilterTokenKind.EqualityOperator.HasFlag(Operator.Kind))
+                    if (token.Kind == QueryFilterTokenKind.Null && !QueryFilterTokenKind.EqualityOperators.HasFlag(Operator.Kind))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' constant must not be null for an '{Operator.GetRawToken(Filter).ToString()}' operator.");
 
                     FieldConfig.ValidateConstant(Field, token, Filter);

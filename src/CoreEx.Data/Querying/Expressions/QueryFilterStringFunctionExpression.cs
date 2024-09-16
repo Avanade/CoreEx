@@ -5,7 +5,7 @@ using System;
 namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
-    /// Represents a query filter <see cref="QueryFilterTokenKind.StringFunction"/> expression.
+    /// Represents a query filter <see cref="QueryFilterTokenKind.StringFunctions"/> expression.
     /// </summary>
     /// <param name="parser">The <see cref="QueryFilterParser"/>.</param>
     /// <param name="filter">The originating query filter.</param>
@@ -60,7 +60,8 @@ namespace CoreEx.Data.Querying.Expressions
                     Field = token;
                     _fieldConfig = Parser.GetFieldConfig(Field, Filter);
 
-                    if (!FieldConfig.SupportedKinds.HasFlag(Function.Kind))
+                    var op = (QueryFilterOperator)(int)Function.Kind;
+                    if (!FieldConfig.Operators.HasFlag(op))
                         throw new QueryFilterParserException($"Field '{Field.GetRawToken(Filter).ToString()}' does not support the '{Function.GetRawToken(Filter).ToString()}' function.");
 
                     break;

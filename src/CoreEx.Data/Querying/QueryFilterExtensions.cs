@@ -75,7 +75,7 @@ namespace System.Linq
         {
             queryConfig.ThrowIfNull(nameof(queryConfig));
             if (!queryConfig.HasOrderByParser)
-                throw new QueryOrderByParserException("Capability is not currently supported.");
+                throw new QueryOrderByParserException("OrderBy statement is not currently supported.");
 
             var linq = queryConfig.OrderByParser.Parse(orderby.ThrowIfNullOrEmpty(nameof(orderby)));
             return query.OrderBy(linq);

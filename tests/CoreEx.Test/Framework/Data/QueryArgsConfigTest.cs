@@ -7,18 +7,25 @@ using System.Linq;
 namespace CoreEx.Test.Framework.Data
 {
     [TestFixture]
-    public class QueryFilterParserTest
+    public class QueryArgsConfigTest
     {
         private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
             .WithFilter(filter => filter
-                .AddField<string>("LastName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).AlsoCheckNotNull())
-                .AddField<string>("FirstName", c => c.Operators(QueryFilterTokenKind.AllStringOperators).UseUpperCase())
+                .AddField<string>("LastName", c => c.WithOperators(QueryFilterOperator.AllStringOperators).AlsoCheckNotNull())
+                .AddField<string>("FirstName", c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
                 .AddField<string>("Code")
                 .AddField<DateTime>("Birthday", "BirthDate")
-                .AddField<int>("Age")
+                .AddField<int>("Age", c => c.WithHelpText("Age is but a number."))
                 .AddField<decimal>("Salary")
-                .AddField<bool>("IsOld", c => c.Nullable()))
-            .WithOrderBy(order => order.WithDefault("LastName, FirstName"));
+                .AddField<bool>("IsOld", c => c.AsNullable())
+                .AddNullField("Terminated", "TerminatedDate")
+                .WithHelpText($"---{Environment.NewLine}Note: The OData-like filtering is awesome!"))
+            .WithOrderBy(order => order
+                .AddField("FirstName")
+                .AddField("LastName")
+                .AddField("Birthday", "BirthDate", c => c.WithDirection(QueryOrderByDirection.Descending))
+                .WithDefault("LastName, FirstName")
+                .WithHelpText($"---{Environment.NewLine}Note: The OData-like ordering is awesome!"));
 
         private static void AssertFilter(string filter, string expected, params object[] expectedArgs) => AssertFilter(_queryConfig, filter, expected, expectedArgs);
 
@@ -47,7 +54,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_SimpleValid()
+        public void FilterParser_SimpleValid()
         {
             AssertFilter("lastname eq 'Smith'", "(LastName != null && LastName == @0)", "Smith");
             AssertFilter("lastname eq null", "LastName == null");
@@ -67,7 +74,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_In()
+        public void FilterParser_In()
         {
             AssertFilter("code in ('abc', 'def')", "Code in (@0, @1)", "abc", "def");
             AssertFilter("age in (20, 30, 40)", "Age in (@0, @1, @2)", 20, 30, 40);
@@ -83,7 +90,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_ComplexValid()
+        public void FilterParser_ComplexValid()
         {
             AssertFilter("(age eq 1 or age eq 2) and isold eq true", "(Age == @0 || Age == @1) && IsOld == true", 1, 2);
             AssertFilter("(age  eq  1  or  age  eq  2 ) and isold    ", "(Age == @0 || Age == @1) && IsOld", 1, 2);
@@ -92,7 +99,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_Invalid()
+        public void FilterParser_Invalid()
         {
             AssertException("banana", "Field 'banana' is not supported.");
             AssertException("banana eq", "Field 'banana' is not supported.");
@@ -122,7 +129,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_Literals()
+        public void FilterParser_Literals()
         {
             AssertException("code eq '", "A Literal has not been terminated.");
             AssertException("code eq '''", "A Literal has not been terminated.");
@@ -142,7 +149,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_StringFunction()
+        public void FilterParser_StringFunction()
         {
             AssertFilter("startswith(firstName, 'abc')", "FirstName.ToUpper().StartsWith(@0)", "ABC");
             AssertFilter("endswith(firstName, 'abc')", "FirstName.ToUpper().EndsWith(@0)", "ABC");
@@ -157,7 +164,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_Not()
+        public void FilterParser_Not()
         {
             AssertFilter("not (age eq 1)", "!(Age == @0)", 1);
             AssertFilter("age eq 1 and not (age eq 2)", "Age == @0 && !(Age == @1)", 1, 2);
@@ -167,11 +174,11 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_Field_Default()
+        public void FilterParser_Field_Default()
         {
             var config = QueryArgsConfig.Create()
                 .WithFilter(filter => filter
-                    .AddField<string>("LastName", c => c.Default(new QueryStatement("LastName == @0", "Brown")))
+                    .AddField<string>("LastName", c => c.WithDefault(new QueryStatement("LastName == @0", "Brown")))
                     .AddField<string>("FirstName")
                     .Default(new QueryStatement("FirstName == @0", "Zoe")));
 
@@ -181,7 +188,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_Default()
+        public void FilterParser_Default()
         {
             var config = QueryArgsConfig.Create()
                 .WithFilter(filter => filter
@@ -195,7 +202,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_Field_OnQuery()
+        public void FilterParser_Field_OnQuery()
         {
             var config = QueryArgsConfig.Create()
                 .WithFilter(filter => filter
@@ -218,7 +225,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_Null()
+        public void FilterParser_Null()
         {
             var config = QueryArgsConfig.Create()
                 .WithFilter(filter => filter
@@ -232,7 +239,7 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void Parse_StatementWriter()
+        public void FilterParser_StatementWriter()
         {
             static bool LastNameWriter(IQueryFilterFieldStatementExpression expression, QueryFilterParserResult result)
             {
@@ -247,7 +254,7 @@ namespace CoreEx.Test.Framework.Data
 
             var config = QueryArgsConfig.Create()
                 .WithFilter(filter => filter
-                    .AddField<string>("LastName", c => c.StatementWriter(LastNameWriter))
+                    .AddField<string>("LastName", c => c.WithResultWriter(LastNameWriter))
                     .AddField<string>("FirstName"));
 
             AssertFilter(config, "lastname ne 'abc'", "LastName != @0", "abc");
@@ -255,18 +262,66 @@ namespace CoreEx.Test.Framework.Data
         }
 
         [Test]
-        public void ToStringHelp()
+        public void FilterParser_ToString()
         {
             var s = _queryConfig.FilterParser.ToString();
             Console.WriteLine(s);
-            Assert.That(s, Is.EqualTo(@"Supported field(s) are as follows:
-LastName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
-FirstName (Type: String, Operations: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
-Code (Type: String, Operations: EQ, NE, LT, LE, GE, GT, IN)
-Birthday (Type: DateTime, Operations: EQ, NE, LT, LE, GE, GT, IN)
-Age (Type: Int32, Operations: EQ, NE, LT, LE, GE, GT, IN)
-Salary (Type: Decimal, Operations: EQ, NE, LT, LE, GE, GT, IN)
-IsOld (Type: Boolean, Operations: EQ, NE)"));
+            Assert.That(s, Is.EqualTo(@"Filter field(s) are as follows:
+LastName (Type: String, Null: true, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+FirstName (Type: String, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+Code (Type: String, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN)
+Birthday (Type: DateTime, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN)
+Age (Type: Int32, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN) - Age is but a number.
+Salary (Type: Decimal, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN)
+IsOld (Type: Boolean, Null: true, Operators: EQ, NE)
+Terminated (Type: <none>, Null: true, Operators: EQ, NE)
+---
+Note: The OData-like filtering is awesome!"));
+        }
+
+        [Test]
+        public void OrderByParser_Valid()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(_queryConfig.OrderByParser.Parse("firstname, birthday desc"), Is.EqualTo("FirstName, BirthDate desc"));
+                Assert.That(_queryConfig.OrderByParser.Parse("lastname asc, birthday desc"), Is.EqualTo("LastName, BirthDate desc"));
+            });
+        }
+
+        [Test]
+        public void OrderByParser_Invalid()
+        {
+            void AssertException(string? orderBy, string expected)
+            {
+                var ex = Assert.Throws<QueryOrderByParserException>(() => _queryConfig.OrderByParser.Parse(orderBy));
+                Assert.That(ex.Messages, Is.Not.Null);
+                Assert.That(ex.Messages, Has.Count.EqualTo(1));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(ex.Messages.First().Property, Is.EqualTo("$orderby"));
+                    Assert.That(ex.Messages.First().Text, Does.StartWith(expected));
+                });
+            }
+
+            AssertException("firstname, middlename", "Field 'middlename' is not supported.");
+            AssertException("firstname, birthday asc", "Field 'birthday' direction 'asc' is invalid; not supported.");
+            AssertException("firstname, birthday both", "Field 'birthday' direction 'both' is invalid; must be either 'asc' (ascending) or 'desc' (descending).");
+            AssertException("firstname asc, firstname desc", "Field 'firstname' must not be specified more than once.");
+            AssertException("firstname asc desc", "Statement is syntactically incorrect.");
+        }
+
+        [Test]
+        public void OrderByParser_ToString()
+        {
+            var s = _queryConfig.OrderByParser.ToString();
+            Console.WriteLine(s);
+            Assert.That(s, Is.EqualTo(@"Order-by field(s) are as follows:
+FirstName (Direction: Both)
+LastName (Direction: Both)
+Birthday (Direction: Descending)
+---
+Note: The OData-like ordering is awesome!"));
         }
     }
 }

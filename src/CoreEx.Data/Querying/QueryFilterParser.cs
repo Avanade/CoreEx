@@ -26,11 +26,23 @@ namespace CoreEx.Data.Querying
     ///         .AddField&lt;DateTime&gt;(nameof(Employee.StartDate))
     ///         .AddNullField(nameof(Employee.Termination), nameof(EfModel.Employee.TerminationDate), c =&gt; c.Default(new QueryStatement($"{nameof(EfModel.Employee.TerminationDate)} == null"))));
     /// </code></para></remarks>
-    public class QueryFilterParser()
+    /// <param name="owner">The owning <see cref="QueryArgsConfig"/>.</param>
+    public sealed class QueryFilterParser(QueryArgsConfig owner)
     {
         private readonly Dictionary<string, IQueryFilterFieldConfig> _fields = new(StringComparer.OrdinalIgnoreCase);
         private QueryStatement? _defaultStatement;
         private Action<QueryFilterParserResult>? _onQuery;
+        private string? _helpText;
+
+        /// <summary>
+        /// Gets the owning <see cref="QueryArgsConfig"/>.
+        /// </summary>
+        public QueryArgsConfig Owner => owner.ThrowIfNull(nameof(owner));
+
+        /// <summary>
+        /// Indicates that at least a single field has been configured.
+        /// </summary>
+        public bool HasFields => _fields.Count > 0;
 
         /// <summary>
         /// Adds a <see cref="QueryFilterFieldConfig{T}"/> to the parser for the specified <paramref name="field"/> as-is.
@@ -124,9 +136,15 @@ namespace CoreEx.Data.Querying
         }
 
         /// <summary>
-        /// Indicates that at least a single field has been configured.
+        /// Sets (override) the additional help text.
         /// </summary>
-        public bool HasFields => _fields.Count > 0;
+        /// <param name="text">The additional help text.</param>
+        /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
+        public QueryFilterParser WithHelpText(string text)
+        {
+            _helpText = text;
+            return this;
+        }
 
         /// <summary>
         /// Trys and gets the specified <paramref name="field"/> <paramref name="config"/>.
@@ -176,7 +194,7 @@ namespace CoreEx.Data.Querying
                         continue;
                 }
 
-                WriteToResult(expression, result);
+                expression.WriteToResult(result);
             }
 
             // Append any default statements where no fields are in the filter.
@@ -235,7 +253,7 @@ namespace CoreEx.Data.Querying
                             canOpenParen = false;
                             canLogical = true;
                         }
-                        else if (QueryFilterTokenKind.StringFunction.HasFlag(t.Kind))
+                        else if (QueryFilterTokenKind.StringFunctions.HasFlag(t.Kind))
                         {
                             current = new QueryFilterStringFunctionExpression(this, filter, t);
                             canOpenParen = false;
@@ -427,65 +445,23 @@ namespace CoreEx.Data.Querying
             return inQuote ? -1 : i;
         }
 
-        /// <summary>
-        /// Converts the query filter <paramref name="expression"/> into the corresponding dynamic LINQ appending to the <paramref name="result"/>.
-        /// </summary>
-        /// <param name="expression">The <see cref="QueryFilterExpressionBase"/>.</param>
-        /// <param name="result">The <see cref="QueryFilterParserResult"/>.</param>
-        /// <remarks>Override this method to provide a custom dynamic LINQ conversion.</remarks>
-        protected virtual void WriteToResult(QueryFilterExpressionBase expression, QueryFilterParserResult result) => expression.WriteToResult(result);
-
         /// <inheritdoc/>
         public override string ToString()
         {
             if (!HasFields)
                 return "Filter statement is not currently supported.";
 
-            var sb = new StringBuilder("Supported field(s) are as follows:");
+            var sb = new StringBuilder("Filter field(s) are as follows:");
             foreach (var field in _fields)
             {
-                sb.AppendLine().Append(field.Key).Append(" (Type: ").Append(field.Value.Type.Name).Append(", Operations: ");
-
-                var first = true;
-                foreach (var e in Enum.GetValues(typeof(QueryFilterTokenKind)))
-                {
-                    if (field.Value.SupportedKinds.HasFlag((QueryFilterTokenKind)e))
-                    {
-                        var op = GetODataOperator((QueryFilterTokenKind)e);
-                        if (op is not null)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                sb.Append(", ");
-
-                            sb.Append(op);
-                        }
-                    }
-                }
-
-                sb.Append(')');
+                sb.AppendLine();
+                field.Value.AppendToString(sb);
             }
+
+            if (!string.IsNullOrEmpty(_helpText))
+                sb.AppendLine().Append(_helpText);
 
             return sb.ToString();
         }
-
-        /// <summary>
-        /// Gets the ODATA operator.
-        /// </summary>
-        private static string? GetODataOperator(QueryFilterTokenKind kind) => kind switch
-        {
-            QueryFilterTokenKind.Equal => "EQ",
-            QueryFilterTokenKind.NotEqual => "NE",
-            QueryFilterTokenKind.GreaterThan => "GT",
-            QueryFilterTokenKind.GreaterThanOrEqual => "GE",
-            QueryFilterTokenKind.LessThan => "LT",
-            QueryFilterTokenKind.LessThanOrEqual => "LE",
-            QueryFilterTokenKind.In => "IN",
-            QueryFilterTokenKind.StartsWith => nameof(QueryFilterTokenKind.StartsWith),
-            QueryFilterTokenKind.EndsWith => nameof(QueryFilterTokenKind.EndsWith),
-            QueryFilterTokenKind.Contains => nameof(QueryFilterTokenKind.Contains),
-            _ => null
-        };
     }
 }

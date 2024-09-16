@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Data.Querying.Expressions;
 using CoreEx.Mapping.Converters;
 using System;
+using System.Text;
 
 namespace CoreEx.Data.Querying
 {
@@ -44,8 +46,8 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// Gets the supported kinds.
         /// </summary>
-        /// <remarks>Where <see cref="IsTypeBoolean"/> defaults to both <see cref="QueryFilterTokenKind.Equal"/> and <see cref="QueryFilterTokenKind.NotEqual"/> only; otherwise, defaults to <see cref="QueryFilterTokenKind.Operator"/>.</remarks>
-        QueryFilterTokenKind SupportedKinds { get; }
+        /// <remarks>Where <see cref="IsTypeBoolean"/> defaults to both <see cref="QueryFilterOperator.Equal"/> and <see cref="QueryFilterOperator.NotEqual"/> only; otherwise, defaults to <see cref="QueryFilterOperator.ComparisonOperators"/>.</remarks>
+        QueryFilterOperator Operators { get; }
 
         /// <summary>
         /// Indicates whether the comparison should ignore case or not; will use <see cref="string.ToUpper()"/> when selected for comparisons.
@@ -69,6 +71,11 @@ namespace CoreEx.Data.Querying
         QueryStatement? DefaultStatement { get; }
 
         /// <summary>
+        /// Gets the additional help text.
+        /// </summary>
+        string? HelpText { get; }
+
+        /// <summary>
         /// Converts <paramref name="field"/> to the destination type using the <see cref="Converter"/> configurations where specified.
         /// </summary>
         /// <param name="operation">The operation <see cref="QueryFilterTokenKind"/> being performed on the <paramref name="field"/>.</param>
@@ -90,5 +97,12 @@ namespace CoreEx.Data.Querying
         /// Gets the <see cref="QueryFilterFieldResultWriter"/>.
         /// </summary>
         QueryFilterFieldResultWriter? ResultWriter { get; }
+
+        /// <summary>
+        /// Appends the field configuration to the <paramref name="stringBuilder"/>.
+        /// </summary>
+        /// <param name="stringBuilder">The <see cref="StringBuilder"/>.</param>
+        /// <returns>The <paramref name="stringBuilder"/>.</returns>
+        StringBuilder AppendToString(StringBuilder stringBuilder);
     }
 }

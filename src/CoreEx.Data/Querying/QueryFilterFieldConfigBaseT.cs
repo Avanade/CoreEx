@@ -21,7 +21,7 @@ namespace CoreEx.Data.Querying
         /// </summary>
         /// <returns>The <typeparamref name="TSelf"/> to support fluent-style method-chaining.</returns>
         /// <remarks>Sets the <see cref="QueryFilterFieldConfigBase.IsNullable"/> to <see langword="true"/>.</remarks>
-        public TSelf Nullable()
+        public TSelf AsNullable()
         {
             IsNullable = true;
             return (TSelf)this;
@@ -46,7 +46,7 @@ namespace CoreEx.Data.Querying
         /// <returns>The <typeparamref name="TSelf"/> to support fluent-style method-chaining.</returns>
         /// <remarks>To avoid unnecessary parsing this should be specified as a valid dynamic LINQ statement.
         /// <para>This must be the required expression <b>only</b>. It will be appended as an <i>and</i> to the final LINQ statement.</para></remarks>
-        public TSelf Default(QueryStatement? statement)
+        public TSelf WithDefault(QueryStatement? statement)
         {
             DefaultStatement = statement;
             return (TSelf)this;
@@ -57,9 +57,20 @@ namespace CoreEx.Data.Querying
         /// </summary>
         /// <param name="resultWriter">The <see cref="QueryFilterFieldResultWriter"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> to support fluent-style method-chaining.</returns>
-        public TSelf StatementWriter(QueryFilterFieldResultWriter? resultWriter)
+        public TSelf WithResultWriter(QueryFilterFieldResultWriter? resultWriter)
         {
             ResultWriter = resultWriter;
+            return (TSelf)this;
+        }
+
+        /// <summary>
+        /// Sets (overrides) the additional help text.
+        /// </summary>
+        /// <param name="text">The additional help text.</param>
+        /// <returns>The <typeparamref name="TSelf"/> to support fluent-style method-chaining.</returns>
+        public TSelf WithHelpText(string text)
+        {
+            HelpText = text.ThrowIfNullOrEmpty(nameof(text));
             return (TSelf)this;
         }
     }

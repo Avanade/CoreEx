@@ -2,7 +2,7 @@
 
 using System;
 
-namespace CoreEx.Data.Querying
+namespace CoreEx.Data.Querying.Expressions
 {
     /// <summary>
     /// Represents a <see cref="QueryFilterParser"/> token.
