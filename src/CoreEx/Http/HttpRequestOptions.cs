@@ -142,8 +142,18 @@ namespace CoreEx.Http
         /// </summary>
         /// <param name="query">The <see cref="QueryArgs"/>.</param>
         /// <returns>The current <see cref="HttpRequestOptions"/> instance to support fluent-style method-chaining.</returns>
+        /// <remarks>Any existing <see cref="Include(string[])"/> and/or <see cref="Exclude(string[])"/> fields will be integrated into the <paramref name="query"/>.</remarks>
         public HttpRequestOptions WithQuery(QueryArgs? query)
         {
+            if (Query is not null && query is not null)
+            {
+                if (Query.IncludeFields is not null)
+                    query.Include([.. Query.IncludeFields]);
+
+                if (Query.ExcludeFields is not null)
+                    query.Exclude([.. Query.ExcludeFields]);
+            }
+
             Query = query;
             return this;
         }
