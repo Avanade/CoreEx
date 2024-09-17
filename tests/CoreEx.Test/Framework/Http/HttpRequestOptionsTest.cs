@@ -157,5 +157,16 @@ namespace CoreEx.Test.Framework.Http
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?fruit=banana&fruit=apple"));
         }
+
+        [Test]
+        public void QueryArgsQueryString()
+        {
+            var qa = QueryArgs.Create("name eq 'bob'");
+            var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
+            var ro = new HttpRequestOptions() { IncludeInactive = true }.Include("name", "text");
+            ro = ro.WithQuery(qa);
+            hr.ApplyRequestOptions(ro);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$filter=name+eq+%27bob%27&$fields=name,text&$inactive=true"));
+        }
     }
 }

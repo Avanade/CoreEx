@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.25.2
+- *Fixed:* `HttpRequestOptions.WithQuery` fixed to ensure any previously set `Include` and `Exclude` fields are not lost (results in a merge); i.e. only the `Filter` and `OrderBy` properties are explicitly overridden.
+
 ## v3.25.1
 - *Fixed:* Extend `QueryFilterFieldConfigBase` to include `AsNullable()` to specifiy whether the field supports `null`.
 - *Fixed:* Extend `QueryFilterFieldConfigBase` to include `WithResultWriter()` to specify a function to override the corresponding LINQ statement result writing.
