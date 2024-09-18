@@ -34,7 +34,7 @@ namespace System.Linq
         public static IQueryable<T> Where<T>(this IQueryable<T> query, QueryArgsConfig queryConfig, string? filter)
         {
             queryConfig.ThrowIfNull(nameof(queryConfig));
-            if (!queryConfig.HasFilterParser)
+            if (!queryConfig.HasFilterParser && !string.IsNullOrEmpty(filter))
                 throw new QueryFilterParserException("Filter statement is not currently supported.");
 
             var result = queryConfig.FilterParser.Parse(filter);
@@ -54,8 +54,7 @@ namespace System.Linq
         public static IQueryable<T> OrderBy<T>(this IQueryable<T> query, QueryArgsConfig queryConfig, QueryArgs? queryArgs = null)
         {
             queryConfig.ThrowIfNull(nameof(queryConfig));
-
-            if (!queryConfig.HasOrderByParser)
+            if (!queryConfig.HasOrderByParser && !string.IsNullOrEmpty(queryArgs?.OrderBy))
                 throw new QueryOrderByParserException("OrderBy statement is not currently supported.");
 
             return string.IsNullOrEmpty(queryArgs?.OrderBy) 
@@ -71,10 +70,10 @@ namespace System.Linq
         /// <param name="queryConfig">The <see cref="QueryArgsConfig"/>.</param>
         /// <param name="orderby">The basic dynamic <i>OData-like</i> <c>$orderby</c> statement.</param>
         /// <returns>The query.</returns>
-        public static IQueryable<T> OrderBy<T>(this IQueryable<T> query, QueryArgsConfig queryConfig, string orderby)
+        public static IQueryable<T> OrderBy<T>(this IQueryable<T> query, QueryArgsConfig queryConfig, string? orderby)
         {
             queryConfig.ThrowIfNull(nameof(queryConfig));
-            if (!queryConfig.HasOrderByParser)
+            if (!queryConfig.HasOrderByParser && !string.IsNullOrEmpty(orderby))
                 throw new QueryOrderByParserException("OrderBy statement is not currently supported.");
 
             var linq = queryConfig.OrderByParser.Parse(orderby.ThrowIfNullOrEmpty(nameof(orderby)));

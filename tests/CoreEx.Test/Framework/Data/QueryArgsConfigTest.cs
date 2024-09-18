@@ -180,7 +180,7 @@ namespace CoreEx.Test.Framework.Data
                 .WithFilter(filter => filter
                     .AddField<string>("LastName", c => c.WithDefault(new QueryStatement("LastName == @0", "Brown")))
                     .AddField<string>("FirstName")
-                    .Default(new QueryStatement("FirstName == @0", "Zoe")));
+                    .WithDefault(new QueryStatement("FirstName == @0", "Zoe")));
 
             AssertFilter(config, "lastname eq 'Smith'", "LastName == @0", "Smith");
             AssertFilter(config, null, "LastName == @0", "Brown");
@@ -194,7 +194,7 @@ namespace CoreEx.Test.Framework.Data
                 .WithFilter(filter => filter
                     .AddField<string>("LastName")
                     .AddField<string>("FirstName")
-                    .Default(new QueryStatement("FirstName == @0", "Zoe")));
+                    .WithDefault(new QueryStatement("FirstName == @0", "Zoe")));
 
             AssertFilter(config, "lastname eq 'Smith'", "LastName == @0", "Smith");
             AssertFilter(config, "", "FirstName == @0", "Zoe");

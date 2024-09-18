@@ -11,7 +11,7 @@ using System.Text;
 namespace CoreEx.Data.Querying
 {
     /// <summary>
-    /// Represents a basic query filter parser with explicitly defined field support.
+    /// Represents a basic query filter parser and LINQ translator with explicitly defined field support.
     /// </summary>
     /// <remarks>Enables basic query filtering with similar syntax to the OData <c><see href="https://docs.oasis-open.org/odata/odata/v4.01/cs01/part2-url-conventions/odata-v4.01-cs01-part2-url-conventions.html#sec_SystemQueryOptionfilter">$filter</see></c>.
     /// Support is limited to the filter tokens as specified by the <see cref="QueryFilterTokenKind"/>.  
@@ -30,7 +30,7 @@ namespace CoreEx.Data.Querying
     public sealed class QueryFilterParser(QueryArgsConfig owner)
     {
         private readonly Dictionary<string, IQueryFilterFieldConfig> _fields = new(StringComparer.OrdinalIgnoreCase);
-        private QueryStatement? _defaultStatement;
+        private Func<QueryStatement>? _defaultStatement;
         private Action<QueryFilterParserResult>? _onQuery;
         private string? _helpText;
 
@@ -116,7 +116,12 @@ namespace CoreEx.Data.Querying
         /// <summary>
         /// Sets (overrides) the default LINQ <see cref="QueryStatement"/> to be used where no field filtering is specified (including defaults).
         /// </summary>
-        public QueryFilterParser Default(QueryStatement statement)
+        public QueryFilterParser WithDefault(QueryStatement? statement) => WithDefault(statement is null ? null : () => statement);
+
+        /// <summary>
+        /// Sets (overrides) the default LINQ <see cref="QueryStatement"/> function to be used where no field filtering is specified (including defaults).
+        /// </summary>
+        public QueryFilterParser WithDefault(Func<QueryStatement>? statement)
         {
             _defaultStatement = statement;
             return this;
@@ -198,14 +203,15 @@ namespace CoreEx.Data.Querying
             }
 
             // Append any default statements where no fields are in the filter.
-            var needsAnd = result.FilterBuilder.Length > 0;
             foreach (var statement in _fields.Where(x => x.Value.DefaultStatement is not null && !result.Fields.Contains(x.Key)).Select(x => x.Value.DefaultStatement!))
             {
-                result.AppendStatement(statement);
+                var stmt = statement();
+                if (stmt is not null)
+                    result.AppendStatement(stmt);
             }
 
             // Uses the default statement where no fields were specified (or defaulted).
-            result.Default(_defaultStatement);
+            result.UseDefault(_defaultStatement);
 
             // Last chance ;-)
             _onQuery?.Invoke(result);

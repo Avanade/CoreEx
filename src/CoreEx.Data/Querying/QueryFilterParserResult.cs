@@ -76,10 +76,11 @@ namespace CoreEx.Data.Querying
         /// <remarks>Also appends an '<c> &amp;&amp; </c>' (and) prior to the <paramref name="statement"/> where neccessary.</remarks>
         public void AppendStatement(QueryStatement statement)
         {
+            statement.ThrowIfNull(nameof(statement));
             if (FilterBuilder.Length > 0)
                 FilterBuilder.Append(" && ");
 
-            var sb = new StringBuilder(statement.ThrowIfNull(nameof(statement)).Statement);
+            var sb = new StringBuilder(statement.Statement);
             for (int i = 0; i < statement.Args.Length; i++)
             {
                 sb.Replace($"@{i}", $"@{Args.Count}");
@@ -93,12 +94,22 @@ namespace CoreEx.Data.Querying
         /// Defaults the <see cref="FilterBuilder"/> with the specified <paramref name="statement"/> where not already set.
         /// </summary>
         /// <param name="statement">The <see cref="QueryStatement"/>.</param>
-        public void Default(QueryStatement? statement)
+        public void UseDefault(QueryStatement? statement) => UseDefault(statement is null ? null : () => statement);
+
+        /// <summary>
+        /// Defaults the <see cref="FilterBuilder"/> with the specified <paramref name="statement"/> function where not already set.
+        /// </summary>
+        /// <param name="statement">The <see cref="QueryStatement"/> function.</param>
+        public void UseDefault(Func<QueryStatement>? statement)
         {
-            if (statement is not null && FilterBuilder.Length == 0)
+            if (FilterBuilder.Length > 0)
+                return;
+
+            var stmt = statement?.Invoke();
+            if (stmt is not null)
             {
-                FilterBuilder.Append(statement.Statement);
-                Args.AddRange(statement.Args);
+                FilterBuilder.Append(stmt.Statement);
+                Args.AddRange(stmt.Args);
             }
         }
     }

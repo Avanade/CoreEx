@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.25.3
+- *Fixed:* Added function parameter support for `WithDefault()` to enable runtime execution of the default statement where required for the query filter capabilities.
+
 ## v3.25.2
 - *Fixed:* `HttpRequestOptions.WithQuery` fixed to ensure any previously set `Include` and `Exclude` fields are not lost (results in a merge); i.e. only the `Filter` and `OrderBy` properties are explicitly overridden.
 

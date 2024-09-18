@@ -40,13 +40,22 @@ namespace CoreEx.Data.Querying
         }
 
         /// <summary>
-        /// Sets (overrides) the default default LINQ statement to be used where no filtering is specified.
+        /// Sets (overrides) the default LINQ statement to be used where no filtering is specified.
         /// </summary>
         /// <param name="statement">The LINQ <see cref="QueryStatement"/>.</param>
         /// <returns>The <typeparamref name="TSelf"/> to support fluent-style method-chaining.</returns>
         /// <remarks>To avoid unnecessary parsing this should be specified as a valid dynamic LINQ statement.
         /// <para>This must be the required expression <b>only</b>. It will be appended as an <i>and</i> to the final LINQ statement.</para></remarks>
-        public TSelf WithDefault(QueryStatement? statement)
+        public TSelf WithDefault(QueryStatement? statement) => WithDefault(statement is null ? null : () => statement);
+
+        /// <summary>
+        /// Sets (overrides) the default LINQ statement function to be used where no filtering is specified.
+        /// </summary>
+        /// <param name="statement">The LINQ <see cref="QueryStatement"/>.</param>
+        /// <returns>The <typeparamref name="TSelf"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>To avoid unnecessary parsing this should be specified as a valid dynamic LINQ statement.
+        /// <para>This must be the required expression <b>only</b>. It will be appended as an <i>and</i> to the final LINQ statement.</para></remarks>
+        public TSelf WithDefault(Func<QueryStatement>? statement)
         {
             DefaultStatement = statement;
             return (TSelf)this;
