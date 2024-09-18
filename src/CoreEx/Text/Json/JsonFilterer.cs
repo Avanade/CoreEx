@@ -136,7 +136,7 @@ namespace CoreEx.Text.Json
         public static Dictionary<string, bool> CreateDictionary(IEnumerable<string>? paths, JsonPropertyFilter filter, StringComparison comparison, ref int maxDepth, bool prependRootPath)
         {
             var dict = new Dictionary<string, bool>(StringComparer.FromComparison(comparison));
-            paths ??= Array.Empty<string>();
+            paths ??= [];
 
             // Add each 'specified' path.
             paths.ForEach(path => dict.TryAdd(prependRootPath ? PrependRootPath(path) : path, true));

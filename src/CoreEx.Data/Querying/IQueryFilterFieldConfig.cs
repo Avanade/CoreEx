@@ -66,9 +66,9 @@ namespace CoreEx.Data.Querying
         bool IsCheckForNotNull { get; }
 
         /// <summary>
-        /// Gets the default LINQ <see cref="QueryStatement"/> to be used where no filtering is specified.
+        /// Gets the default LINQ <see cref="QueryStatement"/> function to be used where no filtering is specified.
         /// </summary>
-        QueryStatement? DefaultStatement { get; }
+        Func<QueryStatement>? DefaultStatement { get; }
 
         /// <summary>
         /// Gets the additional help text.

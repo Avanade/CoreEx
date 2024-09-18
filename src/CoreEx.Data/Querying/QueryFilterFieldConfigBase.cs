@@ -120,12 +120,12 @@ namespace CoreEx.Data.Querying
         protected bool IsCheckForNotNull { get; set; } = false;
 
         /// <inheritdoc/>
-        QueryStatement? IQueryFilterFieldConfig.DefaultStatement => DefaultStatement;
+        Func<QueryStatement>? IQueryFilterFieldConfig.DefaultStatement => DefaultStatement;
 
         /// <summary>
-        /// Gets or sets the default LINQ <see cref="QueryStatement"/> to be used where no filtering is specified.
+        /// Gets or sets the default LINQ <see cref="QueryStatement"/> function to be used where no filtering is specified.
         /// </summary>
-        protected QueryStatement? DefaultStatement { get; set; }
+        protected Func<QueryStatement>? DefaultStatement { get; set; }
 
         /// <inheritdoc/>
         QueryFilterFieldResultWriter? IQueryFilterFieldConfig.ResultWriter => ResultWriter;

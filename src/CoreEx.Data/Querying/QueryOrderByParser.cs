@@ -2,13 +2,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace CoreEx.Data.Querying
 {
     /// <summary>
-    /// Represents a basic query sort order by parser with explicitly defined field support.
+    /// Represents a basic query sort order by parser and LINQ translator with explicitly defined field support.
     /// </summary>
     /// <remarks>This is <b>not</b> intended to be a replacement for OData, GraphQL, etc. but to provide a limited, explicitly supported, dynamic capability to sort an underlying query.</remarks>
     /// <param name="owner">The owning <see cref="QueryArgsConfig"/>.</param>

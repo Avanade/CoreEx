@@ -33,7 +33,7 @@ The following features are supported:
   - `ge` - greater than or equal to; expressed as `field ge 'value'`
   - `lt` - less than; expressed as `field lt 'value'`
   - `le` - less than or equal to; expressed as `field le 'value'`
-  - `in` - in list; expressed as `field in('value1', 'value2', ...)`
+  - `in` - in list; expressed as `field in ('value1', 'value2', ...)`
   - `startswith` - starts with; expressed as `startswith(field, 'value')`
   - `endswith` - ends with; expressed as `endswith(field, 'value')`
   - `contains` - contains; expressed as `contains(field, 'value')`
@@ -71,8 +71,8 @@ The [`QueryArgsConfig`](./Querying/QueryArgsConfig.cs) provides the means to con
 
 This contains the following key capabilities:
 
-- [`FilterParser`](./Querying/QueryFilterParser.cs) - this is the `$filter` parser.
-- [`OrderByParser`](./Querying/QueryOrderByParser.cs) - this is the `$orderby` parser.
+- [`FilterParser`](./Querying/QueryFilterParser.cs) - this is the `$filter` parser and LINQ translator.
+- [`OrderByParser`](./Querying/QueryOrderByParser.cs) - this is the `$orderby` parser and LINQ translator.
 
 Each of these properties have the ability to _explicitly_ add fields and their corresponding configuration. An example is as follows:
 
@@ -89,6 +89,35 @@ private static readonly QueryArgsConfig _config = QueryArgsConfig.Create()
         .AddField(nameof(Employee.FirstName))
         .WithDefault($"{nameof(Employee.LastName)}, {nameof(Employee.FirstName)}"));
 ```
+
+There are a number of different field configurations that can be added:
+
+Method | Description
+- | -
+`AddField<T>()` | Adds a field of the specified type `T`. See [`QueryFilterFieldConfig<T>`](./Querying/QueryFilterFieldConfigT.cs).
+`AddNullField()` | Adds a field that only supports `null`-checking operations; limits to `EQ` and `NE`. See [`QueryFilterNullFieldConfig`](./Querying/QueryFilterNullFieldConfig.cs).
+`AddReferenceDataField<TRef>()` | Adds a reference data field of the specified type `TRef`. Automatically includes the requisite `IReferenceData.Code` validation, and limits operations to `EQ`, `NE` and `IN`. See [`QueryFilterReferenceDataFieldConfig<TRef>`](./Querying/QueryFilterReferenceDataFieldConfig.cs).
+
+Each of the above methods support the following parameters:
+- `field` - the name of the field that can be referenced within the `$filter`.
+- `model` - the optional model name of the field to be used in the underlying LINQ operation (defaults to `field`).
+- `configure` - an optional configuration action to further define the field configuration.
+
+Depending on the field type being added (as above), the following related configuration options are available:
+
+Method | Description
+- | -
+`AlsoCheckNotNull()` | Indicates that a not-null check should also be performed when performing the operation.
+`AsNullable()` | Indicates that the field is nullable and therefore supports null equality operations.
+`MustBeValid()` | Indicates that the reference data field value must exist and be considered valid; i.e. it is `IReferenceData.IsValid`.
+`UseIdentifier()` | Indicates that the `IReferenceData.Id` should be used in the underlying LINQ operation instead of the `IReferenceData.Code`.
+`WithConverter()` | Provides the `IConverter<string, T>` to convert the filer value string to the underlying field type of `T`.
+`WithDefault()` | Provides a default LINQ statement to be used for the field when no filtering is specified by the client.
+`WithHelpText()` | Provides additional help text for the field to be used where help is requested.
+`WithOperators()` | Overrides the supported operators for the field. See [`QueryFilterOperator`](./Querying/QueryFilterOperator.cs).
+`WithResultWriter()` | Provides an opportunity to override the default result writer; i.e. LINQ expression.
+`WithUpperCase()` | Indicates that the operation should be case-insensitive by performing an explicit `ToUpper()` on the field value.
+`WithValue()` | Provides an opportunity to override the converted field value when the filter is applied.
 
 <br/>
 
@@ -127,4 +156,32 @@ LINQ: Where("Code == @0", ["A"])
 ---
 $filter: startswith(firstName, 'abc'), 
 LINQ: Where("FirstName.ToUpper().StartsWith(@0)", ["ABC"])
+```
+
+<br/>
+
+### Help
+
+To aid the consumers (clients) of the OData-like endpoints a *help* request can be issued. This is performed by using either `$filter=help` or `$orderby=help` and will result in a `400-BadRequest` with help-like contents similar to the following:
+
+``` json
+{
+  "$filter": [
+    "Filter field(s) are as follows:
+     LastName (Type: String, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+     FirstName (Type: String, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+     Gender (Type: Gender, Null: false, Operators: EQ, NE, IN)
+     StartDate (Type: DateTime, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN)
+     Termination (Type: <none>, Null: true, Operators: EQ, NE)"
+  ]
+}
+
+{
+  "$orderby": [
+    "Order-by field(s) are as follows:
+    LastName (Direction: Both)
+    FirstName (Direction: Both)"
+  ]
+}
+
 ```

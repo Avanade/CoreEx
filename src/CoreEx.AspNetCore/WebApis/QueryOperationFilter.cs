@@ -46,10 +46,10 @@ namespace CoreEx.AspNetCore.WebApis
                 return;
 
             if (Fields.HasFlag(QueryOperationFilterFields.Filter))
-                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsFilterQueryStringName, "The basic dynamic OData-like filter specification.", "string", null));
+                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsFilterQueryStringName, "The basic dynamic OData-like filter statement.", "string", null));
 
             if (Fields.HasFlag(QueryOperationFilterFields.OrderBy))
-                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsOrderByQueryStringName, "The basic dynamic OData-like order-by specificationswagger paramters .", "string", null));
+                operation.Parameters.Add(PagingOperationFilter.CreateParameter(HttpConsts.QueryArgsOrderByQueryStringName, "The basic dynamic OData-like order-by statement.", "string", null));
         }
     }
 }

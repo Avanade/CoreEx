@@ -89,19 +89,35 @@ namespace CoreEx.AspNetCore.WebApis
             if (query == null || query.Count == 0)
                 return false;
 
+            Paging = GetPagingArgs(query);
+            Query = GetQueryArgs(query);
+
             var fields = GetNamedQueryString(query, HttpConsts.IncludeFieldsQueryStringNames);
             if (!string.IsNullOrEmpty(fields))
+            {
+#if NET6_0_OR_GREATER
+                IncludeFields = fields.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+#else
                 IncludeFields = fields.Split(',', StringSplitOptions.RemoveEmptyEntries);
+#endif
+                Query ??= new QueryArgs();
+                Query.Include(IncludeFields);
+            }
 
             fields = GetNamedQueryString(query, HttpConsts.ExcludeFieldsQueryStringNames);
             if (!string.IsNullOrEmpty(fields))
+            {
+#if NET6_0_OR_GREATER
+                ExcludeFields = fields.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+#else
                 ExcludeFields = fields.Split(',', StringSplitOptions.RemoveEmptyEntries);
+#endif
+                Query ??= new QueryArgs();
+                Query.Exclude(ExcludeFields);
+            }
 
             IncludeText = HttpExtensions.ParseBoolValue(GetNamedQueryString(query, HttpConsts.IncludeTextQueryStringNames));
             IncludeInactive = HttpExtensions.ParseBoolValue(GetNamedQueryString(query, HttpConsts.IncludeInactiveQueryStringNames, "true"));
-
-            Paging = GetPagingArgs(query);
-            Query = GetQueryArgs(query);
             return true;
         }
 
