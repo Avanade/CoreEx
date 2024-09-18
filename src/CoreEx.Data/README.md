@@ -48,7 +48,7 @@ The following features are supported:
   - `desc` - descending; expressed as `field desc`
   - `,` - multiple fields; expressed as `field1 asc, field2 desc`
 
-The `'value'` is expressed as a string (must be enclosed in single quotes), number, boolean, or date, or `null` depending on the field type.
+Where the `'value'` is expressed as a string it must be enclosed in single quotes. A number, boolean, date, date and time, or `null` should be expressed as a constant, as expected for the underlying field type.
 
 The following are examples of supported queries:
 
@@ -93,31 +93,31 @@ private static readonly QueryArgsConfig _config = QueryArgsConfig.Create()
 There are a number of different field configurations that can be added:
 
 Method | Description
-- | -
-`AddField<T>()` | Adds a field of the specified type `T`. See [`QueryFilterFieldConfig<T>`](./Querying/QueryFilterFieldConfigT.cs).
-`AddNullField()` | Adds a field that only supports `null`-checking operations; limits to `EQ` and `NE`. See [`QueryFilterNullFieldConfig`](./Querying/QueryFilterNullFieldConfig.cs).
-`AddReferenceDataField<TRef>()` | Adds a reference data field of the specified type `TRef`. Automatically includes the requisite `IReferenceData.Code` validation, and limits operations to `EQ`, `NE` and `IN`. See [`QueryFilterReferenceDataFieldConfig<TRef>`](./Querying/QueryFilterReferenceDataFieldConfig.cs).
+|-|-|
+`AddField<T>` | Adds a field of the specified type `T`. See [`QueryFilterFieldConfig<T>`](./Querying/QueryFilterFieldConfigT.cs).
+`AddNullField` | Adds a field that only supports `null` checking operations; limits to `EQ` and `NE`. See [`QueryFilterNullFieldConfig`](./Querying/QueryFilterNullFieldConfig.cs).
+`AddReferenceDataField<TRef>` | Adds a reference data field of the specified type `TRef`. Automatically includes the requisite `IReferenceData.Code` validation, and limits operations to `EQ`, `NE` and `IN`. See [`QueryFilterReferenceDataFieldConfig<TRef>`](./Querying/QueryFilterReferenceDataFieldConfig.cs).
 
 Each of the above methods support the following parameters:
-- `field` - the name of the field that can be referenced within the `$filter`.
-- `model` - the optional model name of the field to be used in the underlying LINQ operation (defaults to `field`).
+- `field` - the name of the field (using the correct casing) that can be referenced within the `$filter`.
+- `model` - the optional model name of the field (using the correct casing)  to be used in the underlying LINQ operation (defaults to `field`).
 - `configure` - an optional configuration action to further define the field configuration.
 
 Depending on the field type being added (as above), the following related configuration options are available:
 
 Method | Description
-- | -
-`AlsoCheckNotNull()` | Indicates that a not-null check should also be performed when performing the operation.
-`AsNullable()` | Indicates that the field is nullable and therefore supports null equality operations.
-`MustBeValid()` | Indicates that the reference data field value must exist and be considered valid; i.e. it is `IReferenceData.IsValid`.
-`UseIdentifier()` | Indicates that the `IReferenceData.Id` should be used in the underlying LINQ operation instead of the `IReferenceData.Code`.
-`WithConverter()` | Provides the `IConverter<string, T>` to convert the filer value string to the underlying field type of `T`.
-`WithDefault()` | Provides a default LINQ statement to be used for the field when no filtering is specified by the client.
-`WithHelpText()` | Provides additional help text for the field to be used where help is requested.
-`WithOperators()` | Overrides the supported operators for the field. See [`QueryFilterOperator`](./Querying/QueryFilterOperator.cs).
-`WithResultWriter()` | Provides an opportunity to override the default result writer; i.e. LINQ expression.
-`WithUpperCase()` | Indicates that the operation should be case-insensitive by performing an explicit `ToUpper()` on the field value.
-`WithValue()` | Provides an opportunity to override the converted field value when the filter is applied.
+|-|-|
+`AlsoCheckNotNull` | Indicates that a not-null check should also be performed when performing the operation.
+`AsNullable` | Indicates that the field is nullable and therefore supports null equality operations.
+`MustBeValid` | Indicates that the reference data field value must exist and be considered valid; i.e. it is `IReferenceData.IsValid`.
+`UseIdentifier` | Indicates that the `IReferenceData.Id` should be used in the underlying LINQ operation instead of the `IReferenceData.Code`.
+`WithConverter` | Provides the `IConverter<string, T>` to convert the filer value string to the underlying field type of `T`.
+`WithDefault` | Provides a default LINQ statement to be used for the field when no filtering is specified by the client.
+`WithHelpText` | Provides additional help text for the field to be used where help is requested.
+`WithOperators` | Overrides the supported operators for the field. See [`QueryFilterOperator`](./Querying/QueryFilterOperator.cs).
+`WithResultWriter` | Provides an opportunity to override the default result writer; i.e. LINQ expression.
+`WithUpperCase` | Indicates that the operation should be case-insensitive by performing an explicit `ToUpper()` on the field value.
+`WithValue` | Provides an opportunity to override the converted field value when the filter is applied.
 
 <br/>
 
