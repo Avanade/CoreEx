@@ -926,8 +926,8 @@ namespace CoreEx.Validation
         /// <param name="maxLength">The maximum string length for the e-mail address; defaults to 254.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
-        /// <remarks>The maximum length for an email address is '<c>254</c>' as per this <see href="https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address#:~:text=%20The%20length%20limits%20are%20as%20follows%3A%20,i.e.%2C%20example.com%20--%20254%20characters%20maximum.%20More%20">article</see>,
-        /// hence the default.</remarks>
+        /// <remarks>The maximum length for an email address is '<c>254</c>' or '<c>256</c>' or '<c>320</c>' as per this <see href="https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address#:~:text=%20The%20length%20limits%20are%20as%20follows%3A%20,i.e.%2C%20example.com%20--%20254%20characters%20maximum.%20More%20">article</see>,
+        /// in the absense of a definitive answer '<c>254</c>' has been chosen as the default. As it appears there is no real correct answer, simply adjust accordingly.</remarks>
         public static IPropertyRule<TEntity, string> Email<TEntity>(this IPropertyRule<TEntity, string> rule, int? maxLength = 254, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new EmailRule<TEntity> { MaxLength = maxLength, ErrorText = errorText });
 
@@ -939,8 +939,8 @@ namespace CoreEx.Validation
         /// <param name="maxLength">The maximum string length for the e-mail address; defaults to 254.</param>
         /// <param name="errorText">The error message format text <see cref="LText"/> (overrides the default).</param>
         /// <returns>A <see cref="IPropertyRule{TEntity, String}"/>.</returns>
-        /// <remarks>The maximum length for an email address is '<c>254</c>' as per this <see href="https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address#:~:text=%20The%20length%20limits%20are%20as%20follows%3A%20,i.e.%2C%20example.com%20--%20254%20characters%20maximum.%20More%20">article</see>,
-        /// hence the default.</remarks>
+        /// <remarks>The maximum length for an email address is '<c>254</c>' or '<c>256</c>' or '<c>320</c>' as per this <see href="https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address#:~:text=%20The%20length%20limits%20are%20as%20follows%3A%20,i.e.%2C%20example.com%20--%20254%20characters%20maximum.%20More%20">article</see>,
+        /// in the absense of a definitive answer '<c>254</c>' has been chosen as the default. As it appears there is no real correct answer, simply adjust accordingly.</remarks>
         public static IPropertyRule<TEntity, string> EmailAddress<TEntity>(this IPropertyRule<TEntity, string> rule, int? maxLength = 254, LText? errorText = null) where TEntity : class
             => rule.ThrowIfNull(nameof(rule)).AddRule(new EmailRule<TEntity> { MaxLength = maxLength, ErrorText = errorText });
 

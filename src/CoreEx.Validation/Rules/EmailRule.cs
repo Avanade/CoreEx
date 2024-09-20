@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Validation.Rules
 {
     /// <summary>
-    /// Provides <see cref="string"/> validation for an <b>e-mail</b>.
+    /// Provides <see cref="string"/> validation for an <b>e-mail</b> using the <see cref="EmailAddressAttribute"/> to perform the underlying validation.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
     public class EmailRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class

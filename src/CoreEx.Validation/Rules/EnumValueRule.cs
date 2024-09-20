@@ -34,8 +34,7 @@ namespace CoreEx.Validation.Rules
         {
             if (!Enum.TryParse<TEnum>(context.Value!, IgnoreCase, out var val))
                 context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
-
-            if (IgnoreCase && OverrideValue)
+            else if (IgnoreCase && OverrideValue)
                 context.OverrideValue(val.ToString());
 
             return Task.CompletedTask;

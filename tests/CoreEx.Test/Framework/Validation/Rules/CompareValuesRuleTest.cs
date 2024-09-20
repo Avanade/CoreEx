@@ -76,6 +76,14 @@ namespace CoreEx.Test.Framework.Validation.Rules
                 Assert.That(v1.HasErrors, Is.False);
                 Assert.That(cc.Option, Is.EqualTo("A"));
             });
+
+            cc.Option = "c";
+            v1 = await v.ValidateAsync(cc);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v1.HasErrors, Is.True);
+                Assert.That(cc.Option, Is.EqualTo("c"));
+            });
         }
 
         public class CompareClass

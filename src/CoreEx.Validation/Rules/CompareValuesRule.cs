@@ -43,7 +43,7 @@ namespace CoreEx.Validation.Rules
         public IEqualityComparer<TProperty?> EqualityComparer { get; set; } = EqualityComparer<TProperty?>.Default;
 
         /// <summary>
-        /// Indicates whether to override the underlying property value with the corresponding <see cref="Enum"/> name.
+        /// Indicates whether to override the underlying property value with the corresponding matched value.
         /// </summary>
         public bool OverrideValue { get; set; }
 
@@ -52,13 +52,11 @@ namespace CoreEx.Validation.Rules
         {
             context.ThrowIfNull(nameof(context));
 
-            // Perform the comparison.
+            // Perform the comparison, and override where selected.
             var values = _compareToValues != null ? _compareToValues! : await _compareToValuesFunctionAsync!(context.Parent.Value!, cancellationToken).ConfigureAwait(false);
             if (!values.Where(x => EqualityComparer.Equals(x, context.Value)).Any())
                 context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
-
-            // Override where selected.
-            if (OverrideValue)
+            else if (OverrideValue)
                 context.OverrideValue(values.Where(x => EqualityComparer.Equals(x, context.Value)).First());
         }
     }

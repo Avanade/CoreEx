@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.25.4
+- *Fixed*: Fixed the `InvalidOperationException` with a 'Sequence contains no elements' when performing validation with the `CompareValuesRule` that has the `OverrideValue` set. 
+
 ## v3.25.3
 - *Fixed:* Added function parameter support for `WithDefault()` to enable runtime execution of the default statement where required for the query filter capabilities.
 
