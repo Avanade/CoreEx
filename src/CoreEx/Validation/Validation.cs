@@ -5,6 +5,7 @@ using CoreEx.Localization;
 using CoreEx.Results;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,12 +43,13 @@ namespace CoreEx.Validation
         /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
         /// <returns>The value where non-default.</returns>
         /// <exception cref="ValidationException">Thrown where the value is default.</exception>
+        [return: NotNull()]
 #if NETSTANDARD2_1
-        public static T? Required<T>(this T? value, string? name = null, LText? text = null)
+        public static T Required<T>(this T value, string? name = null, LText? text = null)
 #else
-        public static T? Required<T>(this T? value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null)
+        public static T Required<T>(this T value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null)
 #endif
-            => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? ((name == null || name == ValueNameDefault) ? ValueTextDefault : name.ToSentenceCase()!))) : value;
+            => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueNameDefault, MandatoryFormat, text ?? ((name == null || name == ValueNameDefault) ? ValueTextDefault : name.ToSentenceCase()!))) : value!;
 
         /// <summary>
         /// Requires (validates) that the <paramref name="value"/> is non-default and continues; otherwise, will return the <paramref name="result"/> with a corresponding <see cref="ValidationException"/>.

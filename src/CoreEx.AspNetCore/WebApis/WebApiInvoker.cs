@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -55,21 +56,28 @@ namespace CoreEx.AspNetCore.WebApis
             using (owner.Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId } }))
             {
                 owner.Logger.LogDebug("WebApi started.");
+                var stopwatch = owner.Logger.IsEnabled(LogLevel.Debug) ? Stopwatch.StartNew() : null;
 
                 try
                 {
-                    var ar = await func(invokeArgs, cancellationToken).ConfigureAwait(false);
-                    owner.Logger.LogDebug("WebApi stopped; completed.");
-                    return ar;
+                    return await func(invokeArgs, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (CatchAndHandleExceptions)
                 {
-                    return (TResult) await WebApiBase.CreateActionResultFromExceptionAsync(owner, param.Request.HttpContext, ex, owner.Settings, owner.Logger, owner.OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
+                    return (TResult)await WebApiBase.CreateActionResultFromExceptionAsync(owner, param.Request.HttpContext, ex, owner.Settings, owner.Logger, owner.OnUnhandledExceptionAsync, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!CatchAndHandleExceptions)
                 {
-                    owner.Logger.LogDebug("WebApi stopped; {Error} [{Type}]", ex.Message, ex.GetType().Name);
+                    owner.Logger.LogDebug("WebApi unhandled exception: {Error} [{Type}]", ex.Message, ex.GetType().Name);
                     throw;
+                }
+                finally
+                {
+                    if (stopwatch is not null)
+                    {
+                        stopwatch.Stop();
+                        owner.Logger.LogDebug("WebApi elapsed: {Elapsed}ms.", stopwatch.Elapsed.TotalMilliseconds);
+                    }
                 }
             }
         }
