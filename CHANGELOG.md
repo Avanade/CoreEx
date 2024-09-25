@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.25.5
+- *Fixed:* Fixed the unit testing `CreateServiceBusMessage` extension method so that it no longer invokes a `TesterBase.ResetHost` (this reset should now be invoked explicitly by the developer as required).
+
 ## v3.25.4
 - *Fixed*: Fixed the `InvalidOperationException` with a 'Sequence contains no elements' when performing validation with the `CompareValuesRule` that has the `OverrideValue` set. 
 - *Fixed:* Updated all dependencies to latest versions.
