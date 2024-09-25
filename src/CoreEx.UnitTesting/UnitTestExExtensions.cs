@@ -555,11 +555,11 @@ namespace UnitTestEx
         /// <param name="tester">The tester.</param>
         /// <param name="event">The <see cref="EventData"/> or <see cref="EventData{T}"/> value.</param>
         /// <returns>The <see cref="ServiceBusReceivedMessage"/>.</returns>
+        /// <remarks>This will result in the <see cref="TesterBase.Services"/> from the underlying host being instantiated. If a <b>Services</b>-related error occurs then consider performing a <see cref="TesterBase.ResetHost()"/> after creation to reset.</remarks>
         public static ServiceBusReceivedMessage CreateServiceBusMessage<TSelf>(this TesterBase<TSelf> tester, EventData @event) where TSelf : TesterBase<TSelf>
         {
             @event.ThrowIfNull(nameof(@event));
             var message = (tester.Services.GetService<EventDataToServiceBusConverter>() ?? new EventDataToServiceBusConverter(tester.Services.GetService<IEventSerializer>(), tester.Services.GetService<IValueConverter<EventSendData, ServiceBusMessage>>())).Convert(@event).GetRawAmqpMessage();
-            tester.ResetHost(false);
             return tester.CreateServiceBusMessage(message);
         }
 
@@ -571,11 +571,11 @@ namespace UnitTestEx
         /// <param name="event">The <see cref="EventData"/> or <see cref="EventData{T}"/> value.</param>
         /// <param name="messageModify">Optional <see cref="AmqpAnnotatedMessage"/> modifier than enables the message to be further configured.</param>
         /// <returns>The <see cref="ServiceBusReceivedMessage"/>.</returns>
+        /// <remarks>This will result in the <see cref="TesterBase.Services"/> from the underlying host being instantiated. If a <b>Services</b>-related error occurs then consider performing a <see cref="TesterBase.ResetHost()"/> after creation to reset.</remarks>
         public static ServiceBusReceivedMessage CreateServiceBusMessage<TSelf>(this TesterBase<TSelf> tester, EventData @event, Action<AmqpAnnotatedMessage>? messageModify) where TSelf : TesterBase<TSelf>
         {
             @event.ThrowIfNull(nameof(@event));
             var message = (tester.Services.GetService<EventDataToServiceBusConverter>() ?? new EventDataToServiceBusConverter(tester.Services.GetService<IEventSerializer>(), tester.Services.GetService<IValueConverter<EventSendData, ServiceBusMessage>>())).Convert(@event).GetRawAmqpMessage();
-            tester.ResetHost(false);
             return tester.CreateServiceBusMessage(message, messageModify);
         }
 

@@ -34,6 +34,9 @@ namespace CoreEx.Azure.ServiceBus
             if (args.MessageActions == null)
                 throw new ArgumentException($"The {nameof(ServiceBusMessageActions)} value is required.", nameof(args));
 
+            var stopwatch = invoker.Logger.IsEnabled(LogLevel.Debug) ? System.Diagnostics.Stopwatch.StartNew() : null;
+            invoker.Logger.LogDebug("ServiceBusSubscriber start.");
+
             if (!string.IsNullOrEmpty(args.Message.CorrelationId))
                 invoker.ExecutionContext.CorrelationId = args.Message.CorrelationId;
 
@@ -66,6 +69,12 @@ namespace CoreEx.Azure.ServiceBus
             }
             finally
             {
+                if (stopwatch is not null)
+                {
+                    stopwatch.Stop();
+                    invoker.Logger.LogDebug("ServiceBusSubscriber elapsed {Elapsed}ms.", stopwatch.Elapsed.TotalMilliseconds);
+                }
+
                 scope?.Dispose();
             }
         }
