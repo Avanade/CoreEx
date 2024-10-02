@@ -98,6 +98,26 @@ namespace CoreEx.Database
         }
 
         /// <summary>
+        /// Adds the named parameter and value serialized as a JSON <see cref="string"/> to the <see cref="DbCommand.Parameters"/>.
+        /// </summary>
+        /// <param name="name">The parameter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>A <see cref="DbParameter"/>.</returns>
+        /// <remarks>Where the <paramref name="value"/> is <see langword="null"/> then <see cref="DBNull.Value"/> will be used.</remarks>
+        public DbParameter AddJsonParameter(string name, object? value)
+        {
+            var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
+            p.ParameterName = ParameterizeName(name);
+            if (value is null)
+                p.Value = DBNull.Value;
+            else 
+                p.Value = Database.JsonSerializer.Serialize(value);
+
+            _parameters.Add(p);
+            return p;
+        }
+
+        /// <summary>
         /// Adds an <see cref="int"/> <see cref="ParameterDirection.ReturnValue"/> parameter.
         /// </summary>
         /// <returns>A <see cref="DbParameter"/>.</returns>
