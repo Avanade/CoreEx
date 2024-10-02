@@ -2,6 +2,7 @@
 
 using CoreEx.Database.Extended;
 using CoreEx.Entities;
+using CoreEx.Json;
 using CoreEx.Mapping.Converters;
 using CoreEx.Results;
 using Microsoft.Extensions.Logging;
@@ -68,6 +69,12 @@ namespace CoreEx.Database
         /// Gets the <see cref="DatabaseColumns.RowVersionName"/> converter.
         /// </summary>
         IConverter RowVersionConverter { get; }
+
+        /// <summary>
+        /// Gets the <see cref="IJsonSerializer"/> used to automatically serialize complex objects and <see cref="System.Collections.IEnumerable"/> parameters types to JSON.
+        /// </summary>
+        /// <remarks>See <see cref="DatabaseParameterCollection.AddParameter(string, object?, System.Data.ParameterDirection)"/>.</remarks>
+        IJsonSerializer JsonSerializer => CoreEx.ExecutionContext.GetService<IJsonSerializer>() ?? CoreEx.Json.JsonSerializer.Default;
 
         /// <summary>
         /// Gets the <see cref="DbConnection"/>.

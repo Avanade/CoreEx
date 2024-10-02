@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Events;
-using CoreEx.Json;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -36,11 +37,6 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
         protected ILogger Logger { get; } = logger.ThrowIfNull(nameof(logger));
-
-        /// <summary>
-        /// Gets the database type name for the <see cref="TableValuedParameter"/>.
-        /// </summary>
-        protected abstract string DbTvpTypeName { get; }
 
         /// <summary>
         /// Gets the event outbox <i>enqueue</i> stored procedure name.
@@ -119,7 +115,7 @@ namespace CoreEx.Database.SqlServer.Outbox
 
             sw = Stopwatch.StartNew();
             await Database.StoredProcedure(EnqueueStoredProcedure)
-                          .TableValuedParam("@EventList", CreateTableValuedParameter(events, unsentEvents))
+                          .Param("@EventList", CreateEventsJsonForDatabase(events, unsentEvents))
                           .NonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             sw.Stop();
@@ -130,40 +126,62 @@ namespace CoreEx.Database.SqlServer.Outbox
         }
 
         /// <summary>
-        /// Creates the TVP from the list.
+        /// Creates the events JSON to send to the database.
         /// </summary>
-        private TableValuedParameter CreateTableValuedParameter(IEnumerable<EventSendData> list, IEnumerable<EventSendData> unsentList)
+        private string CreateEventsJsonForDatabase(IEnumerable<EventSendData> list, IEnumerable<EventSendData> unsentList)
         {
-            var dt = new DataTable();
-            dt.Columns.Add(EventIdColumnName, typeof(string));
-            dt.Columns.Add("EventDequeued", typeof(bool));
-            dt.Columns.Add(nameof(EventSendData.Destination), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.Subject), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.Action), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.Type), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.Source), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.Timestamp), typeof(DateTimeOffset));
-            dt.Columns.Add(nameof(EventSendData.CorrelationId), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.Key), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.TenantId), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.PartitionKey), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.ETag), typeof(string));
-            dt.Columns.Add(nameof(EventSendData.Attributes), typeof(byte[]));
-            dt.Columns.Add(nameof(EventSendData.Data), typeof(byte[]));
+            using var stream = new MemoryStream();
+            using var json = new Utf8JsonWriter(stream);
 
-            var tvp = new TableValuedParameter(DbTvpTypeName, dt);
+            json.WriteStartArray();
+
             foreach (var item in list)
             {
-                var attributes = item.Attributes == null || item.Attributes.Count == 0 ? new BinaryData(Array.Empty<byte>()) : JsonSerializer.Default.SerializeToBinaryData(item.Attributes);
+                json.WriteStartObject();
+                if (item.Id is not null)
+                    json.WriteString(EventIdColumnName, item.Id);
 
-                tvp.AddRow(item.Id, !unsentList.Contains(item),
-                    item.Destination ?? DefaultDestination ?? throw new InvalidOperationException($"The {nameof(DefaultDestination)} must have a non-null value."),
-                    item.Subject, item.Action, item.Type, item.Source, item.Timestamp, item.CorrelationId, item.Key, item.TenantId,
-                    item.PartitionKey ?? DefaultPartitionKey ?? throw new InvalidOperationException($"The {nameof(DefaultPartitionKey)} must have a non-null value."),
-                    item.ETag, attributes.ToArray(), item.Data?.ToArray());
+                json.WriteBoolean("EventDequeued", !unsentList.Contains(item));
+                json.WriteString(nameof(EventSendData.Destination), item.Destination ?? DefaultDestination ?? throw new InvalidOperationException($"The {nameof(DefaultDestination)} must have a non-null value."));
+
+                if (item.Subject is not null)
+                    json.WriteString(nameof(EventSendData.Subject), item.Subject);
+
+                if (item.Action is not null)
+                    json.WriteString(nameof(EventSendData.Action), item.Action);
+
+                if (item.Type is not null)
+                    json.WriteString(nameof(EventSendData.Type), item.Type);
+
+                if (item.Source is not null)
+                    json.WriteString(nameof(EventSendData.Source), item.Source?.ToString());
+
+                if (item.Timestamp is not null)
+                    json.WriteString(nameof(EventSendData.Timestamp), (DateTimeOffset)item.Timestamp);
+
+                if (item.CorrelationId is not null)
+                    json.WriteString(nameof(EventSendData.CorrelationId), item.CorrelationId);
+
+                if (item.Key is not null)
+                    json.WriteString(nameof(EventSendData.Key), item.Key);
+
+                if (item.TenantId is not null)
+                    json.WriteString(nameof(EventSendData.TenantId), item.TenantId);
+
+                json.WriteString(nameof(EventSendData.PartitionKey), item.PartitionKey ?? DefaultPartitionKey ?? throw new InvalidOperationException($"The {nameof(DefaultPartitionKey)} must have a non-null value."));
+
+                if (item.ETag is not null)
+                    json.WriteString(nameof(EventSendData.ETag), item.ETag);
+
+                json.WriteBase64String(nameof(EventSendData.Attributes), item.Attributes == null || item.Attributes.Count == 0 ? new BinaryData([]) : Json.JsonSerializer.Default.SerializeToBinaryData(item.Attributes));
+                json.WriteBase64String(nameof(EventSendData.Data), item.Data ?? new BinaryData([]));
+                json.WriteEndObject();
             }
 
-            return tvp;
+            json.WriteEndArray();
+            json.Flush();
+
+            return Encoding.UTF8.GetString(stream.ToArray());
         }
 
         /// <inheritdoc/>

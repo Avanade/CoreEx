@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <None Remove="Migrations\20190101-000001-create-Hr-schema.sql" />
+    <None Remove="Migrations\20240930-132603-hr-spgetemployees.sql" />
   </ItemGroup>
 
   <ItemGroup>

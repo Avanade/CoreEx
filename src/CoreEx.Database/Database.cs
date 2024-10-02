@@ -2,6 +2,7 @@
 
 using CoreEx.Database.Extended;
 using CoreEx.Entities;
+using CoreEx.Json;
 using CoreEx.Mapping.Converters;
 using CoreEx.Results;
 using Microsoft.Extensions.Logging;
@@ -65,6 +66,9 @@ namespace CoreEx.Database
 
         /// <inheritdoc/>
         public virtual IConverter RowVersionConverter => throw new NotImplementedException();
+
+        /// <inheritdoc/>
+        public IJsonSerializer JsonSerializer { get; set; } = ExecutionContext.GetService<IJsonSerializer>() ?? CoreEx.Json.JsonSerializer.Default;
 
         /// <inheritdoc/>
         public DbConnection GetConnection() => _dbConn is not null ? _dbConn : Invokers.Invoker.RunSync(() => GetConnectionAsync());

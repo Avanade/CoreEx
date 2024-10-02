@@ -131,6 +131,20 @@ namespace CoreEx.Database
         public static TSelf Param<TSelf>(this IDatabaseParameters<TSelf> parameters, IPropertyColumnMapper mapper, DbType dbType, int size, ParameterDirection direction = ParameterDirection.Input)
             => Param(parameters, mapper?.ParameterName!, dbType, size, direction);
 
+        /// <summary>
+        /// Adds the named parameter and value serialized as a JSON <see cref="string"/> to the <see cref="DbCommand.Parameters"/>.
+        /// </summary>
+        /// <typeparam name="TSelf">The owning <see cref="Type"/>.</typeparam>
+        /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
+        /// <param name="name">The parameter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
+        public static TSelf JsonParam<TSelf>(this IDatabaseParameters<TSelf> parameters, string name, object? value)
+        {
+            parameters.ThrowIfNull(nameof(parameters)).Parameters.AddJsonParameter(name, value);
+            return (TSelf)parameters;
+        }
+
         #endregion
 
         #region ParamWhen
@@ -207,23 +221,44 @@ namespace CoreEx.Database
         public static TSelf ParamWhen<TSelf, T>(this IDatabaseParameters<TSelf> parameters, bool? when, IPropertyColumnMapper mapper, Func<T> value, DbType dbType, ParameterDirection direction = ParameterDirection.Input)
             => ParamWhen(parameters, when, mapper?.ParameterName!, value, dbType, direction);
 
+        /// <summary>
+        /// Adds a named parameter and value serialized as a JSON <see cref="string"/> <paramref name="when"/> <c>true</c>.
+        /// </summary>
+        /// <typeparam name="TSelf">The owning <see cref="Type"/>.</typeparam>
+        /// <typeparam name="T">The parameter <see cref="Type"/>.</typeparam>
+        /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
+        /// <param name="when">Adds the parameter when <c>true</c>.</param>
+        /// <param name="name">The parameter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>The <see cref="DatabaseParameterCollection"/> to support fluent-style method-chaining.</returns>
+        public static TSelf JsonParamWhen<TSelf, T>(this IDatabaseParameters<TSelf> parameters, bool? when, string name, Func<T?> value)
+        {
+            value.ThrowIfNull(nameof(value));
+
+            if (when == true)
+                parameters.ThrowIfNull(nameof(parameters)).Parameters.AddJsonParameter(name, value());
+
+            return (TSelf)parameters;
+        }
+
         #endregion
 
         #region ParamWith
 
         /// <summary>
-        /// Adds a named parameter when invoked <paramref name="with"/> a non-default value.
+        /// Adds a named parameter when invoked <paramref name="with"/> a non-<see langword="null"/> value.
         /// </summary>
         /// <typeparam name="TSelf">The owning <see cref="Type"/>.</typeparam>
-        /// <typeparam name="T">The parameter <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TWith">The parameter <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TValue">The parameter <see cref="Type"/>.</typeparam>
         /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
         /// <param name="with">The value <b>with</b> which to verify is non-default.</param>
         /// <param name="name">The parameter name.</param>
         /// <param name="value">The parameter value.</param>
         /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
-        public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, object? with, string name, Func<T> value, ParameterDirection direction = ParameterDirection.Input)
-            => ParamWhen(parameters, with != null && Comparer<T>.Default.Compare((T)with, default!) != 0, name, value, direction);
+        public static TSelf ParamWith<TSelf, TWith, TValue>(this IDatabaseParameters<TSelf> parameters, TWith? with, string name, Func<TValue> value, ParameterDirection direction = ParameterDirection.Input)
+            => ParamWhen(parameters, with != null && Comparer<TWith>.Default.Compare(with, default!) != 0, name, value, direction);
 
         /// <summary>
         /// Adds a named parameter when invoked <paramref name="with"/> a non-default value.
@@ -233,11 +268,10 @@ namespace CoreEx.Database
         /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
         /// <param name="with">The value <b>with</b> which to verify is non-default.</param>
         /// <param name="name">The parameter name.</param>
-        /// <param name="value">The parameter value; where not specified the <paramref name="with"/> value will be used.</param>
         /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
-        public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, T? with, string name, Func<T>? value = null, ParameterDirection direction = ParameterDirection.Input)
-            => ParamWhen(parameters, with != null && Comparer<T>.Default.Compare(with, default!) != 0, name, value ?? (() => with!), direction);
+        public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, T? with, string name, ParameterDirection direction = ParameterDirection.Input)
+            => ParamWhen(parameters, with != null && Comparer<T>.Default.Compare(with, default!) != 0, name, () => with!, direction);
 
         /// <summary>
         /// Adds a named parameter when invoked <paramref name="with"/> a non-default value.
@@ -326,6 +360,20 @@ namespace CoreEx.Database
         /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
         public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, T? with, IPropertyColumnMapper mapper, Func<T>? value, DbType dbType, ParameterDirection direction = ParameterDirection.Input)
             => ParamWith(parameters, with, mapper, value ?? (() => with!), dbType, direction);
+
+        /// <summary>
+        /// Adds a named parameter when invoked <paramref name="with"/> a non-default value serialized as a JSON <see cref="string"/>.
+        /// </summary>
+        /// <typeparam name="TSelf">The owning <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TWith">The with value <see cref="Type"/>.</typeparam>
+        /// <typeparam name="TValue">The parameter value <see cref="Type"/>.</typeparam>
+        /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
+        /// <param name="with">The value <b>with</b> which to verify is non-default.</param>
+        /// <param name="name">The parameter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
+        public static TSelf JsonParamWith<TSelf, TWith, TValue>(this IDatabaseParameters<TSelf> parameters, TWith? with, string name, Func<TValue?> value)
+            => JsonParamWhen(parameters, with != null && Comparer<TWith>.Default.Compare(with, default!) != 0, name, value);
 
         #endregion
 
