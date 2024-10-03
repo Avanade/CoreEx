@@ -14,7 +14,7 @@ The motivation is to provide supporting Cosmos DB capabilities for [CRUD](https:
 
 The requirements for usage are as follows.
 - An **entity** (DTO) that represents the data that must as a minimum implement [`IEntityKey`](../CoreEx/Entities/IEntityKey.cs); generally via either the implementation of [`IIdentifier`](../CoreEx/Entities/IIdentifierT.cs) or [`IPrimaryKey`](../CoreEx/Entities/IPrimaryKey.cs).
-- A **model** being the underlying data representation that will be persisted within CosmosDB itself..
+- A **model** being the underlying data representation that will be persisted within Cosmos DB itself.
 - An [`IMapper`](../CoreEx/Mapping/IMapper.cs) that contains the mapping logic to map to and from the **entity** and **model**.
 
 The **entity** and **model** are different types to encourage separation between the externalized **entity** representation and the underlying **model**; which may be shaped differently, and have different property naming conventions, internalized properties, etc.
@@ -70,13 +70,17 @@ From a Cosmos DB perspective, a [Container](https://learn.microsoft.com/en-us/az
 A Cosmos DB Container is encapsulated within one of the following _CoreEx_ capabilities depending on the patterns required:
 
 Type | Container Pattern | Document Pattern | [`IMapper`](../CoreEx/Mapping/IMapper.cs) support
--|-|-
+-|-|-|-
 [`CosmosDbContainer`](CosmosDbContainer.cs) | Entity | Untyped | Yes
 [`CosmosDbValueContainer`](CosmosDbValueContainer.cs) | Entity | Typed | No
 [`CosmosDbModelContainer`](Model/CosmosDbModelContainer.cs) | Model | Untyped | Yes
 [`CosmosDbValueModelContainer`](Model/CosmosDbValueModelContainer.cs) | Model | Typed | No
 
 Where more advanced CosmosDB capabilities are required, for example, Partitioning, etc., then the [`CosmosDbArgs`](./CosmosDbArgs.cs) enables the configuration of these capabilities, as well as other extended _CoreEx_ capabilities such as multi-tenancy support.
+
+Additionally, given how important Partitioning is to Cosmos DB performance, many methods have been provided with an optional `partitionKey` parameter to enable the developer to specify the partition key for the operation. 
+
+Finally, where a Container contains multiple typed documents, an advanced query capability is provided to select and return one-or-more types in a single performant operation; see [`CosmosDb.SelectMultiSetWithResultAsync`](./CosmosDb.cs). The [`SelectMultiSetAsync`](../../tests/CoreEx.Cosmos.Test/CosmosDbContainerPartitioningTest.cs) unit test provides example usage.
 
 <br/>
 
@@ -142,7 +146,7 @@ The **entity** [`ICosmosDbContainer<T, TModel>`](./ICosmosDbContainerT.cs) and *
 
 ### Query (Read)
 
-A query is actioned using the [`CosmosDbQuery<T, TModel>`](./CosmosDbQuery.cs) and [`CosmosDbModelQuery<TModel>`](./Model/CosmosDbModelQuery.cs) which is obstensibly a lightweight wrapper over an `IQueryable<TModel>` that automatically maps from the **model** to the **entity** (where applicable).
+A query is actioned using the [`CosmosDbQuery<T, TModel>`](./CosmosDbQuery.cs) and [`CosmosDbModelQuery<TModel>`](./Model/CosmosDbModelQuery.cs) which is ostensibly a lightweight wrapper over an `IQueryable<TModel>` that automatically maps from the **model** to the **entity** (where applicable).
 
 Uses the [`Container.GetItemLinqQueryable`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.cosmos.container.getitemlinqqueryable?view=azure-dotnet) internally to create.
 
@@ -207,6 +211,7 @@ Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogical
 
 Otherwise, will physically delete. Uses the [`Container.DeleteItemAsync`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.cosmos.container.deleteitemasync?view=azure-dotnet) internally to delete.
 
+<br/>
 
 ## Usage
 

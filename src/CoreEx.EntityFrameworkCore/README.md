@@ -35,7 +35,7 @@ The [`IEfDb`](./IEfDb.cs) and corresponding [`EfDb`](./EfDb.cs) provides the bas
 
 ### Query (read)
 
-A query is actioned using the [`EfDbQuery`](./EfDbQuery.cs) which is obstensibly a lightweight wrapper over an `IQueryable<TModel>` that automatically maps from the **model** to the **entity**.
+A query is actioned using the [`EfDbQuery`](./EfDbQuery.cs) which is ostensibly a lightweight wrapper over an `IQueryable<TModel>` that automatically maps from the **model** to the **entity**.
 
 Queried entities are not tracked by default; internally uses [`AsNoTracking`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.asnotracking); this behaviour can be overridden using [`EfDbArgs.QueryNoTracking`](./EfDbArgs.cs).
 
