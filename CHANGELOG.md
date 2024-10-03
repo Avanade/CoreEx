@@ -5,6 +5,7 @@ Represents the **NuGet** versions.
 ## v3.26.0
 - *Enhancement:* Enable JSON serialization of database parameter values; added `DatabaseParameterCollection.AddJsonParameter` method and associated `JsonParam`, `JsonParamWhen` and `JsonParamWith` extension methods.
 - *Enhancement:* Updated (simplified) `EventOutboxEnqueueBase` to pass events to the underlying stored procedures as JSON versus existing TVP removing database dependency on a UDT (user-defined type).
+- **Note:** Accidently published as `v3.25.6`, re-publishing as `v3.26.0` as intended - includes no code changes.
 
 ## v3.25.5
 - *Fixed:* Fixed the unit testing `CreateServiceBusMessage` extension method so that it no longer invokes a `TesterBase.ResetHost` (this reset should now be invoked explicitly by the developer as required).

@@ -1,4 +1,4 @@
-﻿# CoreEx
+﻿# CoreEx.EntityFrameworkCore
 
 The `CoreEx.EntityFrameworkCore` namespace provides extended [_Entity Framework Core (EF)_](https://learn.microsoft.com/en-us/ef/core/) capabilities. 
 
@@ -17,7 +17,7 @@ The requirements for usage are as follows.
 - A **model** being the underlying configured EF Core [data source model](https://learn.microsoft.com/en-us/ef/core/modeling/).
 - An [`IMapper`](../CoreEx/Mapping/IMapper.cs) that contains the mapping logic to map to and from the **entity** and **model**.
 
-The **entity** and **model** are different types to encourage separation between the externalized **entity** representation and the underlying **model**; which may be shaped differently, and have different property to column naming conventions, etc.
+The **entity** and **model** are different types to encourage separation between the externalized **entity** representation and the underlying **model**; which may be shaped differently, and have different property to column naming conventions, internalized columns, etc.
 
 <br/>
 
@@ -35,13 +35,13 @@ The [`IEfDb`](./IEfDb.cs) and corresponding [`EfDb`](./EfDb.cs) provides the bas
 
 ### Query (read)
 
-A query is actioned using the [`EfDbQuery`](./EfDbQuery.cs) which is obstensibly a lightweight wrapper over an `IQueryable<TModel>` that automatically maps from the **model** to the **entity**.
+A query is actioned using the [`EfDbQuery`](./EfDbQuery.cs) which is ostensibly a lightweight wrapper over an `IQueryable<TModel>` that automatically maps from the **model** to the **entity**.
 
 Queried entities are not tracked by default; internally uses [`AsNoTracking`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.asnotracking); this behaviour can be overridden using [`EfDbArgs.QueryNoTracking`](./EfDbArgs.cs).
 
 Note: a consumer should also consider using [`IgnoreAutoIncludes`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.ignoreautoincludes) to exclude related data, where not required, to improve query performance.
 
-The following methods provide additional capabilities
+The following methods provide additional capabilities:
 
 Method | Description
 -|-

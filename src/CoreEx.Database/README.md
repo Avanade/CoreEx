@@ -170,7 +170,6 @@ To simplify the support for the [retrieval of multiple result sets](https://lear
 
 The following `IMultiSetArgs` implementations are provided. The `StopOnNull` property indicates whether to stop further query result set processing where the current set has resulted in a `null` (i.e. no records).
 
-
 Class | Description
 -|-
 [`MultiSetCollArgs<TColl, TItem>`](./MultiSetCollArgsT.cs) | Provides the multi-set arguments when expecting a collection of items/records. The `MinRows` and `MaxRows` properties can also be specified to ensure/validate correctness of returned rows.

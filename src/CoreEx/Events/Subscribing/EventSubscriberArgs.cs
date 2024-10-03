@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace CoreEx.Events.Subscribing
 {
     /// <summary>
-    /// Provides the <see cref="EventSubscriberBase"/> arguments; is obstensibly a <see cref="Dictionary{TKey, TValue}"/> with a <see cref="string"/> key and <see cref="object"/> value.
+    /// Provides the <see cref="EventSubscriberBase"/> arguments; is ostensibly a <see cref="Dictionary{TKey, TValue}"/> with a <see cref="string"/> key and <see cref="object"/> value.
     /// </summary>
     /// <remarks>This enables runtime state to passed through to the underlying subscriber receive logic where applicable.</remarks>
     public class EventSubscriberArgs : Dictionary<string, object?> 

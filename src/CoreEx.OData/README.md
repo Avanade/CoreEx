@@ -39,7 +39,7 @@ The [`IOData`](./IOData.cs) and corresponding [`ODataClient`](./ODataClient.cs) 
 
 ### Query (read)
 
-A query is actioned using the [`ODataQuery`](./ODataQuery.cs) which is obstensibly a lighweight wrapper over an `IBoundClient<TModel>`(https://github.com/simple-odata-client/Simple.OData.Client/blob/master/src/Simple.OData.Client.Core/Fluent/IBoundClient.cs) that automatically maps from the **model** to the **entity**.
+A query is actioned using the [`ODataQuery`](./ODataQuery.cs) which is ostensibly a lighweight wrapper over an `IBoundClient<TModel>`(https://github.com/simple-odata-client/Simple.OData.Client/blob/master/src/Simple.OData.Client.Core/Fluent/IBoundClient.cs) that automatically maps from the **model** to the **entity**.
 
 The following methods provide additional capabilities:
 
