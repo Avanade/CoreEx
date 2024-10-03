@@ -72,8 +72,8 @@ A Cosmos DB Container is encapsulated within one of the following _CoreEx_ capab
 Type | Container Pattern | Document Pattern | [`IMapper`](../CoreEx/Mapping/IMapper.cs) support
 -|-|-|-
 [`CosmosDbContainer`](CosmosDbContainer.cs) | Entity | Untyped | Yes
-[`CosmosDbValueContainer`](CosmosDbValueContainer.cs) | Entity | Typed | No
-[`CosmosDbModelContainer`](Model/CosmosDbModelContainer.cs) | Model | Untyped | Yes
+[`CosmosDbValueContainer`](CosmosDbValueContainer.cs) | Entity | Typed | Yes
+[`CosmosDbModelContainer`](Model/CosmosDbModelContainer.cs) | Model | Untyped | No
 [`CosmosDbValueModelContainer`](Model/CosmosDbValueModelContainer.cs) | Model | Typed | No
 
 Where more advanced CosmosDB capabilities are required, for example, Partitioning, etc., then the [`CosmosDbArgs`](./CosmosDbArgs.cs) enables the configuration of these capabilities, as well as other extended _CoreEx_ capabilities such as multi-tenancy support.
