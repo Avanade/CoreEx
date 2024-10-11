@@ -266,11 +266,11 @@ namespace CoreEx.RefData
 
             var coll = await OnGetOrCreateAsync(type, (t, ct) =>
             {
-                return ReferenceDataOrchestratorInvoker.Current.Invoke(this, async ia =>
+                return ReferenceDataOrchestratorInvoker.Current.InvokeAsync(this, async (ia, ct) =>
                 {
                     if (ia.Activity is not null)
                     {
-                        ia.Activity.AddTag(InvokerCacheType, type.FullName);
+                        ia.Activity.AddTag(InvokerCacheType, type.ToString());
                         ia.Activity.AddTag(InvokerCacheState, "TaskRun");
                     }
 
@@ -282,11 +282,17 @@ namespace CoreEx.RefData
                     Task<IReferenceDataCollection> task;
                     using (System.Threading.ExecutionContext.SuppressFlow())
                     {
-                        task = Task.Run(() => GetByTypeInternalAsync(rdo, ec, scope, t, providerType, ia, ct));
+                        task = Task.Run(async () => await GetByTypeInNewScopeAsync(rdo, ec, scope, t, providerType, ia, ct).ConfigureAwait(false));
                     }
 
-                    return await task.ConfigureAwait(false);
-                }, nameof(GetByTypeAsync));
+#if NET6_0_OR_GREATER
+                    return await task.WaitAsync(ct).ConfigureAwait(false);
+#else
+                    task.Wait(ct);
+                    await Task.CompletedTask.ConfigureAwait(false);
+                    return task.Result;
+#endif
+                }, cancellationToken, nameof(GetByTypeAsync));
             }, cancellationToken).ConfigureAwait(false);
 
             return coll ?? throw new InvalidOperationException($"The {nameof(IReferenceDataCollection)} returned for Type '{type.FullName}' from Provider '{providerType.FullName}' must not be null.");
@@ -295,7 +301,7 @@ namespace CoreEx.RefData
         /// <summary>
         /// Performs the actual reference data load in a new thread context / scope.
         /// </summary>
-        private async Task<IReferenceDataCollection> GetByTypeInternalAsync(ReferenceDataOrchestrator? rdo, ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, InvokeArgs invokeArgs, CancellationToken cancellationToken)
+        private async Task<IReferenceDataCollection> GetByTypeInNewScopeAsync(ReferenceDataOrchestrator? rdo, ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, InvokeArgs invokeArgs, CancellationToken cancellationToken)
         {
             _asyncLocal.Value = rdo;
 
@@ -303,21 +309,21 @@ namespace CoreEx.RefData
             ExecutionContext.SetCurrent(executionContext);
 
             // Start related activity as this "work" is occuring on an unrelated different thread (by design to ensure complete separation).
-            var ria = invokeArgs.StartNewRelated(typeof(ReferenceDataOrchestratorInvoker), typeof(ReferenceDataOrchestrator), nameof(GetByTypeAsync));
+            var ria = invokeArgs.StartNewRelated(typeof(ReferenceDataOrchestratorInvoker), typeof(ReferenceDataOrchestrator), nameof(GetByTypeInNewScopeAsync));
             try
             {
                 if (ria.Activity is not null)
                 {
-                    ria.Activity.AddTag(InvokerCacheType, type.FullName);
+                    ria.Activity.AddTag(InvokerCacheType, type.ToString());
                     ria.Activity.AddTag(InvokerCacheState, "TaskWorker");
                 }
 
                 var sw = Stopwatch.StartNew();
                 var provider = (IReferenceDataProvider)scope.ServiceProvider.GetRequiredService(providerType);
-                var coll = (await provider.GetAsync(type, cancellationToken).ConfigureAwait(false)).Value;
+                var coll = (await provider.GetAsync(type, cancellationToken).ConfigureAwait(false)).Value!;
                 sw.Stop();
 
-                Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.FullName, coll.Count, sw.Elapsed.TotalMilliseconds);
+                Logger.LogInformation("Reference data type {RefDataType} cache load finish: {ItemCount} items cached [{Elapsed}ms]", type.ToString(), coll.Count, sw.Elapsed.TotalMilliseconds);
                 ria.Activity?.AddTag(InvokerCacheCount, coll.Count);
 
                 return ria.TraceResult(coll);

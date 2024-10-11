@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -55,9 +54,6 @@ namespace CoreEx.AspNetCore.WebApis
             // Start logging scope and begin work.
             using (owner.Logger.BeginScope(new Dictionary<string, object>() { { HttpConsts.CorrelationIdHeaderName, owner.ExecutionContext.CorrelationId } }))
             {
-                owner.Logger.LogDebug("WebApi started.");
-                var stopwatch = owner.Logger.IsEnabled(LogLevel.Debug) ? Stopwatch.StartNew() : null;
-
                 try
                 {
                     return await func(invokeArgs, cancellationToken).ConfigureAwait(false);
@@ -70,14 +66,6 @@ namespace CoreEx.AspNetCore.WebApis
                 {
                     owner.Logger.LogDebug("WebApi unhandled exception: {Error} [{Type}]", ex.Message, ex.GetType().Name);
                     throw;
-                }
-                finally
-                {
-                    if (stopwatch is not null)
-                    {
-                        stopwatch.Stop();
-                        owner.Logger.LogDebug("WebApi elapsed: {Elapsed}ms.", stopwatch.Elapsed.TotalMilliseconds);
-                    }
                 }
             }
         }

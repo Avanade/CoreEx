@@ -2,6 +2,7 @@
 
 using CoreEx.Data.Querying.Expressions;
 using CoreEx.RefData;
+using CoreEx.Results;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -182,39 +183,46 @@ namespace CoreEx.Data.Querying
         /// <param name="filter">The query filter.</param>
         /// <returns>The <see cref="QueryFilterParserResult"/>.</returns>
         /// <remarks>Leverages the <see cref="GetExpressions(string?)"/> to perform the actual parsing.</remarks>
-        public QueryFilterParserResult Parse(string? filter)
+        public Result<QueryFilterParserResult> Parse(string? filter)
         {
             if (!string.IsNullOrEmpty(filter) && filter.Equals("help", StringComparison.OrdinalIgnoreCase))
-                throw new QueryFilterParserException(ToString());
+                return new QueryFilterParserException(ToString());
 
             var result = new QueryFilterParserResult();
 
-            // Append all the expressions to the resulting LINQ whilst parsing.
-            foreach (var expression in GetExpressions(filter))
+            try
             {
-                if (expression is IQueryFilterFieldStatementExpression fse)
+                // Append all the expressions to the resulting LINQ whilst parsing.
+                foreach (var expression in GetExpressions(filter))
                 {
-                    result.Fields.Add(fse.FieldConfig.Field);
-                    if (fse.FieldConfig.ResultWriter is not null && fse.FieldConfig.ResultWriter.Invoke(fse, result))
-                        continue;
+                    if (expression is IQueryFilterFieldStatementExpression fse)
+                    {
+                        result.Fields.Add(fse.FieldConfig.Field);
+                        if (fse.FieldConfig.ResultWriter is not null && fse.FieldConfig.ResultWriter.Invoke(fse, result))
+                            continue;
+                    }
+
+                    expression.WriteToResult(result);
                 }
 
-                expression.WriteToResult(result);
-            }
+                // Append any default statements where no fields are in the filter.
+                foreach (var statement in _fields.Where(x => x.Value.DefaultStatement is not null && !result.Fields.Contains(x.Key)).Select(x => x.Value.DefaultStatement!))
+                {
+                    var stmt = statement();
+                    if (stmt is not null)
+                        result.AppendStatement(stmt);
+                }
 
-            // Append any default statements where no fields are in the filter.
-            foreach (var statement in _fields.Where(x => x.Value.DefaultStatement is not null && !result.Fields.Contains(x.Key)).Select(x => x.Value.DefaultStatement!))
+                // Uses the default statement where no fields were specified (or defaulted).
+                result.UseDefault(_defaultStatement);
+
+                // Last chance ;-)
+                _onQuery?.Invoke(result);
+            }
+            catch (QueryFilterParserException qfpex)
             {
-                var stmt = statement();
-                if (stmt is not null)
-                    result.AppendStatement(stmt);
+                return qfpex;
             }
-
-            // Uses the default statement where no fields were specified (or defaulted).
-            result.UseDefault(_defaultStatement);
-
-            // Last chance ;-)
-            _onQuery?.Invoke(result);
 
             return result;
         }

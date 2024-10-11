@@ -7,6 +7,8 @@ using Npgsql;
 using System;
 using System.Linq;
 using System.Data.Common;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace CoreEx.Database.Postgres
 {
@@ -32,6 +34,12 @@ namespace CoreEx.Database.Postgres
         /// <remarks>Do not update the default properties directly as a shared static instance is used (unless this is the desired behaviour); create a new <see cref="PostgresDatabaseColumns"/> instance for overridding.</remarks>
         public new PostgresDatabaseColumns DatabaseColumns { get; set; } = _defaultColumns;
 
+        /// <summary>
+        /// Gets or sets the stored procedure name used by <see cref="SetPostgresSessionContextAsync(string?, DateTime?, string?, string?, CancellationToken)"/>.
+        /// </summary>
+        /// <remarks>Defaults to '<c>"public"."sp_set_session_context"</c>'.</remarks>
+        public string SessionContextStoredProcedure { get; set; } = "\"public\".\"sp_set_session_context\"";
+
         /// <inheritdoc/>
         public override IConverter RowVersionConverter => EncodedStringToUInt32Converter.Default;
 
@@ -52,12 +60,52 @@ namespace CoreEx.Database.Postgres
         /// <remarks>Overrides the <see cref="DefaultDuplicateErrorNumbers"/>.</remarks>
         public string[]? DuplicateErrorNumbers { get; set; }
 
+        /// <summary>
+        /// Sets the PostgreSQL context using the specified values by invoking the <see cref="SessionContextStoredProcedure"/> using parameters named <see cref="PostgresDatabaseColumns.SessionContextUsernameName"/>, 
+        /// <see cref="PostgresDatabaseColumns.SessionContextTimestampName"/>, <see cref="PostgresDatabaseColumns.SessionContextTenantIdName"/> and <see cref="PostgresDatabaseColumns.SessionContextUserIdName"/>.
+        /// </summary>
+        /// <param name="username">The username (where <c>null</c> the value will default to <see cref="ExecutionContext.EnvironmentUserName"/>).</param>
+        /// <param name="timestamp">The timestamp <see cref="DateTime"/> (where <c>null</c> the value will default to <see cref="DateTime.UtcNow"/>).</param>
+        /// <param name="tenantId">The tenant identifer (where <c>null</c> the value will not be used).</param>
+        /// <param name="userId">The unique user identifier (where <c>null</c> the value will not be used).</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>See <see href="https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-set-session-context-transact-sql"/>.</remarks>
+        public Task SetPostgresSessionContextAsync(string? username, DateTime? timestamp, string? tenantId = null, string? userId = null, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(SessionContextStoredProcedure))
+                throw new InvalidOperationException("The SessionContextStoredProcedure property must have a value.");
+
+            return Invoker.InvokeAsync(this, username, timestamp, tenantId, userId, async (_, username, timestamp, tenantId, userId, ct) =>
+            {
+                return await StoredProcedure(SessionContextStoredProcedure)
+                    .Param($"@{DatabaseColumns.SessionContextUsernameName}", username ?? ExecutionContext.EnvironmentUserName)
+                    .Param($"@{DatabaseColumns.SessionContextTimestampName}", timestamp ?? ExecutionContext.SystemTime.UtcNow)
+                    .ParamWith(tenantId, $"@{DatabaseColumns.SessionContextTenantIdName}")
+                    .ParamWith(userId, $"@{DatabaseColumns.SessionContextUserIdName}")
+                    .NonQueryAsync(ct).ConfigureAwait(false);
+            }, cancellationToken, nameof(SetPostgresSessionContextAsync));
+        }
+
+        /// <summary>
+        /// Sets the PostgreSQL session context using the <see cref="ExecutionContext"/>.
+        /// </summary>
+        /// <param name="executionContext">The <see cref="ExecutionContext"/>. Defaults to <see cref="ExecutionContext.Current"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <remarks>See <see cref="SetPostgresSessionContextAsync(string, DateTime?, string?, string?, CancellationToken)"/> for more information.</remarks>
+        public Task SetPostgresSessionContextAsync(ExecutionContext? executionContext = null, CancellationToken cancellationToken = default)
+        {
+            var ec = executionContext ?? (ExecutionContext.HasCurrent ? ExecutionContext.Current : null);
+            return (ec == null)
+                ? SetPostgresSessionContextAsync(null!, null, cancellationToken: cancellationToken)
+                : SetPostgresSessionContextAsync(ec.UserName, ec.Timestamp, ec.TenantId, ec.UserId, cancellationToken);
+        }
+
         /// <inheritdoc/>
         protected override Result? OnDbException(DbException dbex)
         {
             if (ThrowTransformedException && dbex is PostgresException pex)
             {
-                var msg = pex.Message?.TrimEnd();
+                var msg = pex.MessageText?.TrimEnd();
                 if (string.IsNullOrEmpty(msg))
                     msg = null;
 

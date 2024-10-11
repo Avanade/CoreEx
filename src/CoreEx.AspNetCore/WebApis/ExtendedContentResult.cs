@@ -11,17 +11,13 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Represents an extended <see cref="ContentResult"/> that enables customization of the <see cref="HttpResponse"/>.
     /// </summary>
-    public class ExtendedContentResult : ContentResult
+    public class ExtendedContentResult : ContentResult, IExtendedActionResult
     {
-        /// <summary>
-        /// Gets or sets the function to perform the extended <see cref="HttpResponse"/> customization.
-        /// </summary>
+        /// <inheritdoc/>
         [JsonIgnore]
         public Func<HttpResponse, Task>? BeforeExtension { get; set; }
 
-        /// <summary>
-        /// Gets or sets the function to perform the extended <see cref="HttpResponse"/> customization.
-        /// </summary>
+        /// <inheritdoc/>
         [JsonIgnore]
         public Func<HttpResponse, Task>? AfterExtension { get; set; }
 

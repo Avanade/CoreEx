@@ -73,6 +73,8 @@ namespace CoreEx.Entities
                 return;
             }
 
+#if !RELEASE
+            // Validate supported types in Debug-mode only; fast-path for Release.
             object? temp;
             for (int idx = 0; idx < args.Length; idx++)
             {
@@ -94,6 +96,7 @@ namespace CoreEx.Entities
                         + "string, char, short, int, long, ushort, uint, ulong, Guid, DateTime and DateTimeOffset.")
                 };
             }
+#endif
 
 #if NET8_0_OR_GREATER
             _args = [.. args];

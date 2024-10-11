@@ -12,23 +12,25 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Represents an extended <see cref="StatusCodeResult"/> that enables customization of the <see cref="HttpResponse"/>.
     /// </summary>
-    /// <param name="statusCode">The <see cref="HttpStatusCode"/>.</param>
-    public class ExtendedStatusCodeResult(HttpStatusCode statusCode) : StatusCodeResult((int)statusCode)
+    /// <param name="statusCode">The status code value.</param>
+    public class ExtendedStatusCodeResult(int statusCode) : StatusCodeResult(statusCode), IExtendedActionResult
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExtendedStatusCodeResult"/> class with the specified <see cref="HttpStatusCode"/>.
+        /// </summary>
+        /// <param name="statusCode">The <see cref="HttpStatusCode"/>.</param>
+        public ExtendedStatusCodeResult(HttpStatusCode statusCode) : this((int)statusCode) { }
+
         /// <summary>
         /// Gets or sets the <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.
         /// </summary>
         public Uri? Location { get; set; }
 
-        /// <summary>
-        /// Gets or sets the function to perform the extended <see cref="HttpResponse"/> customization.
-        /// </summary>
+        /// <inheritdoc/>
         [JsonIgnore]
         public Func<HttpResponse, Task>? BeforeExtension { get; set; }
 
-        /// <summary>
-        /// Gets or sets the function to perform the extended <see cref="HttpResponse"/> customization.
-        /// </summary>
+        /// <inheritdoc/>
         [JsonIgnore]
         public Func<HttpResponse, Task>? AfterExtension { get; set; }
 

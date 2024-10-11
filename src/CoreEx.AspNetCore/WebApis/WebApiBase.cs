@@ -61,7 +61,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// Gets or sets the list of secondary correlation identifier names.
         /// </summary>
         /// <remarks>Searches the <see cref="HttpRequest.Headers"/> for <see cref="HttpConsts.CorrelationIdHeaderName"/> or one of the other <see cref="SecondaryCorrelationIdNames"/> to determine the <see cref="ExecutionContext.CorrelationId"/> (uses first value found in sequence).</remarks>
-        public IEnumerable<string> SecondaryCorrelationIdNames { get; set; } = new string[] { "x-ms-client-tracking-id" };
+        public IEnumerable<string> SecondaryCorrelationIdNames { get; set; } = ["x-ms-client-tracking-id"];
 
         /// <summary>
         /// Gets the list of correlation identifier names, being <see cref="HttpConsts.CorrelationIdHeaderName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
@@ -69,7 +69,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <returns>The list of correlation identifier names.</returns>
         public virtual IEnumerable<string> GetCorrelationIdNames()
         {
-            var list = new List<string>(new string[] { HttpConsts.CorrelationIdHeaderName });
+            var list = new List<string>([HttpConsts.CorrelationIdHeaderName]);
             list.AddRange(SecondaryCorrelationIdNames);
             return list;
         }
@@ -173,7 +173,9 @@ namespace CoreEx.AspNetCore.WebApis
             if (owner is not null && !owner.Invoker.CatchAndHandleExceptions)
                 throw exception;
 
-            logger.LogDebug("WebApi error: {Error} [{Type}]", exception.Message, exception.GetType().Name);
+            // Also check for an inner IExtendedException where the outer is an AggregateException; if so, then use.
+            if (exception is AggregateException aex && aex.InnerException is not null && aex.InnerException is IExtendedException)
+                exception = aex.InnerException;
 
             IActionResult? ar = null;
             if (exception is IExtendedException eex)

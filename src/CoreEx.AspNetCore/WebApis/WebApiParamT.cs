@@ -5,6 +5,7 @@ namespace CoreEx.AspNetCore.WebApis
     /// <summary>
     /// Represents a <see cref="WebApi"/> parameter with a request <see cref="Value"/>.
     /// </summary>
+    /// <remarks>This enables access to the corresponding <see cref="WebApiParam.WebApi"/>, <see cref="WebApiParam.Request"/>, <see cref="WebApiParam.RequestOptions"/>, deserialized <see cref="Value"/>, etc.</remarks>
     public class WebApiParam<T> : WebApiParam
     {
         /// <summary>
