@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Entities;
+using CoreEx.Results;
 using System;
 
 namespace CoreEx.Data.Querying
@@ -59,6 +60,46 @@ namespace CoreEx.Data.Querying
         {
             orderBy.ThrowIfNull(nameof(orderBy))(OrderByParser);
             return this;
+        }
+
+        /// <summary>
+        /// Parses and converst the <see cref="QueryArgs.Filter"/> and <see cref="QueryArgs.OrderBy"/> to dynamic LINQ.
+        /// </summary>
+        /// <param name="queryArgs">The <see cref="QueryArgs"/>.</param>
+        /// <returns>The <see cref="QueryArgsParseResult"/>.</returns>
+        public Result<QueryArgsParseResult> Parse(QueryArgs? queryArgs)
+        {
+            if (queryArgs is null)
+                return new QueryArgsParseResult();
+
+            Result<QueryFilterParserResult> filterParserResult = default;
+            Result<QueryOrderByParserResult> orderByParserResult = default;
+
+            if (!string.IsNullOrEmpty(queryArgs.Filter))
+            {
+                if (HasFilterParser)
+                {
+                    filterParserResult = FilterParser.Parse(queryArgs.Filter);
+                    if (filterParserResult.IsFailure)
+                        return filterParserResult.AsResult();
+                }
+                else
+                    return new QueryFilterParserException("Filter statement is not currently supported.");
+            }
+
+            if (!string.IsNullOrEmpty(queryArgs.OrderBy))
+            {
+                if (HasOrderByParser)
+                {
+                    orderByParserResult = OrderByParser.Parse(queryArgs.OrderBy);
+                    if (orderByParserResult.IsFailure)
+                        return orderByParserResult.AsResult();
+                }
+                else
+                    return new QueryOrderByParserException("OrderBy statement is not currently supported.");
+            }
+            
+            return new QueryArgsParseResult(filterParserResult, orderByParserResult);
         }
     }
 }

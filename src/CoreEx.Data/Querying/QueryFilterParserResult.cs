@@ -7,10 +7,15 @@ using System.Text;
 namespace CoreEx.Data.Querying
 {
     /// <summary>
-    /// Represents the result of a successful <see cref="QueryFilterParser.Parse(string?)"/>.
+    /// Represents the result of a <see cref="QueryFilterParser.Parse(string?)"/>.
     /// </summary>
     public sealed class QueryFilterParserResult
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="QueryFilterParserResult"/> that is a success.
+        /// </summary>
+        internal QueryFilterParserResult() { }
+
         /// <summary>
         /// Gets the field names referenced within the resulting LINQ query.
         /// </summary>
@@ -26,9 +31,10 @@ namespace CoreEx.Data.Querying
         /// </summary>
         public List<object?> Args { get; } = [];
 
-        /// <inheritdoc/>
-        /// <remarks>Provides the resulting dynamic LINQ filter.</remarks>
-        public override string? ToString() => FilterBuilder.ToString();
+        /// <summary>
+        /// Provides the resulting dynamic LINQ filter.
+        /// </summary>
+        public string? ToLinqString() => FilterBuilder.ToString();
 
         /// <summary>
         /// Appends a value to the <see cref="FilterBuilder"/> as a placeholder and adds into the <see cref="Args"/>.

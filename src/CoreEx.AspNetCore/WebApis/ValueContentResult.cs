@@ -81,7 +81,7 @@ namespace CoreEx.AspNetCore.WebApis
         }
 
         /// <summary>
-        /// Creates the <see cref="IActionResult"/> as either <see cref="ValueContentResult"/> or <see cref="StatusCodeResult"/> as per <see cref="TryCreateValueContentResult"/>; unless <paramref name="value"/> is an instance of <see cref="IActionResult"/> which will return as-is.
+        /// Creates the <see cref="IActionResult"/> as either <see cref="ValueContentResult"/> or <see cref="ExtendedStatusCodeResult"/> as per <see cref="TryCreateValueContentResult"/>; unless <paramref name="value"/> is an instance of <see cref="IActionResult"/> which will return as-is.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="statusCode">The primary status code where there is a value.</param>
@@ -91,11 +91,11 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="checkForNotModified">Indicates whether to check for <see cref="HttpStatusCode.NotModified"/> by comparing request and response <see cref="IETag.ETag"/> values.</param>
         /// <param name="location">The <see cref="Microsoft.AspNetCore.Http.Headers.ResponseHeaders.Location"/> <see cref="Uri"/>.</param>
         /// <returns>The <see cref="IActionResult"/>.</returns>
-        public static IActionResult CreateResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location)
+        internal static IActionResult CreateResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location)
             => TryCreateValueContentResult(value, statusCode, alternateStatusCode, jsonSerializer, requestOptions, checkForNotModified, location, out var pr, out var ar) ? pr! : ar!;
 
         /// <summary>
-        /// Try and create an <see cref="IActionResult"/> as either <see cref="ValueContentResult"/> or <see cref="StatusCodeResult"/> as per <see cref="TryCreateValueContentResult"/>; unless <paramref name="value"/> is an instance of <see cref="IActionResult"/> which will return as-is.
+        /// Try and create an <see cref="IActionResult"/> as either <see cref="ValueContentResult"/> or <see cref="ExtendedStatusCodeResult"/> as per <see cref="TryCreateValueContentResult"/>; unless <paramref name="value"/> is an instance of <see cref="IActionResult"/> which will return as-is.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="statusCode">The primary status code where there is a value.</param>
@@ -107,7 +107,7 @@ namespace CoreEx.AspNetCore.WebApis
         /// <param name="primaryResult">The <see cref="IActionResult"/> where created.</param>
         /// <param name="alternateResult">The alternate result where no <paramref name="primaryResult"/>.</param>
         /// <returns><c>true</c> indicates that the <paramref name="primaryResult"/> was created; otherwise, <c>false</c> for <paramref name="alternateResult"/> creation.</returns>
-        public static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out IActionResult? primaryResult, out IActionResult? alternateResult)
+        internal static bool TryCreateValueContentResult<T>(T value, HttpStatusCode statusCode, HttpStatusCode? alternateStatusCode, IJsonSerializer jsonSerializer, WebApiRequestOptions requestOptions, bool checkForNotModified, Uri? location, out IActionResult? primaryResult, out IActionResult? alternateResult)
         {
             if (value is Results.IResult)
                 throw new ArgumentException($"The {nameof(value)} must not implement {nameof(Results.IResult)}; the underlying {nameof(Results.IResult.Value)} must be unwrapped before invoking.", nameof(value));
@@ -182,10 +182,10 @@ namespace CoreEx.AspNetCore.WebApis
                 ExecutionContext.Current.IsTextSerializationEnabled = isTextSerializationEnabled;
 
             // Check for not-modified and return status accordingly.
-            if (checkForNotModified && result.etag == requestOptions.ETag)
+            if (checkForNotModified && requestOptions.ETag is not null && result.etag == requestOptions.ETag)
             {
                 primaryResult = null;
-                alternateResult = new StatusCodeResult((int)HttpStatusCode.NotModified);
+                alternateResult = new ExtendedStatusCodeResult(HttpStatusCode.NotModified);
                 return false;
             }
 

@@ -49,7 +49,8 @@ namespace CoreEx.Validation
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns>The <see cref="ValueValidatorResult{TEntity, TProperty}"/>.</returns>
-        public Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(CancellationToken cancellationToken = default) => _configuration.ValidateAsync(_validationValue, cancellationToken);
+        public Task<ValueValidatorResult<ValidationValue<T>, T>> ValidateAsync(CancellationToken cancellationToken = default)
+            => ValidationInvoker.Current.InvokeAsync(this, (_, cancellationToken) => _configuration.ValidateAsync(_validationValue, cancellationToken), cancellationToken);
 
         /// <summary>
         /// Validates the <see cref="Value"/>.

@@ -12,7 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.43.1" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.44.0" />
   </ItemGroup>
 
   <ItemGroup>

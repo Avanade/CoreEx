@@ -14,6 +14,25 @@ namespace System.Linq
     public static class QueryFilterExtensions
     {
         /// <summary>
+        /// Adds a dynamic query filter as specified by the <paramref name="result"/> (uses the <see cref="QueryArgsParseResult.FilterResult"/> where not <see langword="null"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> being queried.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="result">The <see cref="QueryArgsParseResult"/>.</param>
+        /// <returns>The query.</returns>
+        public static IQueryable<T> Where<T>(this IQueryable<T> query, QueryArgsParseResult result)
+        {
+            result.ThrowIfNull(nameof(result));
+            if (result.FilterResult is not null)
+            {
+                var linq = result.FilterResult.ToLinqString();
+                query = string.IsNullOrEmpty(linq) ? query : query.Where(linq, [.. result.FilterResult.Args]);
+            }
+
+            return query;
+        }
+
+        /// <summary>
         /// Adds a dynamic query filter as specified by the <paramref name="queryArgs"/> (uses the <see cref="QueryArgs.Filter"/> where not <see langword="null"/>).
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/> being queried.</typeparam>
@@ -37,9 +56,28 @@ namespace System.Linq
             if (!queryConfig.HasFilterParser && !string.IsNullOrEmpty(filter))
                 throw new QueryFilterParserException("Filter statement is not currently supported.");
 
-            var result = queryConfig.FilterParser.Parse(filter);
-            var linq = result.ToString();
-            return string.IsNullOrEmpty(linq) ? query : query.Where(linq, [.. result.Args]);
+            var result = queryConfig.FilterParser.Parse(filter).ThrowOnError();
+            var linq = result.Value.ToLinqString();
+            return string.IsNullOrEmpty(linq) ? query : query.Where(linq, [.. result.Value.Args]);
+        }
+
+        /// <summary>
+        /// Adds a dynamic query order by as specified by the <paramref name="result"/> (uses the <see cref="QueryArgsParseResult.OrderByResult"/> where not <see langword="null"/>).
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> being queried.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="result">The <see cref="QueryArgsParseResult"/>.</param>
+        /// <returns>The query.</returns>
+        public static IQueryable<T> OrderBy<T>(this IQueryable<T> query, QueryArgsParseResult result)
+        {
+            result.ThrowIfNull(nameof(result));
+            if (result.OrderByResult is not null)
+            {
+                var linq = result.OrderByResult.ToLinqString();
+                query = string.IsNullOrEmpty(linq) ? query : query.OrderBy(linq);
+            }
+
+            return query;
         }
 
         /// <summary>
@@ -51,16 +89,7 @@ namespace System.Linq
         /// <param name="queryArgs">The <see cref="QueryArgs"/>.</param>
         /// <returns>The query.</returns>
         /// <remarks>Where the <paramref name="queryArgs"/> is <see langword="null"/> or <see cref="QueryArgs.OrderBy"/> is <see langword="null"/>, then the <see cref="QueryOrderByParser.DefaultOrderBy"/> will be used (where also not <see langword="null"/>).</remarks>
-        public static IQueryable<T> OrderBy<T>(this IQueryable<T> query, QueryArgsConfig queryConfig, QueryArgs? queryArgs = null)
-        {
-            queryConfig.ThrowIfNull(nameof(queryConfig));
-            if (!queryConfig.HasOrderByParser && !string.IsNullOrEmpty(queryArgs?.OrderBy))
-                throw new QueryOrderByParserException("OrderBy statement is not currently supported.");
-
-            return string.IsNullOrEmpty(queryArgs?.OrderBy) 
-                ? (queryConfig.OrderByParser.DefaultOrderBy is null ? query : query.OrderBy(queryConfig.OrderByParser.DefaultOrderBy))
-                : OrderBy(query, queryConfig, queryArgs.OrderBy);
-        }
+        public static IQueryable<T> OrderBy<T>(this IQueryable<T> query, QueryArgsConfig queryConfig, QueryArgs? queryArgs = null) => query.OrderBy(queryConfig, queryArgs?.OrderBy);
 
         /// <summary>
         /// Adds a dynamic query order <paramref name="orderby"/> (basic dynamic <i>OData-like</i> <c>$orderby</c> statement).
@@ -76,8 +105,9 @@ namespace System.Linq
             if (!queryConfig.HasOrderByParser && !string.IsNullOrEmpty(orderby))
                 throw new QueryOrderByParserException("OrderBy statement is not currently supported.");
 
-            var linq = queryConfig.OrderByParser.Parse(orderby.ThrowIfNullOrEmpty(nameof(orderby)));
-            return query.OrderBy(linq);
+            var result = queryConfig.OrderByParser.Parse(orderby).ThrowOnError();
+            var linq = result.Value.ToLinqString();
+            return string.IsNullOrEmpty(linq) ? query : query.OrderBy(linq);
         }
     }
 }

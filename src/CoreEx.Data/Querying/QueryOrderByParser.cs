@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Results;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -97,17 +98,20 @@ namespace CoreEx.Data.Querying
         /// Parses and converts the <paramref name="orderBy"/> to dynamic LINQ.
         /// </summary>
         /// <param name="orderBy">The query order-by.</param>
-        /// <returns>The dynamic LINQ equivalent.</returns>
-        public string Parse(string? orderBy)
+        /// <returns>The <see cref="QueryOrderByParserResult"/>.</returns>
+        public Result<QueryOrderByParserResult> Parse(string? orderBy)
         {
             if (!string.IsNullOrEmpty(orderBy) && orderBy.Equals("help", StringComparison.OrdinalIgnoreCase))
-                throw new QueryOrderByParserException(ToString());
+                return new QueryOrderByParserException(ToString());
+
+            if (string.IsNullOrEmpty(orderBy))
+                return new QueryOrderByParserResult(DefaultOrderBy);
 
             var fields = new List<string>();
             var sb = new StringBuilder();
 
 #if NET6_0_OR_GREATER
-            foreach (var sort in orderBy.ThrowIfNullOrEmpty(nameof(orderBy)).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (var sort in orderBy.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 var parts = sort.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 #else
@@ -142,21 +146,28 @@ namespace CoreEx.Data.Querying
                         direction = QueryOrderByDirection.Descending;
                     }
                     else if (!(dir.Length > 2 && nameof(QueryOrderByDirection.Ascending).StartsWith(dir, StringComparison.OrdinalIgnoreCase)))
-                        throw new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; must be either 'asc' (ascending) or 'desc' (descending).");
+                        return new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; must be either 'asc' (ascending) or 'desc' (descending).");
 
                     if (!config.Direction.HasFlag(direction))
-                        throw new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; not supported.");
+                        return new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; not supported.");
                 }
 
                 if (fields.Contains(config.Field))
-                    throw new QueryOrderByParserException($"Field '{field}' must not be specified more than once.");
+                    return new QueryOrderByParserException($"Field '{field}' must not be specified more than once.");
 
                 fields.Add(config.Field);
             }
 
-            _validator?.Invoke([.. fields]);
+            try
+            {
+                _validator?.Invoke([.. fields]);
+            }
+            catch (QueryOrderByParserException qobpex)
+            {
+                return qobpex;
+            }
 
-            return sb.ToString();
+            return new QueryOrderByParserResult(sb.ToString());
         }
 
         /// <inheritdoc/>

@@ -32,10 +32,11 @@ namespace CoreEx.Test.Framework.Data
         private static void AssertFilter(QueryArgsConfig config, string? filter, string expected, params object[] expectedArgs)
         {
             var result = config.FilterParser.Parse(filter);
+            Assert.That(result.IsSuccess, Is.True);
             Assert.Multiple(() =>
             {
-                Assert.That(result.ToString(), Is.EqualTo(expected));
-                Assert.That(result.Args, Is.EquivalentTo(expectedArgs));
+                Assert.That(result.Value.ToLinqString(), Is.EqualTo(expected));
+                Assert.That(result.Value.Args, Is.EquivalentTo(expectedArgs));
             });
         }
 
@@ -43,7 +44,12 @@ namespace CoreEx.Test.Framework.Data
 
         private static void AssertException(QueryArgsConfig config, string? filter, string expected)
         {
-            var ex = Assert.Throws<QueryFilterParserException>(() => config.FilterParser.Parse(filter));
+            var result = config.FilterParser.Parse(filter);
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error, Is.TypeOf<QueryFilterParserException>());
+
+            var ex = (QueryFilterParserException)result.Error;
+
             Assert.That(ex.Messages, Is.Not.Null);
             Assert.That(ex.Messages, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
@@ -284,8 +290,9 @@ Note: The OData-like filtering is awesome!"));
         {
             Assert.Multiple(() =>
             {
-                Assert.That(_queryConfig.OrderByParser.Parse("firstname, birthday desc"), Is.EqualTo("FirstName, BirthDate desc"));
-                Assert.That(_queryConfig.OrderByParser.Parse("lastname asc, birthday desc"), Is.EqualTo("LastName, BirthDate desc"));
+                Assert.That(_queryConfig.OrderByParser.Parse("firstname, birthday desc").Value.ToLinqString(), Is.EqualTo("FirstName, BirthDate desc"));
+                Assert.That(_queryConfig.OrderByParser.Parse("lastname asc, birthday desc").Value.ToLinqString(), Is.EqualTo("LastName, BirthDate desc"));
+                Assert.That(_queryConfig.OrderByParser.Parse(null).Value.ToLinqString(), Is.EqualTo("LastName, FirstName"));
             });
         }
 
@@ -294,7 +301,7 @@ Note: The OData-like filtering is awesome!"));
         {
             void AssertException(string? orderBy, string expected)
             {
-                var ex = Assert.Throws<QueryOrderByParserException>(() => _queryConfig.OrderByParser.Parse(orderBy));
+                var ex = Assert.Throws<QueryOrderByParserException>(() => _queryConfig.OrderByParser.Parse(orderBy).ThrowOnError());
                 Assert.That(ex.Messages, Is.Not.Null);
                 Assert.That(ex.Messages, Has.Count.EqualTo(1));
                 Assert.Multiple(() =>
@@ -322,6 +329,19 @@ LastName (Direction: Both)
 Birthday (Direction: Descending)
 ---
 Note: The OData-like ordering is awesome!"));
+        }
+
+        [Test]
+        public void QueryArgsParse_Success()
+        {
+            var r = _queryConfig.Parse(new CoreEx.Entities.QueryArgs { Filter = "lastname eq 'Smith'", OrderBy = "firstname, birthday desc" });
+            Assert.That(r.IsSuccess, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.Value!.FilterResult!.ToLinqString(), Is.EqualTo("(LastName != null && LastName == @0)"));
+                Assert.That(r.Value.FilterResult.Args, Is.EquivalentTo(new object[] { "Smith" }));
+                Assert.That(r.Value.OrderByResult!.ToLinqString(), Is.EqualTo("FirstName, BirthDate desc"));
+            });
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Database.Extended;
+using CoreEx.Entities;
 
 namespace CoreEx.Database.Postgres
 {
@@ -11,6 +12,26 @@ namespace CoreEx.Database.Postgres
     /// and <see href="https://www.npgsql.org/efcore/modeling/concurrency.html"/> for more information.</remarks>
     public class PostgresDatabaseColumns : DatabaseColumns
     {
+        /// <summary>
+        /// Gets or sets the session context '<c>Username</c>' column name.
+        /// </summary>
+        public string SessionContextUsernameName { get; set; } = "Username";
+
+        /// <summary>
+        /// Gets or sets the session context '<c>Timestamp</c>' column name.
+        /// </summary>
+        public string SessionContextTimestampName { get; set; } = "Timestamp";
+
+        /// <summary>
+        /// Gets or sets the <see cref="ITenantId.TenantId"/> column name.
+        /// </summary>
+        public string SessionContextTenantIdName { get; set; } = "TenantId";
+
+        /// <summary>
+        /// Gets or sets the session context '<c>UserId</c>' column name.
+        /// </summary>
+        public string SessionContextUserIdName { get; set; } = "UserId";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PostgresDatabaseColumns"/> class.
         /// </summary>

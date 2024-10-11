@@ -39,7 +39,7 @@ namespace CoreEx.Database.SqlServer
         public override IConverter RowVersionConverter => StringToBase64Converter.Default;
 
         /// <summary>
-        /// Gets or sets the stored procedure name used by <see cref="SetSqlSessionContextAsync(string, DateTime?, string?, string?, CancellationToken)"/>.
+        /// Gets or sets the stored procedure name used by <see cref="SetSqlSessionContextAsync(string?, DateTime?, string?, string?, CancellationToken)"/>.
         /// </summary>
         /// <remarks>Defaults to '<c>[dbo].[spSetSessionContext]</c>'.</remarks>
         public string SessionContextStoredProcedure { get; set; } = "[dbo].[spSetSessionContext]";
@@ -65,13 +65,13 @@ namespace CoreEx.Database.SqlServer
         /// Sets the SQL session context using the specified values by invoking the <see cref="SessionContextStoredProcedure"/> using parameters named <see cref="SqlServerDatabaseColumns.SessionContextUsernameName"/>, 
         /// <see cref="SqlServerDatabaseColumns.SessionContextTimestampName"/>, <see cref="SqlServerDatabaseColumns.SessionContextTenantIdName"/> and <see cref="SqlServerDatabaseColumns.SessionContextUserIdName"/>.
         /// </summary>
-        /// <param name="username">The username.</param>
+        /// <param name="username">The username (where <c>null</c> the value will default to <see cref="ExecutionContext.EnvironmentUserName"/>).</param>
         /// <param name="timestamp">The timestamp <see cref="DateTime"/> (where <c>null</c> the value will default to <see cref="DateTime.UtcNow"/>).</param>
         /// <param name="tenantId">The tenant identifer (where <c>null</c> the value will not be used).</param>
         /// <param name="userId">The unique user identifier (where <c>null</c> the value will not be used).</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <remarks>See <see href="https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-set-session-context-transact-sql"/>.</remarks>
-        public Task SetSqlSessionContextAsync(string username, DateTime? timestamp, string? tenantId = null, string? userId = null, CancellationToken cancellationToken = default)
+        public Task SetSqlSessionContextAsync(string? username, DateTime? timestamp, string? tenantId = null, string? userId = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(SessionContextStoredProcedure))
                 throw new InvalidOperationException("The SessionContextStoredProcedure property must have a value.");
@@ -80,7 +80,7 @@ namespace CoreEx.Database.SqlServer
             {
                 return await StoredProcedure(SessionContextStoredProcedure)
                     .Param($"@{DatabaseColumns.SessionContextUsernameName}", username ?? ExecutionContext.EnvironmentUserName)
-                    .Param($"@{DatabaseColumns.SessionContextTimestampName}", timestamp ?? Entities.Cleaner.Clean(DateTime.UtcNow))
+                    .Param($"@{DatabaseColumns.SessionContextTimestampName}", timestamp ?? ExecutionContext.SystemTime.UtcNow)
                     .ParamWith(tenantId, $"@{DatabaseColumns.SessionContextTenantIdName}")
                     .ParamWith(userId, $"@{DatabaseColumns.SessionContextUserIdName}")
                     .NonQueryAsync(ct).ConfigureAwait(false);

@@ -2,6 +2,15 @@
 
 Represents the **NuGet** versions.
 
+## v3.27.0
+- *Fixed:* The `ValueContentResult.TryCreateValueContentResult` would return `NotModified` where the request `ETag` was `null`; this has been corrected to return `OK` with the resulting `value`.
+- *Fixed:* The `ValueContentResult.TryCreateValueContentResult` now returns `ExtendedStatusCodeResult` versus `StatusCodeResult` as this offers additional capabilities where required.
+- *Enhancement:* The `ExtendedStatusCodeResult` and `ExtendedContentResult` now implement `IExtendedActionResult` to standardize access to the `BeforeExtension` and `AfterExtension` functions.
+- *Enhancement:* Added `WebApiParam.CreateActionResult` helper methods to enable execution of the underlying `ValueContentResult.CreateValueContentResult` (which is no longer public as this was always intended as internal only).
+- *Fixed:* `PostgresDatabase.OnDbException` corrected to use `PostgresException.MessageText` versus `Message` as it does not include the `SQLSTATE` code.
+- *Enhancement:* Improve debugging insights by adding `ILogger.LogDebug` start/stop/elapsed for the `InvokerArgs`.
+- *Fixed*: Updated `System.Text.Json` package depenedency to latest (including related); resolve [Microsoft Security Advisory CVE-2024-43485](https://github.com/advisories/GHSA-8g4q-xg66-9fp4).
+
 ## v3.26.0
 - *Enhancement:* Enable JSON serialization of database parameter values; added `DatabaseParameterCollection.AddJsonParameter` method and associated `JsonParam`, `JsonParamWhen` and `JsonParamWith` extension methods.
 - *Enhancement:* Updated (simplified) `EventOutboxEnqueueBase` to pass events to the underlying stored procedures as JSON versus existing TVP removing database dependency on a UDT (user-defined type).

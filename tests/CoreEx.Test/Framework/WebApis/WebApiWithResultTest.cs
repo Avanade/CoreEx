@@ -6,6 +6,7 @@ using CoreEx.Results;
 using CoreEx.TestFunction;
 using CoreEx.TestFunction.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 using System;
@@ -229,6 +230,37 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
+        public void GetWithResultAsync_OverrideIActionResult_OK()
+        {
+            static Task<Result<IActionResult>> Success(WebApiParam p) => Result.Ok(p.CreateActionResult("It works!", HttpStatusCode.OK)).AsTask();
+
+            using var test = FunctionTester.Create<Startup>();
+            var req = test.CreateHttpRequest(HttpMethod.Get, "https://unittest");
+            req.ApplyETag("1JkYXLLxYY4Zw02qg/K2yVGH+J+oGshN7M/BlIH20/0=");
+
+            test.Type<WebApi>()
+                .Run(f => f.GetWithResultAsync(req, Success))
+                .ToActionResultAssertor()
+                .AssertOK()
+                .AssertContent("It works!");
+        }
+
+        [Test]
+        public void GetWithResultAsync_OverrideIActionResult_NotModified()
+        {
+            static Task<Result<IActionResult>> Success(WebApiParam p) => Result.Ok(p.CreateActionResult("It works!", HttpStatusCode.OK)).AsTask();
+
+            using var test = FunctionTester.Create<Startup>();
+            var req = test.CreateHttpRequest(HttpMethod.Get, "https://unittest");
+            req.ApplyETag("1JkYXLLxYY4Zw02qg/J2yVGH+J+oGshN7M/BlIH20/0=");
+
+            test.Type<WebApi>()
+                .Run(f => f.GetWithResultAsync(req, Success))
+                .ToActionResultAssertor()
+                .AssertNotModified();
+        }
+
+        [Test]
         public void PostWithResultAsync_NoValueNoResult()
         {
             static Task<Result> Success(WebApiParam p) => Task.FromResult(Result.Success);
@@ -272,6 +304,19 @@ namespace CoreEx.Test.Framework.WebApis
                 .ToActionResultAssertor()
                 .AssertOK()
                 .AssertValue(new Product { Id = "Y", Name = "Z", Price = 3.01m });
+        }
+
+        [Test]
+        public void PostWithResultAsync_OverrideIActionResult()
+        {
+            static Task<Result<IActionResult>> Success(WebApiParam p) => Result.Ok(p.CreateActionResult("It works!", HttpStatusCode.OK)).AsTask();
+
+            using var test = FunctionTester.Create<Startup>();
+            test.Type<WebApi>()
+                .Run(f => f.PostWithResultAsync(test.CreateHttpRequest(HttpMethod.Post, "https://unittest"), Success))
+                .ToActionResultAssertor()
+                .AssertOK()
+                .AssertContent("It works!");
         }
 
         [Test]

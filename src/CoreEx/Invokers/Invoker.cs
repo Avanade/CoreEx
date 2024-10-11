@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Results;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +9,7 @@ namespace CoreEx.Invokers
     /// <summary>
     /// Provides invoking capabilities including <see cref="RunSync(Func{Task})"/> and <see cref="RunSync{T}(Func{Task{T}})"/> to execute an async <see cref="Task"/> synchronously.
     /// </summary>
-    public static class Invoker
+    public class Invoker
     {
         private static readonly TaskFactory _taskFactory = new(CancellationToken.None, TaskCreationOptions.None, TaskContinuationOptions.None, TaskScheduler.Default);
 
@@ -45,5 +44,10 @@ namespace CoreEx.Invokers
         /// <remarks>The general guidance is to avoid sync over async as this may result in deadlock, so please consider all options before using. There are many <see href="https://stackoverflow.com/questions/5095183/how-would-i-run-an-async-taskt-method-synchronously">articles</see>
         /// written discussing this subject; however, if sync over async is needed this method provides a consistent approach to perform. This implementation has been inspired by <see href="https://www.ryadel.com/en/asyncutil-c-helper-class-async-method-sync-result-wait/"/>.</remarks>
         public static T RunSync<T>(Func<Task<T>> task) => _taskFactory.StartNew(task.ThrowIfNull(nameof(task))).Unwrap().GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Private constructor.
+        /// </summary>
+        private Invoker() { }
     }
 }
