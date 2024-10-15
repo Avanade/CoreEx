@@ -27,6 +27,7 @@ namespace CoreEx
         private Lazy<ConcurrentDictionary<string, object?>> _properties = new(true);
         private IReferenceDataContext? _referenceDataContext;
         private HashSet<string>? _roles;
+        private HashSet<string>? _permissions;
         private bool _disposed;
         private readonly object _lock = new();
 
@@ -170,7 +171,7 @@ namespace CoreEx
         /// Gets or sets the timestamp for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).
         /// </summary>
         /// <remarks>Defaults the value from <see cref="ISystemTime"/>, where this has not been registered it will default to <see cref="DateTime.UtcNow"/>. The value will also be passed through <see cref="Cleaner.Clean(DateTime)"/>.</remarks>
-        public DateTime Timestamp { get => _timestamp ??= Cleaner.Clean(GetService<ISystemTime>()?.UtcNow ?? DateTime.UtcNow); set => _timestamp = Cleaner.Clean(value); }
+        public DateTime Timestamp { get => _timestamp ??= SystemTime.UtcNow; set => _timestamp = Cleaner.Clean(value); }
 
         /// <summary>
         /// Gets the <see cref="MessageItemCollection"/> to be passed back to the originating consumer.
@@ -249,18 +250,28 @@ namespace CoreEx
         /// Sets (replaces) the roles the current user is in (the roles should be unique).
         /// </summary>
         /// <param name="roles">The <see cref="IEnumerable{String}"/> of roles the user is in.</param>
-        public virtual void SetRoles(IEnumerable<string> roles) => _roles = new HashSet<string>(roles.Distinct());
+        public virtual void SetRoles(IEnumerable<string> roles) => _roles = new HashSet<string>(roles);
 
         /// <summary>
-        /// Checks whether the user has the required <paramref name="permission"/>.
+        /// Gets the list of permissions for the <see cref="UserName"/> (as previously <see cref="SetPermissions(IEnumerable{string})">set</see>).
+        /// </summary>
+        public IEnumerable<string> GetPermissions() => _permissions == null ? Array.Empty<string>() : _permissions;
+
+        /// <summary>
+        /// Sets (replaces) the permissions the current user is in (the roles should be unique).
+        /// </summary>
+        /// <param name="roles">The <see cref="IEnumerable{String}"/> of roles the user is in.</param>
+        public virtual void SetPermissions(IEnumerable<string> roles) => _permissions = new HashSet<string>(roles);
+
+        /// <summary>
+        /// Checks whether the user has the required <paramref name="permission"/> (see <see cref="SetPermissions"/> and <see cref="GetPermissions"/>).
         /// </summary>
         /// <param name="permission">The permission to validate.</param>
         /// <returns>The corresponding <see cref="Result"/>.</returns>
-        /// <remarks>This method is intended to be overridden; this implementation always returns <see cref="Result.AuthorizationError"/>.</remarks>
         public virtual Result UserIsAuthorized(string permission)
         {
             permission.ThrowIfNullOrEmpty(nameof(permission));
-            return Result.AuthorizationError();
+            return _permissions is not null && _permissions.Contains(permission) ? Result.Success : Result.AuthorizationError();
         }
 
         /// <summary>
@@ -269,12 +280,13 @@ namespace CoreEx
         /// <param name="entity">The entity name.</param>
         /// <param name="action">The action name.</param>
         /// <returns>The corresponding <see cref="Result"/>.</returns>
-        /// <remarks>This method is intended to be overridden; this implementation always returns <see cref="Result.AuthorizationError"/>.</remarks>
+        /// <remarks>This default implementation formats as <c>{entity}.{action}</c> and invokes <see cref="UserIsAuthorized(string)"/>.
+        /// <para>An example is <c>Customer</c> and <c>Create</c> formatted as <c>Customer.Create</c>.</para></remarks>
         public virtual Result UserIsAuthorized(string entity, string action)
         {
             entity.ThrowIfNullOrEmpty(nameof(entity));
             action.ThrowIfNullOrEmpty(nameof(action));
-            return Result.AuthorizationError();
+            return UserIsAuthorized($"{entity}.{action}");
         }
 
         /// <summary>
@@ -284,8 +296,8 @@ namespace CoreEx
         /// <returns>The corresponding <see cref="Result"/>.</returns>
         public virtual Result UserIsInRole(string role)
         {
-            var isInRole = (_roles != null) && _roles.TryGetValue(role, out _);
-            return isInRole ? Result.Success : Result.AuthorizationError();
+            role.ThrowIfNullOrEmpty(nameof(role));
+            return _roles is not null && _roles.Contains(role) ? Result.Success : Result.AuthorizationError();
         }
 
         #endregion

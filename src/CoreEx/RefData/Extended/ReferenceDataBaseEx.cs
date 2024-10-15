@@ -71,7 +71,7 @@ namespace CoreEx.RefData.Extended
 
                 if (StartDate != null || EndDate != null)
                 {
-                    var date = ExecutionContext.HasCurrent ? ExecutionContext.Current.ReferenceDataContext[GetType()] : Cleaner.Clean(DateTime.UtcNow, DateTimeTransform.DateOnly);
+                    var date = ExecutionContext.HasCurrent ? ExecutionContext.Current.ReferenceDataContext[GetType()] : Cleaner.Clean(ExecutionContext.SystemTime.UtcNow, DateTimeTransform.DateOnly);
                     if (StartDate != null && date < StartDate)
                         return false;
 
