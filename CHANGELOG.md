@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.27.1
+- *Fixed:* Updated `Microsoft.Extensions.Caching.Memory` package depenedency to latest (including related); resolve [Microsoft Security Advisory CVE-2024-43483](https://github.com/advisories/GHSA-qj66-m88j-hmgj).
+- *Fixed:* Fixed the `ExecutionContext.UserIsAuthorized` to have base implementation similar to `UserIsInRole`.
+- *Fixed:* Rationalize the `UtcNow` usage to be consistent, where applicable `ExecutionContext.SystemTime.UtcNow` is leveraged.
+
 ## v3.27.0
 - *Fixed:* The `ValueContentResult.TryCreateValueContentResult` would return `NotModified` where the request `ETag` was `null`; this has been corrected to return `OK` with the resulting `value`.
 - *Fixed:* The `ValueContentResult.TryCreateValueContentResult` now returns `ExtendedStatusCodeResult` versus `StatusCodeResult` as this offers additional capabilities where required.

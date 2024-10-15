@@ -152,7 +152,7 @@ namespace CoreEx.Events
             var value = @event.Value;
 
             @event.Id ??= Guid.NewGuid().ToString();
-            @event.Timestamp ??= DateTimeOffset.UtcNow;
+            @event.Timestamp ??= new DateTimeOffset(ExecutionContext.SystemTime.UtcNow);
 
             if (PropertySelection.HasFlag(EventDataProperty.Key))
             {

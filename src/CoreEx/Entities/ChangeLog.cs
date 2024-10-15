@@ -89,6 +89,6 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets the timestamp.
         /// </summary>
-        private static DateTime GetTimestamp(ExecutionContext? ec) => ec != null ? ec.Timestamp : (ExecutionContext.HasCurrent ? ExecutionContext.Current.Timestamp : DateTime.UtcNow);
+        private static DateTime GetTimestamp(ExecutionContext? ec) => ec != null ? ec.Timestamp : ExecutionContext.SystemTime.UtcNow;
     }
 }
