@@ -24,6 +24,10 @@ namespace CoreEx.Cosmos
     /// <param name="database">The <see cref="Microsoft.Azure.Cosmos.Database"/>.</param>
     /// <param name="mapper">The <see cref="IMapper"/>.</param>
     /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="CosmosDbInvoker"/>.</param>
+    /// <remarks>It is recommended that the <see cref="CosmosDb"/> is registered as a scoped service to enable capabilities such as <see cref="CosmosDbArgs.FilterByTenantId"/> that <i>must</i> be scoped. 
+    /// Use <see cref="Microsoft.Extensions.DependencyInjection.CosmosDbServiceCollectionExtensions.AddCosmosDb{TCosmosDb}(Microsoft.Extensions.DependencyInjection.IServiceCollection, Func{IServiceProvider, TCosmosDb}, string?)"/> to 
+    /// register the scoped <see cref="CosmosDb"/> instance.
+    /// <para>The dependent <see cref="CosmosClient"/> should however be registered as a singleton as is <see href="https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/best-practice-dotnet">best practice</see>.</para></remarks>
     public class CosmosDb(Database database, IMapper mapper, CosmosDbInvoker? invoker = null) : ICosmosDb
     {
         private static CosmosDbInvoker? _invoker;
@@ -181,7 +185,8 @@ namespace CoreEx.Cosmos
 
             if (multiSetList.Any(x => !x.Container.IsCosmosDbValueModel))
                 throw new ArgumentException($"All {nameof(IMultiSetArgs)} containers must be of type CosmosDbValueContainer.", nameof(multiSetArgs));
-
+            
+            // Build the Cosmos SQL statement.
             var container = multiSetList[0].Container;
             var types = new Dictionary<string, IMultiSetArgs>([ new KeyValuePair<string, IMultiSetArgs>(container.ModelType.Name, multiSetList[0]) ]);
             var sb = string.IsNullOrEmpty(sql) ? new StringBuilder($"SELECT * FROM c WHERE c.type in (\"{container.ModelType.Name}\"") : null; 

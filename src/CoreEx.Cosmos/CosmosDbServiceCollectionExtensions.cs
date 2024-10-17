@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.DependencyInjection
     public static class CosmosDbServiceCollectionExtensions
     {
         /// <summary>
-        /// Adds an <see cref="ICosmosDb"/> as a singleton service.
+        /// Adds an <see cref="ICosmosDb"/> as a scoped service.
         /// </summary>
         /// <typeparam name="TCosmosDb">The <see cref="ICosmosDb"/> <see cref="Type"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -23,7 +23,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/> to support fluent-style method-chaining.</returns>
         public static IServiceCollection AddCosmosDb<TCosmosDb>(this IServiceCollection services, Func<IServiceProvider, TCosmosDb> create, bool healthCheck = true) where TCosmosDb : class, ICosmosDb
         {
-            services.ThrowIfNull(nameof(services)).AddSingleton(sp => create.ThrowIfNull(nameof(create)).Invoke(sp));
+            services.ThrowIfNull(nameof(services)).AddScoped(sp => create.ThrowIfNull(nameof(create)).Invoke(sp));
             if (healthCheck)
                 services.AddHealthChecks().AddCosmosDbHealthCheck<TCosmosDb>();
 
@@ -31,7 +31,7 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Adds an <see cref="ICosmosDb"/> as a singleton service including a corresponding health check.
+        /// Adds an <see cref="ICosmosDb"/> as a scoped service including a corresponding health check.
         /// </summary>
         /// <typeparam name="TCosmosDb">The <see cref="ICosmosDb"/> <see cref="Type"/>.</typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -40,7 +40,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The <see cref="IServiceCollection"/> to support fluent-style method-chaining.</returns>
         public static IServiceCollection AddCosmosDb<TCosmosDb>(this IServiceCollection services, Func<IServiceProvider, TCosmosDb> create, string? healthCheckName) where TCosmosDb : class, ICosmosDb
         {
-            services.ThrowIfNull(nameof(services)).AddSingleton(sp => create.ThrowIfNull(nameof(create)).Invoke(sp));
+            services.ThrowIfNull(nameof(services)).AddScoped(sp => create.ThrowIfNull(nameof(create)).Invoke(sp));
             services.AddHealthChecks().AddCosmosDbHealthCheck<TCosmosDb>(healthCheckName);
             return services;
         }
