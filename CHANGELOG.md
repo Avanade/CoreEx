@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.27.2
+- *Fixed:* The `IServiceCollection.AddCosmosDb` extension method was registering as a singleton; this has been corrected to register as scoped. The dependent `CosmosClient` should remain a singleton as is [best practice](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/best-practice-dotnet).
+
 ## v3.27.1
 - *Fixed:* Updated `Microsoft.Extensions.Caching.Memory` package depenedency to latest (including related); resolve [Microsoft Security Advisory CVE-2024-43483](https://github.com/advisories/GHSA-qj66-m88j-hmgj).
 - *Fixed:* Fixed the `ExecutionContext.UserIsAuthorized` to have base implementation similar to `UserIsInRole`.

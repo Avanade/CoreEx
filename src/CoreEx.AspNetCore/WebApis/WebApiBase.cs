@@ -64,6 +64,12 @@ namespace CoreEx.AspNetCore.WebApis
         public IEnumerable<string> SecondaryCorrelationIdNames { get; set; } = ["x-ms-client-tracking-id"];
 
         /// <summary>
+        /// Gets or sets the <see cref="IExtendedException"/> <see cref="IActionResult"/> creator function used by <see cref="CreateActionResultFromExtendedException(IExtendedException)"/>.
+        /// </summary>
+        /// <remarks>This allows an alternate serialization or handling as required. Defaults to the <see cref="DefaultExtendedExceptionActionResultCreator"/>.</remarks>
+        public Func<IExtendedException, IActionResult> ExtendedExceptionActionResultCreator { get; set; } = DefaultExtendedExceptionActionResultCreator;
+
+        /// <summary>
         /// Gets the list of correlation identifier names, being <see cref="HttpConsts.CorrelationIdHeaderName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
         /// </summary>
         /// <returns>The list of correlation identifier names.</returns>
@@ -183,7 +189,9 @@ namespace CoreEx.AspNetCore.WebApis
                 if (eex.ShouldBeLogged)
                     logger.LogError(exception, "{Error}", exception.Message);
 
-                ar = CreateActionResultFromExtendedException(eex);
+                ar = owner is null 
+                    ? DefaultExtendedExceptionActionResultCreator(eex)
+                    : owner.CreateActionResultFromExtendedException(eex);
             }
             else
             {
@@ -204,7 +212,14 @@ namespace CoreEx.AspNetCore.WebApis
         /// Creates an <see cref="IActionResult"/> from an <paramref name="extendedException"/>.
         /// </summary>
         /// <param name="extendedException">The <see cref="IExtendedException"/>.</param>
-        public static IActionResult CreateActionResultFromExtendedException(IExtendedException extendedException)
+        public IActionResult CreateActionResultFromExtendedException(IExtendedException extendedException) => ExtendedExceptionActionResultCreator(extendedException);
+
+        /// <summary>
+        /// The default <see cref="ExtendedExceptionActionResultCreator"/>.
+        /// </summary>
+        /// <param name="extendedException">The <see cref="IExtendedException"/>.</param>
+        /// <returns>The resulting <see cref="IActionResult"/>.</returns>
+        public static IActionResult DefaultExtendedExceptionActionResultCreator(IExtendedException extendedException)
         {
             if (extendedException is ValidationException vex && vex.Messages is not null && vex.Messages.Count > 0)
             {
