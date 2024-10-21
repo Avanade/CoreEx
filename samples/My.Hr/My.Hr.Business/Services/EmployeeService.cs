@@ -31,8 +31,14 @@ public class EmployeeService : IEmployeeService
         _settings = settings;
     }
 
-    public async Task<Employee?> GetEmployeeAsync(Guid id) 
-        => await _dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
+    public async Task<Employee?> GetEmployeeAsync(Guid id)
+    {
+        var emp = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
+        if (emp is not null && emp.Birthday.HasValue && emp.Birthday.Value.Year < 2000)
+            CoreEx.ExecutionContext.Current.Messages.Add(MessageType.Warning, "Employee is considered old.");
+
+        return emp;
+    }
 
     public Task<EmployeeCollectionResult> GetAllAsync(QueryArgs? query, PagingArgs? paging) 
         => _dbContext.Employees.Where(_queryConfig, query).OrderBy(_queryConfig, query).ToCollectionResultAsync<EmployeeCollectionResult, EmployeeCollection, Employee>(paging);

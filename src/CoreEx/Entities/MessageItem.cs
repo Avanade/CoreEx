@@ -72,7 +72,7 @@ namespace CoreEx.Entities
         #endregion
 
         /// <summary>
-        /// Gets the message severity validatorType.
+        /// Gets the message severity type.
         /// </summary>
         public MessageType Type { get; set; }
 

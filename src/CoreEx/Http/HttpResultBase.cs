@@ -53,7 +53,7 @@ namespace CoreEx.Http
 
                 try
                 {
-                    return System.Text.Json.JsonSerializer.Deserialize<MessageItemCollection>(mic);
+                    return Json.JsonSerializer.Default.Deserialize<MessageItemCollection>(mic);
                 }
                 catch
                 {

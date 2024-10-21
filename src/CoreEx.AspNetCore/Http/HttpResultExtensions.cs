@@ -9,6 +9,7 @@ using CoreEx.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -171,6 +172,21 @@ namespace CoreEx.AspNetCore.Http
 
             if (paging.TotalPages.HasValue)
                 headers[HttpConsts.PagingTotalPagesHeaderName] = paging.TotalPages.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Adds the <see cref="MessageItemCollection"/> to the <see cref="IHeaderDictionary"/>.
+        /// </summary>
+        /// <param name="headers">The <see cref="IHeaderDictionary"/>.</param>
+        /// <param name="messages">The <see cref="MessageItemCollection"/>.</param>
+        /// <param name="jsonSerializer">The optional <see cref="IJsonSerializer"/>.</param>
+        public static void AddMessages(this IHeaderDictionary headers, MessageItemCollection? messages, IJsonSerializer? jsonSerializer = null)
+        {
+            if (messages is null || messages.Count == 0)
+                return;
+
+            jsonSerializer ??= JsonSerializer.Default;
+            headers.TryAdd(HttpConsts.MessagesHeaderName, jsonSerializer.Serialize(messages));
         }
     }
 }

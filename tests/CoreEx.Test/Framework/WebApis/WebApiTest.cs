@@ -377,6 +377,44 @@ namespace CoreEx.Test.Framework.WebApis
         }
 
         [Test]
+        public void GetAsync_WithMessages_ErrorStatusCode()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var result = test.Type<WebApi>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest"), r =>
+                {
+                    ExecutionContext.Current.Messages.Add(MessageType.Warning, "Please renew licence.");
+                    return Task.FromResult<string?>(null);
+                }))
+                .ToActionResultAssertor()
+                .Assert(HttpStatusCode.NotFound)
+                .Result as StatusCodeResult;
+
+            Assert.That(result, Is.Not.Null);
+        }
+
+        [Test]
+        public void GetAsync_WithMessages_SuccessStatusCode()
+        {
+            using var test = FunctionTester.Create<Startup>();
+            var result = test.Type<WebApi>()
+                .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, "https://unittest"), r =>
+                {
+                    ExecutionContext.Current.Messages.Add(MessageType.Warning, "Please renew licence.");
+                    return Task.FromResult<string?>("This is ok.");
+                }))
+                .ToActionResultAssertor()
+                .Assert(HttpStatusCode.OK)
+                .Result as ValueContentResult;
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Messages, Is.Not.Null);
+            Assert.That(result.Messages, Has.Count.EqualTo(1));
+            Assert.That(result.Messages[0].Type, Is.EqualTo(MessageType.Warning));
+            Assert.That(result.Messages[0].Text, Is.EqualTo("Please renew licence."));
+        }
+
+        [Test]
         public void PostAsync_NoValueNoResult()
         {
             using var test = FunctionTester.Create<Startup>();

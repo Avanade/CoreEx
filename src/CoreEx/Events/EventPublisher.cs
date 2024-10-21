@@ -18,7 +18,6 @@ namespace CoreEx.Events
     public class EventPublisher(EventDataFormatter? eventDataFormatter, IEventSerializer eventSerializer, IEventSender eventSender) : IEventPublisher, IDisposable
     {
         private readonly ConcurrentQueue<(string? Destination, EventData Event)> _queue = new();
-        private bool _disposed;
 
         /// <summary>
         /// Gets the <see cref="Events.EventDataFormatter"/>.
@@ -105,9 +104,6 @@ namespace CoreEx.Events
         /// <exception cref="InvalidOperationException">Thrown when there are unsent events.</exception>
         public void Dispose()
         {
-            if (!_disposed)
-                _disposed = true;
-
             Dispose(true);
             GC.SuppressFinalize(this);
         }
