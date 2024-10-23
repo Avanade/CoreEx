@@ -51,7 +51,7 @@ namespace My.Hr.UnitTest
         {
             using var test = ApiTester.Create<Startup>();
 
-            test.Controller<EmployeeController>()
+            var resp = test.Controller<EmployeeController>()
                 .Run(c => c.GetAsync(1.ToGuid()))
                 .AssertOK()
                 .AssertValue(new Employee
@@ -64,7 +64,22 @@ namespace My.Hr.UnitTest
                     Birthday = new DateTime(1985, 03, 18, 0, 0, 0, DateTimeKind.Unspecified),
                     StartDate = new DateTime(2000, 12, 11, 0, 0, 0, DateTimeKind.Unspecified),
                     PhoneNo = "(425) 612 8113"
-                }, nameof(Employee.ETag));
+                }, nameof(Employee.ETag))
+                .Response;
+
+            // Also, validate the context header messages.
+            var result = HttpResult.CreateAsync(resp).GetAwaiter().GetResult();
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Messages, Is.Not.Null);
+            });
+            Assert.That(result.Messages, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Messages[0].Type, Is.EqualTo(MessageType.Warning));
+                Assert.That(result.Messages[0].Text, Is.EqualTo("Employee is considered old."));
+            });
         }
 
         [Test]

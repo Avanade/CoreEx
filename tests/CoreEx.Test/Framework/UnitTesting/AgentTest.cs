@@ -11,6 +11,7 @@ using CoreEx.Configuration;
 using CoreEx.Http;
 using CoreEx.TestFunction.Models;
 using UnitTestEx.Expectations;
+using UnitTestEx.Assertors;
 
 namespace CoreEx.Test.Framework.UnitTesting
 {
@@ -35,30 +36,39 @@ namespace CoreEx.Test.Framework.UnitTesting
         public void Update_Error()
         {
             var test = ApiTester.Create<Startup>();
-            test.Agent().With<ProductAgent, Product>()
+            var result = test.Agent().With<ProductAgent, Product>()
                 .ExpectErrorType(CoreEx.Abstractions.ErrorType.ValidationError)
                 .ExpectError("Zed is dead.")
-                .Run(a => a.UpdateAsync(new Product { Name = "Apple", Price = 0.79m }, "Zed"));
+                .Run(a => a.UpdateAsync(new Product { Name = "Apple", Price = 0.79m }, "Zed"))
+                .Result;
+
+            Assert.That(result.Response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
         }
 
         [Test]
         public void Delete()
         {
             var test = ApiTester.Create<Startup>();
-            test.Agent().With<ProductAgent>()
+            var res = test.Agent().With<ProductAgent>()
                 .Run(a => a.DeleteAsync("abc"))
                 .AssertNoContent();
+
+            var result = (HttpResultAssertor)res;
+            Assert.That(result.Response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.NoContent));
         }
 
         [Test]
         public void Catalogue()
         {
             var test = ApiTester.Create<Startup>();
-            var x = test.Agent().With<ProductAgent>()
+            var res = test.Agent().With<ProductAgent>()
                 .Run(a => a.CatalogueAsync("abc"))
                 .AssertOK()
                 .AssertContentTypePlainText()
                 .AssertContent("Catalog for 'abc'.");
+
+            var result = (HttpResultAssertor)res;
+            Assert.That(result.Response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.OK));
         }
 
         public class ProductAgent(HttpClient client, IJsonSerializer jsonSerializer, CoreEx.ExecutionContext executionContext) : CoreEx.Http.TypedHttpClientBase<ProductAgent>(client, jsonSerializer, executionContext)

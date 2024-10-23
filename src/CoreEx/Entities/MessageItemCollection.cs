@@ -186,14 +186,14 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets a new <see cref="MessageItemCollection"/> for a selected <see cref="MessageType"/>.
         /// </summary>
-        /// <param name="type">Message validatorType.</param>
+        /// <param name="type">Message severity type.</param>
         /// <returns>A new <see cref="MessageItemCollection"/>.</returns>
         public MessageItemCollection GetMessagesForType(MessageType type) => new(this.Where(x => x.Type == type));
 
         /// <summary>
         /// Gets a new <see cref="MessageItemCollection"/> for a selected <see cref="MessageType"/> and <see cref="MessageItem.Property"/>.
         /// </summary>
-        /// <param name="type">Message validatorType.</param>
+        /// <param name="type">Message severity type.</param>
         /// <param name="property">The name of the property that the message relates to.</param>
         /// <returns>A new <see cref="MessageItemCollection"/>.</returns>
         public MessageItemCollection GetMessagesForType(MessageType type, string property) => new(this.Where(x => x.Type == type && x.Property == property));

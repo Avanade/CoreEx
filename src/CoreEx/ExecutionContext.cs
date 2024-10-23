@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace CoreEx
@@ -22,11 +23,12 @@ namespace CoreEx
         private static readonly AsyncLocal<ExecutionContext?> _asyncLocal = new();
 
         private DateTime? _timestamp;
-        private Lazy<MessageItemCollection> _messages = new(true);
+        private Lazy<MessageItemCollection> _messages = new(CreateWithNoErrorTypeSupport, true);
         private Lazy<ConcurrentDictionary<string, object?>> _properties = new(true);
         private IReferenceDataContext? _referenceDataContext;
         private HashSet<string>? _roles;
         private HashSet<string>? _permissions;
+        private bool _isCopied;
         private bool _disposed;
         private readonly object _lock = new();
 
@@ -43,20 +45,27 @@ namespace CoreEx
         /// <summary>
         /// Gets the current <see cref="ExecutionContext"/> for the executing thread graph (see <see cref="AsyncLocal{T}"/>).
         /// </summary>
-        /// <remarks>Where not previously set (see <see cref="SetCurrent(ExecutionContext?)"/> then the <see cref="Create"/> will be invoked as a backup to create an instance.</remarks>
+        /// <remarks>Where not previously set (see <see cref="SetCurrent(ExecutionContext?)"/>) then the <see cref="Create"/> will be invoked as a backup to create an instance on first access. 
+        /// <para>The <see cref="Reset"/> should be used to dispose and clear the current where no longer needed.</para></remarks>
         public static ExecutionContext Current => _asyncLocal.Value ??= Create?.Invoke() ?? 
             throw new InvalidOperationException("There is currently no ExecutionContext.Current instance; this must be set (SetCurrent) prior to access. Use ExecutionContext.HasCurrent to verify value and avoid this exception if appropriate.");
 
         /// <summary>
-        /// Resets (clears) the <see cref="Current"/> <see cref="ExecutionContext"/>.
+        /// Resets (disposes and clears) the <see cref="Current"/> <see cref="ExecutionContext"/>.
         /// </summary>
-        public static void Reset() => _asyncLocal.Value = null;
+        public static void Reset()
+        {
+            if (HasCurrent)
+                Current.Dispose();
+
+            _asyncLocal.Value = null;
+        }
 
         /// <summary>
         /// Sets the <see cref="Current"/> instance (only allowed where <see cref="HasCurrent"/> is <c>false</c>).
         /// </summary>
         /// <param name="executionContext">The <see cref="ExecutionContext"/> instance.</param>
-        public static void SetCurrent(ExecutionContext? executionContext)
+        public static void SetCurrent(ExecutionContext executionContext)
         {
             if (HasCurrent)
                 throw new InvalidOperationException("The SetCurrent method can only be used where there is no Current instance.");
@@ -173,9 +182,17 @@ namespace CoreEx
         public DateTime Timestamp { get => _timestamp ??= SystemTime.UtcNow; set => _timestamp = Cleaner.Clean(value); }
 
         /// <summary>
-        /// Gets the <see cref="MessageItemCollection"/> to be passed back to the originating consumer.
+        /// Gets the <see cref="MessageItemCollection"/> that is intended to be returned to the originating consumer.
         /// </summary>
+        /// <remarks>This is not intended to be a replacement for returning errors/exceptions; as such, if a <see cref="MessageItem"/> with a <see cref="MessageItem.Type"/> of <see cref="MessageType.Error"/> is added a corresponding
+        /// <see cref="InvalidOperationException"/> will be thrown. This is ultimately intended for warning and information messages that provide additional context outside of the intended operation result.
+        /// <para>There are no guarantees that these messages will be returned; it is the responsibility of the hosting process to manage.</para></remarks>
         public MessageItemCollection Messages { get => _messages.Value; }
+
+        /// <summary>
+        /// Indicates whether there are any <see cref="Messages"/>.
+        /// </summary>
+        public bool HasMessages => _messages.IsValueCreated && _messages.Value.Count > 0;
 
         /// <summary>
         /// Gets the properties <see cref="ConcurrentDictionary{TKey, TValue}"/> for passing/storing additional data.
@@ -189,10 +206,40 @@ namespace CoreEx
         public IReferenceDataContext ReferenceDataContext => _referenceDataContext ??= (GetService<IReferenceDataContext>() ?? new ReferenceDataContext());
 
         /// <summary>
-        /// Creates a copy of the <see cref="ExecutionContext"/> using the <see cref="Create"/> function to instantiate before copying all underlying properties.
+        /// Indicates whether this instance was created as a result of a <see cref="CreateCopy"/> operation.
+        /// </summary>
+        public bool IsACopy => _isCopied;
+
+        /// <summary>
+        /// Creates a new <see cref="ExecutionContext"/> (or uses the specified <paramref name="executionContext"/>) and returns the <i>new</i> <see cref="Current"/> <see cref="ExecutionContext"/>.
+        /// </summary>
+        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
+        /// <returns>The <see cref="ExecutionContext"/> as an <see cref="IDisposable"/>.</returns>
+        /// <remarks>Performs a <see cref="Reset"/> followed by a corresponding <see cref="SetCurrent(ExecutionContext)"/>.
+        /// <para>Useful for scoped scenarios where the underlying <see cref="IDisposable"/> will be automatically invoked, such as the following:
+        /// <code>
+        /// using var ec = ExecutionContext.CreateNew();
+        /// 
+        /// // or
+        /// 
+        /// using (ExecutionContext.CreateNew())
+        /// {
+        /// }
+        /// </code>
+        /// </para></remarks>
+        public static ExecutionContext CreateNew(ExecutionContext? executionContext = null)
+        {
+            Reset();
+            SetCurrent(executionContext ?? Create?.Invoke() ?? new ExecutionContext());
+            return Current;
+        } 
+
+        /// <summary>
+        /// Creates a copy of the <see cref="ExecutionContext"/> using the <see cref="Create"/> function to instantiate before copying or referencing all underlying properties.
         /// </summary>
         /// <returns>The new <see cref="ExecutionContext"/> instance.</returns>
-        /// <remarks><i>Note:</i> the <see cref="Messages"/>, <see cref="Properties"/> and <see cref="GetRoles">Roles</see> share same instance, i.e. are not copied.</remarks>
+        /// <remarks>This is intended for <b>advanced scenarios</b> and may have unintended consequences where not used correctly.
+        /// <i>Note:</i> the <see cref="Messages"/>, <see cref="Properties"/>, <see cref="ReferenceDataContext"/>, <see cref="GetRoles">Roles</see> and <see cref="GetPermissions">Permissions</see> share same instance, i.e. are not copied.</remarks>
         public virtual ExecutionContext CreateCopy()
         {
             var ec = Create == null ? throw new InvalidOperationException($"The {nameof(Create)} function must not be null to create a copy.") : Create();
@@ -201,6 +248,7 @@ namespace CoreEx
             ec._properties = _properties;
             ec._referenceDataContext = _referenceDataContext;
             ec._roles = _roles;
+            ec._permissions = _permissions;
             ec.ServiceProvider = ServiceProvider;
             ec.CorrelationId = CorrelationId;
             ec.OperationType = OperationType;
@@ -208,6 +256,7 @@ namespace CoreEx
             ec.UserName = UserName;
             ec.UserId = UserId;
             ec.TenantId = TenantId;
+            ec._isCopied = true;
             return ec;
         }
 
@@ -216,18 +265,6 @@ namespace CoreEx
         /// </summary>
         public void Dispose()
         {
-            if (!_disposed)
-            {
-                lock (_lock)
-                {
-                    if (!_disposed)
-                    {
-                        _disposed = true;
-                        Dispose(true);
-                    }
-                }
-            }
-
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -236,7 +273,41 @@ namespace CoreEx
         /// Releases the unmanaged resources used by the <see cref="ExecutionContext"/> and optionally releases the managed resources.
         /// </summary>
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing) => Reset();
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing && !_disposed)
+            {
+                lock (_lock)
+                {
+                    if (!_disposed)
+                    {
+                        if (!_isCopied && _messages.IsValueCreated)
+                            _messages.Value.CollectionChanged -= Messages_CollectionChanged;
+
+                        _disposed = true;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Create a new <see cref="MessageItemCollection"/> with the contrainst that no <see cref="MessageType.Error"/> messages can be added.
+        /// </summary>
+        private static MessageItemCollection CreateWithNoErrorTypeSupport()
+        {
+            var messages = new MessageItemCollection();
+            messages.CollectionChanged += Messages_CollectionChanged;
+            return messages;
+        }
+
+        /// <summary>
+        /// Handles the <c>CollectionChanged</c> event to ensure that no error messages are added.
+        /// </summary>
+        private static void Messages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems is not null && e.NewItems.OfType<MessageItem>().Any(m => m.Type == MessageType.Error))
+                throw new InvalidOperationException("An error message can not be added to the ExecutionContext.Messages collection; this is intended for warning and information messages only.");
+        }
 
         #region Security
 

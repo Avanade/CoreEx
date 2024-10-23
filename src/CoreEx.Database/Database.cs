@@ -187,7 +187,6 @@ namespace CoreEx.Database
         public async ValueTask DisposeAsync()
         {
             await DisposeAsyncCore().ConfigureAwait(false);
-            Dispose(false);
             GC.SuppressFinalize(this);
         }
 
@@ -203,6 +202,8 @@ namespace CoreEx.Database
                 await _dbConn.DisposeAsync().ConfigureAwait(false);
                 _dbConn = null;
             }
+
+            Dispose();
         }
     }
 }

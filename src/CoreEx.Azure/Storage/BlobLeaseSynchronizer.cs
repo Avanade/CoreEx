@@ -124,15 +124,6 @@ namespace CoreEx.Azure.Storage
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (!_disposed)
-            {
-                _disposed = true;
-                if (_timer.IsValueCreated)
-                    _timer.Value.Dispose();
-
-                _dict.Values.ForEach(ReleaseLease);
-            }
-
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -141,7 +132,17 @@ namespace CoreEx.Azure.Storage
         /// Releases the unmanaged resources used by the <see cref="BlobLeaseSynchronizer"/> and optionally releases the managed resources.
         /// </summary>
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing) { }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing && !_disposed)
+            {
+                _disposed = true;
+                if (_timer.IsValueCreated)
+                    _timer.Value.Dispose();
+
+                _dict.Values.ForEach(ReleaseLease);
+            }
+        }
 
         /// <summary>
         /// Gets the full name.
