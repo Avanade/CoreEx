@@ -276,7 +276,7 @@ namespace CoreEx.RefData
 
                     Logger.LogDebug("Reference data type {RefDataType} cache load start: ServiceProvider.CreateScope and Threading.ExecutionContext.SuppressFlow to support underlying cache data get.", type.FullName);
                     using var ec = ExecutionContext.Current.CreateCopy();
-                    var rdo = _asyncLocal.Value;
+                    var rdo = this;
 
                     using var scope = ServiceProvider.CreateScope();
                     Task<IReferenceDataCollection> task;
@@ -301,7 +301,7 @@ namespace CoreEx.RefData
         /// <summary>
         /// Performs the actual reference data load in a new thread context / scope.
         /// </summary>
-        private async Task<IReferenceDataCollection> GetByTypeInNewScopeAsync(ReferenceDataOrchestrator? rdo, ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, InvokeArgs invokeArgs, CancellationToken cancellationToken)
+        private async Task<IReferenceDataCollection> GetByTypeInNewScopeAsync(ReferenceDataOrchestrator rdo, ExecutionContext executionContext, IServiceScope scope, Type type, Type providerType, InvokeArgs invokeArgs, CancellationToken cancellationToken)
         {
             _asyncLocal.Value = rdo;
 
@@ -309,7 +309,7 @@ namespace CoreEx.RefData
             ExecutionContext.SetCurrent(executionContext);
 
             // Start related activity as this "work" is occuring on an unrelated different thread (by design to ensure complete separation).
-            var ria = invokeArgs.StartNewRelated(typeof(ReferenceDataOrchestratorInvoker), typeof(ReferenceDataOrchestrator), nameof(GetByTypeInNewScopeAsync));
+            var ria = invokeArgs.StartNewRelated(invokeArgs.Invoker, rdo, nameof(GetByTypeInNewScopeAsync));
             try
             {
                 if (ria.Activity is not null)

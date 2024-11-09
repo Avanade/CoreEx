@@ -16,12 +16,10 @@ namespace CoreEx.Abstractions.Reflection
     /// </summary>
     public static partial class PropertyExpression
     {
-        private static IMemoryCache? _fallbackCache;
-
         /// <summary>
         /// Gets the <see cref="IMemoryCache"/>.
         /// </summary>
-        internal static IMemoryCache Cache => ExecutionContext.GetService<IReflectionCache>() ?? (_fallbackCache ??= new MemoryCache(new MemoryCacheOptions()));
+        internal static IMemoryCache Cache => ExecutionContext.GetService<IReflectionCache>() ?? Internal.MemoryCache;
 
         /// <summary>
         /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>.
