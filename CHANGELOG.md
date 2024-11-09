@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v3.28.0
+- *Enhancement:* Added extended capabilities to the `InvokeArgs` to allow additional customization.
+
 ## v3.27.3
 - *Fixed:* The `ExecutionContext.Messages` were not being returned as intended within the `x-messages` HTTP Response header; enabled within the `ExtendedStatusCodeResult` and `ExtendedContentResult` on success only (status code `>= 200` and `<= 299`). Note these messages are JSON serialized as the underlying `MessageItemCollection` type.
 - *Fixed:* The `AgentTester` has been updated to return a `HttpResultAssertor` where the operation returns a `HttpResult` to enable further assertions to be made on the `Result` itself.

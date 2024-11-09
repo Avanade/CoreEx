@@ -31,7 +31,7 @@ namespace CoreEx.Abstractions.Reflection
         /// Gets the <see cref="IMemoryCache"/> to use versus instantiating each <see cref="TypeReflector"/> per use.
         /// </summary>
         /// <remarks>The <see cref="AbsoluteExpirationTimespan"/> and <see cref="SlidingExpirationTimespan"/> enable additional basic policy configuration for the cached items.</remarks>
-        public IMemoryCache Cache { get; } = (MemoryCache?)cache ?? new MemoryCache(new MemoryCacheOptions());
+        public IMemoryCache Cache { get; } = (MemoryCache?)cache ?? Internal.MemoryCache;
 
         /// <summary>
         /// Gets or sets the <see cref="IMemoryCache"/> absolute expiration <see cref="TimeSpan"/>. Default to <c>24</c> hours.

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,8 +15,20 @@ namespace CoreEx.Invokers
     /// <typeparam name="TArgs">The arguments <see cref="Type"/>.</typeparam>
     /// <remarks>All public methods result in either the synchronous <see cref="OnInvoke"/> or asynchronous <see cref="OnInvokeAsync"/> virtual methods being called to manage the underlying invocation; therefore, where overridding each should
     /// be overridden with the same logic. Where no result is specified this defaults to '<c>object?</c>' for the purposes of execution.</remarks>
-    public abstract class InvokerBase<TInvoker, TArgs>
+    public abstract class InvokerBase<TInvoker, TArgs> : IInvoker
     {
+        /// <inheritdoc/>
+        public Action<InvokeArgs>? OnActivityStart { get; protected set; }
+
+        /// <inheritdoc/>
+        public Action<InvokeArgs, Exception>? OnActivityException { get; protected set; }
+
+        /// <inheritdoc/>
+        public Action<InvokeArgs>? OnActivityComplete { get; protected set; }
+
+        /// <inheritdoc/>
+        public Func<InvokeArgs, string> CallerLoggerFormatter { get; protected set; } = InvokeArgs.DefaultCallerLogFormatter;
+
         /// <summary>
         /// Invokes a <paramref name="func"/> with a <typeparamref name="TResult"/> synchronously.
         /// </summary>
@@ -44,7 +57,7 @@ namespace CoreEx.Invokers
         /// </summary>
         private TResult TraceOnInvoke<TResult>(TInvoker invoker, Func<InvokeArgs, TResult> func, TArgs? args, string? memberName)
         {
-            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName, null);
+            var ia = new InvokeArgs(this, invoker, memberName, null);
             try
             {
                 return ia.TraceResult(OnInvoke(ia, invoker, func, args));
@@ -65,7 +78,7 @@ namespace CoreEx.Invokers
         /// </summary>
         private async Task<TResult> TraceOnInvokeAsync<TResult>(TInvoker invoker, Func<InvokeArgs, CancellationToken, Task<TResult>> func, TArgs? args, string? memberName, CancellationToken cancellationToken)
         {
-            var ia = new InvokeArgs(GetType(), invoker?.GetType(), memberName, null);
+            var ia = new InvokeArgs(this, invoker, memberName, null);
             try
             {
                 return ia.TraceResult(await OnInvokeAsync(ia, invoker, func, args, cancellationToken).ConfigureAwait(false));

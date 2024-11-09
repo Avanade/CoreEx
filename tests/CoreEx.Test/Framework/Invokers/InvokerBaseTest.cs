@@ -36,7 +36,7 @@ namespace CoreEx.Test.Framework.Invokers
         public async Task Invoke_AsyncWithResult_Load()
         {
             var i = new TestInvoker();
-            for (var j = 0; j < 1000; j++)
+            for (var j = 0; j < 100000; j++)
             {
                 await i.InvokeAsync(this, async (_, ct) => { await Task.Delay(0, ct); return 88; });
             }
