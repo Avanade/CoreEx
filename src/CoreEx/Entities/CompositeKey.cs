@@ -195,7 +195,8 @@ namespace CoreEx.Entities
         /// Returns the <see cref="CompositeKey"/> as a comma-separated <see cref="Args"/> <see cref="string"/>.
         /// </summary>
         /// <returns>The composite key as a <see cref="string"/>.</returns>
-        /// <remarks>Each <see cref="Args"/> value is JSON-formatted to ensure consistency and portability.</remarks>
+        /// <remarks>Each <see cref="Args"/> value is formatted in an invariant manner for portability and consistency. A <c>null</c> is formatted as <see cref="string.Empty"/>. A <see cref="string"/>
+        /// is written as-is, there is no special escaping et. performed.</remarks>
         public override string? ToString() => ToString(',');
 
         /// <summary>
@@ -217,31 +218,27 @@ namespace CoreEx.Entities
                 if (i > 0)
                     sb.Append(separator);
 
-                if (Args[i] is not null)
-                    sb.Append(ConvertArgToString(Args[i]));
+                if (Args[i] is null)
+                    continue;
+
+                switch (Args[i]!.GetType())
+                {
+                    case Type t when t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(uint) || t == typeof(ulong) || t == typeof(ushort):
+                        sb.AppendFormat(NumberFormatInfo.InvariantInfo, "{0}", Args[i]);
+                        break;
+
+                    case Type t when t == typeof(DateTime) || t == typeof(DateTimeOffset):
+                        sb.AppendFormat(DateTimeFormatInfo.InvariantInfo, "{0:O}", Args[i]);
+                        break;
+
+                    default:
+                        sb.Append(Args[i]);
+                        break;
+                }
             }
 
             return sb.ToString();
         }
-
-        /// <summary>
-        /// Convert the argument to a string.
-        /// </summary>
-        private static string ConvertArgToString(object? arg) => arg switch
-        {
-            string str => str,
-            char c => c.ToString(),
-            Guid g => g.ToString(),
-            int i => i.ToString(NumberFormatInfo.InvariantInfo),
-            long l => l.ToString(NumberFormatInfo.InvariantInfo),
-            short s => s.ToString(NumberFormatInfo.InvariantInfo),
-            DateTime d => d.ToString("O"),
-            DateTimeOffset o => o.ToString("O"),
-            uint ui => ui.ToString(NumberFormatInfo.InvariantInfo),
-            ulong ul => ul.ToString(NumberFormatInfo.InvariantInfo),
-            ushort us => us.ToString(NumberFormatInfo.InvariantInfo),
-            _ => throw new InvalidOperationException($"Type {arg!.GetType().Name} is not supported for a {nameof(ToString)}.")
-        };
 
         /// <summary>
         /// Returns the <see cref="CompositeKey"/> as a JSON <see cref="string"/>.
