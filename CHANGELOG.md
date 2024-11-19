@@ -2,6 +2,11 @@
 
 Represents the **NuGet** versions.
 
+## v3.29.0
+- *Enhancement:* Added `net9.0` support.
+- *Enhancement:* Deprecated `net7.0` support; no longer supported by [Microsoft](https://dotnet.microsoft.com/en-us/platform/support/policy).
+- *Enhancement:* Updated dependencies to latest; including transitive where applicable.
+
 ## v3.28.0
 - *Enhancement:* Added extended capabilities to the `InvokeArgs` to allow additional customization.
 

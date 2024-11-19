@@ -20,7 +20,7 @@ namespace CoreEx.Http
         public HttpArgType ArgType { get; }
 
         /// <summary>
-        /// Returns a <see cref="Uri.EscapeDataString"/> representation of the value for URI template replacement use.
+        /// Returns a <see cref="Uri.EscapeDataString(string)"/> representation of the value for URI template replacement use.
         /// </summary>
         /// <returns>The escaped data string.</returns>
         string? ToEscapeDataString();

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net7.0;net8.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>net6.0;net8.0;net9.0;netstandard2.1</TargetFrameworks>
     <RootNamespace>CoreEx.Data</RootNamespace>
     <Product>CoreEx</Product>
     <Title>CoreEx .NET Data extras.</Title>
@@ -12,7 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.4.5" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.4.9" />
   </ItemGroup>
 
   <ItemGroup>
