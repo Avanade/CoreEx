@@ -18,7 +18,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 using Nsj = Newtonsoft.Json;
 using Stj = System.Text.Json;
 using CoreEx.AspNetCore.Http;

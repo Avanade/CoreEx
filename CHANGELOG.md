@@ -2,6 +2,14 @@
 
 Represents the **NuGet** versions.
 
+## v3.30.0
+- *Enhancement:* Integrated `UnitTestEx` version `5.0.0` to enable the latest capabilities and improvements.
+  - `CoreEx.UnitTesting.NUnit` given changes is no longer required and has been deprecated, the `UnitTestEx.NUnit` (or other) must be explicitly referenced as per testing framework being used.
+  - `CoreEx.UnitTesting` package updated to include only standard .NET core capabilities to follow new `UnitTestEx` pattern; new packages created to house specific as follows:
+    - `CoreEx.UnitTesting.Azure.Functions` created to house Azure Functions specific capabilities;
+    - `CoreEx.UnitTesting.Azure.ServiceBus` created to house Azure Service Bus specific capabilities.
+  - Existing usage will require references to the new packages as required. There should be limited need to update existing tests to use beyond the requirement for the root `UnitTestEx` namespace. The updated default within `UnitTestEx` is to expose the key capabilities from the root namespace. For example, `using UnitTestEx.NUnit`, should be replaced with `using UnitTestEx`.
+
 ## v3.29.0
 - *Enhancement:* Added `net9.0` support.
 - *Enhancement:* Deprecated `net7.0` support; no longer supported by [Microsoft](https://dotnet.microsoft.com/en-us/platform/support/policy).

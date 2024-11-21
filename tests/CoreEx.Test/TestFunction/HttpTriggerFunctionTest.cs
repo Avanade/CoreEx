@@ -5,7 +5,6 @@ using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using System.Net.Http;
 using UnitTestEx;
-using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.TestFunction
 {

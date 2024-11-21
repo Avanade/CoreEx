@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 
 namespace CoreEx.Test.Framework.Hosting.Work

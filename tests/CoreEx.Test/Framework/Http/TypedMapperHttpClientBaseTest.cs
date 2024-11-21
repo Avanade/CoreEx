@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
-using UnitTestEx.Mocking;
+using UnitTestEx;
 
 namespace CoreEx.Test.Framework.Http
 {
@@ -21,7 +21,7 @@ namespace CoreEx.Test.Framework.Http
             m.Register(new CustomerMapper());
             m.Register(new BackendMapper());
 
-            var mcf = UnitTestEx.NUnit.MockHttpClientFactory.Create();
+            var mcf = MockHttpClientFactory.Create();
             mcf.CreateDefaultClient().Request(HttpMethod.Post, "test").WithJsonBody(new Backend { First = "John", Last = "Doe" }).Respond.WithJson(new Backend { First = "John", Last = "Doe" });
 
             var mc = new TypedMappedHttpClient(mcf.GetHttpClient()!, m);
@@ -49,7 +49,7 @@ namespace CoreEx.Test.Framework.Http
             m.Register(new CustomerMapper());
             m.Register(new BackendMapper());
 
-            var mcf = UnitTestEx.NUnit.MockHttpClientFactory.Create();
+            var mcf = MockHttpClientFactory.Create();
             mcf.CreateDefaultClient().Request(HttpMethod.Post, "test").WithJsonBody(new Backend { First = "John", Last = "Doe" }).Respond.With(HttpStatusCode.InternalServerError);
 
             var mc = new TypedMappedHttpClient(mcf.GetHttpClient()!, m);
@@ -76,7 +76,7 @@ namespace CoreEx.Test.Framework.Http
             m.Register(new CustomerMapper());
             m.Register(new BackendMapper());
 
-            var mcf = UnitTestEx.NUnit.MockHttpClientFactory.Create();
+            var mcf = MockHttpClientFactory.Create();
             mcf.CreateDefaultClient().Request(HttpMethod.Post, "test").WithJsonBody(new Backend { First = "John", Last = "Doe" }).Respond.WithJson("{\"first\":\"Dave\",\"age\":\"ten\"}");
 
             var mc = new TypedMappedHttpClient(mcf.GetHttpClient()!, m);

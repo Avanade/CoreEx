@@ -2,7 +2,7 @@
 using CoreEx.TestFunctionIso;
 using Microsoft.Extensions.DependencyInjection;
 using UnitTestEx.Expectations;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test2.TestFunctionIso
 {
@@ -27,7 +27,7 @@ namespace CoreEx.Test2.TestFunctionIso
 
             var ws = await wo.GetAsync(message.MessageId);
             Assert.That(ws, Is.Not.Null);
-            Assert.That(ws.Status, Is.EqualTo(WorkStatus.Failed));
+            Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Failed));
         }
 
         [Test]
@@ -50,7 +50,7 @@ namespace CoreEx.Test2.TestFunctionIso
 
             var ws = await wo.GetAsync(message.MessageId);
             Assert.That(ws, Is.Not.Null);
-            Assert.That(ws.Status, Is.EqualTo(WorkStatus.Cancelled));
+            Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Cancelled));
         }
 
         [Test]
@@ -72,7 +72,7 @@ namespace CoreEx.Test2.TestFunctionIso
 
             var ws = await wo.GetAsync(message.MessageId);
             Assert.That(ws, Is.Not.Null);
-            Assert.That(ws.Status, Is.EqualTo(WorkStatus.Completed));
+            Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Completed));
         }
     }
 }

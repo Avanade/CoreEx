@@ -10,9 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
-    <PackageReference Include="NUnit.Analyzers" Version="4.3.0">
+    <PackageReference Include="NUnit.Analyzers" Version="4.4.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -20,12 +20,14 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="UnitTestEx.NUnit" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Azure\CoreEx.Azure.csproj" />
-    <ProjectReference Include="..\..\src\CoreEx.UnitTesting.NUnit\CoreEx.UnitTesting.NUnit.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.UnitTesting.Azure.Functions\CoreEx.UnitTesting.Azure.Functions.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.UnitTesting.Azure.ServiceBus\CoreEx.UnitTesting.Azure.ServiceBus.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />

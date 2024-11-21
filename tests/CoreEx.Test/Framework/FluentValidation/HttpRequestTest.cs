@@ -6,7 +6,7 @@ using CoreEx.TestFunction.Validators;
 using NUnit.Framework;
 using System.Net.Http;
 using System.Threading.Tasks;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test.Framework.FluentValidation
 {

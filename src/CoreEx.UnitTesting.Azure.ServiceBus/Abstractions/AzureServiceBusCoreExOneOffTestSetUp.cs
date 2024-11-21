@@ -3,14 +3,14 @@
 using System.Reflection;
 using UnitTestEx.Abstractions;
 
-[assembly: OneOffTestSetUp(typeof(UnitTestEx.NUnit.Abstractions.CoreExOneOffTestSetUp))]
+[assembly: OneOffTestSetUp(typeof(AzureServiceBusCoreExOneOffTestSetUp))]
 
-namespace UnitTestEx.NUnit.Abstractions
+namespace UnitTestEx.Abstractions
 {
     /// <summary>
     /// Provides the one-off test set-up for the <see cref="CoreEx"/>-related testing.
     /// </summary>
     /// <remarks>Adds the <see cref="CoreExExtension"/> to support the runtime extension inclusion. Also, changes the <see cref="TestSetUp.Default"/> <see cref="TestSetUp.JsonSerializer"/> to the <see cref="CoreEx.Text.Json.JsonSerializer"/>.
-    /// <para>This inheits the <see cref="UnitTestEx.Abstractions.CoreExOneOffTestSetUp"/> achieving the same functionality, but is delared within this <see cref="Assembly"/> to ensure executed.</para></remarks>
-    public class CoreExOneOffTestSetUp : UnitTestEx.Abstractions.CoreExOneOffTestSetUp { }
+    /// <para>This inheits the <see cref="CoreExOneOffTestSetUp"/> achieving the same functionality, but is delared within this <see cref="Assembly"/> to ensure executed.</para></remarks>
+    public class AzureServiceBusCoreExOneOffTestSetUp : CoreExOneOffTestSetUp { }
 }

@@ -14,7 +14,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using UnitTestEx;
-using UnitTestEx.NUnit;
 
 namespace My.Hr.UnitTest
 {
@@ -101,9 +100,12 @@ namespace My.Hr.UnitTest
                 .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees")))
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.That(v?.Items, Is.Not.Null);
-            Assert.That(v!.Items, Has.Count.EqualTo(4));
-            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Browne", "Jones", "Smith", "Smithers" }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(4));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Browne", "Jones", "Smith", "Smithers" }));
+            });
         }
 
         [Test]
@@ -116,11 +118,14 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.That(v?.Items, Is.Not.Null);
-            Assert.That(v!.Items, Has.Count.EqualTo(2));
-            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Jones", "Smith" }));
-            Assert.That(v.Paging, Is.Not.Null);
-            Assert.That(v.Paging!.TotalCount, Is.EqualTo(4));
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(2));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Jones", "Smith" }));
+                Assert.That(v.Paging, Is.Not.Null);
+            });
+            Assert.That(v!.Paging!.TotalCount, Is.EqualTo(4));
         }
 
         [Test]

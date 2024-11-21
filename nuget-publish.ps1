@@ -65,7 +65,8 @@ param(
         "src\CoreEx.Newtonsoft",
         "src\CoreEx.Validation",
         "src\CoreEx.UnitTesting",
-        "src\CoreEx.UnitTesting.NUnit")
+        "src\CoreEx.UnitTesting.Azure.Functions",
+        "src\CoreEx.UnitTesting.Azure.ServiceBus")
     )
 
 $ShouldPublishRemote = (![string]::IsNullOrEmpty($apiKey) -and ![string]::IsNullOrEmpty($NugetServer))

@@ -4,7 +4,7 @@
     <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
     <RootNamespace>UnitTestEx</RootNamespace>
     <Product>CoreEx</Product>
-    <Title>CoreEx UnitTesting extras.</Title>
+    <Title>CoreEx Azure ServiceBus UnitTesting extras.</Title>
     <Description>CoreEx UnitTesting (UnitTestEx) extras.</Description>
     <PackageTags>coreex unittest unit-test test unittestex</PackageTags>
   </PropertyGroup>
@@ -12,13 +12,12 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
-    <ProjectReference Include="..\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
-    <ProjectReference Include="..\CoreEx.Azure\CoreEx.Azure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="UnitTestEx" Version="5.0.0" />
+    <PackageReference Include="UnitTestEx.Azure.ServiceBus" Version="5.0.0" />
   </ItemGroup>
 
 </Project>

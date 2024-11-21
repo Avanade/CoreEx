@@ -10,7 +10,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using NUnit.Framework;
 using UnitTestEx;
-using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
 {

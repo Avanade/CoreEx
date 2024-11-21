@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test.Framework.Events
 {

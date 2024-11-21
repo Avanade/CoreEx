@@ -3,7 +3,7 @@ using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 using Nsj = Newtonsoft.Json;
 
 namespace CoreEx.Test.Framework.Events

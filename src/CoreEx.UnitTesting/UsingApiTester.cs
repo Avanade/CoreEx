@@ -6,14 +6,14 @@ using System;
 using System.Net.Http;
 using UnitTestEx.AspNetCore;
 
-namespace UnitTestEx.NUnit
+namespace UnitTestEx
 {
     /// <summary>
     /// Provides a shared <see cref="ApiTester"/> class to enable usage of the same underlying <see cref="TestServer"/> instance across multiple tests.
     /// </summary>
     /// <typeparam name="TEntryPoint">The API startup <see cref="Type"/>.</typeparam>
     /// <remarks>Implements <see cref="IDisposable"/> so should be automatically disposed off by the test framework host.</remarks>
-    public abstract class UsingApiTester<TEntryPoint> : Internal.ApiTester<TEntryPoint> where TEntryPoint : class
+    public abstract class UsingApiTester<TEntryPoint> : ApiTester<TEntryPoint> where TEntryPoint : class
     {
         /// <summary>
         /// Gets the <see cref="ApiTester"/>; i.e. itself.

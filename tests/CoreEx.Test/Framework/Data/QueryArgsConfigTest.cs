@@ -45,8 +45,11 @@ namespace CoreEx.Test.Framework.Data
         private static void AssertException(QueryArgsConfig config, string? filter, string expected)
         {
             var result = config.FilterParser.Parse(filter);
-            Assert.That(result.IsFailure, Is.True);
-            Assert.That(result.Error, Is.TypeOf<QueryFilterParserException>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error, Is.TypeOf<QueryFilterParserException>());
+            });
 
             var ex = (QueryFilterParserException)result.Error;
 

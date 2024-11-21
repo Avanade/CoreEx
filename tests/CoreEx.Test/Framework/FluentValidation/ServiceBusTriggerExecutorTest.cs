@@ -6,7 +6,7 @@ using Microsoft.Azure.WebJobs.ServiceBus;
 using Moq;
 using NUnit.Framework;
 using System.Collections.Generic;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test.Framework.FluentValidation
 {

@@ -1,5 +1,5 @@
 ﻿using CoreEx.TestFunctionIso;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test2.TestFunctionIso
 {

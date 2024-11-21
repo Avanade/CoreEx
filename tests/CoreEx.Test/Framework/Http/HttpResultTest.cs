@@ -38,8 +38,11 @@ namespace CoreEx.Test.Framework.Http
             var hr = await HttpResult.CreateAsync(r);
             Assert.That(hr, Is.Not.Null);
             Assert.That(hr.Messages, Has.Count.EqualTo(1));
-            Assert.That(hr.Messages[0].Type, Is.EqualTo(CoreEx.Entities.MessageType.Warning));
-            Assert.That(hr.Messages[0].Text, Is.EqualTo("Please renew licence."));
+            Assert.Multiple(() =>
+            {
+                Assert.That(hr.Messages[0].Type, Is.EqualTo(CoreEx.Entities.MessageType.Warning));
+                Assert.That(hr.Messages[0].Text, Is.EqualTo("Please renew licence."));
+            });
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using CoreEx.TestApi;
 using NUnit.Framework;
-using UnitTestEx.NUnit;
 using UnitTestEx;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;

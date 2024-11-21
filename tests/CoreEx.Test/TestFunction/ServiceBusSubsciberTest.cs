@@ -7,7 +7,7 @@ using NUnit.Framework;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test.TestFunction
 {

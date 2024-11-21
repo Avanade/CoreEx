@@ -15,10 +15,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx;
-using UnitTestEx.NUnit;
 using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
-using UnitTestEx.Functions;
-using UnitTestEx.Hosting;
 using CoreEx.AspNetCore.Http;
 
 namespace CoreEx.Test.Framework.WebApis
@@ -233,7 +230,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             var p = test.JsonSerializer.Deserialize<Person>(vcr.Content!);
             Assert.That(p, Is.Not.Null);
-            Assert.That(p.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
+            Assert.That(p!.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
         }
 
         [Test]
@@ -251,7 +248,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             var p = test.JsonSerializer.Deserialize<Person>(vcr.Content!);
             Assert.That(p, Is.Not.Null);
-            Assert.That(p.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
+            Assert.That(p!.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
         }
 
         [Test]
@@ -408,10 +405,16 @@ namespace CoreEx.Test.Framework.WebApis
                 .Result as ValueContentResult;
 
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.Messages, Is.Not.Null);
-            Assert.That(result.Messages, Has.Count.EqualTo(1));
-            Assert.That(result.Messages[0].Type, Is.EqualTo(MessageType.Warning));
-            Assert.That(result.Messages[0].Text, Is.EqualTo("Please renew licence."));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result!.Messages, Is.Not.Null);
+                Assert.That(result.Messages, Has.Count.EqualTo(1));
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(result!.Messages![0].Type, Is.EqualTo(MessageType.Warning));
+                Assert.That(result.Messages[0].Text, Is.EqualTo("Please renew licence."));
+            });
         }
 
         [Test]
@@ -713,7 +716,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertValue(new Person { Id = 13, Name = "Gazza", ETag = "tEEokPXk+4Q5MoiGqyAs1+6A00e2ww59Zm57LJgvBcg=" });
         }
 
-        private static HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
+        private static HttpRequest CreatePatchRequest(UnitTestEx.Azure.Functions.FunctionTester<Startup> test, string? json, string? etag = null)
             => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, HttpConsts.MergePatchMediaTypeName, hr => hr.ApplyRequestOptions(new HttpRequestOptions { ETag = etag }));
 
         private class Person : IIdentifier<int>, IETag
