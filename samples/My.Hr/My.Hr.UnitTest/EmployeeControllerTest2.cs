@@ -11,7 +11,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.Expectations;
-using UnitTestEx.NUnit;
 using My.Hr.Business.Services;
 
 namespace My.Hr.UnitTest
@@ -115,7 +114,7 @@ namespace My.Hr.UnitTest
                 Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Jones", "Smith" }));
                 Assert.That(v.Paging, Is.Not.Null);
             });
-            Assert.That(v.Paging!.TotalCount, Is.EqualTo(4));
+            Assert.That(v!.Paging!.TotalCount, Is.EqualTo(4));
         }
 
         [Test]

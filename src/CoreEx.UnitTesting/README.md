@@ -6,7 +6,7 @@ The `CoreEx.UnitTesting` namespace extends [_UnitTestEx_](https://github.com/Ava
 
 ## Motivation
 
-To improce and simplify the unit testing of _CoreEx_ related code.
+To improve and simplify the unit testing of _CoreEx_ related code.
 
 <br/>
 

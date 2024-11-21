@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NUnit" Version="4.2.2" />
-    <PackageReference Include="NUnit.Analyzers" Version="4.3.0">
+    <PackageReference Include="NUnit.Analyzers" Version="4.4.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -31,10 +31,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="UnitTestEx.NUnit" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting.NUnit\CoreEx.UnitTesting.NUnit.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting.Azure.Functions\CoreEx.UnitTesting.Azure.Functions.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting.Azure.ServiceBus\CoreEx.UnitTesting.Azure.ServiceBus.csproj" />
     <ProjectReference Include="..\My.Hr.Api\My.Hr.Api.csproj" />
     <ProjectReference Include="..\My.Hr.Business\My.Hr.Business.csproj" />
     <ProjectReference Include="..\My.Hr.Database\My.Hr.Database.csproj" />

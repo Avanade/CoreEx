@@ -4,7 +4,7 @@ using CoreEx.Http;
 using CoreEx.TestFunction;
 using NUnit.Framework;
 using System.Net.Http;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.Test.Framework.WebApis

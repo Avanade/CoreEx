@@ -13,7 +13,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using UnitTestEx;
-using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.HealthChecks
 {

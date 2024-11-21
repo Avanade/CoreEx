@@ -15,8 +15,11 @@ namespace CoreEx.Test.Framework.Caching
             var rc = new RequestCache();
             rc.SetValue(e);
 
-            Assert.That(rc.TryGetValue(new CompositeKey(1), out Entity? value), Is.False);
-            Assert.That(rc.TryGetValue(new CompositeKey(2), out value), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rc.TryGetValue(new CompositeKey(1), out Entity? value), Is.False);
+                Assert.That(rc.TryGetValue(new CompositeKey(2), out value), Is.True);
+            });
         }
     }
 

@@ -1,5 +1,4 @@
 ﻿using NUnit.Framework;
-using UnitTestEx.NUnit;
 using UnitTestEx;
 using UnitTestEx.Expectations;
 using CoreEx;

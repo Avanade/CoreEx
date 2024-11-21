@@ -6,14 +6,13 @@ using CoreEx.AspNetCore.WebApis;
 using NUnit.Framework;
 using System.Net.Http;
 using System.Threading.Tasks;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 using CoreEx.Mapping;
 using Microsoft.Extensions.DependencyInjection;
 using CoreEx.Hosting.Work;
 using System;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using UnitTestEx;
 
 namespace CoreEx.Test.Framework.WebApis
 {
@@ -331,7 +330,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             var ws2 = wso.GetAsync(ed[0].Id!).Result;
             Assert.That(ws2, Is.Not.Null);
-            Assert.That(ws2.Status, Is.EqualTo(WorkStatus.Created));
+            Assert.That(ws2!.Status, Is.EqualTo(WorkStatus.Created));
             
             ObjectComparer.Assert(ws, ws2);
         }
@@ -545,7 +544,7 @@ namespace CoreEx.Test.Framework.WebApis
             Assert.That(ws, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(ws.Status, Is.EqualTo(WorkStatus.Cancelled));
+                Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Cancelled));
                 Assert.That(ws.Reason, Is.EqualTo("No reason was specified."));
             });
         }

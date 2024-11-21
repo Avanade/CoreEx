@@ -14,7 +14,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using UnitTestEx.Abstractions;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 using Az = Azure.Messaging.ServiceBus;
 
 namespace CoreEx.Test.TestFunction

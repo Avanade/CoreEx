@@ -3,7 +3,7 @@ using My.Hr.Business.External.Contracts;
 using My.Hr.Functions;
 using NUnit.Framework;
 using System.Net.Http;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace My.Hr.UnitTest
 {

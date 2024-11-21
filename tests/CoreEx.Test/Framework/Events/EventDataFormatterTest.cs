@@ -4,7 +4,7 @@ using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using System;
 using System.Text.Json.Serialization;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test.Framework.Events
 {

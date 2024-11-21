@@ -12,7 +12,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnitTestEx;
 using UnitTestEx.Expectations;
-using UnitTestEx.NUnit;
 using DbEx;
 using DbEx.Migration;
 using DbEx.SqlServer.Migration;
@@ -77,7 +76,7 @@ namespace My.Hr.UnitTest
             Assert.That(result.Messages, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
             {
-                Assert.That(result.Messages[0].Type, Is.EqualTo(MessageType.Warning));
+                Assert.That(result.Messages![0].Type, Is.EqualTo(MessageType.Warning));
                 Assert.That(result.Messages[0].Text, Is.EqualTo("Employee is considered old."));
             });
         }
@@ -118,9 +117,12 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.That(v?.Items, Is.Not.Null);
-            Assert.That(v!.Items, Has.Count.EqualTo(4));
-            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Browne", "Jones", "Smith", "Smithers" }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(4));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Browne", "Jones", "Smith", "Smithers" }));
+            });
         }
 
         [Test]
@@ -135,11 +137,14 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.That(v?.Items, Is.Not.Null);
-            Assert.That(v!.Items, Has.Count.EqualTo(2));
-            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Jones", "Smith" }));
-            Assert.That(v.Paging, Is.Not.Null);
-            Assert.That(v.Paging!.TotalCount, Is.EqualTo(4));
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(2));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Jones", "Smith" }));
+                Assert.That(v.Paging, Is.Not.Null);
+            });
+            Assert.That(v!.Paging!.TotalCount, Is.EqualTo(4));
         }
 
         [Test]
@@ -166,9 +171,12 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.That(v?.Items, Is.Not.Null);
-            Assert.That(v!.Items, Has.Count.EqualTo(2));
-            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Smith", "Smithers" }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(2));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Smith", "Smithers" }));
+            });
         }
 
         [Test]
@@ -181,9 +189,12 @@ namespace My.Hr.UnitTest
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
 
-            Assert.That(v?.Items, Is.Not.Null);
-            Assert.That(v!.Items, Has.Count.EqualTo(2));
-            Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Smith", "Browne" }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(v?.Items, Is.Not.Null);
+                Assert.That(v!.Items, Has.Count.EqualTo(2));
+                Assert.That(v.Items.Select(x => x.LastName).ToArray(), Is.EqualTo(new string[] { "Smith", "Browne" }));
+            });
         }
 
         [Test]

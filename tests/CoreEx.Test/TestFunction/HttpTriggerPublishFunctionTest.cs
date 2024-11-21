@@ -7,7 +7,6 @@ using CoreEx.TestFunction.Functions;
 using CoreEx.TestFunction.Models;
 using NUnit.Framework;
 using UnitTestEx;
-using UnitTestEx.NUnit;
 
 namespace CoreEx.Test.TestFunction
 {

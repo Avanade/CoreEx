@@ -15,7 +15,6 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using UnitTestEx;
-using UnitTestEx.NUnit;
 using HttpRequestOptions = CoreEx.Http.HttpRequestOptions;
 
 namespace CoreEx.Test.Framework.WebApis
@@ -86,7 +85,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             var p = test.JsonSerializer.Deserialize<Person>(vcr.Content!);
             Assert.That(p, Is.Not.Null);
-            Assert.That(p.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
+            Assert.That(p!.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
         }
 
         [Test]
@@ -104,7 +103,7 @@ namespace CoreEx.Test.Framework.WebApis
 
             var p = test.JsonSerializer.Deserialize<Person>(vcr.Content!);
             Assert.That(p, Is.Not.Null);
-            Assert.That(p.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
+            Assert.That(p!.ETag, Is.EqualTo("iVsGVb/ELj5dvXpe3ImuOy/vxLIJnUtU2b8nIfpX5PM="));
         }
 
         [Test]
@@ -602,7 +601,7 @@ namespace CoreEx.Test.Framework.WebApis
                 .AssertException<BusinessException>();
         }
 
-        private static HttpRequest CreatePatchRequest(UnitTestEx.NUnit.Internal.FunctionTester<Startup> test, string? json, string? etag = null)
+        private static HttpRequest CreatePatchRequest(UnitTestEx.Azure.Functions.FunctionTester<Startup> test, string? json, string? etag = null)
             => test.CreateHttpRequest(HttpMethod.Patch, "https://unittest", json, HttpConsts.MergePatchMediaTypeName, hr => hr.ApplyRequestOptions(new HttpRequestOptions { ETag = etag }));
 
         private class Person : IIdentifier<int>, IETag

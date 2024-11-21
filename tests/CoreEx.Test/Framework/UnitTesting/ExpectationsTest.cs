@@ -5,7 +5,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using UnitTestEx.Expectations;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test.Framework.UnitTesting
 {

@@ -6,7 +6,7 @@ using Moq;
 using My.Hr.Business.External.Contracts;
 using My.Hr.Functions;
 using NUnit.Framework;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace My.Hr.UnitTest
 {

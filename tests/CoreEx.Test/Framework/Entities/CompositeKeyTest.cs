@@ -80,40 +80,58 @@ namespace CoreEx.Test.Framework.Entities
         public void KeyToString_And_CreateFromString()
         {
             var ck = new CompositeKey();
-            Assert.That(ck.ToString(), Is.Null);
-            Assert.That(CompositeKey.TryCreateFromString<string>(ck.ToString(), out ck), Is.True);
-            Assert.That(ck.Args, Has.Length.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.ToString(), Is.Null);
+                Assert.That(CompositeKey.TryCreateFromString<string>(ck.ToString(), out ck), Is.True);
+                Assert.That(ck.Args, Has.Length.EqualTo(1));
+            });
             Assert.That(ck.Args[0], Is.Null);
 
             int? iv = null;
             ck = new CompositeKey(iv);
-            Assert.That(ck.ToString(), Is.Null);
-            Assert.That(CompositeKey.TryCreateFromString<int?>(ck.ToString(), out ck), Is.True);
-            Assert.That(ck.Args, Has.Length.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.ToString(), Is.Null);
+                Assert.That(CompositeKey.TryCreateFromString<int?>(ck.ToString(), out ck), Is.True);
+                Assert.That(ck.Args, Has.Length.EqualTo(1));
+            });
             Assert.That(ck.Args[0], Is.Null);
 
             ck = new CompositeKey(88);
-            Assert.That(ck.ToString(), Is.EqualTo("88"));
-            Assert.That(CompositeKey.TryCreateFromString<int>(ck.ToString(), out ck), Is.True);
-            Assert.That(ck.Args, Has.Length.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.ToString(), Is.EqualTo("88"));
+                Assert.That(CompositeKey.TryCreateFromString<int>(ck.ToString(), out ck), Is.True);
+                Assert.That(ck.Args, Has.Length.EqualTo(1));
+            });
             Assert.That(ck.Args[0], Is.EqualTo(88));
 
             ck = new CompositeKey("abc");
-            Assert.That(ck.ToString(), Is.EqualTo("abc"));
-            Assert.That(CompositeKey.TryCreateFromString<string>(ck.ToString(), out ck), Is.True);
-            Assert.That(ck.Args, Has.Length.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.ToString(), Is.EqualTo("abc"));
+                Assert.That(CompositeKey.TryCreateFromString<string>(ck.ToString(), out ck), Is.True);
+                Assert.That(ck.Args, Has.Length.EqualTo(1));
+            });
             Assert.That(ck.Args[0], Is.EqualTo("abc"));
 
             ck = new CompositeKey("");
-            Assert.That(ck.ToString(), Is.EqualTo(string.Empty));
-            Assert.That(CompositeKey.TryCreateFromString<string>(ck.ToString(), out ck), Is.True);
-            Assert.That(ck.Args, Has.Length.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.ToString(), Is.EqualTo(string.Empty));
+                Assert.That(CompositeKey.TryCreateFromString<string>(ck.ToString(), out ck), Is.True);
+                Assert.That(ck.Args, Has.Length.EqualTo(1));
+            });
             Assert.That(ck.Args[0], Is.Null);
 
             ck = new CompositeKey(null, null);
-            Assert.That(ck.ToString(), Is.EqualTo(","));
-            Assert.That(CompositeKey.TryCreateFromString<string, string>(ck.ToString(), out ck), Is.True);
-            Assert.That(ck.Args, Has.Length.EqualTo(2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.ToString(), Is.EqualTo(","));
+                Assert.That(CompositeKey.TryCreateFromString<string, string>(ck.ToString(), out ck), Is.True);
+                Assert.That(ck.Args, Has.Length.EqualTo(2));
+            });
             Assert.Multiple(() =>
             {
                 Assert.That(ck.Args[0], Is.Null);
@@ -124,9 +142,12 @@ namespace CoreEx.Test.Framework.Entities
                 new DateTime(1970, 01, 22, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 01, 22, 20, 59, 43, DateTimeKind.Utc), new DateTimeOffset(2000, 01, 22, 20, 59, 43, TimeSpan.FromHours(-8)));
 
             Console.WriteLine(ck.ToString());
-            Assert.That(ck.ToString(), Is.EqualTo("text,x,-32768,-2147483648,-9223372036854775808,65535,4294967295,18446744073709551615,8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc,1970-01-22T00:00:00.0000000,2000-01-22T20:59:43.0000000Z,2000-01-22T20:59:43.0000000-08:00"));
-            Assert.That(CompositeKey.TryCreateFromString(ck.ToString(), new Type[] { typeof(string), typeof(char), typeof(short), typeof(int), typeof(long), typeof(ushort), typeof(uint), typeof(ulong), typeof(Guid), typeof(DateTime), typeof(DateTime), typeof(DateTimeOffset) }, out ck), Is.True);
-            Assert.That(ck.Args, Has.Length.EqualTo(12));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ck.ToString(), Is.EqualTo("text,x,-32768,-2147483648,-9223372036854775808,65535,4294967295,18446744073709551615,8bd5f616-ed6b-4fc5-9cb8-4472cc8955fc,1970-01-22T00:00:00.0000000,2000-01-22T20:59:43.0000000Z,2000-01-22T20:59:43.0000000-08:00"));
+                Assert.That(CompositeKey.TryCreateFromString(ck.ToString(), new Type[] { typeof(string), typeof(char), typeof(short), typeof(int), typeof(long), typeof(ushort), typeof(uint), typeof(ulong), typeof(Guid), typeof(DateTime), typeof(DateTime), typeof(DateTimeOffset) }, out ck), Is.True);
+                Assert.That(ck.Args, Has.Length.EqualTo(12));
+            });
             Assert.Multiple(() =>
             {
                 Assert.That(ck.Args[0], Is.EqualTo("text"));

@@ -11,7 +11,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using UnitTestEx.NUnit;
+using UnitTestEx;
 
 namespace CoreEx.Test.TestFunction
 {

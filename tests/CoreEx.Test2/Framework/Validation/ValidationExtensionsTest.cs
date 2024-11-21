@@ -22,7 +22,7 @@ namespace CoreEx.Test2.Framework.Validation
             Assert.That(r.IsSuccess, Is.True);
         }
 
-        private async Task<Result<string>> ValidateAsync(string? email2)
+        private static async Task<Result<string>> ValidateAsync(string? email2)
         {
             return await Result.Go().ValidatesAsync(email2, v =>
             {
