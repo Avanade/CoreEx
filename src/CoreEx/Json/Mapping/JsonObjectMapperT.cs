@@ -138,16 +138,15 @@ namespace CoreEx.Json.Mapping
         /// <summary>
         /// Validates and adds a new IPropertyJsonMapper.
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "They are the arguments from the calling method.")]
-        private void AddMapping(IPropertyJsonMapper pcm)
+        private void AddMapping<TSourceProperty>(PropertyJsonMapper<TSource, TSourceProperty> propertyJsonMapper)
         {
-            if (_mappings.Any(x => x.PropertyName == pcm.PropertyName))
-                throw new ArgumentException($"Source property '{pcm.PropertyName}' must not be specified more than once.", "propertyExpression");
+            if (_mappings.Any(x => x.PropertyName == propertyJsonMapper.PropertyName))
+                throw new ArgumentException($"Source property '{propertyJsonMapper.PropertyName}' must not be specified more than once.", nameof(propertyJsonMapper));
 
-            if (_mappings.Any(x => x.JsonName == pcm.JsonName))
-                throw new ArgumentException($"Column '{pcm.JsonName}' must not be specified more than once.", "jsonName");
+            if (_mappings.Any(x => x.JsonName == propertyJsonMapper.JsonName))
+                throw new ArgumentException($"Column '{propertyJsonMapper.JsonName}' must not be specified more than once.", nameof(propertyJsonMapper));
 
-            _mappings.Add(pcm);
+            _mappings.Add(propertyJsonMapper);
         }
 
         /// <summary>

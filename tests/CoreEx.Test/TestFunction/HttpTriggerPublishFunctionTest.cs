@@ -97,7 +97,7 @@ namespace CoreEx.Test.TestFunction
 
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .HttpTrigger<HttpTriggerPublishFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
+                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products/publish", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
                 .AssertErrors(new ApiError("Name", "'Name' must not be empty."));
 
@@ -113,7 +113,7 @@ namespace CoreEx.Test.TestFunction
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerPublishFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", price = 1.99m })))
+                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products/publish", new { id = "A", price = 1.99m })))
                 .AssertBadRequest()
                 .AssertErrors(new ApiError("Name", "'Name' must not be empty."));
 
@@ -128,7 +128,7 @@ namespace CoreEx.Test.TestFunction
 
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .HttpTrigger<HttpTriggerPublishFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
+                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products/publish", new { id = "A", name = "B", price = 1.99m })))
                 .AssertAccepted();
 
             Assert.That(imp.GetNames(), Has.Length.EqualTo(1));
@@ -147,7 +147,7 @@ namespace CoreEx.Test.TestFunction
             test.ReplaceScoped<IEventPublisher>(_ => imp)
                 .ConfigureServices(sc => sc.ReplaceScoped<IJsonSerializer, CoreEx.Newtonsoft.Json.JsonSerializer>())
                 .HttpTrigger<HttpTriggerPublishFunction>()
-                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products", new { id = "A", name = "B", price = 1.99m })))
+                .Run(f => f.RunAsync(test.CreateJsonHttpRequest(HttpMethod.Post, "https://unittest/products/publish", new { id = "A", name = "B", price = 1.99m })))
                 .AssertAccepted();
 
             Assert.That(imp.GetNames(), Has.Length.EqualTo(1));

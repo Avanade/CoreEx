@@ -10,16 +10,10 @@ using System.Threading.Tasks;
 
 namespace CoreEx.TestFunction.Functions
 {
-    public class HttpTriggerFunction
+    public class HttpTriggerFunction(WebApi webApi, ProductService service)
     {
-        private readonly WebApi _webApi;
-        private readonly ProductService _service;
-
-        public HttpTriggerFunction(WebApi webApi, ProductService service)
-        {
-            _webApi = webApi;
-            _service = service;
-        }
+        private readonly WebApi _webApi = webApi;
+        private readonly ProductService _service = service;
 
         [FunctionName("HttpTriggerProductGet")]
         public Task<IActionResult> GetAsync([HttpTrigger(AuthorizationLevel.Function, "get", Route = "products/{id}")] HttpRequest request, string id)

@@ -15,7 +15,8 @@ namespace CoreEx.Events
     /// <summary>
     /// Provides the base <see cref="CloudEvent"/> <see cref="IEventSerializer"/> capabilities.
     /// </summary>
-    public abstract class CloudEventSerializerBase : IEventSerializer
+    /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
+    public abstract class CloudEventSerializerBase(EventDataFormatter? eventDataFormatter) : IEventSerializer
     {
         private const string SubjectName = "subject";
         private const string ActionName = "action";
@@ -32,14 +33,8 @@ namespace CoreEx.Events
         /// an attribute name must consist of lowercase letters and digits only; any that contain other characters will be ignored.</remarks>
         public static string[] ReservedNames { get; } = ["id", "time", "type", "source", SubjectName, ActionName, CorrelationIdName, TenantIdName, ETagName, PartitionKeyName, KeyName];
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CloudEventSerializerBase"/> class.
-        /// </summary>
-        /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
-        protected CloudEventSerializerBase(EventDataFormatter? eventDataFormatter) => EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
-
         /// <inheritdoc/>
-        public EventDataFormatter EventDataFormatter { get; }
+        public EventDataFormatter EventDataFormatter { get; } = eventDataFormatter ?? new EventDataFormatter();
 
         /// <inheritdoc/>
         public IAttachmentStorage? AttachmentStorage { get; set; }

@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.30.1
+- *Fixed:* Added support for `SettingsBase.DateTimeTransform`, `StringTransform`, `StringTrim` and `StringCase` to allow specification via configuration.
+- *Fixed:* Added support for `CoreEx:` hierarchy (optional) for all _CoreEx_ settings to enable a more structured and explicit configuration.
+
 ## v3.30.0
 - *Enhancement:* Integrated `UnitTestEx` version `5.0.0` to enable the latest capabilities and improvements.
   - `CoreEx.UnitTesting.NUnit` given changes is no longer required and has been deprecated, the `UnitTestEx.NUnit` (or other) must be explicitly referenced as per testing framework being used.

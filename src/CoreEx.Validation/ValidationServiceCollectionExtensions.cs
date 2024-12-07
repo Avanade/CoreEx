@@ -107,9 +107,9 @@ namespace Microsoft.Extensions.DependencyInjection
                                       select new { valueType, type })
                 {
                     if (alsoRegisterInterfaces)
-                        av.MakeGenericMethod(match.valueType, match.type).Invoke(null, new object[] { services });
+                        av.MakeGenericMethod(match.valueType, match.type).Invoke(null, [services]);
                     else
-                        av.MakeGenericMethod(match.type).Invoke(null, new object[] { services });
+                        av.MakeGenericMethod(match.type).Invoke(null, [services]);
                 }
             }
 

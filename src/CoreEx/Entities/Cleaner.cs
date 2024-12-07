@@ -1,5 +1,6 @@
 // Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Configuration;
 using CoreEx.Globalization;
 using System;
 using System.Collections.Generic;
@@ -72,14 +73,8 @@ namespace CoreEx.Entities
         /// <returns>The cleaned value.</returns>
         public static string? Clean(string? value, StringTrim trim = StringTrim.UseDefault, StringTransform transform = StringTransform.UseDefault, StringCase casing = StringCase.UseDefault)
         {
-            if (trim == StringTrim.UseDefault)
-                trim = DefaultStringTrim;
-
             if (transform == StringTransform.UseDefault)
-                transform = DefaultStringTransform;
-
-            if (casing == StringCase.UseDefault)
-                casing = DefaultStringCase;
+                transform = ExecutionContext.GetService<SettingsBase>()?.StringTransform ?? DefaultStringTransform;
 
             // Handle a null string.
             if (value == null)
@@ -89,6 +84,9 @@ namespace CoreEx.Entities
                 else
                     return value;
             }
+
+            if (trim == StringTrim.UseDefault)
+                trim = ExecutionContext.GetService<SettingsBase>()?.StringTrim ?? DefaultStringTrim;
 
             // Trim the string.
             var tmp = trim switch
@@ -111,6 +109,9 @@ namespace CoreEx.Entities
                 return tmp;
 
             // Apply casing to the string.
+            if (casing == StringCase.UseDefault)
+                casing = ExecutionContext.GetService<SettingsBase>()?.StringCase ?? DefaultStringCase;
+
             return casing switch
             {
                 StringCase.Lower => CultureInfo.CurrentCulture.TextInfo.ToCasing(tmp, TextInfoCasing.Lower),
@@ -134,10 +135,11 @@ namespace CoreEx.Entities
         /// <param name="value">The value to clean.</param>
         /// <param name="transform">The <see cref="DateTimeTransform"/> to be applied.</param>
         /// <returns>The cleaned value.</returns>
+        /// <remarks>Will attempt to use <see cref="SettingsBase.DateTimeTransform"/> as a default where possible.</remarks>
         public static DateTime Clean(DateTime value, DateTimeTransform transform)
         {
             if (transform == DateTimeTransform.UseDefault)
-                transform = DefaultDateTimeTransform;
+                transform = ExecutionContext.GetService<SettingsBase>()?.DateTimeTransform ?? DefaultDateTimeTransform;
 
             switch (transform)
             {

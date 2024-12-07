@@ -123,7 +123,7 @@ namespace CoreEx.Http
             var qs = HttpUtility.ParseQueryString(ub.Query);
 
             // Extend the query string from the IHttpArgs.
-            foreach (var arg in (args ??= Array.Empty<IHttpArg>()).Where(x => x != null))
+            foreach (var arg in (args ??= []).Where(x => x != null))
             {
                 arg.AddToQueryString(qs, JsonSerializer);
             }
@@ -235,7 +235,6 @@ namespace CoreEx.Http
             return braceIndex;
         }
 
-
         /// <summary>
         /// Deserialize the JSON <see cref="HttpResponseMessage.Content"/> into <see cref="Type"/> of <typeparamref name="TResp"/>.
         /// </summary>
@@ -279,7 +278,7 @@ namespace CoreEx.Http
                     return (true, $"Http Request Exception occurred: {exception.Message}");
 
                 if (exception is TaskCanceledException)
-                    return (true, "Task was cancelled.");
+                    return (true, "Task was canceled.");
             }
 
             if (response == null)

@@ -32,7 +32,7 @@ namespace CoreEx.RefData
         /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class with a list of items.
         /// </summary>
         /// <param name="items">The list of <see cref="IReferenceData"/> items.</param>
-        public ReferenceDataCodeList(IEnumerable<TRef> items) => _codes = new((items ?? Array.Empty<TRef>()).Select(x => x.Code));
+        public ReferenceDataCodeList(IEnumerable<TRef> items) => _codes = new((items ?? []).Select(x => x.Code));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceDataCodeList{TRef}"/> class with a <see cref="IReferenceData.Code"/> array.
@@ -53,7 +53,7 @@ namespace CoreEx.RefData
         /// Creates a new <typeparamref name="TRef"/> list from the underlying contents.
         /// </summary>
         /// <returns>A new <typeparamref name="TRef"/> list</returns>
-        public List<TRef> ToRefDataList() => this.ToList();
+        public List<TRef> ToRefDataList() => [.. this];
 
         /// <summary>
         /// Creates a new <see cref="IIdentifier{TId}.Id"/> list from the underlying contents.

@@ -136,7 +136,7 @@ public class DemoSettings : SettingsBase
     /// <summary>
     /// Gets the Dataverse connection string.
     /// </summary>
-    public string DataverseConnectionString => GetRequiredValue<string>("ConnectionStrings__Dataverse");
+    public string DataverseConnectionString => GetRequiredValue<string>("ConnectionStrings:Dataverse");
 
     /// <summary>
     /// Gets the <see cref="DataverseSettings"/> from the <see cref="DataverseConnectionString"/>.
