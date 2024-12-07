@@ -110,7 +110,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <remarks>Will default to <see cref="SettingsBase"/> configuration, a) <see cref="TimerHostedServiceBase.ServiceName"/> : <see cref="IntervalName"/>, then b) <see cref="IntervalName"/>, where specified; otherwise, <see cref="DefaultInterval"/>.</remarks>
         public override TimeSpan Interval
         {
-            get => _interval ?? Settings.GetValue<TimeSpan?>($"{ServiceName}:{IntervalName}".Replace(".", "_")) ?? Settings.GetValue<TimeSpan?>(IntervalName.Replace(".", "_")) ?? DefaultInterval;
+            get => _interval ?? Settings.GetCoreExValue<TimeSpan?>($"{ServiceName}:{IntervalName}".Replace(".", "_")) ?? Settings.GetCoreExValue<TimeSpan?>(IntervalName.Replace(".", "_")) ?? DefaultInterval;
             set => _interval = value;
         }
 
@@ -120,7 +120,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <remarks>Will default to <see cref="SettingsBase"/> configuration, a) <see cref="TimerHostedServiceBase.ServiceName"/> : <see cref="MaxDequeueSizeName"/>, then b) <see cref="MaxDequeueSizeName"/>, where specified; otherwise, 10.</remarks>
         public int MaxDequeueSize
         {
-            get => _maxDequeueSize ?? Settings.GetValue<int?>($"{ServiceName}:{MaxDequeueSizeName}".Replace(".", "_")) ?? Settings.GetValue<int?>(MaxDequeueSizeName.Replace(".", "_")) ?? 10;
+            get => _maxDequeueSize ?? Settings.GetCoreExValue<int?>($"{ServiceName}:{MaxDequeueSizeName}".Replace(".", "_")) ?? Settings.GetCoreExValue<int?>(MaxDequeueSizeName.Replace(".", "_")) ?? 10;
             set => _maxDequeueSize = value;
         }
 

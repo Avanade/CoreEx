@@ -377,8 +377,8 @@ namespace CoreEx.Json.Compare
         /// </summary>
         private sealed class CompareState
         {
-            private readonly Stack<string> _unqualifiedPaths = new(new[] { "$" });
-            private readonly Stack<string> _paths = new(new[] { "$" });
+            private readonly Stack<string> _unqualifiedPaths = new(["$"]);
+            private readonly Stack<string> _paths = new(["$"]);
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CompareState"/> class.
@@ -391,7 +391,7 @@ namespace CoreEx.Json.Compare
                 Result = result;
                 PathComparer = pathComparer ?? StringComparer.InvariantCultureIgnoreCase;
                 var maxDepth = 0;
-                PathsToIgnore = new(Text.Json.JsonFilterer.CreateDictionary(pathsToIgnore, JsonPropertyFilter.Exclude, StringComparison.Ordinal, ref maxDepth, true).Keys);
+                PathsToIgnore = new(JsonFilterer.CreateDictionary(pathsToIgnore, JsonPropertyFilter.Exclude, StringComparison.Ordinal, ref maxDepth, true).Keys);
             }
 
             /// <summary>

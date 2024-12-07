@@ -56,6 +56,10 @@ namespace CoreEx.Http
                 str = rd?.Code;
             else if (Value is DateTime dt)
                 str = dt.ToString("o", CultureInfo.InvariantCulture);
+            else if (Value is DateTimeOffset dto)
+                str = dto.ToString("o", CultureInfo.InvariantCulture);
+            else if (Value is bool b)
+                str = b.ToString().ToLowerInvariant();
             else if (Value is IFormattable fmt)
                 str = fmt.ToString(null, CultureInfo.InvariantCulture);
             else

@@ -12,7 +12,7 @@
   <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.4.9" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.5.0" />
   </ItemGroup>
 
   <ItemGroup>

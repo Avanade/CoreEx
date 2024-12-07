@@ -21,7 +21,7 @@ namespace CoreEx.Hosting
         /// </summary>
         public const string ConfigKey = "FileLockSynchronizerPath";
 
-        private readonly string _path = settings.ThrowIfNull(nameof(settings)).GetValue<string>(ConfigKey) ?? throw new ArgumentException($"Configuration setting '{ConfigKey}' either does not exist or has no value.", nameof(settings));
+        private readonly string _path = settings.ThrowIfNull(nameof(settings)).GetCoreExValue<string>(ConfigKey) ?? throw new ArgumentException($"Configuration setting '{ConfigKey}' either does not exist or has no value.", nameof(settings));
         private readonly ConcurrentDictionary<string, FileStream> _dict = new();
         private bool _disposed;
 

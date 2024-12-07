@@ -53,14 +53,14 @@ namespace CoreEx.Events
         /// </summary>
         /// <returns>An array of names.</returns>
         /// <remarks>Where <see cref="EventPublisher.Publish(EventData[])"/> (with no name) is used the underlying destination name will be <c>null</c>.</remarks>
-        public string?[] GetNames() => _dict.Keys.ToArray();
+        public string?[] GetNames() => [.. _dict.Keys];
 
         /// <summary>
         /// Gets the events sent (in order) to the named destination.
         /// </summary>
         /// <param name="name">The destination name.</param>
         /// <returns>The corresponding events.</returns>
-        public EventData[] GetEvents(string? name = null) => _dict.TryGetValue(name ?? NullName, out var queue) ? [.. queue] : Array.Empty<EventData>();
+        public EventData[] GetEvents(string? name = null) => _dict.TryGetValue(name ?? NullName, out var queue) ? [.. queue] : [];
 
         /// <summary>
         /// Resets (clears) the in-memory state.

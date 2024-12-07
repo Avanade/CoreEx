@@ -1,6 +1,10 @@
-﻿using CoreEx.Entities;
+﻿using CoreEx.Configuration;
+using CoreEx.Entities;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 
 namespace CoreEx.Test.Framework.Entities
 {
@@ -39,6 +43,65 @@ namespace CoreEx.Test.Framework.Entities
             dt = null;
             dtc = Cleaner.Clean(dt);
             Assert.That(dtc, Is.Null);
+        }
+
+        [Test]
+        public void DateTimeTransformFromSettings()
+        {
+            Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeUtc;
+
+            ConfigurationBuilder builder = new();
+            Dictionary<string, string> testSettings = new()
+            {
+                {"CoreEx:Cleaner:DateTimeTransform", "DateTimeLocal"}
+            };
+            builder.AddInMemoryCollection(testSettings);
+
+            IServiceProvider serviceProvider = new ServiceCollection()
+                .AddSingleton<IConfiguration>(builder.Build())
+                .AddDefaultSettings()
+                .BuildServiceProvider();
+
+            using var scope = serviceProvider.CreateScope();
+            using var ec = ExecutionContext.CreateNew();
+            ec.ServiceProvider = scope.ServiceProvider;
+
+            DateTime? dt = DateTime.UtcNow;
+            DateTime? dtc = Cleaner.Clean(dt);
+            Assert.Multiple(() =>
+            {
+                Assert.That(dtc!.Value.Kind, Is.EqualTo(DateTimeKind.Local));
+                Assert.That(Cleaner.DefaultDateTimeTransform, Is.EqualTo(DateTimeTransform.DateTimeUtc));
+            });
+        }
+
+        [Test]
+        public void DateTimeTransformFromSettings_Load()
+        {
+            Cleaner.DefaultDateTimeTransform = DateTimeTransform.DateTimeUtc;
+
+            ConfigurationBuilder builder = new();
+            Dictionary<string, string> testSettings = new()
+            {
+                {"Cleaner:DateTimeTransform", "DateTimeLocal"}
+            };
+            builder.AddInMemoryCollection(testSettings);
+
+            IServiceProvider serviceProvider = new ServiceCollection()
+                .AddSingleton<IConfiguration>(builder.Build())
+                .AddDefaultSettings()
+                .BuildServiceProvider();
+
+            using var scope = serviceProvider.CreateScope();
+            using var ec = ExecutionContext.CreateNew();
+            ec.ServiceProvider = scope.ServiceProvider;
+
+            DateTime? dtc = DateTime.UtcNow;
+            for (int i = 0; i < 10000; i++)
+            {
+                dtc = Cleaner.Clean(DateTime.UtcNow);
+                Assert.That(dtc!.Value.Kind, Is.EqualTo(DateTimeKind.Local), "Iteration" + i);
+            }
         }
 
         [Test]

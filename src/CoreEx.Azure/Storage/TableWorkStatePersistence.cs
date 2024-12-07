@@ -3,7 +3,6 @@
 using Azure;
 using Azure.Data.Tables;
 using CoreEx.Hosting.Work;
-using CoreEx.Json;
 using System;
 using System.IO;
 using System.Linq;
@@ -18,11 +17,8 @@ namespace CoreEx.Azure.Storage
     /// <remarks>The maximum <see cref="BinaryData"/> size currently supported is 960,000 bytes.</remarks>
     public class TableWorkStatePersistence : IWorkStatePersistence
     {
-        private static readonly string[] _columns = [nameof(WorkState.TypeName), nameof(WorkState.CorrelationId), nameof(WorkState.Status), nameof(WorkState.Created), nameof(WorkState.Expiry), nameof(WorkState.Started), nameof(WorkState.Indeterminate), nameof(WorkState.Finished), nameof(WorkState.Reason)];
-
         private readonly TableClient _workStateTableClient;
         private readonly TableClient _workDataTableClient;
-        private readonly IJsonSerializer _jsonSerializer;
         private readonly SemaphoreSlim _semaphore = new(1, 1);
         private volatile bool _firstTime = true;
 
@@ -32,17 +28,15 @@ namespace CoreEx.Azure.Storage
         /// <param name="tableServiceClient">The <see cref="TableServiceClient"/>.</param>
         /// <param name="workStateTableName">The work state table name.</param>
         /// <param name="workDataTableName">The work data table name.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="JsonSerializer.Default"/>.</param>
-        public TableWorkStatePersistence(TableServiceClient tableServiceClient, string workStateTableName = "workstate", string workDataTableName = "workdata", IJsonSerializer? jsonSerializer = null)
-            : this(tableServiceClient.ThrowIfNull(nameof(tableServiceClient)).GetTableClient(workStateTableName), tableServiceClient.GetTableClient(workDataTableName), jsonSerializer) { }
+        public TableWorkStatePersistence(TableServiceClient tableServiceClient, string workStateTableName = "workstate", string workDataTableName = "workdata")
+            : this(tableServiceClient.ThrowIfNull(nameof(tableServiceClient)).GetTableClient(workStateTableName), tableServiceClient.GetTableClient(workDataTableName)) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TableWorkStatePersistence"/> class.
         /// </summary>
         /// <param name="workStateTableClient">The work state <see cref="TableClient"/>.</param>
         /// <param name="workDataTableClient">The work data <see cref="TableClient"/>.</param>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="JsonSerializer.Default"/>.</param>
-        public TableWorkStatePersistence(TableClient workStateTableClient, TableClient workDataTableClient, IJsonSerializer? jsonSerializer = null)
+        public TableWorkStatePersistence(TableClient workStateTableClient, TableClient workDataTableClient)
         {
             if (workStateTableClient.ThrowIfNull(nameof(workStateTableClient)).Name == workDataTableClient.ThrowIfNull(nameof(workDataTableClient)).Name)
                 throw new ArgumentException("The work state and data table names must be different.", nameof(workDataTableClient));
@@ -52,8 +46,6 @@ namespace CoreEx.Azure.Storage
 
             _workDataTableClient.CreateIfNotExists();
             _workStateTableClient.CreateIfNotExists();
-
-            _jsonSerializer = jsonSerializer ?? JsonSerializer.Default;
         }
 
         private class WorkStateEntity() : WorkState, ITableEntity

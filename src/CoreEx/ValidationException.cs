@@ -58,7 +58,7 @@ namespace CoreEx
         /// </summary>
         /// <param name="item">The <see cref="MessageItem"/>.</param>
         /// <param name="message">The error message.</param>
-        public ValidationException(MessageItem item, string? message = null) : this(new MessageItem[] { item }, message) { }
+        public ValidationException(MessageItem item, string? message = null) : this([item], message) { }
 
         /// <summary>
         /// Gets the underlying messages.

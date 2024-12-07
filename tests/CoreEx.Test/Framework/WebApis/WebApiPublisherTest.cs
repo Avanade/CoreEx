@@ -544,7 +544,7 @@ namespace CoreEx.Test.Framework.WebApis
             Assert.That(ws, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Cancelled));
+                Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Canceled));
                 Assert.That(ws.Reason, Is.EqualTo("No reason was specified."));
             });
         }

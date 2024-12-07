@@ -83,7 +83,7 @@ namespace CoreEx.Events
                 list.Add(esd);
             }
 
-            await EventSender.SendAsync(list.ToArray(), cancellationToken).ConfigureAwait(false);
+            await EventSender.SendAsync([.. list], cancellationToken).ConfigureAwait(false);
         }, cancellationToken);
 
         /// <summary>

@@ -70,7 +70,7 @@ namespace CoreEx.Abstractions.Reflection
             => (args ??= TypeReflectorArgs.Default).Cache.GetOrCreate(type.ThrowIfNull(nameof(args)), ce =>
             {
                 var ec = typeof(TypeReflector<>).MakeGenericType(type).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, [typeof(TypeReflectorArgs)], null)!;
-                var tr = (ITypeReflector)ec.Invoke(new object[] { args });
+                var tr = (ITypeReflector)ec.Invoke([args]);
                 args.TypeBuilder?.Invoke(tr);
                 return ConfigureCacheEntry(ce, tr);
             })!;

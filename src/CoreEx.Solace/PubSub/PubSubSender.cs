@@ -39,7 +39,7 @@ namespace CoreEx.Solace.PubSub
             Logger = logger.ThrowIfNull(nameof(logger));
             Invoker = invoker ?? (_invoker ??= new PubSubSenderInvoker());
             Converter = converter ?? new EventSendDataToPubSubConverter();
-            DefaultQueueOrTopicName = Settings.GetValue($"{GetType().Name}:QueueOrTopicName", defaultValue: _unspecifiedQueueOrTopicName);
+            DefaultQueueOrTopicName = Settings.GetCoreExValue($"{GetType().Name}:QueueOrTopicName", defaultValue: _unspecifiedQueueOrTopicName);
         }
 
         /// <summary>

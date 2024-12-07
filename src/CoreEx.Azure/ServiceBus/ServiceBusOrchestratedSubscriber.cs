@@ -39,10 +39,10 @@ namespace CoreEx.Azure.ServiceBus
         {
             Orchestrator = orchestrator.ThrowIfNull(nameof(orchestrator));
             ServiceBusSubscriberInvoker = serviceBusSubscriberInvoker ?? (ServiceBusSubscriber._invoker ??= new ServiceBusSubscriberInvoker());
-            AbandonOnTransient = settings.GetValue($"{GetType().Name}__{nameof(AbandonOnTransient)}", false);
-            MaxDeliveryCount = settings.GetValue<int?>($"{GetType().Name}__{nameof(MaxDeliveryCount)}");
-            RetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(RetryDelay)}");
-            MaxRetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(MaxRetryDelay)}");
+            AbandonOnTransient = settings.GetCoreExValue($"{GetType().Name}:{nameof(AbandonOnTransient)}", false);
+            MaxDeliveryCount = settings.GetCoreExValue<int?>($"{GetType().Name}:{nameof(MaxDeliveryCount)}");
+            RetryDelay = settings.GetCoreExValue<TimeSpan?>($"{GetType().Name}:{nameof(RetryDelay)}");
+            MaxRetryDelay = settings.GetCoreExValue<TimeSpan?>($"{GetType().Name}:{nameof(MaxRetryDelay)}");
         }
 
         /// <summary>

@@ -86,6 +86,7 @@ namespace My.Hr.UnitTest
             using var test = FunctionTester.Create<Startup>();
 
             var e = test.HttpTrigger<EmployeeFunction>()
+                .WithRouteCheck(UnitTestEx.Azure.Functions.RouteCheckOption.PathAndQueryStartsWith)
                 .Run(f => f.GetAsync(test.CreateHttpRequest(HttpMethod.Get, $"api/employees/{1.ToGuid()}", new CoreEx.Http.HttpRequestOptions().Include("FirstName", "LastName")), 1.ToGuid()))
                 .AssertOK()
                 .AssertJson("{\"firstName\":\"Wendy\",\"lastName\":\"Jones\"}");
@@ -114,6 +115,7 @@ namespace My.Hr.UnitTest
             using var test = FunctionTester.Create<Startup>();
 
             var v = test.HttpTrigger<EmployeeFunction>()
+                .WithRouteCheck(UnitTestEx.Azure.Functions.RouteCheckOption.PathAndQueryStartsWith)
                 .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", CoreEx.Http.HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(1, 2, true)))))
                 .AssertOK()
                 .GetValue<EmployeeCollectionResult>();
@@ -134,6 +136,7 @@ namespace My.Hr.UnitTest
             using var test = FunctionTester.Create<Startup>();
 
             var v = test.HttpTrigger<EmployeeFunction>()
+                .WithRouteCheck(UnitTestEx.Azure.Functions.RouteCheckOption.PathAndQueryStartsWith)
                 .Run(f => f.GetAllAsync(test.CreateHttpRequest(HttpMethod.Get, "api/employees", CoreEx.Http.HttpRequestOptions.Create(PagingArgs.CreateSkipAndTake(1, 2, false)).Include("lastname"))))
                 .AssertOK()
                 .AssertJson("[ { \"lastName\": \"Jones\" }, { \"lastName\": \"Smith\" } ]")

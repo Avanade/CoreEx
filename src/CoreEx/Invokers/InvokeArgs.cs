@@ -42,7 +42,7 @@ namespace CoreEx.Invokers
             if (settings.Configuration is null)
                 return true;
 
-            return settings.GetValue<bool?>($"Invokers:{invokerType.FullName}:TracingEnabled") ?? settings.GetValue<bool?>("Invokers:Default:TracingEnabled") ?? true;
+            return settings.GetCoreExValue<bool?>($"Invokers:{invokerType.FullName}:TracingEnabled") ?? settings.GetCoreExValue<bool?>("Invokers:Default:TracingEnabled") ?? true;
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace CoreEx.Invokers
             if (settings.Configuration is null)
                 return true;
 
-            return settings.GetValue<bool?>($"Invokers:{invokerType.FullName}:LoggingEnabled") ?? settings.GetValue<bool?>("Invokers:Default:LoggingEnabled") ?? true;
+            return settings.GetCoreExValue<bool?>($"Invokers:{invokerType.FullName}:LoggingEnabled") ?? settings.GetCoreExValue<bool?>("Invokers:Default:LoggingEnabled") ?? true;
         }
 
         /// <summary>

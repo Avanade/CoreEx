@@ -12,26 +12,17 @@ namespace CoreEx.Events
     /// Provides the base <see cref="EventData"/> <see cref="IEventSerializer"/> capabilities.
     /// </summary>
     /// <remarks>The <see cref="SerializeValueOnly"/> indicates whether the <see cref="EventData.Value"/> is serialized only (default); or alternatively, the complete <see cref="EventData"/>.</remarks>
-    public abstract class EventDataSerializerBase : IEventSerializer
+    /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
+    /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
+    public abstract class EventDataSerializerBase(IJsonSerializer jsonSerializer, EventDataFormatter? eventDataFormatter) : IEventSerializer
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EventDataSerializerBase"/> class.
-        /// </summary>
-        /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
-        /// <param name="eventDataFormatter">The <see cref="Events.EventDataFormatter"/>.</param>
-        protected EventDataSerializerBase(IJsonSerializer jsonSerializer, EventDataFormatter? eventDataFormatter)
-        {
-            JsonSerializer = jsonSerializer.ThrowIfNull(nameof(jsonSerializer));
-            EventDataFormatter = eventDataFormatter ?? new EventDataFormatter();
-        }
-
         /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.
         /// </summary>
-        public IJsonSerializer JsonSerializer { get; }
+        public IJsonSerializer JsonSerializer { get; } = jsonSerializer.ThrowIfNull(nameof(jsonSerializer));
 
         /// <inheritdoc/>
-        public EventDataFormatter EventDataFormatter { get; }
+        public EventDataFormatter EventDataFormatter { get; } = eventDataFormatter ?? new EventDataFormatter();
 
         /// <inheritdoc/>
         public IAttachmentStorage? AttachmentStorage { get; set; }

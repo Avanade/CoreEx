@@ -22,7 +22,7 @@ namespace CoreEx.Hosting.Work
         /// <summary>
         /// Gets all the <see cref="WorkState"/> entries.
         /// </summary>
-        public WorkState[] GetWorkStates() => _workStates.Values.ToArray();
+        public WorkState[] GetWorkStates() => [.. _workStates.Values];
 
         /// <inheritdoc/>
         public Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken)

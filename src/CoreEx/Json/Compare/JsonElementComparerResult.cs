@@ -77,7 +77,7 @@ namespace CoreEx.Json.Compare
         /// Gets the <see cref="JsonElementDifference"/> array.
         /// </summary>
         /// <remarks>The differences found up to the <see cref="MaxDifferences"/> specified.</remarks>
-        public JsonElementDifference[] GetDifferences() => _differences is null ? [] : _differences.ToArray();
+        public JsonElementDifference[] GetDifferences() => _differences is null ? [] : [.. _differences];
 
         /// <summary>
         /// Adds a <see cref="JsonElementDifference"/>.

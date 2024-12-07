@@ -122,19 +122,18 @@ namespace CoreEx.Database.Mapping
         /// <summary>
         /// Validates and adds a new IPropertyColumnMapper.
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "They are the arguments from the calling method.")]
-        private void AddMapping(IPropertyColumnMapper pcm)
+        private void AddMapping<TSourceProperty>(PropertyColumnMapper<TSource, TSourceProperty> propertyColumnMapper)
         {
-            if (_mappings.Any(x => x.PropertyName == pcm.PropertyName))
-                throw new ArgumentException($"Source property '{pcm.PropertyName}' must not be specified more than once.", "propertyExpression");
+            if (_mappings.Any(x => x.PropertyName == propertyColumnMapper.PropertyName))
+                throw new ArgumentException($"Source property '{propertyColumnMapper.PropertyName}' must not be specified more than once.", nameof(propertyColumnMapper));
 
-            if (_mappings.Any(x => x.ColumnName == pcm.ColumnName))
-                throw new ArgumentException($"Column '{pcm.ColumnName}' must not be specified more than once.", "columnName");
+            if (_mappings.Any(x => x.ColumnName == propertyColumnMapper.ColumnName))
+                throw new ArgumentException($"Column '{propertyColumnMapper.ColumnName}' must not be specified more than once.", nameof(propertyColumnMapper));
 
-            if (_mappings.Any(x => x.ParameterName == pcm.ParameterName))
-                throw new ArgumentException($"Parameter '{pcm.ParameterName}' must not be specified more than once.", "parameterName");
+            if (_mappings.Any(x => x.ParameterName == propertyColumnMapper.ParameterName))
+                throw new ArgumentException($"Parameter '{propertyColumnMapper.ParameterName}' must not be specified more than once.", nameof(propertyColumnMapper));
 
-            _mappings.Add(pcm);
+            _mappings.Add(propertyColumnMapper);
         }
 
         /// <summary>

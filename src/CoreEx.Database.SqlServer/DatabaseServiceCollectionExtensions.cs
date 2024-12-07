@@ -28,7 +28,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <remarks>To turn off the execution of the <see cref="EventOutboxHostedService"/>(s) at runtime set the '<c>EventOutboxHostedService:Enabled</c>' configuration setting to <c>false</c>.</remarks>
         public static IServiceCollection AddSqlServerEventOutboxHostedService(this IServiceCollection services, Func<IServiceProvider, EventOutboxDequeueBase> eventOutboxDequeueFactory, string? partitionKey = null, string? destination = null, bool healthCheck = true)
         {
-            var exe = services.BuildServiceProvider().GetRequiredService<SettingsBase>().GetValue<bool?>("EventOutboxHostedService__Enabled");
+            var exe = services.BuildServiceProvider().GetRequiredService<SettingsBase>().GetCoreExValue<bool?>("EventOutboxHostedService:Enabled");
             if (!exe.HasValue || exe.Value)
             {
                 // Add the health check.

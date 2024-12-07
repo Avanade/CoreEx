@@ -261,7 +261,7 @@ namespace CoreEx.Hosting.Work
             if (WorkStatus.Finished.HasFlag(ws.Status))
                 return Result.Fail($"A cancellation can not be performed when the current status is {ws.Status}.");
 
-            ws.Status = WorkStatus.Cancelled;
+            ws.Status = WorkStatus.Canceled;
             ws.Finished = DateTimeOffset.UtcNow;
             ws.Reason = reason.ThrowIfNullOrEmpty(nameof(reason));
 

@@ -32,7 +32,7 @@ namespace CoreEx.Hosting.Work
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>. Defaults to <see cref="JsonSerializer.Default"/>.</param>
         public FileWorkStatePersistence(SettingsBase settings, IJsonSerializer? jsonSerializer = null)
         {
-            _path = settings.ThrowIfNull(nameof(settings)).GetValue<string>(ConfigKey);
+            _path = settings.ThrowIfNull(nameof(settings)).GetCoreExValue<string>(ConfigKey);
 
             if (string.IsNullOrEmpty(_path))
                 throw new ArgumentException($"Configuration setting '{ConfigKey}' either does not exist or has no value.", nameof(settings));

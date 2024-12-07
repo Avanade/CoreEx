@@ -27,7 +27,7 @@ namespace CoreEx.Test2.Framework.Validation
             return await Result.Go().ValidatesAsync(email2, v =>
             {
                 var v2 = v;
-                var v3 = v.Email();
+                var v3 = v2.Email();
             });
         }
     }

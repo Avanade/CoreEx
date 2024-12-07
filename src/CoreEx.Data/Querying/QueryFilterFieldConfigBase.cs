@@ -219,7 +219,11 @@ namespace CoreEx.Data.Querying
         protected StringBuilder AppendOperatorsToString(StringBuilder stringBuilder)
         {
             var first = true;
+#if NET6_0_OR_GREATER
+            foreach (var e in Enum.GetValues<QueryFilterOperator>())
+#else
             foreach (var e in Enum.GetValues(typeof(QueryFilterOperator)))
+#endif
             {
                 if (Operators.HasFlag((QueryFilterOperator)e))
                 {
