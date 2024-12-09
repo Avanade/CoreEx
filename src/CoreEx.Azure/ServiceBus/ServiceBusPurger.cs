@@ -45,8 +45,8 @@ namespace CoreEx.Azure.ServiceBus
             queueOrTopicName.ThrowIfNullOrEmpty(nameof(queueOrTopicName));
 
             // Get queue name and subscription name by checking settings override.
-            var qn = Settings.GetValue($"Publisher_ServiceBusQueueName_{queueOrTopicName}", defaultValue: queueOrTopicName);
-            var sn = string.IsNullOrEmpty(subscriptionName) ? null : Settings.GetValue($"Publisher_ServiceBusSubscriptionName_{subscriptionName}", defaultValue: subscriptionName);
+            var qn = Settings.GetCoreExValue($"Publisher_ServiceBusQueueName_{queueOrTopicName}", defaultValue: queueOrTopicName);
+            var sn = string.IsNullOrEmpty(subscriptionName) ? null : Settings.GetCoreExValue($"Publisher_ServiceBusSubscriptionName_{subscriptionName}", defaultValue: subscriptionName);
 
             // Receive from Dead letter
             var o = new ServiceBusReceiverOptions { SubQueue = subQueue, PrefetchCount = 500, ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete };

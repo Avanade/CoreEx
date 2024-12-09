@@ -96,7 +96,7 @@ namespace CoreEx.Azure.ServiceBus
                 {
                     var n = qitem.Key == _unspecifiedQueueOrTopicName ? null : qitem.Key;
                     var key = $"{GetType().Name}_QueueOrTopicName{(n is null ? "" : $"_{n}")}";
-                    var qn = Settings.GetValue($"{GetType().Name}:QueueOrTopicName{(n is null ? "" : $"_{n}")}", defaultValue: n) ?? throw new EventSendException(PrependStats($"'{key}' configuration setting must have a non-null value.", totalCount, unsentEvents.Count), unsentEvents);
+                    var qn = Settings.GetCoreExValue($"{GetType().Name}:QueueOrTopicName{(n is null ? "" : $"_{n}")}", defaultValue: n) ?? throw new EventSendException(PrependStats($"'{key}' configuration setting must have a non-null value.", totalCount, unsentEvents.Count), unsentEvents);
                     var queue = qitem.Value;
                     var sentIds = new List<string>();
 

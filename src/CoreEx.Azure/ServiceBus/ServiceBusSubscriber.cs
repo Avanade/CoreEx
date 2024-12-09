@@ -51,10 +51,10 @@ namespace CoreEx.Azure.ServiceBus
             : base(eventDataConverter ?? new ServiceBusReceivedMessageEventDataConverter(eventSerializer ?? new CoreEx.Text.Json.EventDataSerializer()), executionContext, settings, logger, eventSubscriberInvoker)
         {
             ServiceBusSubscriberInvoker = serviceBusSubscriberInvoker ?? (_invoker ??= new ServiceBusSubscriberInvoker());
-            AbandonOnTransient = settings.GetValue($"{GetType().Name}__{nameof(AbandonOnTransient)}", false);
-            MaxDeliveryCount = settings.GetValue<int?>($"{GetType().Name}__{nameof(MaxDeliveryCount)}");
-            RetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(RetryDelay)}");
-            MaxRetryDelay = settings.GetValue<TimeSpan?>($"{GetType().Name}__{nameof(MaxRetryDelay)}");
+            AbandonOnTransient = settings.GetCoreExValue($"{GetType().Name}:{nameof(AbandonOnTransient)}", false);
+            MaxDeliveryCount = settings.GetCoreExValue<int?>($"{GetType().Name}:{nameof(MaxDeliveryCount)}");
+            RetryDelay = settings.GetCoreExValue<TimeSpan?>($"{GetType().Name}:{nameof(RetryDelay)}");
+            MaxRetryDelay = settings.GetCoreExValue<TimeSpan?>($"{GetType().Name}:{nameof(MaxRetryDelay)}");
         }
 
         /// <summary>

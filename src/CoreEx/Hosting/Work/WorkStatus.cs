@@ -41,7 +41,7 @@ namespace CoreEx.Hosting.Work
         /// <summary>
         /// Indicates that the underlying work has been cancelled.
         /// </summary>
-        Cancelled = 128,
+        Canceled = 128,
 
         /// <summary>
         /// Indicates that the underlying work is in progress; either started or indeterminate.
@@ -56,11 +56,11 @@ namespace CoreEx.Hosting.Work
         /// <summary>
         /// Indicates the the underlying work has been terminated; either expired, failed or cancelled.
         /// </summary>
-        Terminated = Expired | Failed | Cancelled,
+        Terminated = Expired | Failed | Canceled,
 
         /// <summary>
         /// Indicates that the underlying work has been completed, expired, failed or cancelled.
         /// </summary>
-        Finished = Completed | Expired | Failed | Cancelled
+        Finished = Completed | Expired | Failed | Canceled
     }
 }   

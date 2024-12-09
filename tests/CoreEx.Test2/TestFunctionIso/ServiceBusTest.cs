@@ -42,7 +42,7 @@ namespace CoreEx.Test2.TestFunctionIso
             await wo.CancelAsync(message.MessageId, "No longer needed.");
 
             test.ServiceBusTrigger<ServiceBusFunction>()
-                .ExpectLogContains("warn: Unable to process message as corresponding work state status is Cancelled: No longer needed.")
+                .ExpectLogContains("warn: Unable to process message as corresponding work state status is Canceled: No longer needed.")
                 .Run(f => f.Run(message, actions))
                 .AssertSuccess();
 
@@ -50,7 +50,7 @@ namespace CoreEx.Test2.TestFunctionIso
 
             var ws = await wo.GetAsync(message.MessageId);
             Assert.That(ws, Is.Not.Null);
-            Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Cancelled));
+            Assert.That(ws!.Status, Is.EqualTo(WorkStatus.Canceled));
         }
 
         [Test]

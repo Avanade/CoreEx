@@ -15,7 +15,12 @@ namespace CoreEx.Events
     /// <summary>
     /// Provides the base event subscriber capabilities.
     /// </summary>
-    public abstract class EventSubscriberBase : IErrorHandling
+    /// <param name="eventDataConverter">The <see cref="IEventDataConverter"/>.</param>
+    /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
+    /// <param name="settings">The <see cref="SettingsBase"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    /// <param name="eventSubscriberInvoker">The <see cref="EventSubscriberInvoker"/>.</param>
+    public abstract class EventSubscriberBase(IEventDataConverter eventDataConverter, ExecutionContext executionContext, SettingsBase settings, ILogger<EventSubscriberBase> logger, EventSubscriberInvoker? eventSubscriberInvoker = null) : IErrorHandling
     {
         private static EventSubscriberInvoker? _invoker;
         private ErrorHandler? _errorHandler;
@@ -36,46 +41,29 @@ namespace CoreEx.Events
         public static readonly LText NullEventErrorText = new($"{typeof(BusinessException).FullName}.{nameof(NullEventErrorText)}", $"{MessageErrorText} Event deserialized as null.");
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EventSubscriberBase"/> class.
-        /// </summary>
-        /// <param name="eventDataConverter">The <see cref="IEventDataConverter"/>.</param>
-        /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
-        /// <param name="settings">The <see cref="SettingsBase"/>.</param>
-        /// <param name="logger">The <see cref="ILogger"/>.</param>
-        /// <param name="eventSubscriberInvoker">The <see cref="EventSubscriberInvoker"/>.</param>
-        protected EventSubscriberBase(IEventDataConverter eventDataConverter, ExecutionContext executionContext, SettingsBase settings, ILogger<EventSubscriberBase> logger, EventSubscriberInvoker? eventSubscriberInvoker = null)
-        {
-            EventDataConverter = eventDataConverter.ThrowIfNull(nameof(eventDataConverter));
-            ExecutionContext = executionContext.ThrowIfNull(nameof(executionContext));
-            Settings = settings.ThrowIfNull(nameof(settings));
-            Logger = logger.ThrowIfNull(nameof(logger));
-            EventSubscriberInvoker = eventSubscriberInvoker ?? (_invoker ??= new EventSubscriberInvoker());
-        }
-
-        /// <summary>
         /// Gets the <see cref="IEventDataConverter"/>.
         /// </summary>
-        public IEventDataConverter EventDataConverter { get; }
+        public IEventDataConverter EventDataConverter { get; } = eventDataConverter.ThrowIfNull(nameof(eventDataConverter));
 
         /// <summary>
         /// Gets the <see cref="CoreEx.ExecutionContext"/>.
         /// </summary>
-        public ExecutionContext ExecutionContext { get; }
+        public ExecutionContext ExecutionContext { get; } = executionContext.ThrowIfNull(nameof(executionContext));
 
         /// <summary>
         /// Gets the <see cref="SettingsBase"/>.
         /// </summary>
-        public SettingsBase Settings { get; }
+        public SettingsBase Settings { get; } = settings.ThrowIfNull(nameof(settings));
 
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
-        public ILogger Logger { get; }
+        public ILogger Logger { get; } = logger.ThrowIfNull(nameof(logger));
 
         /// <summary>
         /// Gets the <see cref="Subscribing.EventSubscriberInvoker"/>.
         /// </summary>
-        public EventSubscriberInvoker EventSubscriberInvoker { get; }
+        public EventSubscriberInvoker EventSubscriberInvoker { get; } = eventSubscriberInvoker ?? (_invoker ??= new EventSubscriberInvoker());
 
         /// <summary>
         /// Gets or sets the <see cref="ErrorHandling"/> where an <see cref="Exception"/> occurs during <see cref="EventData"/>/<see cref="EventData{T}"/> <see cref="IEventSerializer.DeserializeAsync(BinaryData, CancellationToken)"/>/<see cref="IEventSerializer.DeserializeAsync{T}(BinaryData, CancellationToken)"/>.

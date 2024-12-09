@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Entities;
 using CoreEx.Hosting.Work;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +17,10 @@ namespace CoreEx.Configuration
     {
         private readonly List<string> _prefixes = [];
         private bool? _validationUseJsonNames;
+        private DateTimeTransform? _dateTimeTransform;
+        private StringTransform? _stringTransform;
+        private StringTrim? _stringTrim;
+        private StringCase? _stringCase;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SettingsBase"/> class.
@@ -76,7 +81,7 @@ namespace CoreEx.Configuration
         private bool TryGetValue<T>(string key, out T value)
         {
             // Try the key as specified.
-            if (Configuration!.GetSection(key)?.Value != null)
+            if (Configuration is not null && Configuration.GetSection(key)?.Value != null)
             {
                 value = Configuration.GetValue<T>(key)!;
                 return true;
@@ -117,16 +122,26 @@ namespace CoreEx.Configuration
         }
 
         /// <summary>
+        /// Gets the value using the specified <paramref name="key"/> excluding any prefix (key is inferred where not specified using <see cref="CallerMemberNameAttribute"/>).
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="key">The key excluding any prefix (key is inferred where not specified using <see cref="CallerMemberNameAttribute"/>).</param>
+        /// <param name="defaultValue">The default fallback value used where no non-default value is found.</param>
+        /// <returns>The corresponding setting value.</returns>
+        /// <remarks>This is considered a standard setting and will be checked within the <c>CoreEx:</c> nested strructure first to enable clear separation.</remarks>
+        internal T GetCoreExValue<T>([CallerMemberName] string key = "", T defaultValue = default!) => TryGetValue<T>($"CoreEx:{key.ThrowIfNullOrEmpty(nameof(key))}", out var value) ? value : GetValue(key, defaultValue);
+
+        /// <summary>
         /// Indicates whether to the include the underlying <see cref="Exception"/> content in the externally returned result.
         /// </summary>
         /// <remarks>Defaults to <c>false</c>.</remarks>
-        public bool IncludeExceptionInResult => GetValue(nameof(IncludeExceptionInResult), false);
+        public bool IncludeExceptionInResult => GetCoreExValue(nameof(IncludeExceptionInResult), false);
 
         /// <summary>
         /// Gets the default maximum event publish collection size.
         /// </summary>
         /// <remarks>Defaults to <c>100</c>.</remarks>
-        public int MaxPublishCollSize => GetValue(nameof(MaxPublishCollSize), 100);
+        public int MaxPublishCollSize => GetCoreExValue(nameof(MaxPublishCollSize), 100);
 
         /// <summary> 
         /// Gets the <see cref="DeploymentInfo"/> from the environment variables. 
@@ -137,42 +152,71 @@ namespace CoreEx.Configuration
         /// Indicates whether to include any extra Health Check data that might be considered sensitive.
         /// </summary>
         /// <remarks>Defaults to <c>false</c>.</remarks>
-        public bool IncludeSensitiveHealthCheckData => GetValue(nameof(IncludeSensitiveHealthCheckData), false);
+        public bool IncludeSensitiveHealthCheckData => GetCoreExValue(nameof(IncludeSensitiveHealthCheckData), false);
 
         /// <summary>
         /// Gets the <see cref="Entities.PagingArgs.DefaultTake"/>; i.e. page size.
         /// </summary>
         /// <remarks>Defaults to <c>100</c>.</remarks>
-        public long PagingDefaultTake => GetValue<long>(nameof(PagingDefaultTake), 100);
+        public long PagingDefaultTake => GetCoreExValue<long>(nameof(PagingDefaultTake), 100);
 
         /// <summary>
         /// Gets the <see cref="Entities.PagingArgs.MaxTake"/>; i.e. absolute maximum page size.
         /// </summary>
         /// <remarks>Defaults to <c>1000</c>.</remarks>
-        public long PagingMaxTake => GetValue<long>(nameof(PagingMaxTake), 1000);
+        public long PagingMaxTake => GetCoreExValue<long>(nameof(PagingMaxTake), 1000);
 
         /// <summary>
         /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.AbsoluteExpirationRelativeToNow"/>.
         /// </summary>
         /// <remarks>Defaults to <c>2</c> hours.</remarks>
-        public TimeSpan? RefDataCacheAbsoluteExpirationRelativeToNow => GetValue($"RefDataCache__{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", TimeSpan.FromHours(2));
+        public TimeSpan? RefDataCacheAbsoluteExpirationRelativeToNow => GetCoreExValue($"RefDataCache:{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", TimeSpan.FromHours(2));
 
         /// <summary>
         /// Gets the default <see cref="RefData.ReferenceDataOrchestrator"/> <see cref="ICacheEntry.SlidingExpiration"/>. 
         /// </summary>
         /// <remarks>Defaults to <c>30</c> minutes.</remarks>
-        public TimeSpan? RefDataCacheSlidingExpiration => GetValue($"RefDataCache__{nameof(ICacheEntry.SlidingExpiration)}", TimeSpan.FromMinutes(30));
+        public TimeSpan? RefDataCacheSlidingExpiration => GetCoreExValue($"RefDataCache:{nameof(ICacheEntry.SlidingExpiration)}", TimeSpan.FromMinutes(30));
 
         /// <summary>
         /// Indicates whether the validation (<c>CoreEx.Validation</c>) should use JSON names.
         /// </summary>
-        /// <remarks>Defaults to <c>true</c>.</remarks>
-        public bool ValidationUseJsonNames => _validationUseJsonNames ??= GetValue(nameof(ValidationUseJsonNames), true);
+        /// <remarks>Defaults to <c>true</c>.
+        /// <para>The value is cached on first use and is then considered immutable as a change in behaviour may have unintended consequences.</para></remarks>
+        public bool ValidationUseJsonNames => _validationUseJsonNames ??= GetCoreExValue(nameof(ValidationUseJsonNames), true);
 
         /// <summary>
-        /// Gets or sets the <see cref="WorkStateOrchestrator"/> <see cref="WorkStateOrchestrator.ExpiryTimeSpan"/>.
+        /// Gets the <see cref="WorkStateOrchestrator"/> <see cref="WorkStateOrchestrator.ExpiryTimeSpan"/>.
         /// </summary>
         /// <remarks>Defaults to <c>1</c> hour.</remarks>
-        public TimeSpan WorkerExpiryTimeSpan => GetValue(nameof(WorkerExpiryTimeSpan), TimeSpan.FromHours(1));
+        public TimeSpan WorkerExpiryTimeSpan => GetCoreExValue(nameof(WorkerExpiryTimeSpan), TimeSpan.FromHours(1));
+
+        /// <summary>
+        /// Gets the <see cref="Cleaner"/> <see cref="Entities.DateTimeTransform"/>.
+        /// </summary>
+        /// <remarks>Defaults to <see cref="Cleaner.DefaultDateTimeTransform"/>.
+        /// <para>The value is cached on first use and is then considered immutable as a change in behaviour may have unintended consequences.</para></remarks>
+        public DateTimeTransform DateTimeTransform => _dateTimeTransform ??= GetCoreExValue($"{nameof(Cleaner)}:{nameof(DateTimeTransform)}", Cleaner.DefaultDateTimeTransform);
+
+        /// <summary>
+        /// Gets the <see cref="Cleaner"/> <see cref="Entities.StringTransform"/>.
+        /// </summary>
+        /// <remarks>Defaults to <see cref="Cleaner.DefaultStringTransform"/>.
+        /// <para>The value is cached on first use and is then considered immutable as a change in behaviour may have unintended consequences.</para></remarks>
+        public StringTransform StringTransform => _stringTransform ??= GetCoreExValue($"{nameof(Cleaner)}:{nameof(StringTransform)}", Cleaner.DefaultStringTransform);
+
+        /// <summary>
+        /// Gets the <see cref="Cleaner"/> <see cref="Entities.StringCase"/>.
+        /// </summary>
+        /// <remarks>Defaults to <see cref="Cleaner.DefaultStringCase"/>.
+        /// <para>The value is cached on first use and is then considered immutable as a change in behaviour may have unintended consequences.</para></remarks>
+        public StringCase StringCase => _stringCase ??= GetCoreExValue($"{nameof(Cleaner)}:{nameof(StringCase)}", Cleaner.DefaultStringCase);
+
+        /// <summary>
+        /// Gets the <see cref="Cleaner"/> <see cref="Entities.StringTrim"/>.
+        /// </summary>
+        /// <remarks>Defaults to <see cref="Cleaner.DefaultStringTrim"/>.
+        /// <para>The value is cached on first use and is then considered immutable as a change in behaviour may have unintended consequences.</para></remarks>
+        public StringTrim StringTrim => _stringTrim ??= GetCoreExValue($"{nameof(Cleaner)}:{nameof(StringTrim)}", Cleaner.DefaultStringTrim);
     }
 }

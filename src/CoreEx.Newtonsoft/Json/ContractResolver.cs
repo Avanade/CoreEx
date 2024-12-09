@@ -31,8 +31,8 @@ namespace CoreEx.Newtonsoft.Json
         /// </summary>
         static ContractResolver()
         {
-            _default.AddType(typeof(EntityCore))
-                    .AddType(typeof(EntityBase))
+            _default.AddType<EntityCore>()
+                    .AddType<EntityBase>()
                     .AddType(typeof(ReferenceDataBaseEx<,>))
                     .AddType(typeof(ReferenceDataBase<>))
                     .AddType<MessageItem>()

@@ -11,18 +11,13 @@ namespace CoreEx.Validation.Rules
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public abstract class CompareRuleBase<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class
+    /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
+    public abstract class CompareRuleBase<TEntity, TProperty>(CompareOperator compareOperator) : ValueRuleBase<TEntity, TProperty> where TEntity : class
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareRuleBase{TEntity, TProperty}"/> class.
-        /// </summary>
-        /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
-        protected CompareRuleBase(CompareOperator compareOperator) => Operator = compareOperator;
-
         /// <summary>
         /// Gets the <see cref="CompareOperator"/>.
         /// </summary>
-        public CompareOperator Operator { get; private set; }
+        public CompareOperator Operator { get; private set; } = compareOperator;
 
         /// <summary>
         /// Gets or sets the comparer.

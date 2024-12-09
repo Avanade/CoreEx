@@ -27,7 +27,7 @@ namespace CoreEx.Events
         /// <summary>
         /// Gets the events sent (in order).
         /// </summary>
-        public EventSendData[] GetEvents() => _queue.ToArray();
+        public EventSendData[] GetEvents() => [.. _queue];
 
         /// <summary>
         /// Resets (clears) the in-memory state.

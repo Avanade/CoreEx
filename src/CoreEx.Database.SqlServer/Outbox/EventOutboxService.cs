@@ -49,7 +49,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <remarks>Will default to <see cref="SettingsBase"/> configuration, a) <see cref="ServiceBase.ServiceName"/> : <see cref="ServiceBase.MaxIterationsName"/>, then b) <see cref="ServiceBase.MaxIterationsName"/>, where specified; otherwise, <see cref="ServiceBase.DefaultMaxIterations"/>.</remarks>
         public override int MaxIterations
         {
-            get => _maxIterations ?? Settings.GetValue<int?>($"{ServiceName}:{MaxIterationsName}".Replace(".", "_")) ?? Settings.GetValue<int?>(MaxIterationsName.Replace(".", "_")) ?? DefaultMaxIterations;
+            get => _maxIterations ?? Settings.GetCoreExValue<int?>($"{ServiceName}:{MaxIterationsName}".Replace(".", "_")) ?? Settings.GetCoreExValue<int?>(MaxIterationsName.Replace(".", "_")) ?? DefaultMaxIterations;
             set => _maxIterations = value;
         }
 
@@ -59,7 +59,7 @@ namespace CoreEx.Database.SqlServer.Outbox
         /// <remarks>Will default to <see cref="SettingsBase"/> configuration, a) <see cref="ServiceBase.ServiceName"/> : <see cref="MaxDequeueSizeName"/>, then b) <see cref="MaxDequeueSizeName"/>, where specified; otherwise, 10.</remarks>
         public int MaxDequeueSize
         {
-            get => _maxDequeueSize ?? Settings.GetValue<int?>($"{ServiceName}:{MaxDequeueSizeName}".Replace(".", "_")) ?? Settings.GetValue<int?>(MaxDequeueSizeName.Replace(".", "_")) ?? 10;
+            get => _maxDequeueSize ?? Settings.GetCoreExValue<int?>($"{ServiceName}:{MaxDequeueSizeName}".Replace(".", "_")) ?? Settings.GetCoreExValue<int?>(MaxDequeueSizeName.Replace(".", "_")) ?? 10;
             set => _maxDequeueSize = value;
         }
 

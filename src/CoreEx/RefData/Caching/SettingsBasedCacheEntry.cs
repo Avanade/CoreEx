@@ -36,8 +36,8 @@ namespace CoreEx.RefData.Caching
         /// This should be overridden where more advanced behaviour is required.</remarks>
         public virtual void CreateCacheEntry(Type type, ICacheEntry entry)
         {
-            entry.AbsoluteExpirationRelativeToNow = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", Settings.RefDataCacheAbsoluteExpirationRelativeToNow) ?? TimeSpan.FromHours(2);
-            entry.SlidingExpiration = Settings?.GetValue($"RefDataCache__{type.Name}__{nameof(ICacheEntry.SlidingExpiration)}", Settings.RefDataCacheSlidingExpiration) ?? TimeSpan.FromMinutes(30);
+            entry.AbsoluteExpirationRelativeToNow = Settings?.GetCoreExValue($"RefDataCache:{type.Name}:{nameof(ICacheEntry.AbsoluteExpirationRelativeToNow)}", Settings.RefDataCacheAbsoluteExpirationRelativeToNow) ?? TimeSpan.FromHours(2);
+            entry.SlidingExpiration = Settings?.GetCoreExValue($"RefDataCache:{type.Name}:{nameof(ICacheEntry.SlidingExpiration)}", Settings.RefDataCacheSlidingExpiration) ?? TimeSpan.FromMinutes(30);
         }
     }
 }
