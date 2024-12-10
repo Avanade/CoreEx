@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.RefData;
 using System.Collections.Generic;
 
 namespace CoreEx.Entities
@@ -40,6 +41,12 @@ namespace CoreEx.Entities
         public List<string>? ExcludeFields { get; set; }
 
         /// <summary>
+        /// Indicates whether to include any related texts for the item(s).
+        /// </summary>
+        /// <remarks>For example, include corresponding <see cref="IReferenceData.Text"/> for any <b>ReferenceData</b> values returned in the JSON response payload.</remarks>
+        public bool IsTextIncluded { get; set; }
+
+        /// <summary>
         /// Appends the <paramref name="fields"/> to the <see cref="IncludeFields"/>.
         /// </summary>
         /// <param name="fields">The fields to append.</param>
@@ -60,5 +67,23 @@ namespace CoreEx.Entities
             (ExcludeFields ??= []).AddRange(fields);
             return this;
         }
+
+        /// <summary>
+        /// Indicates whether to include any related texts for the item(s); see <see cref="IsTextIncluded"/>.
+        /// </summary>
+        /// <returns>The <see cref="QueryArgs"/> to support fluent-style method-chaining.</returns>
+        /// <remarks>For example, include corresponding <see cref="IReferenceData.Text"/> for any <b>ReferenceData</b> values returned in the JSON response payload.</remarks>
+        public QueryArgs IncludeText()
+        {
+            IsTextIncluded = true;
+            return this;
+        }
+
+        /// <summary>
+        /// An implicit cast from a filter <see cref="string"/> to a <see cref="QueryArgs"/>.
+        /// </summary>
+        /// <param name="filter">The <see cref="Filter"/>.</param>
+        /// <returns>The corresponding <see cref="QueryArgs"/>.</returns>
+        public static implicit operator QueryArgs(string? filter) => Create(filter);
     }
 }
