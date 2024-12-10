@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.30.2
+- *Fixed:* Missing `QueryArgs.IncludeText` added to set the `$text=true` equivalent.
+- *Fixed:* Simplification of creating and setting the `QueryArgs.Filter` using an implict string operator.
+
 ## v3.30.1
 - *Fixed:* Added support for `SettingsBase.DateTimeTransform`, `StringTransform`, `StringTrim` and `StringCase` to allow specification via configuration.
 - *Fixed:* Added support for `CoreEx:` hierarchy (optional) for all _CoreEx_ settings to enable a more structured and explicit configuration.

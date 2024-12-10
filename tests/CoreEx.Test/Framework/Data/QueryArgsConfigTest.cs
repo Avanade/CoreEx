@@ -57,8 +57,8 @@ namespace CoreEx.Test.Framework.Data
             Assert.That(ex.Messages, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
             {
-                Assert.That(ex.Messages.First().Property, Is.EqualTo("$filter"));
-                Assert.That(ex.Messages.First().Text, Does.StartWith(expected));
+                Assert.That(ex.Messages!.First().Property, Is.EqualTo("$filter"));
+                Assert.That(ex.Messages!.First().Text, Does.StartWith(expected));
             });
         }
 
@@ -305,12 +305,12 @@ Note: The OData-like filtering is awesome!"));
             void AssertException(string? orderBy, string expected)
             {
                 var ex = Assert.Throws<QueryOrderByParserException>(() => _queryConfig.OrderByParser.Parse(orderBy).ThrowOnError());
-                Assert.That(ex.Messages, Is.Not.Null);
-                Assert.That(ex.Messages, Has.Count.EqualTo(1));
+                Assert.That(ex?.Messages, Is.Not.Null);
+                Assert.That(ex!.Messages, Has.Count.EqualTo(1));
                 Assert.Multiple(() =>
                 {
-                    Assert.That(ex.Messages.First().Property, Is.EqualTo("$orderby"));
-                    Assert.That(ex.Messages.First().Text, Does.StartWith(expected));
+                    Assert.That(ex.Messages!.First().Property, Is.EqualTo("$orderby"));
+                    Assert.That(ex.Messages!.First().Text, Does.StartWith(expected));
                 });
             }
 

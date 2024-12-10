@@ -152,6 +152,9 @@ namespace CoreEx.Http
 
                 if (Query.ExcludeFields is not null)
                     query.Exclude([.. Query.ExcludeFields]);
+
+                if (Query.IsTextIncluded)
+                    query.IsTextIncluded = true;
             }
 
             Query = query;
@@ -255,7 +258,7 @@ namespace CoreEx.Http
                     AddNameValuePairs(sb, QueryStringNameExcludeFields, Query.ExcludeFields.Where(x => !string.IsNullOrEmpty(x)).Select(x => HttpUtility.UrlEncode(x)).ToArray(), false, true);
             }
 
-            if (IncludeText)
+            if (IncludeText || (Query is not null && Query.IsTextIncluded))
                 AddNameValuePair(sb, QueryStringNameIncludeText, "true", false);
 
             if (IncludeInactive)

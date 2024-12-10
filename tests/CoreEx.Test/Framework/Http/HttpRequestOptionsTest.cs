@@ -161,12 +161,23 @@ namespace CoreEx.Test.Framework.Http
         [Test]
         public void QueryArgsQueryString()
         {
-            var qa = QueryArgs.Create("name eq 'bob'");
+            QueryArgs qa = "name eq 'bob'";
             var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
             var ro = new HttpRequestOptions() { IncludeInactive = true }.Include("name", "text");
             ro = ro.WithQuery(qa);
             hr.ApplyRequestOptions(ro);
             Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$filter=name+eq+%27bob%27&$fields=name,text&$inactive=true"));
+        }
+
+        [Test]
+        public void QueryArgsQueryStringWithIncludeText()
+        {
+            var qa = QueryArgs.Create("name eq 'bob'").IncludeText();
+            var hr = new HttpRequestMessage(HttpMethod.Get, "https://unittest/testing");
+            var ro = new HttpRequestOptions() { IncludeInactive = true }.Include("name", "text");
+            ro = ro.WithQuery(qa);
+            hr.ApplyRequestOptions(ro);
+            Assert.That(hr.RequestUri!.AbsoluteUri, Is.EqualTo("https://unittest/testing?$filter=name+eq+%27bob%27&$fields=name,text&$text=true&$inactive=true"));
         }
     }
 }
