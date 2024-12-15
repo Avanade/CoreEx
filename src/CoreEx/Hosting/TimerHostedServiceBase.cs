@@ -25,11 +25,7 @@ namespace CoreEx.Hosting
     {
         private static readonly Random _random = new();
 
-#if NET9_0_OR_GREATER
-        private readonly System.Threading.Lock _lock = new();
-#else
-        private readonly object _lock = new();
-#endif
+        private readonly Lock _lock = new();
         private readonly TimerHostedServiceHealthCheck? _healthCheck;
         private TimerHostedServiceStatus _status = TimerHostedServiceStatus.Initialized;
         private string? _name;

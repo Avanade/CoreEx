@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 
 namespace CoreEx.RefData
 {
@@ -16,11 +17,7 @@ namespace CoreEx.RefData
     /// <typeparam name="TRef">The <see cref="IReferenceData{TId}"/> <see cref="Type"/>.</typeparam>
     public class ReferenceDataCollection<TId, TRef> : IReferenceDataCollection<TId, TRef>, ICollection<TRef> where TId : IComparable<TId>, IEquatable<TId> where TRef : class, IReferenceData<TId>
     {
-#if NET9_0_OR_GREATER
-        private readonly System.Threading.Lock _lock = new();
-#else
-        private readonly object _lock = new();
-#endif
+        private readonly Lock _lock = new();
         private readonly ConcurrentDictionary<TId, TRef> _rdcId = new();
         private readonly ConcurrentDictionary<string, TRef> _rdcCode;
         private Dictionary<(string, object?), TRef>? _mappingsDict;
