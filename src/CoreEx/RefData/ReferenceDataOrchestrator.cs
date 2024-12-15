@@ -38,11 +38,7 @@ namespace CoreEx.RefData
 
         private static readonly AsyncLocal<ReferenceDataOrchestrator?> _asyncLocal = new();
 
-#if NET9_0_OR_GREATER
-        private readonly System.Threading.Lock _lock = new();
-#else
-        private readonly object _lock = new();
-#endif
+        private readonly Lock _lock = new();
         private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
         private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<object, SemaphoreSlim> _semaphores = new();

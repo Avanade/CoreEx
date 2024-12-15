@@ -30,11 +30,7 @@ namespace CoreEx
         private HashSet<string>? _permissions;
         private bool _isCopied;
         private bool _disposed;
-#if NET9_0_OR_GREATER
-        private readonly System.Threading.Lock _lock = new();
-#else
-        private readonly object _lock = new();
-#endif
+        private readonly Lock _lock = new();
 
         /// <summary>
         /// Gets or sets the function to create a default <see cref="ExecutionContext"/> instance.

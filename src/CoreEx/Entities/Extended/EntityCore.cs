@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace CoreEx.Entities.Extended
 {
@@ -15,11 +16,7 @@ namespace CoreEx.Entities.Extended
     [System.Diagnostics.DebuggerStepThrough]
     public abstract class EntityCore : INotifyPropertyChanged, IChangeTracking, IReadOnly
     {
-#if NET9_0_OR_GREATER
-        private readonly System.Threading.Lock _lock = new();
-#else
-        private readonly object _lock = new();
-#endif
+        private readonly Lock _lock = new();
         private Dictionary<string, PropertyChangedEventHandler>? _propertyEventHandlers;
 
         /// <summary>
