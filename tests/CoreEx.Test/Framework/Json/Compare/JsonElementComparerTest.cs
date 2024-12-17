@@ -302,7 +302,7 @@ Path '$.Name': Does not exist in left JSON."));
         [Test]
         public void ToMergePatch_Object_With_NoReplaceAllArray()
         {
-            var o = new JsonElementComparerOptions { AlwaysReplaceAllArrayItems = false };
+            var o = new JsonElementComparerOptions { ReplaceAllArrayItemsOnMerge = false };
             var jn = new JsonElementComparer(o).Compare("{\"names\":[{\"name\":\"gary\",\"address\":{\"street\": 1}},{\"name\":\"brian\"}]}", "{\"names\":[{\"name\":\"gary\",\"address\":{\"street\": 2}},{\"name\":\"brian\"}]}").ToMergePatch();
             Assert.That(jn!.ToJsonString(), Is.EqualTo("{\"names\":[{\"address\":{\"street\":2}}]}"));
 
@@ -329,7 +329,7 @@ Path '$.Name': Does not exist in left JSON."));
         [Test]
         public void ToMergePatch_Object_With_NoReplaceAllArray_Paths()
         {
-            var o = new JsonElementComparerOptions { AlwaysReplaceAllArrayItems = false };
+            var o = new JsonElementComparerOptions { ReplaceAllArrayItemsOnMerge = false };
             var jn = new JsonElementComparer(o).Compare("{\"names\":[{\"name\":\"gary\",\"address\":{\"street\": 1}},{\"name\":\"brian\"}]}", "{\"names\":[{\"name\":\"gary\",\"address\":{\"street\": 2}},{\"name\":\"brian\"}]}").ToMergePatch("names.name");
             Assert.That(jn!.ToJsonString(), Is.EqualTo("{\"names\":[{\"name\":\"gary\",\"address\":{\"street\":2}},{\"name\":\"brian\"}]}"));
 
@@ -371,7 +371,7 @@ Path '$.Name': Does not exist in left JSON."));
             jn = new JsonElementComparer().Compare("[1,2,3]", "[1,null,3,{\"age\":21}]").ToMergePatch();
             Assert.That(jn!.ToJsonString(), Is.EqualTo("[1,null,3,{\"age\":21}]"));
 
-            var o = new JsonElementComparerOptions { AlwaysReplaceAllArrayItems = false };
+            var o = new JsonElementComparerOptions { ReplaceAllArrayItemsOnMerge = false };
             jn = new JsonElementComparer(o).Compare("[1,2,3]", "[1,9,3]").ToMergePatch();
             Assert.That(jn!.ToJsonString(), Is.EqualTo("[9]"));
 

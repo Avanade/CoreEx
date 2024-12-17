@@ -3,7 +3,9 @@ using CoreEx.Json.Merge;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace CoreEx.Test.Framework.Json.Merge
 {
@@ -79,6 +81,16 @@ namespace CoreEx.Test.Framework.Json.Merge
         }
 
         [Test]
+        public void Merge_Int()
+        {
+            int i = 1;
+            Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("1"), ref i), Is.False);
+
+            Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("2"), ref i), Is.True);
+            Assert.That(i, Is.EqualTo(2));
+        }
+
+        [Test]
         public void Merge_Property_StringValue()
         {
             var td = new TestData { Name = "Fred" };
@@ -106,7 +118,8 @@ namespace CoreEx.Test.Framework.Json.Merge
             var td = new TestData { Name = "Fred" };
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { NameComparer = StringComparer.Ordinal }).Merge(BinaryData.FromString("{ \"nAmE\": \"Barry\" }"), ref td), Is.False);
+                // Returns true as this is intitially patching the JSON-to-JSON directly, then deserializing, so seen as a JSON change, but then ignored during deserialization?! Sorry! 
+                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { PropertyNameComparer = StringComparer.Ordinal }).Merge(BinaryData.FromString("{ \"nAmE\": \"Barry\" }"), ref td), Is.True);
                 Assert.That(td!.Name, Is.EqualTo("Fred"));
             });
         }
@@ -415,334 +428,6 @@ namespace CoreEx.Test.Framework.Json.Merge
             });
         }
 
-        [Test]
-        public void Merge_Property_KeysColl_ListNull()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": null }"), ref td), Is.True);
-                Assert.That(td!.Values, Is.Null);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_ListEmpty()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ ] }"), ref td), Is.True);
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Is.Empty);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_Null()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "abc", Text = "def" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ null ] }"), ref td), Is.True);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Has.Count.EqualTo(1));
-                Assert.That(td.KeysColl![0], Is.Null);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_DuplicateNulls()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ null, null ] }"), ref td));
-            Assert.That(ex!.Message, Is.EqualTo("The JSON array must not contain items with duplicate 'IEntityKey' keys. Path: $.keyscoll"));
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_DuplicateVals1()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { }, { } ] }"), ref td));
-            Assert.That(ex!.Message, Is.EqualTo("The JSON array must not contain items with duplicate 'IEntityKey' keys. Path: $.keyscoll"));
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_DuplicateVals2()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { \"code\": \"a\" }, { \"code\": \"a\" } ] }"), ref td));
-            Assert.That(ex!.Message, Is.EqualTo("The JSON array must not contain items with duplicate 'IEntityKey' keys. Path: $.keyscoll"));
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_DuplicateVals_Dest()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData(), new KeyData() } };
-            var ex = Assert.Throws<JsonMergePatchException>(() => new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { } ] }"), ref td));
-            Assert.That(ex!.Message, Is.EqualTo("The JSON array destination collection must not contain items with duplicate 'IEntityKey' keys prior to merge. Path: $.keyscoll"));
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_Null_NoChanges()
-        {
-            var td = new TestData { };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": null }"), ref td), Is.False);
-
-                Assert.That(td!.KeysColl, Is.Null);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_Empty_NoChanges()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection() };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ ] }"), ref td), Is.False);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Is.Empty);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_NullItem_NoChanges()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { null! } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ null ] }"), ref td), Is.False);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Has.Count.EqualTo(1));
-                Assert.That(td.KeysColl![0], Is.Null);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_Item_NoChanges()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { \"code\": \"a\"  } ] }"), ref td), Is.False);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Has.Count.EqualTo(1));
-                Assert.That(td.KeysColl![0].Code, Is.EqualTo("a"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_KeyedItem_Changes()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { \"code\": \"a\", \"text\": \"zz\" }, { \"code\": \"b\" } ] }"), ref td), Is.True);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Has.Count.EqualTo(2));
-            });
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.KeysColl[0].Code, Is.EqualTo("a"));
-                Assert.That(td.KeysColl[0].Text, Is.EqualTo("zz"));
-                Assert.That(td.KeysColl[1].Code, Is.EqualTo("b"));
-                Assert.That(td.KeysColl[1].Text, Is.EqualTo("bb"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_KeyedItem_SequenceChanges()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { \"code\": \"b\", \"text\": \"yy\" }, { \"code\": \"a\" } ] }"), ref td), Is.True);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Has.Count.EqualTo(2));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.KeysColl[0].Code, Is.EqualTo("b"));
-                Assert.That(td.KeysColl[0].Text, Is.EqualTo("yy"));
-                Assert.That(td.KeysColl[1].Code, Is.EqualTo("a"));
-                Assert.That(td.KeysColl[1].Text, Is.EqualTo("aa"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_KeyedItem_AllNew()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { \"code\": \"y\", \"text\": \"yy\" }, { \"code\": \"z\", \"text\": \"zz\" } ] }"), ref td), Is.True);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Has.Count.EqualTo(2));
-            });
-            
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.KeysColl[0].Code, Is.EqualTo("y"));
-                Assert.That(td.KeysColl[0].Text, Is.EqualTo("yy"));
-                Assert.That(td.KeysColl[1].Code, Is.EqualTo("z"));
-                Assert.That(td.KeysColl[1].Text, Is.EqualTo("zz"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_KeysColl_KeyedItem_Delete()
-        {
-            var td = new TestData { KeysColl = new KeyDataCollection { new KeyData { Code = "a", Text = "aa" }, new KeyData { Code = "b", Text = "bb" }, new KeyData { Code = "c", Text = "cc" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"keyscoll\": [ { \"code\": \"a\" }, { \"code\": \"c\" } ] }"), ref td), Is.True);
-
-                Assert.That(td!.KeysColl, Is.Not.Null);
-                Assert.That(td.KeysColl!, Has.Count.EqualTo(2));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.KeysColl[0].Code, Is.EqualTo("a"));
-                Assert.That(td.KeysColl[0].Text, Is.EqualTo("aa"));
-                Assert.That(td.KeysColl[1].Code, Is.EqualTo("c"));
-                Assert.That(td.KeysColl[1].Text, Is.EqualTo("cc"));
-            });
-        }
-
-        // *** Dictionary<string, string> - DictionaryMergeApproach.Replace
-
-        [Test]
-        public void Merge_Property_DictReplace_Null()
-        {
-            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{ \"dict\": null }"), ref td), Is.True);
-                Assert.That(td!.Dict, Is.Null);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_DictReplace_Empty()
-        {
-            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{ \"dict\": {} }"), ref td), Is.True);
-                Assert.That(td!.Dict, Is.Not.Null);
-                Assert.That(td.Dict!, Is.Empty);
-            });
-        }
-
-        [Test]
-        public void Merge_Property_DictReplace_NullValue()
-        {
-            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" } } };
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{ \"dict\": {\"k\":null} }"), ref td), Is.True);
-                Assert.That(td!.Dict, Is.Not.Null);
-                Assert.That(td.Dict!, Has.Count.EqualTo(1));
-                Assert.That(td.Dict!["k"], Is.EqualTo(null));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_DictReplace_DuplicateKeys_IntoNull()
-        {
-            var td = new TestData();
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}"), ref td), Is.True);
-                Assert.That(td!.Dict, Is.Not.Null);
-                Assert.That(td.Dict!, Has.Count.EqualTo(1));
-                Assert.That(td.Dict!["k"], Is.EqualTo("v2"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_DictReplace_DuplicateKeys_IntoEmpty()
-        {
-            var td = new TestData { Dict = new Dictionary<string, string>() };
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}"), ref td), Is.True);
-                Assert.That(td!.Dict, Is.Not.Null);
-                Assert.That(td.Dict!, Has.Count.EqualTo(1));
-                Assert.That(td.Dict!["k"], Is.EqualTo("v2"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_DictReplace_NoChange()
-        {
-            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k1\":\"v1\"}}"), ref td), Is.False);
-                Assert.That(td!.Dict, Is.Not.Null);
-                Assert.That(td.Dict!, Has.Count.EqualTo(2));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.Dict["k"], Is.EqualTo("v"));
-                Assert.That(td.Dict["k1"], Is.EqualTo("v1"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_DictReplace_ReOrder_NoChange()
-        {
-            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict\":{\"k1\":\"v1\",\"k\":\"v\"}}"), ref td), Is.False);
-                Assert.That(td!.Dict, Is.Not.Null);
-                Assert.That(td.Dict!, Has.Count.EqualTo(2));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.Dict["k"], Is.EqualTo("v"));
-                Assert.That(td.Dict["k1"], Is.EqualTo("v1"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_DictReplace_AddUpdateDelete_Replace()
-        {
-            var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k2\":\"v2\"}}"), ref td), Is.True);
-                Assert.That(td!.Dict, Is.Not.Null);
-                Assert.That(td.Dict!, Has.Count.EqualTo(2));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.Dict["k"], Is.EqualTo("v"));
-                Assert.That(td.Dict["k2"], Is.EqualTo("v2"));
-            });
-        }
-
         // *** Dictionary<string, string> - DictionaryMergeApproach.Merge
 
         [Test]
@@ -752,7 +437,7 @@ namespace CoreEx.Test.Framework.Json.Merge
 
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"dict\": null }"), ref td), Is.True);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{ \"dict\": null }"), ref td), Is.True);
                 Assert.That(td!.Dict, Is.Null);
             });
         }
@@ -765,7 +450,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             Assert.Multiple(() =>
             {
                 // Should result in no changes as no property (key) was provided.
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"dict\": {} }"), ref td), Is.False);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{ \"dict\": {} }"), ref td), Is.False);
                 Assert.That(td!.Dict, Is.Not.Null);
                 Assert.That(td.Dict!, Has.Count.EqualTo(1));
                 Assert.That(td.Dict!["k"], Is.EqualTo("v"));
@@ -780,7 +465,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             Assert.Multiple(() =>
             {
                 // A key with a value of null indicates it should be removed.
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{ \"dict\": {\"k\":null} }"), ref td), Is.True);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{ \"dict\": {\"k\":null} }"), ref td), Is.True);
                 Assert.That(td!.Dict, Is.Not.Null);
                 Assert.That(td.Dict!, Is.Empty);
             });
@@ -793,7 +478,7 @@ namespace CoreEx.Test.Framework.Json.Merge
 
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}"), ref td), Is.True);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}"), ref td), Is.True);
                 Assert.That(td!.Dict, Is.Not.Null);
                 Assert.That(td.Dict!, Has.Count.EqualTo(1));
                 Assert.That(td.Dict!["k"], Is.EqualTo("v2"));
@@ -807,7 +492,7 @@ namespace CoreEx.Test.Framework.Json.Merge
 
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}"), ref td), Is.True);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k\":\"v2\"}}"), ref td), Is.True);
                 Assert.That(td!.Dict, Is.Not.Null);
                 Assert.That(td.Dict!, Has.Count.EqualTo(1));
                 Assert.That(td.Dict!["k"], Is.EqualTo("v2"));
@@ -820,7 +505,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k1\":\"v1\"}}"), ref td), Is.False);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict\":{\"k\":\"v\",\"k1\":\"v1\"}}"), ref td), Is.False);
                 Assert.That(td!.Dict, Is.Not.Null);
                 Assert.That(td.Dict!, Has.Count.EqualTo(2));
             });
@@ -838,7 +523,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             var td = new TestData { Dict = new Dictionary<string, string> { { "k", "v" }, { "k1", "v1" } } };
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict\":{\"k1\":\"v1\",\"k\":\"v\"}}"), ref td), Is.False);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict\":{\"k1\":\"v1\",\"k\":\"v\"}}"), ref td), Is.False);
                 Assert.That(td!.Dict, Is.Not.Null);
                 Assert.That(td.Dict!, Has.Count.EqualTo(2));
             });
@@ -890,75 +575,13 @@ namespace CoreEx.Test.Framework.Json.Merge
         // ***
 
         [Test]
-        public void Merge_Property_Dict2Replace_DuplicateKeys_IntoEmpty()
-        {
-            var td = new TestData { Dict2 = new Dictionary<string, KeyData>() };
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"a\":{\"code\": \"bb\",\"text\": \"bbb\"}}}"), ref td), Is.True);
-                Assert.That(td!.Dict2, Is.Not.Null);
-                Assert.That(td.Dict2!, Has.Count.EqualTo(1));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.Dict2["a"].Code, Is.EqualTo("bb"));
-                Assert.That(td.Dict2["a"].Text, Is.EqualTo("bbb"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_Dict2Replace_NoChange()
-        {
-            // Note, although technically no changes, there is no means to verify without specific equality checking, so is seen as a change.
-            var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"b\":{\"code\": \"bb\",\"text\": \"bbb\"}}}"), ref td), Is.True);
-                Assert.That(td!.Dict2, Is.Not.Null);
-                Assert.That(td.Dict2!, Has.Count.EqualTo(2));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.Dict2["a"].Code, Is.EqualTo("aa"));
-                Assert.That(td.Dict2["a"].Text, Is.EqualTo("aaa"));
-                Assert.That(td.Dict2["b"].Code, Is.EqualTo("bb"));
-                Assert.That(td.Dict2["b"].Text, Is.EqualTo("bbb"));
-            });
-        }
-
-        [Test]
-        public void Merge_Property_Dict2Replace_AddUpdateDelete_Replace()
-        {
-            var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
-            Assert.Multiple(() =>
-            {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace }).Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}"), ref td), Is.True);
-                Assert.That(td!.Dict2, Is.Not.Null);
-                Assert.That(td.Dict2!, Has.Count.EqualTo(2));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(td.Dict2["a"].Code, Is.EqualTo("aaaa"));
-                Assert.That(td.Dict2["a"].Text, Is.EqualTo(null));
-                Assert.That(td.Dict2["c"].Code, Is.EqualTo("cc"));
-                Assert.That(td.Dict2["c"].Text, Is.EqualTo("ccc"));
-            });
-        }
-
-        // ***
-
-        [Test]
         public void Merge_Property_KeyDict2Merge_DuplicateKeys_IntoEmpty()
         {
             var td = new TestData { Dict2 = new Dictionary<string, KeyData>() };
 
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"a\":{\"code\": \"bb\",\"text\": \"bbb\"}}}"), ref td), Is.True);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"a\":{\"code\": \"bb\",\"text\": \"bbb\"}}}"), ref td), Is.True);
                 Assert.That(td!.Dict2, Is.Not.Null);
                 Assert.That(td.Dict2!, Has.Count.EqualTo(1));
             });
@@ -976,7 +599,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"b\":{\"code\": \"bb\",\"text\": \"bbb\"}}}"), ref td), Is.False);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aa\",\"text\": \"aaa\"},\"b\":{\"code\": \"bb\",\"text\": \"bbb\"}}}"), ref td), Is.False);
                 Assert.That(td!.Dict2, Is.Not.Null);
                 Assert.That(td.Dict2!, Has.Count.EqualTo(2));
             });
@@ -996,7 +619,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"},\"b\":null}}"), ref td), Is.True);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"},\"b\":null}}"), ref td), Is.True);
                 Assert.That(td!.Dict2, Is.Not.Null);
                 Assert.That(td.Dict2!, Has.Count.EqualTo(2));
             });
@@ -1016,7 +639,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             var td = new TestData { Dict2 = new Dictionary<string, KeyData> { { "a", new KeyData { Code = "aa", Text = "aaa" } }, { "b", new KeyData { Code = "bb", Text = "bbb" } } } };
             Assert.Multiple(() =>
             {
-                Assert.That(new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}"), ref td), Is.True);
+                Assert.That(new JsonMergePatch().Merge(BinaryData.FromString("{\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}"), ref td), Is.True);
                 Assert.That(td!.Dict2, Is.Not.Null);
                 Assert.That(td.Dict2!, Has.Count.EqualTo(3));
             });
@@ -1031,39 +654,6 @@ namespace CoreEx.Test.Framework.Json.Merge
                 Assert.That(td.Dict2["c"].Text, Is.EqualTo("ccc"));
             });
         }
-
-        // ***
-
-        [Test]
-        public void Merge_XLoadTest_NoCache_1000()
-        {
-            var text = "{ \"id\": \"13512759-4f50-e911-b35c-bc83850db74d\", \"name\": \"Barry\", \"isValid\": true, \"date\": \"2018-12-31\", \"count\": \"12\", \"amount\": 132.58, \"dict\": {\"k\":\"v\",\"k1\":\"v1\"}, "
-                    + "\"values\": [ 1, 2, 4], \"sub\": { \"code\": \"abc\", \"text\": \"xyz\" }, \"nokeys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, null, { } ], "
-                    + "\"keys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, { }, null ],\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}";
-
-            for (int i = 0; i < 1000; i++)
-            {
-                var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
-                new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge, DictionaryMergeApproach = DictionaryMergeApproach.Merge }).Merge(BinaryData.FromString(text), ref td);
-            }
-        }
-
-        [Test]
-        public void Merge_XLoadTest_WithCache_1000()
-        {
-            var jmp = new JsonMergePatch(new JsonMergePatchOptions { EntityKeyCollectionMergeApproach = EntityKeyCollectionMergeApproach.Merge, DictionaryMergeApproach = DictionaryMergeApproach.Merge });
-            var text = "{ \"id\": \"13512759-4f50-e911-b35c-bc83850db74d\", \"name\": \"Barry\", \"isValid\": true, \"date\": \"2018-12-31\", \"count\": \"12\", \"amount\": 132.58, \"dict\": {\"k\":\"v\",\"k1\":\"v1\"}, "
-                    + "\"values\": [ 1, 2, 4], \"sub\": { \"code\": \"abc\", \"text\": \"xyz\" }, \"nokeys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, null, { } ], "
-                    + "\"keys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, { }, null ],\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}";
-
-            for (int i = 0; i < 1000; i++)
-            {
-                var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
-                jmp.Merge(BinaryData.FromString(text), ref td);
-            }
-        }
-
-        // **
 
         [Test]
         public void Merge_RootSimple_NullString()
@@ -1220,7 +810,7 @@ namespace CoreEx.Test.Framework.Json.Merge
             Assert.Multiple(() =>
             {
                 // No equality checker so will appear as changed - is a replacement.
-                Assert.That(jmp.Merge(BinaryData.FromString("[{\"code\":\"a\",\"text\":\"aa\"},{\"code\":\"b\",\"text\":\"bb\"}]"), ref arr), Is.True);
+                Assert.That(jmp.Merge(BinaryData.FromString("[{\"code\":\"a\",\"text\":\"aa\"},{\"code\":\"b\",\"text\":\"bb\"}]"), ref arr), Is.False);
                 Assert.That(arr!, Has.Length.EqualTo(2));
 
                 // Replaced.
@@ -1234,22 +824,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_RootDictionary_Simple()
         {
             var dict = new Dictionary<string, int>();
-            var jmp = new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(jmp.Merge(BinaryData.FromString("{\"x\":1}"), ref dict), Is.True);
-                Assert.That(dict, Is.EqualTo(new Dictionary<string, int> { { "x", 1 } }));
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(jmp.Merge(BinaryData.FromString("{\"x\":1}"), ref dict), Is.False);
-                Assert.That(dict, Is.EqualTo(new Dictionary<string, int> { { "x", 1 } }));
-            });
-
-            dict = new Dictionary<string, int>();
-            jmp = new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace });
+            var jmp = new JsonMergePatch();
 
             Assert.Multiple(() =>
             {
@@ -1268,7 +843,7 @@ namespace CoreEx.Test.Framework.Json.Merge
         public void Merge_RootDictionary_Complex()
         {
             var dict = new Dictionary<string, SubData>();
-            var jmp = new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Merge });
+            var jmp = new JsonMergePatch();
 
             Assert.That(jmp.Merge(BinaryData.FromString("{\"x\":{\"code\":\"xx\"},\"y\":{\"code\":\"yy\",\"text\":\"YY\"}}"), ref dict), Is.True);
             Assert.Multiple(() =>
@@ -1290,35 +865,99 @@ namespace CoreEx.Test.Framework.Json.Merge
                 Assert.That(dict!["x"].Text, Is.EqualTo(null));
                 Assert.That(dict!["y"].Code, Is.EqualTo("yyy"));
                 Assert.That(dict!["y"].Text, Is.EqualTo("YY"));
-            });
-
-            // --
-
-            dict = new Dictionary<string, SubData>();
-            jmp = new JsonMergePatch(new JsonMergePatchOptions { DictionaryMergeApproach = DictionaryMergeApproach.Replace });
-
-            Assert.That(jmp.Merge(BinaryData.FromString("{\"x\":{\"code\":\"xx\"},\"y\":{\"code\":\"yy\",\"text\":\"YY\"}}"), ref dict), Is.True);
-            Assert.Multiple(() =>
-            {
-                Assert.That(dict, Is.Not.Null);
-                Assert.That(dict!, Has.Count.EqualTo(2));
-                Assert.That(dict!["x"].Code, Is.EqualTo("xx"));
-                Assert.That(dict!["x"].Text, Is.EqualTo(null));
-                Assert.That(dict!["y"].Code, Is.EqualTo("yy"));
-                Assert.That(dict!["y"].Text, Is.EqualTo("YY"));
-            });
-
-            Assert.That(jmp.Merge(BinaryData.FromString("{\"y\":{\"code\":\"yyy\"},\"x\":{\"code\":\"xxx\"}}"), ref dict), Is.True);
-            Assert.Multiple(() =>
-            {
-
-                Assert.That(dict, Is.Not.Null);
-                Assert.That(dict!, Has.Count.EqualTo(2));
-                Assert.That(dict!["x"].Code, Is.EqualTo("xxx"));
-                Assert.That(dict!["x"].Text, Is.EqualTo(null));
-                Assert.That(dict!["y"].Code, Is.EqualTo("yyy"));
-                Assert.That(dict!["y"].Text, Is.EqualTo(null));
             });
         }
+
+        [Test]
+        public void Merge_XLoadTest_1_1000()
+        {
+            var jmp = new JsonMergePatch();
+            for (int i = 0; i < 1000; i++)
+            {
+                var td = _testData;
+                jmp.Merge(BinaryData.FromString(_text), ref td);
+            }
+        }
+
+        [Test]
+        public void Merge_XLoadTest_2_1000()
+        {
+            var jmp = new JsonMergePatch();
+            for (int i = 0; i < 1000; i++)
+            {
+                var td = _testData;
+                jmp.Merge(BinaryData.FromString(_text), ref td);
+            }
+        }
+
+        [Test]
+        public void Merge_XLoadTest_1000_1_NoChangeCheck()
+        {
+            var jmp = new JsonMergePatch();
+            for (int i = 0; i < 1000; i++)
+            {
+                _ = jmp.Merge(_jtext, _jtestdata);
+            }
+        }
+
+        [Test]
+        public void Merge_XLoadTest_1000_1_WithChangeCheck()
+        {
+            var jmp = new JsonMergePatch();
+            for (int i = 0; i < 1000; i++)
+            {
+                _ = jmp.TryMerge(_jtext, _jtestdata, out _);
+            }
+        }
+
+        [Test]
+        public void Merge_XLoadTest_1000_2_NoChangeCheck()
+        {
+            var jmp = new JsonMergePatch();
+            for (int i = 0; i < 1000; i++)
+            {
+                _ = jmp.Merge(_jtext, _jtestdata);
+            }
+        }
+
+        [Test]
+        public void Merge_XLoadTest_1000_2_WithChangeCheck()
+        {
+            var jmp = new JsonMergePatch();
+            for (int i = 0; i < 1000; i++)
+            {
+                _ = jmp.TryMerge(_jtext, _jtestdata, out _);
+            }
+        }
+
+        [Test]
+        public async Task Merge_XLoadTest_WithRead_10000()
+        {
+            var jmp = new JsonMergePatch();
+
+            for (int i = 0; i < 10000; i++)
+            {
+                var td = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
+                _ = await jmp.MergeWithResultAsync<TestData>(new BinaryData(JsonMergePatchTest._text), async (v, _) => await Task.FromResult(v).ConfigureAwait(false));
+            }
+        }
+
+        [Test]
+        public void MergeInvalidMergeValueForType()
+        {
+            var jmp = new JsonMergePatch();
+            var td = new TestData();
+            var ex = Assert.Throws<JsonMergePatchException>(() => jmp.Merge<TestData>(BinaryData.FromString("""{ "id": { "value": "123" }}"""), ref td));
+            Assert.That(ex!.Message, Is.EqualTo("The JSON value could not be converted to System.Guid. Path: $.id | LineNumber: 0 | BytePositionInLine: 9."));
+        }
+
+        internal const string _text = "{ \"id\": \"13512759-4f50-e911-b35c-bc83850db74d\", \"name\": \"Barry\", \"isValid\": true, \"date\": \"2018-12-31\", \"count\": \"12\", \"amount\": 132.58, \"dict\": {\"k\":\"v\",\"k1\":\"v1\"}, "
+                + "\"values\": [ 1, 2, 4], \"sub\": { \"code\": \"abc\", \"text\": \"xyz\" }, \"nokeys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, null, { } ], "
+                + "\"keys\": [ { \"code\": \"abc\", \"text\": \"xyz\" }, { }, null ],\"dict2\":{\"a\":{\"code\": \"aaaa\"},\"c\":{\"code\": \"cc\",\"text\": \"ccc\"}}}";
+
+        internal static readonly TestData _testData = new TestData { Values = new int[] { 1, 2, 3 }, Keys = new List<KeyData> { new() { Code = "abc", Text = "def" } }, Dict = new Dictionary<string, string>() { { "a", "b" } }, Dict2 = new Dictionary<string, KeyData> { { "x", new KeyData { Code = "xx" } } } };
+
+        internal static readonly JsonElement _jtext = JsonDocument.Parse(_text).RootElement;
+        internal static readonly JsonElement _jtestdata = JsonDocument.Parse(JsonSerializer.Serialize(_testData)).RootElement;
     }
 }

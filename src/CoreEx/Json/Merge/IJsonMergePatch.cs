@@ -13,7 +13,7 @@ namespace CoreEx.Json.Merge
     public interface IJsonMergePatch
     {
         /// <summary>
-        /// Merges the JSON <see cref="string"/> content into the <paramref name="value"/>.
+        /// Merges the <paramref name="json"/> content into the <paramref name="value"/>.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="json">The JSON to merge.</param>
@@ -22,7 +22,7 @@ namespace CoreEx.Json.Merge
         bool Merge<T>(BinaryData json, ref T? value);
 
         /// <summary>
-        /// Merges the JSON <see cref="string"/> content into the value returned by the <paramref name="getValue"/> function.
+        /// Merges the <paramref name="json"/> content into the value returned by the <paramref name="getValue"/> function.
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="json">The JSON to merge.</param>
@@ -33,7 +33,7 @@ namespace CoreEx.Json.Merge
         Task<(bool HasChanges, T? Value)> MergeAsync<T>(BinaryData json, Func<T?, CancellationToken, Task<T?>> getValue, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Merges the JSON <see cref="string"/> content into the value returned by the <paramref name="getValue"/> function (with a <see cref="Result{T}"/>).
+        /// Merges the <paramref name="json"/> content into the value returned by the <paramref name="getValue"/> function (with a <see cref="Result{T}"/>).
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="json">The JSON to merge.</param>
@@ -41,6 +41,6 @@ namespace CoreEx.Json.Merge
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
         /// <returns><c>true</c> indicates that changes were made to the entity value as a result of the merge; otherwise, <c>false</c> for no changes. The merged value is also returned.</returns>
         /// <remarks>Provides the opportunity to validate the JSON before getting the value where this execution order is important; i.e. get operation is expensive (latency).</remarks>
-        Task<Result<(bool HasChanges, T Value)>> MergeWithResultAsync<T>(BinaryData json, Func<T, CancellationToken, Task<Result<T>>> getValue, CancellationToken cancellationToken = default);
+        Task<Result<(bool HasChanges, T? Value)>> MergeWithResultAsync<T>(BinaryData json, Func<T?, CancellationToken, Task<Result<T?>>> getValue, CancellationToken cancellationToken = default);
     }
 }

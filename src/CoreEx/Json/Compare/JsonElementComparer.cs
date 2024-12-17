@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace CoreEx.Json.Compare
 {
@@ -75,17 +74,6 @@ namespace CoreEx.Json.Compare
         }
 
         /// <summary>
-        /// Compare two <see cref="JsonNode"/> values for equality.
-        /// </summary>
-        /// <param name="left">The left <see cref="JsonNode"/>.</param>
-        /// <param name="right">The right <see cref="JsonNode"/>.</param>
-        /// <param name="pathsToIgnore">Optional list of paths to exclude from the comparison. Qualified paths, that include indexing, are also supported.</param>
-        /// <returns>The <see cref="JsonElementComparerResult"/>.</returns>
-        /// <remarks><i>Note</i>: this immediately converts each <see cref="JsonNode"/> into a corresponding <see cref="JsonElement"/> to perform the comparison, as such there may be a small performance cost.</remarks>
-        public JsonElementComparerResult Compare(JsonNode left, JsonNode right, params string[] pathsToIgnore)
-            => Compare(System.Text.Json.JsonSerializer.Deserialize<JsonElement>(left), System.Text.Json.JsonSerializer.Deserialize<JsonElement>(right), pathsToIgnore);
-
-        /// <summary>
         /// Compare two <see cref="JsonElement"/> values for equality.
         /// </summary>
         /// <param name="left">The left <see cref="JsonElement"/>.</param>
@@ -94,7 +82,7 @@ namespace CoreEx.Json.Compare
         /// <returns>The <see cref="JsonElementComparerResult"/>.</returns>
         public JsonElementComparerResult Compare(JsonElement left, JsonElement right, params string[] pathsToIgnore)
         {
-            var result = new JsonElementComparerResult(left, right, Options.MaxDifferences, Options.AlwaysReplaceAllArrayItems);
+            var result = new JsonElementComparerResult(left, right, Options.MaxDifferences, Options.ReplaceAllArrayItemsOnMerge);
             Compare(left, right, new CompareState(result, Options.PathComparer, pathsToIgnore));
             return result;
         }
@@ -186,10 +174,7 @@ namespace CoreEx.Json.Compare
                     break;
 
                 case JsonValueKind.Object:
-                    var lprops = left.EnumerateObject().ToList();
-                    var rprops = right.EnumerateObject().ToList();
-
-                    foreach (var l in lprops)
+                    foreach (var l in left.EnumerateObject())
                     {
                         state.Compare(l.Name, () =>
                         {
@@ -208,7 +193,7 @@ namespace CoreEx.Json.Compare
                             break;
                     }
 
-                    foreach (var r in rprops)
+                    foreach (var r in right.EnumerateObject())
                     {
                         state.Compare(r.Name, () =>
                         {
@@ -256,7 +241,7 @@ namespace CoreEx.Json.Compare
         }
 
         /// <summary>
-        /// Performs the configured TryGetProperty; either exact or semantic.
+        /// Performs the configured TryGetProperty; using the comparer.
         /// </summary>
         private bool TryGetProperty(JsonElement json, string propertyName, out JsonElement value)
             => Options.PropertyNameComparer is null ? json.TryGetProperty(propertyName, out value) : json.TryGetProperty(propertyName, Options.PropertyNameComparer, out value);

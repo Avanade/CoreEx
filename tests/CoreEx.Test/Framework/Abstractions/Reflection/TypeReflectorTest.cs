@@ -139,13 +139,24 @@ namespace CoreEx.Test.Framework.Abstractions.Reflection
         }
 
         [Test]
-        public void GetReflector_Compare()
+        public void GetReflector_Compare_Int()
         {
             var tr = TypeReflector.GetReflector<int[]>(new TypeReflectorArgs());
             Assert.Multiple(() =>
             {
                 Assert.That(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 3 }), Is.True);
                 Assert.That(tr.Compare(new int[] { 1, 2, 3 }, new int[] { 1, 2, 4 }), Is.False);
+            });
+        }
+
+        [Test]
+        public void GetReflector_Compare_String()
+        {
+            var tr = TypeReflector.GetReflector<string[]>(new TypeReflectorArgs());
+            Assert.Multiple(() =>
+            {
+                Assert.That(tr.Compare(["a", "aa"], ["a", "aa"]), Is.True);
+                Assert.That(tr.Compare(["a", "aa"], ["b", "bb"]), Is.False);
             });
         }
 

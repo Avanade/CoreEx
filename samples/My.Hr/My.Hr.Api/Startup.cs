@@ -8,6 +8,7 @@ using CoreEx.Database.HealthChecks;
 using CoreEx.Azure.ServiceBus.HealthChecks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
+using CoreEx.Json.Merge;
 
 namespace My.Hr.Api;
 

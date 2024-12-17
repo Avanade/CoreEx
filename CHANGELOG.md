@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v3.31.0
+- *Enhancement:* Moved existing reflection-based `JsonMergePatch` to `Extended.JsonMergePatchEx`; this remains the `AddJsonMergePatch` default implementation.
+- *Enhancement:* Added new `JsonMergePatch` that leverages `JsonElement` and `Utf8JsonWriter` without underlying reflection; useful in scenarios where the value type is not known. This is also not as performant as the reflection-based `JsonMergePatchEx` version and the primary reason why it is not the new default.
+
 ## v3.30.2
 - *Fixed:* Missing `QueryArgs.IncludeText` added to set the `$text=true` equivalent.
 - *Fixed:* Simplification of creating and setting the `QueryArgs.Filter` using an implict string operator.

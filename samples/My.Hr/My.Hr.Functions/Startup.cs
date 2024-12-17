@@ -5,6 +5,7 @@ using CoreEx.AspNetCore.WebApis;
 using CoreEx.Database;
 using CoreEx.Database.HealthChecks;
 using CoreEx.Http.HealthChecks;
+using CoreEx.Json.Merge;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,7 +42,7 @@ public class Startup : FunctionsStartup
                 .AddSingleton(sp => new Az.ServiceBusClient(sp.GetRequiredService<HrSettings>().ServiceBusConnection__fullyQualifiedNamespace))
                 .AddAzureServiceBusSender()
                 .AddWebApi((_, webapi) => webapi.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? webapi.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
-                .AddJsonMergePatch()
+                .AddJsonMergePatch(sp => new JsonMergePatch())
                 .AddWebApiPublisher()
                 .AddAzureServiceBusSubscriber();
 

@@ -56,6 +56,8 @@ public class EmployeeService : IEmployeeService
             throw new NotFoundException();
 
         employee.Id = id;
+
+        _dbContext.ChangeTracker.Clear(); // Different employee instance (result of using CoreEx.Json.JsonMergePatch vs CoreEx.Json.Extended.JsonMergePatchEx); therefore, clear the change tracker prior to update attempt.
         _dbContext.Employees.Update(employee);
         await _dbContext.SaveChangesAsync().ConfigureAwait(false);
         return employee;

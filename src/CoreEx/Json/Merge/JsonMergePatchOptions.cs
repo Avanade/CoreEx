@@ -13,21 +13,11 @@ namespace CoreEx.Json.Merge
         /// <summary>
         /// Gets the <see cref="IJsonSerializer"/>.
         /// </summary>
-        public IJsonSerializer JsonSerializer { get; } = jsonSerializer ?? Json.JsonSerializer.Default;
+        public IJsonSerializer JsonSerializer { get; } = jsonSerializer ?? ExecutionContext.GetService<IJsonSerializer>() ?? Json.JsonSerializer.Default;
 
         /// <summary>
         /// Gets or sets the <see cref="StringComparer"/> for matching the JSON name (defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>).
         /// </summary>
-        public StringComparer NameComparer { get; set; } = StringComparer.OrdinalIgnoreCase;
-
-        /// <summary>
-        /// Gets or sets the <see cref="Merge.DictionaryMergeApproach"/>. Defaults to <see cref="DictionaryMergeApproach.Merge"/>.
-        /// </summary>
-        public DictionaryMergeApproach DictionaryMergeApproach { get; set; } = DictionaryMergeApproach.Merge;
-
-        /// <summary>
-        /// Gets or sets the <see cref="Merge.EntityKeyCollectionMergeApproach"/>. Defaults to <see cref="DictionaryMergeApproach.Replace"/>.
-        /// </summary>
-        public EntityKeyCollectionMergeApproach EntityKeyCollectionMergeApproach { get; set; } = EntityKeyCollectionMergeApproach.Replace;
+        public StringComparer PropertyNameComparer { get; set; } = StringComparer.OrdinalIgnoreCase;
     }
 }

@@ -67,7 +67,7 @@ namespace CoreEx.Json.Compare
         /// </summary>
         /// <remarks>The formal specification <see href="https://tools.ietf.org/html/rfc7396"/> explictly states that an <see cref="System.Text.Json.JsonValueKind.Array"/> is to be a replacement operation.
         /// <para>Where set to <c>false</c> and there is an array length difference this will always result in a replace (i.e. all); no means to reliably determine what has been added, deleted, modified, resequenced, etc.</para></remarks>
-        public bool AlwaysReplaceAllArrayItems { get; set; } = true;
+        public bool ReplaceAllArrayItemsOnMerge { get; set; } = true;
 
         /// <summary>
         /// Clones the <see cref="JsonElementComparerOptions"/>.
@@ -81,7 +81,7 @@ namespace CoreEx.Json.Compare
             ValueComparison = ValueComparison,
             NullComparison = NullComparison,
             JsonSerializer = JsonSerializer,
-            AlwaysReplaceAllArrayItems = AlwaysReplaceAllArrayItems
+            ReplaceAllArrayItemsOnMerge = ReplaceAllArrayItemsOnMerge
         };
     }
 }
