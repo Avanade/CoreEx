@@ -17,3 +17,8 @@
     - { id: ^3, name: "Greg", birthday: 1970-07-06, salary: 101000, locked: false, filter: A }
     - { id: ^4, name: "Sally", birthday: 1999-02-28, salary: 50000, locked: true, filter: A }
     - { id: ^5, name: "Mike", birthday: 1967-09-13, salary: 135000, locked: false, filter: A }
+  - PersonX:
+    - { id: A, type: PersonX1, text: "AAA" }
+    - { id: B, type: PersonX2, name: "BBB" }      
+    - { id: C, type: PersonX1, text: "CCC" }
+    - { id: D, type: PersonX3, text: "DDD" }

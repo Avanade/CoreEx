@@ -16,12 +16,14 @@ namespace CoreEx.Cosmos
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
     /// <typeparam name="TSelf">The <see cref="Type"/> itself.</typeparam>
-    public abstract class CosmosDbQueryBase<T, TModel, TSelf>(ICosmosDbContainer container, CosmosDbArgs dbArgs) where T : class, new() where TModel : class, new() where TSelf : CosmosDbQueryBase<T, TModel, TSelf>
+    /// <param name="container">The owning <see cref="CosmosDbContainer"/>.</param>
+    /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+    public abstract class CosmosDbQueryBase<T, TModel, TSelf>(CosmosDbContainer container, CosmosDbArgs dbArgs) where T : class, new() where TModel : class, new() where TSelf : CosmosDbQueryBase<T, TModel, TSelf>
     {
         /// <summary>
-        /// Gets the <see cref="ICosmosDbContainer"/>.
+        /// Gets the owning <see cref="CosmosDbContainer"/>.
         /// </summary>
-        public ICosmosDbContainer Container { get; } = container.ThrowIfNull(nameof(container));
+        public CosmosDbContainer Container { get; } = container.ThrowIfNull(nameof(container));
 
         /// <summary>
         /// Gets the <see cref="CosmosDbArgs"/>.
@@ -203,7 +205,7 @@ namespace CoreEx.Cosmos
         {
             var list = new List<T>();
             var result = await SelectQueryWithResultAsync(list, cancellationToken).ConfigureAwait(false);
-            return result.ThenAs(() => list.ToArray());
+            return result.ThenAs(list.ToArray);
         }
 
         /// <summary>

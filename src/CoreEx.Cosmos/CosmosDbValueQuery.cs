@@ -15,17 +15,12 @@ namespace CoreEx.Cosmos
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="CosmosDbValue{T}"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
-    /// <param name="container">The <see cref="CosmosDbValueContainer{T, TModel}"/>.</param>
+    /// <param name="container">The <see cref="CosmosDbContainer"/>.</param>
     /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="query">A function to modify the underlying <see cref="IQueryable{T}"/>.</param>
-    public class CosmosDbValueQuery<T, TModel>(CosmosDbValueContainer<T, TModel> container, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>>(container, dbArgs) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
+    public class CosmosDbValueQuery<T, TModel>(CosmosDbContainer container, CosmosDbArgs dbArgs, Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? query) : CosmosDbQueryBase<T, TModel, CosmosDbValueQuery<T, TModel>>(container, dbArgs) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
     {
         private readonly Func<IQueryable<CosmosDbValue<TModel>>, IQueryable<CosmosDbValue<TModel>>>? _query = query;
-
-        /// <summary>
-        /// Gets the <see cref="CosmosDbValueContainer{T, TModel}"/>.
-        /// </summary>
-        public new CosmosDbValueContainer<T, TModel> Container => (CosmosDbValueContainer<T, TModel>)base.Container;
 
         /// <summary>
         /// Instantiates the <see cref="IQueryable"/>.
@@ -35,12 +30,12 @@ namespace CoreEx.Cosmos
             if (!pagingSupported && Paging is not null)
                 throw new NotSupportedException("Paging is not supported when accessing AsQueryable directly; paging must be applied directly to the resulting IQueryable instance.");
 
-            IQueryable<CosmosDbValue<TModel>> query = Container.Container.GetItemLinqQueryable<CosmosDbValue<TModel>>(allowSynchronousQueryExecution: allowSynchronousQueryExecution, requestOptions: QueryArgs.GetQueryRequestOptions());
-            query = (_query == null ? query : _query(query)).WhereType(typeof(TModel));
+            IQueryable<CosmosDbValue<TModel>> query = Container.CosmosContainer.GetItemLinqQueryable<CosmosDbValue<TModel>>(allowSynchronousQueryExecution: allowSynchronousQueryExecution, requestOptions: QueryArgs.GetQueryRequestOptions());
+            query = (_query == null ? query : _query(query)).WhereType(Container.Model.GetModelName<TModel>());
 
-            var filter = Container.CosmosDb.GetAuthorizeFilter<TModel>(Container.Container.Id);
+            var filter = Container.Model.GetValueAuthorizeFilter<TModel>();
             if (filter != null)
-                query = (IQueryable<CosmosDbValue<TModel>>)filter(query);
+                query = filter(query);
 
             if (QueryArgs.FilterByTenantId && typeof(ITenantId).IsAssignableFrom(typeof(TModel)))
                 query = query.Where(x => ((ITenantId)x.Value).TenantId == QueryArgs.GetTenantId());
@@ -68,7 +63,7 @@ namespace CoreEx.Cosmos
             {
                 foreach (var item in await iterator.ReadNextAsync(ct).ConfigureAwait(false))
                 {
-                    items.Add(Container.MapToValue(item));
+                    items.Add(Container.MapToValue<T, TModel>(item, QueryArgs)!);
                 }
             }
 

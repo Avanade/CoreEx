@@ -1,6 +1,7 @@
 ﻿using CoreEx.Cosmos.Batch;
 using CoreEx.Json.Data;
 using CoreEx.Mapping;
+using Microsoft.Azure.Cosmos;
 using AzCosmos = Microsoft.Azure.Cosmos;
 
 namespace CoreEx.Cosmos.Test
@@ -79,13 +80,20 @@ namespace CoreEx.Cosmos.Test
                 UniqueKeyPolicy = new AzCosmos.UniqueKeyPolicy { UniqueKeys = { new AzCosmos.UniqueKey { Paths = { "/type", "/value/code" } } } }
             }, 400);
 
+            var c5 = await CosmosDatabase.ReplaceOrCreateContainerAsync(new AzCosmos.ContainerProperties
+            {
+                Id = "PersonsX",
+                PartitionKeyPath = "/_partitionKey"
+            }, 400);
+
             var db = new CosmosDb(auth: false);
 
             var jdr = JsonDataReader.ParseYaml<CosmosDb>("Data.yaml");
             await db.Persons1.ImportBatchAsync(jdr);
             await db.Persons2.ImportBatchAsync(jdr);
             await db.Persons3.ImportValueBatchAsync(jdr);
-            await db.ImportValueBatchAsync("Persons3", new Person1[] { new() { Id = 100.ToGuid().ToString() } }); // Add other random "type" to Person3.
+            await db.ImportValueBatchAsync("Persons3", new Person1[] { new() { Id = 100.ToGuid().ToString(), Filter = "A" } }); // Add other random "type" to Person3.
+            await db.PersonsX.ImportJsonBatchAsync(jdr, "PersonX");
 
             jdr = JsonDataReader.ParseYaml<CosmosDb>("RefData.yaml", new JsonDataReaderArgs(new Text.Json.ReferenceDataContentJsonSerializer()));
             await db.ImportValueBatchAsync("RefData", jdr, new Type[] { typeof(Gender) });

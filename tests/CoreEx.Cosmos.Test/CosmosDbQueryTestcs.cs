@@ -51,7 +51,7 @@ namespace CoreEx.Cosmos.Test
             Assert.That(vr.Items[0].Name, Is.EqualTo("Mike"));
             Assert.That(vr.Items[1].Name, Is.EqualTo("Rebecca"));
             Assert.That(vr.Paging, Is.Not.Null);
-            Assert.That(vr.Paging.TotalCount, Is.EqualTo(3));
+            Assert.That(vr.Paging!.TotalCount, Is.EqualTo(3));
         }
 
         [Test]
@@ -74,7 +74,7 @@ namespace CoreEx.Cosmos.Test
             Assert.That(v[2].Name, Is.EqualTo("Mike"));
 
             var ex = Assert.ThrowsAsync<InvalidOperationException>(() => _db.Persons1.Query(q => q.WhereWildcard(x => x.Name, "*m*e")).ToArrayAsync());
-            Assert.That(ex.Message, Is.EqualTo("Wildcard selection text is not supported."));
+            Assert.That(ex!.Message, Is.EqualTo("Wildcard selection text is not supported."));
         }
 
         [Test]
@@ -111,7 +111,7 @@ namespace CoreEx.Cosmos.Test
             Assert.That(vr.Items[0].Name, Is.EqualTo("Mike"));
             Assert.That(vr.Items[1].Name, Is.EqualTo("Rebecca"));
             Assert.That(vr.Paging, Is.Not.Null);
-            Assert.That(vr.Paging.TotalCount, Is.EqualTo(3));
+            Assert.That(vr.Paging!.TotalCount, Is.EqualTo(3));
         }
 
         [Test]
@@ -134,7 +134,7 @@ namespace CoreEx.Cosmos.Test
             Assert.That(v[2].Name, Is.EqualTo("Mike"));
 
             var ex = Assert.ThrowsAsync<InvalidOperationException>(() => _db.Persons2.Query(q => q.WhereWildcard(x => x.Name, "*m*e")).ToArrayAsync());
-            Assert.That(ex.Message, Is.EqualTo("Wildcard selection text is not supported."));
+            Assert.That(ex!.Message, Is.EqualTo("Wildcard selection text is not supported."));
         }
 
         [Test]
@@ -171,7 +171,7 @@ namespace CoreEx.Cosmos.Test
             Assert.That(vr.Items[0].Name, Is.EqualTo("Mike"));
             Assert.That(vr.Items[1].Name, Is.EqualTo("Rebecca"));
             Assert.That(vr.Paging, Is.Not.Null);
-            Assert.That(vr.Paging.TotalCount, Is.EqualTo(3));
+            Assert.That(vr.Paging!.TotalCount, Is.EqualTo(3));
         }
 
         [Test]
@@ -194,20 +194,20 @@ namespace CoreEx.Cosmos.Test
             Assert.That(v[2].Name, Is.EqualTo("Mike"));
 
             var ex = Assert.ThrowsAsync<InvalidOperationException>(() => _db.Persons3.Query(q => q.WhereWildcard(x => x.Value.Name, "*m*e")).ToArrayAsync());
-            Assert.That(ex.Message, Is.EqualTo("Wildcard selection text is not supported."));
+            Assert.That(ex!.Message, Is.EqualTo("Wildcard selection text is not supported."));
         }
 
         [Test]
         public async Task ModelQuery_Paging3()
         {
             var pr = new Entities.PagingResult(Entities.PagingArgs.CreateSkipAndTake(1, 2, true));
-            var v = await _db.Persons3.ModelContainer.Query(q => q.OrderBy(x => x.Id)).WithPaging(pr).ToArrayAsync();
+            var v = await _db.Persons3.Model.Query(q => q.OrderBy(x => x.Id)).WithPaging(pr).ToArrayAsync();
             Assert.That(v, Has.Length.EqualTo(2));
             Assert.That(v[0].Value.Name, Is.EqualTo("Gary"));
             Assert.That(v[1].Value.Name, Is.EqualTo("Greg"));
             Assert.That(pr.TotalCount, Is.EqualTo(5));
 
-            v = await _db.Persons3.ModelContainer.Query(q => q.OrderBy(x => x.Value.Name)).WithPaging(1, 2).ToArrayAsync();
+            v = await _db.Persons3.Model.Query(q => q.OrderBy(x => x.Value.Name)).WithPaging(1, 2).ToArrayAsync();
             Assert.That(v, Has.Length.EqualTo(2));
             Assert.That(v[0].Value.Name, Is.EqualTo("Greg"));
             Assert.That(v[1].Value.Name, Is.EqualTo("Mike"));
@@ -221,7 +221,7 @@ namespace CoreEx.Cosmos.Test
                     .AddField<string>("Name", "Value.Name", c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
                     .AddField<bool>("Birthday", "Value.Birthday"));
 
-            var v = await _db.Persons3.ModelContainer.Query(q => q.Where(qac, QueryArgs.Create("endswith(name, 'Y')")).OrderBy(x => x.Id)).ToArrayAsync();
+            var v = await _db.Persons3.Model.Query(q => q.Where(qac, QueryArgs.Create("endswith(name, 'Y')")).OrderBy(x => x.Id)).ToArrayAsync();
             Assert.That(v, Has.Length.EqualTo(2));
             Assert.That(v[0].Value.Name, Is.EqualTo("Gary"));
             Assert.That(v[1].Value.Name, Is.EqualTo("Sally"));

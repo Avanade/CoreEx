@@ -20,10 +20,13 @@
 
             var v = await _db.Persons1.GetAsync(1.ToGuid().ToString());
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(1.ToGuid().ToString()));
-            Assert.That(v.Name, Is.EqualTo("Rebecca"));
-            Assert.That(v.Birthday, Is.EqualTo(new DateTime(1990, 08, 07, 0, 0, 0, DateTimeKind.Unspecified)));
-            Assert.That(v.Salary, Is.EqualTo(150000m));
+            Assert.Multiple(() =>
+            {
+                Assert.That(v!.Id, Is.EqualTo(1.ToGuid().ToString()));
+                Assert.That(v.Name, Is.EqualTo("Rebecca"));
+                Assert.That(v.Birthday, Is.EqualTo(new DateTime(1990, 08, 07, 0, 0, 0, DateTimeKind.Unspecified)));
+                Assert.That(v.Salary, Is.EqualTo(150000m));
+            });
         }
 
         [Test]
@@ -33,12 +36,12 @@
 
             var v = await _db.Persons2.GetAsync(1.ToGuid().ToString());
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(1.ToGuid().ToString()));
+            Assert.That(v!.Id, Is.EqualTo(1.ToGuid().ToString()));
             Assert.That(v.Name, Is.EqualTo("Rebecca"));
             Assert.That(v.Birthday, Is.EqualTo(new DateTime(1990, 08, 07, 0, 0, 0, DateTimeKind.Unspecified)));
             Assert.That(v.Salary, Is.EqualTo(150000m));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ETag, Is.Not.Null);
             Assert.That(v.ETag, Does.Not.StartsWith("\""));
@@ -51,12 +54,12 @@
 
             var v = await _db.Persons3.GetAsync(1.ToGuid());
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(1.ToGuid()));
+            Assert.That(v!.Id, Is.EqualTo(1.ToGuid()));
             Assert.That(v.Name, Is.EqualTo("Rebecca"));
             Assert.That(v.Birthday, Is.EqualTo(new DateTime(1990, 08, 07, 0, 0, 0, DateTimeKind.Unspecified)));
             Assert.That(v.Salary, Is.EqualTo(150000m));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedBy, Is.Null);
             Assert.That(v.ChangeLog.UpdatedDate, Is.Null);
@@ -83,7 +86,7 @@
 
             v = await _db.Persons1.GetAsync(v.Id);
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(id));
+            Assert.That(v!.Id, Is.EqualTo(id));
             Assert.That(v.Name, Is.EqualTo("Michelle"));
             Assert.That(v.Birthday, Is.EqualTo(new DateTime(1979, 08, 12)));
             Assert.That(v.Salary, Is.EqualTo(181000m));
@@ -98,12 +101,12 @@
             var v = new Person2 { Id = id, Name = "Michelle", Birthday = new DateTime(1979, 08, 12), Salary = 181000m };
             v = await _db.Persons2.CreateAsync(v);
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(id));
+            Assert.That(v!.Id, Is.EqualTo(id));
             Assert.That(v.Name, Is.EqualTo("Michelle"));
             Assert.That(v.Birthday, Is.EqualTo(new DateTime(1979, 08, 12)));
             Assert.That(v.Salary, Is.EqualTo(181000m));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedBy, Is.Null);
             Assert.That(v.ChangeLog.UpdatedDate, Is.Null); 
@@ -112,12 +115,12 @@
 
             v = await _db.Persons2.GetAsync(v.Id);
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(id));
+            Assert.That(v!.Id, Is.EqualTo(id));
             Assert.That(v.Name, Is.EqualTo("Michelle"));
             Assert.That(v.Birthday, Is.EqualTo(new DateTime(1979, 08, 12)));
             Assert.That(v.Salary, Is.EqualTo(181000m));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedBy, Is.Null);
             Assert.That(v.ChangeLog.UpdatedDate, Is.Null); 
@@ -134,12 +137,12 @@
             var v = new Person3 { Id = id, Name = "Michelle", Birthday = new DateTime(1979, 08, 12), Salary = 181000m };
             v = await _db.Persons3.CreateAsync(v);
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(id));
+            Assert.That(v!.Id, Is.EqualTo(id));
             Assert.That(v.Name, Is.EqualTo("Michelle"));
             Assert.That(v.Birthday, Is.EqualTo(new DateTime(1979, 08, 12)));
             Assert.That(v.Salary, Is.EqualTo(181000m));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedBy, Is.Null);
             Assert.That(v.ChangeLog.UpdatedDate, Is.Null); 
@@ -148,12 +151,12 @@
 
             v = await _db.Persons3.GetAsync(v.Id);
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(id));
+            Assert.That(v!.Id, Is.EqualTo(id));
             Assert.That(v.Name, Is.EqualTo("Michelle"));
             Assert.That(v.Birthday, Is.EqualTo(new DateTime(1979, 08, 12)));
             Assert.That(v.Salary, Is.EqualTo(181000m));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedBy, Is.Null);
             Assert.That(v.ChangeLog.UpdatedDate, Is.Null); 
@@ -171,7 +174,7 @@
             Assert.That(v, Is.Not.Null);
 
             // Update testing.
-            v.Id = 404.ToGuid().ToString();
+            v!.Id = 404.ToGuid().ToString();
             Assert.ThrowsAsync<NotFoundException>(() => _db.Persons1.UpdateAsync(v));
 
             v.Id = 5.ToGuid().ToString();
@@ -192,7 +195,7 @@
             Assert.That(v, Is.Not.Null);
 
             // Update testing.
-            v.Id = 404.ToGuid().ToString();
+            v!.Id = 404.ToGuid().ToString();
             Assert.ThrowsAsync<NotFoundException>(() => _db.Persons2.UpdateAsync(v));
 
             v.Id = 5.ToGuid().ToString();
@@ -202,7 +205,7 @@
             Assert.That(v.Id, Is.EqualTo(5.ToGuid().ToString()));
             Assert.That(v.Name, Is.EqualTo("MikeX"));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedDate, Is.Not.Null);
@@ -224,7 +227,7 @@
             Assert.That(v, Is.Not.Null);
 
             // Update testing.
-            v.Id = 404.ToGuid();
+            v!.Id = 404.ToGuid();
             Assert.ThrowsAsync<NotFoundException>(() => _db.Persons3.UpdateAsync(v));
 
             v.Id = 5.ToGuid();
@@ -234,7 +237,7 @@
             Assert.That(v.Id, Is.EqualTo(5.ToGuid()));
             Assert.That(v.Name, Is.EqualTo("MikeX"));
             Assert.That(v.ChangeLog, Is.Not.Null);
-            Assert.That(v.ChangeLog.CreatedBy, Is.Not.Null);
+            Assert.That(v.ChangeLog!.CreatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.CreatedDate, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedBy, Is.Not.Null);
             Assert.That(v.ChangeLog.UpdatedDate, Is.Not.Null);
@@ -253,7 +256,7 @@
 
             await _db.Persons1.DeleteAsync(4.ToGuid().ToString());
 
-            using (var r = await _db.Persons1.Container.ReadItemStreamAsync(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
+            using (var r = await _db.Persons1.CosmosContainer.ReadItemStreamAsync(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
             {
                 Assert.That(r, Is.Not.Null);
                 Assert.That(r.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.NotFound));
@@ -267,7 +270,7 @@
 
             await _db.Persons2.DeleteAsync(4.ToGuid().ToString());
 
-            using (var r = await _db.Persons2.Container.ReadItemStreamAsync(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
+            using (var r = await _db.Persons2.CosmosContainer.ReadItemStreamAsync(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
             {
                 Assert.That(r, Is.Not.Null);
                 Assert.That(r.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.NotFound));
@@ -281,13 +284,13 @@
 
             await _db.Persons3.DeleteAsync(4.ToGuid());
 
-            using (var r = await _db.Persons3.Container.ReadItemStreamAsync(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
+            using (var r = await _db.Persons3.CosmosContainer.ReadItemStreamAsync(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
             {
                 Assert.That(r, Is.Not.Null);
                 Assert.That(r.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.NotFound));
             };
 
-            using (var r = await _db.Persons3.Container.ReadItemStreamAsync(100.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
+            using (var r = await _db.Persons3.CosmosContainer.ReadItemStreamAsync(100.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None))
             {
                 Assert.That(r, Is.Not.Null);
                 Assert.That(r.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.OK));

@@ -4,24 +4,26 @@ using CoreEx.Abstractions;
 using CoreEx.Cosmos.Model;
 using CoreEx.Entities;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Cosmos
 {
     /// <summary>
-    /// Represents a special-purpose <b>CosmosDb</b> object that houses an underlying model-<see cref="Value"/>, including <see cref="Type"/> name, and flexible <see cref="IEntityKey"/>, for persistence.
+    /// Represents a special-purpose <b>CosmosDb</b> object that houses an underlying model-<see cref="Value"/>, including <see cref="System.Type"/> name, and flexible <see cref="IEntityKey"/>, for persistence.
     /// </summary>
-    /// <typeparam name="TModel">The model <see cref="Value"/> <see cref="Type"/>.</typeparam>
-    /// <remarks>The <see cref="CosmosDbModelBase.Id"/>, <see cref="Type"/> and <see cref="CosmosDbModelBase.ETag"/> are updated internally, where possible, when interacting directly with <b>CosmosDB</b>.</remarks>
+    /// <typeparam name="TModel">The model <see cref="Value"/> <see cref="System.Type"/>.</typeparam>
+    /// <remarks>The <see cref="CosmosDbModelBase.Id"/>, <see cref="System.Type"/> and <see cref="CosmosDbModelBase.ETag"/> are updated internally, where possible, when interacting directly with <b>CosmosDB</b>.</remarks>
     public sealed class CosmosDbValue<TModel> : CosmosDbModelBase, ICosmosDbValue where TModel : class, IEntityKey, new()
     {
         private TModel _value;
+        private string _type;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CosmosDbValue{TModel}"/> class.
         /// </summary>
         public CosmosDbValue()
         {
-            Type = typeof(TModel).Name;
+            _type = typeof(TModel).Name;
             _value = new();
         }
 
@@ -31,31 +33,33 @@ namespace CoreEx.Cosmos
         /// <param name="value">The value.</param>
         public CosmosDbValue(TModel value)
         {
-            Type = typeof(TModel).Name;
+            _type = typeof(TModel).Name;
             _value = value.ThrowIfNull(nameof(value));
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CosmosDbValue{TModel}"/> class with a <paramref name="type"/> and <paramref name="value"/>.
         /// </summary>
-        /// <param name="type">The <see cref="Type"/> name override.</param>
+        /// <param name="type">The <see cref="System.Type"/> name override.</param>
         /// <param name="value">The value.</param>
         public CosmosDbValue(string? type, TModel value)
         {
-            Type = type ?? typeof(TModel).Name;
+            _type = type ?? typeof(TModel).Name;
             _value = value.ThrowIfNull(nameof(value));
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="Type"/> name.
+        /// Gets or sets the <see cref="System.Type"/> name.
         /// </summary>
         [JsonProperty("type")]
-        public string Type { get; set; }
+        [JsonPropertyName("type")]
+        public string Type { get => _type; set => _type = value.ThrowIfNullOrEmpty(nameof(Type)); }
 
         /// <summary>
         /// Gets or sets the value.
         /// </summary>
         [JsonProperty("value")]
+        [JsonPropertyName("value")]
         public TModel Value { get => _value; set => _value = value.ThrowIfNull(nameof(Value)); }
 
         /// <summary>
@@ -64,7 +68,7 @@ namespace CoreEx.Cosmos
         object ICosmosDbValue.Value => _value;
 
         /// <inheritdoc/>
-        void ICosmosDbValue.PrepareBefore(CosmosDbArgs dbArgs, string? typeName)
+        void ICosmosDbValue.PrepareBefore(CosmosDbArgs dbArgs, string? type)
         {
             if (Value != default)
             {
@@ -77,8 +81,10 @@ namespace CoreEx.Cosmos
                     PartitionKey = pk.PartitionKey;
             }
 
-            if (!string.IsNullOrEmpty(typeName))
-                Type = typeName;
+            if (string.IsNullOrEmpty(type))
+                Type ??= typeof(TModel).Name;
+            else
+                Type = type;
         }
 
         /// <inheritdoc/>

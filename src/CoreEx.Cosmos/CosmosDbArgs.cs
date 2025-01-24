@@ -123,7 +123,7 @@ namespace CoreEx.Cosmos
         public Func<string?> GetTenantId { get; set; } = () => ExecutionContext.HasCurrent ? ExecutionContext.Current.TenantId : null;
 
         /// <summary>
-        /// Formats a <see cref="CompositeKey"/> to a <see cref="string"/> representation (used by <see cref="CosmosDbContainerBase{T, TModel, TSelf}.GetCosmosId(T)"/> and <see cref="ICosmosDbValue.PrepareBefore"/>).
+        /// Formats a <see cref="CompositeKey"/> to a <see cref="string"/> representation (used by <see cref="CosmosDbContainer.GetCosmosId(CompositeKey)"/> and <see cref="ICosmosDbValue.PrepareBefore"/>).
         /// </summary>
         /// <returns>The identifier as a <see cref="string"/>.</returns>
         /// <remarks>Defaults to <see cref="DefaultFormatIdentifier"/>.</remarks>

@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 
@@ -232,6 +233,34 @@ namespace CoreEx.Json.Data
             }
 
             return items != null;
+        }
+
+        /// <summary>
+        /// Enumerate the named element and invoke the <paramref name="json"/> action per item.
+        /// </summary>
+        /// <param name="name">The element name where the array of items to invoke are housed.</param>
+        /// <param name="json">The resulting <see cref="JsonElement"/> item function.</param>
+        /// <returns><c>true</c> indicates that one or more items were invoked; otherwise, <c>false</c> for none found.</returns>
+        public async Task<bool> EnumerateJsonAsync(string name, Func<JsonElement, Task> json)
+        {
+            name.ThrowIfNullOrEmpty(nameof(name));
+            json.ThrowIfNull(nameof(json));
+            bool any = false;
+
+            // Find the named object and action.
+            foreach (var ji in _json.Value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Object))
+            {
+                foreach (var jo in ji.EnumerateObject().Where(x => x.Name == name && x.Value.ValueKind == JsonValueKind.Array))
+                {
+                    foreach (var jd in jo.Value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Object))
+                    {
+                        await json(jd).ConfigureAwait(false);
+                        any = true;
+                    }
+                }
+            }
+
+            return any;
         }
 
         /// <summary>
