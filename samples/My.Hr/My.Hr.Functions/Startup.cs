@@ -41,7 +41,7 @@ public class Startup : FunctionsStartup
                 .AddEventPublisher()
                 .AddSingleton(sp => new Az.ServiceBusClient(sp.GetRequiredService<HrSettings>().ServiceBusConnection__fullyQualifiedNamespace))
                 .AddAzureServiceBusSender()
-                .AddWebApi((_, webapi) => webapi.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? webapi.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
+                .AddWebApi((_, webapi) => webapi.UnhandledExceptionAsync = (ex, logger, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? webapi.CreateActionResultFromExtendedException(new ConcurrencyException(), logger) : null))
                 .AddJsonMergePatch(sp => new JsonMergePatch())
                 .AddWebApiPublisher()
                 .AddAzureServiceBusSubscriber();

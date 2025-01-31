@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
+using CoreEx.Configuration;
 using Microsoft.Extensions.Caching.Memory;
+using System;
 using System.Runtime.CompilerServices;
 
 [assembly: 
@@ -21,7 +23,7 @@ namespace CoreEx.Abstractions
         private static IMemoryCache? _fallbackCache;
 
         /// <summary>
-        /// Gets the <b>CoreEx</b> fallback <see cref="IMemoryCache"/>.
+        /// Gets the <b>CoreEx</b> <see cref="IInternalCache"/>.
         /// </summary>
         internal static IMemoryCache MemoryCache => ExecutionContext.GetService<IInternalCache>() ?? (_fallbackCache ??= new MemoryCache(new MemoryCacheOptions()));
 
@@ -29,5 +31,15 @@ namespace CoreEx.Abstractions
         /// Represents a cache for internal capabilities.
         /// </summary>
         public interface IInternalCache : IMemoryCache { }
+
+        /// <summary>
+        /// Indicates whether the specified <typeparamref name="TException"/> should be logged.
+        /// </summary>
+        /// <typeparam name="TException">The <see cref="IExtendedException"/> <see cref="Type"/>.</typeparam>
+        internal static bool ShouldExceptionBeLogged<TException>() where TException : Exception, IExtendedException => MemoryCache.GetOrCreate(typeof(TException), entry => 
+        { 
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            return ExecutionContext.GetService<SettingsBase>()?.GetCoreExValue<bool?>($"Log{typeof(TException).Name}") ?? false;
+        });
     }
 }

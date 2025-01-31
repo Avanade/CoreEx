@@ -14,11 +14,12 @@ namespace CoreEx
     public class TransientException : Exception, IExtendedException
     {
         private const string _message = "A transient error has occurred; please try again.";
+        private static bool? _shouldExceptionBeLogged;
 
         /// <summary>
         /// Get or sets the <see cref="ShouldBeLogged"/> value.
         /// </summary>
-        public static bool ShouldExceptionBeLogged { get; set; }
+        public static bool ShouldExceptionBeLogged { get => _shouldExceptionBeLogged ?? Internal.ShouldExceptionBeLogged<TransientException>(); set => _shouldExceptionBeLogged = value; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TransientException"/> class.

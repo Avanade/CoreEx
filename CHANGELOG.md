@@ -10,6 +10,7 @@ Represents the **NuGet** versions.
   - The existing `CosmosDb.UseAuthorizeFilter` operations have been moved to `CosmosDbContainer` as these are single container-specific.
 - *Enhancement:* Added `Cleaner.PrepareCreate` and `Cleaner.PrepareUpdate` to encapsulate `ChangeLog.PrepareCreated` and `ChangeLog.PrepareUpdated`, and `Cleaner.ResetTenantId` to ensure consistent handling throughout _CoreEx_.
 - *Enhancement:* Added `SystemTime.Timestamp` as the standard means to access the current timestamp (uses `Cleaner.Clean`) to ensure consistency throughout _CoreEx_. Therefore, the likes of `DateTime.UtcNow` should be replaced with `SystemTime.Timestamp`. The previous `ExecutionContent.SystemTime` has been removed as it was not consistent with the `ExecutionContext` pattern.
+- *Enhancement:* Updated the `IExtendedException.ShouldBeLogged` implementations to check `SettingsBase` configuration to enable/disable.
 
 ## v3.30.2
 - *Fixed:* Missing `QueryArgs.IncludeText` added to set the `$text=true` equivalent.

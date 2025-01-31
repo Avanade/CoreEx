@@ -35,7 +35,7 @@ public class Startup
             .AddAzureServiceBusSender()
             .AddAzureServiceBusPurger()
             .AddJsonMergePatch()
-            .AddWebApi((_, webapi) => webapi.UnhandledExceptionAsync = (ex, _, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? webapi.CreateActionResultFromExtendedException(new ConcurrencyException()) : null))
+            .AddWebApi((_, webapi) => webapi.UnhandledExceptionAsync = (ex, logger, _) => Task.FromResult(ex is DbUpdateConcurrencyException efex ? webapi.CreateActionResultFromExtendedException(new ConcurrencyException(null, ex), logger) : null))
             .AddReferenceDataContentWebApi()
             .AddRequestCache();
 

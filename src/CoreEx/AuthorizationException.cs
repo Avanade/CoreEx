@@ -14,11 +14,12 @@ namespace CoreEx
     public class AuthorizationException : Exception, IExtendedException
     {
         private const string _message = "An authorization error occurred; you are not permitted to perform this action.";
+        private static bool? _shouldExceptionBeLogged;
 
         /// <summary>
         /// Get or sets the <see cref="ShouldBeLogged"/> value.
         /// </summary>
-        public static bool ShouldExceptionBeLogged { get; set; }
+        public static bool ShouldExceptionBeLogged { get => _shouldExceptionBeLogged ?? Internal.ShouldExceptionBeLogged<AuthorizationException>(); set => _shouldExceptionBeLogged = value; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AuthorizationException"/> class.

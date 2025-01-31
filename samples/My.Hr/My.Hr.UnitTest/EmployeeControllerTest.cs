@@ -335,6 +335,7 @@ namespace My.Hr.UnitTest
             v.ETag = "ZZZZZZZZZZZZ";
 
             test.Controller<EmployeeController>()
+                .ExpectLogContains("fail: A concurrency error occurred; please refresh the data and try again.") // Verifies the ConcurrencyException.ShouldBeLogged was logged as expected.
                 .Run(c => c.UpdateAsync(v.Id, null!), v)
                 .AssertPreconditionFailed();
         }
@@ -390,6 +391,7 @@ namespace My.Hr.UnitTest
             v.FirstName += "X";
 
             test.Controller<EmployeeController>()
+                .ExpectLogContains("fail: A concurrency error occurred; please refresh the data and try again.") // Verifies the ConcurrencyException.ShouldBeLogged was logged as expected.
                 .RunContent(c => c.PatchAsync(v.Id, null!), $"{{ \"firstName\": \"{v.FirstName}\" }}", HttpConsts.MergePatchMediaTypeName, new HttpRequestOptions { ETag = "ZZZZZZZZZZZZ" })
                 .AssertPreconditionFailed();
         }
