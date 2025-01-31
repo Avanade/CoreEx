@@ -60,7 +60,7 @@ namespace CoreEx.RefData.Extended
 
         /// <inheritdoc/>
         /// <remarks>Note to classes that override: the base <see cref="IsActive"/> should be called as it verifies <see cref="IsActive"/>, and that the <see cref="StartDate"/> and <see cref="EndDate"/> are not outside of the 
-        /// <see cref="IReferenceDataContext"/> <see cref="IReferenceDataContext.Date"/> where configured (otherwise <see cref="DateTime.UtcNow"/>). This is accessed via <see cref="ExecutionContext.Current"/> 
+        /// <see cref="IReferenceDataContext"/> <see cref="IReferenceDataContext.Date"/> where configured (otherwise <see cref="SystemTime.Timestamp"/>). This is accessed via <see cref="ExecutionContext.Current"/> 
         /// <see cref="ExecutionContext.ReferenceDataContext"/> where <see cref="ExecutionContext.HasCurrent"/>. The <see cref="IsActive"/> will always return <c>false</c> when not <see cref="IsValid"/>.</remarks>
         public virtual bool IsActive
         {
@@ -71,7 +71,7 @@ namespace CoreEx.RefData.Extended
 
                 if (StartDate != null || EndDate != null)
                 {
-                    var date = ExecutionContext.HasCurrent ? ExecutionContext.Current.ReferenceDataContext[GetType()] : Cleaner.Clean(ExecutionContext.SystemTime.UtcNow, DateTimeTransform.DateOnly);
+                    var date = Cleaner.Clean(ExecutionContext.HasCurrent ? ExecutionContext.Current.ReferenceDataContext[GetType()] : SystemTime.Timestamp, DateTimeTransform.DateOnly);
                     if (StartDate != null && date < StartDate)
                         return false;
 

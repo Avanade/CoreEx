@@ -9,6 +9,11 @@
         /// Gets the <see cref="Employee"/> entity.
         /// </summary>
         EfDbEntity<Employee, Employee> Employees { get; }
+
+        /// <summary>
+        /// Gets the <see cref="Employee2"/> entity.
+        /// </summary>
+        EfDbEntity<Employee2, Employee2> Employees2 { get; }
     }
 
     /// <summary>
@@ -27,5 +32,10 @@
         /// Gets the <see cref="Employee"/> encapsulated entity.
         /// </summary>
         public EfDbEntity<Employee, Employee> Employees => new(this);
+
+        /// <summary>
+        /// Gets the <see cref="Employee"/> encapsulated entity.
+        /// </summary>
+        public EfDbEntity<Employee2, Employee2> Employees2 => new(this);
     }
 }

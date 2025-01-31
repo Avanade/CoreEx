@@ -516,10 +516,9 @@ namespace CoreEx.Cosmos
         /// <returns>The created value.</returns>
         public async Task<Result<T>> CreateWithResultAsync<T, TModel>(CosmosDbArgs dbArgs, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
         {
-            ChangeLog.PrepareCreated(value.ThrowIfNull(nameof(value)));
-            TModel model = CosmosDb.Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
+            TModel model = CosmosDb.Mapper.Map<T, TModel>(Cleaner.PrepareCreate(value.ThrowIfNull(nameof(value))), OperationTypes.Create)!;
 
-            var result = await Model.CreateWithResultAsync(dbArgs, model, cancellationToken).ConfigureAwait(false);
+            var result = await Model.CreateWithResultAsync(dbArgs, Cleaner.PrepareCreate(model), cancellationToken).ConfigureAwait(false);
             return result.ThenAs(model => MapToValue<T, TModel>(model, dbArgs)!);
         }
 
@@ -568,9 +567,8 @@ namespace CoreEx.Cosmos
         /// <returns>The created value.</returns>
         public async Task<Result<T>> CreateValueWithResultAsync<T, TModel>(CosmosDbArgs dbArgs, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
         {
-            ChangeLog.PrepareCreated(value.ThrowIfNull(nameof(value)));
-            TModel model = CosmosDb.Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
-            var cdv = new CosmosDbValue<TModel>(Model.GetModelName<TModel>(), model!);
+            TModel model = CosmosDb.Mapper.Map<T, TModel>(Cleaner.PrepareCreate(value.ThrowIfNull(nameof(value))), OperationTypes.Create);
+            var cdv = new CosmosDbValue<TModel>(Model.GetModelName<TModel>(), Cleaner.PrepareCreate(model)!);
 
             var result = await Model.CreateValueWithResultAsync(dbArgs, cdv, cancellationToken).ConfigureAwait(false);
             return result.ThenAs(model => MapToValue<T, TModel>(model, dbArgs)!);
@@ -625,9 +623,8 @@ namespace CoreEx.Cosmos
         /// <returns>The updated value.</returns>
         public async Task<Result<T>> UpdateWithResultAsync<T, TModel>(CosmosDbArgs dbArgs, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
         {
-            ChangeLog.PrepareUpdated(value);
-            var model = CosmosDb.Mapper.Map<T, TModel>(value.ThrowIfNull(nameof(value)), OperationTypes.Update)!;
-            var result = await Model.UpdateWithResultInternalAsync(dbArgs, model, m => CosmosDb.Mapper.Map(value, m, OperationTypes.Update), cancellationToken).ConfigureAwait(false);
+            var model = CosmosDb.Mapper.Map<T, TModel>(Cleaner.PrepareUpdate(value.ThrowIfNull(nameof(value))), OperationTypes.Update);
+            var result = await Model.UpdateWithResultInternalAsync(dbArgs, Cleaner.PrepareUpdate(model), m => CosmosDb.Mapper.Map(value, m, OperationTypes.Update), cancellationToken).ConfigureAwait(false);
             return result.ThenAs(model => MapToValue<T, TModel>(model, dbArgs)!);
         }
 
@@ -676,9 +673,8 @@ namespace CoreEx.Cosmos
         /// <returns>The updated value.</returns>
         public async Task<Result<T>> UpdateValueWithResultAsync<T, TModel>(CosmosDbArgs dbArgs, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, IEntityKey, new()
         {
-            ChangeLog.PrepareUpdated(value);
-            var model = CosmosDb.Mapper.Map<T, TModel>(value.ThrowIfNull(nameof(value)), OperationTypes.Update)!;
-            var cdv = new CosmosDbValue<TModel>(Model.GetModelName<TModel>(), model!);
+            var model = CosmosDb.Mapper.Map<T, TModel>(Cleaner.PrepareUpdate(value.ThrowIfNull(nameof(value))), OperationTypes.Update)!;
+            var cdv = new CosmosDbValue<TModel>(Model.GetModelName<TModel>(), Cleaner.PrepareUpdate(model!));
 
             var result = await Model.UpdateValueWithResultInternalAsync<TModel>(dbArgs, cdv, cdv => CosmosDb.Mapper.Map(value, cdv.Value, OperationTypes.Update), cancellationToken).ConfigureAwait(false);
             return result.ThenAs(model => MapToValue<T, TModel>(model, dbArgs)!);

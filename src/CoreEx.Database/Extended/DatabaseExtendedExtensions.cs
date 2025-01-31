@@ -103,9 +103,9 @@ namespace CoreEx.Database.Extended
 
             // Set ChangeLog properties where appropriate.
             if (operationType == OperationTypes.Create)
-                ChangeLog.PrepareCreated(value);
+                Cleaner.PrepareCreate(value);
             else
-                ChangeLog.PrepareUpdated(value);
+                Cleaner.PrepareUpdate(value);
 
             // Map the parameters.
             var map = (IDatabaseMapper<T>)args.Mapper;

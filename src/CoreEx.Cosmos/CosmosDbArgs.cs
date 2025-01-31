@@ -2,7 +2,10 @@
 
 using CoreEx.Entities;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Net;
 
 namespace CoreEx.Cosmos
@@ -31,6 +34,7 @@ namespace CoreEx.Cosmos
             AutoMapETag = template.AutoMapETag;
             CleanUpResult = template.CleanUpResult;
             FilterByTenantId = template.FilterByTenantId;
+            FilterByIsDeleted = template.FilterByIsDeleted;
             GetTenantId = template.GetTenantId;
             FormatIdentifier = template.FormatIdentifier;
         }
@@ -118,6 +122,11 @@ namespace CoreEx.Cosmos
         public bool FilterByTenantId { get; set; }
 
         /// <summary>
+        /// Indicates that when the underlying model implements <see cref="ILogicallyDeleted"/> it should filter out any models where the <see cref="ILogicallyDeleted.IsDeleted"/> equals <c>true</c>. Defaults to <c>true</c>.
+        /// </summary>
+        public bool FilterByIsDeleted { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the <i>get</i> tenant identifier function; defaults to <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.TenantId"/>.
         /// </summary>
         public Func<string?> GetTenantId { get; set; } = () => ExecutionContext.HasCurrent ? ExecutionContext.Current.TenantId : null;
@@ -133,5 +142,43 @@ namespace CoreEx.Cosmos
         /// Provides the default <see cref="FormatIdentifier"/> implementation; being the <see cref="CompositeKey"/> <see cref="object.ToString"/>.
         /// </summary>
         public static Func<CompositeKey, string?> DefaultFormatIdentifier { get; } = key => key.ToString();
+
+        /// <summary>
+        /// Determines whether the model is considered valid; i.e. is not <c>null</c>, and where applicable, checks the <see cref="ITenantId.TenantId"/> and <see cref="ILogicallyDeleted.IsDeleted"/> properties.
+        /// </summary>
+        /// <typeparam name="TModel">The model <see cref="Type"/>.</typeparam>
+        /// <param name="model">The model value.</param>
+        /// <param name="checkIsDeleted">Indicates whether to perform the <see cref="ILogicallyDeleted"/> check.</param>
+        /// <param name="checkTenantId">Indicates whether to perform the <see cref="ITenantId"/> check.</param>
+        /// <returns><c>true</c> indicates that the model is valid; otherwise, <c>false</c>.</returns>
+        /// <remarks>This is used by the underlying <see cref="Model.CosmosDbModelContainer"/> operations to ensure the model is considered valid or not, and then handled accordingly. The query-based operations leverage the corresponding <see cref="WhereModelValid"/> filter.
+        /// <para>This leverages the <see cref="WhereModelValid"/> to perform the check to ensure consistency of implementation.</para></remarks>
+        public readonly bool IsModelValid<TModel>([NotNullWhen(true)] TModel? model, bool checkIsDeleted = true, bool checkTenantId = true) where TModel : class
+            => model != default && WhereModelValid(new[] { model }.AsQueryable(), checkIsDeleted, checkTenantId).Any();
+
+        /// <summary>
+        /// Filters the <paramref name="query"/> to include only valid models; i.e. checks the <see cref="ITenantId.TenantId"/> and <see cref="ILogicallyDeleted.IsDeleted"/> properties.
+        /// </summary>
+        /// <typeparam name="TModel">The model <see cref="Type"/>.</typeparam>
+        /// <param name="query">The current query.</param>
+        /// <param name="checkIsDeleted">Indicates whether to perform the <see cref="ILogicallyDeleted"/> check.</param>
+        /// <param name="checkTenantId">Indicates whether to perform the <see cref="ITenantId"/> check.</param>
+        /// <returns>The updated query.</returns>
+        /// <remarks>This is used by the underlying <see cref="CosmosDbQuery{T, TModel}"/>, <see cref="CosmosDbValueQuery{T, TModel}"/>, <see cref="Model.CosmosDbModelQuery{TModel}"/> and <see cref="Model.CosmosDbValueModelQuery{TModel}"/> to apply standardized filtering.</remarks>
+        public readonly IQueryable<TModel> WhereModelValid<TModel>(IQueryable<TModel> query, bool checkIsDeleted = true, bool checkTenantId = true) where TModel : class
+        {
+            query = query.ThrowIfNull(nameof(query));
+
+            if (checkTenantId && FilterByTenantId && typeof(ITenantId).IsAssignableFrom(typeof(TModel)))
+            {
+                var tenantId = GetTenantId();
+                query = query.Where(x => ((ITenantId)x).TenantId == tenantId);
+            }
+
+            if (checkIsDeleted && FilterByIsDeleted && typeof(ILogicallyDeleted).IsAssignableFrom(typeof(TModel)))
+                query = query.Where(x => !((ILogicallyDeleted)x).IsDeleted.IsDefined() || ((ILogicallyDeleted)x).IsDeleted == null || ((ILogicallyDeleted)x).IsDeleted == false);
+
+            return query;
+        }
     }
 }

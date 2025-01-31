@@ -27,13 +27,13 @@ namespace CoreEx.Json.Data
         /// </summary>
         /// <param name="jsonSerializer">The <see cref="IJsonSerializer"/>.</param>
         /// <param name="username">The user name. Defaults to '<c><see cref="Environment.UserDomainName"/>\<see cref="Environment.UserName"/></c>'.</param>
-        /// <param name="dateTimeNow">The current <see cref="DateTime"/>. Defaults to <see cref="DateTime.UtcNow"/>.</param>
+        /// <param name="dateTimeNow">The current <see cref="DateTime"/>. Defaults to <see cref="SystemTime.Timestamp"/>.</param>
         /// <remarks>The <paramref name="jsonSerializer"/> defaults to a new <see cref="Text.Json.JsonSerializer"/> instance with a <see cref="Text.Json.NumberToStringConverter"/> added to the default <see cref="System.Text.Json.JsonSerializerOptions"/>
         /// to support numbers specified as strings which YAML is more permissive with.</remarks>
         public JsonDataReaderArgs(IJsonSerializer? jsonSerializer = null, string? username = null, DateTime? dateTimeNow = null)
         {
             Parameters.Add(UserNameKey, username ?? (Environment.UserDomainName == null ? Environment.UserName : $"{Environment.UserDomainName}\\{Environment.UserName}"));
-            Parameters.Add(DateTimeNowKey, dateTimeNow ?? DateTime.UtcNow);
+            Parameters.Add(DateTimeNowKey, dateTimeNow ?? SystemTime.Timestamp);
 
             RefDataColumnDefaults.Add(nameof(IReferenceData.IsActive), _ => true);
             RefDataColumnDefaults.Add(nameof(IReferenceData.SortOrder), i => i + 1);

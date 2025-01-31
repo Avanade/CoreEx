@@ -6,7 +6,7 @@ using CoreEx.Results;
 namespace CoreEx.EntityFrameworkCore
 {
     /// <summary>
-    /// Provides a lightweight typed <b>Entity Framework</b> wrapper over the <see cref="IEfDb"/> operations.
+    /// Provides a lightweight typed <b>Entity Framework</b> wrapper over the <see cref="IEfDb"/> operations mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> (and vice versa).
     /// </summary>
     /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
     /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>

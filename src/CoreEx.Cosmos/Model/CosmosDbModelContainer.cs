@@ -42,10 +42,8 @@ namespace CoreEx.Cosmos.Model
         /// <param name="checkAuthorized">Indicates whether an additional authorization check should be performed against the <paramref name="model"/>.</param>
         /// <returns><c>true</c> indicates that the model is in a valid state; otherwise, <c>false</c>.</returns>
         public bool IsModelValid<TModel>(TModel? model, CosmosDbArgs dbArgs, bool checkAuthorized) where TModel : class, IEntityKey, new()
-            => !(model == null
+            => !(!dbArgs.IsModelValid(model)
                 || (model is ICosmosDbType mt && mt.Type != GetModelName<TModel>())
-                || (dbArgs.FilterByTenantId && model is ITenantId tenantId && tenantId.TenantId != dbArgs.GetTenantId())
-                || (model is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value)
                 || (checkAuthorized && IsAuthorized(model).IsFailure));
 
         /// <summary>
@@ -57,10 +55,9 @@ namespace CoreEx.Cosmos.Model
         /// <param name="checkAuthorized">Indicates whether an additional authorization check should be performed against the <paramref name="model"/>.</param>
         /// <returns><c>true</c> indicates that the model is in a valid state; otherwise, <c>false</c>.</returns>
         public bool IsModelValid<TModel>(CosmosDbValue<TModel>? model, CosmosDbArgs dbArgs, bool checkAuthorized) where TModel : class, IEntityKey, new()
-            => !(model == null
+            => !(model is null
+                || !dbArgs.IsModelValid(model.Value)
                 || model.Type != GetModelName<TModel>()
-                || (dbArgs.FilterByTenantId && model.Value is ITenantId tenantId && tenantId.TenantId != dbArgs.GetTenantId())
-                || (model.Value is ILogicallyDeleted ld && ld.IsDeleted.HasValue && ld.IsDeleted.Value)
                 || (checkAuthorized && IsAuthorized(model).IsFailure));
 
         /// <summary>
@@ -193,7 +190,7 @@ namespace CoreEx.Cosmos.Model
             if (model != default)
             {
                 var filter = GetAuthorizeFilter<TModel>();
-                if (filter != null && !filter(new TModel[] { model }.AsQueryable()).Any())
+                if (filter != null && !filter(new [] { model }.AsQueryable()).Any())
                     return Result.AuthorizationError();
             }
 
@@ -209,7 +206,7 @@ namespace CoreEx.Cosmos.Model
             => _filters.IsValueCreated && _filters.Value.TryGetValue(typeof(TModel), out var filter) ? (Func<IQueryable<TModel>, IQueryable<TModel>>)filter : null;
 
         /// <summary>
-        /// Sets the filter for all operations performed on the <see cref="CosmosDbValue{TModel}"/> to ensure authorisation is applied. Applies automatically to all queries, plus create, update, delete and get operations.
+        /// Sets the filter for all operations performed on the <see cref="CosmosDbValue{TModel}"/> to ensure authorization is applied. Applies automatically to all queries, plus create, update, delete and get operations.
         /// </summary>
         /// <typeparam name="TModel">The cosmos model <see cref="Type"/>.</typeparam>
         /// <param name="filter">The authorization filter query.</param>
@@ -522,13 +519,12 @@ namespace CoreEx.Cosmos.Model
         /// <returns>The created model.</returns>
         public Task<Result<TModel>> CreateWithResultAsync<TModel>(CosmosDbArgs dbArgs, TModel model, CancellationToken cancellationToken = default) where TModel : class, IEntityKey, new()
         {
-            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, model.ThrowIfNull(nameof(model)), dbArgs, async (_, m, args, ct) =>
+            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, Cleaner.PrepareCreate(model.ThrowIfNull(nameof(model))), dbArgs, async (_, m, args, ct) =>
             {
-                Cleaner.ResetTenantId(m);
                 var pk = GetPartitionKey(m, args);
                 return await Result
                     .Go(IsAuthorized(model))
-                    .ThenAsAsync(() => _owner.CosmosContainer.CreateItemAsync(model, pk, args.GetItemRequestOptions(), ct))
+                    .ThenAsAsync(() => _owner.CosmosContainer.CreateItemAsync(Cleaner.PrepareCreate(model), pk, args.GetItemRequestOptions(), ct))
                     .ThenAs(resp => GetResponseValue(resp!)!);
             }, cancellationToken, nameof(CreateWithResultAsync));
         }
@@ -574,15 +570,15 @@ namespace CoreEx.Cosmos.Model
         /// <returns>The created model.</returns>
         public Task<Result<CosmosDbValue<TModel>>> CreateValueWithResultAsync<TModel>(CosmosDbArgs dbArgs, CosmosDbValue<TModel> model, CancellationToken cancellationToken = default) where TModel : class, IEntityKey, new()
         {
-            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, model.ThrowIfNull(nameof(model)), dbArgs, async (_, m, args, ct) =>
+            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, Cleaner.PrepareCreate(model.ThrowIfNull(nameof(model))), dbArgs, async (_, m, args, ct) =>
             {
-                Cleaner.ResetTenantId(m);
                 var pk = GetPartitionKey(m, args);
                 return await Result
                     .Go(IsAuthorized(m))
                     .ThenAsAsync(async () =>
                     {
                         ((ICosmosDbValue)m).PrepareBefore(args, typeof(TModel).Name);
+                        Cleaner.PrepareCreate(m.Value);
                         var resp = await _owner.CosmosContainer.CreateItemAsync(m, pk, args.GetItemRequestOptions(), ct).ConfigureAwait(false);
                         return GetResponseValue(resp)!;
                     });
@@ -646,7 +642,7 @@ namespace CoreEx.Cosmos.Model
         /// <returns>The updated model.</returns>
         internal Task<Result<TModel>> UpdateWithResultInternalAsync<TModel>(CosmosDbArgs dbArgs, TModel model, Action<TModel>? modelUpdater, CancellationToken cancellationToken) where TModel : class, IEntityKey, new()
         {
-            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, model.ThrowIfNull(nameof(model)), dbArgs, async (_, m, args, ct) =>
+            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, Cleaner.PrepareUpdate(model.ThrowIfNull(nameof(model))), dbArgs, async (_, m, args, ct) =>
             {
                 // Where supporting etag then use IfMatch for concurrency.
                 var ro = args.GetItemRequestOptions();
@@ -674,7 +670,7 @@ namespace CoreEx.Cosmos.Model
                     })
                     .ThenAsAsync(async () =>
                     {
-                        resp = await _owner.CosmosContainer.ReplaceItemAsync(resp.Resource, id, pk, ro, ct).ConfigureAwait(false);
+                        resp = await _owner.CosmosContainer.ReplaceItemAsync(Cleaner.PrepareUpdate(resp.Resource), id, pk, ro, ct).ConfigureAwait(false);
                         return GetResponseValue(resp)!;
                     });
             }, cancellationToken, nameof(UpdateWithResultAsync));
@@ -733,7 +729,7 @@ namespace CoreEx.Cosmos.Model
         /// <returns>The updated model.</returns>
         internal Task<Result<CosmosDbValue<TModel>>> UpdateValueWithResultInternalAsync<TModel>(CosmosDbArgs dbArgs, CosmosDbValue<TModel> model, Action<CosmosDbValue<TModel>>? modelUpdater, CancellationToken cancellationToken) where TModel : class, IEntityKey, new()
         {
-            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, model.ThrowIfNull(nameof(model)), dbArgs, async (_, m, args, ct) =>
+            return _owner.CosmosDb.Invoker.InvokeAsync(_owner.CosmosDb, Cleaner.PrepareUpdate(model.ThrowIfNull(nameof(model))), dbArgs, async (_, m, args, ct) =>
             {
                 // Where supporting etag then use IfMatch for concurrency.
                 var ro = args.GetItemRequestOptions();
@@ -763,6 +759,7 @@ namespace CoreEx.Cosmos.Model
                     })
                     .ThenAsAsync(async () =>
                     {
+                        Cleaner.PrepareUpdate(resp.Resource.Value);
                         resp = await _owner.CosmosContainer.ReplaceItemAsync(resp.Resource, id, pk, ro, ct).ConfigureAwait(false);
                         return GetResponseValue(resp)!;
                     });
@@ -853,7 +850,7 @@ namespace CoreEx.Cosmos.Model
                             .ThenAsync(async () =>
                             {
                                 ro.SessionToken = resp.Headers?.Session;
-                                await _owner.CosmosContainer.ReplaceItemAsync(resp.Resource, id, pk, ro, ct).ConfigureAwait(false);
+                                await _owner.CosmosContainer.ReplaceItemAsync(Cleaner.PrepareUpdate(resp.Resource), id, pk, ro, ct).ConfigureAwait(false);
                                 return Result.Success;
                             });
                     }
@@ -951,6 +948,7 @@ namespace CoreEx.Cosmos.Model
                             .ThenAsync(async () =>
                             {
                                 ro.SessionToken = resp.Headers?.Session;
+                                Cleaner.PrepareUpdate(resp.Resource.Value);
                                 await _owner.CosmosContainer.ReplaceItemAsync(resp.Resource, id, pk, ro, ct).ConfigureAwait(false);
                                 return Result.Success;
                             });

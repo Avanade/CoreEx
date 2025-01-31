@@ -18,10 +18,10 @@ namespace CoreEx.RefData
         /// <summary>
         /// Gets or sets the <see cref="IReferenceData"/> <see cref="IReferenceData.StartDate"/> and <see cref="IReferenceData.EndDate"/> contextual validation date.
         /// </summary>
-        /// <remarks>Defaults to <see cref="ExecutionContext.SystemTime"/>.</remarks>
+        /// <remarks>Defaults to <see cref="SystemTime.Timestamp"/>.</remarks>
         public DateTime? Date
         {
-            get => _date ??= Cleaner.Clean(ExecutionContext.SystemTime.UtcNow, DateTimeTransform.DateOnly);
+            get => _date ??= Cleaner.Clean(SystemTime.Timestamp, DateTimeTransform.DateOnly);
             set => _date = Cleaner.Clean(value, DateTimeTransform.DateOnly);
         }
 

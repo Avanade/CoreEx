@@ -752,7 +752,7 @@ namespace CoreEx.AspNetCore.WebApis
                     // Get the current value and perform a concurrency match before we perform the merge.
                     var rv = await get(wap, ct2).ConfigureAwait(false);
                     var ex = rv.IsFailure ? rv.Error : (rv.Value is null ? new NotFoundException() : ConcurrencyETagMatching(wap, rv.Value, jpv, simulatedConcurrency));
-                    return ex is null ? Result.Ok(rv.Value!) : Result<TValue>.Fail(ex);
+                    return ex is null ? Result<TValue?>.Ok(rv.Value) : Result<TValue?>.Fail(ex);
                 }, ct).ConfigureAwait(false);
 
                 // Only invoke the put function where something was *actually* changed.

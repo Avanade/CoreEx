@@ -36,13 +36,7 @@ namespace CoreEx.Cosmos.Model
             if (filter != null)
                 query = filter(query);
 
-            if (QueryArgs.FilterByTenantId && typeof(ITenantId).IsAssignableFrom(typeof(TModel)))
-                query = query.Where(x => ((ITenantId)x).TenantId == QueryArgs.GetTenantId());
-
-            if (typeof(ILogicallyDeleted).IsAssignableFrom(typeof(TModel)))
-                query = query.Where(x => !((ILogicallyDeleted)x).IsDeleted.IsDefined() || ((ILogicallyDeleted)x).IsDeleted == null || ((ILogicallyDeleted)x).IsDeleted == false);
-
-            return query;
+            return QueryArgs.WhereModelValid(query);
         }
 
         /// <summary>

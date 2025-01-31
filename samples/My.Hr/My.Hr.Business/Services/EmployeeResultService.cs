@@ -36,7 +36,7 @@ public class EmployeeResultService : IEmployeeResultService
             var verification = new EmployeeVerificationRequest
             {
                 Name = employee!.FirstName,
-                Age = DateTime.UtcNow.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
+                Age = SystemTime.Timestamp.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
                 Gender = employee.Gender?.Code
             };
 

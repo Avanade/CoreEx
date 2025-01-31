@@ -8,6 +8,8 @@ Represents the **NuGet** versions.
 - *Enhancement:* Refactored the `CosmosDb` capabilities such that the `CosmosDbContainer` and `CosmosDbModelContainer` are model type independent, with underlying type support implemented at the method level for greater flexibility and control. The typed `CosmosDbContainer<T, TModel>` etc. remain and are accessed from the type independent containers as required.
   - The existing `IMultiSetArgs` operations have been moved (and renamed) from `CosmosDb` to `CosmosDbContainer` and `CosmosDbModelContainer` as these are single container-specific.
   - The existing `CosmosDb.UseAuthorizeFilter` operations have been moved to `CosmosDbContainer` as these are single container-specific.
+- *Enhancement:* Added `Cleaner.PrepareCreate` and `Cleaner.PrepareUpdate` to encapsulate `ChangeLog.PrepareCreated` and `ChangeLog.PrepareUpdated`, and `Cleaner.ResetTenantId` to ensure consistent handling throughout _CoreEx_.
+- *Enhancement:* Added `SystemTime.Timestamp` as the standard means to access the current timestamp (uses `Cleaner.Clean`) to ensure consistency throughout _CoreEx_. Therefore, the likes of `DateTime.UtcNow` should be replaced with `SystemTime.Timestamp`. The previous `ExecutionContent.SystemTime` has been removed as it was not consistent with the `ExecutionContext` pattern.
 
 ## v3.30.2
 - *Fixed:* Missing `QueryArgs.IncludeText` added to set the `$text=true` equivalent.

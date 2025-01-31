@@ -18,7 +18,8 @@ public class HrDbContext : DbContext, IEfDbContext
     {
         modelBuilder
             .ApplyConfiguration(new UsStateConfiguration())
-            .ApplyConfiguration(new EmployeeConfiguration());
+            .ApplyConfiguration(new EmployeeConfiguration())
+            .ApplyConfiguration(new Employee2Configuration());
 
         base.OnModelCreating(modelBuilder);
     }

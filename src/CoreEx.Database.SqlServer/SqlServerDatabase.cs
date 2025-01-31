@@ -66,7 +66,7 @@ namespace CoreEx.Database.SqlServer
         /// <see cref="SqlServerDatabaseColumns.SessionContextTimestampName"/>, <see cref="SqlServerDatabaseColumns.SessionContextTenantIdName"/> and <see cref="SqlServerDatabaseColumns.SessionContextUserIdName"/>.
         /// </summary>
         /// <param name="username">The username (where <c>null</c> the value will default to <see cref="ExecutionContext.EnvironmentUserName"/>).</param>
-        /// <param name="timestamp">The timestamp <see cref="DateTime"/> (where <c>null</c> the value will default to <see cref="DateTime.UtcNow"/>).</param>
+        /// <param name="timestamp">The timestamp <see cref="DateTime"/> (where <c>null</c> the value will default to <see cref="SystemTime.Timestamp"/>).</param>
         /// <param name="tenantId">The tenant identifer (where <c>null</c> the value will not be used).</param>
         /// <param name="userId">The unique user identifier (where <c>null</c> the value will not be used).</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -80,7 +80,7 @@ namespace CoreEx.Database.SqlServer
             {
                 return await StoredProcedure(SessionContextStoredProcedure)
                     .Param($"@{DatabaseColumns.SessionContextUsernameName}", username ?? ExecutionContext.EnvironmentUserName)
-                    .Param($"@{DatabaseColumns.SessionContextTimestampName}", timestamp ?? ExecutionContext.SystemTime.UtcNow)
+                    .Param($"@{DatabaseColumns.SessionContextTimestampName}", timestamp ?? SystemTime.Timestamp)
                     .ParamWith(tenantId, $"@{DatabaseColumns.SessionContextTenantIdName}")
                     .ParamWith(userId, $"@{DatabaseColumns.SessionContextUserIdName}")
                     .NonQueryAsync(ct).ConfigureAwait(false);

@@ -47,21 +47,15 @@ namespace CoreEx.OData
         /// <inheritdoc/>
         public async Task<Result<T>> CreateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, async (_, ct) =>
         {
-            ChangeLog.PrepareCreated(value);
-            Cleaner.ResetTenantId(value);
-
-            var model = Mapper.Map<T, TModel>(value, OperationTypes.Create)!;
-            Cleaner.ResetTenantId(model);
-
-            var created = await Client.For<TModel>(collectionName).Set(model).InsertEntryAsync(true, ct).ConfigureAwait(false);
+            var model = Mapper.Map<T, TModel>(Cleaner.PrepareCreate(value.ThrowIfNull(nameof(value))), OperationTypes.Create)!;
+            var created = await Client.For<TModel>(collectionName).Set(Cleaner.PrepareCreate(model)).InsertEntryAsync(true, ct).ConfigureAwait(false);
             return MapToValue<T, TModel>(args, created);
         }, this, cancellationToken);
 
         /// <inheritdoc/>
         public async Task<Result<T>> UpdateWithResultAsync<T, TModel>(ODataArgs args, string? collectionName, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() => await Invoker.InvokeAsync(this, async (_, ct) =>
         {
-            ChangeLog.PrepareUpdated(value);
-            Cleaner.ResetTenantId(value);
+            Cleaner.PrepareUpdate(value.ThrowIfNull(nameof(value)));
             TModel model;
 
             if (args.PreReadOnUpdate)
@@ -77,7 +71,7 @@ namespace CoreEx.OData
             else
                 model = Mapper.Map<T, TModel>(value, OperationTypes.Update)!;
 
-            var updated = await Client.For<TModel>(collectionName).Key(value.EntityKey.Args).Set(model).UpdateEntryAsync(true, ct).ConfigureAwait(false);
+            var updated = await Client.For<TModel>(collectionName).Key(value.EntityKey.Args).Set(Cleaner.PrepareUpdate(model)).UpdateEntryAsync(true, ct).ConfigureAwait(false);
             return updated is null ? Result<T>.NotFoundError() : Result<T>.Ok(MapToValue<T, TModel>(args, updated));
         }, this, cancellationToken);
 
