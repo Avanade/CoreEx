@@ -4,7 +4,9 @@
     [Category("WithCosmos")]
     public class CosmosDbContainerAuthTest
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private CosmosDb _db;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         [OneTimeSetUp]
         public async Task SetUp()
@@ -14,10 +16,10 @@
         }
 
         [Test]
-        public void AsQueryable1() => Assert.That(_db.Persons1.ModelContainer.Query().AsQueryable().Count(), Is.EqualTo(3));
+        public void AsQueryable1() => Assert.That(_db.Persons1.Query().AsQueryable().Count(), Is.EqualTo(3));
 
         [Test]
-        public void AsQueryable2() => Assert.That(_db.Persons2.ModelContainer.Query().AsQueryable().Count(), Is.EqualTo(3));
+        public void AsQueryable2() => Assert.That(_db.Persons2.Query().AsQueryable().Count(), Is.EqualTo(3));
 
         [Test]
         public void AsQueryable3() => Assert.That(_db.Persons3.Query().AsQueryable().Count(), Is.EqualTo(3));
@@ -29,7 +31,7 @@
 
             var v = await _db.Persons1.GetAsync(1.ToGuid().ToString());
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(1.ToGuid().ToString()));
+            Assert.That(v!.Id, Is.EqualTo(1.ToGuid().ToString()));
 
             Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons1.GetAsync(2.ToGuid().ToString()));
         }
@@ -41,7 +43,7 @@
 
             var v = await _db.Persons2.GetAsync(1.ToGuid().ToString());
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(1.ToGuid().ToString()));
+            Assert.That(v!.Id, Is.EqualTo(1.ToGuid().ToString()));
 
            Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons2.GetAsync(2.ToGuid().ToString()));
         }
@@ -53,7 +55,7 @@
 
             var v = await _db.Persons3.GetAsync(1.ToGuid().ToString());
             Assert.That(v, Is.Not.Null);
-            Assert.That(v.Id, Is.EqualTo(1.ToGuid()));
+            Assert.That(v!.Id, Is.EqualTo(1.ToGuid()));
 
             Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons3.GetAsync(2.ToGuid()));
         }
@@ -107,14 +109,14 @@
         public async Task Update1Async()
         {
             // Update where not auth.
-            var v = (await _db.Persons1.Container.ReadItemAsync<Person1>(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
+            var v = (await _db.Persons1.CosmosContainer.ReadItemAsync<Person1>(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
             Assert.That(v, Is.Not.Null);
 
             v.Name += "X";
             Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons1.UpdateAsync(v));
 
             // Update to something not auth.
-            v = (await _db.Persons1.Container.ReadItemAsync<Person2>(5.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
+            v = (await _db.Persons1.CosmosContainer.ReadItemAsync<Person2>(5.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
             Assert.That(v, Is.Not.Null);
 
             v.Name += "X";
@@ -129,14 +131,14 @@
         public async Task Update2Async()
         {
             // Update where not auth.
-            var v = (await _db.Persons2.Container.ReadItemAsync<Person2>(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
+            var v = (await _db.Persons2.CosmosContainer.ReadItemAsync<Person2>(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
             Assert.That(v, Is.Not.Null);
 
             v.Name += "X";
             Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons2.UpdateAsync(v));
 
             // Update to something not auth.
-            v = (await _db.Persons2.Container.ReadItemAsync<Person2>(5.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
+            v = (await _db.Persons2.CosmosContainer.ReadItemAsync<Person2>(5.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
             Assert.That(v, Is.Not.Null);
 
             v.Name += "X";
@@ -151,14 +153,14 @@
         public async Task Update3Async()
         {
             // Update where not auth.
-            var v = (await _db.Persons3.Container.ReadItemAsync<Person3>(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
+            var v = (await _db.Persons3.CosmosContainer.ReadItemAsync<Person3>(4.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
             Assert.That(v, Is.Not.Null);
 
             v.Name += "X";
             Assert.ThrowsAsync<AuthorizationException>(() => _db.Persons3.UpdateAsync(v));
 
             // Update to something not auth.
-            v = (await _db.Persons3.Container.ReadItemAsync<Person3>(5.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
+            v = (await _db.Persons3.CosmosContainer.ReadItemAsync<Person3>(5.ToGuid().ToString(), Microsoft.Azure.Cosmos.PartitionKey.None).ConfigureAwait(false)).Resource;
             Assert.That(v, Is.Not.Null);
 
             v.Name += "X";

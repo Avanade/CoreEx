@@ -14,11 +14,12 @@ namespace CoreEx
     public class AuthenticationException : Exception, IExtendedException
     {
         private const string _message = "An authentication error occurred; the credentials you provided are not valid.";
+        private static bool? _shouldExceptionBeLogged;
 
         /// <summary>
         /// Get or sets the <see cref="ShouldBeLogged"/> value.
         /// </summary>
-        public static bool ShouldExceptionBeLogged { get; set; }
+        public static bool ShouldExceptionBeLogged { get => _shouldExceptionBeLogged ?? Internal.ShouldExceptionBeLogged<AuthenticationException>(); set => _shouldExceptionBeLogged = value; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AuthenticationException"/> class.

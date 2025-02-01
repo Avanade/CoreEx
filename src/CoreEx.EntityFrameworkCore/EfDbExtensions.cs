@@ -12,6 +12,23 @@ namespace CoreEx.EntityFrameworkCore
     public static class EfDbExtensions
     {
         /// <summary>
+        /// Creates an <see cref="EfDbQuery{TModel}"/> to enable select-like capabilities.
+        /// </summary>
+        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
+        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
+        /// <param name="query">The function to further define the query.</param>
+        /// <param name="noTracking">Optionally override the specified/default <see cref="EfDbArgs.QueryNoTracking"/>.</param>
+        /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
+        public static EfDbQuery<TModel> Query<TModel>(this IEfDb efDb, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null, bool? noTracking = null) where TModel : class, new()
+        {
+            var ea = new EfDbArgs(efDb.DbArgs);
+            if (noTracking.HasValue)
+                ea.QueryNoTracking = noTracking.Value;
+
+            return efDb.Query<TModel>(ea, query);
+        }
+
+        /// <summary>
         /// Creates an <see cref="EfDbQuery{T, TModel}"/> to enable select-like capabilities.
         /// </summary>
         /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>

@@ -47,4 +47,22 @@ namespace CoreEx.Cosmos.Test
     public class Person3CollectionResult : CollectionResult<Person3Collection, Person3> { }
 
     public class Gender : ReferenceDataBase<string> { }
+
+    public class PersonX1 : IIdentifier<string>, ICosmosDbType
+    {
+        public string? Id { get; set; }
+
+        public string Type { get; set; } = "PersonX1";
+
+        public string? Text { get; set; }
+    }
+
+    public class PersonX2 : IIdentifier<string>, ICosmosDbType
+    {
+        public string? Id { get; set; }
+
+        public string Type { get; set; } = "PersonX2";
+
+        public string? Name { get; set; }
+    }
 }

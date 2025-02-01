@@ -31,6 +31,12 @@ namespace CoreEx
         /// <returns>The <see cref="ISystemTime"/> using the <see cref="ExecutionContext.ServiceProvider"/> where configured; otherwise, a new instance of <see cref="SystemTime"/>.</returns>
         public static ISystemTime Get() => ExecutionContext.GetService<ISystemTime>() ?? new SystemTime();
 
+        /// <summary>
+        /// Gets the timestamp for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).
+        /// </summary>
+        /// <remarks>Where the <see cref="ExecutionContext.HasCurrent"/> then the <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.Timestamp"/> will be used; otherwise, will use <see cref="Get"/> <see cref="UtcNow"/> (passed through <see cref="Cleaner.Clean(DateTime)"/>).</remarks>
+        public static DateTime Timestamp => ExecutionContext.HasCurrent ? ExecutionContext.Current.Timestamp : Cleaner.Clean(Get().UtcNow);
+
         /// <inheritdoc/>
         public DateTime UtcNow => _time ?? DateTime.UtcNow;
     }

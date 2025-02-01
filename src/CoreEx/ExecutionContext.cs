@@ -132,11 +132,6 @@ namespace CoreEx
         }
 
         /// <summary>
-        /// Gets the <see cref="ISystemTime"/> instance from the <see cref="ServiceProvider"/>; where not found the <see cref="CoreEx.SystemTime.Default"/> will be used.
-        /// </summary>
-        public static ISystemTime SystemTime => GetService<ISystemTime>() ?? CoreEx.SystemTime.Default;
-
-        /// <summary>
         /// Gets the username from the <see cref="Environment"/> settings.
         /// </summary>
         /// <returns>The fully qualified username.</returns>
@@ -182,8 +177,9 @@ namespace CoreEx
         /// <summary>
         /// Gets or sets the timestamp for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).
         /// </summary>
-        /// <remarks>Defaults the value from <see cref="ISystemTime"/>, where this has not been registered it will default to <see cref="DateTime.UtcNow"/>. The value will also be passed through <see cref="Cleaner.Clean(DateTime)"/>.</remarks>
-        public DateTime Timestamp { get => _timestamp ??= SystemTime.UtcNow; set => _timestamp = Cleaner.Clean(value); }
+        /// <remarks>Defaults to <see cref="ISystemTime.UtcNow"/>; where this has not been registered it will default to <see cref="SystemTime.UtcNow"/>. The value will also be passed through <see cref="Cleaner.Clean(DateTime)"/> and will have the configured <see cref="DateTimeTransform"/> applied.
+        /// <para>This value will remain unchanged for the life of the <see cref="ExecutionContext"/> to ensure consistency of the value.</para></remarks>
+        public DateTime Timestamp { get => _timestamp ??= Cleaner.Clean(SystemTime.Get().UtcNow); set => _timestamp = Cleaner.Clean(value); }
 
         /// <summary>
         /// Gets the <see cref="MessageItemCollection"/> that is intended to be returned to the originating consumer.
@@ -206,7 +202,7 @@ namespace CoreEx
         /// <summary>
         /// Gets the <see cref="IReferenceDataContext"/>.
         /// </summary>
-        /// <remarks>Where not configured will instantiate a <see cref="ReferenceDataContext"/>.</remarks>
+        /// <remarks>Where not configured will automatically instantiate a <see cref="ReferenceDataContext"/> on first access.</remarks>
         public IReferenceDataContext ReferenceDataContext => _referenceDataContext ??= (GetService<IReferenceDataContext>() ?? new ReferenceDataContext());
 
         /// <summary>
@@ -310,7 +306,7 @@ namespace CoreEx
         private static void Messages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             if (e.NewItems is not null && e.NewItems.OfType<MessageItem>().Any(m => m.Type == MessageType.Error))
-                throw new InvalidOperationException("An error message can not be added to the ExecutionContext.Messages collection; this is intended for warning and information messages only.");
+                throw new InvalidOperationException("An error message cannot be added to the ExecutionContext.Messages collection; this is intended for warning and information messages only.");
         }
 
         #region Security

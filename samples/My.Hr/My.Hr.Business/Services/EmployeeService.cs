@@ -56,6 +56,8 @@ public class EmployeeService : IEmployeeService
             throw new NotFoundException();
 
         employee.Id = id;
+
+        _dbContext.ChangeTracker.Clear(); // Different employee instance (result of using CoreEx.Json.JsonMergePatch vs CoreEx.Json.Extended.JsonMergePatchEx); therefore, clear the change tracker prior to update attempt.
         _dbContext.Employees.Update(employee);
         await _dbContext.SaveChangesAsync().ConfigureAwait(false);
         return employee;
@@ -80,7 +82,7 @@ public class EmployeeService : IEmployeeService
         var verification = new EmployeeVerificationRequest
         {
             Name = employee.FirstName,
-            Age = DateTime.UtcNow.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
+            Age = SystemTime.Timestamp.Subtract(employee.Birthday.GetValueOrDefault()).Days / 365,
             Gender = employee.Gender?.Code
         };
 

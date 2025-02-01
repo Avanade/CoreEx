@@ -18,11 +18,12 @@ namespace CoreEx
     public class ValidationException : Exception, IExtendedException
     {
         private const string _message = "A data validation error occurred.";
+        private static bool? _shouldExceptionBeLogged;
 
         /// <summary>
         /// Get or sets the <see cref="ShouldBeLogged"/> value.
         /// </summary>
-        public static bool ShouldExceptionBeLogged { get; set; }
+        public static bool ShouldExceptionBeLogged { get => _shouldExceptionBeLogged ?? Internal.ShouldExceptionBeLogged<ValidationException>(); set => _shouldExceptionBeLogged = value; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class.

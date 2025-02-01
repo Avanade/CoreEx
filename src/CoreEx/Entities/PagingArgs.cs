@@ -49,7 +49,14 @@ namespace CoreEx.Entities
         /// <summary>
         /// Gets or sets the default <see cref="IsGetCount"/>.
         /// </summary>
+        /// <remarks>Defaults to <c>false</c>.</remarks>
         public static bool DefaultIsGetCount { get; set; }
+
+        /// <summary>
+        /// Indicates whether <see cref="Token"/>-based paging is supported.
+        /// </summary>
+        /// <remarks>Defaults to <c>false</c>.</remarks>
+        public static bool IsTokenSupported { get; set; } = false;
 
         /// <summary>
         /// Creates a <see cref="PagingArgs"/> for a specified page number and size.
@@ -63,7 +70,7 @@ namespace CoreEx.Entities
             var pa = new PagingArgs
             {
                 Page = page < 0 ? 1 : page,
-                Take = !size.HasValue || size.Value < 1 ? DefaultTake : (size.Value > MaxTake ? MaxTake : size.Value),
+                Take = !size.HasValue || size.Value < 1 ? DefaultTake : Math.Min(size.Value, MaxTake),
                 IsGetCount = isGetCount == null ? DefaultIsGetCount : isGetCount.Value
             };
 
@@ -94,7 +101,7 @@ namespace CoreEx.Entities
         /// <returns>The <see cref="PagingArgs"/>.</returns>
         public static PagingArgs CreateTokenAndTake(string token, long? take = null, bool? isGetCount = null) => new ()
         {
-            Token = token.ThrowIfNullOrEmpty(),
+            Token = IsTokenSupported ? token.ThrowIfNullOrEmpty() : throw new NotSupportedException($"{nameof(Token)}-based paging is not supported."),
             Take = !take.HasValue || take.Value< 1 ? DefaultTake : (take.Value > MaxTake? MaxTake : take.Value),
             IsGetCount = isGetCount == null ? DefaultIsGetCount : isGetCount.Value
         };

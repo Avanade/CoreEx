@@ -101,8 +101,7 @@ namespace CoreEx.OData
         /// <returns>The value (refreshed where specified).</returns>
         public async Task<Result<T>> CreateWithResultAsync(T value, CancellationToken cancellationToken = default) => await Owner.Invoker.InvokeAsync(this, async (_, ct) =>
         {
-            ChangeLog.PrepareCreated(value.ThrowIfNull());
-            var item = ODataItem.MapFrom(Mapper, value, OperationTypes.Create);
+            var item = ODataItem.MapFrom(Mapper, Cleaner.PrepareCreate(value.ThrowIfNull()), OperationTypes.Create);
             Mapper.MapToOData(value, item, OperationTypes.Create);
             var created = await Owner.Client.For(CollectionName).Set(item.Attributes).InsertEntryAsync(true, ct).ConfigureAwait(false);
             return created is null ? Result<T>.NotFoundError() : Result<T>.Ok(MapFromOData(new ODataItem(created), OperationTypes.Get));
@@ -125,8 +124,7 @@ namespace CoreEx.OData
         public async Task<Result<T>> UpdateWithResultAsync(T value, CancellationToken cancellationToken = default) => await Owner.Invoker.InvokeAsync(this, async (_, ct) =>
         {
             ODataItem item;
-            ChangeLog.PrepareUpdated(value.ThrowIfNull());
-            var key = Mapper.GetODataKey(value, OperationTypes.Update);
+            var key = Mapper.GetODataKey(Cleaner.PrepareUpdate(value.ThrowIfNull()), OperationTypes.Update);
 
             if (Args.PreReadOnUpdate)
             {

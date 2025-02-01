@@ -22,14 +22,14 @@ namespace CoreEx.Json.Compare
         /// </summary>
         /// <param name="left">The left <see cref="JsonElement"/>.</param>
         /// <param name="right">The right <see cref="JsonElement"/>.</param>
-        /// <param name="maxDifferences">The maximum number of differences detect.</param>
-        /// <param name="alwaysReplaceAllArrayItems">Indicates whether to always replace all array items where at least one item has changed.</param>
-        internal JsonElementComparerResult(JsonElement left, JsonElement right, int maxDifferences, bool alwaysReplaceAllArrayItems = true)
+        /// <param name="maxDifferences">The maximum number of differences to detect.</param>
+        /// <param name="replaceAllArrayItemsOnMerge">Indicates whether to always replace all array items where at least one item has changed when performing a corresponding <see cref="ToMergePatch(string[])"/>.</param>
+        internal JsonElementComparerResult(JsonElement left, JsonElement right, int maxDifferences, bool replaceAllArrayItemsOnMerge = true)
         {
             Left = left;
             Right = right;
             MaxDifferences = maxDifferences;
-            AlwaysReplaceAllArrayItems = alwaysReplaceAllArrayItems;
+            ReplaceAllArrayItemsOnMerge = replaceAllArrayItemsOnMerge;
         }
 
         /// <summary>
@@ -68,10 +68,11 @@ namespace CoreEx.Json.Compare
         public bool IsMaxDifferencesFound => DifferenceCount >= MaxDifferences;
 
         /// <summary>
-        /// Indicates whether to always replace all array items (where at least one item has changed).
+        /// Indicates whether to always replace all array items where at least one item has changed when performing a corresponding <see cref="ToMergePatch(string[])"/>.
         /// </summary>
-        /// <remarks>The formal specification <see href="https://tools.ietf.org/html/rfc7396"/> explictly states that an <see cref="System.Text.Json.JsonValueKind.Array"/> is to be a replacement operation.</remarks>
-        public bool AlwaysReplaceAllArrayItems { get; }
+        /// <remarks>The formal specification <see href="https://tools.ietf.org/html/rfc7396"/> explictly states that an <see cref="System.Text.Json.JsonValueKind.Array"/> is to be a replacement operation.
+        /// <para>Where set to <c>false</c> and there is an array length difference this will always result in a replace (i.e. all); no means to reliably determine what has been added, deleted, modified, resequenced, etc.</para></remarks>
+        public bool ReplaceAllArrayItemsOnMerge { get; }
 
         /// <summary>
         /// Gets the <see cref="JsonElementDifference"/> array.
@@ -200,7 +201,7 @@ namespace CoreEx.Json.Compare
             PathMatch match;
             var overall = PathMatch.None;
 
-            if (AlwaysReplaceAllArrayItems && state.GetMatch(ja) != PathMatch.None)
+            if (ReplaceAllArrayItemsOnMerge && state.GetMatch(ja) != PathMatch.None)
                 return PathMatch.Full;
 
             for (var i = ja.Count - 1; i >= 0; i--)

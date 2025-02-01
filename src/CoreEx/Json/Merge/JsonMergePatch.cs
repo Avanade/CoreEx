@@ -1,11 +1,10 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
-using CoreEx.Abstractions.Reflection;
-using CoreEx.Entities;
+using CoreEx.Json.Compare;
 using CoreEx.Results;
+using CoreEx.Text.Json;
 using System;
-using System.Collections;
-using System.Linq;
+using System.Buffers;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,52 +12,30 @@ using System.Threading.Tasks;
 namespace CoreEx.Json.Merge
 {
     /// <summary>
-    /// Provides a JSON Merge Patch (<c>application/merge-patch+json</c>) whereby the contents of a JSON document are merged into an existing object value as per <see href="https://tools.ietf.org/html/rfc7396"/>.
+    /// Provides a JSON Merge Patch (<c>application/merge-patch+json</c>) whereby the contents of a JSON document are merged into an existing JSON document resulting in a new merged JSON document as per <see href="https://tools.ietf.org/html/rfc7396"/>.
     /// </summary>
-    /// <remarks><para>This object should be reused where possible as it caches the JSON serialization semantics internally to improve performance. It is also thread-safe.</para>
-    /// <para>Additional logic has been added to the merge patch enabled by <see cref="JsonMergePatchOptions.DictionaryMergeApproach"/> and <see cref="JsonMergePatchOptions.EntityKeyCollectionMergeApproach"/>. Note: these capabilities are
-    /// unique to <i>CoreEx</i> and not part of the formal specification <see href="https://tools.ietf.org/html/rfc7396"/>.</para></remarks>
-    public class JsonMergePatch : IJsonMergePatch
+    /// <param name="options">The <see cref="JsonMergePatchOptions"/>.</param>
+    public class JsonMergePatch(JsonMergePatchOptions? options = null) : IJsonMergePatch
     {
-        private const string EKCollectionName = "EKColl";
-        private readonly TypeReflectorArgs _trArgs;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonMergePatch"/> class.
-        /// </summary>
-        /// <param name="options">The <see cref="JsonMergePatchOptions"/>.</param>
-        /// <remarks>This object should be reused where possible as it caches the JSON serialization semantics internally to improve performance. It is also thread-safe.</remarks>
-        public JsonMergePatch(JsonMergePatchOptions? options = null)
-        {
-            Options = options ?? new JsonMergePatchOptions();
-
-            _trArgs = new TypeReflectorArgs(Options.JsonSerializer)
-            {
-                AutoPopulateProperties = true,
-                NameComparer = Options.NameComparer,
-                TypeBuilder = tr =>
-                {
-                    // Determine if type implements IEntityKeyCollection.
-                    if (tr.Type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICompositeKeyCollection<>)))
-                        tr.Data.Add(EKCollectionName, true);
-                },
-                PropertyBuilder = pr => pr.PropertyExpression.IsJsonSerializable // Only interested in properties that are considered serializable.
-            };
-        }
-
         /// <summary>
         /// Gets the <see cref="JsonMergePatchOptions"/>.
         /// </summary>
-        public JsonMergePatchOptions Options { get; set; }
+        public JsonMergePatchOptions Options { get; } = options ?? new JsonMergePatchOptions();
 
         /// <inheritdoc/>
         public bool Merge<T>(BinaryData json, ref T? value)
         {
             // Parse the JSON.
             var j = ParseJson<T>(json.ThrowIfNull(nameof(json)));
+            var t = SerializeToJsonElement(value);
 
             // Perform the root merge patch.
-            return MergeRoot(j.JsonElement, j.Value, ref value);
+            if (!TryMerge(j.JsonElement, t, out var merged))
+                return false;
+
+            // Deserialize the merged JSON.
+            value = DeserializeFromJsonElement<T>(merged);
+            return true;
         }
 
         /// <inheritdoc/>
@@ -70,16 +47,21 @@ namespace CoreEx.Json.Merge
             var j = ParseJson<T>(json.ThrowIfNull(nameof(json))); 
 
             // Get the value.
-            T? value = await getValue(j.Value, cancellationToken).ConfigureAwait(false);
+            var value = await getValue(j.Value, cancellationToken).ConfigureAwait(false);
             if (value == null)
                 return (false, default!);
 
-            // Perform the root merge patch.
-            return (MergeRoot(j.JsonElement, j.Value, ref value), value);
+            // Perform the merge patch.
+            var t = SerializeToJsonElement(value);
+            if (!TryMerge(j.JsonElement, t, out var merged))
+                return (false, value);
+
+            // Deserialize the merged JSON.
+            return (true, DeserializeFromJsonElement<T>(merged));
         }
 
         /// <inheritdoc/>
-        public async Task<Result<(bool HasChanges, T Value)>> MergeWithResultAsync<T>(BinaryData json, Func<T, CancellationToken, Task<Result<T>>> getValue, CancellationToken cancellationToken = default)
+        public async Task<Result<(bool HasChanges, T? Value)>> MergeWithResultAsync<T>(BinaryData json, Func<T?, CancellationToken, Task<Result<T?>>> getValue, CancellationToken cancellationToken = default)
         {
             getValue.ThrowIfNull(nameof(getValue));
 
@@ -91,78 +73,44 @@ namespace CoreEx.Json.Merge
             return result.ThenAs(value =>
             {
                 if (value == null)
-                    return Result<(bool, T)>.Ok((false, default!));
+                    return (false, default);
 
-                // Perform the root merge patch.
-                return Result.Ok((MergeRoot(j.JsonElement, j.Value, ref value!), value));
+                // Perform the merge patch.
+                var t = SerializeToJsonElement(value);
+                if (!TryMerge(true, j.JsonElement, t, out var merged))
+                    return (false, value);
+
+                // Deserialize the merged JSON.
+                return (true, DeserializeFromJsonElement<T>(merged));
             });
         }
 
         /// <summary>
-        /// Performs the merge patch.
+        /// Serialize the <paramref name="value"/> to a <see cref="JsonElement"/>.
         /// </summary>
-        private bool MergeRoot<T>(JsonElement json, T? srce, ref T? dest)
+        private JsonElement SerializeToJsonElement<T>(T value)
         {
-            bool hasChanged = false;
+            // Fast path where using System.Text.Json.
+            if (Options.JsonSerializer is CoreEx.Text.Json.JsonSerializer js)
+                return System.Text.Json.JsonSerializer.SerializeToElement(value, js.Options);
 
-            var tr = TypeReflector.GetReflector<T>(_trArgs);
+            // Otherwise, serialize and then parse as two separate operations (slower path).
+            var bd = Options.JsonSerializer.SerializeToBinaryData(value);
+            var jr = new Utf8JsonReader(bd);
+            return JsonElement.ParseValue(ref jr).Clone();
+        }
 
-            switch (json.ValueKind)
-            {
-                case JsonValueKind.Null:
-                case JsonValueKind.True:
-                case JsonValueKind.False:
-                case JsonValueKind.String:
-                case JsonValueKind.Number:
-                    hasChanged = !tr.Compare(srce, dest);
-                    dest = srce;
-                    break;
+        /// <summary>
+        /// Deserialize the <paramref name="json"/> to a <typeparamref name="T"/>.
+        /// </summary>
+        private T? DeserializeFromJsonElement<T>(JsonElement json)
+        {
+            // Fast path where using System.Text.Json.
+            if (Options.JsonSerializer is CoreEx.Text.Json.JsonSerializer js)
+                return json.Deserialize<T>(js.Options);
 
-                case JsonValueKind.Object:
-                    if (tr.TypeCode == TypeReflectorTypeCode.IDictionary)
-                    {
-                        // Where merging into a dictionary this can be a replace or per item merge.
-                        if (Options.DictionaryMergeApproach == DictionaryMergeApproach.Replace)
-                        {
-                            hasChanged = !tr.Compare(dest, srce);
-                            if (hasChanged)
-                                dest = srce;
-                        }
-                        else
-                            dest = (T)MergeDictionary(tr, "$", json, (IDictionary)srce!, (IDictionary)dest!, ref hasChanged)!;
-                    }
-                    else
-                    {
-                        if (srce == null || dest == null)
-                        {
-                            hasChanged = !tr.Compare(dest, srce);
-                            if (hasChanged)
-                                dest = srce;
-                        }
-                        else
-                            MergeObject(tr, "$", json, srce, dest!, ref hasChanged);
-                    }
-
-                    break;
-
-                case JsonValueKind.Array:
-                    // Unless explicitly requested an array is a full replacement only (source copy); otherwise, perform key collection item merge.
-                    if (Options.EntityKeyCollectionMergeApproach != EntityKeyCollectionMergeApproach.Replace && tr.Data.ContainsKey(EKCollectionName))
-                        dest = (T)MergeKeyedCollection(tr, "$", json, (ICompositeKeyCollection)srce!, (ICompositeKeyCollection)dest!, ref hasChanged);
-                    else
-                    {
-                        hasChanged = !tr.Compare(dest, srce);
-                        if (hasChanged)
-                            dest = srce;
-                    }
-
-                    break;
-
-                default: 
-                    throw new InvalidOperationException($"A JSON element of '{json.ValueKind}' is invalid where merging the root.");
-            }
-
-            return hasChanged;
+            // Otherwise, deserialize using the specified serializer.
+            return Options.JsonSerializer.Deserialize<T>(json.GetRawText());
         }
 
         /// <summary>
@@ -177,7 +125,7 @@ namespace CoreEx.Json.Merge
 
                 // Parse the JSON into a JsonElement which will be used to navigate the merge.
                 var jr = new Utf8JsonReader(json);
-                var je = JsonElement.ParseValue(ref jr);
+                var je = JsonElement.ParseValue(ref jr).Clone();
                 return (je, value);
             }
             catch (JsonException jex)
@@ -187,189 +135,147 @@ namespace CoreEx.Json.Merge
         }
 
         /// <summary>
-        /// Merge the object.
+        /// Merges the <paramref name="json"/> with (into) the <paramref name="target"/>.
         /// </summary>
-        private void MergeObject(ITypeReflector tr, string root, JsonElement json, object? srce, object dest, ref bool hasChanged)
+        /// <param name="json">The JSON to merge.</param>
+        /// <param name="target">The JSON target to merge with (into).</param>
+        /// <returns>The resulting merged <see cref="JsonElement"/>.</returns>
+        public JsonElement Merge(JsonElement json, JsonElement target)
         {
-            foreach (var jp in json.EnumerateObject())
-            {
-                // Find the named property; skip when not found.
-                var pr = tr.GetJsonProperty(jp.Name);
-                if (pr == null)
-                    continue;
-
-                MergeProperty(pr, $"{root}.{jp.Name}", jp, srce, dest, ref hasChanged);
-            }
+            TryMerge(false, json, target, out var merged);
+            return merged;
         }
 
         /// <summary>
-        /// Merge the property.
+        /// Merges the <paramref name="json"/> with (into) the <paramref name="target"/> resulting in the <paramref name="merged"/> where changes were made.
         /// </summary>
-        private void MergeProperty(IPropertyReflector pr, string path, JsonProperty json, object? srce, object dest, ref bool hasChanged)
+        /// <param name="json">The JSON to merge.</param>
+        /// <param name="target">The JSON to merge with (into).</param>
+        /// <param name="merged">The resulting JSON where changes were made.</param>
+        /// <returns><c>true</c> indicates that changes were made as a result of the merge (see resulting <paramref name="merged"/>); otherwise, <c>false</c> for no changes.</returns>
+        public bool TryMerge(JsonElement json, JsonElement target, out JsonElement merged)
         {
-            // Update according to the value kind.
-            switch (json.Value.ValueKind)
+            if (TryMerge(true, json, target, out var m))
             {
-                case JsonValueKind.Null:
-                case JsonValueKind.True:
-                case JsonValueKind.False:
-                case JsonValueKind.String:
-                case JsonValueKind.Number:
-                    // Update the value directly from the source.
-                    SetPropertyValue(pr, pr.PropertyExpression.GetValue(srce)!, dest, ref hasChanged);
-                    break;
+                merged = m;
+                return true;
+            }
 
+            merged = target;
+            return false;
+        }
+
+        /// <summary>
+        /// Orchestrates the 'actual' merge processing. The `checkForChanges` is used to determine whether to check for changes after the completed merge only where necessary; therefore, the boolean result is not always guaranteed to be accurate :-)
+        /// </summary>
+        private bool TryMerge(bool checkForChanges, JsonElement json, JsonElement target, out JsonElement merged)
+        {
+            // Create writer for the merged output.
+            var buffer = new ArrayBufferWriter<byte>();
+            using var writer = new Utf8JsonWriter(buffer);
+
+            var changed = TryMerge(json, target, writer, false);
+
+            writer.Flush();
+
+            // Read the merged output and parse.
+            var reader = new Utf8JsonReader(buffer.WrittenSpan);
+            merged = JsonElement.ParseValue(ref reader).Clone();
+
+            // Where check for changes is enabled then compare the target and merged JSON if not previously identified.
+            if (checkForChanges && !changed)
+            {
+                var comparer = new JsonElementComparer(new JsonElementComparerOptions { JsonSerializer = Options.JsonSerializer, PropertyNameComparer = Options.PropertyNameComparer, MaxDifferences = 1 });
+                changed = comparer.Compare(target, merged).HasDifferences;
+            }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Merge the JSON element (record 'change' where no additional cost to do so).
+        /// </summary>
+        private bool TryMerge(JsonElement json, JsonElement target, Utf8JsonWriter writer, bool changed)
+        {
+            // Where the kinds are different then simply accept the merge and acknowledge as changed.
+            if (json.ValueKind != target.ValueKind)
+            {
+                json.WriteTo(writer);
+                return true;
+            }
+
+            // Where the kinds are the same then process accordingly.
+            switch (json.ValueKind)
+            {
                 case JsonValueKind.Object:
-                    // Where existing is null, copy source as-is; otherwise, merge object property-by-property.
-                    var current = pr.PropertyExpression.GetValue(dest);
-                    if (current == null)
-                        SetPropertyValue(pr, pr.PropertyExpression.GetValue(srce)!, dest, ref hasChanged);
-                    else
-                    {
-                        if (pr.TypeCode == TypeReflectorTypeCode.IDictionary)
-                        {
-                            // Where the merging into a dictionary this can be a replace or per item merge.
-                            if (Options.DictionaryMergeApproach == DictionaryMergeApproach.Replace)
-                                SetPropertyValue(pr, pr.PropertyExpression.GetValue(srce)!, dest, ref hasChanged);
-                            else
-                            {
-                                var dict = MergeDictionary(pr.GetTypeReflector()!, path, json.Value, (IDictionary)pr.PropertyExpression.GetValue(srce)!, (IDictionary)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
-                                SetPropertyValue(pr, dict, dest, ref hasChanged);
-                            }
-                        }
-                        else
-                            MergeObject(pr.GetTypeReflector()!, path, json.Value, pr.PropertyExpression.GetValue(srce), current, ref hasChanged);
-                    }
-
-                    break;
+                    // An object is a property-by-property merge.
+                    return TryObjectMerge(json, target, writer, changed);
 
                 case JsonValueKind.Array:
-                    // Unless explicitly requested an array is a full replacement only (source copy); otherwise, perform key collection item merge.
-                    var tr = pr.GetTypeReflector()!;
-                    if (Options.EntityKeyCollectionMergeApproach != EntityKeyCollectionMergeApproach.Replace && tr.Data.ContainsKey(EKCollectionName))
-                    {
-                        var coll = MergeKeyedCollection(tr, path, json.Value, (ICompositeKeyCollection)pr.PropertyExpression.GetValue(srce)!, (ICompositeKeyCollection)pr.PropertyExpression.GetValue(dest)!, ref hasChanged);
-                        SetPropertyValue(pr, coll, dest, ref hasChanged);
-                    }
-                    else
-                        SetPropertyValue(pr, pr.PropertyExpression.GetValue(srce)!, dest, ref hasChanged);
+                    // An array is always a replacement.
+                    json.WriteTo(writer);
+                    if (json.GetArrayLength() != target.GetArrayLength())
+                        changed = true;
 
                     break;
+
+                default:
+                    // Accept merge as-is.
+                    json.WriteTo(writer);
+                    break;
             }
+
+            return changed;
         }
 
         /// <summary>
-        /// Sets the property value.
+        /// Merge the JSON object and properties (record 'change' where no cost to do so).
         /// </summary>
-        private static void SetPropertyValue(IPropertyReflector pr, object? srce, object dest, ref bool hasChanged)
+        private bool TryObjectMerge(JsonElement json, JsonElement target, Utf8JsonWriter writer, bool changed)
         {
-            var curr = pr.PropertyExpression.GetValue(dest);
-            if (pr.Compare(curr, srce))
-                return;
+            writer.WriteStartObject();
 
-            pr.PropertyExpression.SetValue(dest, srce);
-            hasChanged = true;
-        }
-
-        /// <summary>
-        /// Merge an <see cref="IDictionary"/>.
-        /// </summary>
-        private IDictionary? MergeDictionary(ITypeReflector tr, string root, JsonElement json, IDictionary srce, IDictionary? dest, ref bool hasChanged)
-        {
-            var dict = dest;
-
-            // Iterate through the properties, each is an item that will be added to the new dictionary.
-            foreach (var jp in json.EnumerateObject())
+            // Apply merge add/override.
+            foreach (var j in json.EnumerateObject())
             {
-                var path = $"{root}.{jp.Name}";
-                var srceitem = srce[jp.Name];
-
-                if (srceitem == null)
+                // Where the property is new then add.
+                if (!TryGetProperty(target, j.Name, out var t))
                 {
-                    // A null value results in a remove operation.
-                    if (dict != null && dict.Contains(jp.Name))
-                    {
-                        dict.Remove(jp.Name);
-                        hasChanged = true;
-                    }
+                    if (j.Value.ValueKind != JsonValueKind.Null)
+                        j.WriteTo(writer);
 
+                    changed = true;
                     continue;
                 }
 
-                // Create new destination dictionary where it does not exist already.
-                dict ??= (IDictionary)tr.CreateInstance();
-
-                // Find the existing and merge; otherwise, add as-is.
-                if (dict.Contains(jp.Name))
+                // Null is a remove; otherwise, override.
+                if (j.Value.ValueKind != JsonValueKind.Null)
                 {
-                    var destitem = dict[jp.Name]!;
-                    switch (tr.ItemTypeCode)
-                    {
-                        case TypeReflectorTypeCode.Simple:
-                            if (!hasChanged && !tr.GetItemTypeReflector()!.Compare(dict[jp.Name], destitem))
-                                hasChanged = true;
-
-                            dict[jp.Name] = srceitem;
-                            continue;
-
-                        case TypeReflectorTypeCode.Complex:
-                            MergeObject(tr.GetItemTypeReflector()!, path, jp.Value, srceitem, destitem, ref hasChanged);
-                            dict[jp.Name] = destitem;
-                            continue;
-
-                        default:
-                            throw new NotSupportedException("A merge where a dictionary value is an array or other collection type is not supported.");
-                    }
+                    writer.WritePropertyName(j.Name);
+                    changed = TryMerge(j.Value, t, writer, changed);
                 }
                 else
-                {
-                    // Represents an add.
-                    hasChanged = true;
-                    dict[jp.Name] = srceitem;
-                }
+                    changed = true;
             }
 
-            return dict;
+            // Add existing target properties not being merged.
+            foreach (var t in target.EnumerateObject())
+            {
+                // Where found then consider as handled above!
+                if (TryGetProperty(json, t.Name, out _))
+                    continue;
+
+                t.WriteTo(writer);
+            }
+
+            writer.WriteEndObject();
+            return changed;
         }
 
         /// <summary>
-        /// Merge a <see cref="ICompositeKeyCollection"/>.
+        /// Performs the TryGetProperty using the configured comparer.
         /// </summary>
-        private ICompositeKeyCollection MergeKeyedCollection(ITypeReflector tr, string root, JsonElement json, ICompositeKeyCollection srce, ICompositeKeyCollection? dest, ref bool hasChanged)
-        {
-            if (srce!.IsAnyDuplicates())
-                throw new JsonMergePatchException($"The JSON array must not contain items with duplicate '{nameof(IEntityKey)}' keys. Path: {root}");
-
-            if (dest != null && dest.IsAnyDuplicates())
-                throw new JsonMergePatchException($"The JSON array destination collection must not contain items with duplicate '{nameof(IEntityKey)}' keys prior to merge. Path: {root}");
-
-            // Create new destination collection; add each to maintain sent order as this may be important to the consuming application.
-            var coll = (ICompositeKeyCollection)tr.CreateInstance();
-
-            // Iterate through the items and add to the new collection.
-            var i = 0;
-            ITypeReflector ier = tr.GetItemTypeReflector()!;
-
-            foreach (var ji in json.EnumerateArray())
-            {
-                var path = $"{root}[{i}]";
-                if (ji.ValueKind != JsonValueKind.Object && ji.ValueKind != JsonValueKind.Null)
-                    throw new JsonMergePatchException($"The JSON array item must be an Object where the destination collection supports keys. Path: {path}");
-
-                var srceitem = (IEntityKey)srce[i++]!;
-
-                // Find the existing and merge; otherwise, add as-is.
-                var destitem = srceitem == null ? null : dest?.GetByKey(srceitem.EntityKey);
-                if (destitem != null)
-                {
-                    MergeObject(ier, path, ji, srceitem, destitem, ref hasChanged);
-                    coll.Add(destitem);
-                }
-                else
-                    coll.Add(srceitem!);
-            }
-
-            return coll;
-        }
+        private bool TryGetProperty(JsonElement json, string propertyName, out JsonElement value)
+            => Options.PropertyNameComparer is null ? json.TryGetProperty(propertyName, out value) : json.TryGetProperty(propertyName, Options.PropertyNameComparer, out value);
     }
 }

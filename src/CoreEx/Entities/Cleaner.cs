@@ -4,6 +4,7 @@ using CoreEx.Configuration;
 using CoreEx.Globalization;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace CoreEx.Entities
@@ -275,13 +276,58 @@ namespace CoreEx.Entities
         /// </summary>
         /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
         /// <param name="value">The value.</param>
-        public static void ResetTenantId<T>(T? value)
+        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
+        public static void ResetTenantId<T>(T? value, ExecutionContext? executionContext = null)
         {
             if (value == null || value is not ITenantId ti)
                 return;
 
-            if (ExecutionContext.HasCurrent)
-                ti.TenantId = ExecutionContext.Current.TenantId;
+            if (executionContext is null)
+            {
+
+                if (ExecutionContext.HasCurrent)
+                    ti.TenantId = ExecutionContext.Current.TenantId;
+            }
+            else
+                ti.TenantId = executionContext.TenantId;
+        }
+
+        /// <summary>
+        /// Prepares the value for create by encapsulating <see cref="ChangeLog.PrepareCreated{T}(T, ExecutionContext?)"/> and <see cref="ResetTenantId"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value.</param>
+        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
+        /// <returns>The value to support fluent-style method-chaining.</returns>
+        [return: NotNullIfNotNull(nameof(value))]
+        public static T? PrepareCreate<T>(T? value, ExecutionContext? executionContext = null)
+        {
+            if (value is not null)
+            {
+                ChangeLog.PrepareCreated(value, executionContext);
+                ResetTenantId(value, executionContext);
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Prepares the value for update by encapsulating <see cref="ChangeLog.PrepareUpdated{T}(T, ExecutionContext?)"/> and <see cref="ResetTenantId"/>.
+        /// </summary>
+        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+        /// <param name="value">The value.</param>
+        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
+        /// <returns>The value to support fluent-style method-chaining.</returns>
+        [return: NotNullIfNotNull(nameof(value))]
+        public static T? PrepareUpdate<T>(T? value, ExecutionContext? executionContext = null)
+        {
+            if (value is not null)
+            {
+                ChangeLog.PrepareUpdated(value, executionContext);
+                ResetTenantId(value, executionContext);
+            }
+
+            return value;
         }
     }
 }

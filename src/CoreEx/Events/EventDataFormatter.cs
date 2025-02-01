@@ -13,7 +13,7 @@ namespace CoreEx.Events
     /// Provides the <see cref="EventData"/> formatting options and corresponding <see cref="Format(EventData)"/>.
     /// </summary>
     /// <remarks>This enables further standardized formatting of the <see cref="EventData"/> prior to serialization.
-    /// <para>The <see cref="EventDataBase.Id"/>, <see cref="EventDataBase.Timestamp"/> and <see cref="EventDataBase.CorrelationId"/> will default, where <c>null</c>, to <see cref="Guid.NewGuid()"/>, <see cref="DateTimeOffset.UtcNow"/> and
+    /// <para>The <see cref="EventDataBase.Id"/>, <see cref="EventDataBase.Timestamp"/> and <see cref="EventDataBase.CorrelationId"/> will default, where <c>null</c>, to <see cref="Guid.NewGuid()"/>, <see cref="SystemTime.Timestamp"/> and
     /// <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.CorrelationId"/> respectively.</para></remarks>
     public class EventDataFormatter
     {
@@ -152,7 +152,7 @@ namespace CoreEx.Events
             var value = @event.Value;
 
             @event.Id ??= Guid.NewGuid().ToString();
-            @event.Timestamp ??= new DateTimeOffset(ExecutionContext.HasCurrent ? ExecutionContext.Current.Timestamp : ExecutionContext.SystemTime.UtcNow);
+            @event.Timestamp ??= new DateTimeOffset(SystemTime.Timestamp);
 
             if (PropertySelection.HasFlag(EventDataProperty.Key))
             {

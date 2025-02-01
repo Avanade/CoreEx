@@ -14,11 +14,12 @@ namespace CoreEx
     public class ConcurrencyException : Exception, IExtendedException
     {
         private const string _message = "A concurrency error occurred; please refresh the data and try again.";
+        private static bool? _shouldExceptionBeLogged;
 
         /// <summary>
         /// Get or sets the <see cref="ShouldBeLogged"/> value.
         /// </summary>
-        public static bool ShouldExceptionBeLogged { get; set; }
+        public static bool ShouldExceptionBeLogged { get => _shouldExceptionBeLogged ?? Internal.ShouldExceptionBeLogged<ConcurrencyException>(); set => _shouldExceptionBeLogged = value; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConcurrencyException"/> class.

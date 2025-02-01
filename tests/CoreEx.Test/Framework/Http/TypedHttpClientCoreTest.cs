@@ -234,6 +234,7 @@ namespace CoreEx.Test.Framework.Http
         [Test]
         public void Get_SuccessWithCollectionResultAndTokenPaging()
         {
+            PagingArgs.IsTokenSupported = true;
             var pc = new ProductCollection { new Product { Id = "abc", Name = "banana", Price = 0.99m }, new Product { Id = "def", Name = "apple", Price = 0.49m } };
 
             var mcf = MockHttpClientFactory.Create();
@@ -260,6 +261,9 @@ namespace CoreEx.Test.Framework.Http
 
             mcf.VerifyAll();
         }
+
+        [TearDown]
+        public void TearDown() => PagingArgs.IsTokenSupported = false;
 
         [Test]
         public void Post_Success()

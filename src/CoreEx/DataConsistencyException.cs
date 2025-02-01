@@ -15,11 +15,12 @@ namespace CoreEx
     public class DataConsistencyException : Exception, IExtendedException
     {
         private const string _message = "A potential data consistency error occurred.";
+        private static bool? _shouldExceptionBeLogged;
 
         /// <summary>
         /// Get or sets the <see cref="ShouldBeLogged"/> value.
         /// </summary>
-        public static bool ShouldExceptionBeLogged { get; set; }
+        public static bool ShouldExceptionBeLogged { get => _shouldExceptionBeLogged ?? Internal.ShouldExceptionBeLogged<DataConsistencyException>(); set => _shouldExceptionBeLogged = value; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DataConsistencyException"/> class.

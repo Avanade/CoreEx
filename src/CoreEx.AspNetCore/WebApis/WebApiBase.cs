@@ -64,10 +64,10 @@ namespace CoreEx.AspNetCore.WebApis
         public IEnumerable<string> SecondaryCorrelationIdNames { get; set; } = ["x-ms-client-tracking-id"];
 
         /// <summary>
-        /// Gets or sets the <see cref="IExtendedException"/> <see cref="IActionResult"/> creator function used by <see cref="CreateActionResultFromExtendedException(IExtendedException)"/>.
+        /// Gets or sets the <see cref="IExtendedException"/> <see cref="IActionResult"/> creator function used by <see cref="CreateActionResultFromExtendedException"/>.
         /// </summary>
         /// <remarks>This allows an alternate serialization or handling as required. Defaults to the <see cref="DefaultExtendedExceptionActionResultCreator"/>.</remarks>
-        public Func<IExtendedException, IActionResult> ExtendedExceptionActionResultCreator { get; set; } = DefaultExtendedExceptionActionResultCreator;
+        public Func<Exception, ILogger?, IActionResult> ExtendedExceptionActionResultCreator { get; set; } = DefaultExtendedExceptionActionResultCreator;
 
         /// <summary>
         /// Gets the list of correlation identifier names, being <see cref="HttpConsts.CorrelationIdHeaderName"/> and <see cref="SecondaryCorrelationIdNames"/> (inclusive).
@@ -186,12 +186,9 @@ namespace CoreEx.AspNetCore.WebApis
             IActionResult? ar = null;
             if (exception is IExtendedException eex)
             {
-                if (eex.ShouldBeLogged)
-                    logger.LogError(exception, "{Error}", exception.Message);
-
                 ar = owner is null 
-                    ? DefaultExtendedExceptionActionResultCreator(eex)
-                    : owner.CreateActionResultFromExtendedException(eex);
+                    ? DefaultExtendedExceptionActionResultCreator(exception, logger)
+                    : owner.CreateActionResultFromExtendedException(exception, logger);
             }
             else
             {
@@ -211,16 +208,30 @@ namespace CoreEx.AspNetCore.WebApis
         /// <summary>
         /// Creates an <see cref="IActionResult"/> from an <paramref name="extendedException"/>.
         /// </summary>
-        /// <param name="extendedException">The <see cref="IExtendedException"/>.</param>
-        public IActionResult CreateActionResultFromExtendedException(IExtendedException extendedException) => ExtendedExceptionActionResultCreator(extendedException);
+        /// <param name="extendedException">The <see cref="IExtendedException"/> <see cref="Exception"/>.</param>
+        /// <param name="logger">The <see cref="ILogger"/>.</param>
+        /// <returns>The resulting <see cref="IActionResult"/>.</returns>
+        public IActionResult CreateActionResultFromExtendedException(Exception extendedException, ILogger? logger) => ExtendedExceptionActionResultCreator(extendedException, logger);
 
         /// <summary>
         /// The default <see cref="ExtendedExceptionActionResultCreator"/>.
         /// </summary>
         /// <param name="extendedException">The <see cref="IExtendedException"/>.</param>
+        /// <param name="logger">The <see cref="ILogger"/>.</param>
         /// <returns>The resulting <see cref="IActionResult"/>.</returns>
-        public static IActionResult DefaultExtendedExceptionActionResultCreator(IExtendedException extendedException)
+        public static IActionResult DefaultExtendedExceptionActionResultCreator(Exception extendedException, ILogger? logger)
         {
+            if (extendedException.ThrowIfNull(nameof(extendedException)) is not IExtendedException eex)
+                throw new ArgumentException($"The exception must implement {nameof(IExtendedException)}.", nameof(extendedException));
+
+            if (eex.ShouldBeLogged)
+            {
+                if (logger is null)
+                    throw new ArgumentNullException(nameof(logger), $"The logger is required to log the exception (see {nameof(IExtendedException)}.{nameof(IExtendedException.ShouldBeLogged)}).");
+
+                logger?.LogError(extendedException, "{Error}", extendedException.Message);
+            }
+
             if (extendedException is ValidationException vex && vex.Messages is not null && vex.Messages.Count > 0)
             {
                 var msd = new ModelStateDictionary();
@@ -237,12 +248,12 @@ namespace CoreEx.AspNetCore.WebApis
             {
                 Content = extendedException.Message,
                 ContentType = MediaTypeNames.Text.Plain,
-                StatusCode = (int)extendedException.StatusCode,
+                StatusCode = (int)eex.StatusCode,
                 BeforeExtension = r =>
                 {
                     var th = r.GetTypedHeaders();
-                    th.Set(HttpConsts.ErrorTypeHeaderName, extendedException.ErrorType);
-                    th.Set(HttpConsts.ErrorCodeHeaderName, extendedException.ErrorCode.ToString());
+                    th.Set(HttpConsts.ErrorTypeHeaderName, eex.ErrorType);
+                    th.Set(HttpConsts.ErrorCodeHeaderName, eex.ErrorCode.ToString());
                     if (extendedException is TransientException tex)
                         th.Set(HeaderNames.RetryAfter, tex.RetryAfterSeconds);
 

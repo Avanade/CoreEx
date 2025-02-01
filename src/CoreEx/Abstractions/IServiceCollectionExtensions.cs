@@ -12,6 +12,7 @@ using CoreEx.Hosting.Work;
 using CoreEx.Http;
 using CoreEx.Json;
 using CoreEx.Json.Merge;
+using CoreEx.Json.Merge.Extended;
 using CoreEx.Mapping;
 using CoreEx.RefData;
 using CoreEx.RefData.Caching;
@@ -244,16 +245,27 @@ namespace Microsoft.Extensions.DependencyInjection
                                       .AddSingleton<IReferenceDataContentJsonSerializer, CoreEx.Text.Json.ReferenceDataContentJsonSerializer>();
 
         /// <summary>
-        /// Adds the <see cref="CoreEx.Json.Merge.JsonMergePatch"/> as the singleton service.
+        /// Adds the <see cref="JsonMergePatchEx"/> as the <see cref="IJsonMergePatch"/> singleton service.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-        /// <param name="configure">The action to enable the <see cref="CoreEx.Json.Merge.JsonMergePatchOptions"/> to be further configured.</param>
+        /// <param name="configure">The action to enable the <see cref="JsonMergePatchOptions"/> to be further configured.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Action<CoreEx.Json.Merge.JsonMergePatchOptions>? configure = null) => CheckServices(services).AddSingleton<IJsonMergePatch>(sp =>
+        public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Action<JsonMergePatchExOptions>? configure = null) => AddJsonMergePatch(services, sp =>
         {
-            var jmpo = new JsonMergePatchOptions(sp.GetService<IJsonSerializer>());
+            var jmpo = new JsonMergePatchExOptions(sp.GetService<IJsonSerializer>());
             configure?.Invoke(jmpo);
-            return new JsonMergePatch(jmpo);
+            return new JsonMergePatchEx(jmpo);
+        });
+
+        /// <summary>
+        /// Adds the <see cref="IJsonMergePatch"/> singleton service.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="createFactory">The function to create the <see cref="IJsonMergePatch"/> instance..</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddJsonMergePatch(this IServiceCollection services, Func<IServiceProvider, IJsonMergePatch>? createFactory) => CheckServices(services).AddSingleton(sp =>
+        {
+            return createFactory?.Invoke(sp) ?? throw new InvalidOperationException($"Unable to create '{nameof(IJsonMergePatch)}' instance; '{nameof(createFactory)}' resulted in null.");
         });
 
         /// <summary>

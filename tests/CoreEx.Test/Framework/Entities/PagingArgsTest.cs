@@ -33,6 +33,7 @@ namespace CoreEx.Test.Framework.Entities
         [Test]
         public void CreateTokenAndTake()
         {
+            PagingArgs.IsTokenSupported = true;
             var pa = PagingArgs.CreateTokenAndTake("blah-blah", 20);
             Assert.Multiple(() =>
             {
@@ -41,5 +42,8 @@ namespace CoreEx.Test.Framework.Entities
                 Assert.That(pa.Option, Is.EqualTo(PagingOption.TokenAndTake));
             });
         }
+
+        [TearDown]
+        public void TearDown() => PagingArgs.IsTokenSupported = false;
     }
 }

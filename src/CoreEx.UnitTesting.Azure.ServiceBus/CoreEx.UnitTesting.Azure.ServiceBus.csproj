@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="UnitTestEx.Azure.ServiceBus" Version="5.1.0" />
+    <PackageReference Include="UnitTestEx.Azure.ServiceBus" Version="5.3.0" />
   </ItemGroup>
 
 </Project>

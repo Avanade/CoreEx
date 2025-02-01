@@ -68,6 +68,8 @@ namespace CoreEx.Test.Framework.WebApis
         [Test]
         public void GetRequestOptions_Configured_TokenPaging()
         {
+            PagingArgs.IsTokenSupported = true;
+
             using var test = FunctionTester.Create<Startup>();
             var hr = test.CreateHttpRequest(HttpMethod.Get, "https://unittest");
             var ro = new HttpRequestOptions { ETag = "etag-value", IncludeText = true, IncludeInactive = true, UrlQueryString = "fruit=apples" }.WithPaging(PagingArgs.CreateTokenAndTake("token", 25, true)).Include("fielda", "fieldb").Exclude("fieldc");
@@ -95,5 +97,8 @@ namespace CoreEx.Test.Framework.WebApis
                 Assert.That(wro.Paging.IsGetCount, Is.True);
             });
         }
+
+        [TearDown]
+        public void TearDown() => PagingArgs.IsTokenSupported = false;
     }
 }

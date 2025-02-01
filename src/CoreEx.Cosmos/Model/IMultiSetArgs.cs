@@ -1,19 +1,15 @@
 ﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
 
 using CoreEx.Results;
+using System;
 
-namespace CoreEx.Cosmos.Extended
+namespace CoreEx.Cosmos.Model
 {
     /// <summary>
     /// Enables the <b>CosmosDb</b> multi-set arguments.
     /// </summary>
     public interface IMultiSetArgs
     {
-        /// <summary>
-        /// Gets the <see cref="ICosmosDbContainer"/> that contains the container configuration.
-        /// </summary>
-        ICosmosDbContainer Container { get; }
-
         /// <summary>
         /// Gets the minimum number of items allowed.
         /// </summary>
@@ -30,10 +26,17 @@ namespace CoreEx.Cosmos.Extended
         bool StopOnNull { get; }
 
         /// <summary>
-        /// Adds an entity item for its respective dataset.
+        /// Gets the model <see cref="System.Type"/>.
         /// </summary>
-        /// <param name="item">The entity item.</param>
-        Result AddItem(object? item);
+        Type Type { get; }
+
+        /// <summary>
+        /// Adds a model <paramref name="item"/> for its respective dataset.
+        /// </summary>
+        /// <param name="container">The <see cref="CosmosDbContainer"/>.</param>
+        /// <param name="dbArgs">The <see cref="CosmosDbArgs"/>.</param>
+        /// <param name="item">The model item.</param>
+        Result AddItem(CosmosDbContainer container, CosmosDbArgs dbArgs, object item);
 
         /// <summary>
         /// Verify against contraints.
@@ -45,5 +48,12 @@ namespace CoreEx.Cosmos.Extended
         /// Invokes the underlying action.
         /// </summary>
         void Invoke();
+
+        /// <summary>
+        /// Gets the name for the model <see cref="System.Type"/>.
+        /// </summary>
+        /// <param name="container">The <see cref="CosmosDbContainer"/>.</param>
+        /// <returns>The model name.</returns>
+        string GetModelName(CosmosDbContainer container);
     }
 }
