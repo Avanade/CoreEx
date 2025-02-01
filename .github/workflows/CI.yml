@@ -38,7 +38,7 @@ jobs:
   
     - name: Add ICU support (ubuntu runner)
       run: |
-        sudo apt-get install libicu-dev
+        sudo apt-get update && sudo apt-get install -y libicu-dev
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
