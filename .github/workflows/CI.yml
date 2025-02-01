@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      DOTDOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
 
     # ubuntu-18.04 # cosmos emulator doesn't work on ubuntu 20 and 22: https://github.com/Qayme/qayme-action-cosmosdb-emulator
 
