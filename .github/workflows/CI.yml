@@ -36,10 +36,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
   
-    - if: (matrix.os == 'ubuntu-latest')
-      name: Add icu support (ubuntu runner)
+    - name: Add ICU support (ubuntu runner)
       run: |
-          sudo apt-get install libicu-dev
+        sudo apt-get install libicu-dev
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
