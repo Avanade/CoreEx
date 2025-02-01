@@ -32,37 +32,6 @@ namespace CoreEx.Cosmos.Model
         /// </summary>
         public Container CosmosContainer => Owner.CosmosContainer;
 
-        /// <summary>
-        /// Sets the function to get the <see cref="PartitionKey"/> from the model used by the <see cref="CosmosDbModelContainer.GetPartitionKey{TModel}(TModel, CosmosDbArgs)"/> (used by only by the <b>Create</b> and <b>Update</b> operations).
-        /// </summary>
-        /// <param name="getPartitionKey">The function to get the <see cref="PartitionKey"/> from the model.</param>
-        /// <remarks>This can only be set once; otherwise, a <see cref="InvalidOperationException"/> will be thrown.</remarks>
-        public CosmosDbModelContainer<TModel> UsePartitionKey(Func<TModel, PartitionKey>? getPartitionKey)
-        {
-            Owner.Model.UsePartitionKey(getPartitionKey);
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the name for the model <see cref="Type"/>.
-        /// </summary>
-        /// <param name="name">The model name.</param>
-        public CosmosDbModelContainer<TModel> UseModelName(string name)
-        {
-            Owner.Model.UseModelName<TModel>(name);
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the filter for all operations performed on the <typeparamref name="TModel"/> to ensure authorisation is applied. Applies automatically to all queries, plus create, update, delete and get operations.
-        /// </summary>
-        /// <param name="filter">The authorization filter query.</param>
-        public CosmosDbModelContainer<TModel> UseAuthorizeFilter(Func<IQueryable<TModel>, IQueryable<TModel>>? filter)
-        {
-            Owner.Model.UseAuthorizeFilter(filter);
-            return this;
-        }
-
         #region Query
 
         /// <summary>

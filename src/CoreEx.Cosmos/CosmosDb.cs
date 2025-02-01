@@ -13,13 +13,13 @@ namespace CoreEx.Cosmos
     /// Provides extended <b>CosmosDb</b> data access.
     /// </summary>
     /// <param name="database">The <see cref="Microsoft.Azure.Cosmos.Database"/>.</param>
-    /// <param name="mapper">The <see cref="IMapper"/>.</param>
+    /// <param name="mapper">The <see cref="IMapper"/>; defaults to <see cref="Mapping.Mapper.Empty"/>.</param>
     /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="CosmosDbInvoker"/>.</param>
     /// <remarks>It is recommended that the <see cref="CosmosDb"/> is registered as a scoped service to enable capabilities such as <see cref="CosmosDbArgs.FilterByTenantId"/> that <i>must</i> be scoped. 
     /// Use <see cref="Microsoft.Extensions.DependencyInjection.CosmosDbServiceCollectionExtensions.AddCosmosDb{TCosmosDb}(Microsoft.Extensions.DependencyInjection.IServiceCollection, Func{IServiceProvider, TCosmosDb}, string?)"/> to 
     /// register the scoped <see cref="CosmosDb"/> instance.
     /// <para>The dependent <see cref="CosmosClient"/> should however be registered as a singleton as is <see href="https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/best-practice-dotnet">best practice</see>.</para></remarks>
-    public class CosmosDb(Database database, IMapper mapper, CosmosDbInvoker? invoker = null) : ICosmosDb
+    public class CosmosDb(Database database, IMapper? mapper = null, CosmosDbInvoker? invoker = null) : ICosmosDb
     {
         private static CosmosDbInvoker? _invoker;
         private readonly ConcurrentDictionary<string, CosmosDbContainer> _containers = new();
@@ -28,7 +28,7 @@ namespace CoreEx.Cosmos
         public Database Database { get; } = database.ThrowIfNull(nameof(database));
 
         /// <inheritdoc/>
-        public IMapper Mapper { get; } = mapper.ThrowIfNull(nameof(mapper));
+        public IMapper Mapper { get; } = mapper ?? Mapping.Mapper.Empty;
 
         /// <inheritdoc/>
         public CosmosDbInvoker Invoker { get; } = invoker ?? (_invoker ??= new CosmosDbInvoker());

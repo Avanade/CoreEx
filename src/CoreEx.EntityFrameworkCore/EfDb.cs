@@ -31,9 +31,9 @@ namespace CoreEx.EntityFrameworkCore
     /// </para>
     /// </remarks>
     /// <param name="dbContext">The <see cref="DbContext"/>.</param>
-    /// <param name="mapper">The <see cref="IMapper"/>.</param>
+    /// <param name="mapper">The <see cref="IMapper"/>; defaults to <see cref="Mapping.Mapper.Empty"/>.</param>
     /// <param name="invoker">Enables the <see cref="Invoker"/> to be overridden; defaults to <see cref="EfDbInvoker"/>.</param>
-    public class EfDb<TDbContext>(TDbContext dbContext, IMapper mapper, EfDbInvoker? invoker = null) : IEfDb where TDbContext : DbContext, IEfDbContext
+    public class EfDb<TDbContext>(TDbContext dbContext, IMapper? mapper = null, EfDbInvoker? invoker = null) : IEfDb where TDbContext : DbContext, IEfDbContext
     {
         /// <inheritdoc/>
         DbContext IEfDb.DbContext => DbContext;

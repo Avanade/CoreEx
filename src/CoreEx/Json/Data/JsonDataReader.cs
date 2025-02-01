@@ -192,7 +192,12 @@ namespace CoreEx.Json.Data
                         {
                             (items ??= []).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
-                            Cleaner.PrepareCreate(item, _executionContext);
+                            ChangeLog.PrepareCreated(item, _executionContext);
+
+                            // Only reset tenant id where not explicitly set.
+                            if (item is ITenantId tenantId && tenantId is null)
+                                Cleaner.ResetTenantId(item, _executionContext);
+
                             PrepareReferenceData(typeof(T), item, jd, items.Count - 1);
                         }
                     }
@@ -225,7 +230,12 @@ namespace CoreEx.Json.Data
                         {
                             (items ??= []).Add(item);
                             _args.IdentifierGenerator?.AssignIdentifierAsync(item);
-                            Cleaner.PrepareCreate(item, _executionContext);
+                            ChangeLog.PrepareCreated(item, _executionContext);
+
+                            // Only reset tenant id where not explicitly set.
+                            if (item is ITenantId tenantId && tenantId is null)
+                                Cleaner.ResetTenantId(item, _executionContext);
+
                             PrepareReferenceData(type, item, jd, items.Count - 1);
                         }
                     }
