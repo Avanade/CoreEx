@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # ubuntu-18.04 # cosmos emulator doesn't work on ubuntu 20 and 22: https://github.com/Qayme/qayme-action-cosmosdb-emulator
 
     services:
