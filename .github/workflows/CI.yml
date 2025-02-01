@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DOTDOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
+
     # ubuntu-18.04 # cosmos emulator doesn't work on ubuntu 20 and 22: https://github.com/Qayme/qayme-action-cosmosdb-emulator
 
     services:
@@ -38,7 +41,6 @@ jobs:
   
     - name: Add ICU support (ubuntu runner)
       run: |
-        echo "##vso[task.setvariable variable=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT;]0"
         sudo apt-get update && sudo apt-get install -y libicu-dev
 
     - name: Setup .NET
