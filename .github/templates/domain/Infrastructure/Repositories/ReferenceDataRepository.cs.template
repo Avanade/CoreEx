@@ -1,0 +1,10 @@
+namespace {Solution}.{Domain}.Infrastructure.Repositories;
+
+[ScopedService<IReferenceDataRepository>]
+public class ReferenceDataRepository({Domain}EfDb ef) : IReferenceDataRepository
+{
+    private readonly {Domain}EfDb _ef = ef.ThrowIfNull();
+
+    public Task<Contracts.{Entity}StatusCollection> GetAll{Entity}StatusesAsync()
+        => _ef.{Entity}Statuses.Query().ToMappedItemsAsync<Persistence.{Entity}Status, Contracts.{Entity}StatusCollection, Contracts.{Entity}Status>({Entity}StatusMapper.From);
+}

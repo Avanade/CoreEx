@@ -1,0 +1,11 @@
+namespace {Solution}.{Domain}.Contracts;
+
+[Contract]
+public partial class {Entity} : {Entity}Base, IETag, IChangeLog
+{
+    [ReadOnly(true)]
+    public ChangeLog? ChangeLog { get; set; }
+
+    [ReadOnly(true)]
+    public string? ETag { get; set; }
+}

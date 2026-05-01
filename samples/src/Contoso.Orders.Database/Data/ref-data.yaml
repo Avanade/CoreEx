@@ -1,0 +1,5 @@
+Orders:
+  - $^OrderStatus:
+    - P: Pending
+    - C: Confirmed
+    - X: Cancelled
