@@ -1,0 +1,18 @@
+CREATE OR ALTER PROCEDURE [{Domain}].[spOutboxEnqueue]
+  @TenantId AS NVARCHAR(255) = NULL,
+  @PartitionId AS INT,
+  @Destination AS NVARCHAR(255),
+  @Event AS NVARCHAR(MAX),
+  @EnqueuedUtc AS DATETIME2 = NULL,
+  @AvailableUtc AS DATETIME2 = NULL
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SET XACT_ABORT ON;
+
+  DECLARE @Now DATETIME2 = SYSUTCDATETIME();
+  DECLARE @EffectiveTenantId NVARCHAR(255) = COALESCE(@TenantId, '(none)');
+
+  INSERT INTO [{Domain}].[Outbox] ([TenantId], [PartitionId], [Destination], [Event], [EnqueuedUtc], [AvailableUtc])
+  VALUES (@EffectiveTenantId, @PartitionId, @Destination, @Event, COALESCE(@EnqueuedUtc, @Now), COALESCE(@AvailableUtc, COALESCE(@EnqueuedUtc, @Now)));
+END

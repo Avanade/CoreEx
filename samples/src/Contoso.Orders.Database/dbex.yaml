@@ -1,0 +1,8 @@
+outbox: true
+tables:
+# Reference-data
+- name: OrderStatus
+
+# Transactional-data
+- name: Order
+- name: OrderItem

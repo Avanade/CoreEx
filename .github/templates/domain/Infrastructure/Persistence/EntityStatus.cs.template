@@ -1,0 +1,3 @@
+namespace {Solution}.{Domain}.Infrastructure.Persistence;
+
+public partial class {Entity}Status : ReferenceDataModelBase<string?> { }
