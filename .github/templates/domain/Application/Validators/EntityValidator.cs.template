@@ -1,0 +1,16 @@
+namespace {Solution}.{Domain}.Application.Validators;
+
+public class {Entity}Validator : Validator<{Entity}, {Entity}Validator>
+{
+    private static readonly Validator<{ChildEntity}> _itemValidator = Validator.Create<{ChildEntity}>()
+        .HasProperty(x => x.ProductId, c => c.Mandatory().MaximumLength(100))
+        .HasProperty(x => x.Quantity, c => c.GreaterThan(0).PrecisionScale(null, 4))
+        .HasProperty(x => x.UnitPrice, c => c.GreaterThanOrEqualTo(0, _ => "zero").PrecisionScale(null, 4));
+
+    public {Entity}Validator()
+    {
+        Property(o => o.CustomerId).Mandatory().MaximumLength(100);
+        Property(o => o.Status).Mandatory().IsValid();
+        Property(o => o.Items).Collection(c => c.MinimumCount(1).Entity(_itemValidator));
+    }
+}
