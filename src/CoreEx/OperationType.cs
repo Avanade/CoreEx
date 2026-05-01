@@ -1,36 +1,37 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx;
 
-namespace CoreEx
+/// <summary>
+/// Represents the <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> operation types (Create, Read, Update and Delete).
+/// </summary>
+public enum OperationType
 {
     /// <summary>
-    /// Represents the possible operations types.
+    /// An <i>Unspecified</i> operation.
     /// </summary>
-    /// <remarks>Based on the standard CRUD operations: <see cref="Create"/>, <see cref="Read"/>, <see cref="Update"/> and <see cref="Delete"/>.</remarks>
-    public enum OperationType
-    {
-        /// <summary>
-        /// An unknown/unspecified operation type.
-        /// </summary>
-        Unspecified,
+    Unspecified = 0,
 
-        /// <summary>
-        /// A <b>create</b> operation.
-        /// </summary>
-        Create,
+    /// <summary>
+    /// A <i>Get</i> (keyed) operation.
+    /// </summary>
+    Get = 1,
 
-        /// <summary>
-        /// A <b>read</b> operation.
-        /// </summary>
-        Read,
+    /// <summary>
+    /// A <i>Create</i> operation.
+    /// </summary>
+    Create = 2,
 
-        /// <summary>
-        /// An <b>update</b> operation.
-        /// </summary>
-        Update,
+    /// <summary>
+    /// An <i>Update</i> operation.
+    /// </summary>
+    Update = 4,
 
-        /// <summary>
-        /// A <b>delete</b> operation.
-        /// </summary>
-        Delete
-    }
+    /// <summary>
+    /// A <i>Delete</i> operation.
+    /// </summary>
+    Delete = 8,
+
+    /// <summary>
+    /// A <i>Query</i> operation (as distinct from a <see cref="Get"/>).
+    /// </summary>
+    Query = 16,
 }

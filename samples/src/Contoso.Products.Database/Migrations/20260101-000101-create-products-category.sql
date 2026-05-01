@@ -1,0 +1,18 @@
+-- Migration Script
+
+BEGIN TRANSACTION
+
+CREATE TABLE [Products].[Category] (
+  [CategoryId] NVARCHAR(50) NOT NULL PRIMARY KEY,
+  [Code] NVARCHAR(50) NOT NULL UNIQUE,
+  [Text] NVARCHAR(250) NULL,
+  [IsActive] BIT NULL,
+  [SortOrder] INT NULL,
+  [RowVersion] TIMESTAMP NOT NULL,
+  [CreatedBy] NVARCHAR(250) NULL,
+  [CreatedOn] DATETIMEOFFSET NULL,
+  [UpdatedBy] NVARCHAR(250) NULL,
+  [UpdatedOn] DATETIMEOFFSET NULL
+);
+  
+COMMIT TRANSACTION

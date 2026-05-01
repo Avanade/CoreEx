@@ -1,24 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
-    <RootNamespace>UnitTestEx</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx UnitTesting extras.</Title>
-    <Description>CoreEx UnitTesting (UnitTestEx) extras.</Description>
-    <PackageTags>coreex unittest unit-test test unittestex</PackageTags>
-  </PropertyGroup>
-
-  <Import Project="..\..\Common.targets" />
-
   <ItemGroup>
-    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
-    <ProjectReference Include="..\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
-    <ProjectReference Include="..\CoreEx.Azure\CoreEx.Azure.csproj" />
+    <PackageReference Include="DbEx.SqlServer" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="UnitTestEx" />
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="UnitTestEx" Version="5.3.0" />
+    <ProjectReference Include="..\CoreEx.Azure.Messaging.ServiceBus\CoreEx.Azure.Messaging.ServiceBus.csproj" />
+    <ProjectReference Include="..\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />
+    <ProjectReference Include="..\CoreEx.Events\CoreEx.Events.csproj" />
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 
 </Project>

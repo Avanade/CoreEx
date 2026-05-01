@@ -1,0 +1,44 @@
+name: CoreEx
+
+services:
+  db-sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "yourStrong(!)Password"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    
+  db-postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: "yourStrong#!Password"
+    ports:
+      - "5432:5432"
+
+  redis-cache:
+    image: docker.io/redis:latest
+    ports:
+      - "6379:6379"
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+    ports:
+      - "18888:18888"
+      - "4317:18889"
+
+  servicebus-emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    depends_on:
+      - db-sql-server
+    volumes:
+      - ./servicebus/Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
+    environment:
+      SQL_SERVER: db-sql-server
+      MSSQL_SA_PASSWORD: "yourStrong(!)Password"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "5672:5672"   # AMQP
+      - "5300:5300"   # Management / HTTP

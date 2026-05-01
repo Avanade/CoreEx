@@ -1,23 +1,25 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation;
 
-namespace CoreEx.Validation
+/// <summary>
+/// Represents a comparison operator.
+/// </summary>
+public enum CompareOperator
 {
-    /// <summary>
-    /// Represents a comparison operator.
-    /// </summary>
-    public enum CompareOperator
-    {
-        /// <summary>A comparison for equality.</summary>
-        Equal,
-        /// <summary>A comparison for inequality.</summary>
-        NotEqual,
-        /// <summary>A comparison for less than.</summary>
-        LessThan,
-        /// <summary>A comparison for less than or equal to.</summary>
-        LessThanEqual,
-        /// <summary>A comparison for greater than.</summary>
-        GreaterThan,
-        /// <summary>A comparison for greater than or equal to.</summary>
-        GreaterThanEqual,
-    }
+    /// <summary>A comparison for equality.</summary>
+    Equal,
+
+    /// <summary>A comparison for inequality.</summary>
+    NotEqual,
+
+    /// <summary>A comparison for less than.</summary>
+    LessThan,
+
+    /// <summary>A comparison for less than or equal to.</summary>
+    LessThanOrEqualTo,
+
+    /// <summary>A comparison for greater than.</summary>
+    GreaterThan,
+
+    /// <summary>A comparison for greater than or equal to.</summary>
+    GreaterThanOrEqualTo
 }

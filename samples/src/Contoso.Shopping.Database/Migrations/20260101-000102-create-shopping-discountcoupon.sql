@@ -1,0 +1,21 @@
+-- Migration Script
+
+BEGIN TRANSACTION
+
+CREATE TABLE [Shopping].[DiscountCoupon] (
+  [DiscountCouponId] NVARCHAR(50) NOT NULL PRIMARY KEY,
+  [Code] NVARCHAR(50) NOT NULL UNIQUE,
+  [Text] NVARCHAR(250) NULL,
+  [IsActive] BIT NULL,
+  [SortOrder] INT NULL,
+  [DiscountPercentage] DECIMAL(18,2) DEFAULT 0 NOT NULL,
+  [StartsOn] DATETIMEOFFSET NULL,
+  [EndsOn] DATETIMEOFFSET NULL,
+  [RowVersion] TIMESTAMP NOT NULL,
+  [CreatedBy] NVARCHAR(250) NULL,
+  [CreatedOn] DATETIMEOFFSET NULL,
+  [UpdatedBy] NVARCHAR(250) NULL,
+  [UpdatedOn] DATETIMEOFFSET NULL
+);
+  
+COMMIT TRANSACTION

@@ -1,0 +1,12 @@
+Filter field(s) are as follows:
+LastName (Type: String, Null: true, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+FirstName (Type: String, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
+Code (Type: String, Null: false, Operators: EQ, NE, IN)
+Birthday (Type: DateTime, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN)
+Age (Type: Int32, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN) - Age is but a number.
+Salary (Type: Decimal, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN)
+IsOld (Type: Boolean, Null: true, Operators: EQ, NE)
+Terminated (Type: <none>, Null: true, Operators: EQ, NE)
+MessageType (Type: MessageType, Null: false, Operators: EQ, NE, IN)
+---
+Note: The OData-like filtering is awesome!

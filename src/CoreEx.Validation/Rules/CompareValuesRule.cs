@@ -1,63 +1,40 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation.Rules;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides a comparison validation against one or more values.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+/// <param name="compareToValues">The compare-to value(s).</param>
+/// <param name="comparer">The optional <see cref="IEqualityComparer{T}"/>.</param>
+/// <param name="overrideValueWhereMatched">Indicates whether to override the underlying property value with the corresponding matched value.</param>
+public sealed class CompareValuesRule<TEntity, TProperty>(Func<PropertyContext<TEntity, TProperty>, IEnumerable<TProperty>> compareToValues, IEqualityComparer<TProperty>? comparer = null, bool overrideValueWhereMatched = false)
+    : PropertyRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IEquatable<TProperty>
 {
-    /// <summary>
-    /// Provides a comparision validation against one or more values.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class CompareValuesRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class
+    private readonly Func<PropertyContext<TEntity, TProperty>, IEnumerable<TProperty>> _compareToValues = compareToValues.ThrowIfNull();
+    private readonly IEqualityComparer<TProperty> _comparer = comparer ?? EqualityComparer<TProperty>.Default;
+    private readonly bool _overrideValueWhereMatched = overrideValueWhereMatched;
+
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
     {
-        private readonly IEnumerable<TProperty>? _compareToValues;
-        private readonly Func<TEntity, CancellationToken, Task<IEnumerable<TProperty>>>? _compareToValuesFunctionAsync;
+        // Get the compare to value(s).
+        var compareToValues = _compareToValues(context);
+        if (compareToValues is null)
+            return Task.CompletedTask;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareValuesRule{TEntity, TProperty}"/> class.
-        /// </summary>
-        private CompareValuesRule() => ValidateWhenDefault = false;
+        // Perform the comparison.
+        if (!compareToValues.Any(v => _comparer.Equals(context.Value, v)))
+            context.AddError(ErrorText ?? ValidatorStrings.InvalidFormat);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareValuesRule{TEntity, TProperty}"/> class specifying the compare to values (as an <see cref="CompareOperator.Equal"/>).
-        /// </summary>
-        /// <param name="compareToValues">The compare to values.</param>
-        public CompareValuesRule(IEnumerable<TProperty> compareToValues) : this() 
-            => _compareToValues = compareToValues.ThrowIfNull(nameof(compareToValues));
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareValuesRule{TEntity, TProperty}"/> class specifying the compare to values async function (as an <see cref="CompareOperator.Equal"/>).
-        /// </summary>
-        /// <param name="compareToValuesFunctionAsync">The compare to values function.</param>
-        public CompareValuesRule(Func<TEntity, CancellationToken, Task<IEnumerable<TProperty>>> compareToValuesFunctionAsync) : this()
-            =>  _compareToValuesFunctionAsync = compareToValuesFunctionAsync.ThrowIfNull(nameof(compareToValuesFunctionAsync));
-
-        /// <summary>
-        /// Gets or sets the <see cref="IEqualityComparer{T}"/>.
-        /// </summary>
-        public IEqualityComparer<TProperty?> EqualityComparer { get; set; } = EqualityComparer<TProperty?>.Default;
-
-        /// <summary>
-        /// Indicates whether to override the underlying property value with the corresponding matched value.
-        /// </summary>
-        public bool OverrideValue { get; set; }
-
-        /// <inheritdoc/>
-        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        // Override the value where matched, is requested, and is different.
+        if (_overrideValueWhereMatched)
         {
-            context.ThrowIfNull(nameof(context));
-
-            // Perform the comparison, and override where selected.
-            var values = _compareToValues != null ? _compareToValues! : await _compareToValuesFunctionAsync!(context.Parent.Value!, cancellationToken).ConfigureAwait(false);
-            if (!values.Where(x => EqualityComparer.Equals(x, context.Value)).Any())
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
-            else if (OverrideValue)
-                context.OverrideValue(values.Where(x => EqualityComparer.Equals(x, context.Value)).First());
+            var @override = compareToValues.First(v => _comparer.Equals(context.Value, v));
+            if (!EqualityComparer<TProperty>.Default.Equals(@override, context.Value))
+                context.Override(@override);
         }
+
+        return Task.CompletedTask;
     }
 }

@@ -1,35 +1,34 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation.Rules;
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides an <see cref="Enum"/> validation.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="System.Type"/>.</typeparam>
+/// <param name="allowed">An optional list of allowed values.</param>
+public class EnumRule<TEntity, TProperty>(Func<PropertyContext<TEntity, TProperty>, TProperty[]?>? allowed) : PropertyRuleBase<TEntity, TProperty> where TEntity : class where TProperty : struct, Enum
 {
-    /// <summary>
-    /// Provides <see cref="Enum"/> validation to ensure that the value has been defined.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class EnumRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : struct, Enum
+    private readonly Func<PropertyContext<TEntity, TProperty>, TProperty[]?>? _allowed = allowed;
+
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EnumRule{TEntity, TProperty}"/> class.
-        /// </summary>
-        public EnumRule() => ValidateWhenDefault = false;
+        if (!Enum.IsDefined(context.Value))
+            context.AddError(ErrorText ?? ValidatorStrings.InvalidFormat);
 
-        /// <inheritdoc/>
-        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        if (_allowed is not null)
         {
-            // Make sure the enum is defined.
-#if NET6_0_OR_GREATER
-            if (!Enum.IsDefined(context.Value))
-#else
-            if (!Enum.IsDefined(typeof(TProperty), context.Value))
-#endif
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
-
-            return Task.CompletedTask;
+            var allowed = _allowed(context);
+            if (allowed is not null && allowed.Length > 0 && !allowed.Contains(context.Value))
+                context.AddError(ErrorText ?? ValidatorStrings.InvalidFormat);
         }
+
+        return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Provides a corresponding <see cref="Nullable{T}"/> <see cref="Enum"/> validation..
+    /// </summary>
+    /// <param name="allowed">An optional list of allowed values.</param>
+    public sealed class NullableRule(Func<PropertyContext<TEntity, TProperty>, TProperty[]?>? allowed) : EnumRule<TEntity, TProperty>(allowed) { }
 }

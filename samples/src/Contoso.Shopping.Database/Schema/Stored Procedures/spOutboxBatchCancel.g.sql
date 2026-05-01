@@ -1,0 +1,71 @@
+CREATE OR ALTER PROCEDURE [Shopping].[spOutboxBatchCancel]
+  @LeaseId UNIQUEIDENTIFIER,
+  @BackoffSeconds INT
+AS
+BEGIN
+  /*
+   * This is automatically generated; any changes will be lost.
+   *
+   * Cancels a batch by LeaseId, marking messages as pending with backoff and releasing the lease.
+   * > Returns:
+   *   0 = Success.
+   *  -1 = No rows updated (e.g. already completed or invalid LeaseId).
+   */
+
+  SET NOCOUNT ON;
+  SET XACT_ABORT ON;
+  SET LOCK_TIMEOUT 5000; -- Milliseconds.
+  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+  DECLARE @Now DATETIME2 = SYSUTCDATETIME();
+  DECLARE @TenantId NVARCHAR(255);
+  DECLARE @PartitionId INT;
+  DECLARE @Cancelled TABLE (TenantId NVARCHAR(255), PartitionId INT);
+
+  BEGIN TRY
+    BEGIN TRAN;
+
+    -- 1) Cancel the batch and capture tenant/partition atomically.
+    UPDATE o
+      SET o.[Status] = 0,
+          o.[Attempts] = o.[Attempts] + 1,
+          o.[AvailableUtc] = DATEADD(SECOND, @BackoffSeconds, @Now),
+          o.[LeaseId] = NULL,
+          o.[LeaseUntilUtc] = NULL
+    OUTPUT
+      deleted.[TenantId],
+      deleted.[PartitionId]
+    INTO @Cancelled
+    FROM [Shopping].[Outbox] AS o WITH (UPDLOCK, ROWLOCK)
+    WHERE o.[LeaseId] = @LeaseId
+      AND o.[Status] = 1;
+
+    IF (@@ROWCOUNT = 0)
+    BEGIN
+      COMMIT;
+      RETURN -1; -- No rows updated.
+    END
+
+    -- 2) Capture tenant/partition from first cancelled row.
+    SELECT TOP 1
+      @TenantId = TenantId,
+      @PartitionId = PartitionId
+    FROM @Cancelled;
+
+    COMMIT;
+
+    -- 3) Release the partition lease.
+    BEGIN TRY
+      EXEC [Shopping].[spOutboxLeaseRelease] @LeaseId;
+    END TRY
+    BEGIN CATCH
+      -- Ignore: lease will expire. Don't fail cancel.
+    END CATCH
+
+    RETURN 0;
+  END TRY
+  BEGIN CATCH
+    IF (XACT_STATE() <> 0) ROLLBACK;
+    THROW; -- Re-throw preserves error details to caller.
+  END CATCH
+END

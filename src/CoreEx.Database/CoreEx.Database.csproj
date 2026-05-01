@@ -1,19 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0;netstandard2.1</TargetFrameworks>
-    <RootNamespace>CoreEx.Database</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx .NET Relational Database extras.</Title>
-    <Description>CoreEx .NET Relational Database extras.</Description>
-    <PackageTags>coreex db database sql ado.net relational</PackageTags>
-  </PropertyGroup>
-
-  <Import Project="..\..\Common.targets" />
-
   <ItemGroup>
-    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\**\*" />
+  </ItemGroup>
 </Project>

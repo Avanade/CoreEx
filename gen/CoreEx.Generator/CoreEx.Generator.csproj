@@ -1,0 +1,74 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <OutputItemType>Analyzer</OutputItemType>
+    <!--<GeneratePackageOnBuild>true</GeneratePackageOnBuild>-->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="bin\**" />
+    <EmbeddedResource Remove="bin\**" />
+    <None Remove="bin\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Handlebars.Net" PrivateAssets="all" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="Pluralize.NET" PrivateAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="bin\Debug\netstandard2.0\\CoreEx.Generatorerator.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(PkgHandlebars_Net)\lib\netstandard2.0\Handlebars.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(PkgPluralize_NET)\lib\netstandard2.0\Pluralize.NET.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+    
+  <Target Name="GetDependencyTargetPaths">
+    <ItemGroup>
+      <TargetPathWithTargetPlatformMoniker Include="$(PkgHandlebars_Net)\lib\netstandard2.0\Handlebars.dll" IncludeRuntimeDependency="false" />
+      <TargetPathWithTargetPlatformMoniker Include="$(PkgPluralize_NET)\lib\netstandard2.0\Pluralize.NET.dll" IncludeRuntimeDependency="false" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_ForceAllResourcesToMainAssembly" AfterTargets="SplitResourcesByCulture">
+    <ItemGroup>
+      <EmbeddedResource>
+        <Culture />
+        <WithCulture>false</WithCulture>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <!-- Copies all resolved deps to bin/ (handy for Roslyn Component debug) -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- Explicitly copy only what we need; bulletproof even if the above is ignored -->
+  <Target Name="CopyAnalyzerDeps" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <ItemGroup>
+      <_AnalyzerDep Include="$(PkgPluralize_NET)\lib\netstandard2.0\Pluralize.NET.dll" />
+      <_AnalyzerDep Include="$(PkgHandlebars_Net)\lib\netstandard2.0\Handlebars.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AnalyzerDep)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+    <!-- Optional: log what got copied so you can confirm in the build output -->
+    <Message Importance="High" Text="Copied analyzer deps: @(_AnalyzerDep)" />
+  </Target>
+
+</Project>

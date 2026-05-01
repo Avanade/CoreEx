@@ -1,0 +1,12 @@
+@Contoso.Products.Subscribe_HostAddress = http://localhost:5201
+
+GET {{Contoso.Products.Subscribe_HostAddress}}/hosted-services/azure-service-bus-receiver/status
+Accept: application/json
+
+###
+
+POST {{Contoso.Products.Subscribe_HostAddress}}/hosted-services/azure-service-bus-receiver/pause
+
+###
+
+POST {{Contoso.Products.Subscribe_HostAddress}}/hosted-services/azure-service-bus-receiver/resume

@@ -1,205 +1,32 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.EntityFrameworkCore;
 
-using CoreEx.Database;
-using CoreEx.Entities;
-using CoreEx.Mapping;
-using CoreEx.Results;
-using Microsoft.EntityFrameworkCore;
-
-namespace CoreEx.EntityFrameworkCore
+/// <summary>
+/// Enables the extended <see cref="IDatabase"/>-based <see href="https://learn.microsoft.com/en-us/ef/core/">Entity Framework Core</see> capabilities.
+/// </summary>
+public interface IEfDb
 {
     /// <summary>
-    /// Enables the extended <b>Entity Framework</b> functionality.
+    /// Gets the underlying <see name="Microsoft.EntityFrameworkCore.DbContext"/>.
     /// </summary>
-    public interface IEfDb
-    {
-        /// <summary>
-        /// Gets the underlying <see name="Microsoft.EntityFrameworkCore.DbContext"/>.
-        /// </summary>
-        DbContext DbContext { get; }
+    DbContext DbContext { get; }
 
-        /// <summary>
-        /// Gets the <see cref="EfDbInvoker"/>.
-        /// </summary>
-        EfDbInvoker Invoker { get; }
+    /// <summary>
+    /// Gets the <see cref="IDatabase"/>.
+    /// </summary>
+    IDatabase Database { get; }
 
-        /// <summary>
-        /// Gets the <see cref="IDatabase"/>.
-        /// </summary>
-        IDatabase Database { get; }
+    /// <summary>
+    /// Gets the <see cref="EfDbOptions"/>.
+    /// </summary>
+    EfDbOptions Options { get; }
 
-        /// <summary>
-        /// Gets the <see cref="IMapper"/>.
-        /// </summary>
-        IMapper Mapper { get; }
+    /// <summary>
+    /// Gets the <see cref="CoreEx.ExecutionContext"/>.
+    /// </summary>
+    ExecutionContext ExecutionContext { get; }
 
-        /// <summary>
-        /// Gets the default <see cref="EfDbArgs"/> used where not expliticly specified for an operation.
-        /// </summary>
-        EfDbArgs DbArgs { get; }
-
-        /// <summary>
-        /// Creates an <see cref="EfDbQuery{TModel}"/> to enable select-like capabilities on a specified <typeparamref name="TModel"/>.
-        /// </summary>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="queryArgs">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="query">The function to further define the query.</param>
-        /// <returns>A <see cref="EfDbQuery{TModel}"/>.</returns>
-        EfDbQuery<TModel> Query<TModel>(EfDbArgs queryArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where TModel : class, new();
-
-        /// <summary>
-        /// Creates an <see cref="EfDbQuery{T, TModel}"/> to enable select-like capabilities on a specified <typeparamref name="TModel"/> automatically mapping to the resultant <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="queryArgs">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="query">The function to further define the query.</param>
-        /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
-        EfDbQuery<T, TModel> Query<T, TModel>(EfDbArgs queryArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) where T : class, IEntityKey, new() where TModel : class, new();
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The model value where found; otherwise, <c>null</c>.</returns>
-        Task<TModel?> GetAsync<TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where TModel : class, new();
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="key"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The model value where found; otherwise, <c>null</c>.</returns>
-        Task<Result<TModel?>> GetWithResultAsync<TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where TModel : class, new();
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        Task<T?> GetAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        Task<Result<T?>> GetWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
-
-        /// <summary>
-        /// Performs a create for the value (reselects and/or automatically saves changes where specified).
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        Task<T> CreateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
-
-        /// <summary>
-        /// Performs a create for the value (reselects and/or automatically saves changes where specified) with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        Task<Result<T>> CreateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
-
-        /// <summary>
-        /// Performs an update for the value (reselects and/or automatically saves changes where specified).
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        Task<T> UpdateAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
-
-        /// <summary>
-        /// Performs an update for the value (reselects and/or automatically saves changes where specified) with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        Task<Result<T>> UpdateWithResultAsync<T, TModel>(EfDbArgs args, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new();
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        Task DeleteAsync<TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where TModel : class, new();
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
-        /// </summary>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="Result"/>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        Task<Result> DeleteWithResultAsync<TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where TModel : class, new();
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        Task DeleteAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new();
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="Result"/>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        Task<Result> DeleteWithResultAsync<T, TModel>(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new();
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> whilst <see cref="DatabaseWildcard.Replace(string)">replacing</see> the <b>wildcard</b> characters when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value; passed the database specific wildcard value as the action argument.</param>
-        void WithWildcard(string? with, Action<string> action);
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not the default value for the <see cref="Type"/>.
-        /// </summary>
-        /// <typeparam name="T">The with value <see cref="Type"/>.</typeparam>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        void With<T>(T with, Action action);
-    }
+    /// <summary>
+    /// Gets the <see cref="EfDbInvoker"/>.
+    /// </summary>
+    EfDbInvoker Invoker { get; }
 }

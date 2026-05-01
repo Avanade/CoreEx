@@ -1,0 +1,14 @@
+outbox: true
+tables:
+# Reference-data
+- name: Brand
+- name: Category
+- name: MovementKind
+- name: MovementStatus
+- name: SubCategory
+- name: UnitOfMeasure
+
+# Transactional-data
+- name: Inventory
+- name: Movement
+- name: Product

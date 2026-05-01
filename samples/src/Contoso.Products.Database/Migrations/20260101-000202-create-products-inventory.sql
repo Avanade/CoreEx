@@ -1,0 +1,11 @@
+-- Migration Script
+
+BEGIN TRANSACTION
+
+CREATE TABLE [Products].[Inventory] (
+  [InventoryId] NVARCHAR(50) NOT NULL PRIMARY KEY, -- ProductId
+  [QtyOnHand] DECIMAL(18, 2) DEFAULT 0 NOT NULL,
+  [RowVersion] TIMESTAMP NOT NULL
+);
+  
+COMMIT TRANSACTION

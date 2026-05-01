@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Contoso.Products.Database": {
+      "commandName": "Project",
+      "commandLineArgs": "dropandall"
+    }
+  }
+}

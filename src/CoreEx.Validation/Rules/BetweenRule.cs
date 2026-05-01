@@ -1,116 +1,46 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation.Rules;
 
-using CoreEx.Localization;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides a comparison validation between two values.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+/// <param name="min">The function to get the minimum value.</param>
+/// <param name="max">The function to get the maximum value.</param>
+/// <param name="minText">The minimum text formatter (used in the error message); otherwise, uses the resulting <paramref name="min"/> value.</param>
+/// <param name="maxText">The maximum text formatter (used in the error message); otherwise, uses the resulting <paramref name="max"/> value.</param>
+/// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
+/// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
+public sealed class BetweenRule<TEntity, TProperty>(Func<PropertyContext<TEntity, TProperty>, TProperty> min, Func<PropertyContext<TEntity, TProperty>, TProperty> max, Func<TProperty, LText?>? minText = null, Func<TProperty, LText?>? maxText = null, bool exclusiveBetween = false, IComparer<TProperty>? comparer = null) 
+    : PropertyRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IComparable<TProperty>
 {
+    private readonly Func<PropertyContext<TEntity, TProperty>, TProperty> _min = min.ThrowIfNull();
+    private readonly Func<PropertyContext<TEntity, TProperty>, TProperty> _max = max.ThrowIfNull();
+    private readonly Func<TProperty, LText?>? _minText = minText;
+    private readonly Func<TProperty, LText?>? _maxText= maxText;
+    private readonly bool _exclusiveBetween = exclusiveBetween;
+
     /// <summary>
-    /// Provides a comparision validation between two specified values.
+    /// Gets the <see cref="IComparer{T}"/>.
     /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class BetweenRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class
+    public IComparer<TProperty> Comparer { get; } = comparer ?? Comparer<TProperty>.Default;
+
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
     {
-        private readonly TProperty _compareFromValue;
-        private readonly Func<TEntity, TProperty>? _compareFromValueFunction;
-        private readonly Func<TEntity, CancellationToken, Task<TProperty>>? _compareFromValueFunctionAsync;
-        private readonly LText? _compareFromText;
-        private readonly Func<TEntity, LText>? _compareFromTextFunction;
-        private readonly TProperty _compareToValue;
-        private readonly Func<TEntity, TProperty>? _compareToValueFunction;
-        private readonly Func<TEntity, CancellationToken, Task<TProperty>>? _compareToValueFunctionAsync;
-        private readonly LText? _compareToText;
-        private readonly Func<TEntity, LText>? _compareToTextFunction;
-        private readonly bool _exclusiveBetween;
+        // Get the min and max values.
+        var min = _min(context);
+        var max = _max(context);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BetweenRule{TEntity, TProperty}"/> class specifying the between from and to values.
-        /// </summary>
-        /// <param name="compareFromValue">The compare from value.</param>
-        /// <param name="compareToValue">The compare to value.</param>
-        /// <param name="compareFromText">The compare from text to be passed for the error message (default is to use <paramref name="compareFromValue"/>).</param>
-        /// <param name="compareToText">The compare to text to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
-        /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
-        public BetweenRule(TProperty compareFromValue, TProperty compareToValue, LText? compareFromText = null, LText? compareToText = null, bool exclusiveBetween = false)
+        // Compare the values.
+        if ((_exclusiveBetween && (Comparer.Compare(context.Value, min) <= 0 || Comparer.Compare(context.Value, max) >= 0))
+            || (!_exclusiveBetween && (Comparer.Compare(context.Value, min) < 0 || Comparer.Compare(context.Value, max) > 0)))
         {
-            _compareFromValue = compareFromValue;
-            _compareFromText = compareFromText;
-            _compareToValue = compareToValue;
-            _compareToText = compareToText;
-            _exclusiveBetween = exclusiveBetween;
+            context.AddError(ErrorText ?? (_exclusiveBetween ? ValidatorStrings.BetweenExclusiveFormat : ValidatorStrings.BetweenInclusiveFormat),
+                _minText?.Invoke(min) ?? context.FormatValue(min),
+                _maxText?.Invoke(max) ?? context.FormatValue(max));
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BetweenRule{TEntity, TProperty}"/> class specifying the between from and to value functions.
-        /// </summary>
-        /// <param name="compareFromValueFunction">The compare from value function.</param>
-        /// <param name="compareToValueFunction">The compare to value function.</param>
-        /// <param name="compareFromTextFunction">The compare from text function (default is to use the result of the <paramref name="compareFromValueFunction"/>).</param>
-        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
-        /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
-        public BetweenRule(Func<TEntity, TProperty> compareFromValueFunction, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false)
-        {
-            _compareFromValueFunction = compareFromValueFunction.ThrowIfNull(nameof(compareFromValueFunction));
-            _compareFromTextFunction = compareFromTextFunction;
-            _compareFromValue = default!;
-            _compareToValueFunction = compareToValueFunction.ThrowIfNull(nameof(compareToValueFunction));
-            _compareToTextFunction = compareToTextFunction;
-            _compareToValue = default!;
-            _exclusiveBetween = exclusiveBetween;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BetweenRule{TEntity, TProperty}"/> class specifying the between from and to value async functions.
-        /// </summary>
-        /// <param name="compareFromValueFunctionAsync">The compare from value function.</param>
-        /// <param name="compareToValueFunctionAsync">The compare to value function.</param>
-        /// <param name="compareFromTextFunction">The compare from text function (default is to use the result of the <paramref name="compareFromValueFunctionAsync"/>).</param>
-        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunctionAsync"/>).</param>
-        /// <param name="exclusiveBetween">Indicates whether the between comparison is exclusive or inclusive (default).</param>
-        public BetweenRule(Func<TEntity, CancellationToken, Task<TProperty>> compareFromValueFunctionAsync, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareFromTextFunction = null, Func<TEntity, LText>? compareToTextFunction = null, bool exclusiveBetween = false)
-        {
-            _compareFromValueFunctionAsync = compareFromValueFunctionAsync.ThrowIfNull(nameof(compareFromValueFunctionAsync));
-            _compareFromTextFunction = compareFromTextFunction;
-            _compareFromValue = default!;
-            _compareToValueFunctionAsync = compareToValueFunctionAsync.ThrowIfNull(nameof(compareToValueFunctionAsync));
-            _compareToTextFunction = compareToTextFunction;
-            _compareToValue = default!;
-            _exclusiveBetween = exclusiveBetween;
-        }
-
-        /// <inheritdoc/>
-        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
-        {
-            var compareFromValue = _compareFromValueFunction != null
-                ? _compareFromValueFunction(context.Parent.Value!)
-                : (_compareFromValueFunctionAsync != null
-                    ? await _compareFromValueFunctionAsync(context.Parent.Value!, cancellationToken).ConfigureAwait(false)
-                    : _compareFromValue);
-
-            var compareToValue = _compareToValueFunction != null
-                ? _compareToValueFunction(context.Parent.Value!)
-                : (_compareToValueFunctionAsync != null
-                    ? await _compareToValueFunctionAsync(context.Parent.Value!, cancellationToken).ConfigureAwait(false)
-                    : _compareToValue);
-
-            var comparer = Comparer<TProperty?>.Default;
-            if ((_exclusiveBetween && (comparer.Compare(context.Value, compareFromValue) <= 0 || comparer.Compare(context.Value, compareToValue) >= 0))
-                || (!_exclusiveBetween && (comparer.Compare(context.Value, compareFromValue) < 0 || comparer.Compare(context.Value, compareToValue) > 0)))
-            {
-                string? compareFromText = _compareFromText ?? compareFromValue?.ToString() ?? new LText("null");
-                if (_compareFromTextFunction != null)
-                    compareFromText = _compareFromTextFunction(context.Parent.Value!);
-
-                string? compareToText = _compareToText ?? compareToValue?.ToString() ?? new LText("null");
-                if (_compareToTextFunction != null)
-                    compareToText = _compareToTextFunction(context.Parent.Value!); 
-
-                context.CreateErrorMessage(ErrorText ?? (_exclusiveBetween ? ValidatorStrings.BetweenExclusiveFormat : ValidatorStrings.BetweenInclusiveFormat), compareFromText, compareToText);
-            }
-        }
+        return Task.CompletedTask;
     }
 }

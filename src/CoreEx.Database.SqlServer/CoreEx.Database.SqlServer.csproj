@@ -1,22 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0;netstandard2.1</TargetFrameworks>
-    <RootNamespace>CoreEx.Database.SqlServer</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx .NET SQL Server Database extras.</Title>
-    <Description>CoreEx .NET SQL Server Database extras.</Description>
-    <PackageTags>coreex db database sql sqlserver ado.net relational</PackageTags>
-  </PropertyGroup>
-
-  <Import Project="..\..\Common.targets" />
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Aspire.Microsoft.Data.SqlClient" />
   </ItemGroup>
-
+  
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
   </ItemGroup>
-
 </Project>

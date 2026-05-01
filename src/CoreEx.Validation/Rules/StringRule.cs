@@ -1,64 +1,52 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation.Rules;
 
-using System;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides <see langword="string"/> validation including minimum and maximum length, and regular expression.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <param name="minLength">The minimum length.</param>
+/// <param name="maxLength">The maximum length.</param>
+/// <param name="regex">The regular expression.</param>
+public sealed class StringRule<TEntity>(Func<PropertyContext<TEntity, string>, int>? minLength = null, Func<PropertyContext<TEntity, string>, int?>? maxLength = null, Func<PropertyContext<TEntity, string>, Regex?>? regex = null) : PropertyRuleBase<TEntity, string> where TEntity : class
 {
-    /// <summary>
-    /// Provides <see cref="string"/> validation including <see cref="MinLength"/>, <see cref="MaxLength"/>, and <see cref="Regex"/>.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
-    public class StringRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class
+    private readonly Func<PropertyContext<TEntity, string>, int>? _minLength = minLength;
+    private readonly Func<PropertyContext<TEntity, string>, int?>? _maxLength = maxLength;
+    private readonly Func<PropertyContext<TEntity, string>, Regex?>? _regex = regex;
+
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken)
     {
-        private int _minLength = 0;
-        private int? _maxLength = null;
+        var minLength = _minLength?.Invoke(context) ?? 0;
+        var maxLength = _maxLength?.Invoke(context);
+        var regex = _regex?.Invoke(context);
 
-        /// <summary>
-        /// Gets or sets the minimum length;
-        /// </summary>
-        public int MinLength { get => _minLength; set => _minLength = value >= 0 ? value : throw new ArgumentException($"{nameof(MinLength)} must be zero or greater.", nameof(MinLength)); }
+        if (minLength < 0)
+            throw new InvalidOperationException($"Minimum length must be zero or greater.");
 
-        /// <summary>
-        /// Gets or sets the maximum length.
-        /// </summary>
-        public int? MaxLength { get => _maxLength; set => _maxLength = value is null || value.Value > 0 ? value : throw new ArgumentException($"{nameof(MaxLength)} must be greater that zero.", nameof(MaxLength)); }
+        if (maxLength is not null && maxLength.Value <= 0)
+            throw new InvalidOperationException($"Maximum length must be greater than zero.");
 
-        /// <summary>
-        /// Gets or sets the regex.
-        /// </summary>
-        public Regex? Regex { get; set; }
-
-        /// <inheritdoc/>
-        protected override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
+        if (minLength > 0 && maxLength.HasValue && minLength == maxLength!.Value && context.Value.Length != minLength)
         {
-            if (string.IsNullOrEmpty(context.Value))
-                return Task.CompletedTask;
-
-            if (MinLength > 0 && MaxLength.HasValue && MinLength == MaxLength!.Value && context.Value.Length != MinLength)
-            {
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.ExactLengthFormat, MinLength);
-                return Task.CompletedTask;
-            }
-
-            if (context.Value.Length < MinLength)
-            {
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MinLengthFormat, MinLength);
-                return Task.CompletedTask;
-            }
-
-            if (MaxLength.HasValue && context.Value.Length > MaxLength.Value)
-            {
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MaxLengthFormat, MaxLength);
-                return Task.CompletedTask;
-            }
-
-            if (Regex != null && !Regex.IsMatch(context.Value))
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.RegexFormat);
-
+            context.AddError(ErrorText ?? ValidatorStrings.ExactLengthFormat, minLength);
             return Task.CompletedTask;
         }
+
+        if (context.Value.Length < minLength)
+        {
+            context.AddError(ErrorText ?? ValidatorStrings.MinLengthFormat, minLength);
+            return Task.CompletedTask;
+        }
+
+        if (maxLength.HasValue && context.Value.Length > maxLength.Value)
+        {
+            context.AddError(ErrorText ?? ValidatorStrings.MaxLengthFormat, maxLength);
+            return Task.CompletedTask;
+        }
+
+        if (regex is not null && !regex.IsMatch(context.Value))
+            context.AddError(ErrorText ?? ValidatorStrings.RegexFormat);
+
+        return Task.CompletedTask;
     }
 }

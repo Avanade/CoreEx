@@ -1,0 +1,41 @@
+{
+  "id": "00000bba-0000-0000-0000-000000000000",
+  "customerId": "000003ea-0000-0000-0000-000000000000",
+  "status": "C",
+  "items": [
+    {
+      "id": "00000fa3-0000-0000-0000-000000000000",
+      "productId": "00000001-0000-0000-0000-000000000000",
+      "sku": "YETI-ASR-C2-2025",
+      "text": "Yeti ASR C2",
+      "quantity": 1.00,
+      "unitOfMeasure": "EA",
+      "unitPrice": 9850.00,
+      "total": 9850.0000,
+      "etag": "AAAAAAAACDQ="
+    },
+    {
+      "id": "00000fa4-0000-0000-0000-000000000000",
+      "productId": "00000014-0000-0000-0000-000000000000",
+      "sku": "SHIMANO-SLX-M7100-CASSETTE",
+      "text": "Shimano SLX M7100 12-speed Cassette",
+      "quantity": 1.00,
+      "unitOfMeasure": "EA",
+      "unitPrice": 99.00,
+      "total": 99.0000,
+      "etag": "AAAAAAAACDU="
+    }
+  ],
+  "pricing": {
+    "subTotal": 9949.0000,
+    "discountCoupon": "XMAS2025",
+    "discountPercentage": 15.00,
+    "discountAmount": 1492.35,
+    "total": 8456.6500
+  },
+  "changeLog": {
+    "createdBy": "DOMAIN-CORP\\eric.sibly",
+    "createdOn": "2026-02-21T17:53:32.8347127\u002B00:00"
+  },
+  "etag": "AAAAAAAACDA="
+}

@@ -1,0 +1,14 @@
+﻿global using CoreEx.Abstractions;
+global using CoreEx.Data.Querying;
+global using CoreEx.Data.Querying.Expressions;
+global using CoreEx.Entities;
+global using CoreEx.Events.Publishing;
+global using CoreEx.Http;
+global using CoreEx.RefData;
+global using CoreEx.RefData.Abstractions;
+global using CoreEx.Results;
+global using CoreEx.Results.Abstractions;
+global using System.Diagnostics.CodeAnalysis;
+global using System.Linq.Dynamic.Core;
+global using System.Text;
+global using System.Text.Json;

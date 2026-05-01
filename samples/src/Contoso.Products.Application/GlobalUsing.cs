@@ -1,0 +1,14 @@
+﻿global using Contoso.Products.Application.Interfaces;
+global using Contoso.Products.Application.Repositories;
+global using Contoso.Products.Application.Validators;
+global using Contoso.Products.Contracts;
+global using CoreEx;
+global using CoreEx.Data;
+global using CoreEx.DependencyInjection;
+global using CoreEx.Events;
+global using CoreEx.Localization;
+global using CoreEx.RefData;
+global using CoreEx.RefData.Abstractions;
+global using CoreEx.Results;
+global using CoreEx.Validation;
+global using System.Text.Json;

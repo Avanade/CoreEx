@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.DomainDriven\CoreEx.DomainDriven.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.RefData\CoreEx.RefData.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
+    <ProjectReference Include="..\Contoso.Shopping.Contracts\Contoso.Shopping.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,49 @@
+{
+  "fields": {
+    "lastname": {
+      "type": "string",
+      "nullable": true,
+      "operators": [ "eq", "ne", "lt", "le", "ge", "gt", "in", "startswith", "contains", "endswith" ]
+    },
+    "firstname": {
+      "type": "string",
+      "operators": [ "eq", "ne", "lt", "le", "ge", "gt", "in", "startswith", "contains", "endswith" ]
+    },
+    "code": {
+      "type": "string",
+      "operators": [ "eq", "ne", "in" ]
+    },
+    "birthday": {
+      "type": "string",
+      "format": "date-time",
+      "operators": [ "eq", "ne", "lt", "le", "ge", "gt", "in" ]
+    },
+    "age": {
+      "type": "integer",
+      "format": "int32",
+      "operators": [ "eq", "ne", "lt", "le", "ge", "gt", "in" ],
+      "description": "Age is but a number."
+    },
+    "salary": {
+      "type": "number",
+      "format": "decimal",
+      "operators": [ "eq", "ne", "lt", "le", "ge", "gt", "in" ]
+    },
+    "isold": {
+      "type": "boolean",
+      "nullable": true,
+      "operators": [ "eq", "ne" ]
+    },
+    "terminated": {
+      "type": "object",
+      "nullable": true,
+      "operators": [ "eq", "ne" ]
+    },
+    "messagetype": {
+      "type": "string",
+      "operators": [ "eq", "ne", "in" ],
+      "enum": [ "Info", "Warning", "Error" ]
+    }
+  },
+  "description": "The OData-like filtering is awesome!"
+}

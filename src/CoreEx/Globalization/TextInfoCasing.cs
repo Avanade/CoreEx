@@ -1,32 +1,27 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Globalization;
 
-using System.Globalization;
-
-namespace CoreEx.Globalization
+/// <summary>
+/// Provides the <see cref="TextInfo"/> casing selection.
+/// </summary>
+public enum TextInfoCasing
 {
     /// <summary>
-    /// Provides the <see cref="TextInfo"/> casing selection.
+    /// No text casing is to be applied; leave as-is.
     /// </summary>
-    public enum TextInfoCasing
-    {
-        /// <summary>
-        /// No text casing is to be applied; leave as-is.
-        /// </summary>
-        None,
+    None,
 
-        /// <summary>
-        /// Use <see cref="TextInfo.ToLower(string)"/>.
-        /// </summary>
-        Lower,
+    /// <summary>
+    /// Use <see cref="TextInfo.ToLower(string)"/>.
+    /// </summary>
+    Lower,
 
-        /// <summary>
-        /// Use <see cref="TextInfo.ToUpper(string)"/>.
-        /// </summary>
-        Upper,
+    /// <summary>
+    /// Use <see cref="TextInfo.ToUpper(string)"/>.
+    /// </summary>
+    Upper,
 
-        /// <summary>
-        /// Use <see cref="TextInfo.ToTitleCase(string)"/>.
-        /// </summary>
-        Title
-    }
+    /// <summary>
+    /// Use <see cref="TextInfo.ToTitleCase(string)"/>.
+    /// </summary>
+    Title
 }

@@ -1,0 +1,8 @@
+Order-by field(s) are as follows:
+lastname (Direction: asc or desc)
+firstname (Direction: asc or desc)
+birthday (Direction: desc)
+---
+Default: lastname asc, firstname asc
+---
+Note: The OData-like ordering is awesome!

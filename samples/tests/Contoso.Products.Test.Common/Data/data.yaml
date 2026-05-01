@@ -1,0 +1,45 @@
+Products:
+  - Product:
+    - { ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, SubCategoryCode: XC, UnitOfMeasureCode: EA, Price: 5800, BrandCode: YETI }
+    - { ProductId: ^2, Sku: YETI-SB120-C2, Text: Yeti SB120 C2, SubCategoryCode: TR, UnitOfMeasureCode: EA, Price: 6200, BrandCode: YETI }
+    - { ProductId: ^3, Sku: YETI-SB140-LR-C2, Text: Yeti SB140 LR C2, SubCategoryCode: TR, UnitOfMeasureCode: EA, Price: 6600, BrandCode: YETI }
+    - { ProductId: ^4, Sku: YETI-SB165-C3, Text: Yeti SB165 C3, SubCategoryCode: EN, UnitOfMeasureCode: EA, Price: 7200, BrandCode: YETI }
+    - { ProductId: ^5, Sku: YETI-MTE-C2, Text: Yeti MTe C2 eMTB, SubCategoryCode: EM, UnitOfMeasureCode: EA, Price: 9850, BrandCode: YETI }
+    - { ProductId: ^6, Sku: CANYON-LUXTRAIL-CF6, Text: Canyon Lux Trail CF 6, SubCategoryCode: XC, UnitOfMeasureCode: EA, Price: 3899, BrandCode: CANYON }
+    - { ProductId: ^7, Sku: CANYON-SPECTRAL-CF8, Text: Canyon Spectral CF 8, SubCategoryCode: TR, UnitOfMeasureCode: EA, Price: 4999, BrandCode: CANYON }
+    - { ProductId: ^8, Sku: CANYON-NEURON-CF7, Text: Canyon Neuron CF 7, SubCategoryCode: TR, UnitOfMeasureCode: EA, Price: 3499, BrandCode: CANYON }
+    - { ProductId: ^9, Sku: CANYON-TORQUE-MULLET-CF8, Text: Canyon Torque Mullet CF 8, SubCategoryCode: EN, UnitOfMeasureCode: EA, Price: 3599, BrandCode: CANYON }
+    - { ProductId: ^10, Sku: CANYON-SENDER-CFR, Text: Canyon Sender CFR, SubCategoryCode: DH, UnitOfMeasureCode: EA, Price: 7799, BrandCode: CANYON }
+    - { ProductId: ^11, Sku: SPEC-STUMPJUMPER-15-COMP, Text: Specialized Stumpjumper 15 Comp, SubCategoryCode: TR, UnitOfMeasureCode: EA, Price: 5500, BrandCode: SPEC }
+    - { ProductId: ^12, Sku: SPEC-ENDURO-PRO, Text: Specialized Enduro Pro, SubCategoryCode: EN, UnitOfMeasureCode: EA, Price: 9500, BrandCode: SPEC }
+    - { ProductId: ^13, Sku: SPEC-EPIC-8-PRO, Text: Specialized Epic 8 Pro, SubCategoryCode: XC, UnitOfMeasureCode: EA, Price: 9000, IsInactive: true, BrandCode: SPEC }
+    - { ProductId: ^14, Sku: SPEC-CHISEL-COMP, Text: Specialized Chisel Comp, SubCategoryCode: HT, UnitOfMeasureCode: EA, Price: 3400, BrandCode: SPEC }
+    - { ProductId: ^15, Sku: SPEC-STATUS-140, Text: Specialized Status 140, SubCategoryCode: FR, UnitOfMeasureCode: EA, Price: 2499, BrandCode: SPEC }
+    - { ProductId: ^16, Sku: GIANT-TRANCE-X-ADVPRO29, Text: Giant Trance X Advanced Pro 29, SubCategoryCode: TR, UnitOfMeasureCode: EA, Price: 6200, BrandCode: GIANT }
+    - { ProductId: ^17, Sku: GIANT-ANTHEM-ADV29-1, Text: Giant Anthem Advanced 29 1, SubCategoryCode: XC, UnitOfMeasureCode: EA, Price: 7800, BrandCode: GIANT }
+    - { ProductId: ^18, Sku: GIANT-TALON-2, Text: Giant Talon 2, SubCategoryCode: HT, UnitOfMeasureCode: EA, Price: 800, IsDeleted: true, BrandCode: GIANT }
+    - { ProductId: ^19, Sku: SHIMANO-XT-M8100-RD, Text: Shimano Deore XT M8100 Rear Derailleur, SubCategoryCode: DR, UnitOfMeasureCode: EA, Price: 129, BrandCode: SHIMANO }
+    - { ProductId: ^20, Sku: SHIMANO-SLX-M7100-CASSETTE, Text: Shimano SLX M7100 12-speed Cassette, SubCategoryCode: CA, UnitOfMeasureCode: EA, Price: 99, BrandCode: SHIMANO }
+    - { ProductId: ^21, Sku: SHIMANO-XTR-M9100-CRANK, Text: Shimano XTR M9100 Crankset, SubCategoryCode: CR, UnitOfMeasureCode: EA, Price: 499, BrandCode: SHIMANO }
+    - { ProductId: ^22, Sku: SRAM-GX-EAGLE-RD, Text: SRAM GX Eagle Rear Derailleur, SubCategoryCode: DR, UnitOfMeasureCode: EA, Price: 135, BrandCode: SRAM }
+    - { ProductId: ^23, Sku: SRAM-X0-TRANSMISSION-RD, Text: SRAM X0 Transmission Rear Derailleur, SubCategoryCode: DR, UnitOfMeasureCode: EA, Price: 400, BrandCode: SRAM }
+    - { ProductId: ^24, Sku: SRAM-XX1-EAGLE-CASSETTE, Text: SRAM XX1 Eagle Cassette, SubCategoryCode: CA, UnitOfMeasureCode: EA, Price: 449, BrandCode: SRAM }
+    - { ProductId: ^25, Sku: ONEUP-V3-DROPPER-180, Text: OneUp Dropper Post V3 180mm, SubCategoryCode: SP, UnitOfMeasureCode: EA, Price: 269, BrandCode: ONEUP }
+    - { ProductId: ^26, Sku: ONEUP-CARBON-HANDLEBAR, Text: OneUp Carbon Handlebar, SubCategoryCode: HB, UnitOfMeasureCode: EA, Price: 159, BrandCode: ONEUP }
+    - { ProductId: ^27, Sku: ONEUP-COMPOSITE-PEDALS, Text: OneUp Composite Pedals, SubCategoryCode: PE, UnitOfMeasureCode: PR, Price: 49, IsInactive: true, BrandCode: ONEUP }
+    - { ProductId: ^28, Sku: ONEUP-EDC-TOOL-V2, Text: OneUp EDC Tool V2, SubCategoryCode: TO, UnitOfMeasureCode: EA, Price: 59, BrandCode: ONEUP }
+    - { ProductId: ^29, Sku: MUCOFF-NANO-CLEANER, Text: Muc-Off Nano Tech Bike Cleaner, SubCategoryCode: CL, UnitOfMeasureCode: EA, Price: 16.99, BrandCode: MUCOFF }
+    - { ProductId: ^30, Sku: MUCOFF-TUBELESS-SEALANT, Text: Muc-Off MTB Tubeless Sealant, SubCategoryCode: SE, UnitOfMeasureCode: EA, Price: 8.00, BrandCode: MUCOFF }
+    - { ProductId: ^31, Sku: MUCOFF-DRIVETRAIN-CLEANER, Text: Muc-Off Drivetrain Cleaner, SubCategoryCode: CL, UnitOfMeasureCode: EA, Price: 25.00, BrandCode: MUCOFF }
+    - { ProductId: ^32, Sku: LABOR, Text: Labor, SubCategoryCode: LA, UnitOfMeasureCode: HR, Price: 80.00, BrandCode: NONE, IsNonStocked: true }
+  - Inventory:
+    - { InventoryId: ^1, QtyOnHand: 3 }
+    - { InventoryId: ^16, QtyOnHand: 1 }
+    - { InventoryId: ^24, QtyOnHand: 3 }
+    - { InventoryId: ^28, QtyOnHand: 5 }
+  - Movement:
+    - { MovementId: ^1, ProductId: ^1, Quantity: -2, ReferenceId: ^1000, MovementKindCode: I, MovementStatusCode: P, UnitOfMeasureCode: EA }
+    - { MovementId: ^2, ProductId: ^6, Quantity: -1, ReferenceId: ^1000, MovementKindCode: I, MovementStatusCode: P, UnitOfMeasureCode: EA }
+    - { MovementId: ^3, ProductId: ^31, Quantity: -3, ReferenceId: ^1000, MovementKindCode: I, MovementStatusCode: P, UnitOfMeasureCode: EA }
+    - { MovementId: ^4, ProductId: ^24, Quantity: -2, ReferenceId: ^1001, MovementKindCode: I, MovementStatusCode: P, UnitOfMeasureCode: EA }
+    - { MovementId: ^5, ProductId: ^28, Quantity: -1, ReferenceId: ^1001, MovementKindCode: I, MovementStatusCode: P, UnitOfMeasureCode: EA }

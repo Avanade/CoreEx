@@ -1,0 +1,27 @@
+﻿namespace CoreEx.Database;
+
+public abstract partial class DatabaseCommand
+{
+    /// <summary>
+    /// Executes the query and returns the first column of the first row in the result set returned by the query.
+    /// </summary>
+    /// <typeparam name="T">The result <see cref="Type"/>.</typeparam>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The value of the first column of the first row in the result set.</returns>
+    public Task<T> ScalarAsync<T>(CancellationToken cancellationToken = default) => ScalarAsync<T>(null, cancellationToken);
+
+    /// <summary>
+    /// Executes the query and returns the first column of the first row in the result set returned by the query.
+    /// </summary>
+    /// <typeparam name="T">The result <see cref="Type"/>.</typeparam>
+    /// <param name="parameters">The post-execution delegate to enable parameter access.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The value of the first column of the first row in the result set.</returns>
+    public async Task<T> ScalarAsync<T>(Action<DbParameterCollection>? parameters, CancellationToken cancellationToken = default) => await Database.Invoker.InvokeAsync(Database, DbArgs, async (_, _, cancellationToken) =>
+    {
+        using var cmd = await CreateCommandAsync(cancellationToken).ConfigureAwait(false);
+        parameters?.Invoke(cmd.Parameters);
+        var result = await LogCommand(cmd).ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return result is null ? default! : result is DBNull ? default! : (T)result;
+    }, cancellationToken).ConfigureAwait(false);
+}

@@ -1,0 +1,8 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Product \u002700000001-0000-0000-0000-000000000000\u0027 does not have sufficient quantity on hand.",
+  "status": 400,
+  "errorType": "business",
+  "errorCode": "insufficient-quantity",
+  "Key": "00000001-0000-0000-0000-000000000000"
+}

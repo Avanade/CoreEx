@@ -1,0 +1,17 @@
+CREATE TABLE [Test].[Table] (
+    [TableId] UNIQUEIDENTIFIER NOT NULL DEFAULT (NEWSEQUENTIALID()) PRIMARY KEY,
+    [Text] NVARCHAR (200) NULL,
+    [Number] INT NULL,
+    [Amount] MONEY NULL,
+    [Flag] BIT NULL,
+    [Date] DATE NULL,
+    [Time] TIME NULL,
+    [Json] NVARCHAR (500) NULL,
+    [TenantId] NVARCHAR(20) NULL,
+    [RowVersion] TIMESTAMP NOT NULL,
+    [CreatedBy] NVARCHAR(250) NULL,
+    [CreatedOn] DATETIMEOFFSET NULL,
+    [UpdatedBy] NVARCHAR(250) NULL,
+    [UpdatedOn] DATETIMEOFFSET NULL,
+    [IsDeleted] BIT DEFAULT 0 NOT NULL
+)

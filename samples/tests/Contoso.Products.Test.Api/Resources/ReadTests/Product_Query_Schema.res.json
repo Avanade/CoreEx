@@ -1,0 +1,70 @@
+{
+  "filter": {
+    "fields": {
+      "sku": {
+        "type": "string",
+        "operators": [
+          "eq",
+          "ne",
+          "in",
+          "startswith"
+        ]
+      },
+      "text": {
+        "type": "string",
+        "operators": [
+          "startswith",
+          "contains",
+          "endswith"
+        ]
+      },
+      "category": {
+        "type": "string",
+        "operators": [
+          "eq",
+          "ne",
+          "in"
+        ]
+      },
+      "subcategory": {
+        "type": "string",
+        "operators": [
+          "eq",
+          "ne",
+          "in"
+        ]
+      },
+      "brand": {
+        "type": "string",
+        "operators": [
+          "eq",
+          "ne",
+          "in"
+        ]
+      }
+    }
+  },
+  "orderby": {
+    "fields": {
+      "sku": {
+        "direction": [
+          "asc",
+          "desc"
+        ]
+      },
+      "text": {
+        "direction": [
+          "asc",
+          "desc"
+        ]
+      },
+      "brand": {
+        "direction": [
+          "asc",
+          "desc"
+        ]
+      }
+    },
+    "default": "sku asc"
+  }
+}

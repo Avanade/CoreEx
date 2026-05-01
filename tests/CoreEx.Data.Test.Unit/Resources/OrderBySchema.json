@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "lastname": { "direction": [ "asc", "desc" ] },
+    "firstname": { "direction": [ "asc", "desc" ] },
+    "birthday": { "direction": [ "desc" ] }
+  },
+  "default": "lastname asc, firstname asc",
+  "description": "The OData-like ordering is awesome!"
+}

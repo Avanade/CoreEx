@@ -1,42 +1,26 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation.Rules;
 
-using System.ComponentModel.DataAnnotations;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides an e-mail <see langword="string"/> validation.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <param name="maxLength">The optional maximum string length.</param>
+public sealed class EmailRule<TEntity>(Func<PropertyContext<TEntity, string>, int?>? maxLength) : PropertyRuleBase<TEntity, string> where TEntity : class
 {
-    /// <summary>
-    /// Provides <see cref="string"/> validation for an <b>e-mail</b> using the <see cref="EmailAddressAttribute"/> to perform the underlying validation.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
-    public class EmailRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class
+    private readonly Func<PropertyContext<TEntity, string>, int?>? _maxLength = maxLength;
+
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken)
     {
-        private static readonly EmailAddressAttribute _emailChecker = new();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EmailRule{TEntity}"/> class.
-        /// </summary>
-        public EmailRule() => ValidateWhenDefault = false;
-
-        /// <summary>
-        /// Gets or sets the maximum length.
-        /// </summary>
-        public int? MaxLength { get; set; }
-
-        /// <inheritdoc/>
-        protected override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellation)
+        if (!System.Net.Mail.MailAddress.TryCreate(context.Value, out _))
+            context.AddError(ErrorText ?? ValidatorStrings.EmailFormat);
+        else if (_maxLength is not null)
         {
-            if (!_emailChecker.IsValid(context.Value))
-            { 
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.EmailFormat);
-                return Task.CompletedTask;
-            }
-
-            if (MaxLength.HasValue && context.Value!.Length > MaxLength.Value)
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MaxLengthFormat, MaxLength);
-
-            return Task.CompletedTask;
+            var maxLength = _maxLength(context);
+            if (maxLength.HasValue && context.Value!.Length > maxLength.Value)
+                context.AddError(ErrorText ?? ValidatorStrings.MaxLengthFormat, maxLength.Value);
         }
+
+        return Task.CompletedTask;
     }
 }

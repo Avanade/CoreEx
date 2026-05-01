@@ -1,0 +1,11 @@
+outbox: true
+tables:
+# Reference-data
+- name: BasketStatus
+- name: DiscountCoupon
+- name: UnitOfMeasure
+
+# Transactional-data
+- name: Basket
+- name: BasketItem
+- name: Product

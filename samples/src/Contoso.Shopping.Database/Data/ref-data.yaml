@@ -1,0 +1,18 @@
+Shopping:
+  - $^UnitOfMeasure:
+    - EA: Each
+    - SET: Set
+    - PR: Pair
+    - PK: Pack
+    - M: Meter
+    - CM: Centimeter
+    - L: Litre
+    - { Code: HR, Text: Hour, Scale: 2 }
+  - $^DiscountCoupon:
+    - { Code: SAVE10, Text: Save 10% on your order, DiscountPercentage: 10 }
+    - { Code: XMAS2025, Text: Save 15% for Christmas 2025, DiscountPercentage: 15, StartsOn: 2025-12-01, EndsOn: 2025-12-31 }
+  - $^BasketStatus:
+    - E: Empty
+    - A: Active
+    - C: Checked-out
+    - B: Abandoned

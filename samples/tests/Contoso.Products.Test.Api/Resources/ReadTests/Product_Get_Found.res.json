@@ -1,0 +1,15 @@
+{
+  "id": "00000001-0000-0000-0000-000000000000",
+  "sku": "YETI-ASR-C2-2025",
+  "text": "Yeti ASR C2",
+  "category": "B",
+  "subCategory": "XC",
+  "unitOfMeasure": "EA",
+  "brand": "YETI",
+  "price": 5800.00,
+  "etag": "AAAAAAAAB9E=",
+  "changeLog": {
+    "createdBy": "METACORTEX\\thomas.anderson",
+    "createdOn": "2026-01-18T00:40:12.697994+00:00"
+  }
+}

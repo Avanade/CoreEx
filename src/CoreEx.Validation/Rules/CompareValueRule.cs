@@ -1,82 +1,33 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿using CoreEx.Validation.Abstractions;
 
-using CoreEx.Localization;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+namespace CoreEx.Validation.Rules;
 
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides a comparison validation using the specified <paramref name="compareOperator"/> and <paramref name="compareToValue"/>.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+/// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
+/// <param name="compareToValue">The function to get the compare-to value.</param>
+/// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareToValue"/> value.</param>
+/// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
+public sealed class CompareValueRule<TEntity, TProperty>(CompareOperator compareOperator, Func<PropertyContext<TEntity, TProperty>, TProperty> compareToValue, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) 
+    : CompareRuleBase<TEntity, TProperty>(compareOperator, compareToText, comparer) where TEntity : class where TProperty : IComparable<TProperty>
 {
-    /// <summary>
-    /// Provides a comparision validation against a specified value.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class CompareValueRule<TEntity, TProperty> : CompareRuleBase<TEntity, TProperty> where TEntity : class
+    private readonly Func<PropertyContext<TEntity, TProperty>, TProperty> _compareToValue = compareToValue.ThrowIfNull();
+
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
     {
-        private readonly TProperty _compareToValue;
-        private readonly Func<TEntity, TProperty>? _compareToValueFunction;
-        private readonly Func<TEntity, CancellationToken, Task<TProperty>>? _compareToValueFunctionAsync;
-        private readonly LText? _compareToText;
-        private readonly Func<TEntity, LText>? _compareToTextFunction;
+        // Get the compare to value; where is null then simply skip the comparison.
+        var compareTo = _compareToValue(context);
+        if (compareTo is null)
+            return Task.CompletedTask;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareValueRule{TEntity, TProperty}"/> class specifying the compare to value.
-        /// </summary>
-        /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
-        /// <param name="compareToValue">The compare to value.</param>
-        /// <param name="compareToText">The compare to text to be passed for the error message (default is to use <paramref name="compareToValue"/>).</param>
-        public CompareValueRule(CompareOperator compareOperator, TProperty compareToValue, LText? compareToText = null) : base(compareOperator)
-        {
-            _compareToValue = compareToValue;
-            _compareToText = compareToText;
-        }
+        // Perform the comparison.
+        if (!Compare(context.Value, compareTo))
+            CreateErrorMessage(context, compareTo);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareValueRule{TEntity, TProperty}"/> class specifying the compare to value function.
-        /// </summary>
-        /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
-        /// <param name="compareToValueFunction">The compare to value function.</param>
-        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunction"/>).</param>
-        public CompareValueRule(CompareOperator compareOperator, Func<TEntity, TProperty> compareToValueFunction, Func<TEntity, LText>? compareToTextFunction = null) : base(compareOperator)
-        {
-            _compareToValueFunction = compareToValueFunction.ThrowIfNull(nameof(compareToValueFunction));
-            _compareToTextFunction = compareToTextFunction;
-            _compareToValue = default!;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompareValueRule{TEntity, TProperty}"/> class specifying the compare to value async function.
-        /// </summary>
-        /// <param name="compareOperator">The <see cref="CompareOperator"/>.</param>
-        /// <param name="compareToValueFunctionAsync">The compare to value function.</param>
-        /// <param name="compareToTextFunction">The compare to text function (default is to use the result of the <paramref name="compareToValueFunctionAsync"/>).</param>
-        public CompareValueRule(CompareOperator compareOperator, Func<TEntity, CancellationToken, Task<TProperty>> compareToValueFunctionAsync, Func<TEntity, LText>? compareToTextFunction = null) : base(compareOperator)
-        {
-            _compareToValueFunctionAsync = compareToValueFunctionAsync.ThrowIfNull(nameof(compareToValueFunctionAsync));
-            _compareToTextFunction = compareToTextFunction;
-            _compareToValue = default!;
-        }
-
-        /// <inheritdoc/>
-        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
-        {
-            context.ThrowIfNull(nameof(context));
-
-            var compareToValue = _compareToValueFunction != null
-                ? _compareToValueFunction(context.Parent.Value!) 
-                : (_compareToValueFunctionAsync != null
-                    ? await _compareToValueFunctionAsync(context.Parent.Value!, cancellationToken).ConfigureAwait(false)
-                    : _compareToValue);
-
-            if (!Compare(context.Value, compareToValue))
-            {
-                string? compareToText = _compareToText ?? compareToValue?.ToString() ?? new LText("null");
-                if (_compareToTextFunction != null)
-                    compareToText = _compareToTextFunction(context.Parent.Value!);
-
-                CreateErrorMessage(context, compareToText);
-            }
-        }
+        return Task.CompletedTask;
     }
 }

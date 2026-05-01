@@ -1,209 +1,159 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Database;
 
-using CoreEx.Database.Extended;
-using CoreEx.Entities;
-using CoreEx.Json;
-using CoreEx.Mapping.Converters;
-using CoreEx.Results;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Data;
-using System.Data.Common;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Database
+/// <summary>
+/// Provides the common/base <see cref="IDatabase"/> access functionality.
+/// </summary>
+/// <typeparam name="TConnection">The <see cref="DbConnection"/> <see cref="Type"/>.</typeparam>
+/// <typeparam name="TCommand">The <see cref="DatabaseCommand{TDatabaseArgs, TSelf}"/> <see cref="Type"/>.</typeparam>
+/// <typeparam name="TDatabaseArgs">The <see cref="DatabaseArgs"/> <see cref="Type"/>.</typeparam>
+/// <param name="provider">The underlying <see cref="DbProviderFactory"/>.</param>
+/// <param name="connection">The <typeparamref name="TConnection"/> <see cref="DbConnection"/>.</param>
+/// <param name="invoker">The <see cref="DatabaseInvoker"/>.</param>
+/// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
+/// <param name="logger">The optional <see cref="ILogger"/>.</param>
+public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderFactory provider, TConnection connection, DatabaseInvoker invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs>>? logger = null) : IDatabase
+    where TConnection : DbConnection where TCommand : DatabaseCommand<TDatabaseArgs, TCommand> where TDatabaseArgs : DatabaseArgs, new()
 {
+    private static readonly TDatabaseArgs _defaultDbArgs = new();
+    private static readonly DatabaseColumns _defaultColumns = new();
+    private static readonly DatabaseWildcard _defaultWildcard = new();
+
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly TConnection _dbConn = connection.ThrowIfNull().ThrowWhen(connection => connection.State != ConnectionState.Closed && connection.State != ConnectionState.Open);
+    private int _savePointCounter = 0;
+
+    /// <inheritdoc/>
+    public DbProviderFactory Provider { get; } = provider.ThrowIfNull();
+
+    /// <inheritdoc/>
+    public string DatabaseId { get; } = Guid.NewGuid().ToString();
+
+    /// <inheritdoc/>
+    public ILogger? Logger { get; } = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection, TCommand, TDatabaseArgs>>>();
+
+    /// <inheritdoc/>
+    public DatabaseInvoker Invoker { get; } = invoker.ThrowIfNull();
+
+    /// <inheritdoc/>
+    DatabaseArgs IDatabase.DbArgs => DbArgs;
+
     /// <summary>
-    /// Provides the common/base database access functionality.
+    /// Gets or sets the default <typeparamref name="TDatabaseArgs"/> used where not explicitly specified for an operation.
     /// </summary>
-    /// <typeparam name="TConnection">The <see cref="DbConnection"/> <see cref="Type"/>.</typeparam>
-    /// <param name="create">The function to create the <typeparamref name="TConnection"/> <see cref="DbConnection"/>.</param>
-    /// <param name="provider">The underlying <see cref="DbProviderFactory"/>.</param>
-    /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-    /// <param name="invoker">The optional <see cref="DatabaseInvoker"/>.</param>
-    public class Database<TConnection>(Func<TConnection> create, DbProviderFactory provider, ILogger<Database<TConnection>>? logger = null, DatabaseInvoker? invoker = null) : IDatabase where TConnection : DbConnection
+    public TDatabaseArgs DbArgs { get; set; } = _defaultDbArgs;
+
+    /// <inheritdoc/>
+    public DateTimeTransform DateTimeTransform { get; set; } = DateTimeTransform.UseDefault;
+
+    /// <inheritdoc/>
+    public bool DateTimeOffsetTransform { get; set; } = true;
+
+    /// <inheritdoc/>
+    public DatabaseColumns NamedColumns { get; set; } = _defaultColumns;
+
+    /// <summary>
+    /// Gets or sets the <see cref="DatabaseWildcard"/> to enable wildcard replacement.
+    /// </summary>
+    public DatabaseWildcard Wildcard { get; set; } = _defaultWildcard;
+
+    /// <inheritdoc/>
+    public abstract ISourceConverter<string?> RowVersionConverter { get; }
+
+    /// <inheritdoc/>
+    public JsonSerializerOptions JsonSerializerOptions { get; } = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
+
+    /// <inheritdoc/>
+    public DbTransaction? CurrentTransaction { get; protected set; }
+
+    /// <inheritdoc/>
+    public bool IsInTransaction => CurrentTransaction is not null;
+
+    /// <inheritdoc/>
+    public void UseTransaction(DbTransaction? transaction)
     {
-        private static readonly DatabaseColumns _defaultColumns = new();
-        private static readonly DatabaseWildcard _defaultWildcard = new();
-        private static DatabaseInvoker? _invoker;
-
-        private readonly Func<TConnection> _dbConnCreate = create.ThrowIfNull(nameof(create));
-        private TConnection? _dbConn;
-        private readonly SemaphoreSlim _semaphore = new(1, 1);
-
-        /// <inheritdoc/>
-        public DbProviderFactory Provider { get; } = provider.ThrowIfNull(nameof(provider));
-
-        /// <inheritdoc/>
-        public Guid DatabaseId { get; } = Guid.NewGuid();
-
-        /// <inheritdoc/>
-        public ILogger? Logger { get; } = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection>>>();
-
-        /// <inheritdoc/>
-        public DatabaseInvoker Invoker { get; } = invoker ?? (_invoker ??= new DatabaseInvoker());
-
-        /// <inheritdoc/>
-        public DatabaseArgs DbArgs { get; set; } = new DatabaseArgs();
-
-        /// <inheritdoc/>
-        public DateTimeTransform DateTimeTransform { get; set; } = DateTimeTransform.UseDefault;
-
-        /// <inheritdoc/>
-        /// <remarks>Do not update the default properties directly as a shared static instance is used (unless this is the desired behaviour); create a new <see cref="Extended.DatabaseColumns"/> instance for overridding.</remarks>
-        public DatabaseColumns DatabaseColumns { get; set; } = _defaultColumns;
-
-        /// <summary>
-        /// Gets or sets the <see cref="DatabaseWildcard"/> to enable wildcard replacement.
-        /// </summary>
-        /// <remarks>Do not update the default properties directly as a shared static instance is used (unless this is the desired behaviour); create a new <see cref="DatabaseWildcard"/> instance for overridding.</remarks>
-        public DatabaseWildcard Wildcard { get; set; } = _defaultWildcard;
-
-        /// <inheritdoc/>
-        public bool EnableChangeLogMapperToDb { get; }
-
-        /// <inheritdoc/>
-        public virtual IConverter RowVersionConverter => throw new NotImplementedException();
-
-        /// <inheritdoc/>
-        public IJsonSerializer JsonSerializer { get; set; } = ExecutionContext.GetService<IJsonSerializer>() ?? CoreEx.Json.JsonSerializer.Default;
-
-        /// <inheritdoc/>
-        public DbConnection GetConnection() => _dbConn is not null ? _dbConn : Invokers.Invoker.RunSync(() => GetConnectionAsync());
-
-        /// <inheritdoc/>
-        public async Task<TConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
+        if (CurrentTransaction != transaction)
         {
-            if (_dbConn == null)
-            {
-                await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    if (_dbConn != null)
-                        return _dbConn;
+            CurrentTransaction = transaction;
+            UseTransactionChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
-                    Logger?.LogDebug("Creating and opening the database connection. DatabaseId: {DatabaseId}", DatabaseId);
-                    _dbConn = _dbConnCreate() ?? throw new InvalidOperationException($"The create function must create a valid {nameof(TConnection)} instance.");
-                    await OnBeforeConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
-                    await _dbConn.OpenAsync(cancellationToken).ConfigureAwait(false);
-                    await OnConnectionOpenAsync(_dbConn, cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Logger?.LogError(ex, "Error occured whilst creating and opening the database connection. DatabaseId: {DatabaseId}", DatabaseId);
-                    _dbConn = null;
-                    throw;
-                }
-                finally
-                {
-                    _semaphore.Release();
-                }
-            }
+    /// <inheritdoc/>
+    public event EventHandler? UseTransactionChanged;
 
+    /// <inheritdoc/>
+    DbConnection IDatabase.Connection => _dbConn;
+
+    /// <inheritdoc/>
+    async Task<DbConnection> IDatabase.GetConnectionAsync(CancellationToken cancellationToken) => await GetConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// Gets the <typeparamref name="TConnection"/>.
+    /// </summary>
+    /// <remarks>The connection is opened on first use.</remarks>
+    public async Task<TConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        if (_dbConn.State == ConnectionState.Open)
+            return _dbConn;
+
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            if (_dbConn.State == ConnectionState.Open)
+                return _dbConn;
+
+            if (_dbConn.State != ConnectionState.Closed)
+                throw new InvalidOperationException($"The database connection is in an invalid state: {_dbConn.State}.");
+
+            if (Logger is not null && Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("Opening the database connection. [DatabaseId: {DatabaseId}]", DatabaseId);
+
+            await _dbConn.OpenAsync(cancellationToken).ConfigureAwait(false);
             return _dbConn;
         }
-
-        /// <summary>
-        /// Occurs before a connection is opened.
-        /// </summary>
-        /// <param name="connection">The <see cref="DbConnection"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        protected virtual Task OnBeforeConnectionOpenAsync(DbConnection connection, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        /// <summary>
-        /// Occurs when a connection is opened before any corresponding data access is performed.
-        /// </summary>
-        /// <param name="connection">The <see cref="DbConnection"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        protected virtual Task OnConnectionOpenAsync(DbConnection connection, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        /// <summary>
-        /// Occurs before a connection is closed.
-        /// </summary>
-        /// <param name="connection">The <see cref="DbConnection"/>.</param>
-        protected virtual Task OnConnectionCloseAsync(DbConnection connection) => Task.CompletedTask;
-
-        /// <inheritdoc/>
-        async Task<DbConnection> IDatabase.GetConnectionAsync(CancellationToken cancellationToken) => await GetConnectionAsync(cancellationToken).ConfigureAwait(false);
-
-        /// <inheritdoc/>
-        public DatabaseCommand StoredProcedure(string storedProcedure)
-            => new(this, CommandType.StoredProcedure, storedProcedure.ThrowIfNull(nameof(storedProcedure)));
-
-        /// <inheritdoc/>
-        public DatabaseCommand SqlStatement(string sqlStatement)
-            => new(this, CommandType.Text, sqlStatement.ThrowIfNull(nameof(sqlStatement)));
-
-        /// <inheritdoc/>
-        public DatabaseCommand SqlFromResource(string resourceName, Assembly? assembly = null)
-            => SqlStatement(Abstractions.Resource.GetStreamReader(resourceName, assembly ?? Assembly.GetCallingAssembly()).ReadToEnd());
-
-        /// <inheritdoc/>
-        public DatabaseCommand SqlFromResource<TResource>(string resourceName)
-            => SqlFromResource(resourceName, typeof(TResource).Assembly);
-
-        /// <inheritdoc/>
-        public Result? HandleDbException(DbException dbex)
+        catch (Exception ex)
         {
-            var result = OnDbException(dbex);
-            return !result.HasValue || result.Value.IsSuccess ? Result.Fail(dbex) : result;
+            if (Logger is not null && Logger.IsEnabled(LogLevel.Error))
+                Logger.LogError(ex, "Error occurred whilst opening the database connection. [DatabaseId: {DatabaseId}]", DatabaseId);
+
+            throw;
         }
-
-        /// <summary>
-        /// Provides the <see cref="DbException"/> handling as a result of <see cref="HandleDbException(DbException)"/>.
-        /// </summary>
-        /// <param name="dbex">The <see cref="DbException"/>.</param>
-        /// <returns>The <see cref="Result"/> containing the appropriate <see cref="IResult.Error"/> where handled; otherwise, <c>null</c> indicating that the exception is unexpected and will continue to be thrown as such.</returns>
-        /// <remarks>Provides an opportunity to inspect and handle the exception before it is returned. A resulting <see cref="Result"/> that is <see cref="Result.IsSuccess"/> is not considered sensical; therefore, will result in the originating
-        /// exception being thrown.
-        /// <para>Where overridding and the <see cref="DbException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</para></remarks>
-        protected virtual Result? OnDbException(DbException dbex) => null;
-
-        /// <inheritdoc/>
-        public void Dispose()
+        finally
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            _semaphore.Release();
         }
+    }
 
-        /// <summary>
-        /// Dispose of the resources.
-        /// </summary>
-        /// <param name="disposing">Indicates whether to dispose.</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing && _dbConn != null)
-            {
-                Logger?.LogDebug("Closing and disposing the database connection. DatabaseId: {DatabaseId}", DatabaseId);
-                Invokers.Invoker.RunSync(() => OnConnectionCloseAsync(_dbConn));
-                _dbConn.Dispose();
-                _dbConn = null;
-            }
-        }
+    /// <inheritdoc/>
+    DatabaseCommand IDatabase.Statement(SqlStatement statement) => Statement(statement);
 
-        /// <inheritdoc/>
-        public async ValueTask DisposeAsync()
-        {
-            await DisposeAsyncCore().ConfigureAwait(false);
-            GC.SuppressFinalize(this);
-        }
+    /// <summary>
+    /// Creates a<typeparamref name="TCommand"/> for the <see cref="SqlStatement"/>.
+    /// </summary>
+    /// <param name="statement">The <see cref="SqlStatement"/>.</param>
+    /// <returns>The <typeparamref name="TCommand"/>.</returns>
+    public abstract TCommand Statement(SqlStatement statement);
 
-        /// <summary>
-        /// Dispose of the resources asynchronously.
-        /// </summary>
-        public virtual async ValueTask DisposeAsyncCore()
-        {
-            if (_dbConn != null)
-            {
-                Logger?.LogDebug("Closing and disposing the database connection. DatabaseId: {DatabaseId}", DatabaseId);
-                await OnConnectionCloseAsync(_dbConn).ConfigureAwait(false);
-                await _dbConn.DisposeAsync().ConfigureAwait(false);
-                _dbConn = null;
-            }
+    /// <inheritdoc/>
+    public Exception? HandleDbException(DbException dbex) => OnDbException(dbex);
 
-            Dispose();
-        }
+    /// <summary>
+    /// Provides the <see cref="DbException"/> handling as a result of <see cref="HandleDbException(DbException)"/>.
+    /// </summary>
+    /// <param name="dbex">The <see cref="DbException"/>.</param>
+    /// <returns>The <see cref="Exception"/> where handled (converted); otherwise, <see langword="null"/> indicating that the exception is unexpected and will continue to be thrown/bubbled as such.</returns>
+    /// <remarks>Provides an opportunity to inspect and convert the exception before it continues to bubble.
+    /// <para>Where overriding and the <see cref="DbException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</para></remarks>
+    protected virtual Exception? OnDbException(DbException dbex) => null;
+
+    /// <summary>
+    /// Gets the next (monotonic counter) save-point name.
+    /// </summary>
+    /// <returns>The save-point name.</returns>
+    public string GetNextSavePointName()
+    {
+        var counter = Interlocked.Increment(ref _savePointCounter);
+        return $"SP_{counter}";
     }
 }

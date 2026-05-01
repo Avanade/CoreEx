@@ -1,0 +1,56 @@
+Shopping:
+  - Product:
+    - { ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, UnitOfMeasureCode: EA, Price: 5800 }
+    - { ProductId: ^2, Sku: YETI-SB120-C2, Text: Yeti SB120 C2, UnitOfMeasureCode: EA, Price: 6200 }
+    - { ProductId: ^3, Sku: YETI-SB140-LR-C2, Text: Yeti SB140 LR C2, UnitOfMeasureCode: EA, Price: 6600 }
+    - { ProductId: ^4, Sku: YETI-SB165-C3, Text: Yeti SB165 C3, UnitOfMeasureCode: EA, Price: 7200 }
+    - { ProductId: ^5, Sku: YETI-MTE-C2, Text: Yeti MTe C2 eMTB, UnitOfMeasureCode: EA, Price: 9850 }
+    - { ProductId: ^6, Sku: CANYON-LUXTRAIL-CF6, Text: Canyon Lux Trail CF 6, UnitOfMeasureCode: EA, Price: 3899 }
+    - { ProductId: ^7, Sku: CANYON-SPECTRAL-CF8, Text: Canyon Spectral CF 8, UnitOfMeasureCode: EA, Price: 4999 }
+    - { ProductId: ^8, Sku: CANYON-NEURON-CF7, Text: Canyon Neuron CF 7, UnitOfMeasureCode: EA, Price: 3499 }
+    - { ProductId: ^9, Sku: CANYON-TORQUE-MULLET-CF8, Text: Canyon Torque Mullet CF 8, UnitOfMeasureCode: EA, Price: 3599 }
+    - { ProductId: ^10, Sku: CANYON-SENDER-CFR, Text: Canyon Sender CFR, UnitOfMeasureCode: EA, Price: 7799 }
+    - { ProductId: ^11, Sku: SPEC-STUMPJUMPER-15-COMP, Text: Specialized Stumpjumper 15 Comp, UnitOfMeasureCode: EA, Price: 5500 }
+    - { ProductId: ^12, Sku: SPEC-ENDURO-PRO, Text: Specialized Enduro Pro, UnitOfMeasureCode: EA, Price: 9500 }
+    - { ProductId: ^13, Sku: SPEC-EPIC-8-PRO, Text: Specialized Epic 8 Pro, UnitOfMeasureCode: EA, Price: 9000, IsInactive: true }
+    - { ProductId: ^14, Sku: SPEC-CHISEL-COMP, Text: Specialized Chisel Comp, UnitOfMeasureCode: EA, Price: 3400 }
+    - { ProductId: ^15, Sku: SPEC-STATUS-140, Text: Specialized Status 140, UnitOfMeasureCode: EA, Price: 2499 }
+    - { ProductId: ^16, Sku: GIANT-TRANCE-X-ADVPRO29, Text: Giant Trance X Advanced Pro 29, UnitOfMeasureCode: EA, Price: 6200 }
+    - { ProductId: ^17, Sku: GIANT-ANTHEM-ADV29-1, Text: Giant Anthem Advanced 29 1, UnitOfMeasureCode: EA, Price: 7800 }
+    - { ProductId: ^19, Sku: SHIMANO-XT-M8100-RD, Text: Shimano Deore XT M8100 Rear Derailleur, UnitOfMeasureCode: EA, Price: 129 }
+    - { ProductId: ^20, Sku: SHIMANO-SLX-M7100-CASSETTE, Text: Shimano SLX M7100 12-speed Cassette, UnitOfMeasureCode: EA, Price: 99 }
+    - { ProductId: ^21, Sku: SHIMANO-XTR-M9100-CRANK, Text: Shimano XTR M9100 Crankset, UnitOfMeasureCode: EA, Price: 499 }
+    - { ProductId: ^22, Sku: SRAM-GX-EAGLE-RD, Text: SRAM GX Eagle Rear Derailleur, UnitOfMeasureCode: EA, Price: 135 }
+    - { ProductId: ^23, Sku: SRAM-X0-TRANSMISSION-RD, Text: SRAM X0 Transmission Rear Derailleur, UnitOfMeasureCode: EA, Price: 400 }
+    - { ProductId: ^24, Sku: SRAM-XX1-EAGLE-CASSETTE, Text: SRAM XX1 Eagle Cassette, UnitOfMeasureCode: EA, Price: 449 }
+    - { ProductId: ^25, Sku: ONEUP-V3-DROPPER-180, Text: OneUp Dropper Post V3 180mm, UnitOfMeasureCode: EA, Price: 269 }
+    - { ProductId: ^26, Sku: ONEUP-CARBON-HANDLEBAR, Text: OneUp Carbon Handlebar, UnitOfMeasureCode: EA, Price: 159 }
+    - { ProductId: ^27, Sku: ONEUP-COMPOSITE-PEDALS, Text: OneUp Composite Pedals, UnitOfMeasureCode: PR, Price: 49, IsInactive: true }
+    - { ProductId: ^28, Sku: ONEUP-EDC-TOOL-V2, Text: OneUp EDC Tool V2, UnitOfMeasureCode: EA, Price: 59 }
+    - { ProductId: ^29, Sku: MUCOFF-NANO-CLEANER, Text: Muc-Off Nano Tech Bike Cleaner, UnitOfMeasureCode: EA, Price: 16.99 }
+    - { ProductId: ^30, Sku: MUCOFF-TUBELESS-SEALANT, Text: Muc-Off MTB Tubeless Sealant, UnitOfMeasureCode: EA, Price: 8.00 }
+    - { ProductId: ^31, Sku: MUCOFF-DRIVETRAIN-CLEANER, Text: Muc-Off Drivetrain Cleaner, UnitOfMeasureCode: EA, Price: 25.00 }
+    - { ProductId: ^32, Sku: LABOR, Text: Labor, UnitOfMeasureCode: HR, Price: 80.00, IsNonStocked: true }
+  - Basket:
+    - { BasketId: ^3001, CustomerId: ^1001, BasketStatusCode: E, SubTotal: 0, Total: 0 }
+    - { BasketId: ^3002, CustomerId: ^1002, BasketStatusCode: C, SubTotal: 9679, DiscountCouponCode: XMAS2025, DiscountAmount: 145.19, Total: 9533.81 }
+    - { BasketId: ^3003, CustomerId: ^1001, BasketStatusCode: A, SubTotal: 9999, Total: 9999 }
+    - { BasketId: ^3004, CustomerId: ^1003, BasketStatusCode: B, SubTotal: 98, Total: 98 }
+    - { BasketId: ^3005, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
+    - { BasketId: ^3006, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
+    - { BasketId: ^3007, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
+    - { BasketId: ^3008, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
+  - BasketItem:
+    - { BasketItemId: ^4001, BasketId: ^3006, ProductId: ^27, Sku: ONEUP-COMPOSITE-PEDALS, Text: OneUp Composite Pedals, UnitOfMeasureCode: PR, Quantity: 2, UnitPrice: 49 }
+    - { BasketItemId: ^4002, BasketId: ^3001, ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, UnitOfMeasureCode: EA, Quantity: 2, UnitPrice: 129 }
+    - { BasketItemId: ^4003, BasketId: ^3002, ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, UnitOfMeasureCode: EA, Quantity: 1, UnitPrice: 9850 }
+    - { BasketItemId: ^4004, BasketId: ^3002, ProductId: ^20, Sku: SHIMANO-SLX-M7100-CASSETTE, Text: Shimano SLX M7100 12-speed Cassette, UnitOfMeasureCode: EA, Quantity: 1, UnitPrice: 99 }
+    - { BasketItemId: ^4005, BasketId: ^3003, ProductId: ^12, Sku: SPEC-ENDURO-PRO, Text: Specialized Enduro Pro, UnitOfMeasureCode: EA, Quantity: 1, UnitPrice: 9500 }
+    - { BasketItemId: ^4006, BasketId: ^3003, ProductId: ^21, Sku: SHIMANO-XTR-M9100-CRANK, Text: Shimano XTR M9100 Crankset, UnitOfMeasureCode: EA, Quantity: 1, UnitPrice: 499 }
+    - { BasketItemId: ^4007, BasketId: ^3004, ProductId: ^27, Sku: ONEUP-COMPOSITE-PEDALS, Text: OneUp Composite Pedals, UnitOfMeasureCode: PR, Quantity: 2, UnitPrice: 49 }
+    - { BasketItemId: ^4008, BasketId: ^3005, ProductId: ^27, Sku: ONEUP-COMPOSITE-PEDALS, Text: OneUp Composite Pedals, UnitOfMeasureCode: PR, Quantity: 2, UnitPrice: 49 }
+    - { BasketItemId: ^4009, BasketId: ^3007, ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, UnitOfMeasureCode: EA, Quantity: 2, UnitPrice: 9850 }
+    - { BasketItemId: ^4010, BasketId: ^3007, ProductId: ^20, Sku: SHIMANO-SLX-M7100-CASSETTE, Text: Shimano SLX M7100 12-speed Cassette, UnitOfMeasureCode: EA, Quantity: 1, UnitPrice: 99 }
+    - { BasketItemId: ^4011, BasketId: ^3008, ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, UnitOfMeasureCode: EA, Quantity: 2, UnitPrice: 9850 }
+    - { BasketItemId: ^4012, BasketId: ^3008, ProductId: ^20, Sku: SHIMANO-SLX-M7100-CASSETTE, Text: Shimano SLX M7100 12-speed Cassette, UnitOfMeasureCode: EA, Quantity: 1, UnitPrice: 99 }
+    - { BasketItemId: ^4013, BasketId: ^3007, ProductId: ^32, Sku: LABOR, Text: Labor, UnitOfMeasureCode: HR, Quantity: 1.5, UnitPrice: 80 }

@@ -1,0 +1,62 @@
+[
+  {
+    "destination": "contoso",
+    "event": {
+      "specversion": "1.0",
+      "id": "019cced1-7956-7064-8369-e1f8512dda30",
+      "type": "contoso.products.movement.issue.pending.v1",
+      "source": "urn:contoso:products",
+      "subject": "019cced1-78cb-7b7a-a5e3-e61958705cd4",
+      "time": "2026-03-08T18:59:20.399008Z",
+      "partitionkey": "019cced1-78cb-7b7a-a5e3-e61958705cd4",
+      "authtype": "user",
+      "authid": "METACORTEX\\thomas.anderson",
+      "traceparent": "00-e48c8aa42627e1cb8530989fc4b6beef-e8a010df8f010f8a-01",
+      "dataschemaversion": "1.0",
+      "datacontenttype": "application/json",
+      "data": {
+        "id": "019cced1-78cb-7b7a-a5e3-e61958705cd4",
+        "referenceId": "000a40d1-0000-0000-0000-000000000000",
+        "kind": "I",
+        "status": "P",
+        "productId": "0000001c-0000-0000-0000-000000000000",
+        "quantity": -3,
+        "unitOfMeasure": "EA",
+        "changeLog": {
+          "createdBy": "METACORTEX\\thomas.anderson",
+          "createdOn": "2026-03-08T18:59:20.399008\u002B00:00"
+        }
+      }
+    }
+  },
+  {
+    "destination": "contoso",
+    "event": {
+      "specversion": "1.0",
+      "id": "019cced1-7962-7395-8a72-0764d3cafa89",
+      "type": "contoso.products.movement.issue.pending.v1",
+      "source": "urn:contoso:products",
+      "subject": "019cced1-78f8-7026-b422-4a56e4df5360",
+      "time": "2026-03-08T18:59:20.399008Z",
+      "partitionkey": "019cced1-78f8-7026-b422-4a56e4df5360",
+      "authtype": "user",
+      "authid": "METACORTEX\\thomas.anderson",
+      "traceparent": "00-e48c8aa42627e1cb8530989fc4b6beef-e8a010df8f010f8a-01",
+      "dataschemaversion": "1.0",
+      "datacontenttype": "application/json",
+      "data": {
+        "id": "019cced1-78f8-7026-b422-4a56e4df5360",
+        "referenceId": "000a40d1-0000-0000-0000-000000000000",
+        "kind": "I",
+        "status": "P",
+        "productId": "00000010-0000-0000-0000-000000000000",
+        "quantity": -1,
+        "unitOfMeasure": "EA",
+        "changeLog": {
+          "createdBy": "METACORTEX\\thomas.anderson",
+          "createdOn": "2026-03-08T18:59:20.399008\u002B00:00"
+        }
+      }
+    }
+  }
+]

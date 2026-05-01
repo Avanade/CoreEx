@@ -1,50 +1,15 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation.Clauses;
 
-using System;
-
-namespace CoreEx.Validation.Clauses
+/// <summary>
+/// Represents a <i>when</i> test clause; in that the condition must be <see langword="true"/> to continue.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+/// <param name="whenAsync">The when-based <see cref="PredicateAsync{TEntity, TProperty}"/>.</param>
+public sealed class WhenClause<TEntity, TProperty>(PredicateAsync<TEntity, TProperty> whenAsync) : IPropertyClause<TEntity, TProperty> where TEntity : class
 {
-    /// <summary>
-    /// Represents a when test clause; in that the condition must be <c>true</c> to continue.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    public class WhenClause<TEntity, TProperty> : IPropertyRuleClause<TEntity, TProperty> where TEntity : class
-    {
-        private readonly Predicate<TEntity>? _entityPredicate;
-        private readonly Predicate<TProperty>? _propertyPredicate;
-        private readonly Func<bool>? _when;
+    private readonly PredicateAsync<TEntity, TProperty> _whenAsync = whenAsync.ThrowIfNull();
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WhenClause{TEntity, TProperty}"/> class with a <paramref name="predicate"/> being passed the <typeparamref name="TEntity"/>.
-        /// </summary>
-        /// <param name="predicate">The when predicate.</param>
-        public WhenClause(Predicate<TEntity> predicate) => _entityPredicate = predicate.ThrowIfNull(nameof(predicate));
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WhenClause{TEntity, TProperty}"/> class with a <paramref name="when"/> function.
-        /// </summary>
-        /// <param name="when">The when function.</param>
-        public WhenClause(Func<bool> when) => _when = when.ThrowIfNull(nameof(when));
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WhenClause{TEntity, TProperty}"/> class with a <paramref name="predicate"/> being passed the <typeparamref name="TProperty"/>.
-        /// </summary>
-        /// <param name="predicate">The when predicate.</param>
-        public WhenClause(Predicate<TProperty> predicate) => _propertyPredicate = predicate.ThrowIfNull(nameof(predicate));
-
-        /// <summary>
-        /// Checks the clause.
-        /// </summary>
-        /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
-        /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        public bool Check(IPropertyContext context)
-        {
-            context.ThrowIfNull(nameof(context));
-
-            return _when != null ? _when.Invoke()
-                : _entityPredicate != null ? _entityPredicate.Invoke((TEntity)context.Parent.Value!)
-                : _propertyPredicate!.Invoke((TProperty)context.Value!);
-        }
-    }
+    /// <inheritdoc/>
+    public Task<bool> CheckAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken) => _whenAsync(context, cancellationToken);
 }

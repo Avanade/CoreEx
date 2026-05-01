@@ -1,35 +1,22 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+﻿namespace CoreEx.Validation.Rules;
 
-using CoreEx.Wildcards;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides a <see cref="Wildcard"/> <see langword="string"/> validation.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <param name="wildcard">The <see cref="Wildcard"/>.</param>
+public class WildcardRule<TEntity>(Func<PropertyContext<TEntity, string>, Wildcard?> wildcard) : PropertyRuleBase<TEntity, string> where TEntity : class
 {
-    /// <summary>
-    /// Provides <see cref="string"/> <see cref="Wildcard"/> validation.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
-    public class WildcardRule<TEntity> : ValueRuleBase<TEntity, string> where TEntity : class
+    private readonly Func<PropertyContext<TEntity, string>, Wildcard?> _wildcard = wildcard.ThrowIfNull();
+
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WildcardRule{TEntity}"/> class.
-        /// </summary>
-        public WildcardRule() => ValidateWhenDefault = false;
+        var wildcard = _wildcard(context) ?? Wildcard.Default ?? Wildcard.MultiBasic;
 
-        /// <summary>
-        /// Gets or sets the <see cref="Wildcard"/> configuration (uses <see cref="Wildcard.Default"/> where <c>null</c>).
-        /// </summary>
-        public Wildcard? Wildcard { get; set; }
+        if (wildcard.Parse(context.Value).HasError)
+            context.AddError(ErrorText ?? ValidatorStrings.WildcardFormat);
 
-        /// <inheritdoc/>
-        protected override Task ValidateAsync(PropertyContext<TEntity, string> context, CancellationToken cancellationToken = default)
-        {
-            var wildcard = Wildcard ?? Wildcard.Default ?? Wildcard.MultiBasic;
-            if (wildcard != null && !wildcard.Validate(context.Value))
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.WildcardFormat);
-
-            return Task.CompletedTask;
-        }
+        return Task.CompletedTask;
     }
 }

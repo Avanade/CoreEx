@@ -1,0 +1,11 @@
+﻿global using Contoso.Products.Contracts;
+global using CoreEx;
+global using CoreEx.Http.Abstractions;
+global using AwesomeAssertions;
+global using NUnit.Framework;
+global using System.Net;
+global using System.Text.Json;
+global using UnitTestEx;
+global using UnitTestEx.Expectations;
+global using DbMigration = Contoso.Products.Database.Program;
+global using TestData = Contoso.Products.Test.Common.TestData;

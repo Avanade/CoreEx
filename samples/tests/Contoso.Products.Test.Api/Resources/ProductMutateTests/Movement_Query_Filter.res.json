@@ -1,0 +1,30 @@
+[
+  {
+    "id": "00000001-0000-0000-0000-000000000000",
+    "referenceId": "000003e8-0000-0000-0000-000000000000",
+    "kind": "I",
+    "status": "P",
+    "productId": "00000001-0000-0000-0000-000000000000",
+    "quantity": -2.00,
+    "unitOfMeasure": "EA",
+    "changeLog": {
+      "createdBy": "METACORTEX\\thomas.anderson",
+      "createdOn": "2026-01-18T00:40:12.697994+00:00"
+    },
+    "etag": "AAAAAAAEUUc="
+  },
+  {
+    "id": "00000003-0000-0000-0000-000000000000",
+    "referenceId": "000003e8-0000-0000-0000-000000000000",
+    "kind": "I",
+    "status": "P",
+    "productId": "0000001f-0000-0000-0000-000000000000",
+    "quantity": -3.00,
+    "unitOfMeasure": "EA",
+    "changeLog": {
+      "createdBy": "METACORTEX\\thomas.anderson",
+      "createdOn": "2026-01-18T00:40:12.697994+00:00"
+    },
+    "etag": "AAAAAAAEUUk="
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "id": "eda1e75a-199a-44f1-b927-93844608d4e2",
+  "customerId": "000003ec-0000-0000-0000-000000000000",
+  "status": "E",
+  "items": [],
+  "pricing": {
+    "subTotal": 0,
+    "total": 0
+  },
+  "changeLog": {
+    "createdBy": "DOMAIN-CORP\\eric.sibly",
+    "createdOn": "2026-02-21T19:13:24.7027106\u002B00:00"
+  },
+  "etag": "AAAAAAAACTg="
+}
