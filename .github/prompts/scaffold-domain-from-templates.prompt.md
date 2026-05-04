@@ -27,6 +27,7 @@ If not supplied, ask for:
 3. `Entity` (e.g. `Order`).
 4. `ChildEntity` (e.g. `OrderItem`).
 5. `targetRoot` (default: `samples/src`).
+6. `testsRoot` (default: `samples/tests`).
 
 ## Naming Helper (Auto-Derive)
 
@@ -73,6 +74,11 @@ Create these projects under `{targetRoot}`:
 - `{Solution}.{Domain}.Api`
 - `{Solution}.{Domain}.Database`
 
+Create these test projects under `{testsRoot}`:
+
+- `{Solution}.{Domain}.Test.Unit`
+- `{Solution}.{Domain}.Test.Api`
+
 ## Materialization Rules
 
 1. Copy each `.template` file into the corresponding project location.
@@ -99,6 +105,16 @@ After template materialization:
 4. In Program files:
 - Ensure namespaces match generated project names.
 
+5. In test projects:
+- Ensure test namespaces and project names match `{Solution}.{Domain}.Test.Unit` and `{Solution}.{Domain}.Test.Api`.
+- Ensure Unit tests follow `WithGenericTester<EntryPoint>` patterns.
+- Ensure Api tests follow `WithApiTester<{Solution}.{Domain}.Api.Program>` patterns.
+- Ensure assertions use AwesomeAssertions (not FluentAssertions).
+
+6. In solution structure:
+- Add all generated domain and test projects to the Visual Studio solution.
+- Group all generated domain and test projects under a solution folder named `{Domain}`.
+
 ## Validation
 
 Run diagnostics check (`get_errors`) for all generated projects:
@@ -108,8 +124,17 @@ Run diagnostics check (`get_errors`) for all generated projects:
 - `{targetRoot}/{Solution}.{Domain}.Infrastructure`
 - `{targetRoot}/{Solution}.{Domain}.Api`
 - `{targetRoot}/{Solution}.{Domain}.Database`
+- `{testsRoot}/{Solution}.{Domain}.Test.Unit`
+- `{testsRoot}/{Solution}.{Domain}.Test.Api`
+
+Run tests and ensure they pass:
+
+- `dotnet test {testsRoot}/{Solution}.{Domain}.Test.Unit`
+- `dotnet test {testsRoot}/{Solution}.{Domain}.Test.Api`
 
 If errors are found, fix them before completing.
+
+If tests fail, fix the generated code/tests and rerun until both Unit and Api test projects pass.
 
 ## Completion Gate
 

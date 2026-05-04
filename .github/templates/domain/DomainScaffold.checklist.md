@@ -14,11 +14,15 @@ Use this checklist after scaffolding a new domain from templates/prompts.
 
 ## Projects Created
 
+- [ ] All domain projects are grouped under a Visual Studio solution folder named {Domain} (for example, Orders).
+- [ ] All new domain projects are added to the solution file.
 - [ ] {Solution}.{Domain}.Contracts.
 - [ ] {Solution}.{Domain}.Application.
 - [ ] {Solution}.{Domain}.Infrastructure.
 - [ ] {Solution}.{Domain}.Api.
 - [ ] {Solution}.{Domain}.Database.
+- [ ] {Solution}.{Domain}.Test.Unit.
+- [ ] {Solution}.{Domain}.Test.Api.
 
 ## Contracts Layer
 
@@ -64,5 +68,7 @@ Use this checklist after scaffolding a new domain from templates/prompts.
 
 - [ ] Diagnostics check returns no errors.
 - [ ] Project compiles.
-- [ ] Added to solution file where required.
+- [ ] Unit tests run and pass for {Solution}.{Domain}.Test.Unit.
+- [ ] Api tests run and pass for {Solution}.{Domain}.Test.Api.
+- [ ] Added to solution file and organized under the {Domain} solution folder (including test projects).
 - [ ] README/docs updated where required.

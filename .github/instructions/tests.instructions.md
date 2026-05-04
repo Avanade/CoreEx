@@ -11,7 +11,7 @@ applyTo: "**/*.Test*/**/*.cs"
 | `CoreEx.UnitTesting` | `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.MigrateSqlServerDataAsync<T>()`, `Test.ClearFusionCacheAsync()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `Test.UseExpectedAzureServiceBusPublisher()`, `Test.ReplaceHttpClientFactory()`, `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()`, `Test.Scoped()` |
 | `UnitTestEx` | `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()` |
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
-| `FluentAssertions` | `.Should()`, `.Be()` |
+| `AwesomeAssertions` | `.Should()`, `.Be()` |
 
 ## Project Types
 
