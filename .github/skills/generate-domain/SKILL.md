@@ -6,7 +6,7 @@ argument-hint: "Optional: solution prefix, domain name, and root entity — e.g.
 
 # Generate Domain
 
-Scaffolds all layers of a new CoreEx domain — Contracts, Application, Infrastructure, API, and Database — aligned to the Contoso sample architecture (shopping, product).
+Scaffolds all layers of a new CoreEx domain — Contracts, Application, Infrastructure, API, Database, and baseline Unit/Api tests — aligned to the Contoso sample architecture (shopping, product).
 
 ## When to Use
 
@@ -85,6 +85,14 @@ Generate in this order:
 5. `Data/ref-data.yaml` — seed data.
 6. `{Solution}.{Domain}.Database.csproj`.
 
+## Step 7 — Test Projects (`{Solution}.{Domain}.Test.*`)
+
+1. Create `{Solution}.{Domain}.Test.Unit` using CoreEx test conventions (e.g., validator/service-focused tests with `WithGenericTester<EntryPoint>`).
+2. Create `{Solution}.{Domain}.Test.Api` using CoreEx API integration conventions (e.g., `WithApiTester<{Solution}.{Domain}.Api.Program>`).
+3. Ensure both test projects reference AwesomeAssertions, not FluentAssertions.
+4. Ensure both test projects are added to the solution and grouped under the `{Domain}` solution folder.
+5. Ensure all generated domain projects are also grouped with the test projects under the `{Domain}` solution folder.
+
 ## Quality Gates (check before finishing)
 
 - Every injected dependency guarded with `.ThrowIfNull()`.
@@ -92,6 +100,8 @@ Generate in this order:
 - All mutations wrapped in `_unitOfWork.ExecuteAsync(...)`.
 - Events added inside `WhereMutated(...)` only.
 - POST endpoints carry `[IdempotencyKey]`.
+- `{Solution}.{Domain}.Test.Unit` and `{Solution}.{Domain}.Test.Api` are scaffolded.
+- `dotnet test` passes for both Unit and Api test projects.
 - Run the [DomainScaffold.checklist.md](../../templates/domain/DomainScaffold.checklist.md) in full and report any unchecked items.
 
 ## Naming Conventions
