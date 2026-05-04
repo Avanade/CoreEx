@@ -13,7 +13,7 @@ public partial class ReadTests
     [Test]
     public void Order_Get_Found()
     {
-        var order = Test.Http<Order>()
+        var order = Test.Http<Contoso.Orders.Contracts.Order>()
             .Run(HttpMethod.Get, "/api/orders/ORD-1001")
             .AssertOK()
             .Value!;
