@@ -32,7 +32,7 @@ public partial class OrderMutateTests
         order.StatusCode = "C";
         order.CustomerId = "CUST-1001-UPDATED";
 
-        var updated = Test.Http<Order>()
+        var updated = Test.Http<Contoso.Orders.Contracts.Order>()
             .ExpectIdentifier()
             .ExpectETag()
             .ExpectChangeLogUpdated()
@@ -46,7 +46,7 @@ public partial class OrderMutateTests
         updated.StatusCode.Should().Be("C");
         updated.ETag.Should().NotBe(order.ETag);
 
-        Test.Http<Order>()
+        Test.Http<Contoso.Orders.Contracts.Order>()
             .Run(HttpMethod.Get, $"/api/orders/{order.Id}")
             .AssertOK()
             .AssertValue(updated);
@@ -57,7 +57,7 @@ public partial class OrderMutateTests
     {
         var order = CreateOrder("UPD-NC");
 
-        var updated = Test.Http<Order>()
+        var updated = Test.Http<Contoso.Orders.Contracts.Order>()
             .ExpectNoSqlServerOutboxEvents()
             .Run(HttpMethod.Put, $"/api/orders/{order.Id}", order)
             .AssertOK()
