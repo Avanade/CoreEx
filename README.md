@@ -47,11 +47,13 @@ The included [change log](CHANGELOG.md) details all key changes per published ve
 
 ## Samples
 
-The following samples are provided to guide usage:
+The repository includes Contoso reference samples that demonstrate CoreEx across API, database, outbox, subscriber, orchestration, and testing scenarios. See [samples/README.md](./samples/README.md) for the runnable topology, prerequisites, and commands.
 
 Sample | Description
 -|-
-[My.Hr](./samples/My.Hr) | A sample to demonstrate the usage of _CoreEx_ within the context of a fictitious Human Resources solution. The main intent is to show how _CoreEx_ can be leveraged to build Web APIs and Azure Functions. Additionally, the unit testing provided within demonstrates the thoroughness of testing that can be achieved with some of the other repos mentioned below.  
+[Contoso Products](./samples/README.md) | Reference microservice showing API, database migrations, transactional outbox, relay, subscriber, and test coverage for a product/inventory domain.  
+[Contoso Shopping](./samples/README.md) | Reference microservice showing aggregate-centric application design, cross-service HTTP integration, hybrid caching, messaging, and integration testing.  
+[Contoso Orders / Order.Workflow](./samples/README.md) | Additional sample areas for order processing and Durable Task orchestration that are currently in progress.  
 
 <br/>
 
