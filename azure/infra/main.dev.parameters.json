@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentType": {
+      "value": "dev"
+    },
+    "location": {
+      "value": "__AZURE_LOCATION__"
+    },
+    "nameSuffix": {
+      "value": "dev01"
+    },
+    "tags": {
+      "value": {
+        "workload": "coreex",
+        "environment": "dev",
+        "costProfile": "minimum-practical"
+      }
+    },
+    "appServicePlanSkuName": {
+      "value": "B2"
+    },
+    "appServicePlanTier": {
+      "value": "Basic"
+    },
+    "appServicePlanCapacity": {
+      "value": 1
+    },
+    "appServiceLinuxFxVersion": {
+      "value": "__APP_SERVICE_LINUX_FX_VERSION__"
+    },
+    "serviceBusSkuName": {
+      "value": "Standard"
+    },
+    "sqlAdminLogin": {
+      "value": "coreexadmin"
+    },
+    "sqlAdminPassword": {
+      "value": "__AZURE_SQL_ADMIN_PASSWORD__"
+    },
+    "sqlDatabaseName": {
+      "value": "coreexdev"
+    },
+    "sqlFirewallClientIp": {
+      "value": "__AZURE_CLIENT_IP__"
+    },
+    "sqlSkuName": {
+      "value": "GP_S_Gen5_1"
+    },
+    "sqlTier": {
+      "value": "GeneralPurpose"
+    },
+    "sqlMinCapacity": {
+      "value": "0.5"
+    },
+    "sqlAutoPauseDelay": {
+      "value": 60
+    },
+    "redisSkuName": {
+      "value": "Balanced_B0"
+    },
+    "redisHighAvailability": {
+      "value": "Disabled"
+    }
+  }
+}
