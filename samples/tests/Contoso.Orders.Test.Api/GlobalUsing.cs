@@ -1,8 +1,10 @@
 global using Contoso.Orders.Contracts;
 global using CoreEx;
+global using CoreEx.Http.Abstractions;
 global using CoreEx.Database.SqlServer.Outbox;
-global using FluentAssertions;
+global using AwesomeAssertions;
 global using NUnit.Framework;
+global using Order = Contoso.Orders.Contracts.Order;
 global using System.Net;
 global using System.Text.Json;
 global using UnitTestEx;
