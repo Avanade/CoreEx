@@ -7,11 +7,9 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
 
     private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
         .WithFilter(filter => filter
-            .WithDefaultModelPrefix("Order")
             .AddField<string>(nameof(Contracts.OrderBase.CustomerId), c => c.WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith))
             .AddReferenceDataField<Contracts.OrderStatus>(nameof(Contracts.OrderBase.Status), "StatusCode"))
         .WithOrderBy(orderby => orderby
-            .WithDefaultModelPrefix("Order")
             .AddField(nameof(Contracts.OrderBase.CustomerId), c => c.WithDefault().WithAlwaysInclude()));
 
     public Task<Contracts.Order?> GetAsync(string id) => _ef.Orders.GetAsync(id);
