@@ -1,13 +1,13 @@
 # Contoso Samples
 
-The `samples` folder contains reference implementations of two domain microservices built with CoreEx.
+The `samples` folder contains reference implementations of three domain microservices built with CoreEx.
 
 - Products.
 - Shopping.
+- Orders.
 
 Additional sample areas are currently work in progress:
 
-- Orders.
 - Order.Workflow.
 
 Each domain includes three runnable hosts:
@@ -167,7 +167,12 @@ dotnet run --project samples/src/Contoso.Products.Database -- Data
 
 dotnet run --project samples/src/Contoso.Shopping.Database -- Migrate
 dotnet run --project samples/src/Contoso.Shopping.Database -- Data
+
+dotnet run --project samples/src/Contoso.Orders.Database -- Migrate
+dotnet run --project samples/src/Contoso.Orders.Database -- Data
 ```
+
+The E2E runner's `Database-Migration` scenario now applies schema and base data for Products, Shopping, and Orders.
 
 ## Run With Aspire
 
