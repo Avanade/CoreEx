@@ -13,15 +13,15 @@ public partial class OrderMutateTests : WithApiTester<Contoso.Orders.Api.Program
         Test.UseExpectedSqlServerOutboxPublisher();
     }
 
-    private Order CreateOrder(string customerIdPrefix = "CUST")
+    private Contoso.Orders.Contracts.Order CreateOrder(string customerIdPrefix = "CUST")
     {
-        var order = new Order
+        var order = new Contoso.Orders.Contracts.Order
         {
             CustomerId = $"{customerIdPrefix}-{Guid.NewGuid():N}"[..21],
             StatusCode = "P"
         };
 
-        return Test.Http<Order>()
+        return Test.Http<Contoso.Orders.Contracts.Order>()
             .ExpectIdentifier()
             .ExpectETag()
             .ExpectChangeLogCreated()

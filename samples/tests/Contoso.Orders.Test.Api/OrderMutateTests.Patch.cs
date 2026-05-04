@@ -28,7 +28,7 @@ public partial class OrderMutateTests
 
         order.StatusCode = "X";
 
-        var updated = Test.Http<Order>()
+        var updated = Test.Http<Contoso.Orders.Contracts.Order>()
             .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.orders.order.updated.v1"))
             .Run(HttpMethod.Patch, $"/api/orders/{order.Id}", new { status = "X" }, requestModifier: r => r.WithIfMatch(order.ETag).WithMergePatchJsonContentType())
             .AssertOK()
@@ -38,7 +38,7 @@ public partial class OrderMutateTests
         updated.StatusCode.Should().Be("X");
         updated.ETag.Should().NotBe(order.ETag);
 
-        Test.Http<Order>()
+        Test.Http<Contoso.Orders.Contracts.Order>()
             .Run(HttpMethod.Get, $"/api/orders/{order.Id}")
             .AssertOK()
             .AssertValue(updated, "etag", "changelog");
@@ -49,7 +49,7 @@ public partial class OrderMutateTests
     {
         var order = CreateOrder("PAT-NC");
 
-        var updated = Test.Http<Order>()
+        var updated = Test.Http<Contoso.Orders.Contracts.Order>()
             .ExpectNoSqlServerOutboxEvents()
             .Run(HttpMethod.Patch, $"/api/orders/{order.Id}", new { }, requestModifier: r => r.WithIfMatch(order.ETag).WithMergePatchJsonContentType())
             .AssertOK()
