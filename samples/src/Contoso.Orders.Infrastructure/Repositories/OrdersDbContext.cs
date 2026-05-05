@@ -27,6 +27,7 @@ public class OrdersDbContext(DbContextOptions<OrdersDbContext> options, SqlServe
             e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
             e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(StringBase64Converter.Default);
             e.HasMany(p => p.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.Navigation(p => p.Items).AutoInclude(true);
         });
 
         modelBuilder.ThrowIfNull().Entity<Persistence.OrderItem>(e =>

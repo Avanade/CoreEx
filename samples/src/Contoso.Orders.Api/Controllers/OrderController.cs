@@ -41,7 +41,7 @@ public class OrderController(WebApi webApi, IOrderService service, OrderWorkflow
     public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteAsync(Request, (_, _)
         => _service.DeleteAsync(id.Required()));
 
-    [HttpPost("/OrchestrateOrder")]
+    [HttpPost("orchestrate")]
     [Accepts<OrderWorkflowRequest>]
     [ProducesResponseType(typeof(OrchestrateOrderResponse), StatusCodes.Status202Accepted)]
     [IdempotencyKey]
