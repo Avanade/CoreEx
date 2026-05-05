@@ -4,7 +4,7 @@ using CoreEx.Results;
 
 namespace CoreEx.Database.SqlServer.Test.Unit;
 
-public partial class EntityFrameworkCrudTests : DatabaseTestBase
+public partial class EntityFrameworkCrudTests 
 {
     [Test]
     public void Update_IsDeleted() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>

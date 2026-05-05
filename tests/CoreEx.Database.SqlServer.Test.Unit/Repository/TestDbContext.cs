@@ -15,7 +15,7 @@ public class TestDbContext(DbContextOptions<TestDbContext> options, SqlServerDat
 
         // Uses IDatabase.Connection to ensure the same database/connection is used.
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlServer(BaseDatabase.Connection);
+            optionsBuilder.UseSqlServer(BaseDatabase.Connection, contextOwnsConnection: false);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -34,9 +34,9 @@ public class TestDbContext(DbContextOptions<TestDbContext> options, SqlServerDat
             e.Property(p => p.Flag).HasColumnName("Flag").HasColumnType("BIT");
             e.Property(p => p.Date).HasColumnName("Date").HasColumnType("DATE");
             e.Property(p => p.Time).HasColumnName("Time").HasColumnType("TIME");
-            e.Property(p => p.Json).HasColumnName("Json").HasColumnType("NVARCHAR(500)").HasConversion(JsonElementStringConverter.Default);
+            e.Property(p => p.Json).HasColumnName("Json").HasColumnType("NVARCHAR(500)").HasConversion(JsonElementStringEfConverter.Default);
             e.Property(p => p.TenantId).HasColumnName("TenantId").HasColumnType("NVARCHAR(20)");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(StringBase64Converter.Default);
+            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
             e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnUpdate();
             e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnUpdate();
             e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnAdd();

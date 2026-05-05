@@ -49,6 +49,16 @@ public static partial class CoreExExtensions
     });
 
     /// <summary>
+    /// Adds a <b>singleton</b> service to instantiate a new <see cref="PrecisionTimeProvider"/> instance with the specified <paramref name="decimalPlaces"/>.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="decimalPlaces">The number of decimal places (0-7) for fractional seconds. Defaults to 6 (microseconds) for database compatibility.</param>
+    /// <param name="innerProvider">The optional inner <see cref="TimeProvider"/> to use. Defaults to null.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+    public static IServiceCollection AddPrecisionTimeProvider(this IServiceCollection services, int decimalPlaces = 6, TimeProvider? innerProvider = null)
+        => services.ThrowIfNull().AddSingleton<TimeProvider>(new PrecisionTimeProvider(decimalPlaces, innerProvider));
+
+    /// <summary>
     /// Dynamically registers all types within the specified assembly that have a defined <see cref="ServiceLifetimeAttribute"/> as inferred by (using) the specified generic type.
     /// </summary>
     /// <typeparam name="TAssembly1">The <see cref="Type"/> to infer the <see cref="Assembly"/> from.</typeparam>

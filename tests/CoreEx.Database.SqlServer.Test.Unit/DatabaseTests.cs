@@ -124,7 +124,7 @@ public class DatabaseTests : DatabaseTestBase
             tt2.Should().NotBeNull();
 
             // No rows.
-            var tt3 = await db.Statement("SELECT * FROM [Test].[Table ]WHERE [TableId] = @Id").Param("Id", 404.ToGuid()).SelectFirstOrDefaultAsync(new TestTableMapper()).ConfigureAwait(false);
+            var tt3 = await db.Statement("SELECT * FROM [Test].[Table] WHERE [TableId] = @Id").Param("Id", 404.ToGuid()).SelectFirstOrDefaultAsync(new TestTableMapper()).ConfigureAwait(false);
             tt3.Should().BeNull();
         }).AssertSuccess();
     });

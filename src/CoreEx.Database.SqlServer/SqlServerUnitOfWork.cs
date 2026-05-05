@@ -6,8 +6,11 @@
 /// <param name="database">The <see cref="SqlServerDatabase"/>.</param>
 /// <param name="outbox">The optional <see cref="IEventPublisher"/>.</param>
 /// <param name="invoker">The optional <see cref="SqlServerUnitOfWorkInvoker"/> used to orchestrate the <see cref="IUnitOfWork"/> functionality.</param>
-public sealed class SqlServerUnitOfWork(SqlServerDatabase database, IEventPublisher? outbox = null, SqlServerUnitOfWorkInvoker? invoker = null) : IUnitOfWork
+public sealed class SqlServerUnitOfWork(SqlServerDatabase database, IEventPublisher? outbox = null, SqlServerUnitOfWorkInvoker? invoker = null) : IDatabaseUnitOfWork
 {
+    /// <inheritdoc/>
+    IDatabase IDatabaseUnitOfWork.Database => Database;
+
     /// <summary>
     /// Gets the underlying <see cref="SqlServerDatabase"/>.
     /// </summary>

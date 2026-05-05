@@ -6,12 +6,11 @@
 /// <typeparam name="TConnection">The <see cref="DbConnection"/> <see cref="Type"/>.</typeparam>
 /// <typeparam name="TCommand">The <see cref="DatabaseCommand{TDatabaseArgs, TSelf}"/> <see cref="Type"/>.</typeparam>
 /// <typeparam name="TDatabaseArgs">The <see cref="DatabaseArgs"/> <see cref="Type"/>.</typeparam>
-/// <param name="provider">The underlying <see cref="DbProviderFactory"/>.</param>
 /// <param name="connection">The <typeparamref name="TConnection"/> <see cref="DbConnection"/>.</param>
 /// <param name="invoker">The <see cref="DatabaseInvoker"/>.</param>
 /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
 /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderFactory provider, TConnection connection, DatabaseInvoker invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs>>? logger = null) : IDatabase
+public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection connection, DatabaseInvoker invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs>>? logger = null) : IDatabase
     where TConnection : DbConnection where TCommand : DatabaseCommand<TDatabaseArgs, TCommand> where TDatabaseArgs : DatabaseArgs, new()
 {
     private static readonly TDatabaseArgs _defaultDbArgs = new();
@@ -21,9 +20,6 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderF
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly TConnection _dbConn = connection.ThrowIfNull().ThrowWhen(connection => connection.State != ConnectionState.Closed && connection.State != ConnectionState.Open);
     private int _savePointCounter = 0;
-
-    /// <inheritdoc/>
-    public DbProviderFactory Provider { get; } = provider.ThrowIfNull();
 
     /// <inheritdoc/>
     public string DatabaseId { get; } = Guid.NewGuid().ToString();
@@ -49,7 +45,11 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderF
     public bool DateTimeOffsetTransform { get; set; } = true;
 
     /// <inheritdoc/>
-    public DatabaseColumns NamedColumns { get; set; } = _defaultColumns;
+    public DatabaseColumns NamedColumns
+    {
+        get => field ?? throw new InvalidOperationException($"{nameof(NamedColumns)} is not initialized.");
+        set => field = value.ThrowIfNull();
+    }
 
     /// <summary>
     /// Gets or sets the <see cref="DatabaseWildcard"/> to enable wildcard replacement.
@@ -134,6 +134,9 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderF
     /// <param name="statement">The <see cref="SqlStatement"/>.</param>
     /// <returns>The <typeparamref name="TCommand"/>.</returns>
     public abstract TCommand Statement(SqlStatement statement);
+
+    /// <inheritdoc/>
+    public abstract DbParameter CreateParameter();
 
     /// <inheritdoc/>
     public Exception? HandleDbException(DbException dbex) => OnDbException(dbex);

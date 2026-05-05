@@ -22,6 +22,25 @@ public abstract partial class DatabaseCommand
         using var cmd = await CreateCommandAsync(cancellationToken).ConfigureAwait(false);
         parameters?.Invoke(cmd.Parameters);
         var result = await LogCommand(cmd).ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return result is null ? default! : result is DBNull ? default! : (T)result;
+
+        if (result is null)
+            return default!;
+
+        if (result is DateTime dt)
+        {
+            if (typeof(T) == typeof(DateTimeOffset))
+            {
+                var dto = new DateTimeOffset(dt);
+                return Internal.Cast<DateTimeOffset, T>(dto);
+            }
+
+            if (typeof(T) == typeof(DateTimeOffset?))
+            {
+                DateTimeOffset? dto = new DateTimeOffset(dt);
+                return Internal.Cast<DateTimeOffset?, T>(dto);
+            }
+        }
+
+        return (T)result;
     }, cancellationToken).ConfigureAwait(false);
 }

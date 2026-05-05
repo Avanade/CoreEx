@@ -1,10 +1,15 @@
 ﻿namespace CoreEx.Database.SqlServer.Extended;
 
 /// <summary>
-/// Extends the <see cref="DatabaseColumns"/> adding additional SQL Server specific.
+/// Extends the <see cref="DatabaseColumns"/> configuring/adding SQL Server specific columns.
 /// </summary>
 public record class SqlServerDatabaseColumns : DatabaseColumns
 {
+    /// <summary>
+    /// Gets or sets the default <see cref="SqlServerDatabaseColumns"/>.
+    /// </summary>
+    public static SqlServerDatabaseColumns Default { get; set; } = new SqlServerDatabaseColumns();
+
     /// <summary>
     /// Gets or sets the session context '<c>Username</c>' column name.
     /// </summary>

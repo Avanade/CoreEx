@@ -13,7 +13,7 @@ public static partial class SqlServerExtensions
     /// <returns>A <see cref="DbParameter"/>.</returns>
     public static SqlParameter AddParameter<T>(this DatabaseParameterCollection parameters, string name, T? value, SqlDbType? sqlDbType = null, ParameterDirection direction = ParameterDirection.Input)
     {
-        var p = (SqlParameter)(parameters.ThrowIfNull().Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
+        var p = (SqlParameter)parameters.ThrowIfNull().Database.CreateParameter();
         p.ParameterName = DatabaseParameterCollection.ParameterizeName(name);
         if (sqlDbType.HasValue)
             p.SqlDbType = sqlDbType.Value;

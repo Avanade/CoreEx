@@ -1,0 +1,12 @@
+test:
+- table:
+  - { table_id: 1 }
+  - { table_id: 2, text: Abc, number: 123, amount: 45.67, flag: true, date: 2024-06-20, time: 14:30:59, tenant_id: A, json: {"Key":"Value"} }
+  - { table_id: 3, text: Ace, number: 567, amount: 45.67, flag: true, date: 2024-03-13, time: 14:30:59, tenant_id: A, json: {"Key":"Value"} }
+  - { table_id: 4, text: Bdf, number: 901, amount: 45.67, flag: false, date: 2025-01-08, time: 14:30:59, tenant_id: B, is_deleted: 1, json: {"Key":"Value"} }
+  - { table_id: 5, text: Qrs, number: 765, amount: 45.67, flag: true, date: 2024-06-20, time: 14:30:59, tenant_id: B, json: {"Key":"Value"} }
+  - { table_id: 6, text: Jkl, number: 765, amount: 56.24, flag: true, date: 2024-06-20, time: 14:30:59, tenant_id: A, json: {"Key":"Value"} }
+  - { table_id: 7, text: Blq, number: 765, amount: 45.67, flag: false, date: 2024-06-20, time: 14:30:59, tenant_id: A, json: {"Key":"Value"} }
+  - { table_id: 8, text: Zyi, number: 765, amount: 99.23, flag: true, date: 2024-06-20, time: 14:30:59, tenant_id: A, json: {"Key":"Value"} }
+  - { table_id: 9, text: Abz, number: 765, amount: 45.67, flag: true, date: 2024-06-20, time: 14:30:59, tenant_id: A, json: {"Key":"Value"} }
+  - { table_id: 10, text: Qpo, number: 881, amount: 12.67, flag: true, date: 2024-06-20, time: 14:30:59, tenant_id: A, is_deleted: 1, json: {"Key":"Value"} }

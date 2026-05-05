@@ -41,7 +41,7 @@ public sealed class DatabaseParameterCollection(IDatabase database) : ICollectio
     /// <returns>The <see cref="DbParameter"/>.</returns>
     public DbParameter AddParameter(string name, object? value = null, DbType? dbType = null, ParameterDirection direction = ParameterDirection.Input)
     {
-        var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
+        var p = Database.CreateParameter();
         p.ParameterName = ParameterizeName(name);
         p.Value = ConvertToDbValue(value, Database);
         p.Direction = direction;
@@ -62,7 +62,7 @@ public sealed class DatabaseParameterCollection(IDatabase database) : ICollectio
     /// <returns>The <see cref="DbParameter"/>.</returns>
     public DbParameter AddParameter<T>(string name, T? value, DbType? dbType = null, ParameterDirection direction = ParameterDirection.Input)
     {
-        var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
+        var p = Database.CreateParameter();
         p.ParameterName = ParameterizeName(name);
         p.Value = ConvertToDbValue(value, Database);
         p.Direction = direction;
@@ -83,7 +83,7 @@ public sealed class DatabaseParameterCollection(IDatabase database) : ICollectio
     /// <returns>The <see cref="DbParameter"/>.</returns>
     public DbParameter AddParameter(string name, DbType dbType, int? size = null, ParameterDirection direction = ParameterDirection.Input)
     {
-        var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
+        var p = Database.CreateParameter();
         p.ParameterName = ParameterizeName(name);
         p.DbType = dbType;
         p.Direction = direction;
@@ -111,7 +111,7 @@ public sealed class DatabaseParameterCollection(IDatabase database) : ICollectio
     /// <remarks>Where the <paramref name="value"/> is <see langword="null"/> then <see cref="DBNull.Value"/> will be used.</remarks>
     public DbParameter AddJsonParameter<T>(string name, T? value)
     {
-        var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
+        var p = Database.CreateParameter();
         p.ParameterName = ParameterizeName(name);
         if (value is null)
             p.Value = DBNull.Value;
@@ -128,7 +128,7 @@ public sealed class DatabaseParameterCollection(IDatabase database) : ICollectio
     /// <returns>The <see cref="DbParameter"/>.</returns>
     public DbParameter AddReturnValueParameter()
     {
-        var p = Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null.");
+        var p = Database.CreateParameter();
         p.ParameterName = ParameterizeName(Database.NamedColumns.ReturnValueName);
         p.DbType = DbType.Int32;
         p.Direction = ParameterDirection.ReturnValue;

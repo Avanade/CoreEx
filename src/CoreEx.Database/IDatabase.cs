@@ -6,11 +6,6 @@
 public interface IDatabase
 {
     /// <summary>
-    /// Gets the <see cref="DbProviderFactory"/>.
-    /// </summary>
-    DbProviderFactory Provider { get; }
-
-    /// <summary>
     /// Gets the <see cref="ILogger"/>.
     /// </summary>
     ILogger? Logger { get; }
@@ -42,7 +37,7 @@ public interface IDatabase
     bool DateTimeOffsetTransform { get; set; }
 
     /// <summary>
-    /// Gets or sets the names of the pre-configured <see cref="Extended.DatabaseColumns"/>.
+    /// Gets or sets the names of the convention-based <see cref="Extended.DatabaseColumns"/>.
     /// </summary>
     DatabaseColumns NamedColumns { get; set; }
 
@@ -111,4 +106,16 @@ public interface IDatabase
     /// <returns>The <see cref="Exception"/> where handled (converted); otherwise, <see langword="null"/> indicating that the exception is unexpected and will continue to be thrown/bubbled as such.</returns>
     /// <remarks>Provides an opportunity to inspect and convert the exception before it continues to bubble.</remarks>
     Exception? HandleDbException(DbException dbex);
+
+    /// <summary>
+    /// Creates a new database parameter.
+    /// </summary>
+    /// <returns>The <see cref="DbParameter"/>.</returns>
+    DbParameter CreateParameter();
+
+    /// <summary>
+    /// Gets the next (monotonic counter) save-point name used for nested transactions.
+    /// </summary>
+    /// <returns>The save-point name.</returns>
+    string GetNextSavePointName();
 }
