@@ -417,3 +417,17 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# NTFS to Ext4 file system migration files
+*.Identifier
+
+# Azd and Azure CLI for .NET project files
+*.azdproj
+.azd/
+.azure/
+
+# Terraform files
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
