@@ -16,7 +16,19 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
 
     public Task<DataResult<Contracts.Order>> CreateAsync(Contracts.Order order) => _ef.Orders.CreateAsync(order);
 
-    public Task<DataResult<Contracts.Order>> UpdateAsync(Contracts.Order order) => _ef.Orders.UpdateAsync(order);
+    public async Task<DataResult<Contracts.Order>> UpdateAsync(Contracts.Order order)
+    {
+        // Load the existing order with its items so EF tracks the child collection before the mapped update.
+        var existing = await _ef.DbContext.Set<Persistence.Order>()
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == order.Id)
+            .ConfigureAwait(false);
+
+        if (existing is not null)
+            SynchronizeItems(order, existing);
+
+        return await _ef.Orders.UpdateAsync(order).ConfigureAwait(false);
+    }
 
     public Task<DataResult> DeleteAsync(string id) => _ef.Orders.DeleteAsync(id);
 
@@ -32,5 +44,48 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
             StatusCode = x.StatusCode,
             ChangeLog = new ChangeLog { CreatedBy = x.CreatedBy, CreatedOn = x.CreatedOn, UpdatedBy = x.UpdatedBy, UpdatedOn = x.UpdatedOn }
         }, paging).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Synchronizes the items collection between the contract order and the tracked persistence model.
+    /// </summary>
+    private void SynchronizeItems(Contracts.Order order, Persistence.Order model)
+    {
+        var newItems = order.Items ?? [];
+        var existingItems = model.Items?.ToList() ?? [];
+
+        // Remove items that are no longer present in the updated order.
+        var toRemove = existingItems.Where(e => !newItems.Any(n => n.Id == e.Id)).ToList();
+        foreach (var item in toRemove)
+            _ef.DbContext.Entry(item).State = EntityState.Deleted;
+
+        // Add new items or update existing items.
+        foreach (var newItem in newItems)
+        {
+            var existingItem = existingItems.FirstOrDefault(e => e.Id == newItem.Id);
+            if (existingItem is null)
+            {
+                // New item: assign an Id and add to the tracked collection.
+                var addedItem = new Persistence.OrderItem
+                {
+                    Id = Runtime.NewId(),
+                    OrderId = order.Id,
+                    ProductId = newItem.ProductId,
+                    Quantity = newItem.Quantity,
+                    UnitPrice = newItem.UnitPrice
+                };
+                model.Items ??= [];
+                model.Items.Add(addedItem);
+                _ef.DbContext.Entry(addedItem).State = EntityState.Added;
+            }
+            else
+            {
+                // Existing item: update its properties.
+                existingItem.ProductId = newItem.ProductId;
+                existingItem.Quantity = newItem.Quantity;
+                existingItem.UnitPrice = newItem.UnitPrice;
+                _ef.DbContext.Entry(existingItem).State = EntityState.Modified;
+            }
+        }
     }
 }

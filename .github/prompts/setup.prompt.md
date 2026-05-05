@@ -12,7 +12,7 @@ Goals:
 ## checklist
 
 - [ ] Start the docker-compose dependencies for Aspire if not already running (which is at root of repo):
-   - `podman compose -f docker-compose.yaml up -d`
+   - `podman compose -f docker-compose.yml up -d`
    - Wait for all containers to report healthy status by polling `podman ps` output.
    - If any container fails to start or becomes unhealthy, capture key log lines with `podman logs` and report failure with remediation suggestions.
 
@@ -24,7 +24,10 @@ Goals:
      - no fatal startup exception is present.
    - If readiness is not reached within a reasonable timeout, report failure with key log lines.
 
-- [ ] Direct the user to start the Contoso E2E runner in the next step by running `dotnet run` from `samples/tests/Contoso.E2E.Runner` directory in a new terminal.
+- [ ] Run the Contoso E2E runner to validate behavior:
+   - `dotnet run --project samples/tests/Contoso.E2E.Runner`
+   - Wait for all scenarios to complete.
+   - If any scenario fails, capture the failure output and report with remediation suggestions.
 
 Failure handling:
 - If any command fails, capture the key error lines and include a concise remediation suggestion.

@@ -5,7 +5,7 @@
 ### 1) Test Stack and Commands
 
 - Primary test framework: NUnit 4.3.2.
-- Assertion/mocking tools: FluentAssertions, UnitTestEx.NUnit, coverlet.collector, and sample-specific mock helpers such as MockHttpClientFactory described in samples/README.md.
+- Assertion/mocking tools: AwesomeAssertions, UnitTestEx.NUnit, coverlet.collector, and sample-specific mock helpers such as MockHttpClientFactory described in samples/README.md.
 - Commands:
 
 ```bash

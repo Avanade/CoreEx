@@ -117,7 +117,7 @@ After template materialization:
 
 ## Validation
 
-Run diagnostics check (`get_errors`) for all generated projects:
+Run `dotnet build` for all generated projects to check for compilation errors:
 
 - `{targetRoot}/{Solution}.{Domain}.Contracts`
 - `{targetRoot}/{Solution}.{Domain}.Application`
