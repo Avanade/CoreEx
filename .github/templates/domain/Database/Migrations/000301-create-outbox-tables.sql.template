@@ -15,6 +15,8 @@ CREATE TABLE [{Domain}].[Outbox] (
   [LeaseUntilUtc] DATETIME2 NULL
 );
 
+CREATE INDEX [IX_{Domain}_Outbox_Claim] ON [{Domain}].[Outbox] ([TenantId], [PartitionId], [Status], [OutboxId], [AvailableUtc], [LeaseUntilUtc]);
+
 CREATE TABLE [{Domain}].[OutboxLease] (
   [TenantId] NVARCHAR(255) NOT NULL,
   [PartitionId] INT NOT NULL,

@@ -15,7 +15,7 @@ public class OrderService(IUnitOfWork unitOfWork, IOrderRepository repository) :
         await OrderValidator.Default.ValidateAndThrowAsync(order).ConfigureAwait(false);
 
         order.Id = Runtime.NewId();
-        order.StatusCode ??= "PENDING";
+        order.StatusCode ??= "P";
 
         return await _unitOfWork.ExecuteAsync(async () =>
         {
