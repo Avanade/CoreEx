@@ -43,9 +43,7 @@ public class Program
         builder.Services.AddOpenTelemetry()
             .WithTracing(tracing =>
             {
-                tracing.AddSource(nameof(OrderWorkflowOrchestration));
-                tracing.AddSource(nameof(ValidateOrderActivity));
-                tracing.AddSource(nameof(SubmitOrderActivity));
+                // The DurableTask SDK registers its own ActivitySource internally for orchestration and activity tracing.
                 tracing.AddOtlpExporter();
             });
 

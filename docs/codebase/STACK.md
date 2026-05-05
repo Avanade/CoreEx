@@ -31,7 +31,7 @@
 | Tool | Purpose | Evidence |
 |------|---------|----------|
 | NUnit | Test framework | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
-| FluentAssertions | Assertions | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
+| AwesomeAssertions | Assertions | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | coverlet.collector | Test coverage collection | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | UnitTestEx / UnitTestEx.NUnit | API and integration-style test helpers | Directory.Packages.props; samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj |
 | CoreEx.Gen | Roslyn analyzer/source generator packaged as an analyzer | gen/CoreEx.Gen/CoreEx.Gen.csproj; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
@@ -43,7 +43,7 @@
 dotnet build CoreEx.sln
 dotnet test CoreEx.sln
 dotnet run --project samples/aspire/Contoso.Aspire
-docker compose up -d db-sql-server redis-cache servicebus-emulator aspire-dashboard
+docker compose up -d db-sql-server redis-cache servicebus-emulator aspire-dashboard dts-emulator
 ```
 
 ### 5) Environment and Config

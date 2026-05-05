@@ -1,7 +1,7 @@
-﻿namespace CoreEx.Data.Abstractions;
+﻿namespace CoreEx.Entities.Abstractions;
 
 /// <summary>
-/// Represents the capability support..
+/// Represents the capability support.
 /// </summary>
 public enum CapabilitySupport
 {

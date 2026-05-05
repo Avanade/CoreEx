@@ -90,7 +90,7 @@ The difference is slight at the orchestration-code level, but important at the a
 
 ### Local emulator benefit
 
-One of the practical advantages of DTS is that the backend can be run locally as infrastructure, without switching the application into a Functions-hosting model. This repository already includes the emulator in [docker-compose.yml](c:/Users/israel.slobodkin/repos/CoreEx/docker-compose.yml#L50):
+One of the practical advantages of DTS is that the backend can be run locally as infrastructure, without switching the application into a Functions-hosting model. This repository already includes the emulator in [docker-compose.yml](../../docker-compose.yml):
 
 ```yaml
 dts-emulator:
@@ -542,7 +542,7 @@ The client registration falls back from `ConnectionStrings:DurableTaskScheduler`
 
 ## Running Locally
 
-This repository includes the DTS emulator in [docker-compose.yml](c:/Users/israel.slobodkin/repos/CoreEx/docker-compose.yml#L50). Start it with container infrastructure:
+This repository includes the DTS emulator in [docker-compose.yml](../../docker-compose.yml). Start it with container infrastructure:
 
 ```bash
 docker compose up -d dts-emulator
