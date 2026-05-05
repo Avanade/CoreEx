@@ -8,4 +8,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' != ''">
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(AZD_DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <TargetFramework Condition="'$(AzdPublishTargetFramework)' != ''">$(AzdPublishTargetFramework)</TargetFramework>
+  </PropertyGroup>
 </Project>
