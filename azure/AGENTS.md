@@ -1,3 +1,9 @@
+---
+description: "Operational guidance for AI agents deploying Contoso sample services to Azure via azd/Bicep or Terraform"
+scope: "azure/"
+tags: ["azure", "deployment", "iac", "bicep", "terraform"]
+---
+
 # AGENTS.md — Azure Deployment
 
 Operational guide for AI agents working in the `azure/` folder of this repository. This deploys the Contoso sample services (under `samples/src/`) to Azure using either **Azure Developer CLI (azd) + Bicep** or **Terraform**.

@@ -1,5 +1,7 @@
 ---
 applyTo: "**/Infrastructure/**/*.cs"
+description: "Repository and infrastructure conventions: EFCore, ADO.NET patterns, ScopedService registration, and data access layers"
+tags: ["repositories", "infrastructure", "data-access", "efcore", "ado-net"]
 ---
 
 # Repository & Infrastructure Conventions

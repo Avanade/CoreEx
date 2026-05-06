@@ -1,5 +1,7 @@
 ---
 applyTo: "**/*.Test*/**/*.cs"
+description: "Test conventions: test project types (Api/Unit/Subscribe/Relay), base classes, one-time setup patterns, and assertion helpers"
+tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 ---
 
 # Test Conventions

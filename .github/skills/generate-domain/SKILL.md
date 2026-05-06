@@ -2,6 +2,7 @@
 name: generate-domain
 description: "Generate a new CoreEx domain or microservice. Use when: scaffolding a new domain, creating a new microservice, adding a new bounded context, generating sample domain code like shopping or product, creating contracts/application/infrastructure/API/database layers from scratch following CoreEx conventions."
 argument-hint: "Optional: solution prefix, domain name, and root entity — e.g. 'Contoso Orders Order'"
+tags: ["scaffolding", "microservice", "bounded-context", "code-generation", "layering"]
 ---
 
 # Generate Domain

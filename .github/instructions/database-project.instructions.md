@@ -1,5 +1,7 @@
 ---
 applyTo: "**/*.Database/**"
+description: "Database project structure: migrations, DbEx YAML, reference data seeding, stored procedures, and outbox support"
+tags: ["database", "migrations", "dbex", "reference-data", "outbox"]
 ---
 
 # Database Project Conventions

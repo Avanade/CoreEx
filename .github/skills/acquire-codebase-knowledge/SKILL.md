@@ -13,6 +13,7 @@ metadata:
     - Security & compliance config detection
     - Performance testing markers
 argument-hint: 'Optional: specific area to focus on, e.g. "architecture only", "testing and concerns"'
+tags: ["codebase", "documentation", "onboarding", "discovery", "architecture"]
 ---
 
 # Acquire Codebase Knowledge

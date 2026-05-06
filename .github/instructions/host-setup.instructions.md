@@ -1,5 +1,7 @@
 ---
 applyTo: "**/Program.cs"
+description: "Host setup conventions for Program.cs: API host, Subscribe host, middleware, service registration, and distributed caching"
+tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "caching"]
 ---
 
 # Host Setup Conventions (Program.cs)

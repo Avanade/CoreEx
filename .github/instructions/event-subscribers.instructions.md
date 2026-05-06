@@ -1,5 +1,7 @@
 ---
 applyTo: "**/Subscribe/**/*.cs"
+description: "Event subscriber conventions: SubscribedBase inheritance, Service Bus integration, error handling, and scoped service registration"
+tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration"]
 ---
 
 # Event Subscriber Conventions

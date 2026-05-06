@@ -2,6 +2,7 @@
 name: add-capability
 description: "Retrofit an existing CoreEx domain or service with additional capabilities. Use when: adding Outbox.Relay, Subscribe, Azure Service Bus integration, subscriber scaffolding, or aligning messaging and integration wiring for an existing domain."
 argument-hint: "Optional: solution, domain, and requested capability — e.g. 'Contoso Products add relay and subscribers'"
+tags: ["retrofit", "messaging", "service-bus", "outbox-relay", "subscribers", "integration"]
 ---
 
 # Add Capability

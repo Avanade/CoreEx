@@ -1,5 +1,7 @@
 ---
 applyTo: "**/*Validator*.cs"
+description: "Validator conventions: fluent validation API, rule definition, singleton pattern, and CoreEx validation framework usage"
+tags: ["validators", "validation", "fluent-api", "rules", "error-handling"]
 ---
 
 # Validator Conventions

@@ -1,5 +1,7 @@
 ---
 applyTo: "**/Contracts/**/*.cs"
+description: "Contract (DTO) conventions: source generation, marker attributes, reference data, ETag, and ChangeLog support"
+tags: ["contracts", "dto", "source-generation", "reference-data", "etag"]
 ---
 
 # Contract (DTO) Conventions

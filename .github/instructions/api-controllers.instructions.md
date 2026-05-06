@@ -1,5 +1,7 @@
 ---
 applyTo: "**/Controllers/**/*.cs"
+description: "API controller conventions for CoreEx: inheritance, routing, dependency injection, CQRS separation, and WebApi integration"
+tags: ["controllers", "api", "routing", "cqrs", "dependency-injection"]
 ---
 
 # API Controller Conventions

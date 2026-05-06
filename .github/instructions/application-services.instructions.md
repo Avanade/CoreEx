@@ -1,5 +1,7 @@
 ---
 applyTo: "**/Application/**/*.cs"
+description: "Application service conventions: ScopedService registration, dependency injection, validation, unit of work patterns, and business logic structure"
+tags: ["services", "application-layer", "dependency-injection", "validation", "unit-of-work"]
 ---
 
 # Application Service Conventions
