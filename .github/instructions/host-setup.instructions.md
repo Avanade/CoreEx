@@ -52,7 +52,6 @@ There are three host types in a CoreEx solution. Each follows the same skeleton 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddHostSettings();
-
 builder.Services
     .AddExecutionContext()
     .AddMvcWebApi()
@@ -62,15 +61,12 @@ builder.Services
 
 builder.Services.PostConfigureAllHealthChecks();
 builder.Services.AddControllers();
-
-builder.Services.AddOpenApiDocument(s =>
-{
+builder.Services.AddOpenApiDocument(s => {
     s.Title = builder.Environment.ApplicationName;
     s.AddCoreExConfiguration();
 });
 
 var app = builder.Build();
-
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthorization();
@@ -79,7 +75,6 @@ app.MapControllers();
 app.UseOpenApi();
 app.UseSwaggerUi();
 app.MapHealthChecks();
-
 app.Run();
 ```
 
@@ -87,165 +82,42 @@ app.Run();
 
 ## API Host
 
-Add reference data, SQL Server, FusionCache, and idempotency support:
+Add: reference data, SQL Server, FusionCache, outbox publisher, idempotency.
 
-```csharp
-builder.Services
-    .AddExecutionContext()
-    .AddReferenceDataOrchestrator<ReferenceDataService>()
-    .AddMvcWebApi()
-    .AddHttpWebApi();
-
-builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
-
-// FusionCache (L1 + L2 + Redis backplane)
-builder.Services.AddMemoryCache();
-builder.AddRedisDistributedCache("redis");
-builder.Services.AddFusionCache()
-    .WithRegisteredMemoryCache()
-    .WithRegisteredDistributedCache()
-    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions
-    {
-        Configuration = sp.GetRequiredService<IOptions<ConfigurationOptions>>().Value.ToString()
-    }))
-    .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
-builder.Services.AddFusionHybridCache()
-    .AddDefaultCacheKeyProvider()
-    .AddHybridCacheIdempotencyProvider();
-
-// SQL Server + EF + Outbox
-builder.AddSqlServerClient("SqlServer");
-builder.Services
-    .AddSqlServerDatabase()
-    .AddSqlServerUnitOfWork()
-    .AddEventFormatter()
-    .AddSqlServerOutboxPublisher<DomainOutboxPublisher>()
-    .AddDbContext<DomainDbContext>()
-    .AddEfDb<DomainEfDb>();
-
-// Telemetry
-builder.WithCoreExTelemetry()
-    .WithCoreExSqlServerTelemetry()
-    .UseOtlpExporter();
-
-// Middleware additions
-app.UseIdempotencyKey(); // add after UseExecutionContext
-```
+Key registrations:
+- `.AddReferenceDataOrchestrator<T>()`
+- `.AddDynamicServicesUsing<...>()`
+- `.AddFusionCache()` + `.WithRegisteredDistributedCache()` + `.WithBackplane(...)`
+- `.AddSqlServerDatabase()` + `.AddSqlServerUnitOfWork()` + `.AddSqlServerOutboxPublisher<T>()`
+- `.AddEventFormatter()`
+- Middleware: `.UseIdempotencyKey()` after `.UseExecutionContext()`
 
 ---
 
 ## Subscribe Host
 
-Builds on the API host skeleton and adds:
-- `AddHostedServiceManager()` for managed background services.
-- Dynamic service discovery for subscriber classes.
-- Service Bus receiver configuration.
-- `app.MapHostedServices()` in the middleware pipeline.
+All of API host **plus**:
 
-```csharp
-builder.Services
-    .AddExecutionContext()
-    .AddReferenceDataOrchestrator<ReferenceDataService>()
-    .AddMvcWebApi()
-    .AddHttpWebApi()
-    .AddHostedServiceManager();
+Key registrations:
+- `.AddHostedServiceManager()`
+- `.AddSubscribedManager((_, c) => c.AddSubscribersUsing<T>())`
+- `.AzureServiceBusReceiving()` → `.WithSessionReceiver(...)` → `.WithSubscribedSubscriber()` → `.WithHostedService()` → `.Build()`
 
-builder.Services.AddDynamicServicesUsing<MySubscriber, ReferenceDataService, ReferenceDataRepository>();
-
-// (FusionCache + SQL Server same as API host)
-
-builder.AddAzureServiceBusClient("ServiceBus");
-
-builder.Services.AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
-
-builder.Services.AzureServiceBusReceiving()
-    .WithSessionReceiver(_ =>
-    {
-        var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
-        o.SessionProcessorOptions.MaxConcurrentSessions = 4;
-        return o;
-    })
-    .WithSubscribedSubscriber()
-    .WithHostedService()
-    .Build();
-
-// Telemetry
-builder.WithCoreExTelemetry()
-    .WithCoreExServiceBusTelemetry()
-    .WithCoreExSqlServerTelemetry()
-    .UseOtlpExporter();
-
-// Additional middleware
-app.MapHostedServices(); // exposes hosted service health
-```
+Middleware addition:
+- `app.MapHostedServices()` (after `.MapHealthChecks()`)
 
 ---
 
 ## Outbox Relay Host
 
-Minimal — no reference data, no FusionCache, no idempotency. Only SQL Server, Service Bus, and the relay background service:
+Minimal: SQL Server, Service Bus publisher, relay background service only.
 
-```csharp
-builder.Services
-    .AddExecutionContext()
-    .AddMvcWebApi()
-    .AddHttpWebApi()
-    .AddHostedServiceManager();
+Key registrations:
+- `.AddHostedServiceManager()`
+- `.AddSqlServerOutboxRelay((_, c) => { ... })`
+- `.AddSqlServerOutboxRelayHostedService()`
+- `.AddAzureServiceBusPublisher((_, c) => { c.SessionIdStrategy = ...; })`
 
-builder.AddSqlServerClient("SqlServer");
-builder.Services
-    .AddSqlServerDatabase()
-    .AddSqlServerUnitOfWork()
-    .AddSqlServerOutboxRelay((_, c) =>
-    {
-        c.ClaimBatchStatement  = SqlStatement.StoredProcedure("[Schema].[spOutboxBatchClaim]");
-        c.CompleteBatchStatement = SqlStatement.StoredProcedure("[Schema].[spOutboxBatchComplete]");
-        c.CancelBatchStatement = SqlStatement.StoredProcedure("[Schema].[spOutboxBatchCancel]");
-    });
+No: reference data, FusionCache, idempotency, controllers, Swagger.
 
-builder.AddSqlServerOutboxRelayHostedService();
-
-builder.AddAzureServiceBusClient("ServiceBus");
-builder.Services.AddAzureServiceBusPublisher((_, c) =>
-{
-    c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
-});
-
-builder.WithCoreExTelemetry()
-    .WithCoreExSqlServerTelemetry()
-    .WithCoreExServiceBusTelemetry()
-    .UseOtlpExporter();
-
-// Middleware — no controller mapping, no Swagger, no idempotency
-app.UseCoreExExceptionHandler();
-app.UseHttpsRedirection();
-app.UseExecutionContext();
-app.MapHealthChecks();
-app.MapHostedServices();
-```
-
----
-
-## Naming Conventions for Connection Strings
-
-Use these standard keys in `appsettings.json` / connection string configuration:
-
-| Key | Points to |
-|---|---|
-| `"SqlServer"` | SQL Server instance |
-| `"redis"` | Redis instance |
-| `"ServiceBus"` | Azure Service Bus namespace |
-
-These keys are passed to `AddSqlServerClient("SqlServer")`, `AddRedisDistributedCache("redis")`, and `AddAzureServiceBusClient("ServiceBus")` respectively.
-
----
-
-## Dynamic Service Discovery
-
-Use `AddDynamicServicesUsing<T1, T2, ...>()` to discover and register all `[ScopedService]`-attributed classes from the same assemblies as the type parameters. Pass one representative type from each assembly that contains services:
-
-```csharp
-builder.Services.AddDynamicServicesUsing<MySubscriber, ReferenceDataService, ReferenceDataRepository>();
-```
-
-This replaces manual `services.AddScoped<IFoo, Foo>()` calls.
+Middleware: minimal (no `.MapControllers()`, no `.UseOpenApi()`).

@@ -115,53 +115,11 @@ The following prompts and skills are available in this repository. Type `/` in c
 | `/init` | Prompt | Initialize a new CoreEx solution or workspace. |
 | `/setup` | Prompt | Configure an existing CoreEx solution with standard tooling and settings. |
 
-# Copilot meta-instructions for instruction files
+## Guidance for Authoring Instructions and Skills
 
-When creating or updating any Copilot instruction Markdown file (`*.instructions.md`, `copilot-instructions.md`, `AGENTS.md`, or prompt files), follow these rules:
+When creating or maintaining Copilot instruction files and skills:
 
-## Purpose
-These files define durable AI guidance for this repository. They must be predictable, easy to review, and easy to maintain.
+- **Instruction files** (`.instructions.md`) — see [INSTRUCTION_AUTHORING.md](.github/INSTRUCTION_AUTHORING.md) for standards on YAML frontmatter, section order, and content rules.
+- **Skill files** (`SKILL.md`) — see [SKILL_AUTHORING.md](.github/SKILL_AUTHORING.md) for the directory structure pattern (`references/`, `assets/`), lean main file rules (<300 lines), and cross-referencing guidelines.
 
-## General authoring rules
-- Prefer precise, testable directives over vague guidance.
-- Avoid overlapping or conflicting instructions across files.
-- Keep content reusable and not tied to one temporary task.
-- Use imperative language ("Use", "Prefer", "Do not", "Validate").
-- If a rule is scoped to a subset of files, put it in a path-specific `.instructions.md` file rather than this global file.
-- Do not restate general rules in multiple files unless required for clarity.
-- When unsure, produce fewer, clearer rules.
-
-## Required format for any `.instructions.md` file
-- Must begin with YAML frontmatter.
-- Must include:
-  - `description`
-  - `applyTo`
-- `description` must be a short, concrete summary of what the file governs.
-- `applyTo` must use explicit glob patterns with the narrowest safe scope.
-- After frontmatter, structure content using this section order:
-  1. `# Purpose`
-  2. `## Scope`
-  3. `## Required rules`
-  4. `## Preferred patterns`
-  5. `## Validation`
-  6. `## Examples` (optional)
-
-## Frontmatter rules
-- `description` must be one sentence.
-- `applyTo` must not be `**` unless the file is intentionally repository-wide in behavior.
-- Prefer narrow globs such as:
-  - `src/**/*.cs`
-  - `tests/**/*.cs`
-  - `**/*.md`
-- If multiple globs are needed, keep them explicit and readable.
-
-## Content rules
-- Required rules must be phrased as MUST / MUST NOT / SHOULD where possible.
-- Validation section must include concrete checks (build, test, lint, docs validation, etc.) when applicable.
-- Examples must show "preferred" and "avoid" patterns when useful.
-- Do not include secrets, tokens, or environment-specific sensitive values.
-
-## Conflict resolution
-- Repository-wide instructions define defaults.
-- Path-specific instruction files define narrower, stronger rules for matching files.
-- If a new file would conflict with an existing instruction file, revise the narrow file instead of creating duplicate policy.
+Both documents define durable patterns for creating guidance that is discoverable, maintainable, and context-efficient.
