@@ -1,8 +1,6 @@
 # <Short, action-oriented description>
 
-This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
-
-This repository does not currently contain a checked-in `PLANS.md` file. If one is added later, this document must be updated to reference it and remain consistent with it.
+This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds. Updates to this plan should be reflected in `.agent/PLANS.md` as implementation progresses.
 
 ## Purpose / Big Picture
 
@@ -49,11 +47,10 @@ Describe the sequence of edits and additions in prose. Keep it concrete and mini
 
 ## Concrete Steps
 
-State the exact commands to run, the working directory for each command, and the short expected result. Use indented command examples instead of nested code fences. Update this section as work proceeds so a new contributor can continue from the current state.
+State the exact commands to run and the short expected result. Use repository-relative paths (from repo root, e.g., `samples/src/...`). Never use absolute file paths since developers may have the repo cloned in different locations. Use indented command examples instead of nested code fences. Update this section as work proceeds so a new contributor can continue from the current state.
 
 Example format:
 
-   Working directory: `c:\dev\CoreEx`
    Command: `dotnet test tests/Example.Project.Tests`
    Expected result: `Passed!` appears and the new test `Example_should_behave_as_expected` is listed.
 

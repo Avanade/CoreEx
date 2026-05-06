@@ -56,7 +56,7 @@ Required characteristics:
 - State the intended user-visible outcome.
 - Explain the current repo structure relevant to the work.
 - Break work into ordered stages or milestones with concrete deliverables and observable proof.
-- Include likely file and project touchpoints.
+- Include likely file and project touchpoints using repository-relative paths from repo root (e.g., `samples/src/...`). Never use absolute file paths since developers may have the repo cloned in different locations.
 - Include exact or near-exact commands for build, test, and validation.
 - Capture assumptions, open questions, and decision points explicitly.
 - Define non-obvious terms in plain language where they are first used.

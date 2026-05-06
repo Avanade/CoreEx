@@ -111,7 +111,7 @@ The following prompts and skills are available in this repository. Type `/` in c
 |---------|------|-------------|
 | `/generate-domain` | Skill | Guided scaffolding of a new CoreEx domain across all 5 layers. Use when your entity has custom fields, business rules, or you want the agent to reason about conventions, validation, and event naming. The agent will ask for inputs and generate code tailored to your domain model. |
 | `/add-capability` | Skill | Retrofit an existing CoreEx domain with additional capabilities. Use when a domain already exists and you want to add messaging/integration features such as `Outbox.Relay`, `Subscribe`, Azure Service Bus wiring, or initial subscriber scaffolding without regenerating the domain. |
-| `/coreex.plan` | Prompt | Create a codex-style ExecPlan in `PLAN.md` before implementation starts. Use when you want clarifying questions, a self-contained plan, explicit validation, and a user approval checkpoint before coding begins. |
+| `/coreex.plan` | Prompt | Create a codex-style ExecPlan in `.agent/execplans/` before implementation starts. Use when you want clarifying questions, a self-contained plan, explicit validation, and a user approval checkpoint before coding begins. Plans are indexed in `.agent/PLANS.md`. |
 | `/scaffold-domain-from-templates` | Prompt | Fast, deterministic domain scaffolding by cloning and materializing the canonical templates in `.github\templates\domain\` with placeholder substitution. Use when your entity fits the standard template shape and you want exact output with no creative generation. |
 | `/init` | Prompt | Initialize a new CoreEx solution or workspace. |
 | `/setup` | Prompt | Configure an existing CoreEx solution with standard tooling and settings. |
