@@ -1,14 +1,21 @@
 # Generate Domain Detailed Workflow
 
-## Phase 1: Load Context
+## Phase 0: Validate Intent and Create Plan
 
-Before generating any files:
+Before generating any code, establish a durable plan that captures decisions and serves as the baseline for progress tracking.
+
+### 0.1 Load Context
+
+Read these files to ground the plan in real repository conventions:
 
 1. Read all `.github/instructions/*.instructions.md` — especially api-controllers, application-services, contracts, database-project, repositories, tests, validators, host-setup
 2. Load all templates in `/.github/templates/domain/**`
-3. Load `DomainScaffold.checklist.md` to track completion gates
+3. Review sample domains: `samples/src/Contoso.Products/`, `samples/src/Contoso.Shopping/`
+4. Inspect `.agent/execplans/` to understand plan structure
 
-## Phase 2: Gather and Confirm Inputs
+### 0.2 Gather and Confirm Inputs
+
+Ask the user for any missing values. Confirm **all** before creating the plan:
 
 Ask user for any values not supplied. Confirm all before creating files.
 
@@ -22,7 +29,45 @@ Ask user for any values not supplied. Confirm all before creating files.
 | Operations | Create / Read / Update / Patch / Delete |
 | Event subjects | Confirm: `{solution}.{domain}.{entity}.{action}.v1` |
 
-## Phase 3: Generate Contracts Layer
+### 0.3 Create Domain-Generation Plan
+
+Scaffold `.agent/execplans/generate-{solution}-{domain}.md` using the template at `/.github/skills/generate-domain/assets/templates/DOMAIN.PLAN.template.md`.
+
+Fill these sections:
+- **Purpose / Big Picture**: What domain is being created? What users/operations will it support?
+- **Context and Orientation**: Namespace roots, owning projects, entry points.
+- **Plan of Work**: Prose walkthrough of Phases 1–9.
+- **Concrete Steps**: Build/test commands for validation.
+- **Validation and Acceptance**: How to verify each generated layer works.
+- **Interfaces and Dependencies**: Expected packages, EF mappings, service interfaces.
+- **Progress**: Checklist section (leave empty until execution).
+
+### 0.4 Update PLANS Index
+
+Add an entry to `.agent/PLANS.md`:
+- Title: "Generate {Solution}.{Domain} domain"
+- Purpose: Brief description of domain purpose
+- Status: `Pending approval`
+- Key inputs: List confirmed values
+- Created: Today's date
+
+### 0.5 Approval Checkpoint
+
+Present the plan to the user. **Do not proceed to Phase 1 until user approves.**
+
+Once approved, update `.agent/PLANS.md` status to `In progress` and begin Phase 1.
+
+---
+
+## Phase 1: Load Context
+
+Before generating any files:
+
+1. Re-read all `.github/instructions/*.instructions.md` — especially api-controllers, application-services, contracts, database-project, repositories, tests, validators, host-setup
+2. Load all templates in `/.github/templates/domain/**`
+3. Load `DomainScaffold.checklist.md` to track completion gates
+
+## Phase 2: Generate Contracts Layer
 
 `{Solution}.{Domain}.Contracts`
 
@@ -34,7 +79,7 @@ In order:
 5. Reference data types — inherit `ReferenceData<TSelf>`, use `[ReferenceData]`, pair with `{Type}Collection`
 6. `{Solution}.{Domain}.Contracts.csproj`
 
-## Phase 4: Generate Application Layer
+## Phase 3: Generate Application Layer
 
 `{Solution}.{Domain}.Application`
 
@@ -47,7 +92,7 @@ In order:
 6. `{Entity}ReadService.cs` (if CQRS) — read-only, no UoW or events
 7. `{Solution}.{Domain}.Application.csproj`
 
-## Phase 5: Generate Infrastructure Layer
+## Phase 4: Generate Infrastructure Layer
 
 `{Solution}.{Domain}.Infrastructure`
 
@@ -58,7 +103,7 @@ In order:
 4. `{Domain}OutboxPublisher.cs`
 5. `{Solution}.{Domain}.Infrastructure.csproj`
 
-## Phase 6: Generate API Host
+## Phase 5: Generate API Host
 
 `{Solution}.{Domain}.Api`
 
@@ -70,7 +115,7 @@ In order:
 5. `GlobalUsing.cs`
 6. `{Solution}.{Domain}.Api.csproj`
 
-## Phase 7: Generate Database
+## Phase 6: Generate Database
 
 `{Solution}.{Domain}.Database`
 
@@ -82,7 +127,7 @@ In order:
 5. `Data/ref-data.yaml` — seed data
 6. `{Solution}.{Domain}.Database.csproj`
 
-## Phase 8: Generate Test Projects
+## Phase 7: Generate Test Projects
 
 `{Solution}.{Domain}.Test.*`
 
@@ -93,7 +138,7 @@ In order:
 4. Add both to solution under `{Domain}` solution folder
 5. Group all domain projects together under `{Domain}` folder
 
-## Quality Gates
+## Phase 8: Quality Gates
 
 Check before finishing:
 - Every injected dependency guarded with `.ThrowIfNull()`
@@ -117,3 +162,34 @@ Check before finishing:
 | Read service | `{Entity}ReadService` / `I{Entity}ReadService` |
 | Repository | `{Entity}Repository` / `I{Entity}Repository` |
 | Ref-data collection | `{Type}Collection` |
+
+---
+
+## Phase 9: Validate and Document
+
+### 9.1 Post-Execution Validation
+
+Run final verification:
+
+   Command: `dotnet build CoreEx.sln`
+   Expected result: Clean build with no warnings.
+
+   Command: `dotnet test tests/{Solution}.{Domain}.Test.Unit`
+   Expected result: All tests pass.
+
+   Command: `dotnet test tests/{Solution}.{Domain}.Test.Api`
+   Expected result: All tests pass.
+
+### 9.2 Update Plan
+
+Update `.agent/execplans/generate-{solution}-{domain}.md`:
+- Move each completed work item from `Progress` checklist with timestamp
+- Record any surprises, blockers, or deviations in `Surprises & Discoveries`
+- Update `Outcomes & Retrospective` with proof of success
+
+### 9.3 Mark Complete
+
+Update `.agent/PLANS.md`:
+- Change status to `Completed`
+- Add completion date
+- Add brief summary of what was generated

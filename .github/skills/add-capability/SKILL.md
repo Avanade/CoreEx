@@ -2,12 +2,12 @@
 name: add-capability
 description: "Retrofit an existing CoreEx domain or service with additional capabilities. Use when: adding Outbox.Relay, Subscribe, Azure Service Bus integration, subscriber scaffolding, or aligning messaging and integration wiring for an existing domain."
 argument-hint: "Optional: solution, domain, and requested capability — e.g. 'Contoso Products add relay and subscribers'"
-tags: ["retrofit", "messaging", "service-bus", "outbox-relay", "subscribers", "integration"]
+tags: ["retrofit", "messaging", "service-bus", "outbox-relay", "subscribers", "integration", "exec-plan"]
 ---
 
 # Add Capability
 
-Retrofitting an existing domain with messaging and integration support. Choose only the missing pieces.
+Retrofitting an existing domain with messaging and integration support. Work begins with an approval checkpoint after a capability-addition plan is created.
 
 ## When to Use
 
@@ -30,21 +30,23 @@ Retrofitting an existing domain with messaging and integration support. Choose o
 
 If different backends are needed, ask before making changes.
 
-## Workflow
+## Workflow Overview
 
-1. **Load context**: Read host-setup, event-subscribers, application-services, database-project instructions + sample hosts.
-2. **Inspect domain state**: Detect existing hosts, database support, messaging packages, event subjects.
-3. **Clarify**: Ask only what cannot be inferred (which domain, which capability, topics/payloads if needed).
-4. **Choose mode**: A (relay), B (subscribe), C (both), or D (subscribers only).
-5. **Apply changes**: Targeted edits only — reuse patterns, don't regenerate.
-6. **Validate**: Run checklist, confirm clean build.
+This skill integrates an exec-plan checkpoint before applying changes:
+
+1. **Step 0: Create Plan** — Inspect domain state, clarify intent, and scaffold a capability-addition plan in `.agent/execplans/`.
+2. **Approval Checkpoint** — Present the plan to the user for review and approval.
+3. **Steps 1–6: Execute** — Apply targeted changes following the approved plan.
+4. **Step 7: Validate & Document** — Run validation checklist, update the plan with results.
 
 For detailed step-by-step workflow, see [`references/workflow.md`](references/workflow.md).
 
 ## Key References
 
+- Exec-plan template: `/.github/skills/coreex-exec-plan/assets/templates/PLAN.template.md`
 - [Host Setup Conventions](/.github/instructions/host-setup.instructions.md)
 - [Event Subscriber Conventions](/.github/instructions/event-subscribers.instructions.md)
 - [Application Service Conventions](/.github/instructions/application-services.instructions.md)
 - [Database Project Conventions](/.github/instructions/database-project.instructions.md)
 - Sample hosts: `samples/src/Contoso.Products.Api/Program.cs`, `samples/src/Contoso.Products.Subscribe/Program.cs`, `samples/src/Contoso.Products.Outbox.Relay/Program.cs`
+- Active plans index: `.agent/PLANS.md`

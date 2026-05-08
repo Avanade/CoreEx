@@ -1,7 +1,7 @@
 ---
 name: CoreEx Expert
 description: "Use when you need to explain, understand, or decide how CoreEx works. Triggers: explain CoreEx, how does CoreEx, which pattern, which capability, which shape, plan a feature, review a design, compare samples, architecture guidance, coding patterns, layering, host setup, validation, repository conventions, eventing, outbox relay, subscriber design, sample-aligned decisions."
-tools: [read, search]
+tools: [read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages]
 user-invocable: true
 argument-hint: Ask for CoreEx pattern guidance, architecture decisions, or sample-aligned implementation advice.
 ---
