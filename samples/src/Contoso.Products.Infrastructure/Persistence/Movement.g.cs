@@ -9,38 +9,38 @@
 namespace Contoso.Products.Infrastructure.Persistence;
 
 /// <summary>
-/// Persistence model representing the '<c>[Products].[Movement]</c>' database table.
+/// Persistence model representing the '<c>"products"."movement"</c>' database table.
 /// </summary>
-/// <remarks>The <see cref="Id"/> primary key column is '<c>MovementId</c>' (type '<c>NVARCHAR(50)</c>').</remarks>
+/// <remarks>The <see cref="Id"/> primary key column is '<c>movement_id</c>' (type '<c>CHARACTER VARYING(50)</c>').</remarks>
 public partial class Movement : ModelBase<string>
 {
     /// <summary>
-    /// Gets or sets the value of the '<c>ReferenceId</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>reference_id</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string ReferenceId { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>MovementKindCode</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>movement_kind_code</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string MovementKindCode { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>MovementStatusCode</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>movement_status_code</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string MovementStatusCode { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>ProductId</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>product_id</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string ProductId { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>Quantity</c>' column (type '<c>DECIMAL(18, 2)</c>').
+    /// Gets or sets the value of the '<c>quantity</c>' column (type '<c>NUMERIC(18, 2)</c>').
     /// </summary>
     public decimal Quantity { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the '<c>UnitOfMeasureCode</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>unit_of_measure_code</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string UnitOfMeasureCode { get; set; } = default!;
 }

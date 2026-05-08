@@ -11,12 +11,13 @@ public class PostgresOutboxRelay(PostgresDatabase database, IEventPublisher even
 {
     /// <summary><inheritdoc/></summary>
     /// <param name="schema"><inheritdoc/></param>
-    /// <remarks>The <paramref name="schema"/> (converted to <c>snake_case</c>) is used to qualify the stored procedure names. The by-convention names used are as follows:
+    /// <remarks>The <paramref name="schema"/> (converted to <c>snake_case</c>) is used to qualify the database function names. The by-convention names used are as follows:
     /// <list type="bullet">
-    /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.ClaimBatchStatement"/> = '<c>"schema"."sp_outbox_batch_claim"</c>'</description></item>
-    /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.CompleteBatchStatement"/> = '<c>"schema"."sp_outbox_batch_complete"</c>'</description></item>
-    /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.CancelBatchStatement"/> = '<c>"schema"."sp_outbox_batch_cancel"</c>'</description></item>
-    /// </list></remarks>
+    /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.ClaimBatchStatement"/> = '<c>SELECT * FROM "schema"."fn_outbox_batch_claim"(...</c>'</description></item>
+    /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.CompleteBatchStatement"/> = '<c>SELECT "schema"."fn_outbox_batch_complete"(...</c>'</description></item>
+    /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.CancelBatchStatement"/> = '<c>SELECT "schema"."fn_outbox_batch_cancel"(...</c>'</description></item>
+    /// </list>
+    /// The parameters are positional and must match the expected order in the database functions.</remarks>
     public override void SetStatementsByConvention(string? schema = null)
     {
         schema ??= ExecutionContext.GetService<IHostSettings>()?.DomainName;
@@ -24,9 +25,9 @@ public class PostgresOutboxRelay(PostgresDatabase database, IEventPublisher even
         {
             schema = SentenceCase.ToSnakeCase(schema);
 
-            ClaimBatchStatement = SqlStatement.StoredProcedure($"\"{schema}\".\"sp_outbox_batch_claim\"");
-            CompleteBatchStatement = SqlStatement.StoredProcedure($"\"{schema}\".\"sp_outbox_batch_complete\"");
-            CancelBatchStatement = SqlStatement.StoredProcedure($"\"{schema}\".\"sp_outbox_batch_cancel\"");
+            ClaimBatchStatement = SqlStatement.FromText($"SELECT * FROM \"{schema}\".\"fn_outbox_batch_claim\"(@{Database.NamedColumns.PartitionIdName}, @{Database.NamedColumns.OutboxBatchSizeName}, @{Database.NamedColumns.OutboxLeaseIdName}, @{Database.NamedColumns.OutboxLeaseDurationName}, @{Database.NamedColumns.TenantIdName})");
+            CompleteBatchStatement = SqlStatement.FromText($"SELECT \"{schema}\".\"fn_outbox_batch_complete\"(@{Database.NamedColumns.OutboxLeaseIdName}, @{Database.NamedColumns.OutboxDequeuedUtcName})");
+            CancelBatchStatement = SqlStatement.FromText($"SELECT \"{schema}\".\"fn_outbox_batch_cancel\"(@{Database.NamedColumns.OutboxLeaseIdName}, @{Database.NamedColumns.OutboxBackoffDurationName})");
         }
     }
 

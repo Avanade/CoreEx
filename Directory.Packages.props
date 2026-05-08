@@ -64,8 +64,8 @@
   <ItemGroup>
     <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="DbEx.Postgres" Version="3.0.0-preview-3" />
-    <PackageVersion Include="DbEx.SqlServer" Version="3.0.0-preview-3" />
+    <PackageVersion Include="DbEx.Postgres" Version="3.0.0-preview-4" />
+    <PackageVersion Include="DbEx.SqlServer" Version="3.0.0-preview-4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="NUnit" Version="4.3.2" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.9.0" />

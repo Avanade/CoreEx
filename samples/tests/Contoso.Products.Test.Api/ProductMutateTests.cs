@@ -5,9 +5,9 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigratePostgresDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
-        Test.UseExpectedSqlServerOutboxPublisher();
+        Test.UseExpectedPostgresOutboxPublisher();
     }
 }

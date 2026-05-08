@@ -32,7 +32,7 @@ public partial class MovementMutateTests : WithApiTester<Contoso.Products.Api.Pr
         };
 
         Test.Http<Movement[]>()
-            .ExpectSqlServerOutboxEvents(e => e.AssertAllFromJsonResource("MovementMutateTests.Adjust_Success.event.json"))
+            .ExpectPostgresOutboxEvents(e => e.AssertAllFromJsonResource("MovementMutateTests.Adjust_Success.event.json"))
             .Run(HttpMethod.Post, "/api/inventory/adjust", req)
             .AssertOK()
             .Value.Should().HaveCount(2);

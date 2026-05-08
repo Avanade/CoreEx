@@ -10,7 +10,7 @@
 /// <param name="invoker">The <see cref="DatabaseInvoker"/>.</param>
 /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
 /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection connection, DatabaseInvoker invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs>>? logger = null) : IDatabase
+public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection connection, DatabaseInvoker invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs>>? logger = null) : IDatabase, IDisposable
     where TConnection : DbConnection where TCommand : DatabaseCommand<TDatabaseArgs, TCommand> where TDatabaseArgs : DatabaseArgs, new()
 {
     private static readonly TDatabaseArgs _defaultDbArgs = new();
@@ -20,6 +20,7 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly TConnection _dbConn = connection.ThrowIfNull().ThrowWhen(connection => connection.State != ConnectionState.Closed && connection.State != ConnectionState.Open);
     private int _savePointCounter = 0;
+    private bool _disposed;
 
     /// <inheritdoc/>
     public string DatabaseId { get; } = Guid.NewGuid().ToString();
@@ -158,5 +159,24 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection
     {
         var counter = Interlocked.Increment(ref _savePointCounter);
         return $"SP_{counter}";
+    }
+
+    /// <summary>
+    /// Dispose of resources.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the unmanaged resources used by the <see cref="ExecutionContext"/> and optionally releases the managed resources.
+    /// </summary>
+    /// <param name="disposing"><see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing && !_disposed)
+             _disposed = true;
     }
 }

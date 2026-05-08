@@ -23,7 +23,7 @@ public partial class MovementMutateTests
         var referenceId = 1001.ToGuid().ToString();
 
         Test.Http<Movement[]>()
-            .ExpectSqlServerOutboxEvents(e => e.AssertCount(2))
+            .ExpectPostgresOutboxEvents(e => e.AssertCount(2))
             .Run(HttpMethod.Post, $"/api/inventory/reservation/{referenceId}/cancel")
             .AssertOK()
             .AssertJsonFromResource("MovementMutateTests.Cancel_Success.res.json", pathsToIgnore: ["etag", "changelog"]);

@@ -3,16 +3,16 @@ namespace CoreEx.UnitTesting.Data;
 /// <summary>
 /// Provides options for the <see cref="JsonDataReader"/>.
 /// </summary>
-/// <remarks>The following <see cref="Parameters"/> are configured out-of-the-box:
+/// <remarks>The following <see cref="Parameters"/> (note the snake_case convention) are configured out-of-the-box:
 /// <list type="bullet">
 /// <item><description>'<c>id</c>' - Generates a new identifier using <see cref="Runtime.NewId"/>.</description></item>
 /// <item><description>'<c>guid</c>' - Generates a new GUID using <see cref="Runtime.NewGuid"/>.</description></item>
 /// <item><description>'<c>now</c>' - Gets the current UTC <see cref="DateTimeOffset"/> using <see cref="Runtime.UtcNow"/>.</description></item>
 /// <item><description>'<c>tomorrow</c>' - Gets the UTC <see cref="DateTimeOffset"/> for tomorrow using <see cref="Runtime.UtcNow"/> plus 1 day.</description></item>
 /// <item><description>'<c>yesterday</c>' - Gets the UTC <see cref="DateTimeOffset"/> for yesterday using <see cref="Runtime.UtcNow"/> minus 1 day.</description></item>
-/// <item><description>'<c>tenantId</c>' - Gets the current <see cref="ExecutionContext.TenantId"/>.</description></item>
-/// <item><description>'<c>userId</c>' - Gets the current <see cref="ExecutionContext.User"/> <see cref="Security.AuthenticationUser.Id"/>.</description></item>
-/// <item><description>'<c>userName</c>' - Gets the current <see cref="ExecutionContext.User"/> <see cref="Security.AuthenticationUser.UserName"/>.</description></item>
+/// <item><description>'<c>tenant_id</c>' - Gets the current <see cref="ExecutionContext.TenantId"/>.</description></item>
+/// <item><description>'<c>user_id</c>' - Gets the current <see cref="ExecutionContext.User"/> <see cref="Security.AuthenticationUser.Id"/>.</description></item>
+/// <item><description>'<c>user_name</c>' - Gets the current <see cref="ExecutionContext.User"/> <see cref="Security.AuthenticationUser.UserName"/>.</description></item>
 /// <item><description>'<c>index</c>' - Gets the current array index where the <see cref="JsonDataReaderArgs.CurrentNode"/> is an element within a <see cref="JsonArray"/>; otherwise, zero.</description></item>
 /// </list>
 /// </remarks>
@@ -21,8 +21,10 @@ public class JsonDataReaderOptions
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonDataReaderOptions"/> class.
     /// </summary>
-    public JsonDataReaderOptions()
+    /// <param name="namingConvention">The JSON property naming convention used by the <see cref="JsonDataReader"/>; defaults to <see cref="JsonPropertyNamingConvention.PascalCase"/>.</param>
+    public JsonDataReaderOptions(JsonPropertyNamingConvention namingConvention = JsonPropertyNamingConvention.PascalCase)
     {
+        NamingConvention = namingConvention;
         Parameters = new(StringComparer.OrdinalIgnoreCase)
         {
             { "id", _ => Runtime.NewId() },
@@ -30,12 +32,23 @@ public class JsonDataReaderOptions
             { "now", _ => Runtime.UtcNow },
             { "tomorrow", _ => Runtime.UtcNow.AddDays(1) },
             { "yesterday", _ => Runtime.UtcNow.AddDays(-1) },
-            { "tenantId", _ => ExecutionContext.TryGetCurrent(out var ec) ? ec.TenantId : TenantId },
-            { "userId", _ => ExecutionContext.TryGetCurrent(out var ec) && ec.User is not null ? ec.User.Id : AuthenticationUser.EnvironmentUser.Id },
-            { "userName", _ => ExecutionContext.TryGetCurrent(out var ec) && ec.User is not null ? ec.User.UserName : AuthenticationUser.EnvironmentUser.UserName },
+            { "tenant_id", _ => ExecutionContext.TryGetCurrent(out var ec) ? ec.TenantId : TenantId },
+            { "user_id", _ => ExecutionContext.TryGetCurrent(out var ec) && ec.User is not null ? ec.User.Id : AuthenticationUser.EnvironmentUser.Id },
+            { "user_name", _ => ExecutionContext.TryGetCurrent(out var ec) && ec.User is not null ? ec.User.UserName : AuthenticationUser.EnvironmentUser.UserName },
             { "index", args => args?.Index ?? 0 }
         };
     }
+
+    /// <summary>
+    /// Gets the JSON property naming convention.
+    /// </summary>
+    public JsonPropertyNamingConvention NamingConvention { get; }
+
+    /// <summary>
+    /// Gets or sets the optional <see cref="JsonSerializerOptions"/> to be used by the <see cref="JsonDataReader"/>.
+    /// </summary>
+    /// <remarks>Where specifying then the <see cref="JsonSerializerOptions.PropertyNamingPolicy"/> should be aligned with the <see cref="NamingConvention"/></remarks>
+    public JsonSerializerOptions? SerializerOptions { get; set; }
 
     /// <summary>
     /// Gets the dynamic runtime parameters and their corresponding functions.
@@ -64,24 +77,25 @@ public class JsonDataReaderOptions
     /// Adds standard properties to the root <see cref="JsonObject"/> where not already present.
     /// </summary>
     /// <returns>The <see cref="JsonDataReaderOptions"/> to support fluent-style method-chaining.</returns>
-    /// <remarks>The following standard properties are included:
+    /// <remarks>The following standard properties (converted based on the <see cref="NamingConvention"/>) are included:
     /// <list type="bullet">
-    /// <item><description>'<c>createdOn</c>' - Set to '<c>^now</c>'.</description></item>
-    /// <item><description>'<c>createdBy</c>' - Set to '<c>^username</c>'.</description></item>
-    /// <item><description>'<c>tenantId</c>' - Set to '<c>^tenantId</c>'.</description></item>
+    /// <item><description>'<c>CreatedOn</c>' - Set to '<c>^now</c>'.</description></item>
+    /// <item><description>'<c>CreatedBy</c>' - Set to '<c>^user_name</c>'.</description></item>
+    /// <item><description>'<c>TenantId</c>' - Set to '<c>^tenant_id</c>'.</description></item>
     /// </list>
     /// </remarks>
     public JsonDataReaderOptions AddStandardProperties()
     {
-        Properties.TryAdd("createdOn", "^now");
-        Properties.TryAdd("createdBy", "^username");
-        Properties.TryAdd("tenantId", "^tenantId");
+        Properties.TryAdd(ConvertPropertyName(nameof(ChangeLog.CreatedOn)), "^now");
+        Properties.TryAdd(ConvertPropertyName(nameof(ChangeLog.CreatedBy)), "^user_name");
+        Properties.TryAdd(ConvertPropertyName(nameof(TenantId)), "^tenant_id");
         return this;
     }
 
     /// <summary>
     /// Creates a <see cref="JsonDataReaderOptions"/> instance configured for reference data.
     /// </summary>
+    /// <param name="namingConvention">The JSON property naming convention used by the <see cref="JsonDataReader"/>; defaults to <see cref="JsonPropertyNamingConvention.PascalCase"/>.</param>
     /// <param name="idGenerator">An optional function to generate the <see cref="RefData.Abstractions.IReferenceData"/> <see cref="IIdentifier.Id"/>.</param>
     /// <returns>The <see cref="JsonDataReaderOptions"/>.</returns>
     /// <remarks>This method will configure the <see cref="RootNodePreProcessor"/> to convert a single key/value pair into '<c>code</c>' and '<c>text</c>' properties by convention.
@@ -92,12 +106,12 @@ public class JsonDataReaderOptions
     /// <item><description>'<c>sortOrder</c>' - Uses the current array index where the <see cref="JsonDataReaderArgs.CurrentNode"/> is an element within a <see cref="JsonArray"/>; otherwise, zero.</description></item>
     /// </list>
     /// </para></remarks>
-    public static JsonDataReaderOptions CreateForReferenceData(Func<object?>? idGenerator = null)
+    public static JsonDataReaderOptions CreateForReferenceData(JsonPropertyNamingConvention namingConvention = JsonPropertyNamingConvention.PascalCase, Func<object?>? idGenerator = null)
     {
-        var o = new JsonDataReaderOptions().AddStandardProperties();
-        o.Properties.TryAdd("id", idGenerator is null ? "^id" : "^__idGenerator");
-        o.Properties.TryAdd("isActive", true);
-        o.Properties.TryAdd("sortOrder", "^index");
+        var o = new JsonDataReaderOptions(namingConvention).AddStandardProperties();
+        o.Properties.TryAdd(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.Id)), idGenerator is null ? "^id" : "^__idGenerator");
+        o.Properties.TryAdd(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.IsActive)), true);
+        o.Properties.TryAdd(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.SortOrder)), "^index");
 
         if (idGenerator is not null)
             o.Parameters.TryAdd("__idGenerator", _ => idGenerator());
@@ -111,12 +125,33 @@ public class JsonDataReaderOptions
                 if (kvp.Value is not null && kvp.Value.GetValueKind() == JsonValueKind.String)
                 {
                     jsonObject.Remove(kvp.Key);
-                    jsonObject.Add("code", kvp.Key);
-                    jsonObject.Add("text", kvp.Value);
+                    jsonObject.Add(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.Code)), kvp.Key);
+                    jsonObject.Add(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.Text)), kvp.Value);
                 }
             }
         };
 
         return o;
+    }
+
+    /// <summary>
+    /// Converts the <paramref name="propertyName"/> based on the configured <see cref="NamingConvention"/>.
+    /// </summary>
+    /// <param name="propertyName">The property name to convert.</param>
+    /// <returns>The converted property name.</returns>
+    [return: NotNullIfNotNull(nameof(propertyName))]
+    public string? ConvertPropertyName(string? propertyName)
+    {
+        if (propertyName is null)
+            return null;
+
+        return NamingConvention switch
+        {
+            JsonPropertyNamingConvention.PascalCase => SentenceCase.ToPascalCase(propertyName),
+            JsonPropertyNamingConvention.CamelCase => SentenceCase.ToCamelCase(propertyName),
+            JsonPropertyNamingConvention.SnakeCase => SentenceCase.ToSnakeCase(propertyName),
+            JsonPropertyNamingConvention.KebabCase => SentenceCase.ToKebabCase(propertyName),
+            _ => propertyName
+        };
     }
 }

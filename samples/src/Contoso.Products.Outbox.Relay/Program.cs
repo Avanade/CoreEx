@@ -23,14 +23,14 @@ public class Program
             .AddHostedServiceManager();
 
         // Add the repository and related outbox services.
-        builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
+        builder.AddAzureNpgsqlDataSource("Postgres");  // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
-            .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
-            .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
-            .AddSqlServerOutboxRelay();                 // Adds the SqlServerOutboxRelay.
+            .AddPostgresDatabase()                     // Adds the PostgresDatabase.
+            .AddPostgresUnitOfWork()                   // Adds the PostgresUnitOfWork for the PostgresDatabase.
+            .AddPostgresOutboxRelay();                 // Adds the PostgresOutboxRelay.
 
-        // Adds the SqlServerOutboxRelayHostedService.
-        builder.AddSqlServerOutboxRelayHostedService();
+        // Adds the PostgresOutboxRelayHostedService.
+        builder.AddPostgresOutboxRelayHostedService();
 
         // Add the Azure Service Bus services.
         builder.AddAzureServiceBusClient("ServiceBus"); // Adds azure service bus client using aspire.
@@ -44,7 +44,7 @@ public class Program
 
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
-            .WithCoreExSqlServerTelemetry()
+            .WithCoreExPostgresTelemetry()
             .WithCoreExServiceBusTelemetry()
             .UseOtlpExporter();
 

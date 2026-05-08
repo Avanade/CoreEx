@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DbEx.SqlServer" />
+    <PackageReference Include="DbEx.Postgres" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,6 +16,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.Database\CoreEx.Database.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Schema\" />
   </ItemGroup>
 
 </Project>

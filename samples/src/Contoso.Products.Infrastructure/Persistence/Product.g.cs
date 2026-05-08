@@ -9,53 +9,53 @@
 namespace Contoso.Products.Infrastructure.Persistence;
 
 /// <summary>
-/// Persistence model representing the '<c>[Products].[Product]</c>' database table.
+/// Persistence model representing the '<c>"products"."product"</c>' database table.
 /// </summary>
-/// <remarks>The <see cref="Id"/> primary key column is '<c>ProductId</c>' (type '<c>NVARCHAR(50)</c>').</remarks>
+/// <remarks>The <see cref="Id"/> primary key column is '<c>product_id</c>' (type '<c>CHARACTER VARYING(50)</c>').</remarks>
 public partial class Product : ModelBase<string>, ILogicallyDeleted
 {
     /// <summary>
-    /// Gets or sets the value of the '<c>Sku</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>sku</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string Sku { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>Text</c>' column (type '<c>NVARCHAR(250)</c>').
+    /// Gets or sets the value of the '<c>text</c>' column (type '<c>CHARACTER VARYING(250)</c>').
     /// </summary>
     public string Text { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>SubCategoryCode</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>sub_category_code</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string SubCategoryCode { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>UnitOfMeasureCode</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>unit_of_measure_code</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string UnitOfMeasureCode { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the value of the '<c>BrandCode</c>' column (type '<c>NVARCHAR(50) NULL</c>').
+    /// Gets or sets the value of the '<c>brand_code</c>' column (type '<c>CHARACTER VARYING(50) NULL</c>').
     /// </summary>
     public string? BrandCode { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the '<c>Price</c>' column (type '<c>DECIMAL(18, 2)</c>').
+    /// Gets or sets the value of the '<c>price</c>' column (type '<c>NUMERIC(18, 2)</c>').
     /// </summary>
     public decimal Price { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the '<c>IsInactive</c>' column (type '<c>BIT</c>').
+    /// Gets or sets the value of the '<c>is_inactive</c>' column (type '<c>BOOLEAN</c>').
     /// </summary>
     public bool IsInactive { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the '<c>IsNonStocked</c>' column (type '<c>BIT</c>').
+    /// Gets or sets the value of the '<c>is_non_stocked</c>' column (type '<c>BOOLEAN</c>').
     /// </summary>
     public bool IsNonStocked { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the '<c>IsDeleted</c>' column (type '<c>BIT NULL</c>'); see <see cref="ILogicallyDeleted.IsDeleted"/>.
+    /// Gets or sets the value of the '<c>is_deleted</c>' column (type '<c>BOOLEAN NULL</c>'); see <see cref="ILogicallyDeleted.IsDeleted"/>.
     /// </summary>
     public bool IsDeleted { get; set; }
 }

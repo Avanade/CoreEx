@@ -96,4 +96,13 @@ public partial class PostgresDatabase : Database<NpgsqlConnection, PostgresComma
 
         return base.OnDbException(dbex);
     }
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            ((IDatabase)this).Connection?.Dispose(); // We created it, so we dispose of it!
+
+        base.Dispose(disposing);
+    }
 }

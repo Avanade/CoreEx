@@ -16,166 +16,166 @@ public partial class ProductsDbContext
     /// <param name="modelBuilder">The <see cref="Microsoft.EntityFrameworkCore.ModelBuilder"/>.</param>
     public void AddGeneratedModels(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
     {
-        // Add the entity/model configuration for the [Products].[Brand] database table.
+        // Add the entity/model configuration for the "products"."brand" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.Brand>(e =>
         {
-            e.ToTable("Brand", "Products");
+            e.ToTable("brand", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("BrandId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Code).HasColumnName("Code").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.IsActive).HasColumnName("IsActive").HasColumnType("BIT");
-            e.Property(p => p.SortOrder).HasColumnName("SortOrder").HasColumnType("INT");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("brand_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Code).HasColumnName("code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Text).HasColumnName("text").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.IsActive).HasColumnName("is_active").HasColumnType("BOOLEAN");
+            e.Property(p => p.SortOrder).HasColumnName("sort_order").HasColumnType("INTEGER");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.Description).Ignore(p => p.StartsOn).Ignore(p => p.EndsOn);
         });
 
-        // Add the entity/model configuration for the [Products].[Category] database table.
+        // Add the entity/model configuration for the "products"."category" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.Category>(e =>
         {
-            e.ToTable("Category", "Products");
+            e.ToTable("category", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("CategoryId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Code).HasColumnName("Code").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.IsActive).HasColumnName("IsActive").HasColumnType("BIT");
-            e.Property(p => p.SortOrder).HasColumnName("SortOrder").HasColumnType("INT");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("category_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Code).HasColumnName("code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Text).HasColumnName("text").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.IsActive).HasColumnName("is_active").HasColumnType("BOOLEAN");
+            e.Property(p => p.SortOrder).HasColumnName("sort_order").HasColumnType("INTEGER");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.Description).Ignore(p => p.StartsOn).Ignore(p => p.EndsOn);
         });
 
-        // Add the entity/model configuration for the [Products].[MovementKind] database table.
+        // Add the entity/model configuration for the "products"."movement_kind" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.MovementKind>(e =>
         {
-            e.ToTable("MovementKind", "Products");
+            e.ToTable("movement_kind", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("MovementKindId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Code).HasColumnName("Code").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.IsActive).HasColumnName("IsActive").HasColumnType("BIT");
-            e.Property(p => p.SortOrder).HasColumnName("SortOrder").HasColumnType("INT");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("movement_kind_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Code).HasColumnName("code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Text).HasColumnName("text").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.IsActive).HasColumnName("is_active").HasColumnType("BOOLEAN");
+            e.Property(p => p.SortOrder).HasColumnName("sort_order").HasColumnType("INTEGER");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.Description).Ignore(p => p.StartsOn).Ignore(p => p.EndsOn);
         });
 
-        // Add the entity/model configuration for the [Products].[MovementStatus] database table.
+        // Add the entity/model configuration for the "products"."movement_status" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.MovementStatus>(e =>
         {
-            e.ToTable("MovementStatus", "Products");
+            e.ToTable("movement_status", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("MovementStatusId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Code).HasColumnName("Code").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.IsActive).HasColumnName("IsActive").HasColumnType("BIT");
-            e.Property(p => p.SortOrder).HasColumnName("SortOrder").HasColumnType("INT");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("movement_status_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Code).HasColumnName("code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Text).HasColumnName("text").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.IsActive).HasColumnName("is_active").HasColumnType("BOOLEAN");
+            e.Property(p => p.SortOrder).HasColumnName("sort_order").HasColumnType("INTEGER");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.Description).Ignore(p => p.StartsOn).Ignore(p => p.EndsOn);
         });
 
-        // Add the entity/model configuration for the [Products].[SubCategory] database table.
+        // Add the entity/model configuration for the "products"."sub_category" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.SubCategory>(e =>
         {
-            e.ToTable("SubCategory", "Products");
+            e.ToTable("sub_category", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("SubCategoryId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Code).HasColumnName("Code").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.IsActive).HasColumnName("IsActive").HasColumnType("BIT");
-            e.Property(p => p.SortOrder).HasColumnName("SortOrder").HasColumnType("INT");
-            e.Property(p => p.CategoryCode).HasColumnName("CategoryCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("sub_category_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Code).HasColumnName("code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Text).HasColumnName("text").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.IsActive).HasColumnName("is_active").HasColumnType("BOOLEAN");
+            e.Property(p => p.SortOrder).HasColumnName("sort_order").HasColumnType("INTEGER");
+            e.Property(p => p.CategoryCode).HasColumnName("category_code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.Description).Ignore(p => p.StartsOn).Ignore(p => p.EndsOn);
         });
 
-        // Add the entity/model configuration for the [Products].[UnitOfMeasure] database table.
+        // Add the entity/model configuration for the "products"."unit_of_measure" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.UnitOfMeasure>(e =>
         {
-            e.ToTable("UnitOfMeasure", "Products");
+            e.ToTable("unit_of_measure", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("UnitOfMeasureId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Code).HasColumnName("Code").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.IsActive).HasColumnName("IsActive").HasColumnType("BIT");
-            e.Property(p => p.SortOrder).HasColumnName("SortOrder").HasColumnType("INT");
-            e.Property(p => p.Scale).HasColumnName("Scale").HasColumnType("INT");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("unit_of_measure_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Code).HasColumnName("code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Text).HasColumnName("text").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.IsActive).HasColumnName("is_active").HasColumnType("BOOLEAN");
+            e.Property(p => p.SortOrder).HasColumnName("sort_order").HasColumnType("INTEGER");
+            e.Property(p => p.Scale).HasColumnName("scale").HasColumnType("INTEGER");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.Description).Ignore(p => p.StartsOn).Ignore(p => p.EndsOn);
         });
 
-        // Add the entity/model configuration for the [Products].[Inventory] database table.
+        // Add the entity/model configuration for the "products"."inventory" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.Inventory>(e =>
         {
-            e.ToTable("Inventory", "Products");
+            e.ToTable("inventory", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("InventoryId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.QtyOnHand).HasColumnName("QtyOnHand").HasColumnType("DECIMAL(18, 2)");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("inventory_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.QtyOnHand).HasColumnName("qty_on_hand").HasColumnType("NUMERIC(18, 2)");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.CreatedBy).Ignore(p => p.CreatedOn).Ignore(p => p.UpdatedBy).Ignore(p => p.UpdatedOn);
         });
 
-        // Add the entity/model configuration for the [Products].[Movement] database table.
+        // Add the entity/model configuration for the "products"."movement" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.Movement>(e =>
         {
-            e.ToTable("Movement", "Products");
+            e.ToTable("movement", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("MovementId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.ReferenceId).HasColumnName("ReferenceId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.MovementKindCode).HasColumnName("MovementKindCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.MovementStatusCode).HasColumnName("MovementStatusCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.ProductId).HasColumnName("ProductId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Quantity).HasColumnName("Quantity").HasColumnType("DECIMAL(18, 2)");
-            e.Property(p => p.UnitOfMeasureCode).HasColumnName("UnitOfMeasureCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Id).HasColumnName("movement_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.ReferenceId).HasColumnName("reference_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.MovementKindCode).HasColumnName("movement_kind_code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.MovementStatusCode).HasColumnName("movement_status_code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.ProductId).HasColumnName("product_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Quantity).HasColumnName("quantity").HasColumnType("NUMERIC(18, 2)");
+            e.Property(p => p.UnitOfMeasureCode).HasColumnName("unit_of_measure_code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
         });
 
-        // Add the entity/model configuration for the [Products].[Product] database table.
+        // Add the entity/model configuration for the "products"."product" database table.
         modelBuilder.Entity<Contoso.Products.Infrastructure.Persistence.Product>(e =>
         {
-            e.ToTable("Product", "Products");
+            e.ToTable("product", "products");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasColumnName("ProductId").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Sku).HasColumnName("Sku").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.SubCategoryCode).HasColumnName("SubCategoryCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.UnitOfMeasureCode).HasColumnName("UnitOfMeasureCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.BrandCode).HasColumnName("BrandCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.Price).HasColumnName("Price").HasColumnType("DECIMAL(18, 2)");
-            e.Property(p => p.IsInactive).HasColumnName("IsInactive").HasColumnType("BIT");
-            e.Property(p => p.IsNonStocked).HasColumnName("IsNonStocked").HasColumnType("BIT");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
-            e.Property(p => p.IsDeleted).HasColumnName("IsDeleted").HasColumnType("BIT");
+            e.Property(p => p.Id).HasColumnName("product_id").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Sku).HasColumnName("sku").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Text).HasColumnName("text").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.SubCategoryCode).HasColumnName("sub_category_code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.UnitOfMeasureCode).HasColumnName("unit_of_measure_code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.BrandCode).HasColumnName("brand_code").HasColumnType("CHARACTER VARYING(50)");
+            e.Property(p => p.Price).HasColumnName("price").HasColumnType("NUMERIC(18, 2)");
+            e.Property(p => p.IsInactive).HasColumnName("is_inactive").HasColumnType("BOOLEAN");
+            e.Property(p => p.IsNonStocked).HasColumnName("is_non_stocked").HasColumnType("BOOLEAN");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
+            e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
+            e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.IsDeleted).HasColumnName("is_deleted").HasColumnType("BOOLEAN");
         });
     }
 }

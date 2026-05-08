@@ -8,7 +8,7 @@ public partial class MovementMutateTests
         var referenceId = 1000.ToGuid().ToString();
 
         Test.Http<Movement[]>()
-            .ExpectSqlServerOutboxEvents(e => e.AssertCount(3))
+            .ExpectPostgresOutboxEvents(e => e.AssertCount(3))
             .Run(HttpMethod.Post, $"/api/inventory/reservation/{referenceId}/confirm")
             .AssertOK()
             .AssertJsonFromResource("MovementMutateTests.Confirm_Success.res.json", pathsToIgnore: ["etag", "changelog"]);

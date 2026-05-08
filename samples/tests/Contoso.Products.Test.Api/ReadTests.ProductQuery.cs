@@ -55,7 +55,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void Product_Query_FilterBySku_IncludeFields()
     {
         Test.Http<ProductLite[]>()
-            .ExpectLogContains("ORDER BY [p].[Text] DESC, [p].[Sku]")
+            .ExpectLogContains("ORDER BY p.text DESC, p.sku")
             .Run(HttpMethod.Get, "/api/products?$filter=startswith(Sku, 'spec')&$fields=sku,text&$orderby=text desc")
             .AssertOK()
             .AssertJsonFromResource("ReadTests.Product_Query_FilterBySku_IncludeFields.res.json");

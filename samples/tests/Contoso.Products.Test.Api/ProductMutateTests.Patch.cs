@@ -59,7 +59,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
 
         // Act/Assert.
         var u = Test.Http<Product>()
-            .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.updated.v1"))
+            .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.updated.v1"))
             .Run(HttpMethod.Patch, $"/api/products/{p.Id}", new { text = p.Text }, requestModifier: r => r.WithIfMatch(p.ETag).WithMergePatchJsonContentType())
             .AssertOK()
             .AssertValue(p, "etag", "changelog")

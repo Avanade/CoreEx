@@ -72,7 +72,7 @@ public partial class MovementMutateTests
         };
 
         Test.Http<Movement[]>()
-            .ExpectSqlServerOutboxEvents(e => e.AssertAllFromJsonResource("MovementMutateTests.Reserve_Success.event.json"))
+            .ExpectPostgresOutboxEvents(e => e.AssertAllFromJsonResource("MovementMutateTests.Reserve_Success.event.json"))
             .Run(HttpMethod.Post, "/api/inventory/reserve", req)
             .AssertOK()
             .Value.Should().HaveCount(2);
