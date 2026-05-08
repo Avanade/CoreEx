@@ -1,8 +1,14 @@
 <Project>
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' != ''">
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(AZD_DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <TargetFramework Condition="'$(AzdPublishTargetFramework)' != ''">$(AzdPublishTargetFramework)</TargetFramework>
   </PropertyGroup>
 </Project>

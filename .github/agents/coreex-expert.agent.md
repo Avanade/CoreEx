@@ -1,7 +1,7 @@
 ---
 name: CoreEx Expert
 description: "Use when you need to explain, understand, or decide how CoreEx works. Triggers: explain CoreEx, how does CoreEx, which pattern, which capability, which shape, plan a feature, review a design, compare samples, architecture guidance, coding patterns, layering, host setup, validation, repository conventions, eventing, outbox relay, subscriber design, sample-aligned decisions."
-tools: [read, search]
+tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute/runNotebookCell, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, web/fetch, web/githubRepo, web/githubTextSearch, browser/openBrowserPage, browser/readPage, browser/screenshotPage, browser/navigatePage, browser/clickElement, browser/dragElement, browser/hoverElement, browser/typeInPage, browser/runPlaywrightCode, browser/handleDialog, todo]
 user-invocable: true
 argument-hint: Ask for CoreEx pattern guidance, architecture decisions, or sample-aligned implementation advice.
 ---

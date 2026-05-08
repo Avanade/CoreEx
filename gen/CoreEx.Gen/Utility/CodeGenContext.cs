@@ -42,7 +42,7 @@ public class CodeGenContext
     /// <summary>
     /// Reports the accumulated <see cref="Diagnostics"/> to the provided <paramref name="context"/>.
     /// </summary>
-    /// <param name="context">The <see cref="<see cref="SourceProductionContext"/>.</param>
+    /// <param name="context">The <see cref="SourceProductionContext"/>.</param>
     /// <returns><see langword="true"/> indicates there are no <see cref="Diagnostics"/> in <see cref="DiagnosticSeverity.Error"/> and source production should occur; otherwise, <see langword="false"/> indicates that no source production should occur.</returns>
     public bool ReportDiagnostics(SourceProductionContext context)
     {

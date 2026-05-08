@@ -129,7 +129,8 @@ These samples are intended to show practical CoreEx usage across:
 
 ## Prerequisites
 
-- .NET SDK (matching the repo requirements).
+- A .NET SDK capable of building `net8.0`, `net9.0`, and `net10.0` targets. A current .NET 10 SDK is sufficient for local builds.
+- To run sample web hosts targeting `net8.0`, install the `Microsoft.AspNetCore.App 8.0` runtime locally.
 - A container runtime (Docker or Podman).
 - Aspire CLI — install once:
 

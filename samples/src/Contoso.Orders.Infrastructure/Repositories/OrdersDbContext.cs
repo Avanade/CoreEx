@@ -43,6 +43,7 @@ public class OrdersDbContext(DbContextOptions<OrdersDbContext> options, SqlServe
             e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
             e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
             e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
+            e.Ignore(p => p.ETag);
         });
 
         modelBuilder.ThrowIfNull().Entity<Persistence.OrderStatus>(e =>
