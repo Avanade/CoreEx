@@ -46,7 +46,7 @@ namespace {{Namespace}};
 {{indent}}    public static implicit operator {{ClassName}}?(string? code) => code is null ? null : global::CoreEx.RefData.ReferenceDataOrchestrator.TryGetByCode<{{ClassName}}>(code, out var item) ? item : item;
 {{indent}}{{bc}}
 {{#each ContainingTypeHierarchy}}
-{{indent--}}{{Indent}}{{bc}}
+{{indent--}}{{indent}}{{bc}}
 {{/each}}
 
 #pragma warning restore

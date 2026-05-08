@@ -1,4 +1,43 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx .NET extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices event-driven railway-oriented reference-data</PackageTags>
+  </PropertyGroup>
+
+  <!-- Bundle the Roslyn source generator into this package. -->
+  <!-- ProjectReference ensures CoreEx.Generator is built before CoreEx is packed. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\gen\CoreEx.Generator\CoreEx.Generator.csproj"
+                      ReferenceOutputAssembly="false"
+                      SetTargetFramework="TargetFramework=netstandard2.0"
+                      OutputItemType="Analyzer" />
+  </ItemGroup>
+
+  <!-- Resolve generator dependency paths dynamically from CPM versions + NuGet global cache.
+       This avoids hardcoding versions that are already owned by Directory.Packages.props. -->
+  <Target Name="ResolveGeneratorDepPaths" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <!-- $(NuGetPackageRoot) is set by the .NET SDK on all platforms (~/.nuget/packages/ on Linux). -->
+      <_NuGetPackagesDir>$(NuGetPackageRoot)</_NuGetPackagesDir>
+    </PropertyGroup>
+
+    <!-- Read versions from CPM PackageVersion items. -->
+    <ItemGroup>
+      <_HandlebarsVersion Include="@(PackageVersion)" Condition="'%(Identity)' == 'Handlebars.Net'" />
+      <_PluralizeVersion Include="@(PackageVersion)" Condition="'%(Identity)' == 'Pluralize.NET'" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="../../gen/CoreEx.Generator/bin/$(Configuration)/netstandard2.0/CoreEx.Generator.dll"
+            Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="$(_NuGetPackagesDir)handlebars.net\%(_HandlebarsVersion.Version)\lib\netstandard2.0\Handlebars.dll"
+            Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="$(_NuGetPackagesDir)pluralize.net\%(_PluralizeVersion.Version)\lib\netstandard2.0\Pluralize.NET.dll"
+            Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />

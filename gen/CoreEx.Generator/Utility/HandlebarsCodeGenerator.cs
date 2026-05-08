@@ -27,7 +27,7 @@ public class HandlebarsCodeGenerator
     /// <returns>The <see cref="HandlebarsCodeGenerator"/>.</returns>
     public static HandlebarsCodeGenerator Create(string resourceName)
     {
-        using var s = typeof(HandlebarsCodeGenerator).Assembly.GetManifestResourceStream(resourceName);
+        using var s = typeof(HandlebarsCodeGenerator).Assembly.GetManifestResourceStream(resourceName) ?? throw new InvalidOperationException($"Resource '{resourceName}' not found.");
         using var sr = new StreamReader(s);
         return new HandlebarsCodeGenerator(sr);
     }

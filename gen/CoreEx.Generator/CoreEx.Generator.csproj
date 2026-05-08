@@ -1,13 +1,49 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Targeting & Language Defaults -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <!-- Versioning -->
+  <PropertyGroup>
+    <Version>4.0.0-preview-1</Version>
+  </PropertyGroup>
+
+  <!-- Build Quality -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Strong Name Signing -->
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\..\strong-name-key.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+
+  <!-- NuGet Package Metadata -->
+  <PropertyGroup>
+    <Authors>Avanade</Authors>
+    <Company>Avanade (https://www.avanade.com/)</Company>
+    <Copyright>Copyright (c) Avanade.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>Logo256x256.png</PackageIcon>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/Avanade/CoreEx</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Avanade/CoreEx</PackageProjectUrl>
+  </PropertyGroup>
+
+  <!-- Roslyn Analyzer Configuration -->
+  <PropertyGroup>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
     <OutputItemType>Analyzer</OutputItemType>
-    <!--<GeneratePackageOnBuild>true</GeneratePackageOnBuild>-->
+    <!-- Not packed standalone; bundled into CoreEx package. -->
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
   </PropertyGroup>
@@ -27,18 +63,15 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
     <PackageReference Include="Pluralize.NET" PrivateAssets="all" GeneratePathProperty="true" />
+    <!-- StrongNamer required for strong-naming Pluarlize.NET which is not signed. -->
+    <PackageReference Include="StrongNamer" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
     <None Remove="bin\Debug\netstandard2.0\\CoreEx.Generatorerator.dll" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    <None Include="$(PkgHandlebars_Net)\lib\netstandard2.0\Handlebars.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    <None Include="$(PkgPluralize_NET)\lib\netstandard2.0\Pluralize.NET.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-  </ItemGroup>
-    
+   
   <Target Name="GetDependencyTargetPaths">
     <ItemGroup>
       <TargetPathWithTargetPlatformMoniker Include="$(PkgHandlebars_Net)\lib\netstandard2.0\Handlebars.dll" IncludeRuntimeDependency="false" />

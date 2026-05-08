@@ -1,11 +1,85 @@
 ﻿<Project>
+
+  <!-- ========================================================= -->
+  <!-- Targeting & Language Defaults -->
+  <!-- ========================================================= -->
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-    <Version>4.0.0-preview-1</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <!-- ========================================================= -->
+  <!-- Versioning -->
+  <!-- ========================================================= -->
+  <PropertyGroup>
+    <!-- Project-level override is allowed -->
+    <Version>4.0.0-preview-1</Version>
+  </PropertyGroup>
+
+  <!-- ========================================================= -->
+  <!-- Build Quality -->
+  <!-- ========================================================= -->
+  <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <!-- ========================================================= -->
+  <!-- Strong Name Signing -->
+  <!-- ========================================================= -->
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>../../strong-name-key.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+
+  <!-- ========================================================= -->
+  <!-- Packaging Behavior -->
+  <!-- ========================================================= -->
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <EmbedAllSources>true</EmbedAllSources>
+    <IncludeSource>true</IncludeSource>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!-- ========================================================= -->
+  <!-- NuGet Package Metadata -->
+  <!-- ========================================================= -->
+  <PropertyGroup>
+    <Authors>Avanade</Authors>
+    <Company>Avanade (https://www.avanade.com/)</Company>
+    <Copyright>Copyright (c) Avanade.</Copyright>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <PackageIcon>Logo256x256.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/Avanade/CoreEx</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Avanade/CoreEx</PackageProjectUrl>
+  </PropertyGroup>
+
+  <!-- ========================================================= -->
+  <!-- Packed Assets -->
+  <!-- ========================================================= -->
+  <ItemGroup>
+    <None Include="../../images/Logo256x256.png"
+          Pack="true"
+          PackagePath="/"
+          Visible="false" />
+
+    <None Include="../../README.md"
+          Pack="true"
+          PackagePath="/"
+          Visible="false" />
+  </ItemGroup>
+
 </Project>
