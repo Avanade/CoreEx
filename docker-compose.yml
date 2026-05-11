@@ -43,7 +43,6 @@ services:
       - "5672:5672"   # AMQP
       - "5300:5300"   # Management / HTTP
 
-  
   dts-emulator:
     image: mcr.microsoft.com/dts/dts-emulator:latest
     environment:

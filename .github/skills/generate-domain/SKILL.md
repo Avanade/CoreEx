@@ -30,10 +30,6 @@ Before generating, confirm with user:
 
 For complete step-by-step workflow covering all 8 phases (Contracts, Application, Infrastructure, API, Database, Tests, Quality Gates, Naming), see [`references/workflow.md`](references/workflow.md).
 
-## Workflow Overview
-
-For complete step-by-step workflow covering all 8 phases (Contracts, Application, Infrastructure, API, Database, Tests, Quality Gates, Naming), see [`references/workflow.md`](references/workflow.md).
-
 ## Key References
 
 - All instruction files: `/.github/instructions/*.instructions.md`

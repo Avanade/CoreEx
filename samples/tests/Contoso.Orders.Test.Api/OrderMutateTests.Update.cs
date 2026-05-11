@@ -49,11 +49,11 @@ public partial class OrderMutateTests
         updated.CustomerId.Should().Be("CUST-1001-UPDATED");
         updated.StatusCode.Should().Be("C");
         updated.ETag.Should().NotBe(order.ETag);
-    updated.Items.Should().NotBeNull().And.HaveCount(1);
-    updated.Items![0].Id.Should().Be("OI-UPD-1");
-    updated.Items[0].ProductId.Should().Be("PROD-1001");
-    updated.Items[0].Quantity.Should().Be(1.5m);
-    updated.Items[0].UnitPrice.Should().Be(12.34m);
+        updated.Items.Should().NotBeNull().And.HaveCount(1);
+        updated.Items![0].Id.Should().Be("OI-UPD-1");
+        updated.Items[0].ProductId.Should().Be("PROD-1001");
+        updated.Items[0].Quantity.Should().Be(1.5m);
+        updated.Items[0].UnitPrice.Should().Be(12.34m);
 
         Test.Http<Contoso.Orders.Contracts.Order>()
             .Run(HttpMethod.Get, $"/api/orders/{order.Id}")

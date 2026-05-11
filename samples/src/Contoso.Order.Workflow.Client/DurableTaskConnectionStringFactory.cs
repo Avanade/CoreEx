@@ -6,7 +6,7 @@ internal static class DurableTaskConnectionStringFactory
     {
         var endpoint = options.Endpoint;
         var hostAddress = endpoint.Contains(';', StringComparison.Ordinal) ? endpoint.Split(';', StringSplitOptions.TrimEntries)[0] : endpoint;
-            var taskHubName = string.IsNullOrWhiteSpace(options.TaskHub) ? "order" : options.TaskHub;
+        var taskHubName = string.IsNullOrWhiteSpace(options.TaskHub) ? "order" : options.TaskHub;
         var isLocalEmulator = hostAddress.StartsWith("http://localhost:8080", StringComparison.OrdinalIgnoreCase)
             || hostAddress.StartsWith("http://localhost:8081", StringComparison.OrdinalIgnoreCase);
 
