@@ -21,24 +21,21 @@ The build status is [![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.
 Package | Status | Source & documentation
 -|-|-
 `CoreEx` | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [Link](./src/CoreEx)
-`CoreEx.AspNetCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AspNetCore.svg)](https://badge.fury.io/nu/CoreEx.AspNetCore) | [Link](./src/CoreEx/AspNetCore)
-`CoreEx.AutoMapper` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AutoMapper.svg)](https://badge.fury.io/nu/CoreEx.AutoMapper) | [Link](./src/CoreEx.AutoMapper)
-`CoreEx.Azure` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.svg)](https://badge.fury.io/nu/CoreEx.Azure) | [Link](./src/CoreEx.Azure)
-`CoreEx.Cosmos` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Cosmos.svg)](https://badge.fury.io/nu/CoreEx.Cosmos) | [Link](./src/CoreEx.Cosmos)
-`CoreEx.Data` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Data.svg)](https://badge.fury.io/nu/CoreEx.Data) | [Link](./src/CoreEx.Data)
-`CoreEx.Database` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.svg)](https://badge.fury.io/nu/CoreEx.Database) | [Link](./src/CoreEx.Database)
-`CoreEx.Database.MySql` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.MySql.svg)](https://badge.fury.io/nu/CoreEx.Database.MySql) | [Link](./src/CoreEx.Database.MySql)
-`CoreEx.Database.Postgres` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.Postgres.svg)](https://badge.fury.io/nu/CoreEx.Database.Postgres) | [Link](./src/CoreEx.Database.Postgres)
-`CoreEx.Database.SqlServer` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.SqlServer.svg)](https://badge.fury.io/nu/CoreEx.Database.SqlServer) | [Link](./src/CoreEx.Database.SqlServer)
-`CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx.EntityFrameworkCore)
-`CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [Link](./src/CoreEx.FluentValidation)
-`CoreEx.Newtonsoft` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
-`CoreEx.OData` | [![NuGet version](https://badge.fury.io/nu/CoreEx.OData.svg)](https://badge.fury.io/nu/CoreEx.OData) | [Link](./src/CoreEx.OData)
-`CoreEx.Solace` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Solace.svg)](https://badge.fury.io/nu/CoreEx.Solace) | [Link](./src/CoreEx.Solace)
-`CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx.Validation)
+`CoreEx.AspNetCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AspNetCore.svg)](https://badge.fury.io/nu/CoreEx.AspNetCore) | [Link](./src/CoreEx/CoreEx.AspNetCore)
+`CoreEx.AspNetCore.NSwag` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AspNetCore.NSwag.svg)](https://badge.fury.io/nu/CoreEx.AspNetCore.NSwag) | [Link](./src/CoreEx/CoreEx.AspNetCore.NSwag)
+`CoreEx.Azure.Messaging.ServiceBus.NSwag` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.Messaging.ServiceBus.svg)](https://badge.fury.io/nu/CoreEx.Azure.Messaging.ServiceBus) | [Link](./src/CoreEx/CoreEx.Azure.Messaging.ServiceBus)
+`CoreEx.Caching.FusionCache` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Caching.FusionCache.svg)](https://badge.fury.io/nu/CoreEx.Caching.FusionCache) | [Link](./src/CoreEx/CoreEx.Caching.FusionCache)
+`CoreEx.Data` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Data.svg)](https://badge.fury.io/nu/CoreEx.Data) | [Link](./src/CoreEx/CoreEx.Data)
+`CoreEx.Database` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.svg)](https://badge.fury.io/nu/CoreEx.Database) | [Link](./src/CoreEx/CoreEx.Database)
+`CoreEx.Database.Postgres` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.Postgres.svg)](https://badge.fury.io/nu/CoreEx.Database.Postgres) | [Link](./src/CoreEx/CoreEx.Database.Postgres)
+`CoreEx.Database.SqlServer` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.SqlServer.svg)](https://badge.fury.io/nu/CoreEx.Database.SqlServer) | [Link](./src/CoreEx/CoreEx.Database.SqlServer)
+`CoreEx.DomainDriven` | [![NuGet version](https://badge.fury.io/nu/CoreEx.DomainDriven.svg)](https://badge.fury.io/nu/CoreEx.DomainDriven) | [Link](./src/CoreEx/CoreEx.DomainDriven)
+`CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx/CoreEx.EntityFrameworkCore)
+`CoreEx.Events` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Events.svg)](https://badge.fury.io/nu/CoreEx.Events) | [Link](./src/CoreEx/CoreEx.Events)
+`CoreEx.RefData` | [![NuGet version](https://badge.fury.io/nu/CoreEx.RefData.svg)](https://badge.fury.io/nu/CoreEx.RefData) | [Link](./src/CoreEx/CoreEx.RefData)
+`CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx/CoreEx.Validation)
 -- | -- | --
 `CoreEx.UnitTesting` | [![NuGet version](https://badge.fury.io/nu/CoreEx.UnitTesting.svg)](https://badge.fury.io/nu/CoreEx.UnitTesting) | [Link](./src/CoreEx.UnitTesting)
-`CoreEx.UnitTesting.NUnit` | [![NuGet version](https://badge.fury.io/nu/CoreEx.UnitTesting.NUnit.svg)](https://badge.fury.io/nu/CoreEx.UnitTesting.NUnit) | [Link](./src/CoreEx.UnitTesting)
 
 
 The included [change log](CHANGELOG.md) details all key changes per published version.

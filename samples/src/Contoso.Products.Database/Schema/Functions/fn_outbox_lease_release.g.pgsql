@@ -16,7 +16,7 @@ BEGIN
    *  -1 = No rows updated (e.g. already released or invalid lease_id).
    *
    * Notes:
-   * - The function is resilient to transient errors and will return -1 where release is unsuccessful, including where the lease is already released or where a transient error occurs (e.g. lock timeout).
+   * - The function will return -1 where release is unsuccessful, including where the lease is already released or where a transient error occurs (e.g. lock timeout).
    */
 
   -- Set transaction parameters

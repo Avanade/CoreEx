@@ -16,8 +16,6 @@ BEGIN
    * > Returns:
    *   0 = Success.
    *  -1 = No rows updated (e.g. already completed or invalid lease_id).
-   *  -2 = No batch to claim (e.g. all completed since claim).
-   *  -3 = Unable to acquire lease (e.g. another active batch or transient error).
    */
 
   -- Set transaction parameters

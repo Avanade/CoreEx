@@ -50,23 +50,19 @@ param(
     [String[]]$ProjectsToPublish = @(
         "src\CoreEx",
         "src\CoreEx.AspNetCore",
-        "src\CoreEx.AutoMapper",
-        "src\CoreEx.Azure",
-        "src\CoreEx.Solace",
+        "src\CoreEx.AspNetCore.NSwag",
+        "src\CoreEx.Azure.Messaging.ServiceBus",
+        "src\CoreEx.Caching.FusionCache",
         "src\CoreEx.Data",
         "src\CoreEx.Database",
-        "src\CoreEx.Database.SqlServer",
-        "src\CoreEx.Database.MySql",
         "src\CoreEx.Database.Postgres",
+        "src\CoreEx.Database.SqlServer",
+        "src\CoreEx.DomainDriven",
         "src\CoreEx.EntityFrameworkCore",
-        "src\CoreEx.Cosmos",
-        "src\CoreEx.OData",
-        "src\CoreEx.FluentValidation",
-        "src\CoreEx.Newtonsoft",
+        "src\CoreEx.Events",
+        "src\CoreEx.RefData",
         "src\CoreEx.Validation",
-        "src\CoreEx.UnitTesting",
-        "src\CoreEx.UnitTesting.Azure.Functions",
-        "src\CoreEx.UnitTesting.Azure.ServiceBus")
+        "src\CoreEx.UnitTesting")
     )
 
 $ShouldPublishRemote = (![string]::IsNullOrEmpty($apiKey) -and ![string]::IsNullOrEmpty($NugetServer))

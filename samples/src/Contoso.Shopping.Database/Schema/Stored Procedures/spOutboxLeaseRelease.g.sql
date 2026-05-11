@@ -11,7 +11,7 @@ BEGIN
    *  -1 = No rows updated (e.g. already released or invalid LeaseId).
    *
    * Notes:
-   * - The procedure is resilient to transient errors and will return -1 where release is unsuccessful, including where the lease is already released or where a transient error occurs (e.g. lock timeout).
+   * - The procedure will return -1 where release is unsuccessful, including where the lease is already released or where a transient error occurs (e.g. lock timeout).
    */
 
   SET NOCOUNT ON;

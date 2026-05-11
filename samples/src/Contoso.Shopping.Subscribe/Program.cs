@@ -3,7 +3,6 @@ using Contoso.Shopping.Infrastructure.Clients;
 using Contoso.Shopping.Infrastructure.Repositories;
 using Contoso.Shopping.Subscribe.Subscribers;
 using CoreEx.Azure.Messaging.ServiceBus;
-using CoreEx.Database;
 using Microsoft.Extensions.Options;
 using OpenTelemetry;
 using OpenTelemetry.Trace;

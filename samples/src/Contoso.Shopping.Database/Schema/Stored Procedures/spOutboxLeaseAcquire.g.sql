@@ -15,7 +15,7 @@ BEGIN
    *  -1 = Lease not acquired; caller should backoff and retry.
    *
    * Notes:
-   * - The procedure is resilient to transient errors and will return -1 where lease acquisition is unsuccessful, including where another active lease exists or where a transient error occurs (e.g. lock timeout).
+   * - The procedure will return -1 where lease acquisition is unsuccessful, including where another active lease exists or where a transient error occurs (e.g. lock timeout).
    * - The caller should implement an appropriate retry/backoff strategy where -1 is returned, including randomization to avoid thundering herd issues.
    */
 
