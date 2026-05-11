@@ -1,3 +1,4 @@
+global using AwesomeAssertions;
 global using Contoso.Orders.Application.Validators;
 global using Contoso.Orders.Contracts;
 global using CoreEx;

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Contoso.Order.Workflow.Client;
 
-public sealed class OrderWorkflowClient
+public sealed class OrderWorkflowClient : IOrderWorkflowClient
 {
     private readonly DurableTaskClient _durableTaskClient;
     private readonly ILogger<OrderWorkflowClient> _logger;

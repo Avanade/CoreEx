@@ -12,6 +12,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Client\Contoso.Order.Workflow.Client.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Workflow\Contoso.Order.Workflow.Workflow.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Orders.Api\Contoso.Orders.Api.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Orders.Application\Contoso.Orders.Application.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Orders.Contracts\Contoso.Orders.Contracts.csproj" />
     <ProjectReference Include="..\Contoso.Orders.Test.Common\Contoso.Orders.Test.Common.csproj" />

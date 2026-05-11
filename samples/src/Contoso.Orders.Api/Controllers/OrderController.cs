@@ -5,11 +5,11 @@ using Contoso.Order.Workflow.Workflow.Contracts;
 using OrderContract = Contoso.Orders.Contracts.Order;
 
 [ApiController, Route("/api/orders"), OpenApiTag("Orders")]
-public class OrderController(WebApi webApi, IOrderService service, OrderWorkflowClient orderWorkflowClient) : ControllerBase
+public class OrderController(WebApi webApi, IOrderService service, IOrderWorkflowClient orderWorkflowClient) : ControllerBase
 {
     private readonly WebApi _webApi = webApi.ThrowIfNull();
     private readonly IOrderService _service = service.ThrowIfNull();
-    private readonly OrderWorkflowClient _orderWorkflowClient = orderWorkflowClient.ThrowIfNull();
+    private readonly IOrderWorkflowClient _orderWorkflowClient = orderWorkflowClient.ThrowIfNull();
 
     [HttpPost]
     [Accepts<OrderContract>]

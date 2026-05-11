@@ -24,7 +24,7 @@ public static class ServiceCollectionExtensions
                 : connectionString);
         });
 
-        services.AddScoped<OrderWorkflowClient>();
+        services.AddScoped<IOrderWorkflowClient, OrderWorkflowClient>();
         return services;
     }
 }

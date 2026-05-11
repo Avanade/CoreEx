@@ -5,7 +5,7 @@ public class OrderValidatorTests : WithGenericTester<EntryPoint>
     [Test]
     public void Empty_Required() => Test.Scoped(test =>
     {
-        var order = new Order();
+        var order = new Contoso.Orders.Contracts.Order();
         new OrderValidator().AssertErrors(order,
             ("customerId", "Customer is required."),
             ("status", "Order status is required."));
@@ -14,7 +14,7 @@ public class OrderValidatorTests : WithGenericTester<EntryPoint>
     [Test]
     public void Invalid_ReferenceData() => Test.Scoped(test =>
     {
-        var order = new Order { CustomerId = "CUST-1001", StatusCode = "ZZ" };
+        var order = new Contoso.Orders.Contracts.Order { CustomerId = "CUST-1001", StatusCode = "ZZ" };
         new OrderValidator().AssertErrors(order,
             ("status", "Order status is invalid."));
     });
@@ -22,7 +22,7 @@ public class OrderValidatorTests : WithGenericTester<EntryPoint>
     [Test]
     public void Success() => Test.Scoped(test =>
     {
-        var order = new Order
+        var order = new Contoso.Orders.Contracts.Order
         {
             CustomerId = "CUST-1001",
             StatusCode = "P",
