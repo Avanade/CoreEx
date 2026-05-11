@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Contoso.Orders.Api": {
+      "commandName": "Project",
+      "launchUrl": "https://localhost:62023/swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:62023;http://localhost:62024"
+    }
+  }
+}

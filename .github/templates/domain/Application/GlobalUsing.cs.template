@@ -1,0 +1,14 @@
+global using {Solution}.{Domain}.Application.Interfaces;
+global using {Solution}.{Domain}.Application.Repositories;
+global using {Solution}.{Domain}.Application.Validators;
+global using {Solution}.{Domain}.Contracts;
+global using CoreEx;
+global using CoreEx.Data;
+global using CoreEx.DependencyInjection;
+global using CoreEx.Events;
+global using CoreEx.Localization;
+global using CoreEx.RefData;
+global using CoreEx.RefData.Abstractions;
+global using CoreEx.Results;
+global using CoreEx.Validation;
+global using System.Text.Json;

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Data\CoreEx.Data.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.EntityFrameworkCore\CoreEx.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\Contoso.Orders.Application\Contoso.Orders.Application.csproj" />
+    <ProjectReference Include="..\Contoso.Orders.Contracts\Contoso.Orders.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+</Project>

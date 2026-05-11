@@ -1,0 +1,12 @@
+global using AwesomeAssertions;
+global using Contoso.Orders.Application.Validators;
+global using Contoso.Orders.Contracts;
+global using CoreEx;
+global using CoreEx.RefData;
+global using CoreEx.RefData.Abstractions;
+global using CoreEx.UnitTesting;
+global using CoreEx.UnitTesting.Data;
+global using CoreEx.Validation;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
+global using UnitTestEx;

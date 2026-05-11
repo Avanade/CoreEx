@@ -27,6 +27,15 @@
   </PropertyGroup>
 
   <!-- ========================================================= -->
+  <!-- Azure Publish -->
+  <!-- ========================================================= -->
+  <PropertyGroup Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' != ''">
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(AZD_DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <TargetFramework Condition="'$(AzdPublishTargetFramework)' != ''">$(AzdPublishTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <!-- ========================================================= -->
   <!-- Strong Name Signing -->
   <!-- ========================================================= -->
   <PropertyGroup>

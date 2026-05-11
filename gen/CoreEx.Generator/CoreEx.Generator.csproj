@@ -68,7 +68,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="bin\Debug\netstandard2.0\\CoreEx.Generatorerator.dll" />
+    <None Remove="bin\Debug\netstandard2.0\\CoreEx.Generator.dll" />
   </ItemGroup>
 
    

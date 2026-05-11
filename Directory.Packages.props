@@ -11,6 +11,9 @@
     <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.1.1" />
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.1" />
     <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.8.0" />
+    <PackageVersion Include="Microsoft.DurableTask.Abstractions" Version="1.17.1" />
+    <PackageVersion Include="Microsoft.DurableTask.Client.AzureManaged" Version="1.17.1" />
+    <PackageVersion Include="Microsoft.DurableTask.Worker.AzureManaged" Version="1.17.1" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.3" />
     <PackageVersion Include="NSwag.AspNetCore" Version="14.6.2" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />

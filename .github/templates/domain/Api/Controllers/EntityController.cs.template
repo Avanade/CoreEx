@@ -1,0 +1,38 @@
+namespace {Solution}.{Domain}.Api.Controllers;
+
+[ApiController, Route("/api/{entityPluralKebab}"), OpenApiTag("{EntityPlural}")]
+public class {Entity}Controller(WebApi webApi, I{Entity}Service service) : ControllerBase
+{
+    private readonly WebApi _webApi = webApi.ThrowIfNull();
+    private readonly I{Entity}Service _service = service.ThrowIfNull();
+
+    [HttpPost]
+    [Accepts<{Entity}>]
+    [ProducesResponseType<{Entity}>(StatusCodes.Status201Created)]
+    [IdempotencyKey]
+    public Task<IActionResult> PostAsync() => _webApi.PostAsync<{Entity}, {Entity}>(Request, (ro, _) =>
+    {
+        ro.WithLocationUri(e => new Uri($"/api/{entityPluralKebab}/{e.Id}", UriKind.Relative));
+        return _service.CreateAsync(ro.Value);
+    });
+
+    [HttpPut("{id}")]
+    [Accepts<{Entity}>]
+    [ProducesResponseType(typeof({Entity}), StatusCodes.Status200OK)]
+    [ProducesNotFoundProblem()]
+    public Task<IActionResult> PutAsync(string id) => _webApi.PutAsync<{Entity}, {Entity}>(Request, (ro, _)
+        => _service.UpdateAsync(ro.Value.Adjust(e => e.Id = id.Required())));
+
+    [HttpPatch("{id}")]
+    [Accepts<{Entity}>(HttpNames.MergePatchJsonMediaTypeName)]
+    [ProducesResponseType(typeof({Entity}), StatusCodes.Status200OK)]
+    [ProducesNotFoundProblem()]
+    public Task<IActionResult> PatchAsync(string id) => _webApi.PatchAsync<{Entity}>(Request,
+        get: (ro, _) => _service.GetAsync(id.Required()),
+        put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(e => e.Id = id)));
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteAsync(Request, (_, _)
+        => _service.DeleteAsync(id.Required()));
+}

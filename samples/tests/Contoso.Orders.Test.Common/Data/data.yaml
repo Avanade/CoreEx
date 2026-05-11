@@ -1,0 +1,3 @@
+Orders:
+  - Order:
+    - { OrderId: ORD-1001, CustomerId: CUST-1001, StatusCode: P }
