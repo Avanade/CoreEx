@@ -36,7 +36,7 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
     {
         var parsed = _queryConfig.Parse(query).ThrowOnError();
 
-        var orders = _ef.Orders.Model.Query();
+        var orders = _ef.Orders.Model.Query().IgnoreAutoIncludes();
         return await orders.Where(parsed).OrderBy(parsed).ToMappedItemsResultAsync(x => new Contracts.OrderLite
         {
             Id = x.Id,
