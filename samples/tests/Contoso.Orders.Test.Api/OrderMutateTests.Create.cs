@@ -25,7 +25,11 @@ public partial class OrderMutateTests
         var order = new Contoso.Orders.Contracts.Order
         {
             CustomerId = "CUST-3001",
-            StatusCode = "P"
+            StatusCode = "P",
+            Items =
+            [
+                new() { Id = "OI-3001", ProductId = "PROD-3001", Quantity = 2, UnitPrice = 19.95m }
+            ]
         };
 
         var created = Test.Http<Contoso.Orders.Contracts.Order>()
@@ -41,7 +45,11 @@ public partial class OrderMutateTests
         created.Id.Should().NotBeNullOrEmpty();
         created.CustomerId.Should().Be(order.CustomerId);
         created.StatusCode.Should().Be(order.StatusCode);
-        created.Items.Should().NotBeNull().And.BeEmpty();
+        created.Items.Should().NotBeNull().And.HaveCount(1);
+        created.Items![0].Id.Should().Be("OI-3001");
+        created.Items[0].ProductId.Should().Be("PROD-3001");
+        created.Items[0].Quantity.Should().Be(2);
+        created.Items[0].UnitPrice.Should().Be(19.95m);
 
         Test.Http<Contoso.Orders.Contracts.Order>()
             .Run(HttpMethod.Get, $"/api/orders/{created.Id}")

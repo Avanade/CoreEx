@@ -3,6 +3,7 @@ namespace Contoso.Orders.Application.Validators;
 public class OrderValidator : Validator<Order, OrderValidator>
 {
     private static readonly Validator<OrderItem> _itemValidator = Validator.Create<OrderItem>()
+        .HasProperty(x => x.Id, p => p.Mandatory().MaximumLength(50))
         .HasProperty(x => x.ProductId, p => p.Mandatory().MaximumLength(100))
         .HasProperty(x => x.Quantity, p => p.GreaterThanOrEqualTo(0m).PrecisionScale(null, 4))
         .HasProperty(x => x.UnitPrice, p => p.GreaterThanOrEqualTo(0m).PrecisionScale(null, 4));

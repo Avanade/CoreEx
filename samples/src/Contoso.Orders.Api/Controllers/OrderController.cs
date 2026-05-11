@@ -34,7 +34,7 @@ public class OrderController(WebApi webApi, IOrderService service, OrderWorkflow
     [ProducesNotFoundProblem()]
     public Task<IActionResult> PatchAsync(string id) => _webApi.PatchAsync<OrderContract>(Request,
         get: (ro, _) => _service.GetAsync(id.Required()),
-        put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(o => o.Id = id)));
+        put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(o => o.Id = id.Required())));
 
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

@@ -65,10 +65,10 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
             var existingItem = existingItems.FirstOrDefault(e => e.Id == newItem.Id);
             if (existingItem is null)
             {
-                // New item: assign an Id and add to the tracked collection.
+                // New item: preserve the client-supplied identity used for future updates.
                 var addedItem = new Persistence.OrderItem
                 {
-                    Id = Runtime.NewId(),
+                    Id = newItem.Id,
                     OrderId = order.Id,
                     ProductId = newItem.ProductId,
                     Quantity = newItem.Quantity,
