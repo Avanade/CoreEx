@@ -14,7 +14,7 @@ public class OrderMapper : BiDirectionMapper<Contracts.Order, Persistence.Order,
             ProductId = i.ProductId,
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice
-        }).ToList() ?? []
+        }).ToList() ?? new List<Persistence.OrderItem>()
     };
 
     protected override Contracts.Order OnMap(Persistence.Order source) => new()
@@ -28,6 +28,6 @@ public class OrderMapper : BiDirectionMapper<Contracts.Order, Persistence.Order,
             ProductId = i.ProductId,
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice
-        }).ToList() ?? []
+        }).ToList() ?? new List<Contracts.OrderItem>()
     };
 }
