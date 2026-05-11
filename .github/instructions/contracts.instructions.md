@@ -12,11 +12,11 @@ tags: ["contracts", "dto", "source-generation", "reference-data", "etag"]
 |---|---|
 | `CoreEx` | `[Contract]`, `IIdentifier<T>`, `ICompositeKey`, `IETag`, `IChangeLog`, `ChangeLog`, `[ReadOnly]`, `[Localization]` |
 | `CoreEx.RefData` | `ReferenceData<T>`, `ReferenceDataCollection<T>`, `[ReferenceData<T>]`, `[ReferenceData]`, `ReferenceDataSortOrder` |
-| `CoreEx.Gen` | Roslyn source generator — add as `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` |
+| `CoreEx.Generator` | Roslyn source generator — add as `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` |
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="CoreEx.Gen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  <ProjectReference Include="CoreEx.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   <ProjectReference Include="CoreEx.csproj" />
   <ProjectReference Include="CoreEx.RefData.csproj" />
 </ItemGroup>

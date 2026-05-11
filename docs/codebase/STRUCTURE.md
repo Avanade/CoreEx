@@ -13,7 +13,7 @@ List only meaningful top-level directories and files.
 | samples/src/ | Contoso sample applications and hosts by domain/layer, including in-progress Orders and Order.Workflow sample areas | CoreEx.sln; samples/README.md |
 | samples/tests/ | Sample API, relay, subscriber, unit, and E2E test projects | CoreEx.sln; samples/README.md |
 | samples/aspire/ | Aspire AppHost that references runnable sample services | samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj |
-| gen/ | Roslyn source generator/analyzer project | CoreEx.sln; gen/CoreEx.Gen/CoreEx.Gen.csproj |
+| gen/ | Roslyn source generator/analyzer project | CoreEx.sln; gen/CoreEx.Generator/CoreEx.Generator.csproj |
 | docs/ | Technical notes and generated codebase knowledge docs | README.md; docs/capabilities.md |
 | ref/ | Separate reference solution content (NDCOrderOrchestration.sln) | list_dir output; ref/NDCOrderOrchestration.sln |
 | servicebus/ | Emulator configuration for local Azure Service Bus topics/subscriptions | CoreEx.sln; servicebus/Config.json |
@@ -53,4 +53,4 @@ List only meaningful top-level directories and files.
 - samples/src/Contoso.Products.Outbox.Relay/Program.cs
 - samples/src/Contoso.Products.Subscribe/Program.cs
 - samples/src/Contoso.Shopping.Domain/Basket.cs
-- gen/CoreEx.Gen/CoreEx.Gen.csproj
+- gen/CoreEx.Generator/CoreEx.Generator.csproj

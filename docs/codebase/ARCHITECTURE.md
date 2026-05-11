@@ -42,7 +42,7 @@ Describe the flow in 4-6 steps using file-backed evidence.
 | Aggregate / Entity / Value Object | Basket, BasketItem, ItemPricing | Keep mutation rules and consistency checks in the domain model |
 | Anti-corruption / adapter | ProductAdapter, ProductsHttpClient | Isolate Shopping from Products API and message semantics |
 | Dynamic service registration | AddDynamicServicesUsing in API and subscriber hosts | Reduce explicit DI wiring across layered sample projects |
-| Roslyn source generation | gen/CoreEx.Gen, generated .g.cs persistence files | Generate boilerplate and analyzer-time artifacts |
+| Roslyn source generation | gen/CoreEx.Generator, generated .g.cs persistence files | Generate boilerplate and analyzer-time artifacts |
 
 ### 5) Known Architectural Risks
 
@@ -62,4 +62,4 @@ Describe the flow in 4-6 steps using file-backed evidence.
 - samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs
 - samples/src/Contoso.Products.Outbox.Relay/Program.cs
 - samples/src/Contoso.Products.Subscribe/Program.cs
-- gen/CoreEx.Gen/CoreEx.Gen.csproj
+- gen/CoreEx.Generator.csproj

@@ -7,7 +7,7 @@
 | Area | Value | Evidence |
 |------|-------|----------|
 | Primary language | C# | src/Directory.Build.props; CoreEx.sln |
-| Runtime + version | Reusable libraries target net8.0, net9.0, and net10.0; sample hosts use net10.0; generator targets netstandard2.0 | src/Directory.Build.props; samples/Directory.Build.props; samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj; gen/CoreEx.Gen/CoreEx.Gen.csproj |
+| Runtime + version | Reusable libraries target net8.0, net9.0, and net10.0; sample hosts use net10.0; generator targets netstandard2.0 | src/Directory.Build.props; samples/Directory.Build.props; samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj; gen/CoreEx.Generator/CoreEx.Generator.csproj |
 | Package manager | NuGet with Central Package Management | Directory.Packages.props |
 | Module/build system | MSBuild project/solution build with SDK-style .csproj files | CoreEx.sln; src/CoreEx/CoreEx.csproj |
 
@@ -34,7 +34,7 @@
 | AwesomeAssertions | Assertions | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | coverlet.collector | Test coverage collection | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | UnitTestEx / UnitTestEx.NUnit | API and integration-style test helpers | Directory.Packages.props; samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj |
-| CoreEx.Gen | Roslyn analyzer/source generator packaged as an analyzer | gen/CoreEx.Gen/CoreEx.Gen.csproj; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
+| CoreEx.Generator | Roslyn analyzer/source generator packaged as an analyzer | gen/CoreEx.Generator/CoreEx.Generator.csproj; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | .editorconfig | Formatting baseline | .editorconfig |
 
 ### 4) Key Commands

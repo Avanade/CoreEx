@@ -11,7 +11,7 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 ## Repository Shape
 - `CoreEx.sln`: main solution for framework + samples.
 - `src\`: reusable CoreEx libraries (AspNetCore, Database, EntityFrameworkCore, Events, Validation, DomainDriven, RefData, Caching, etc.).
-- `gen\CoreEx.Gen\`: Roslyn source generator for contracts.
+- `gen\CoreEx.Generator\`: Roslyn source generator for contracts.
 - `tests\`: framework-level tests.
 - `samples\src\Contoso.*\`: sample domains split by layer/host.
 - `samples\aspire\AppHost.cs`: orchestration entrypoint.
