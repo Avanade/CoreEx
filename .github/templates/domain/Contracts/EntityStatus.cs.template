@@ -1,0 +1,6 @@
+namespace {Solution}.{Domain}.Contracts;
+
+[ReferenceData]
+public partial class {Entity}Status : ReferenceData<{Entity}Status> { }
+
+public class {Entity}StatusCollection() : ReferenceDataCollection<{Entity}Status>(ReferenceDataSortOrder.Code) { }

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>Contoso.Order.Workflow.Worker</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DurableTask.Worker.AzureManaged" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contoso.Order.Workflow.Workflow\Contoso.Order.Workflow.Workflow.csproj" />
+  </ItemGroup>
+
+</Project>

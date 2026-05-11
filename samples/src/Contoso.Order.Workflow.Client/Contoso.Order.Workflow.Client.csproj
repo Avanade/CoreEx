@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Contoso.Order.Workflow.Client</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DurableTask.Client.AzureManaged" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contoso.Order.Workflow.Workflow\Contoso.Order.Workflow.Workflow.csproj" />
+  </ItemGroup>
+
+</Project>

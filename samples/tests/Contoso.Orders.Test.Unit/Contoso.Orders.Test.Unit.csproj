@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit.Analyzers" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Client\Contoso.Order.Workflow.Client.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Workflow\Contoso.Order.Workflow.Workflow.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Orders.Api\Contoso.Orders.Api.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Orders.Application\Contoso.Orders.Application.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Orders.Contracts\Contoso.Orders.Contracts.csproj" />
+    <ProjectReference Include="..\Contoso.Orders.Test.Common\Contoso.Orders.Test.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+</Project>

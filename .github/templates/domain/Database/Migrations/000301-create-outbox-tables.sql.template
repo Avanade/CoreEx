@@ -1,0 +1,29 @@
+BEGIN TRANSACTION
+
+CREATE TABLE [{Domain}].[Outbox] (
+  [OutboxId] BIGINT IDENTITY (1, 1) NOT NULL PRIMARY KEY,
+  [TenantId] NVARCHAR(255) NOT NULL,
+  [PartitionId] INT NOT NULL,
+  [Status] TINYINT NOT NULL DEFAULT 0,
+  [EnqueuedUtc] DATETIME2 NOT NULL,
+  [AvailableUtc] DATETIME2 NOT NULL,
+  [DequeuedUtc] DATETIME2 NULL,
+  [Attempts] INT NOT NULL DEFAULT 0,
+  [Destination] NVARCHAR(255) NULL,
+  [Event] NVARCHAR(MAX) NOT NULL,
+  [LeaseId] UNIQUEIDENTIFIER NULL,
+  [LeaseUntilUtc] DATETIME2 NULL
+);
+
+CREATE INDEX [IX_{Domain}_Outbox_Claim] ON [{Domain}].[Outbox] ([TenantId], [PartitionId], [Status], [OutboxId], [AvailableUtc], [LeaseUntilUtc]);
+
+CREATE TABLE [{Domain}].[OutboxLease] (
+  [TenantId] NVARCHAR(255) NOT NULL,
+  [PartitionId] INT NOT NULL,
+  [LeaseId] UNIQUEIDENTIFIER NULL,
+  [LeaseUntilUtc] DATETIME2 NULL,
+
+  CONSTRAINT PK_{Domain}_OutboxLease PRIMARY KEY (TenantId, PartitionId)
+);
+
+COMMIT TRANSACTION

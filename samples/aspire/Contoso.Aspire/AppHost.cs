@@ -8,6 +8,12 @@ builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").AddEndpoints("
 builder.AddProject<Projects.Contoso_Shopping_Outbox_Relay>("shopping-outbox-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
+var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Worker>("order-workflow-worker").AddEndpoints("/health");
+
+builder.AddProject<Projects.Contoso_Orders_Api>("orders-api")
+    .WaitFor(orderWorkflowWorker)
+    .AddEndpoints("/health/ready/detailed");
+
 builder.Build().Run();
 
 

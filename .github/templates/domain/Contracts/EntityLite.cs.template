@@ -1,0 +1,17 @@
+namespace {Solution}.{Domain}.Contracts;
+
+[Contract]
+public partial class {Entity}Lite : IIdentifier<string?>
+{
+    [ReadOnly(true)]
+    public string? Id { get; set; }
+
+    public string? CustomerId { get; set; }
+
+    [ReferenceData<{Entity}Status>]
+    [Localization("{Entity} status")]
+    public partial string? StatusCode { get; set; }
+
+    [ReadOnly(true)]
+    public ChangeLog? ChangeLog { get; set; }
+}
