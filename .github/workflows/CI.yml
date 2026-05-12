@@ -63,7 +63,7 @@ jobs:
       run: dotnet build CoreEx.Core.slnf --no-restore --configuration Release
 
     - name: Test core
-      run: dotnet test CoreEx.Core.slnf --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/core
+      run: dotnet test CoreEx.Core.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core -- NUnit.NumberOfTestWorkers=1
 
     - name: Upload core test results
       if: always()
@@ -76,7 +76,7 @@ jobs:
     # --- Samples ---
 
     - name: Build samples
-      run: dotnet build CoreEx.Samples.slnf --no-restore --configuration Release
+      run: dotnet build CoreEx.Samples.Build.slnf --no-restore --configuration Release
 
     - name: Database tool (samples/src/Contoso.Products.Database)
       working-directory: samples/src/Contoso.Products.Database
@@ -91,7 +91,7 @@ jobs:
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
 
     - name: Test samples
-      run: dotnet test CoreEx.Samples.slnf --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/samples -p:TestTfmsInParallel=false
+      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -p:TestTfmsInParallel=false
 
     - name: Upload samples test results
       if: always()
