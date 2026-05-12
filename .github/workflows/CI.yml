@@ -63,14 +63,14 @@ jobs:
       run: dotnet build CoreEx.Core.slnf --no-restore --configuration Release
 
     - name: Test core
-      run: dotnet test CoreEx.Core.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core -- NUnit.NumberOfTestWorkers=1
+      run: dotnet test CoreEx.Core.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core --verbosity normal -- RunConfiguration.MaxCpuCount=1
 
     - name: Upload core test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: core-test-results
-        path: "tests/**/*.trx"
+        path: "coverage/core/**/*.trx"
         retention-days: 30
 
     # --- Samples ---
@@ -91,14 +91,14 @@ jobs:
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
 
     - name: Test samples
-      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -p:TestTfmsInParallel=false
+      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples --verbosity normal -p:TestTfmsInParallel=false -- RunConfiguration.MaxCpuCount=1
 
     - name: Upload samples test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: samples-test-results
-        path: "samples/tests/**/*.trx"
+        path: "coverage/samples/**/*.trx"
         retention-days: 30
 
     # --- Coverage ---
