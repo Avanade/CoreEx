@@ -17,7 +17,7 @@ public sealed class DatabaseMigrationSetup : IScenario
             Contoso.Products.Database.Program.ConfigureMigrationArgs(ma);
             ma.AddAssembly<Products.Test.Common.TestData>();
 
-            using var m = new SqlServerMigration(ma);
+            using var m = new PostgresMigration(ma);
             var (Success, Output) = await m.MigrateAndLogAsync().ConfigureAwait(false);
             if (!Success)
                 throw new Exception("Database migration failed:" + Environment.NewLine + Output);

@@ -70,9 +70,9 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
                 // New item: preserve the client-supplied identity used for future updates.
                 var addedItem = new Persistence.OrderItem
                 {
-                    Id = newItem.Id,
-                    OrderId = order.Id,
-                    ProductId = newItem.ProductId,
+                    Id = newItem.Id!,
+                    OrderId = order.Id!,
+                    ProductId = newItem.ProductId!,
                     Quantity = newItem.Quantity,
                     UnitPrice = newItem.UnitPrice
                 };
@@ -83,7 +83,7 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
             else
             {
                 // Existing item: update its properties.
-                existingItem.ProductId = newItem.ProductId;
+                existingItem.ProductId = newItem.ProductId!;
                 existingItem.Quantity = newItem.Quantity;
                 existingItem.UnitPrice = newItem.UnitPrice;
                 _ef.DbContext.Entry(existingItem).State = EntityState.Modified;

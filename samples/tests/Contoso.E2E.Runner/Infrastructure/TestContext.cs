@@ -17,6 +17,7 @@ public sealed class TestContext
 
         ProductsHttpClient = new HttpClient { BaseAddress = new Uri(config["E2E:Products:BaseAddress"] ?? throw new InvalidOperationException("E2E:Products:BaseAddress configuration value is missing.")), Timeout = TimeSpan.FromSeconds(30) };
         ShoppingHttpClient = new HttpClient { BaseAddress = new Uri(config["E2E:Shopping:BaseAddress"] ?? throw new InvalidOperationException("E2E:Shopping:BaseAddress configuration value is missing.")), Timeout = TimeSpan.FromSeconds(30) };
+        OrdersHttpClient = new HttpClient { BaseAddress = new Uri(config["E2E:Orders:BaseAddress"] ?? throw new InvalidOperationException("E2E:Orders:BaseAddress configuration value is missing.")), Timeout = TimeSpan.FromSeconds(30) };
 
         PerStepMinDelayMilliseconds = config.GetValue<int>("E2E:PerStepMinDelayMilliseconds");
         PerStepMaxDelayMilliseconds = config.GetValue<int>("E2E:PerStepMaxDelayMilliseconds");
@@ -39,6 +40,11 @@ public sealed class TestContext
     /// Gets the "Shopping" domain HTTP client configured with the base address and timeout specified in the configuration.
     /// </summary>
     public HttpClient ShoppingHttpClient { get; }
+
+    /// <summary>
+    /// Gets the "Orders" domain HTTP client configured with the base address and timeout specified in the configuration.
+    /// </summary>
+    public HttpClient OrdersHttpClient { get; }
 
     /// <summary>
     /// Gets the collection of set-up scenario definitions, keyed by scenario name.
