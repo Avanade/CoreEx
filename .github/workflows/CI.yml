@@ -57,13 +57,10 @@ jobs:
     - name: Restore (all)
       run: dotnet restore CoreEx.sln --verbosity minimal
 
+    - name: Build (all)
+      run: dotnet build CoreEx.sln --no-restore --configuration Release
+
     # --- Core ---
-
-    - name: Build core (src)
-      run: dotnet build src --no-restore --configuration Release
-
-    - name: Build core (tests)
-      run: dotnet build tests --no-restore --configuration Release
 
     - name: Test core (tests)
       run: dotnet test tests --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/core
@@ -79,10 +76,10 @@ jobs:
     # --- Samples ---
 
     - name: Build samples (samples/src)
-      run: dotnet build samples/src --no-restore --configuration Release
+      run: find samples/src -name "*.csproj" | xargs -I {} dotnet build {} --no-restore --configuration Release
 
     - name: Build samples (samples/tests)
-      run: dotnet build samples/tests --no-restore --configuration Release
+      run: find samples/tests -name "*.csproj" | xargs -I {} dotnet build {} --no-restore --configuration Release
 
     - name: Database tool (samples/src/Contoso.Products.Database)
       working-directory: samples/src/Contoso.Products.Database
