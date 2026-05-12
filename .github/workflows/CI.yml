@@ -62,8 +62,11 @@ jobs:
     - name: Build core
       run: dotnet build CoreEx.Core.slnf --no-restore --configuration Release
 
-    - name: Test core
-      run: dotnet test CoreEx.Core.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core --verbosity normal -- RunConfiguration.MaxCpuCount=1
+    - name: Test core (parallel)
+      run: dotnet test CoreEx.Core.Test.Parallel.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core
+
+    - name: Test core (sequential)
+      run: dotnet test CoreEx.Core.Test.Sequential.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core --verbosity normal -- RunConfiguration.MaxCpuCount=1
 
     - name: Upload core test results
       if: always()
