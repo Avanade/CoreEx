@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/v3.0.0/schema/dbex.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/main/schema/dbex.json
 schema: products
 outbox: true
 outboxName: outbox

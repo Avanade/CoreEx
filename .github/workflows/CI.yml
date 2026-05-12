@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'samples/**'
+      - 'gen/**'
+      - 'servicebus/**'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'samples/**'
+      - 'gen/**'
+      - 'servicebus/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Start containers
+      run: docker compose up -d
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.x
+          9.x
+          10.x
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Restore .NET tools
+      run: dotnet tool restore
+
+    - name: Restore (all)
+      run: dotnet restore CoreEx.sln --verbosity minimal
+
+    # --- Core ---
+
+    - name: Build core (src)
+      run: dotnet build src --no-restore --configuration Release
+
+    - name: Build core (tests)
+      run: dotnet build tests --no-restore --configuration Release
+
+    - name: Test core (tests)
+      run: dotnet test tests --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/core
+
+    - name: Upload core test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: core-test-results
+        path: "tests/**/*.trx"
+        retention-days: 30
+
+    # --- Samples ---
+
+    - name: Build samples (samples/src)
+      run: dotnet build samples/src --no-restore --configuration Release
+
+    - name: Build samples (samples/tests)
+      run: dotnet build samples/tests --no-restore --configuration Release
+
+    - name: Database tool (samples/src/Contoso.Products.Database)
+      working-directory: samples/src/Contoso.Products.Database
+      run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Database tool (samples/src/Contoso.Shopping.Database)
+      working-directory: samples/src/Contoso.Shopping.Database
+      run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Database tool (samples/src/Contoso.Orders.Database)
+      working-directory: samples/src/Contoso.Orders.Database
+      run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Test samples (samples/tests)
+      run: dotnet test samples/tests --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/samples -p:TestTfmsInParallel=false
+
+    - name: Upload samples test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: samples-test-results
+        path: "samples/tests/**/*.trx"
+        retention-days: 30
+
+    # --- Coverage ---
+
+    - name: Merge and generate coverage report
+      if: always()
+      run: |
+        reportgenerator \
+          -reports:"coverage/**/coverage.cobertura.xml" \
+          -targetdir:"coverage/report" \
+          -reporttypes:"HtmlInline_AzurePipelines;Cobertura;Badges" \
+          -assemblyfilters:"-*Test*;-*E2E*"
+
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/report
+        retention-days: 30
+
+    # --- Cleanup ---
+
+    - name: Capture container logs on failure
+      if: failure()
+      run: docker compose logs --no-color > container-logs.txt 2>&1
+
+    - name: Upload container logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: container-logs
+        path: container-logs.txt
+        retention-days: 30
+
+    - name: Stop containers
+      if: always()
+      run: docker compose down
