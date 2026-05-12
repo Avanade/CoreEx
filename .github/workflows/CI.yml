@@ -57,13 +57,13 @@ jobs:
     - name: Restore (all)
       run: dotnet restore CoreEx.sln --verbosity minimal
 
-    - name: Build (all)
-      run: dotnet build CoreEx.sln --no-restore --configuration Release
-
     # --- Core ---
 
-    - name: Test core (tests)
-      run: dotnet test tests --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/core
+    - name: Build core
+      run: dotnet build CoreEx.Core.slnf --no-restore --configuration Release
+
+    - name: Test core
+      run: dotnet test CoreEx.Core.slnf --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/core
 
     - name: Upload core test results
       if: always()
@@ -75,11 +75,8 @@ jobs:
 
     # --- Samples ---
 
-    - name: Build samples (samples/src)
-      run: find samples/src -name "*.csproj" | xargs -I {} dotnet build {} --no-restore --configuration Release
-
-    - name: Build samples (samples/tests)
-      run: find samples/tests -name "*.csproj" | xargs -I {} dotnet build {} --no-restore --configuration Release
+    - name: Build samples
+      run: dotnet build CoreEx.Samples.slnf --no-restore --configuration Release
 
     - name: Database tool (samples/src/Contoso.Products.Database)
       working-directory: samples/src/Contoso.Products.Database
@@ -93,8 +90,8 @@ jobs:
       working-directory: samples/src/Contoso.Orders.Database
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
 
-    - name: Test samples (samples/tests)
-      run: dotnet test samples/tests --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/samples -p:TestTfmsInParallel=false
+    - name: Test samples
+      run: dotnet test CoreEx.Samples.slnf --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage" --results-directory coverage/samples -p:TestTfmsInParallel=false
 
     - name: Upload samples test results
       if: always()
