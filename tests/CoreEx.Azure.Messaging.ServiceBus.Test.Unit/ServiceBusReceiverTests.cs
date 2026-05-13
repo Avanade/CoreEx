@@ -201,7 +201,7 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
 
                 // On the first run, we may encounter a transient error that causes the circuit breaker to trip and the receiver to pause; in which case,
                 // we'll retry once more to ensure the test covers the full cycle of tripping and recovering.
-                Test.Logger.LogWarning(ex, "An exception occurred during the first run of the circuit breaker test; retrying once more to ensure coverage of the full cycle.");
+                Test.Logger.LogWarning(ex, "----- An exception occurred during the first run of the circuit breaker test; retrying once more to ensure coverage of the full cycle. -----");
             }
         }
     }
