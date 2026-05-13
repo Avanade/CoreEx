@@ -66,7 +66,7 @@ jobs:
       run: dotnet test CoreEx.Core.Test.Parallel.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core
 
     - name: Test core (sequential)
-      run: dotnet test CoreEx.Core.Test.Sequential.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core -p:VSTestMaxCpuCount=1
+      run: dotnet test CoreEx.Core.Test.Sequential.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core -p:BuildInParallel=false
 
     - name: Upload core test results
       if: always()
@@ -94,7 +94,7 @@ jobs:
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
 
     - name: Test samples
-      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples --verbosity normal -p:TestTfmsInParallel=false -p:VSTestMaxCpuCount=1
+      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples --verbosity normal -p:TestTfmsInParallel=false -p:BuildInParallel=false
 
     - name: Upload samples test results
       if: always()
