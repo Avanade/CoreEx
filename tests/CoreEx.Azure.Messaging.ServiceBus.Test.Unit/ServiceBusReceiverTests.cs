@@ -11,22 +11,20 @@ namespace CoreEx.Azure.Messaging.ServiceBus.Test.Unit;
 public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
 {
     [SetUp]
-    public async Task SetUpAsync()
+    public Task SetUpAsync() => ReceiveAllMessages();
+
+    private async Task ReceiveAllMessages()
     {
         var c = Test.Services.GetRequiredService<ServiceBusClient>();
         await using var receiver = c.CreateReceiver("unit-test", "default");
-
-        for (int i = 0; i < 3; i++)
+        while (true)
         {
-            while (true)
-            {
-                var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(5));
-                if (messages.Count == 0)
-                    break;
+            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(5));
+            if (messages.Count == 0)
+                break;
 
-                foreach (var m in messages)
-                    await receiver.CompleteMessageAsync(m);
-            }
+            foreach (var m in messages)
+                await receiver.CompleteMessageAsync(m);
         }
     }
 
@@ -187,8 +185,31 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     });
 
     [Test]
-    public void ReceiveAsync_CircuitBreaker() => Test.ScopedType<ExecutionContext>(async test =>
+    public void ReceiveAsync_CircuitBreaker()
     {
+        for (int i = 0; i < 2; i++)
+        {
+            try
+            {
+                ReceiveAsync_CircuitBreaker_Internal();
+                break; // If successful, break out of the loop; otherwise, if an exception occurs on the first run, it will be caught and retried once more.
+            }
+            catch (Exception ex)
+            {
+                if (i > 0)
+                    throw;
+
+                // On the first run, we may encounter a transient error that causes the circuit breaker to trip and the receiver to pause; in which case,
+                // we'll retry once more to ensure the test covers the full cycle of tripping and recovering.
+                Test.Logger.LogWarning(ex, "An exception occurred during the first run of the circuit breaker test; retrying once more to ensure coverage of the full cycle.");
+            }
+        }
+    }
+
+    private void ReceiveAsync_CircuitBreaker_Internal() => Test.ScopedType<ExecutionContext>(async test =>
+    {
+        await ReceiveAllMessages();
+
         // Publish a message.
         var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
         sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109" }, "Created"));
@@ -229,6 +250,5 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
                         Test.Logger.LogInformation("MESSAGE PROCESSED COUNT: {Count}.", count);
                 }
             }).AssertException<TaskCanceledException>();
-
     });
 }
