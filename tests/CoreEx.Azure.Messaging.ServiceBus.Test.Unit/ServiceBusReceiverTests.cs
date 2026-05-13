@@ -16,14 +16,17 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         var c = Test.Services.GetRequiredService<ServiceBusClient>();
         await using var receiver = c.CreateReceiver("unit-test", "default");
 
-        while (true)
+        for (int i = 0; i < 3; i++)
         {
-            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(1));
-            if (messages.Count == 0)
-                break;
+            while (true)
+            {
+                var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(5));
+                if (messages.Count == 0)
+                    break;
 
-            foreach (var m in messages)
-                await receiver.CompleteMessageAsync(m);
+                foreach (var m in messages)
+                    await receiver.CompleteMessageAsync(m);
+            }
         }
     }
 

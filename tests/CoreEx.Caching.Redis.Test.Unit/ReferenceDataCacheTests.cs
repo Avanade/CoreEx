@@ -114,7 +114,7 @@ public class ReferenceDataCacheTests : WithGenericTester<EntryPoint>
         // Should be from the distributed cache, so log should indicate that.
         Test.ScopedType<ExecutionContext>(test =>
         {
-            test.ExpectLogContains("calling the factory")
+            test.ExpectLogContains("[MC] memory entry not found")
                 .Run(async _ =>
                 {
                     var rdo = test.Services.GetRequiredService<ReferenceDataOrchestrator>();
