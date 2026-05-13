@@ -67,7 +67,7 @@ public abstract class ServiceBusReceiverBase<TSubscriber>(ServiceBusClient clien
             return await result
                 .OnFailure(r => MessageRetryErrorDetermination(r, Options, Logger))
                 .OnFailureAsync(r => MessageErrorActionAsync(r.Error!, actions, cancellationToken))
-                .OnFailure(async r =>
+                .OnFailureAsync(async r =>
                 {
                     if (r.Error is IEventSubscriberException esex && esex.ErrorHandling == ErrorHandling.Catastrophic && Options.PauseReceiverOnCatastrophicError)
                     {
