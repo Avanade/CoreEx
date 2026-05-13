@@ -94,7 +94,7 @@ jobs:
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
 
     - name: Test samples
-      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples --verbosity normal -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
+      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
 
     - name: Upload samples test results
       if: always()
@@ -109,7 +109,7 @@ jobs:
     - name: Merge and generate coverage report
       if: always()
       run: |
-        reportgenerator \
+        dotnet tool run reportgenerator \
           -reports:"coverage/**/coverage.cobertura.xml" \
           -targetdir:"coverage/report" \
           -reporttypes:"HtmlInline_AzurePipelines;Cobertura;Badges" \
