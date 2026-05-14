@@ -46,7 +46,7 @@ public readonly record struct SqlStatement
     public static SqlStatement FromResource<TResource>(string resourceName) => FromResource(resourceName, typeof(TResource).Assembly);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SqlStatement"/> class.
+    /// Initializes a new instance of the <see cref="SqlStatement"/> struct.
     /// </summary>
     /// <param name="commandType">The <see cref="System.Data.CommandType"/>.</param>
     /// <param name="commandText">The command text.</param>
@@ -54,7 +54,13 @@ public readonly record struct SqlStatement
     {
         CommandType = commandType;
         CommandText = commandText.ThrowIfNullOrEmpty();
+        IsIndeterminate = false;
     }
+
+    /// <summary>
+    /// Initializes a new <see cref="Indeterminate"/> instance of the <see cref="SqlStatement"/> struct.
+    /// </summary>
+    public SqlStatement() => IsIndeterminate = true;
 
     /// <summary>
     /// Gets the <see cref="System.Data.CommandType"/>.
@@ -64,12 +70,12 @@ public readonly record struct SqlStatement
     /// <summary>
     /// Gets the command text.
     /// </summary>
-    public string CommandText { get => field ?? throw new InvalidOperationException($"{nameof(CommandText)} is not initialized; the {nameof(SqlStatement)} is indeterminate."); }
+    public string CommandText => field ?? throw new InvalidOperationException($"{nameof(CommandText)} is not initialized; the {nameof(SqlStatement)} is indeterminate.");
 
     /// <summary>
     /// Indicates whether the <see cref="SqlStatement"/> is indeterminate (i.e. has not been initialized with a command text).
     /// </summary>
-    public bool IsIndeterminate => CommandText is null;
+    public bool IsIndeterminate { get; }
 
     /// <summary>
     /// An implicit cast from a text <see cref="string"/> to a <see cref="SqlStatement"/> (<see cref="System.Data.CommandType.Text"/>).

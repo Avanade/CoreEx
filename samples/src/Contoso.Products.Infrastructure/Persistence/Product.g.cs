@@ -55,7 +55,7 @@ public partial class Product : ModelBase<string>, ILogicallyDeleted
     public bool IsNonStocked { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the '<c>is_deleted</c>' column (type '<c>BOOLEAN NULL</c>'); see <see cref="ILogicallyDeleted.IsDeleted"/>.
+    /// Gets or sets the value of the '<c>is_deleted</c>' column (type '<c>BOOLEAN</c>'); see <see cref="ILogicallyDeleted.IsDeleted"/>.
     /// </summary>
     public bool IsDeleted { get; set; }
 }

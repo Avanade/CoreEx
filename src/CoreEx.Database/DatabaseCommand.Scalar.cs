@@ -28,6 +28,8 @@ public abstract partial class DatabaseCommand
 
         if (result is DateTime dt)
         {
+            dt = Cleaner.Clean(dt, Database.DateTimeTransform);
+
             if (typeof(T) == typeof(DateTimeOffset))
             {
                 var dto = new DateTimeOffset(dt);

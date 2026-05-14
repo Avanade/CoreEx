@@ -3,7 +3,7 @@
 /// <summary>
 /// Extends the <see cref="DatabaseColumns"/> configuring/adding PostgreSQL specific columns.
 /// </summary>
-/// <remarks>All are initialized using the defacto PostgreSQL snake_case convention.
+/// <remarks>All are initialized using the de facto PostgreSQL snake_case convention.
 /// <para>The <see cref="DatabaseColumns.RowVersionName"/> is mapped to the PostgreSQL-specific column name <c>xmin</c>. This is a PostgreSQL system column (hidden); see <see href="https://www.postgresql.org/docs/current/ddl-system-columns.html#DDL-SYSTEM-COLUMNS"/> 
 /// and <see href="https://www.npgsql.org/efcore/modeling/concurrency.html"/> for more information.</para></remarks>
 public record PostgresDatabaseColumns : DatabaseColumns

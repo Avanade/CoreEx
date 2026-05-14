@@ -25,7 +25,6 @@
     <!-- Read versions from CPM PackageVersion items. -->
     <ItemGroup>
       <_HandlebarsVersion Include="@(PackageVersion)" Condition="'%(Identity)' == 'Handlebars.Net'" />
-      <_PluralizeVersion Include="@(PackageVersion)" Condition="'%(Identity)' == 'Pluralize.NET'" />
     </ItemGroup>
 
     <ItemGroup>
@@ -33,7 +32,7 @@
             Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
       <None Include="$(_NuGetPackagesDir)handlebars.net\%(_HandlebarsVersion.Version)\lib\netstandard2.0\Handlebars.dll"
             Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-      <None Include="$(_NuGetPackagesDir)pluralize.net\%(_PluralizeVersion.Version)\lib\netstandard2.0\Pluralize.NET.dll"
+      <None Include="../../gen/CoreEx.Generator/bin/$(Configuration)/netstandard2.0/Pluralize.NET.dll"
             Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
   </Target>

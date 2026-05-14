@@ -17,7 +17,7 @@ public abstract partial class DatabaseCommand(IDatabase db, SqlStatement stateme
     /// <summary>
     /// Gets the <see cref="SqlStatement"/>.
     /// </summary>
-    public SqlStatement Statement { get; } = statement.ThrowIfNull().ThrowWhen(statement => statement == SqlStatement.Indeterminate, "A SQL statement of None is not considered valid for execution.");
+    public SqlStatement Statement { get; } = statement.ThrowIfNull();
 
     /// <summary>
     /// Gets the <see cref="DatabaseArgs"/> for the command.

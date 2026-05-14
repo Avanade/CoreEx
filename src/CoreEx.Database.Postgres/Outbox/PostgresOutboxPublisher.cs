@@ -40,7 +40,7 @@ public class PostgresOutboxPublisher : DatabaseOutboxPublisherBase<PostgresDatab
         if (Statement.CommandType != CommandType.Text)
             throw new InvalidOperationException($"The {nameof(Statement)}.{nameof(Statement.CommandType)} must be {nameof(CommandType.Text)}.");
 
-        // For each into batch of up to 'StatementBatchSize' events to persist, to eek out better performance by reducing the number of round trips to the database.
+        // For each into batch of up to 'StatementBatchSize' events to persist, to eke out better performance by reducing the number of round trips to the database.
         foreach (var chunk in events.Chunk(StatementBatchSize))
         {
             var sb = new StringBuilder();

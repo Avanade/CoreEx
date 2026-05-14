@@ -177,6 +177,9 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection
     protected virtual void Dispose(bool disposing)
     {
         if (disposing && !_disposed)
-             _disposed = true;
+        {
+            _disposed = true;
+            _semaphore.Dispose();
+        }
     }
 }

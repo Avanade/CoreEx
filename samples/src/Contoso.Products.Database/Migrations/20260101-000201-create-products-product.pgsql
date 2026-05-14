@@ -16,7 +16,7 @@ CREATE TABLE "products"."product" (
   "created_on" TIMESTAMPTZ NULL,
   "updated_by" VARCHAR(250) NULL,
   "updated_on" TIMESTAMPTZ NULL,
-  "is_deleted" BOOLEAN DEFAULT FALSE
+  "is_deleted" BOOLEAN DEFAULT FALSE NOT NULL
 );
 
 COMMIT TRANSACTION;

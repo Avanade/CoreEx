@@ -26,9 +26,9 @@ CREATE INDEX "ix_products_outbox_worker_pull" ON "products"."outbox" ("tenant_id
 CREATE INDEX "ix_products_outbox_clean_up" ON "products"."outbox" ("outbox_id", "dequeued_utc") WHERE "status" = 2;
 
 CREATE TABLE "products"."outbox_lease" (
-  "tenant_id" VARCHAR(255) NOT NULL,      -- '(none)' null indicates no tenancy.
+  "tenant_id" VARCHAR(255) NOT NULL,      -- '(none)' indicates no tenancy.
   "partition_id" INTEGER NOT NULL,        -- Partition number; computed in application from partition-key.
-  "lease_id" UUID NULL,                   -- Unique identifier of the leasee.
+  "lease_id" UUID NULL,                   -- Unique identifier of the lessee.
   "lease_until_utc" TIMESTAMPTZ NULL,     -- Leased until UTC; after which assume released due to possible application crash.
 
   CONSTRAINT "pk_products_outbox_lease" PRIMARY KEY ("tenant_id", "partition_id")
