@@ -22,7 +22,7 @@ BEGIN
   BEGIN TRY
     BEGIN TRAN;
 
-    -- 1) Release lease where leasee.
+    -- 1) Release lease where lessee.
     UPDATE ol
       SET ol.[LeaseId] = NULL,
           ol.[LeaseUntilUtc] = NULL
