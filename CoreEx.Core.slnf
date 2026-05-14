@@ -2,7 +2,6 @@
   "solution": {
     "path": "CoreEx.sln",
     "projects": [
-      "gen/CoreEx.Generator/CoreEx.Generator.csproj",
       "src/CoreEx/CoreEx.csproj",
       "src/CoreEx.AspNetCore/CoreEx.AspNetCore.csproj",
       "src/CoreEx.AspNetCore.NSwag/CoreEx.AspNetCore.NSwag.csproj",
