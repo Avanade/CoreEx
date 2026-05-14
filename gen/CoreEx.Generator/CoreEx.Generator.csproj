@@ -63,7 +63,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
     <PackageReference Include="Pluralize.NET" PrivateAssets="all" GeneratePathProperty="true" />
-    <!-- StrongNamer required for strong-naming Pluarlize.NET which is not signed. -->
+    <!-- StrongNamer required for strong-naming Pluralize.NET which is not signed. -->
     <PackageReference Include="StrongNamer" PrivateAssets="all" />
   </ItemGroup>
 

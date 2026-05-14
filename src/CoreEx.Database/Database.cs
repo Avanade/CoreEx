@@ -171,7 +171,7 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection
     }
 
     /// <summary>
-    /// Releases the unmanaged resources used by the <see cref="ExecutionContext"/> and optionally releases the managed resources.
+    /// Releases the unmanaged resources used by the <see cref="Database"/> and optionally releases the managed resources.
     /// </summary>
     /// <param name="disposing"><see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
     protected virtual void Dispose(bool disposing)

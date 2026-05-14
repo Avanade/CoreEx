@@ -16,14 +16,14 @@ BEGIN
    *  -1 = No rows updated (e.g. already released or invalid lease_id).
    *
    * Notes:
-   * - The function will return -1 where release is unsuccessful, including where the lease is already released or where a transient error occurs (e.g. lock timeout).
+   * - The function will return -1 where release is unsuccessful, including where the lease is already released.
    */
 
   -- Set transaction parameters
   SET LOCAL lock_timeout = '5s';
   SET LOCAL transaction_isolation = 'read committed';
 
-  -- 1) Release lease where leasee.
+  -- 1) Release lease where lessee.
   UPDATE "products"."outbox_lease" AS ol
     SET "lease_id" = NULL,
         "lease_until_utc" = NULL

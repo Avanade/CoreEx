@@ -37,7 +37,7 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 ### CoreEx-First Patterns
 - Prefer CoreEx primitives before introducing external libraries that overlap with framework capabilities.
 - Prefer CoreEx exception types (`NotFoundException`, `ValidationException`, `BusinessException`, `ConcurrencyException`, etc.) and CoreEx `Result`/`Result<T>` flows over custom error wrappers.
-- Do not introduce AutoMapper unless the user explicitly requests it. Repositories and services use explicit mapping helpers/classes.
+- Do not introduce AutoMapper in any repository unless the repository maintainer explicitly requests it. Repositories and services use explicit mapping helpers/classes.
 
 ### Contracts and Source Generation
 - Contracts are commonly declared as `[Contract] public partial class ...`.
@@ -97,6 +97,12 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 - Use `GlobalUsing.cs` per project; do not scatter `using` directives.
 - Always use `.ConfigureAwait(false)` in service/repository code.
 
+### Generated Code
+- Do not edit generated code directly. If changes are needed, update the source templates or generation logic.
+- Generated code files are typically marked with a comment at the top indicating they are auto-generated and should not be edited manually.
+- Generated code also has the file name pattern `*.g.cs`, `*.g.sql`, `*.g.pgsql` or similar to indicate its nature.
+- Copilot should not suggest edits to generated code files. If it does, the suggestion should be rejected or redirected to the source templates.
+
 ## Key Docs to Read Before Large Changes
 - `README.md` for repo-level positioning and top-level commands.
 - `samples\README.md` for the runnable Contoso architecture and local setup.
@@ -119,7 +125,7 @@ The following prompts and skills are available in this repository. Type `/` in c
 
 When creating or maintaining Copilot instruction files and skills:
 
-- **Instruction files** (`.instructions.md`) — see [INSTRUCTION_AUTHORING.md](.github/INSTRUCTION_AUTHORING.md) for standards on YAML frontmatter, section order, and content rules.
-- **Skill files** (`SKILL.md`) — see [SKILL_AUTHORING.md](.github/SKILL_AUTHORING.md) for the directory structure pattern (`references/`, `assets/`), lean main file rules (<300 lines), and cross-referencing guidelines.
+- **Instruction files** (`.instructions.md`) — see [INSTRUCTION_AUTHORING.md](./INSTRUCTION_AUTHORING.md) for standards on YAML frontmatter, section order, and content rules.
+- **Skill files** (`SKILL.md`) — see [SKILL_AUTHORING.md](./SKILL_AUTHORING.md) for the directory structure pattern (`references/`, `assets/`), lean main file rules (<300 lines), and cross-referencing guidelines.
 
 Both documents define durable patterns for creating guidance that is discoverable, maintainable, and context-efficient.

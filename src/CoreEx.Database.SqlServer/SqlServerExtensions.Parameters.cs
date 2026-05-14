@@ -86,7 +86,7 @@ public static partial class SqlServerExtensions
     /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
     /// <param name="with">The value <b>with</b> which to verify is non-default.</param>
     /// <param name="name">The parameter name.</param>
-    /// <param name="value">The parameter value; where not specified the <paramref name="with"/> vaue will be used.</param>
+    /// <param name="value">The parameter value; where not specified the <paramref name="with"/> value will be used.</param>
     /// <param name="sqlDbType">The parameter <see cref="SqlDbType"/>.</param>
     /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
     /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>

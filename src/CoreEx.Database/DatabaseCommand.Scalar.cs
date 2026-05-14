@@ -23,7 +23,7 @@ public abstract partial class DatabaseCommand
         parameters?.Invoke(cmd.Parameters);
         var result = await LogCommand(cmd).ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
-        if (result is null)
+        if (result is null || result == DBNull.Value)
             return default!;
 
         if (result is DateTime dt)

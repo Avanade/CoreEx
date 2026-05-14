@@ -38,7 +38,7 @@ BEGIN
   SET LOCAL lock_timeout = '5s';
   SET LOCAL transaction_isolation = 'read committed';
 
-  _now := NOW() AT TIME ZONE 'UTC';
+  _now := NOW();
   _effective_tenant_id := COALESCE(p_tenant_id, '(none)');
 
   -- 1) Acquire a partition lease; exit where unsuccessful.

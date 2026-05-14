@@ -8,7 +8,7 @@ public readonly record struct SqlStatement
     /// <summary>
     /// Gets an indeterminate <see cref="SqlStatement"/>.
     /// </summary>
-    public static SqlStatement None { get; } = new SqlStatement();
+    public static SqlStatement Indeterminate { get; } = new SqlStatement();
 
     /// <summary>
     /// Creates a stored procedure <see cref="SqlStatement"/>.
@@ -64,7 +64,12 @@ public readonly record struct SqlStatement
     /// <summary>
     /// Gets the command text.
     /// </summary>
-    public string CommandText { get; }
+    public string CommandText { get => field ?? throw new InvalidOperationException($"{nameof(CommandText)} is not initialized; the {nameof(SqlStatement)} is indeterminate."); }
+
+    /// <summary>
+    /// Indicates whether the <see cref="SqlStatement"/> is indeterminate (i.e. has not been initialized with a command text).
+    /// </summary>
+    public bool IsIndeterminate => CommandText is null;
 
     /// <summary>
     /// An implicit cast from a text <see cref="string"/> to a <see cref="SqlStatement"/> (<see cref="System.Data.CommandType.Text"/>).

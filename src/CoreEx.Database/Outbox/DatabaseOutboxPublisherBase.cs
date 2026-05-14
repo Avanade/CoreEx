@@ -18,8 +18,8 @@ public abstract class DatabaseOutboxPublisherBase<TDatabase>(TDatabase database,
     /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to persist each event to the underlying outbox store.
     /// </summary>
-    /// <remarks>Defaults to <see cref="SqlStatement.None"/>.</remarks>
-    public virtual SqlStatement Statement { get; set; } = SqlStatement.None;
+    /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
+    public virtual SqlStatement Statement { get; set; } = SqlStatement.Indeterminate;
 
     /// <summary>
     /// Gets or sets the maximum number of statements to include in a single batch operation.

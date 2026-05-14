@@ -4,7 +4,7 @@ BEGIN TRANSACTION
 
 CREATE TABLE [Shopping].[Outbox] (
   [OutboxId] BIGINT IDENTITY (1, 1) NOT NULL PRIMARY KEY,
-  [TenantId] NVARCHAR(255) NOT NULL,      -- Optional, null indicates no tenancy.
+  [TenantId] NVARCHAR(255) NOT NULL,      -- '(none)' indicates no tenancy.
   [PartitionId] INT NOT NULL,             -- Partition number; computed in application from partition-key.
   [Status] TINYINT NOT NULL DEFAULT 0,    -- 0=Pending, 1=Processing, 2=Done.
   [EnqueuedUtc] DATETIME2 NOT NULL,       -- When the event was enqueued within application.
@@ -26,7 +26,7 @@ CREATE TABLE [Shopping].[Outbox] (
 );
 
 CREATE TABLE [Shopping].[OutboxLease] (
-  [TenantId] NVARCHAR(255) NOT NULL,      -- Optional, null indicates no tenancy.
+  [TenantId] NVARCHAR(255) NOT NULL,      -- '(none)' indicates no tenancy.
   [PartitionId] INT NOT NULL,             -- Partition number; computed in application from partition-key.
   [LeaseId] UNIQUEIDENTIFIER NULL,        -- Unique identifier of the leasee.
   [LeaseUntilUtc] DATETIME2 NULL          -- Leased until UTC; after which assume released due to possible application crash.

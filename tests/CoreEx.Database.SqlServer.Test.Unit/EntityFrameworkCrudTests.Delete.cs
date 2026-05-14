@@ -34,7 +34,7 @@ public partial class EntityFrameworkCrudTests
     [Test]
     public void Delete_Mapped_Success() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
     {
-        // NOTE: The TableDo is a proxy over the Table, so no need to test independently.
+        // NOTE: The TableDto is a proxy over the Table, so no need to test independently.
 
         var id = 9.ToGuid();
         var ef = ExecutionContext.GetRequiredService<TestEfDb>();

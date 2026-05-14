@@ -111,7 +111,7 @@ public class EntityFrameworkQueryTests : DatabaseTestBase
     }).AssertSuccess());
 
     [Test]
-    public void Query_ToMappedtemsResult_WithPaging() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+    public void Query_ToMappedItemsResult_WithPaging() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
     {
         var ef = ExecutionContext.GetRequiredService<TestEfDb>();
         var q = ef.Table.Query().OrderBy(x => x.Text);

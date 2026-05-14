@@ -37,7 +37,7 @@ public static partial class UnitTestExExtensions
     /// <param name="tester">The <see cref="TesterBase"/>.</param>
     /// <param name="configureMigrationArgs">The function to further configure the <see cref="MigrationArgs"/>.</param>
     /// <param name="connectionString">The database connection string configuration key.</param>
-    /// <remarks>Where the migration is unsuccessful then an <see cref="TestFrameworkImplementor.AssertFail(string?)"/> will be automatically isued.
+    /// <remarks>Where the migration is unsuccessful then an <see cref="TestFrameworkImplementor.AssertFail(string?)"/> will be automatically issued.
     /// <para>The <paramref name="connectionString"/> supports the retrieval of the value from <see cref="TesterBase.Configuration"/> where prefixed with '<c>config:</c>' or '<c>^</c>', or is wrapped with '<c>%</c>'.</para></remarks>
     public static Task MigratePostgresDataAsync<TAssembly>(this TesterBase tester, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null, string connectionString = "^Aspire:Npgsql:ConnectionString")
         => MigratePostgresDataAsync(tester, configureMigrationArgs, connectionString, typeof(TAssembly).Assembly);
@@ -49,7 +49,7 @@ public static partial class UnitTestExExtensions
     /// <param name="configureMigrationArgs">The function to further configure the <see cref="MigrationArgs"/>.</param>
     /// <param name="connectionString">The database connection string configuration key.</param>
     /// <param name="assemblies">Zero or more assemblies to add to the migration args (see <see cref="MigrationArgsBase{TSelf}.AddAssembly(Assembly[])"/>).</param>
-    /// <remarks>Where the migration is unsuccessful then an <see cref="TestFrameworkImplementor.AssertFail(string?)"/> will be automatically isued.
+    /// <remarks>Where the migration is unsuccessful then an <see cref="TestFrameworkImplementor.AssertFail(string?)"/> will be automatically issued.
     /// <para>The <paramref name="connectionString"/> supports the retrieval of the value from <see cref="TesterBase.Configuration"/> where prefixed with '<c>config:</c>' or '<c>^</c>', or is wrapped with '<c>%</c>'.</para></remarks>
     public static async Task MigratePostgresDataAsync(this TesterBase tester, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null, string connectionString = "^Aspire:Npgsql:ConnectionString", params Assembly[] assemblies)
     {
@@ -63,7 +63,7 @@ public static partial class UnitTestExExtensions
         if (assemblies.Length > 0)
             ma.AddAssembly(assemblies);
 
-        // Execute the sql-server migration.
+        // Execute the PostgreSQL migration.
         using var m = new PostgresMigration(ma);
         var (Success, Output) = await m.MigrateAndLogAsync().ConfigureAwait(false);
 

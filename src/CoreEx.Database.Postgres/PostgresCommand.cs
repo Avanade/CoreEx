@@ -1,7 +1,7 @@
 ﻿namespace CoreEx.Database.Postgres;
 
 /// <summary>
-/// Provides extended <see href="https://learn.microsoft.com/en-us/sql/">SQL Server</see> <see cref="DatabaseCommand{TDatabaseArgs, TSelf}"/> capabilities.
+/// Provides extended <see href="https://www.npgsql.org/">Npgsql (PostgreSQL)</see> <see cref="DatabaseCommand{TDatabaseArgs, TSelf}"/> capabilities.
 /// </summary>
 /// <param name="db">The <see cref="IDatabase"/>.</param>
 /// <param name="statement">The <see cref="SqlStatement"/>.</param>

@@ -32,6 +32,24 @@ public class PostgresOutboxRelay(PostgresDatabase database, IEventPublisher even
     }
 
     /// <inheritdoc/>
+    protected override bool IsTransientException(Exception exception)
+    {
+        if (exception is NpgsqlException nex)
+        {
+            if (nex.IsTransient)
+                return true;
+
+            switch (nex.SqlState)
+            {
+                case "40P01": return true;  // deadlock_detected: https://www.postgresql.org/docs/current/errcodes-appendix.html
+                case "55P03": return true;  // lock_not_available: https://www.postgresql.org/docs/current/errcodes-appendix.html
+            }
+        }
+
+        return base.IsTransientException(exception);
+    }
+
+    /// <inheritdoc/>
     protected async override Task CompleteBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
     {
         await base.CompleteBatchAsync(args, leaseId, cancellationToken);

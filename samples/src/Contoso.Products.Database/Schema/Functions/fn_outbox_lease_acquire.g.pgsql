@@ -23,7 +23,7 @@ BEGIN
    *   return_code -1 = Lease not acquired; caller should backoff and retry.
    *
    * Notes:
-   * - The function will return -1 where lease acquisition is unsuccessful, including where another active lease exists or where a transient error occurs (e.g. lock timeout).
+   * - The function will return -1 where lease acquisition is unsuccessful, including where another active lease exists.
    * - The caller should implement an appropriate retry/backoff strategy where -1 is returned, including randomization to avoid thundering herd issues.
    */
 
@@ -31,7 +31,7 @@ BEGIN
   SET LOCAL lock_timeout = '5s';
   SET LOCAL transaction_isolation = 'read committed';
 
-  _now := NOW() AT TIME ZONE 'UTC';
+  _now := NOW();
   _until := _now + (p_lease_seconds || ' seconds')::INTERVAL;
   _effective_tenant_id := COALESCE(p_tenant_id, '(none)');
 

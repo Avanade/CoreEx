@@ -49,20 +49,20 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
     /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to <i>claim</i> the next batch of events from the <see cref="Database"/>.
     /// </summary>
-    /// <remarks>Defaults to <see cref="SqlStatement.None"/>.</remarks>
-    public virtual SqlStatement ClaimBatchStatement { get; set; } = SqlStatement.None;
+    /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
+    public virtual SqlStatement ClaimBatchStatement { get; set; } = SqlStatement.Indeterminate;
 
     /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to <i>complete</i> the batch of events from the <see cref="Database"/>.
     /// </summary>
-    /// <remarks>Defaults to <see cref="SqlStatement.None"/>.</remarks>
-    public virtual SqlStatement CompleteBatchStatement { get; set; } = SqlStatement.None;
+    /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
+    public virtual SqlStatement CompleteBatchStatement { get; set; } = SqlStatement.Indeterminate;
 
     /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to <i>cancel</i> the batch of events from the <see cref="Database"/>.
     /// </summary>
-    /// <remarks>Defaults to <see cref="SqlStatement.None"/>.</remarks>
-    public virtual SqlStatement CancelBatchStatement { get; set; } = SqlStatement.None;
+    /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
+    public virtual SqlStatement CancelBatchStatement { get; set; } = SqlStatement.Indeterminate;
 
     /// <summary>
     /// Indicates whether instrumentation is enabled for the polling.

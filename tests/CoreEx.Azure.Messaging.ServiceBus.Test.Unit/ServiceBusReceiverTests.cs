@@ -1,4 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus;
+using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.Events.Publishing;
 using CoreEx.Hosting;
@@ -162,7 +163,7 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         };
 
         // Act and assert.
-        Test.ExpectLogContains("Received product with Id: 99 and Sku: SKU-099.")
+        var assertor = Test.ExpectLogContains("Received product with Id: 99 and Sku: SKU-099.")
             .ExpectLogContains("A Catastrophic error has occurred within the service bus receiver for subscriber 'ServiceBusSubscribedSubscriber'. Abandoning the message and pausing the receiver.")
             .ExpectLogContains("AbandonAsync done.")
             .ExpectLogContains("Azure Service Bus receiver: Pausing.")
@@ -189,53 +190,44 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     {
         for (int i = 0; i < 2; i++)
         {
-            try
-            {
-                ReceiveAsync_CircuitBreaker_Internal();
-                break; // If successful, break out of the loop; otherwise, if an exception occurs on the first run, it will be caught and retried once more.
-            }
-            catch (Exception)
-            {
-                if (i > 0)
-                    throw;
+            // If successful, break out of the loop; otherwise, retry once.
+            if (ReceiveAsync_CircuitBreaker_Internal())
+                break; 
 
-                // NUnit records assertion failures into its TestExecutionContext before throwing, so even though the exception is caught above, the first-pass failure is already registered.
-                // Explicitly reset the test result here to clear any recorded failures so the retry attempt is treated as a clean run.
-                NUnit.Framework.Internal.TestExecutionContext.CurrentContext.CurrentResult
-                    .SetResult(NUnit.Framework.Interfaces.ResultState.Success);
-            }
+            if (i > 0)
+               Assert.Fail("The circuit breaker did not trip as expected. This has been attempted twice.");
         }
     }
 
-    private void ReceiveAsync_CircuitBreaker_Internal() => Test.ScopedType<ExecutionContext>(async test =>
+    private bool ReceiveAsync_CircuitBreaker_Internal()
     {
-        await ReceiveAllMessages();
+        bool circuitBreakerTripped = false;
 
-        // Publish a message.
-        var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
-        sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109" }, "Created"));
-        sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.1" }, "Created"));
-        sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.2" }, "Created"));
-        await sp.PublishAsync();
+        Test.ScopedType<ExecutionContext>(async test =>
+        {
+            await ReceiveAllMessages();
 
-        // Create using the root services (not scoped).
-        var o = ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default");
-        o.ReceiverResiliency = ServiceBusReceiverResiliency.CreateReceiverCircuitBreakerResiliency(5, TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(333));
-        o.PerUnhandledErrorDelayDuration = TimeSpan.FromMilliseconds(100);
+            // Publish a message.
+            var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
+            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109" }, "Created"));
+            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.1" }, "Created"));
+            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.2" }, "Created"));
+            await sp.PublishAsync();
 
-        var sbr = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, o);
+            // Create using the root services (not scoped).
+            var o = ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default");
+            o.ReceiverResiliency = ServiceBusReceiverResiliency.CreateReceiverCircuitBreakerResiliency(5, TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(333));
+            o.PerUnhandledErrorDelayDuration = TimeSpan.FromMilliseconds(100);
 
-        var count = 0;
-        sbr.MessageProcessed += (sender, e) => count++;
+            var sbr = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, o);
 
-        var cts = new CancellationTokenSource();
-        cts.CancelAfter(30000); // Ensure test doesn't run indefinitely.
+            var count = 0;
+            sbr.MessageProcessed += (sender, e) => count++;
 
-        Test.ExpectLogContains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; receiver will be paused.")
-            .ExpectLogContains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; receiver will be paused.")
-            .ExpectLogContains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; receiver will be paused.")
-            .ExpectLogContains("Service bus receiver circuit breaker is attempting to recover in a limited state; receiver has been resumed.")
-            .Run(async () =>
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(30000); // Ensure test doesn't run indefinitely.
+
+            var assertor = Test.Run(async () =>
             {
                 try
                 {
@@ -251,5 +243,13 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
                         Test.Logger.LogInformation("MESSAGE PROCESSED COUNT: {Count}.", count);
                 }
             }).AssertException<TaskCanceledException>();
-    });
+
+            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; receiver will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; receiver will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; receiver will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; receiver has been resumed.") == true);
+        });
+
+        return circuitBreakerTripped;
+    }
 }

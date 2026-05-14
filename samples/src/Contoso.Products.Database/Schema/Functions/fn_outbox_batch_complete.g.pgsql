@@ -22,7 +22,7 @@ BEGIN
   SET LOCAL lock_timeout = '5s';
   SET LOCAL transaction_isolation = 'read committed';
 
-  _now := NOW() AT TIME ZONE 'UTC';
+  _now := NOW();
 
   -- 1) Complete all rows in the batch.
   UPDATE "products"."outbox" AS o
