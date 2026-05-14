@@ -11,7 +11,7 @@ builder.AddProject<Projects.Contoso_Shopping_Outbox_Relay>("shopping-outbox-rela
 builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Orders domain.
-var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Worker>("order-workflow-worker").AddEndpoints("/health");
+var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Worker>("order-workflow-worker").AddEndpoints("/health").WithUrlForEndpoint("https", ep => { ep.Url = "http://localhost:8082"; ep.DisplayText = "DTS Dashboard"; });
 builder.AddProject<Projects.Contoso_Orders_Api>("orders-api").WaitFor(orderWorkflowWorker).AddEndpoints("/health/ready/detailed");
 
 builder.Build().Run();
