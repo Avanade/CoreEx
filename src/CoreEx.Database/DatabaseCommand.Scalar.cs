@@ -41,6 +41,8 @@ public abstract partial class DatabaseCommand
                 DateTimeOffset? dto = new DateTimeOffset(dt);
                 return Internal.Cast<DateTimeOffset?, T>(dto);
             }
+
+            result = dt;
         }
 
         return (T)result;
