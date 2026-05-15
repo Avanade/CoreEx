@@ -9,6 +9,12 @@ on:
       - 'samples/**'
       - 'gen/**'
       - 'servicebus/**'
+      - 'Directory.Packages.props'
+      - 'docker-compose.yml'
+      - '*.slnf'
+      - '*.sln'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/CI.yml'
   pull_request:
     paths:
       - 'src/**'
@@ -16,6 +22,12 @@ on:
       - 'samples/**'
       - 'gen/**'
       - 'servicebus/**'
+      - 'Directory.Packages.props'
+      - 'docker-compose.yml'
+      - '*.slnf'
+      - '*.sln'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/CI.yml'
   workflow_dispatch:
 
 concurrency:
