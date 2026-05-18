@@ -7,7 +7,7 @@ namespace UnitTestEx;
 /// </summary>
 public static partial class UnitTestExExtensions
 {
-    private static readonly HashSet<string> _connectionStrings = [];
+    private static readonly ConcurrentDictionary<string, byte> _connectionStrings = [];
 
     /// <summary>
     /// Enables an <see cref="ExecutionContext"/> instance to be tested managed within a <see cref="TesterBase.Services"/> <see cref="ServiceProviderServiceExtensions.CreateScope(IServiceProvider)"/>.

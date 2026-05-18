@@ -6,15 +6,16 @@
 /// <typeparam name="TConnection">The <see cref="DbConnection"/> <see cref="Type"/>.</typeparam>
 /// <typeparam name="TCommand">The <see cref="DatabaseCommand{TDatabaseArgs, TSelf}"/> <see cref="Type"/>.</typeparam>
 /// <typeparam name="TDatabaseArgs">The <see cref="DatabaseArgs"/> <see cref="Type"/>.</typeparam>
+/// <typeparam name="TDatabaseColumns">The <see cref="DatabaseColumns"/> <see cref="Type"/>.</typeparam>
 /// <param name="connection">The <typeparamref name="TConnection"/> <see cref="DbConnection"/>.</param>
 /// <param name="invoker">The <see cref="DatabaseInvoker"/>.</param>
+/// <param name="namedColumns">The convention-based column names.</param>
 /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
 /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection connection, DatabaseInvoker invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs>>? logger = null) : IDatabase, IDisposable
-    where TConnection : DbConnection where TCommand : DatabaseCommand<TDatabaseArgs, TCommand> where TDatabaseArgs : DatabaseArgs, new()
+public abstract class Database<TConnection, TCommand, TDatabaseArgs, TDatabaseColumns>(TConnection connection, DatabaseInvoker invoker, TDatabaseColumns namedColumns, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs, TDatabaseColumns>>? logger = null) : IDatabase, IDisposable
+    where TConnection : DbConnection where TCommand : DatabaseCommand<TDatabaseArgs, TCommand> where TDatabaseArgs : DatabaseArgs, new() where TDatabaseColumns : DatabaseColumns
 {
     private static readonly TDatabaseArgs _defaultDbArgs = new();
-    private static readonly DatabaseColumns _defaultColumns = new();
     private static readonly DatabaseWildcard _defaultWildcard = new();
 
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -26,7 +27,7 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection
     public string DatabaseId { get; } = Guid.NewGuid().ToString();
 
     /// <inheritdoc/>
-    public ILogger? Logger { get; } = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection, TCommand, TDatabaseArgs>>>();
+    public ILogger? Logger { get; } = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection, TCommand, TDatabaseArgs, TDatabaseColumns>>>();
 
     /// <inheritdoc/>
     public DatabaseInvoker Invoker { get; } = invoker.ThrowIfNull();
@@ -46,11 +47,12 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(TConnection
     public bool DateTimeOffsetTransform { get; set; } = true;
 
     /// <inheritdoc/>
-    public DatabaseColumns NamedColumns
-    {
-        get => field ?? throw new InvalidOperationException($"{nameof(NamedColumns)} is not initialized.");
-        set => field = value.ThrowIfNull();
-    }
+    DatabaseColumns IDatabase.NamedColumns => NamedColumns;
+
+    /// <summary>
+    /// Gets or sets the names of the convention-based <see cref="Extended.DatabaseColumns"/>.
+    /// </summary>
+    public TDatabaseColumns NamedColumns { get; set; } = namedColumns.ThrowIfNull();
 
     /// <summary>
     /// Gets or sets the <see cref="DatabaseWildcard"/> to enable wildcard replacement.

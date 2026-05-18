@@ -18,33 +18,16 @@
 ///  <para>This class also implements the <see cref="IUnitOfWork"/> including a <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see>. The <see cref="IUnitOfWork"/> 
 ///  functionality is enabled by the <see cref="PostgresUnitOfWorkInvoker"/>; note, this is not thread-safe.</para>
 /// </remarks>
-public partial class PostgresDatabase : Database<NpgsqlConnection, PostgresCommand, PostgresDatabaseArgs>
+/// <param name="dataSource">The <see cref="NpgsqlDataSource"/>.</param>
+/// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
+/// <param name="logger">The optional <see cref="ILogger"/>.</param>
+public partial class PostgresDatabase(NpgsqlDataSource dataSource, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<PostgresDatabase>? logger = null) : Database<NpgsqlConnection, PostgresCommand, PostgresDatabaseArgs, PostgresDatabaseColumns>(dataSource.CreateConnection(), PostgresInvoker.Default, PostgresDatabaseColumns.Default, jsonSerializerOptions, logger)
 {
     /// <summary>
     /// Gets the default <see cref="DuplicateErrorNumbers"/>.
     /// </summary>
     /// <remarks>See <see href="https://www.postgresql.org/docs/current/errcodes-appendix.html"/>.</remarks>
     public static string[] DefaultDuplicateErrorNumbers { get; } = ["23505"];
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PostgresDatabase"/> class.
-    /// </summary>
-    /// <param name="dataSource">The <see cref="NpgsqlDataSource"/>.</param>
-    /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
-    /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-    public PostgresDatabase(NpgsqlDataSource dataSource, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<PostgresDatabase>? logger = null)
-        : base(dataSource.CreateConnection(), PostgresInvoker.Default, jsonSerializerOptions, logger)
-        => NamedColumns = PostgresDatabaseColumns.Default with { }; 
-
-    /// <summary>
-    /// Gets or sets the names of the convention-based <see cref="PostgresDatabaseColumns"/>.
-    /// </summary>
-    /// <remarks>Defaults from <see cref="PostgresDatabaseColumns.Default"/>.</remarks>
-    public new PostgresDatabaseColumns NamedColumns
-    {
-        get => (PostgresDatabaseColumns)base.NamedColumns;
-        set => base.NamedColumns = value;
-    }
 
     /// <inheritdoc/>
     public override ISourceConverter<string?> RowVersionConverter => EncodedStringToUInt32Converter.Default;

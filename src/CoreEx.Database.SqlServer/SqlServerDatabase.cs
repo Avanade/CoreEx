@@ -18,7 +18,10 @@
 ///  <para>This class also implements the <see cref="IUnitOfWork"/> including a <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see>. The <see cref="IUnitOfWork"/> 
 ///  functionality is enabled by the <see cref="SqlServerUnitOfWorkInvoker"/>; note, this is not thread-safe.</para>
 /// </remarks>
-public partial class SqlServerDatabase : Database<SqlConnection, SqlServerCommand, SqlServerDatabaseArgs>
+/// <param name="connection">The <see cref="SqlConnection"/>.</param>
+/// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
+/// <param name="logger">The optional <see cref="ILogger"/>.</param>
+public partial class SqlServerDatabase(SqlConnection connection, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<SqlServerDatabase>? logger = null) : Database<SqlConnection, SqlServerCommand, SqlServerDatabaseArgs, SqlServerDatabaseColumns>(connection, SqlServerInvoker.Default, SqlServerDatabaseColumns.Default, jsonSerializerOptions, logger)
 {
     /// <summary>
     /// Gets the default <see cref="DuplicateErrorNumbers"/>.
@@ -26,26 +29,6 @@ public partial class SqlServerDatabase : Database<SqlConnection, SqlServerComman
     /// <remarks>See <see href="https://docs.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors"/>
     /// and <see href="https://docs.microsoft.com/en-us/azure/sql-database/sql-database-develop-error-messages"/>.</remarks>
     public static int[] DefaultDuplicateErrorNumbers { get; } = [2601, 2627];
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SqlServerDatabase"/> class.
-    /// </summary>
-    /// <param name="connection">The <see cref="SqlConnection"/>.</param>
-    /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
-    /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-    public SqlServerDatabase(SqlConnection connection, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<SqlServerDatabase>? logger = null)
-        : base(connection, SqlServerInvoker.Default, jsonSerializerOptions, logger)
-        => NamedColumns = SqlServerDatabaseColumns.Default with { };
-
-    /// <summary>
-    /// Gets or sets the names of the convention-based <see cref="SqlServerDatabaseColumns"/>.
-    /// </summary>
-    /// <remarks>Defaults from <see cref="SqlServerDatabaseColumns.Default"/>.</remarks>
-    public new SqlServerDatabaseColumns NamedColumns
-    {
-        get => (SqlServerDatabaseColumns)base.NamedColumns;
-        set => base.NamedColumns = value;
-    }
 
     /// <inheritdoc/>
     public override ISourceConverter<string?> RowVersionConverter => StringBase64Converter.Default;

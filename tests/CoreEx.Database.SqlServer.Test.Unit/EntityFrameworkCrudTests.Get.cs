@@ -30,7 +30,7 @@ public partial class EntityFrameworkCrudTests
     }).AssertSuccess());
 
     [Test]
-    public void Get_NotAuthozied() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+    public void Get_NotAuthorized() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
     {
         var ef = ExecutionContext.GetRequiredService<TestEfDb>();
         var r = await ef.Table.GetWithResultAsync(7.ToGuid()).ConfigureAwait(false);

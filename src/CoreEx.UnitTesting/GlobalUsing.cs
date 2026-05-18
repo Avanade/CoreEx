@@ -22,6 +22,7 @@ global using DbEx.Postgres.Migration;
 global using DbEx.SqlServer.Migration;
 global using AwesomeAssertions;
 global using Microsoft.Extensions.DependencyInjection;
+global using System.Collections.Concurrent;
 global using System.Diagnostics.CodeAnalysis;
 global using System.Reflection;
 global using System.Text;

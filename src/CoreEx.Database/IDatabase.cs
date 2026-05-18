@@ -37,9 +37,9 @@ public interface IDatabase
     bool DateTimeOffsetTransform { get; set; }
 
     /// <summary>
-    /// Gets or sets the names of the convention-based <see cref="Extended.DatabaseColumns"/>.
+    /// Gets the names of the convention-based <see cref="Extended.DatabaseColumns"/>.
     /// </summary>
-    DatabaseColumns NamedColumns { get; set; }
+    DatabaseColumns NamedColumns { get; }
 
     /// <summary>
     /// Gets or sets the <see cref="DatabaseWildcard"/> to enable wildcard replacement.

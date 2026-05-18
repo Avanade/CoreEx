@@ -48,7 +48,7 @@ public record class SqlStatement
     public static SqlStatement FromResource<TResource>(string resourceName) => FromResource(resourceName, typeof(TResource).Assembly);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SqlStatement"/> struct.
+    /// Initializes a new instance of the <see cref="SqlStatement"/> class.
     /// </summary>
     /// <param name="commandType">The <see cref="System.Data.CommandType"/>.</param>
     /// <param name="commandText">The command text.</param>

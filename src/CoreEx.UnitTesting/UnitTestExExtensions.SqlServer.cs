@@ -55,7 +55,7 @@ public static partial class UnitTestExExtensions
     {
         // Determine the connection string and configure the migration args.
         var cs = CoreEx.Abstractions.Internal.GetValueFromConfigurationWhereApplicable(connectionString.ThrowIfNullOrEmpty(), tester.ThrowIfNull().Configuration);
-        var ma = new MigrationArgs(_connectionStrings.Add(cs) ? MigrationCommand.All | MigrationCommand.ResetAndData : MigrationCommand.ResetAndData, cs);
+        var ma = new MigrationArgs(_connectionStrings.TryAdd(cs, 0) ? MigrationCommand.All | MigrationCommand.ResetAndData : MigrationCommand.ResetAndData, cs);
 
         if (configureMigrationArgs is not null)
             ma = configureMigrationArgs(ma);

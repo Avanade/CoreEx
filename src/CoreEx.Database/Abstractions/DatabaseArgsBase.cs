@@ -17,6 +17,6 @@ public abstract record class DatabaseArgsBase : IDataArgs
     /// Indicates whether to transform the underlying <see cref="DbException"/> into an <see cref="IExtendedException"/> equivalent.
     /// </summary>
     /// <remarks>Defaults to <see langword="true"/>.
-    /// <para>The <see cref="Database{TConnection, TCommand, TDatabaseArgs}.OnDbException(DbException)"/> will be skipped where set to <see langword="false"/>.</para></remarks>
+    /// <para>The <see cref="Database{TConnection, TCommand, TDatabaseArgs, TDatabaseColumns}.OnDbException(DbException)"/> will be skipped where set to <see langword="false"/>.</para></remarks>
     public bool TransformException { get; init; } = true;
 }
