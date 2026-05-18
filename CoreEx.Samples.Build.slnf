@@ -1,0 +1,42 @@
+{
+  "solution": {
+    "path": "CoreEx.sln",
+    "projects": [
+      "samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj",
+      "samples/src/Contoso.Order.Workflow.Client/Contoso.Order.Workflow.Client.csproj",
+      "samples/src/Contoso.Order.Workflow.Worker/Contoso.Order.Workflow.Worker.csproj",
+      "samples/src/Contoso.Order.Workflow.Workflow/Contoso.Order.Workflow.Workflow.csproj",
+      "samples/src/Contoso.Orders.Api/Contoso.Orders.Api.csproj",
+      "samples/src/Contoso.Orders.Application/Contoso.Orders.Application.csproj",
+      "samples/src/Contoso.Orders.Contracts/Contoso.Orders.Contracts.csproj",
+      "samples/src/Contoso.Orders.Database/Contoso.Orders.Database.csproj",
+      "samples/src/Contoso.Orders.Infrastructure/Contoso.Orders.Infrastructure.csproj",
+      "samples/src/Contoso.Products.Api/Contoso.Products.Api.csproj",
+      "samples/src/Contoso.Products.Application/Contoso.Products.Application.csproj",
+      "samples/src/Contoso.Products.Contracts/Contoso.Products.Contracts.csproj",
+      "samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj",
+      "samples/src/Contoso.Products.Infrastructure/Contoso.Products.Infrastructure.csproj",
+      "samples/src/Contoso.Products.Outbox.Relay/Contoso.Products.Outbox.Relay.csproj",
+      "samples/src/Contoso.Products.Subscribe/Contoso.Products.Subscribe.csproj",
+      "samples/src/Contoso.Shopping.Api/Contoso.Shopping.Api.csproj",
+      "samples/src/Contoso.Shopping.Application/Contoso.Shopping.Application.csproj",
+      "samples/src/Contoso.Shopping.Contracts/Contoso.Shopping.Contracts.csproj",
+      "samples/src/Contoso.Shopping.Database/Contoso.Shopping.Database.csproj",
+      "samples/src/Contoso.Shopping.Domain/Contoso.Shopping.Domain.csproj",
+      "samples/src/Contoso.Shopping.Infrastructure/Contoso.Shopping.Infrastructure.csproj",
+      "samples/src/Contoso.Shopping.Outbox.Relay/Contoso.Shopping.Outbox.Relay.csproj",
+      "samples/src/Contoso.Shopping.Subscribe/Contoso.Shopping.Subscribe.csproj",
+      "samples/tests/Contoso.E2E.Runner/Contoso.E2E.Runner.csproj",
+      "samples/tests/Contoso.Orders.Test.Api/Contoso.Orders.Test.Api.csproj",
+      "samples/tests/Contoso.Orders.Test.Common/Contoso.Orders.Test.Common.csproj",
+      "samples/tests/Contoso.Orders.Test.Unit/Contoso.Orders.Test.Unit.csproj",
+      "samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj",
+      "samples/tests/Contoso.Products.Test.Common/Contoso.Products.Test.Common.csproj",
+      "samples/tests/Contoso.Products.Test.Outbox.Relay/Contoso.Products.Test.Outbox.Relay.csproj",
+      "samples/tests/Contoso.Products.Test.Subscribe/Contoso.Products.Test.Subscribe.csproj",
+      "samples/tests/Contoso.Products.Test.Unit/Contoso.Products.Test.Unit.csproj",
+      "samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj",
+      "samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj"
+    ]
+  }
+}

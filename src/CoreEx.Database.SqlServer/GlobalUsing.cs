@@ -1,5 +1,5 @@
-﻿global using CoreEx;
-global using CoreEx.Abstractions;
+﻿global using CloudNative.CloudEvents.Extensions;
+global using CoreEx;
 global using CoreEx.Data;
 global using CoreEx.Database.Abstractions;
 global using CoreEx.Database.Extended;
@@ -22,4 +22,5 @@ global using System.Collections.Immutable;
 global using System.Data;
 global using System.Data.Common;
 global using System.Diagnostics.Metrics;
+global using System.Text;
 global using System.Text.Json;

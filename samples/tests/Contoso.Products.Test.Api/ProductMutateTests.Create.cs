@@ -67,7 +67,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
             .ExpectETag()
             .ExpectChangeLogCreated()
             .ExpectJsonFromResource("ProductMutateTests.Create_Success.res.json")
-            .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
+            .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
             .Run(HttpMethod.Post, "/api/products", p)
             .AssertCreated()
             .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))
@@ -98,7 +98,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
 
         // Act/Assert.
         var v1 = Test.Http<Product>()
-            .ExpectSqlServerOutboxEvents()
+            .ExpectPostgresOutboxEvents()
             .Run(HttpMethod.Post, "/api/products", p, requestModifier: r => r.WithIdempotencyKey(ik))
             .AssertCreated()
             .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))

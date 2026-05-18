@@ -3,9 +3,6 @@
 /// <summary>
 /// Provides the <see href="https://learn.microsoft.com/en-us/sql/">SQL Server</see> <see cref="IDatabase"/> functionality.
 /// </summary>
-/// <param name="connection">The <see cref="SqlConnection"/>.</param>
-/// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
-/// <param name="logger">The optional <see cref="ILogger"/>.</param>
 /// <remarks>The <see cref="OnDbException(DbException)"/> override implements transformation of pre-determined SQL Server error codes, as follows:
 ///  <list type="bullet">
 ///   <item><c>56001</c> -> <see cref="ValidationException"/>.</item>
@@ -21,23 +18,17 @@
 ///  <para>This class also implements the <see cref="IUnitOfWork"/> including a <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see>. The <see cref="IUnitOfWork"/> 
 ///  functionality is enabled by the <see cref="SqlServerUnitOfWorkInvoker"/>; note, this is not thread-safe.</para>
 /// </remarks>
-public partial class SqlServerDatabase(SqlConnection connection, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<SqlServerDatabase>? logger = null)
-    : Database<SqlConnection, SqlServerCommand, SqlServerDatabaseArgs>(SqlClientFactory.Instance, connection, SqlServerInvoker.Default, jsonSerializerOptions, logger)
+/// <param name="connection">The <see cref="SqlConnection"/>.</param>
+/// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
+/// <param name="logger">The optional <see cref="ILogger"/>.</param>
+public partial class SqlServerDatabase(SqlConnection connection, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<SqlServerDatabase>? logger = null) : Database<SqlConnection, SqlServerCommand, SqlServerDatabaseArgs, SqlServerDatabaseColumns>(connection, SqlServerInvoker.Default, SqlServerDatabaseColumns.Default, jsonSerializerOptions, logger)
 {
-    private static readonly SqlServerDatabaseColumns _defaultColumns = new();
-
     /// <summary>
     /// Gets the default <see cref="DuplicateErrorNumbers"/>.
     /// </summary>
     /// <remarks>See <see href="https://docs.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors"/>
     /// and <see href="https://docs.microsoft.com/en-us/azure/sql-database/sql-database-develop-error-messages"/>.</remarks>
     public static int[] DefaultDuplicateErrorNumbers { get; } = [2601, 2627];
-
-    /// <summary>
-    /// Gets or sets the names of the pre-configured <see cref="SqlServerDatabaseColumns"/>.
-    /// </summary>
-    /// <remarks>Do not update the default properties directly as a shared static instance is used (unless this is the desired behavior); create a new <see cref="SqlServerDatabaseColumns"/> instance for overriding.</remarks>
-    public new SqlServerDatabaseColumns NamedColumns { get; set; } = _defaultColumns;
 
     /// <inheritdoc/>
     public override ISourceConverter<string?> RowVersionConverter => StringBase64Converter.Default;
@@ -55,6 +46,9 @@ public partial class SqlServerDatabase(SqlConnection connection, JsonSerializerO
 
     /// <inheritdoc/>
     public override SqlServerCommand Statement(SqlStatement statement) => new(this, statement);
+
+    /// <inheritdoc/>
+    public override DbParameter CreateParameter() => new SqlParameter();
 
     /// <inheritdoc/>
     protected override Exception? OnDbException(DbException dbex)

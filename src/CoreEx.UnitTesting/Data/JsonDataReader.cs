@@ -286,12 +286,31 @@ public sealed partial class JsonDataReader
     /// <param name="path">The qualified path to support child navigation.</param>
     /// <param name="options">The optional <see cref="JsonSerializerOptions"/>.</param>
     /// <returns>The deserialized value where found; otherwise, <see langword="default"/>.</returns>
+    /// <remarks>Where specifying the <paramref name="options"/> then the <see cref="JsonSerializerOptions.PropertyNamingPolicy"/> should be aligned with the <see cref="JsonDataReaderOptions.NamingConvention"/>.
+    /// Where not specified (i.e. <see langword="null"/>), then the <see cref="JsonDataReaderOptions.NamingConvention"/> will automatically be used.</remarks>
     public T? Deserialize<T>(string path, JsonSerializerOptions? options = null)
     {
         if (!TryCreateData(path, out var jsonNode))
             return default;
 
-        return JsonSerializer.Deserialize<T>(jsonNode, options ?? JsonDefaults.SerializerOptions);
+        if (options is null)
+        {
+            if (Options.SerializerOptions is not null)
+                options = Options.SerializerOptions;
+            else
+                options = new JsonSerializerOptions(JsonDefaults.SerializerOptions)
+                {
+                    PropertyNamingPolicy = Options.NamingConvention switch
+                    {
+                        JsonPropertyNamingConvention.CamelCase => JsonNamingPolicy.CamelCase,
+                        JsonPropertyNamingConvention.SnakeCase => JsonNamingPolicy.SnakeCaseLower,
+                        JsonPropertyNamingConvention.KebabCase => JsonNamingPolicy.KebabCaseLower,
+                        _ => null
+                    }
+                };
+        }
+
+        return JsonSerializer.Deserialize<T>(jsonNode, options);
     }
 
     #region ParseYaml+Json

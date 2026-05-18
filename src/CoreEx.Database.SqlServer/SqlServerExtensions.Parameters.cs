@@ -13,7 +13,7 @@ public static partial class SqlServerExtensions
     /// <returns>A <see cref="DbParameter"/>.</returns>
     public static SqlParameter AddParameter<T>(this DatabaseParameterCollection parameters, string name, T? value, SqlDbType? sqlDbType = null, ParameterDirection direction = ParameterDirection.Input)
     {
-        var p = (SqlParameter)(parameters.ThrowIfNull().Database.Provider.CreateParameter() ?? throw new InvalidOperationException($"The {nameof(DbProviderFactory)}.{nameof(DbProviderFactory.CreateParameter)} returned a null."));
+        var p = (SqlParameter)parameters.ThrowIfNull().Database.CreateParameter();
         p.ParameterName = DatabaseParameterCollection.ParameterizeName(name);
         if (sqlDbType.HasValue)
             p.SqlDbType = sqlDbType.Value;
@@ -86,7 +86,7 @@ public static partial class SqlServerExtensions
     /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
     /// <param name="with">The value <b>with</b> which to verify is non-default.</param>
     /// <param name="name">The parameter name.</param>
-    /// <param name="value">The parameter value; where not specified the <paramref name="with"/> vaue will be used.</param>
+    /// <param name="value">The parameter value; where not specified the <paramref name="with"/> value will be used.</param>
     /// <param name="sqlDbType">The parameter <see cref="SqlDbType"/>.</param>
     /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
     /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>

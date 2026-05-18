@@ -4,7 +4,7 @@ namespace CoreEx.UnitTesting.Data;
 /// Provides the runtime arguments for the <see cref="JsonDataReader"/>.
 /// </summary>
 /// <remarks>The dynamic runtime parameters and their corresponding functions.</remarks>
-public class JsonDataReaderArgs(IDictionary<string, Func<JsonDataReaderArgs, object?>> parameters)
+public sealed class JsonDataReaderArgs(IDictionary<string, Func<JsonDataReaderArgs, object?>> parameters)
 {
     /// <summary>
     /// Gets the originating <see cref="JsonNode"/> that represents the root for the data.

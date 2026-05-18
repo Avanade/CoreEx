@@ -109,14 +109,14 @@ public static partial class CoreExSqlServerExtensions
     /// <typeparam name="TOutboxRelay">The <see cref="SqlServerOutboxRelay"/> <see cref="Type"/>.</typeparam>
     /// <typeparam name="TDatabase">The <see cref="SqlServerDatabase"/> <see cref="Type"/>.</typeparam>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-    /// <param name="configure">An optional action to configure the <see cref="SqlServerOutboxRelay"/> instance.</param>
+    /// <param name="configure">An optional action to configure the <typeparamref name="TOutboxRelay"/> instance.</param>
     /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
-    public static IServiceCollection AddSqlServerOutboxRelay<TOutboxRelay, TDatabase>(this IServiceCollection services, Action<IServiceProvider, SqlServerOutboxRelay>? configure = null) where TOutboxRelay : SqlServerOutboxRelay where TDatabase : SqlServerDatabase
+    public static IServiceCollection AddSqlServerOutboxRelay<TOutboxRelay, TDatabase>(this IServiceCollection services, Action<IServiceProvider, TOutboxRelay>? configure = null) where TOutboxRelay : SqlServerOutboxRelay where TDatabase : SqlServerDatabase
     {
-        return services.ThrowIfNull().AddScoped<SqlServerOutboxRelay>(sp =>
+        return services.ThrowIfNull().AddScoped<TOutboxRelay>(sp =>
         {
-            var sql = sp.GetRequiredService<TDatabase>();
-            var relay = ActivatorUtilities.CreateInstance<SqlServerOutboxRelay>(sp, sql);
+            var db = sp.GetRequiredService<TDatabase>();
+            var relay = ActivatorUtilities.CreateInstance<TOutboxRelay>(sp, db);
             configure?.Invoke(sp, relay);
             return relay;
         });

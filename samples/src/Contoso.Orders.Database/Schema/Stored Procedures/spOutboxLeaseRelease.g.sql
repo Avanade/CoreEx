@@ -4,30 +4,41 @@ AS
 BEGIN
   /*
    * This is automatically generated; any changes will be lost.
+   *
+   * Releases a lease by LeaseId, making way for the next batch.
+   * > Returns:
+   *   0 = Success; lease released and available for next claim.
+   *  -1 = No rows updated (e.g. already released or invalid LeaseId).
+   *
+   * Notes:
+   * - The procedure will return -1 where release is unsuccessful, including where the lease is already released or where a transient error occurs (e.g. lock timeout).
    */
 
   SET NOCOUNT ON;
   SET XACT_ABORT ON;
-  SET LOCK_TIMEOUT 5000;
-  SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+  SET LOCK_TIMEOUT 5000; -- Milliseconds.
+  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
   BEGIN TRY
     BEGIN TRAN;
 
+    -- 1) Release lease where lessee.
     UPDATE ol
       SET ol.[LeaseId] = NULL,
           ol.[LeaseUntilUtc] = NULL
       FROM [Orders].[OutboxLease] AS ol WITH (UPDLOCK, ROWLOCK)
       WHERE ol.[LeaseId] = @LeaseId;
 
+    -- 2) Commit and return release success status.
     DECLARE @Rows INT = @@ROWCOUNT;
+
     COMMIT;
 
-    IF @Rows = 1 RETURN 0;
-    RETURN -1;
+    IF @Rows = 1 RETURN 0; -- Release successful.
+    RETURN -1; -- Release unsuccessful.
   END TRY
   BEGIN CATCH
     IF (XACT_STATE() <> 0) ROLLBACK;
-    THROW;
+    THROW; -- Re-throw preserves error details to caller.
   END CATCH
 END

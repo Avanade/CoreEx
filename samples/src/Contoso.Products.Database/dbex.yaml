@@ -1,14 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/main/schema/dbex.json
+schema: products
 outbox: true
+outboxName: outbox
 tables:
 # Reference-data
-- name: Brand
-- name: Category
-- name: MovementKind
-- name: MovementStatus
-- name: SubCategory
-- name: UnitOfMeasure
+- name: brand
+- name: category
+- name: movement_kind
+- name: movement_status
+- name: sub_category
+- name: unit_of_measure
 
 # Transactional-data
-- name: Inventory
-- name: Movement
-- name: Product
+- name: inventory
+- name: movement
+- name: product

@@ -1,6 +1,6 @@
 ﻿using CoreEx.Database;
 using DbEx.Migration;
-using DbEx.SqlServer.Console;
+using DbEx.Postgres.Console;
 
 namespace Contoso.Products.Database;
 
@@ -14,8 +14,8 @@ public class Program
     /// </summary>
     /// <param name="args">The startup arguments.</param>
     /// <returns>The status code whereby zero indicates success.</returns>
-    public static Task<int> Main(string[] args) => SqlServerMigrationConsole
-        .Create<Program>("Data Source=127.0.0.1,1433;Initial Catalog=Contoso;User id=sa;Password=yourStrong(!)Password;TrustServerCertificate=true")
+    public static Task<int> Main(string[] args) => PostgresMigrationConsole
+        .Create<Program>("Server=127.0.0.1;Database=contoso;Username=postgres;Password=yourStrong#!Password")   
         .Configure(c => ConfigureMigrationArgs(c.Args))
         .RunAsync(args);
 
@@ -32,8 +32,8 @@ public class Program
                 .RefDataColumnDefault("SortOrder", _ => 0)
                 .RefDataColumnDefault("Scale", _ => 0);
 
-        // Only reset data for the Products schema.
-        args.DataResetFilterPredicate = ts => ts.Schema == "Products";
+        // Only reset data for the 'products' schema.
+        args.DataResetFilterPredicate = ts => ts.Schema == "products";
 
         return args;
     }

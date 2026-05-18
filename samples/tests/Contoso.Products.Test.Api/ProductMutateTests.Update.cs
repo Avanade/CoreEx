@@ -51,7 +51,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
             .ExpectETag()
             .ExpectChangeLogUpdated()
             .ExpectValue(p)
-            .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.updated.v1"))
+            .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.updated.v1"))
             .Run(HttpMethod.Put, $"/api/products/{p.Id}", p)
             .AssertOK()
             .Value!;

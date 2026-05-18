@@ -8,20 +8,30 @@ AS
 BEGIN
   /*
    * This is automatically generated; any changes will be lost.
+   *
+   * Attempts to acquire a lease for a tenant/partition, returning success status and lease until timestamp.
+   * > Returns:
+   *   0 = Lease acquired; caller may proceed with batch claim.
+   *  -1 = Lease not acquired; caller should backoff and retry.
+   *
+   * Notes:
+   * - The procedure will return -1 where lease acquisition is unsuccessful, including where another active lease exists or where a transient error occurs (e.g. lock timeout).
+   * - The caller should implement an appropriate retry/backoff strategy where -1 is returned, including randomization to avoid thundering herd issues.
    */
 
   SET NOCOUNT ON;
   SET XACT_ABORT ON;
-  SET LOCK_TIMEOUT 5000;
-  SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+  SET LOCK_TIMEOUT 5000; -- Milliseconds.
+  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
   DECLARE @Now DATETIME2 = SYSUTCDATETIME();
-  DECLARE @Until DATETIME2 = DATEADD(SECOND, @LeaseSeconds, @Now);
+  DECLARE @Until DATETIME2 = DATEADD(SECOND, @LeaseSeconds, @Now)
   DECLARE @EffectiveTenantId NVARCHAR(255) = COALESCE(@TenantId, '(none)');
 
   BEGIN TRY
     BEGIN TRAN;
 
+    -- 1) Ensure the row exists (self-seeding); lock the key-range for this PartitionId to avoid insert races.
     IF NOT EXISTS (
       SELECT 1
       FROM [Orders].[OutboxLease] WITH (UPDLOCK, HOLDLOCK)
@@ -32,6 +42,7 @@ BEGIN
       VALUES (@EffectiveTenantId, @PartitionId);
     END
 
+    -- 2) Attempt to acquire lease where expired/empty.
     UPDATE ol
       SET ol.[LeaseId] = @LeaseId,
           ol.[LeaseUntilUtc] = @Until
@@ -41,20 +52,22 @@ BEGIN
         AND (ol.[LeaseUntilUtc] IS NULL OR ol.[LeaseUntilUtc] <= @Now)
         OPTION (RECOMPILE);
 
+    -- 3) Commit and return lease success status.
     DECLARE @Rows INT = @@ROWCOUNT;
+
     COMMIT;
 
     IF @Rows = 1
     BEGIN
       SET @LeaseUntilUtc = @Until;
-      RETURN 0;
+      RETURN 0; -- Lease successful.
     END
 
     SET @LeaseUntilUtc = NULL;
-    RETURN -1;
+    RETURN -1; -- Lease unsuccessful.
   END TRY
   BEGIN CATCH
     IF (XACT_STATE() <> 0) ROLLBACK;
-    THROW;
+    THROW; -- Re-throw preserves error details to caller.
   END CATCH
 END

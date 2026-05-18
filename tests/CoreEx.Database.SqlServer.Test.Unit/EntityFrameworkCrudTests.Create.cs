@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace CoreEx.Database.SqlServer.Test.Unit;
 
-public partial class EntityFrameworkCrudTests : DatabaseTestBase
+public partial class EntityFrameworkCrudTests 
 {
     [Test]
     public void Create_IsDeleted() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>

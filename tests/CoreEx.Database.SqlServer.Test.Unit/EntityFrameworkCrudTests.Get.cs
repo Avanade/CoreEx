@@ -3,7 +3,7 @@ using CoreEx.Results;
 
 namespace CoreEx.Database.SqlServer.Test.Unit;
 
-public partial class EntityFrameworkCrudTests : DatabaseTestBase
+public partial class EntityFrameworkCrudTests 
 {
     [Test]
     public void Get_NotFound() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
@@ -30,7 +30,7 @@ public partial class EntityFrameworkCrudTests : DatabaseTestBase
     }).AssertSuccess());
 
     [Test]
-    public void Get_NotAuthozied() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+    public void Get_NotAuthorized() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
     {
         var ef = ExecutionContext.GetRequiredService<TestEfDb>();
         var r = await ef.Table.GetWithResultAsync(7.ToGuid()).ConfigureAwait(false);

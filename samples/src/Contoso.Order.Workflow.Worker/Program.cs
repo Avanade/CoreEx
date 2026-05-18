@@ -54,11 +54,8 @@ public class Program
         app.MapHealthChecks("/health");
 
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation(
-            "Order workflow worker started with endpoint: {Endpoint}, task hub: {TaskHub}, local emulator: {IsLocalEmulator}.",
-            hostAddress,
-            taskHubName,
-            isLocalEmulator);
+        if (logger.IsEnabled(LogLevel.Information))
+            logger.LogInformation("Order workflow worker started with endpoint: {Endpoint}, task hub: {TaskHub}, local emulator: {IsLocalEmulator}.", hostAddress, taskHubName, isLocalEmulator);
 
         app.Run();
     }

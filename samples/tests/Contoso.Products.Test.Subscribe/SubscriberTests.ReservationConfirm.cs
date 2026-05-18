@@ -32,7 +32,7 @@ public partial class SubscriberTests
         mr.Should().NotBeNull().And.HaveCount(3).And.AllSatisfy(m => m.StatusCode.Should().Be(MovementStatus.Pending));
 
         // Act - confirm the reservation using a simulated command-based message.
-        test.ExpectSqlServerOutboxEvents(e => e.AssertCount(3))
+        test.ExpectPostgresOutboxEvents(e => e.AssertCount(3))
             .Run(async _ =>
             {
                 var ed = EventData.CreateCommand("products", "reservation", "confirm").WithKey(referenceId);

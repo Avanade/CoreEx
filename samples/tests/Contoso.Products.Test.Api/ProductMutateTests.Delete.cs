@@ -42,7 +42,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
 
         // Act.
         Test.Http()
-            .ExpectSqlServerOutboxEvents(c => c.AssertMetadata("contoso", "contoso.products.product.deleted.v1", id))
+            .ExpectPostgresOutboxEvents(c => c.AssertMetadata("contoso", "contoso.products.product.deleted.v1", id))
             .Run(HttpMethod.Delete, $"/api/products/{id}")
             .AssertNoContent();
 

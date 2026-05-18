@@ -88,7 +88,7 @@ namespace {{Namespace}};
 {{indent}}    /// Gets or sets the <see cref="global::CoreEx.RefData.ReferenceDataCodeCollection{TRef}"/> (<see cref="{{RefDataType}}"/>) encapsulation of the underlying <see cref="{{Name}}"/>.
 {{indent}}    /// </summary>
 {{indent}}    [global::System.Text.Json.Serialization.JsonIgnore]
-{{indent}}    public global::CoreEx.RefData.ReferenceDataCodeCollection<{{RefDataType}}> {{RefDataName}} { get => new(ref {{RefDataCodeCollectionFieldName}}); set => value?.ToCodeList(); }
+{{indent}}    public global::CoreEx.RefData.ReferenceDataCodeCollection<{{RefDataType}}> {{RefDataName}} { get => new(ref {{RefDataCodeCollectionFieldName}}); set => {{RefDataCodeCollectionFieldName}} = value?.ToCodeList(); }
     {{else}}
 {{indent}}    public {{#if IsRequired}}required {{/if}}partial {{Type}} {{Name}} { get => field;{{#unless IsReadOnly}} {{#if IsInitOnly}}init{{else}}set{{/if}} => field = global::CoreEx.Entities.Cleaner.Clean(value, {{#if IsSelfCleanedString}}global::CoreEx.Entities.StringTrim.{{StringTrim}}, global::CoreEx.Entities.StringTransform.{{StringTransform}}, global::CoreEx.Entities.StringCase.{{StringCase}}{{else}}global::CoreEx.Entities.DateTimeTransform.{{DateTimeTransform}}{{/if}});{{/unless}} }
     {{/if}}

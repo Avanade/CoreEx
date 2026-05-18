@@ -1,6 +1,7 @@
 using CoreEx.Entities;
 using CoreEx.Localization;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 
 namespace CoreEx.Validation.Test.Unit;
 
@@ -65,14 +66,24 @@ public class ValidatorTests
     [Test]
     public void WithFormat_And_Localization()
     {
-        var pv = Validator.Create<Person>().HasProperty(p => p.Salary, c => c.Between(100000m, 200000m));
-        pv.ValidateAsError(new Person(1) { Salary = 99999m }, "salary", "Monies must be between '100000' and '200000'.");
+        var originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
-        pv = Validator.Create<Person>().HasProperty(p => p.Salary, c => c.WithFormat("C").Between(100000m, 200000m));
-        pv.ValidateAsError(new Person(1) { Salary = 99999m }, "salary", "Monies must be between '$100,000.00' and '$200,000.00'.");
+            var pv = Validator.Create<Person>().HasProperty(p => p.Salary, c => c.Between(100000m, 200000m));
+            pv.ValidateAsError(new Person(1) { Salary = 99999m }, "salary", "Monies must be between '100000' and '200000'.");
 
-        pv = Validator.Create<Person>().HasProperty(p => p.Salary, c => c.WithFormat("{0:C}").Between(100000m, 200000m));
-        pv.ValidateAsError(new Person(1) { Salary = 99999m }, "salary", "Monies must be between '$100,000.00' and '$200,000.00'.");
+            pv = Validator.Create<Person>().HasProperty(p => p.Salary, c => c.WithFormat("C").Between(100000m, 200000m));
+            pv.ValidateAsError(new Person(1) { Salary = 99999m }, "salary", "Monies must be between '$100,000.00' and '$200,000.00'.");
+
+            pv = Validator.Create<Person>().HasProperty(p => p.Salary, c => c.WithFormat("{0:C}").Between(100000m, 200000m));
+            pv.ValidateAsError(new Person(1) { Salary = 99999m }, "salary", "Monies must be between '$100,000.00' and '$200,000.00'.");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
     }
 
     [Test]

@@ -6,30 +6,28 @@
 /// <typeparam name="TConnection">The <see cref="DbConnection"/> <see cref="Type"/>.</typeparam>
 /// <typeparam name="TCommand">The <see cref="DatabaseCommand{TDatabaseArgs, TSelf}"/> <see cref="Type"/>.</typeparam>
 /// <typeparam name="TDatabaseArgs">The <see cref="DatabaseArgs"/> <see cref="Type"/>.</typeparam>
-/// <param name="provider">The underlying <see cref="DbProviderFactory"/>.</param>
+/// <typeparam name="TDatabaseColumns">The <see cref="DatabaseColumns"/> <see cref="Type"/>.</typeparam>
 /// <param name="connection">The <typeparamref name="TConnection"/> <see cref="DbConnection"/>.</param>
 /// <param name="invoker">The <see cref="DatabaseInvoker"/>.</param>
+/// <param name="namedColumns">The convention-based column names.</param>
 /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
 /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderFactory provider, TConnection connection, DatabaseInvoker invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs>>? logger = null) : IDatabase
-    where TConnection : DbConnection where TCommand : DatabaseCommand<TDatabaseArgs, TCommand> where TDatabaseArgs : DatabaseArgs, new()
+public abstract class Database<TConnection, TCommand, TDatabaseArgs, TDatabaseColumns>(TConnection connection, DatabaseInvoker invoker, TDatabaseColumns namedColumns, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<Database<TConnection, TCommand, TDatabaseArgs, TDatabaseColumns>>? logger = null) : IDatabase, IDisposable
+    where TConnection : DbConnection where TCommand : DatabaseCommand<TDatabaseArgs, TCommand> where TDatabaseArgs : DatabaseArgs, new() where TDatabaseColumns : DatabaseColumns
 {
     private static readonly TDatabaseArgs _defaultDbArgs = new();
-    private static readonly DatabaseColumns _defaultColumns = new();
     private static readonly DatabaseWildcard _defaultWildcard = new();
 
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly TConnection _dbConn = connection.ThrowIfNull().ThrowWhen(connection => connection.State != ConnectionState.Closed && connection.State != ConnectionState.Open);
     private int _savePointCounter = 0;
-
-    /// <inheritdoc/>
-    public DbProviderFactory Provider { get; } = provider.ThrowIfNull();
+    private bool _disposed;
 
     /// <inheritdoc/>
     public string DatabaseId { get; } = Guid.NewGuid().ToString();
 
     /// <inheritdoc/>
-    public ILogger? Logger { get; } = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection, TCommand, TDatabaseArgs>>>();
+    public ILogger? Logger { get; } = logger ?? ExecutionContext.GetService<ILogger<Database<TConnection, TCommand, TDatabaseArgs, TDatabaseColumns>>>();
 
     /// <inheritdoc/>
     public DatabaseInvoker Invoker { get; } = invoker.ThrowIfNull();
@@ -49,7 +47,12 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderF
     public bool DateTimeOffsetTransform { get; set; } = true;
 
     /// <inheritdoc/>
-    public DatabaseColumns NamedColumns { get; set; } = _defaultColumns;
+    DatabaseColumns IDatabase.NamedColumns => NamedColumns;
+
+    /// <summary>
+    /// Gets or sets the names of the convention-based <see cref="Extended.DatabaseColumns"/>.
+    /// </summary>
+    public TDatabaseColumns NamedColumns { get; set; } = namedColumns.ThrowIfNull();
 
     /// <summary>
     /// Gets or sets the <see cref="DatabaseWildcard"/> to enable wildcard replacement.
@@ -136,6 +139,9 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderF
     public abstract TCommand Statement(SqlStatement statement);
 
     /// <inheritdoc/>
+    public abstract DbParameter CreateParameter();
+
+    /// <inheritdoc/>
     public Exception? HandleDbException(DbException dbex) => OnDbException(dbex);
 
     /// <summary>
@@ -155,5 +161,27 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs>(DbProviderF
     {
         var counter = Interlocked.Increment(ref _savePointCounter);
         return $"SP_{counter}";
+    }
+
+    /// <summary>
+    /// Dispose of resources.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the unmanaged resources used by the <see cref="Database"/> and optionally releases the managed resources.
+    /// </summary>
+    /// <param name="disposing"><see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing && !_disposed)
+        {
+            _disposed = true;
+            _semaphore.Dispose();
+        }
     }
 }

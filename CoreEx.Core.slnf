@@ -1,0 +1,35 @@
+{
+  "solution": {
+    "path": "CoreEx.sln",
+    "projects": [
+      "src/CoreEx/CoreEx.csproj",
+      "src/CoreEx.AspNetCore/CoreEx.AspNetCore.csproj",
+      "src/CoreEx.AspNetCore.NSwag/CoreEx.AspNetCore.NSwag.csproj",
+      "src/CoreEx.Azure.Messaging.ServiceBus/CoreEx.Azure.Messaging.ServiceBus.csproj",
+      "src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj",
+      "src/CoreEx.Data/CoreEx.Data.csproj",
+      "src/CoreEx.Database/CoreEx.Database.csproj",
+      "src/CoreEx.Database.Postgres/CoreEx.Database.Postgres.csproj",
+      "src/CoreEx.Database.SqlServer/CoreEx.Database.SqlServer.csproj",
+      "src/CoreEx.DomainDriven/CoreEx.DomainDriven.csproj",
+      "src/CoreEx.EntityFrameworkCore/CoreEx.EntityFrameworkCore.csproj",
+      "src/CoreEx.Events/CoreEx.Events.csproj",
+      "src/CoreEx.RefData/CoreEx.RefData.csproj",
+      "src/CoreEx.UnitTesting/CoreEx.UnitTesting.csproj",
+      "src/CoreEx.Validation/CoreEx.Validation.csproj",
+      "tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj",
+      "tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj",
+      "tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj",
+      "tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj",
+      "tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj",
+      "tests/CoreEx.Database.Postgres.Test.Unit/CoreEx.Database.Postgres.Test.Unit.csproj",
+      "tests/CoreEx.Database.SqlServer.Test.Unit/CoreEx.Database.SqlServer.Test.Unit.csproj",
+      "tests/CoreEx.Database.Test.Unit/CoreEx.Database.Test.Unit.csproj",
+      "tests/CoreEx.DomainDriven.Test.Unit/CoreEx.DomainDriven.Test.Unit.csproj",
+      "tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj",
+      "tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj",
+      "tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj",
+      "tests/CoreEx.Validation.Test.Unit/CoreEx.Validation.Test.Unit.csproj"
+    ]
+  }
+}

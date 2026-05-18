@@ -1,5 +1,4 @@
 ﻿using CoreEx.Mapping.Converters;
-using System.Text.Json;
 
 namespace CoreEx.Database;
 
@@ -156,7 +155,8 @@ public class DatabaseRecord(IDatabase database, DbDataReader dataReader)
     public string? GetRowVersion(string? columnName = null)
     {
         var i = DataReader.GetOrdinal(!string.IsNullOrEmpty(columnName) ? columnName : Database.NamedColumns.RowVersionName);
-        return Database.RowVersionConverter.ConvertToSource(DataReader.GetFieldValue<byte[]>(i)) ?? null;
+        var v = DataReader.GetValue(i);
+        return Database.RowVersionConverter.ConvertToSource(v) ?? null;
     }
 
     /// <summary>

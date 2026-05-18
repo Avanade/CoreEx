@@ -36,7 +36,7 @@ public partial class SubscriberTests
         var q2 = await qs.GetOnHandAsync(mr[1].ProductId!);
 
         // Act - cancel the reservation using a simulated command-based message.
-        test.ExpectSqlServerOutboxEvents(e => e.AssertCount(2))
+        test.ExpectPostgresOutboxEvents(e => e.AssertCount(2))
             .Run(async _ =>
             {
                 var ed = EventData.CreateCommand("products", "reservation", "cancel").WithKey(referenceId);

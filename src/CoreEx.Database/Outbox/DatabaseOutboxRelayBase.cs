@@ -49,20 +49,20 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
     /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to <i>claim</i> the next batch of events from the <see cref="Database"/>.
     /// </summary>
-    /// <remarks>Defaults to <see cref="SqlStatement.None"/>.</remarks>
-    public virtual SqlStatement ClaimBatchStatement { get; set; } = SqlStatement.None;
+    /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
+    public virtual SqlStatement ClaimBatchStatement { get; set; } = SqlStatement.Indeterminate;
 
     /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to <i>complete</i> the batch of events from the <see cref="Database"/>.
     /// </summary>
-    /// <remarks>Defaults to <see cref="SqlStatement.None"/>.</remarks>
-    public virtual SqlStatement CompleteBatchStatement { get; set; } = SqlStatement.None;
+    /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
+    public virtual SqlStatement CompleteBatchStatement { get; set; } = SqlStatement.Indeterminate;
 
     /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to <i>cancel</i> the batch of events from the <see cref="Database"/>.
     /// </summary>
-    /// <remarks>Defaults to <see cref="SqlStatement.None"/>.</remarks>
-    public virtual SqlStatement CancelBatchStatement { get; set; } = SqlStatement.None;
+    /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
+    public virtual SqlStatement CancelBatchStatement { get; set; } = SqlStatement.Indeterminate;
 
     /// <summary>
     /// Indicates whether instrumentation is enabled for the polling.
@@ -245,12 +245,11 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
         try
         {
             await Database.Statement(ClaimBatchStatement)
-                .ParamWhen(!string.IsNullOrEmpty(ec?.TenantId), Database.NamedColumns.TenantIdName, () => ec!.TenantId)
                 .Param(Database.NamedColumns.PartitionIdName, partitionId)
                 .Param(Database.NamedColumns.OutboxBatchSizeName, args.BatchSize)
                 .Param(Database.NamedColumns.OutboxLeaseIdName, leaseId)
                 .Param(Database.NamedColumns.OutboxLeaseDurationName, leaseDurationSeconds)
-                .ReturnValue(out var returnValueParameter)
+                .Param(Database.NamedColumns.TenantIdName, ec?.TenantId)
                 .SelectQueryAsync(events, (dr, _) =>
                 {
                     return new DestinationEvent
@@ -259,9 +258,6 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
                         dr.GetValue<JsonElement>(Database.NamedColumns.OutboxEventName).DecodeToCloudEvent(Database.JsonSerializerOptions)
                     );
                 }, cancellationToken);
-
-            if (Logger?.IsEnabled(LogLevel.Debug) is true)
-                Logger.LogDebug("The return value from the Outbox claim batch database statement is {ReturnValue}.", returnValueParameter.Value);
         }
         catch (Exception ex)
         {

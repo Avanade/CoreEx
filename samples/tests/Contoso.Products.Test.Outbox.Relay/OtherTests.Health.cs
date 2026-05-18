@@ -19,11 +19,11 @@ public partial class OtherTests
     {
         string[] _requiredServices =
         [
-            "sqlServer",
-            "sqlserver-outbox-relay-00",
-            "sqlserver-outbox-relay-01",
-            "sqlserver-outbox-relay-02",
-            "sqlserver-outbox-relay-03"
+            "postgreSql",
+            "postgres-outbox-relay-00",
+            "postgres-outbox-relay-01",
+            "postgres-outbox-relay-02",
+            "postgres-outbox-relay-03"
         ];
 
         var r = Test.Http()

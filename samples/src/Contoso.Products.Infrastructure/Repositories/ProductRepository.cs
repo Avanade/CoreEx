@@ -73,10 +73,11 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
     public Task<Dictionary<string, Contracts.ProductReserve>> GetForReservationAsync(string[] ids)
     {
         var products = _ef.Products.Model.Query();
+        var list = ids.ToList();    // PostgreSQL EF has issues translating array.Contains, but can do list.Contains; see: https://github.com/npgsql/efcore.pg/issues/3461.
 
         var q =
             from p in products
-            where ids.Contains(p.Id)
+            where list.Contains(p.Id)
             select new Contracts.ProductReserve
             {
                 Id = p.Id!,

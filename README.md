@@ -2,8 +2,6 @@
 
 ![Logo](./images/Logo256x256.png "CoreEx")
 
-<br/>
-
 ## Introduction
 
 _CoreEx_ provides enriched capabilities for building business services by _extending_ the core capabilities of .NET.
@@ -12,38 +10,62 @@ The _CoreEx_ solution is divided into a number of projects, with `CoreEx` provid
 
 _CoreEx_ at its core is a non-opinionated framework, meaning that it is not intended to be all-or-nothing, or drive a particular architectural style, but provide building block capabilities that can be leveraged as required to simplify development, and add extended/richer/consistent functionality with minimal effort.
 
-<br/>
+## Motivation
+
+_CoreEx_ identifies and implements key back-end business service patterns to:
+
+- **Standardize** common scenarios (error handling, validation, data access).
+- **Simplify** development by reducing boilerplate code.
+- **Enable flexibility** through opt-in usage and composability.
+- **Co-exist** with other frameworks and libraries in your solution.
+
+## Key Capabilities
+
+Here is a high-level overview of some of the key capabilities provided by _CoreEx_:
+
+- 🎯 **Semantic Exceptions** - Rich exception types with HTTP status mapping.
+- 🔐 **Execution Context** - Thread-bound request context for user identity and tenant isolation.
+- 📦 **Entity Patterns** - Change tracking, ETags, identifiers, composite keys.
+- ✅ **Validation Framework** - Extensible validation with message collections.
+- 🚂 **Railway Oriented Programming** - Monad-based error handling with `Result` and `Result<T>`.
+- 📊 **Data Access Patterns** - Query arguments, paging, partitioning, logical deletion, unit-of-work.
+- 💉 **Dependency Injection** - Service lifetime attributes for simplified registration.
+- 🗺️ **Mapping & Conversion** - Bi-directional mappers and value converters.
+- ⚡ **Hybrid Caching** - Abstraction supporting multiple cache providers.
+- 🔄 **JSON Extensions** - Merge patch, filtering, custom converters.
+
+## Version 4
+
+This is a **major** version release; a re-imagine / re-invention of the existing capabilities to enable a more modern, flexible and maintainable codebase.
+- This release contains **significant breaking changes** - there is **no** upgrade path from the previous `v3.x` versions; however, the core capabilities and patterns remain largely consistent.
+- A number of capabilities have been removed as they were not widely used, considered legacy/obsolete, or there are better alternatives available.
+- Not all existing capabilities have been re-implemented in this release; the intention is to (re-)add further capabilities in future releases as required.
 
 ## Status
 
-The build status is [![CI](https://github.com/Avanade/CoreEx/workflows/CI/badge.svg)](https://github.com/Avanade/CoreEx/actions?query=workflow%3ACI) with the NuGet package status as follows, including links to the underlying source code and documentation:
+The build status is [![CI](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml/badge.svg)](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml) with the NuGet package status as follows, including links to the underlying source code and documentation:
 
 Package | Status | Source & documentation
 -|-|-
 `CoreEx` | [![NuGet version](https://badge.fury.io/nu/CoreEx.svg)](https://badge.fury.io/nu/CoreEx) | [Link](./src/CoreEx)
-`CoreEx.AspNetCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AspNetCore.svg)](https://badge.fury.io/nu/CoreEx.AspNetCore) | [Link](./src/CoreEx/AspNetCore)
-`CoreEx.AutoMapper` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AutoMapper.svg)](https://badge.fury.io/nu/CoreEx.AutoMapper) | [Link](./src/CoreEx.AutoMapper)
-`CoreEx.Azure` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.svg)](https://badge.fury.io/nu/CoreEx.Azure) | [Link](./src/CoreEx.Azure)
-`CoreEx.Cosmos` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Cosmos.svg)](https://badge.fury.io/nu/CoreEx.Cosmos) | [Link](./src/CoreEx.Cosmos)
-`CoreEx.Data` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Data.svg)](https://badge.fury.io/nu/CoreEx.Data) | [Link](./src/CoreEx.Data)
-`CoreEx.Database` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.svg)](https://badge.fury.io/nu/CoreEx.Database) | [Link](./src/CoreEx.Database)
-`CoreEx.Database.MySql` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.MySql.svg)](https://badge.fury.io/nu/CoreEx.Database.MySql) | [Link](./src/CoreEx.Database.MySql)
-`CoreEx.Database.Postgres` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.Postgres.svg)](https://badge.fury.io/nu/CoreEx.Database.Postgres) | [Link](./src/CoreEx.Database.Postgres)
-`CoreEx.Database.SqlServer` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.SqlServer.svg)](https://badge.fury.io/nu/CoreEx.Database.SqlServer) | [Link](./src/CoreEx.Database.SqlServer)
-`CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx.EntityFrameworkCore)
-`CoreEx.FluentValidation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.FluentValidation.svg)](https://badge.fury.io/nu/CoreEx.FluentValidation) | [Link](./src/CoreEx.FluentValidation)
-`CoreEx.Newtonsoft` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Newtonsoft.svg)](https://badge.fury.io/nu/CoreEx.Newtonsoft) | [Link](./src/CoreEx.Newtonsoft)
-`CoreEx.OData` | [![NuGet version](https://badge.fury.io/nu/CoreEx.OData.svg)](https://badge.fury.io/nu/CoreEx.OData) | [Link](./src/CoreEx.OData)
-`CoreEx.Solace` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Solace.svg)](https://badge.fury.io/nu/CoreEx.Solace) | [Link](./src/CoreEx.Solace)
-`CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx.Validation)
+`CoreEx.AspNetCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AspNetCore.svg)](https://badge.fury.io/nu/CoreEx.AspNetCore) | [Link](./src/CoreEx/CoreEx.AspNetCore)
+`CoreEx.AspNetCore.NSwag` | [![NuGet version](https://badge.fury.io/nu/CoreEx.AspNetCore.NSwag.svg)](https://badge.fury.io/nu/CoreEx.AspNetCore.NSwag) | [Link](./src/CoreEx/CoreEx.AspNetCore.NSwag)
+`CoreEx.Azure.Messaging.ServiceBus.NSwag` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Azure.Messaging.ServiceBus.svg)](https://badge.fury.io/nu/CoreEx.Azure.Messaging.ServiceBus) | [Link](./src/CoreEx/CoreEx.Azure.Messaging.ServiceBus)
+`CoreEx.Caching.FusionCache` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Caching.FusionCache.svg)](https://badge.fury.io/nu/CoreEx.Caching.FusionCache) | [Link](./src/CoreEx/CoreEx.Caching.FusionCache)
+`CoreEx.Data` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Data.svg)](https://badge.fury.io/nu/CoreEx.Data) | [Link](./src/CoreEx/CoreEx.Data)
+`CoreEx.Database` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.svg)](https://badge.fury.io/nu/CoreEx.Database) | [Link](./src/CoreEx/CoreEx.Database)
+`CoreEx.Database.Postgres` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.Postgres.svg)](https://badge.fury.io/nu/CoreEx.Database.Postgres) | [Link](./src/CoreEx/CoreEx.Database.Postgres)
+`CoreEx.Database.SqlServer` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Database.SqlServer.svg)](https://badge.fury.io/nu/CoreEx.Database.SqlServer) | [Link](./src/CoreEx/CoreEx.Database.SqlServer)
+`CoreEx.DomainDriven` | [![NuGet version](https://badge.fury.io/nu/CoreEx.DomainDriven.svg)](https://badge.fury.io/nu/CoreEx.DomainDriven) | [Link](./src/CoreEx/CoreEx.DomainDriven)
+`CoreEx.EntityFrameworkCore` | [![NuGet version](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore.svg)](https://badge.fury.io/nu/CoreEx.EntityFrameworkCore) | [Link](./src/CoreEx/CoreEx.EntityFrameworkCore)
+`CoreEx.Events` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Events.svg)](https://badge.fury.io/nu/CoreEx.Events) | [Link](./src/CoreEx/CoreEx.Events)
+`CoreEx.RefData` | [![NuGet version](https://badge.fury.io/nu/CoreEx.RefData.svg)](https://badge.fury.io/nu/CoreEx.RefData) | [Link](./src/CoreEx/CoreEx.RefData)
+`CoreEx.Validation` | [![NuGet version](https://badge.fury.io/nu/CoreEx.Validation.svg)](https://badge.fury.io/nu/CoreEx.Validation) | [Link](./src/CoreEx/CoreEx.Validation)
 -- | -- | --
 `CoreEx.UnitTesting` | [![NuGet version](https://badge.fury.io/nu/CoreEx.UnitTesting.svg)](https://badge.fury.io/nu/CoreEx.UnitTesting) | [Link](./src/CoreEx.UnitTesting)
-`CoreEx.UnitTesting.NUnit` | [![NuGet version](https://badge.fury.io/nu/CoreEx.UnitTesting.NUnit.svg)](https://badge.fury.io/nu/CoreEx.UnitTesting.NUnit) | [Link](./src/CoreEx.UnitTesting)
 
 
 The included [change log](CHANGELOG.md) details all key changes per published version.
-
-<br/>
 
 ## Samples
 
@@ -55,8 +77,6 @@ Sample | Description
 [Contoso Shopping](./samples/README.md) | Reference microservice showing aggregate-centric application design, cross-service HTTP integration, hybrid caching, messaging, and integration testing.  
 [Contoso Orders / Order.Workflow](./samples/README.md) | Additional sample areas for order processing and Durable Task orchestration that are currently in progress.  
 
-<br/>
-
 ## Other repos
 
 These other _Avanade_ repositories leverage _CoreEx_:
@@ -67,25 +87,17 @@ Repo | Description
 [*DbEx*](https://github.com/Avanade/dbex) | Provides database extensions for DbUp-inspired database migrations.
 [*NTangle*](https://github.com/Avanade/ntangle) | Change Data Capture (CDC) code generation tool and runtime.
 
-<br/>
-
 ## License
 
 _CoreEx_ is open source under the [MIT license](./LICENCE) and is free for commercial use.
-
-<br/>
 
 ## Contributing
 
 One of the easiest ways to contribute is to participate in discussions on GitHub issues. You can also contribute by submitting pull requests (PR) with code changes. Contributions are welcome. See information on [contributing](./CONTRIBUTING.md), as well as our [code of conduct](https://avanade.github.io/code-of-conduct/).
 
-<br/>
-
 ## Security
 
 See our [security disclosure](./SECURITY.md) policy.
-
-<br/>
 
 ## Who is Avanade?
 

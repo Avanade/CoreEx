@@ -9,7 +9,7 @@ var config = new ConfigurationBuilder()
     .Build();
 
 var context = new TestContext(config);
-(bool ProductApiOk, bool ShoppingApiOk) status = (false, false);
+(bool ProductApiOk, bool ShoppingApiOk, bool OrdersApiOk) status = (false, false, false);
 
 /***** Main program and choice pump. *****/
 
@@ -35,7 +35,7 @@ while (true)
             return;
 
         case ChoiceResult.RequiresApi:
-            AnsiConsole.MarkupLine("API(s) are not available :face_screaming_in_fear: - please start Contoso.Aspire [yellow]:oncoming_fist:[/]");
+            AnsiConsole.MarkupLine("API(s) are not available :no_bicycles: - please start the Contoso.Aspire application [yellow]:oncoming_fist:[/]");
             ContinuePrompt();
             break;
             
@@ -65,7 +65,9 @@ void DisplayBannerAndConfig()
 
     AnsiConsole.Write(
         new Panel(
-            new Markup($"{(status.ProductApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Products API:[/] {context.ProductsHttpClient.BaseAddress?.ToString().EscapeMarkup()}\n{(status.ShoppingApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Shopping API:[/] {context.ShoppingHttpClient.BaseAddress?.ToString().EscapeMarkup()}"))
+            new Markup($"{(status.ProductApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Products API:[/] {context.ProductsHttpClient.BaseAddress?.ToString().EscapeMarkup()}\n"
+            + $"{(status.ShoppingApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Shopping API:[/] {context.ShoppingHttpClient.BaseAddress?.ToString().EscapeMarkup()}\n"
+            + $"{(status.OrdersApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Orders API:[/] {context.OrdersHttpClient.BaseAddress?.ToString().EscapeMarkup()}"))
             .Header("[bold]API status:[/]")
             .BorderColor(Color.Grey)
             .Padding(1, 0));
@@ -88,15 +90,16 @@ async Task CheckApiStatusAsync()
 
     status = await AnsiConsole.Status()
         .Spinner(Spinner.Known.Dots)
-        .StartAsync<(bool ProductApiOk, bool ShoppingApiOk)>("[grey]Checking API status... (press [yellow]ESC[/] to cancel)...[/]", async _ =>
+        .StartAsync<(bool ProductApiOk, bool ShoppingApiOk, bool OrdersApiOk)>("[grey]Checking API status... (press [yellow]ESC[/] to cancel)...[/]", async _ =>
         {
             var healthCheckTask = Task.Run(async () =>
             {
                 var productApi = TestContext.HealthCheckAsync(context.ProductsHttpClient);
                 var shoppingApi = TestContext.HealthCheckAsync(context.ShoppingHttpClient);
+                var ordersApi = TestContext.HealthCheckAsync(context.OrdersHttpClient);
 
-                await Task.WhenAll(productApi, shoppingApi);
-                return (productApi.Result, shoppingApi.Result);
+                await Task.WhenAll(productApi, shoppingApi, ordersApi);
+                return (productApi.Result, shoppingApi.Result, ordersApi.Result);
             });
 
             // Wait for health check or ESC key
@@ -113,12 +116,12 @@ async Task CheckApiStatusAsync()
             }
 
             if (wasCancelled)
-                return (false, false);
+                return (false, false, false);
             else
                 return await healthCheckTask;
         });
 
-    if (!status.ProductApiOk || !status.ShoppingApiOk)
+    if (!status.ProductApiOk || !status.ShoppingApiOk || !status.OrdersApiOk)
     {
         DisplayBannerAndConfig();
         AnsiConsole.MarkupLine("API(s) are not available :no_bicycles: - please start the Contoso.Aspire application [yellow]:oncoming_fist:[/]");

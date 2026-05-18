@@ -65,6 +65,13 @@ public partial class ReferenceDataOrchestratorTests
         public partial string? RefDataSid { get; set; }
     }
 
+    [Contract]
+    internal partial class DummyEntity2
+    {
+        [ReferenceDataCodeCollection<DummyRefData>]
+        public partial List<string>? RefDataSids { get; set; }
+    }
+
     private static ReferenceDataOrchestrator CreateOrchestrator()
     {
         var sc = new ServiceCollection();

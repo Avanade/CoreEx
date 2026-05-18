@@ -21,7 +21,7 @@ public partial class OtherTests
         [
             "reference-data-orchestrator",
             "stackExchange.Redis",
-            "sqlServer"
+            "postgreSql"
         ];
 
         var r = Test.Http()

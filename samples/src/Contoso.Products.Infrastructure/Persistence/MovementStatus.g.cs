@@ -9,7 +9,7 @@
 namespace Contoso.Products.Infrastructure.Persistence;
 
 /// <summary>
-/// Persistence reference-data model representing the '<c>[Products].[MovementStatus]</c>' database table.
+/// Persistence reference-data model representing the '<c>"products"."movement_status"</c>' database table.
 /// </summary>
 public partial class MovementStatus : ReferenceDataModelBase<string> { }
 

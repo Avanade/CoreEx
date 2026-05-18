@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="DbEx.Postgres" />
     <PackageReference Include="DbEx.SqlServer" />
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="UnitTestEx" />
@@ -10,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CoreEx.Azure.Messaging.ServiceBus\CoreEx.Azure.Messaging.ServiceBus.csproj" />
     <ProjectReference Include="..\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\CoreEx.Database.Postgres\CoreEx.Database.Postgres.csproj" />
     <ProjectReference Include="..\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />
     <ProjectReference Include="..\CoreEx.Events\CoreEx.Events.csproj" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />

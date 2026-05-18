@@ -20,6 +20,7 @@ public class Program
 
         // Add CoreEx services.
         builder.Services
+            .AddPrecisionTimeProvider()
             .AddExecutionContext()
             .AddReferenceDataOrchestrator<ReferenceDataService>()
             .AddMvcWebApi()
@@ -46,12 +47,12 @@ public class Program
             .AddHybridCacheIdempotencyProvider();       // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
         // Add the repository and related outbox services.
-        builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
+        builder.AddAzureNpgsqlDataSource("Postgres");   // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
-            .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
-            .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
+            .AddPostgresDatabase()                      // Adds the PostgresDatabase.
+            .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
-            .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher/IEventPublisher.
+            .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher/IEventPublisher.
             .AddDbContext<ProductsDbContext>()          // Adds the standard EF DbContext.
             .AddEfDb<ProductsEfDb>();                   // Adds the CoreEx extended EF service.
 
@@ -70,7 +71,7 @@ public class Program
 
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
-            .WithCoreExSqlServerTelemetry()
+            .WithCoreExPostgresTelemetry()
             .UseOtlpExporter();
 
         // Build the application.

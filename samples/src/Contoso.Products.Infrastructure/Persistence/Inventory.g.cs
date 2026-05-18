@@ -9,13 +9,13 @@
 namespace Contoso.Products.Infrastructure.Persistence;
 
 /// <summary>
-/// Persistence model representing the '<c>[Products].[Inventory]</c>' database table.
+/// Persistence model representing the '<c>"products"."inventory"</c>' database table.
 /// </summary>
-/// <remarks>The <see cref="Id"/> primary key column is '<c>InventoryId</c>' (type '<c>NVARCHAR(50)</c>').</remarks>
+/// <remarks>The <see cref="Id"/> primary key column is '<c>inventory_id</c>' (type '<c>CHARACTER VARYING(50)</c>').</remarks>
 public partial class Inventory : ModelBase<string>
 {
     /// <summary>
-    /// Gets or sets the value of the '<c>QtyOnHand</c>' column (type '<c>DECIMAL(18, 2)</c>').
+    /// Gets or sets the value of the '<c>qty_on_hand</c>' column (type '<c>NUMERIC(18, 2)</c>').
     /// </summary>
     public decimal QtyOnHand { get; set; }
 }

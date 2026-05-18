@@ -100,12 +100,12 @@ public record class DatabaseColumns
     /// <summary>
     /// Gets or sets the <see cref="IReferenceData.StartsOn"/> database column name (defaults to <see cref="IReferenceData.StartsOn"/>).
     /// </summary>
-    public string RefDataStartDateName { get; init; } = nameof(IReferenceData.StartsOn);
+    public string RefDataStartsOnName { get; init; } = nameof(IReferenceData.StartsOn);
 
     /// <summary>
     /// Gets or sets the <see cref="IReferenceData.EndsOn"/> database column name (defaults to <see cref="IReferenceData.EndsOn"/>).
     /// </summary>
-    public string RefDataEndDateName { get; init; } = nameof(IReferenceData.EndsOn);
+    public string RefDataEndsOnName { get; init; } = nameof(IReferenceData.EndsOn);
 
     /// <summary>
     /// Gets or sets the partition key '<c>PartitionKey</c>' database column name.

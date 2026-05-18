@@ -6,6 +6,7 @@ global using CoreEx;
 global using CoreEx.Json;
 global using DbEx;
 global using DbEx.Migration;
+global using DbEx.Postgres.Migration;
 global using DbEx.SqlServer.Migration;
 global using Microsoft.Extensions.Configuration;
 global using Spectre.Console;

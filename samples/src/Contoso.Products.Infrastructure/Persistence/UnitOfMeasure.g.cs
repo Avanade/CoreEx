@@ -9,12 +9,12 @@
 namespace Contoso.Products.Infrastructure.Persistence;
 
 /// <summary>
-/// Persistence reference-data model representing the '<c>[Products].[UnitOfMeasure]</c>' database table.
+/// Persistence reference-data model representing the '<c>"products"."unit_of_measure"</c>' database table.
 /// </summary>
 public partial class UnitOfMeasure : ReferenceDataModelBase<string>
 {
     /// <summary>
-    /// Gets or sets the value of the '<c>Scale</c>' column (type '<c>INT</c>').
+    /// Gets or sets the value of the '<c>scale</c>' column (type '<c>INTEGER</c>').
     /// </summary>
     public int Scale { get; set; }
 }

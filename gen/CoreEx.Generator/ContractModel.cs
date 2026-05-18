@@ -2,10 +2,7 @@ using CoreEx.Generator.Utility;
 using HandlebarsDotNet;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Threading;
 
 namespace CoreEx.Generator;
 
@@ -277,7 +274,7 @@ internal class ContractModel : CodeGenContext
     }
 
     /// <summary>
-    /// Determines whether the <paramref name="symbol"/> already implements <see cref="CoreEx.Entities.IContract{T}"/> somewhere in its parent hierarchy.
+    /// Determines whether the <paramref name="symbol"/> already implements <c>CoreEx.Entities.IContract{T}</c> somewhere in its parent hierarchy.
     /// </summary>
     private static bool AlreadyImplementsIContractGenericSelf(INamedTypeSymbol symbol, INamedTypeSymbol? interfaceSymbol)
     {

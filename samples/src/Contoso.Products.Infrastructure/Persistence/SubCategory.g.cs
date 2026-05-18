@@ -9,12 +9,12 @@
 namespace Contoso.Products.Infrastructure.Persistence;
 
 /// <summary>
-/// Persistence reference-data model representing the '<c>[Products].[SubCategory]</c>' database table.
+/// Persistence reference-data model representing the '<c>"products"."sub_category"</c>' database table.
 /// </summary>
 public partial class SubCategory : ReferenceDataModelBase<string>
 {
     /// <summary>
-    /// Gets or sets the value of the '<c>CategoryCode</c>' column (type '<c>NVARCHAR(50)</c>').
+    /// Gets or sets the value of the '<c>category_code</c>' column (type '<c>CHARACTER VARYING(50)</c>').
     /// </summary>
     public string CategoryCode { get; set; } = default!;
 }

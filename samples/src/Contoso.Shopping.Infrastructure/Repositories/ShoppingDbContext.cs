@@ -12,7 +12,7 @@ public partial class ShoppingDbContext(DbContextOptions<ShoppingDbContext> optio
 
         // Uses IDatabase.Connection to ensure the same database/connection is used.
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlServer(BaseDatabase.Connection).EnableDetailedErrors(true);
+            optionsBuilder.UseSqlServer(BaseDatabase.Connection, contextOwnsConnection: false).EnableDetailedErrors(true);
     }
 
     /// <inheritdoc/>

@@ -8,10 +8,10 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigratePostgresDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
-        Test.UseExpectedSqlServerOutboxPublisher();
+        Test.UseExpectedPostgresOutboxPublisher();
     }
 
     [Test]
