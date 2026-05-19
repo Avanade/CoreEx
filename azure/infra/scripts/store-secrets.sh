@@ -5,6 +5,33 @@ set -euo pipefail
 
 rg="${AZURE_RESOURCE_GROUP:?AZURE_RESOURCE_GROUP is not set}"
 sql_password="${AZURE_SQL_ADMIN_PASSWORD:?AZURE_SQL_ADMIN_PASSWORD is not set}"
+postgres_password="${AZURE_POSTGRES_ADMIN_PASSWORD:-${AZURE_SQL_ADMIN_PASSWORD}}"
+sql_server="${AZURE_SQL_SERVER:-${sqlServerName:-}}"
+sql_login="${AZURE_SQL_ADMIN_LOGIN:-coreexadmin}"
+sql_db="${AZURE_SQL_DB_NAME:-${sqlDatabaseName:-}}"
+postgres_server="${AZURE_POSTGRES_SERVER:-${postgresServerName:-}}"
+postgres_login="${AZURE_POSTGRES_ADMIN_LOGIN:-coreexpgadmin}"
+postgres_db="${AZURE_POSTGRES_DB_NAME:-${postgresDatabaseName:-}}"
+
+if [[ -z "${sql_server}" ]]; then
+  echo "AZURE_SQL_SERVER (or azd output sqlServerName) is not set." >&2
+  exit 1
+fi
+
+if [[ -z "${sql_db}" ]]; then
+  echo "AZURE_SQL_DB_NAME (or azd output sqlDatabaseName) is not set." >&2
+  exit 1
+fi
+
+if [[ -z "${postgres_server}" ]]; then
+  echo "AZURE_POSTGRES_SERVER (or azd output postgresServerName) is not set." >&2
+  exit 1
+fi
+
+if [[ -z "${postgres_db}" ]]; then
+  echo "AZURE_POSTGRES_DB_NAME (or azd output postgresDatabaseName) is not set." >&2
+  exit 1
+fi
 
 echo "Locating Key Vault in resource group '${rg}'..."
 kv_name=$(az keyvault list --resource-group "${rg}" --query "[0].name" -o tsv)
@@ -31,10 +58,14 @@ az keyvault secret set \
   --value "${sql_password}" \
   --output none
 
-echo "Locating SQL Server..."
-sql_server=$(az sql server list --resource-group "${rg}" --query "[0].name" -o tsv)
-sql_login=$(az sql server show --resource-group "${rg}" --name "${sql_server}" --query administratorLogin -o tsv)
-sql_db=$(az sql db list --resource-group "${rg}" --server "${sql_server}" --query "[?name!='master'].name | [0]" -o tsv)
+echo "Storing postgres-admin-password..."
+az keyvault secret set \
+  --vault-name "${kv_name}" \
+  --name "postgres-admin-password" \
+  --value "${postgres_password}" \
+  --output none
+
+echo "Building SQL Server connection string..."
 sql_conn="Server=tcp:${sql_server}.database.windows.net,1433;Database=${sql_db};User Id=${sql_login};Password=${sql_password};Encrypt=true;TrustServerCertificate=false;"
 
 echo "Storing sql-connection-string..."
@@ -42,6 +73,16 @@ az keyvault secret set \
   --vault-name "${kv_name}" \
   --name "sql-connection-string" \
   --value "${sql_conn}" \
+  --output none
+
+echo "Building Postgres connection string..."
+postgres_conn="Server=${postgres_server}.postgres.database.azure.com;Port=5432;Database=${postgres_db};User Id=${postgres_login};Password=${postgres_password};Ssl Mode=Require;Trust Server Certificate=true;"
+
+echo "Storing postgres-connection-string..."
+az keyvault secret set \
+  --vault-name "${kv_name}" \
+  --name "postgres-connection-string" \
+  --value "${postgres_conn}" \
   --output none
 
 echo "Locating Service Bus namespace..."
@@ -61,5 +102,7 @@ az keyvault secret set \
 
 echo "Secrets stored successfully in Key Vault '${kv_name}':"
 echo "  - sql-admin-password"
+echo "  - postgres-admin-password"
 echo "  - sql-connection-string"
+echo "  - postgres-connection-string"
 echo "  - service-bus-connection-string"

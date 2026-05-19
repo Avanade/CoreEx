@@ -20,7 +20,7 @@ This file applies to anything under `azure/`. For application code, see the rele
 - [azure.yaml](azure.yaml) — azd project manifest. Declares the 6 services and the pre/post hooks.
 - [infra/](infra/) — Bicep templates (primary IaC for `azd`).
   - [infra/main.bicep](infra/main.bicep) — Entry template.
-  - [infra/modules/](infra/modules/) — Per-resource modules (`app-service-plan`, `app-services`, `aspire-dashboard`, `database`, `service-bus`, `redis`, `key-vault`, `application-insights`).
+  - [infra/modules/](infra/modules/) — Per-resource modules (`app-service-plan`, `app-services`, `aspire-dashboard`, `database`, `postgres-database`, `service-bus`, `redis`, `key-vault`, `application-insights`).
   - [infra/scripts/](infra/scripts/) — Hook scripts (`use-dev-params.*`, `store-secrets.*`).
   - `main.{dev,test,prod}.bicepparam` — Environment parameter files.
 - [terraform/](terraform/) — Terraform implementation that mirrors the Bicep deployment (parity must be maintained when changing one or the other).
@@ -32,7 +32,8 @@ Both Bicep and Terraform provision the same resource set:
 
 - Linux App Service Plan.
 - 7 Web Apps: `aspire-dashboard`, `products-api`, `shopping-api`, `products-outbox-relay`, `shopping-outbox-relay`, `products-subscribe`, `shopping-subscribe`.
-- Azure SQL Server + Database (with firewall rules).
+- Azure SQL Server + Database (Shopping and Orders domains, with firewall rules).
+- Azure Database for PostgreSQL Flexible Server + Database (Products domain).
 - Azure Service Bus (Standard) — namespace + topic + subscriptions.
 - Azure Managed Redis.
 - Application Insights.
@@ -49,8 +50,8 @@ Both Bicep and Terraform provision the same resource set:
 ## azd hooks (defined in [azure.yaml](azure.yaml))
 
 - `preprovision` → `infra/scripts/use-dev-params.{sh,ps1}` — selects the dev parameter file, injects `AZURE_LOCATION` and `AZURE_SQL_ADMIN_PASSWORD` into `main.parameters.json`, maps the .NET TFM to the App Service runtime.
-- `predeploy` → `scripts/run-products-db-migrations.{sh,ps1}` — runs DB migrations against the provisioned SQL DB before app code deploys.
-- `postprovision` → `infra/scripts/store-secrets.{sh,ps1}` — grants the provisioning user `Key Vault Administrator` and stores `sql-admin-password`, `sql-connection-string`, `service-bus-connection-string` in Key Vault.
+- `predeploy` → `scripts/run-products-db-migrations.{sh,ps1}` — runs domain-specific DB migrations before app code deploys: Shopping/Orders on SQL; Products on PostgreSQL. Products uses `Migrate` + `Schema` + `ResetAndData` sequence.
+- `postprovision` → `infra/scripts/store-secrets.{sh,ps1}` — grants the provisioning user `Key Vault Administrator` and stores `sql-admin-password`, `sql-connection-string`, `postgres-admin-password`, `postgres-connection-string`, `service-bus-connection-string` in Key Vault.
 
 When editing hook scripts, keep the bash and PowerShell variants behaviorally identical.
 
@@ -61,6 +62,7 @@ Set in the azd environment (`azd env set <KEY> <VALUE>`):
 - `AZURE_SUBSCRIPTION_ID` — target subscription.
 - `AZURE_LOCATION` — e.g. `eastus2`.
 - `AZURE_SQL_ADMIN_PASSWORD` — strong password; consumed by hooks, never committed.
+- `AZURE_POSTGRES_ADMIN_PASSWORD` — optional; if omitted, hooks default to `AZURE_SQL_ADMIN_PASSWORD`.
 - `AZD_DOTNET_TARGET_FRAMEWORK` — one of `net8.0`, `net9.0`, `net10.0`.
 
 Load into the current shell before running ad-hoc `az` / `terraform` commands:
@@ -114,6 +116,8 @@ Do not run `azd up`, `azd down`, `terraform apply`, or `terraform destroy` witho
 
 - **Multi-target publish error (NETSDK1129)** — set `AZD_DOTNET_TARGET_FRAMEWORK` and reload env.
 - **SQL password missing** — set `AZURE_SQL_ADMIN_PASSWORD` before `azd provision` / `terraform apply`.
+- **PostgreSQL password missing** — set `AZURE_POSTGRES_ADMIN_PASSWORD` when different from SQL admin password.
+- **Predeploy missing output keys** — run `azd provision --no-prompt` before `azd deploy --all --no-prompt` to refresh `sql*` and `postgres*` output values in azd env.
 - **API returns 404 at `/`** — expected; probe `/api/...`, `/health/ready/detailed`, or `/swagger`.
 - **Aspire Dashboard requires token** — fetch from `az webapp log tail` (see [README.md](README.md#accessing-the-aspire-dashboard)).
 - **`azd init` says no project** — run from `azure/`, not the repo root.

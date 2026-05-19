@@ -6,7 +6,7 @@ This folder contains the Azure Developer CLI (azd) project for deploying the Con
 
 Infrastructure (Bicep):
 - App Service Plan (Linux).
-- 6 Web Apps:
+- 7 Web Apps:
   - aspire-dashboard
   - products-api
   - shopping-api
@@ -14,7 +14,8 @@ Infrastructure (Bicep):
   - shopping-outbox-relay
   - products-subscribe
   - shopping-subscribe
-- Azure SQL Database.
+- Azure SQL Database (Shopping and Orders domains).
+- Azure Database for PostgreSQL Flexible Server (Products domain).
 - Azure Service Bus (Standard).
 - Azure Managed Redis.
 - Application Insights.
@@ -26,6 +27,9 @@ Infrastructure (Bicep):
 - The `postprovision` hook grants the provisioning user `Key Vault Administrator` on the deployed Key Vault and stores E2E connection secrets.
 - Deployment `location` is sourced from `AZURE_LOCATION` and injected by the preprovision hook.
 - SQL admin password is injected at runtime from `AZURE_SQL_ADMIN_PASSWORD` by [infra/scripts/use-dev-params.sh](infra/scripts/use-dev-params.sh).
+- PostgreSQL admin password is injected from `AZURE_POSTGRES_ADMIN_PASSWORD` when set; otherwise it defaults to `AZURE_SQL_ADMIN_PASSWORD`.
+- The `predeploy` migration hook runs domain-specific providers: Shopping and Orders on SQL Server, Products on PostgreSQL.
+- For Products, the migration hook runs `Migrate` + `Schema` + `ResetAndData` to avoid the DbEx PostgreSQL create-stage issue in Azure Flexible Server.
 - Key Vault name is unique per deployment (generated in [infra/main.bicep](infra/main.bicep)).
 - Multi-targeted .NET projects use a configurable publish framework via environment variable:
   - `AZD_DOTNET_TARGET_FRAMEWORK` (preferred), or
@@ -37,7 +41,7 @@ Infrastructure (Bicep):
 - Azure Developer CLI (`azd`).
 - .NET SDK installed.
 - Access to an Azure subscription.
-- Outbound port 1433 access to run DB updates.
+- Outbound port 1433 and 5432 access to run DB updates.
 
 ## One-time setup
 
@@ -68,6 +72,7 @@ Set required values:
 azd env set AZURE_SUBSCRIPTION_ID <subscription-id>
 azd env set AZURE_LOCATION eastus2
 azd env set AZURE_SQL_ADMIN_PASSWORD '<strong-password>'
+azd env set AZURE_POSTGRES_ADMIN_PASSWORD '<strong-password>'  # Optional; defaults to AZURE_SQL_ADMIN_PASSWORD.
 azd env set AZD_DOTNET_TARGET_FRAMEWORK 'net10.0'
 ```
 
@@ -201,6 +206,8 @@ curl -i "https://app-products-api-dev-{suffix}.azurewebsites.net/swagger"
 After `azd provision` or `azd up`, the postprovision hook automatically stores the following secrets in Key Vault:
 - `sql-admin-password`
 - `sql-connection-string`
+- `postgres-admin-password`
+- `postgres-connection-string`
 - `service-bus-connection-string`
 
 Retrieve them:
@@ -211,6 +218,9 @@ KV=$(az keyvault list --resource-group <your-resource-group> --query '[0].name' 
 
 # SQL connection string
 az keyvault secret show --vault-name $KV --name sql-connection-string -o tsv --query value
+
+# PostgreSQL connection string
+az keyvault secret show --vault-name $KV --name postgres-connection-string -o tsv --query value
 
 # Service Bus connection string
 az keyvault secret show --vault-name $KV --name service-bus-connection-string -o tsv --query value
@@ -225,7 +235,7 @@ Edit [../samples/tests/Contoso.E2E.Runner/appsettings.json](../samples/tests/Con
   "E2E": {
     "Products": {
       "BaseAddress": "https://app-products-api-dev-{suffix}.azurewebsites.net",
-      "ConnectionString": "Server=sql-dev-{suffix}.database.windows.net;Database=Contoso;User Id=sqladmin;Password={password};Encrypt=true;TrustServerCertificate=false;",
+      "ConnectionString": "Server=pg-dev-{suffix}.postgres.database.azure.com;Port=5432;Database=coreexdev;User Id={postgres-admin};Password={password};Ssl Mode=Require;Trust Server Certificate=true;",
       "ServiceBus": "Endpoint=sb://sb-dev-{suffix}.servicebus.windows.net/;SharedAccessKeyName=rootManageSharedAccessKey;SharedAccessKey={key};"
     },
     "Shopping": {
@@ -266,6 +276,13 @@ azd auth login --tenant-id <tenant-id>
 
 SQL password missing:
 - Ensure `AZURE_SQL_ADMIN_PASSWORD` is set before `azd provision` or `azd up`.
+
+PostgreSQL password missing:
+- Set `AZURE_POSTGRES_ADMIN_PASSWORD` if your SQL and PostgreSQL admin passwords differ.
+- If omitted, deployment hooks default PostgreSQL admin password to `AZURE_SQL_ADMIN_PASSWORD`.
+
+`predeploy` hook fails with missing database outputs:
+- Run `azd provision --no-prompt` first to refresh azd environment outputs (`sqlServerName`, `sqlDatabaseName`, `postgresServerName`, `postgresDatabaseName`) before `azd deploy --all --no-prompt`.
 
 Multi-target publish error (NETSDK1129):
 - Ensure `AZD_DOTNET_TARGET_FRAMEWORK` is set in your azd environment: `azd env set AZD_DOTNET_TARGET_FRAMEWORK net10.0`.

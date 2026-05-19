@@ -57,6 +57,30 @@
     "sqlAutoPauseDelay": {
       "value": 60
     },
+    "postgresAdminLogin": {
+      "value": "coreexpgadmin"
+    },
+    "postgresAdminPassword": {
+      "value": "__AZURE_POSTGRES_ADMIN_PASSWORD__"
+    },
+    "postgresDatabaseName": {
+      "value": "coreexdev"
+    },
+    "postgresFirewallClientIp": {
+      "value": "__AZURE_CLIENT_IP__"
+    },
+    "postgresSkuName": {
+      "value": "Standard_B1ms"
+    },
+    "postgresSkuTier": {
+      "value": "Burstable"
+    },
+    "postgresVersion": {
+      "value": "16"
+    },
+    "postgresStorageSizeGb": {
+      "value": 32
+    },
     "redisSkuName": {
       "value": "Balanced_B0"
     },

@@ -9,6 +9,10 @@ if [[ -z "${AZURE_SQL_ADMIN_PASSWORD:-}" ]]; then
 	exit 1
 fi
 
+if [[ -z "${AZURE_POSTGRES_ADMIN_PASSWORD:-}" ]]; then
+  AZURE_POSTGRES_ADMIN_PASSWORD="${AZURE_SQL_ADMIN_PASSWORD}"
+fi
+
 if [[ -z "${AZURE_LOCATION:-}" ]]; then
   echo "AZURE_LOCATION is not set. Set it via 'azd env set AZURE_LOCATION <region>' before running azd provision." >&2
   exit 1
@@ -50,10 +54,11 @@ esac
 if command -v jq &> /dev/null; then
   jq \
     --arg pwd "${AZURE_SQL_ADMIN_PASSWORD}" \
+    --arg pgpwd "${AZURE_POSTGRES_ADMIN_PASSWORD}" \
     --arg loc "${AZURE_LOCATION}" \
     --arg fx "${app_service_linux_fx_version}" \
     --arg ip "${client_ip}" \
-    '.parameters.location.value = $loc | .parameters.sqlAdminPassword.value = $pwd | .parameters.appServiceLinuxFxVersion.value = $fx | .parameters.sqlFirewallClientIp.value = $ip' \
+    '.parameters.location.value = $loc | .parameters.sqlAdminPassword.value = $pwd | .parameters.postgresAdminPassword.value = $pgpwd | .parameters.appServiceLinuxFxVersion.value = $fx | .parameters.sqlFirewallClientIp.value = $ip | .parameters.postgresFirewallClientIp.value = $ip' \
     "${infra_dir}/main.dev.parameters.json" > "${infra_dir}/main.parameters.json"
 else
   # Fallback: use printf to safely escape and substitute
@@ -61,6 +66,8 @@ else
   escaped_location=${escaped_location%\\}
   escaped_password=$(printf '%s\n' "${AZURE_SQL_ADMIN_PASSWORD}" | sed -e 's/[&/\\]/\\&/g; s/$/\\/')
   escaped_password=${escaped_password%\\}
+  escaped_postgres_password=$(printf '%s\n' "${AZURE_POSTGRES_ADMIN_PASSWORD}" | sed -e 's/[&/\\]/\\&/g; s/$/\\/')
+  escaped_postgres_password=${escaped_postgres_password%\\}
   escaped_fx=$(printf '%s\n' "${app_service_linux_fx_version}" | sed -e 's/[&/\\]/\\&/g; s/$/\\/')
   escaped_fx=${escaped_fx%\\}
   escaped_ip=$(printf '%s\n' "${client_ip}" | sed -e 's/[&/\\]/\\&/g; s/$/\\/')
@@ -68,6 +75,7 @@ else
   sed \
     -e "s/__AZURE_LOCATION__/${escaped_location}/g" \
     -e "s/__AZURE_SQL_ADMIN_PASSWORD__/${escaped_password}/g" \
+    -e "s/__AZURE_POSTGRES_ADMIN_PASSWORD__/${escaped_postgres_password}/g" \
     -e "s/__APP_SERVICE_LINUX_FX_VERSION__/${escaped_fx}/g" \
     -e "s/__AZURE_CLIENT_IP__/${escaped_ip}/g" \
     "${infra_dir}/main.dev.parameters.json" > "${infra_dir}/main.parameters.json"

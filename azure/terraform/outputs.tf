@@ -27,6 +27,14 @@ output "sql_database_name" {
   value = azapi_resource.sql_database.name
 }
 
+output "postgres_server_name" {
+  value = azapi_resource.postgres_server.name
+}
+
+output "postgres_database_name" {
+  value = azapi_resource.postgres_database.name
+}
+
 output "products_api_app_name" {
   value = azapi_resource.products_api.name
 }

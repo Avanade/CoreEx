@@ -101,6 +101,49 @@ variable "sql_auto_pause_delay" {
   type        = number
 }
 
+variable "postgres_admin_login" {
+  description = "Postgres admin username."
+  type        = string
+}
+
+variable "postgres_admin_password" {
+  description = "Postgres admin password. Defaults to SQL admin password when omitted."
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "postgres_database_name" {
+  description = "Postgres database name used by Products domain."
+  type        = string
+}
+
+variable "postgres_firewall_client_ip" {
+  description = "Optional public IPv4 for Postgres firewall allow rule."
+  type        = string
+  default     = ""
+}
+
+variable "postgres_sku_name" {
+  description = "Postgres flexible server SKU name."
+  type        = string
+}
+
+variable "postgres_sku_tier" {
+  description = "Postgres flexible server SKU tier."
+  type        = string
+}
+
+variable "postgres_version" {
+  description = "Postgres major version."
+  type        = string
+}
+
+variable "postgres_storage_mb" {
+  description = "Postgres storage size in MB."
+  type        = number
+}
+
 variable "redis_sku_name" {
   description = "Azure Managed Redis SKU name. Example: Balanced_B0."
   type        = string

@@ -7,6 +7,10 @@ if ([string]::IsNullOrWhiteSpace($env:AZURE_SQL_ADMIN_PASSWORD)) {
 	throw 'AZURE_SQL_ADMIN_PASSWORD is not set. Set it before running azd provision.'
 }
 
+if ([string]::IsNullOrWhiteSpace($env:AZURE_POSTGRES_ADMIN_PASSWORD)) {
+    $env:AZURE_POSTGRES_ADMIN_PASSWORD = $env:AZURE_SQL_ADMIN_PASSWORD
+}
+
 if ([string]::IsNullOrWhiteSpace($env:AZURE_LOCATION)) {
     throw "AZURE_LOCATION is not set. Set it via 'azd env set AZURE_LOCATION <region>' before running azd provision."
 }
@@ -58,14 +62,17 @@ try {
     $json = Get-Content -Raw -Path $templatePath | ConvertFrom-Json
     $json.parameters.location.value = $env:AZURE_LOCATION
     $json.parameters.sqlAdminPassword.value = $env:AZURE_SQL_ADMIN_PASSWORD
+    $json.parameters.postgresAdminPassword.value = $env:AZURE_POSTGRES_ADMIN_PASSWORD
     $json.parameters.appServiceLinuxFxVersion.value = $appServiceLinuxFxVersion
     $json.parameters.sqlFirewallClientIp.value = $clientIp
+    $json.parameters.postgresFirewallClientIp.value = $clientIp
     $json | ConvertTo-Json -Depth 100 | Set-Content -Path $outputPath -NoNewline
 } catch {
     # Fallback: direct string replacement
     $content = Get-Content -Raw -Path $templatePath
     $content = $content.Replace('__AZURE_LOCATION__', $env:AZURE_LOCATION)
     $content = $content.Replace('__AZURE_SQL_ADMIN_PASSWORD__', $env:AZURE_SQL_ADMIN_PASSWORD)
+    $content = $content.Replace('__AZURE_POSTGRES_ADMIN_PASSWORD__', $env:AZURE_POSTGRES_ADMIN_PASSWORD)
     $content = $content.Replace('__APP_SERVICE_LINUX_FX_VERSION__', $appServiceLinuxFxVersion)
     $content = $content.Replace('__AZURE_CLIENT_IP__', $clientIp)
     Set-Content -Path $outputPath -Value $content -NoNewline

@@ -24,8 +24,16 @@ sql_sku_tier         = "GeneralPurpose"
 sql_min_capacity     = 0.5
 sql_auto_pause_delay = 60
 
+postgres_admin_login      = "coreexpgadmin"
+postgres_database_name    = "coreextest"
+postgres_sku_name         = "Standard_B1ms"
+postgres_sku_tier         = "Burstable"
+postgres_version          = "16"
+postgres_storage_mb       = 32768
+
 # Derived from current public IP by apply script.
 sql_firewall_client_ip = ""
+postgres_firewall_client_ip = ""
 
 redis_sku_name          = "Balanced_B0"
 redis_high_availability = "Enabled"

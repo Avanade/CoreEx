@@ -8,6 +8,7 @@ param appInsightsConnectionString string
 param appInsightsResourceId string
 param appInsightsInstrumentationKey string
 param sqlConnectionString string
+param postgresConnectionString string
 param redisConnectionString string
 param serviceBusConnectionString string
 param otlpHttpEndpoint string
@@ -50,10 +51,6 @@ var sharedAppSettings = [
     value: '1.0.0'
   }
   {
-    name: 'Aspire__Microsoft__Data__SqlClient__ConnectionString'
-    value: sqlConnectionString
-  }
-  {
     name: 'Aspire__StackExchange__Redis__ConnectionString'
     value: redisConnectionString
   }
@@ -68,6 +65,20 @@ var sharedAppSettings = [
   {
     name: 'OTEL_EXPORTER_OTLP_ENDPOINT'
     value: otlpHttpEndpoint
+  }
+]
+
+var sqlDbAppSettings = [
+  {
+    name: 'Aspire__Microsoft__Data__SqlClient__ConnectionString'
+    value: sqlConnectionString
+  }
+]
+
+var postgresDbAppSettings = [
+  {
+    name: 'Aspire__Npgsql__ConnectionString'
+    value: postgresConnectionString
   }
 ]
 
@@ -93,7 +104,7 @@ resource productsApi 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, postgresDbAppSettings)
     }
   }
 }
@@ -120,7 +131,7 @@ resource shoppingApi 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: concat(sharedAppSettings, [
+      appSettings: concat(sharedAppSettings, sqlDbAppSettings, [
         {
           name: 'ProductsApi__BaseAddress'
           value: 'https://${productsApi.properties.defaultHostName}'
@@ -152,7 +163,7 @@ resource productsOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, postgresDbAppSettings)
     }
   }
 }
@@ -179,7 +190,7 @@ resource shoppingOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, sqlDbAppSettings)
     }
   }
 }
@@ -206,7 +217,7 @@ resource productsSubscribe 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, postgresDbAppSettings)
     }
   }
 }
@@ -233,7 +244,7 @@ resource shoppingSubscribe 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, sqlDbAppSettings)
     }
   }
 }
@@ -244,3 +255,4 @@ output productsOutboxRelayName string = productsOutboxRelay.name
 output shoppingOutboxRelayName string = shoppingOutboxRelay.name
 output productsSubscribeName string = productsSubscribe.name
 output shoppingSubscribeName string = shoppingSubscribe.name
+
