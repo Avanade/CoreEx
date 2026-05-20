@@ -48,11 +48,12 @@ function Invoke-ValidateRequest {
         [string] $Method = 'GET'
     )
 
+    $code = $null
     try {
         $response = Invoke-WebRequest -Uri $Url -Method $Method -SkipCertificateCheck -UseBasicParsing -ErrorAction Stop
         $code = [int]$response.StatusCode
     }
-    catch [System.Net.Http.HttpRequestException] {
+    catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         $code = [int]$_.Exception.Response.StatusCode
     }
     catch {
@@ -60,7 +61,7 @@ function Invoke-ValidateRequest {
         exit 1
     }
 
-    if ($code -lt 200 -or $code -ge 400) {
+    if (-not $code -or $code -lt 200 -or $code -ge 400) {
         Write-Error "Validation failed for ${Label}: ${Method} ${Url} returned HTTP ${code}."
         exit 1
     }
