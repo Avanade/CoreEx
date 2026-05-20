@@ -81,6 +81,39 @@ azd deploy --all --no-prompt           # code-only redeploy.
 azd down --force --purge --no-prompt   # tear down.
 ```
 
+## Helper scripts
+
+The `azure/scripts/` folder includes two helper scripts that should be preferred over manual command chains when validating a deployment.
+
+### get-aspire-dashboard-login
+
+- Files: `scripts/get-aspire-dashboard-login.sh`, `scripts/get-aspire-dashboard-login.ps1`.
+- Purpose: prints the Aspire Dashboard URL and a ready-to-open login URL when a dashboard token can be found.
+- Required argument: `--resource-group` / `-ResourceGroup`.
+- Optional arguments: dashboard app name and token timeout.
+- Discovery behavior: auto-detects the dashboard app when not explicitly provided.
+- Token retrieval order:
+  1. SCM/Kudu command API query of runtime `container.log` (last 60 minutes).
+  2. SCM/Kudu log archive scan.
+  3. Live `az webapp log tail` fallback with timeout.
+- Output always includes dashboard app name and dashboard URL; login URL is printed only when token extraction succeeds.
+
+### setup-e2e-runner
+
+- Files: `scripts/setup-e2e-runner.sh`, `scripts/setup-e2e-runner.ps1`.
+- Purpose: wires `samples/tests/Contoso.E2E.Runner/appsettings.json` to deployed Azure endpoints and connection strings.
+- Required argument: `--resource-group` / `-ResourceGroup`.
+- Optional arguments: appsettings path, key vault name, Products app name, Shopping app name, skip-validation, insecure validation mode.
+- Discovery behavior: auto-detects Products and Shopping app names plus Key Vault when omitted.
+- Secret retrieval: reads `postgres-connection-string` and `sql-connection-string` from Key Vault.
+- Validation behavior (unless skipped):
+  - `GET /api/products` for Products.
+  - `POST /api/customers/test/baskets` for Shopping.
+  - health and swagger endpoints for both services.
+- Update behavior: creates `appsettings.json.bak` before writing updated `E2E.Products` and `E2E.Shopping` values.
+
+When editing either helper script, keep the bash and PowerShell variants behaviorally identical.
+
 ## Validating changes
 
 Before declaring an infra change complete:
