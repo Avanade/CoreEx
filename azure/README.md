@@ -147,6 +147,27 @@ azd provision --no-prompt
 
 After deployment, the Aspire Dashboard is publicly accessible from a dedicated HTTPS-enabled App Service. The six deployed services are configured to export OTLP telemetry to it automatically.
 
+Default (recommended): use the helper script.
+
+```bash
+./scripts/get-aspire-dashboard-login.sh --resource-group <your-resource-group>
+```
+
+Optional arguments:
+
+```bash
+./scripts/get-aspire-dashboard-login.sh \
+  --resource-group <your-resource-group> \
+  --dashboard-app-name <dashboard-app-name> \
+  --token-timeout-seconds 30
+```
+
+The script prints:
+- Dashboard URL.
+- Login URL with token when a token is found in the last 60 minutes of the dashboard runtime log via SCM/Kudu, or during live tailing.
+
+Manual fallback (if you do not want to use the script):
+
 Find the dashboard URL:
 
 ```bash
@@ -155,16 +176,22 @@ az webapp show --resource-group <your-resource-group> --name <dashboard-app-name
 
 Open `https://<host-name>` in a browser to view the Aspire Dashboard.
 
-If the dashboard prompts for a browser token, retrieve it from the container logs:
+If the dashboard prompts for a browser token, query the dashboard runtime log via SCM/Kudu:
 
 ```bash
-az webapp log tail --resource-group <your-resource-group> --name <dashboard-app-name>
+USER=$(az webapp deployment list-publishing-credentials --resource-group <your-resource-group> --name <dashboard-app-name> --query publishingUserName -o tsv)
+PASS=$(az webapp deployment list-publishing-credentials --resource-group <your-resource-group> --name <dashboard-app-name> --query publishingPassword -o tsv)
+PAYLOAD='{"command":"grep \"Login to the dashboard\" /appsvctmp/volatile/logs/runtime/container.log","dir":"/home"}'
+curl -fsS -u "$USER:$PASS" -H 'Content-Type: application/json' -d "$PAYLOAD" "https://<dashboard-app-name>.scm.azurewebsites.net/api/command"
 ```
 
 Extract only the token (bash):
 
 ```bash
-TOKEN=$(az webapp log tail --resource-group <your-resource-group> --name <dashboard-app-name> 2>&1 | grep -oE 'login\?t=[A-Za-z0-9]+' | head -n1 | cut -d= -f2)
+USER=$(az webapp deployment list-publishing-credentials --resource-group <your-resource-group> --name <dashboard-app-name> --query publishingUserName -o tsv)
+PASS=$(az webapp deployment list-publishing-credentials --resource-group <your-resource-group> --name <dashboard-app-name> --query publishingPassword -o tsv)
+PAYLOAD='{"command":"grep \"Login to the dashboard\" /appsvctmp/volatile/logs/runtime/container.log","dir":"/home"}'
+TOKEN=$(curl -fsS -u "$USER:$PASS" -H 'Content-Type: application/json' -d "$PAYLOAD" "https://<dashboard-app-name>.scm.azurewebsites.net/api/command" | grep -oE 'login\?t=[A-Za-z0-9]+' | head -n1 | cut -d= -f2)
 echo "$TOKEN"
 ```
 
@@ -172,7 +199,10 @@ Print a ready-to-open login URL:
 
 ```bash
 HOST=$(az webapp show --resource-group <your-resource-group> --name <dashboard-app-name> --query defaultHostName -o tsv)
-TOKEN=$(az webapp log tail --resource-group <your-resource-group> --name <dashboard-app-name> 2>&1 | grep -oE 'login\?t=[A-Za-z0-9]+' | head -n1 | cut -d= -f2)
+USER=$(az webapp deployment list-publishing-credentials --resource-group <your-resource-group> --name <dashboard-app-name> --query publishingUserName -o tsv)
+PASS=$(az webapp deployment list-publishing-credentials --resource-group <your-resource-group> --name <dashboard-app-name> --query publishingPassword -o tsv)
+PAYLOAD='{"command":"grep \"Login to the dashboard\" /appsvctmp/volatile/logs/runtime/container.log","dir":"/home"}'
+TOKEN=$(curl -fsS -u "$USER:$PASS" -H 'Content-Type: application/json' -d "$PAYLOAD" "https://<dashboard-app-name>.scm.azurewebsites.net/api/command" | grep -oE 'login\?t=[A-Za-z0-9]+' | head -n1 | cut -d= -f2)
 echo "https://${HOST}/login?t=${TOKEN}"
 ```
 
@@ -186,6 +216,42 @@ Note: standalone Aspire Dashboard mode does not provide the full Aspire resource
 ## Running E2E Tests
 
 After deploying with `azd up`, you can run the E2E test runner against the deployed services.
+
+Default (recommended): use the helper script.
+
+```bash
+./scripts/setup-e2e-runner.sh --resource-group <your-resource-group>
+```
+
+Optional arguments:
+
+```bash
+./scripts/setup-e2e-runner.sh \
+  --resource-group <your-resource-group> \
+  --appsettings-path ../samples/tests/Contoso.E2E.Runner/appsettings.json \
+  --key-vault-name <key-vault-name> \
+  --products-app-name <products-app-name> \
+  --shopping-app-name <shopping-app-name> \
+  --skip-validation
+```
+
+The script:
+- Discovers the deployed Products and Shopping API host names.
+- Validates the deployed APIs using the same API and health paths described below.
+- Retrieves the SQL Server and PostgreSQL connection strings from Key Vault.
+- Updates [../samples/tests/Contoso.E2E.Runner/appsettings.json](../samples/tests/Contoso.E2E.Runner/appsettings.json) for Products and Shopping.
+- Creates an `appsettings.json.bak` backup before writing changes.
+
+Note: Shopping API validation uses `POST /api/customers/test/baskets`, which creates a test basket. Use `--skip-validation` if you only want to update configuration.
+
+After the script completes, run the E2E runner:
+
+```bash
+cd ../samples/tests/Contoso.E2E.Runner
+dotnet run --framework "${AZD_DOTNET_TARGET_FRAMEWORK:-$DOTNET_TARGET_FRAMEWORK}"
+```
+
+Manual fallback (if you do not want to use the script):
 
 ### Get deployed endpoint URLs
 
@@ -206,11 +272,13 @@ Validate the deployed APIs using API/health/swagger paths (not root `/`):
 curl -i "https://app-products-api-dev-{suffix}.azurewebsites.net/api/products"
 
 # Shopping API
-curl -i "https://app-shopping-api-dev-{suffix}.azurewebsites.net/api/baskets"
+curl -i -X POST "https://app-shopping-api-dev-{suffix}.azurewebsites.net/api/customers/test/baskets"
 
 # Common liveness and docs paths
 curl -i "https://app-products-api-dev-{suffix}.azurewebsites.net/health/ready/detailed"
 curl -i "https://app-products-api-dev-{suffix}.azurewebsites.net/swagger"
+curl -i "https://app-shopping-api-dev-{suffix}.azurewebsites.net/health/ready/detailed"
+curl -i "https://app-shopping-api-dev-{suffix}.azurewebsites.net/swagger"
 ```
 
 ### Retrieve connection strings
