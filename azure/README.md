@@ -84,12 +84,26 @@ Load environment variables into your current bash session:
 set -a && eval "$(azd env get-values)" && set +a
 ```
 
-The preprovision hook maps the selected target framework to the App Service Linux runtime automatically:
-- `net8.0` -> `DOTNETCORE|8.0`
-- `net9.0` -> `DOTNETCORE|9.0`
-- `net10.0` -> `DOTNETCORE|10.0`
+> **Important**: This step must be repeated every time you open a new shell session. The `preprovision` hook scripts read directly from shell environment variables, not from the azd environment store alone.
+
+Run the preprovision hook manually to generate `infra/main.parameters.json`:
+
+```bash
+./infra/scripts/use-dev-params.sh
+```
+
+This script:
+- Validates that `AZURE_SQL_ADMIN_PASSWORD` and `AZURE_LOCATION` are set.
+- Detects your current public IP for SQL and PostgreSQL firewall rules.
+- Maps `AZD_DOTNET_TARGET_FRAMEWORK` to the App Service Linux runtime:
+  - `net8.0` -> `DOTNETCORE|8.0`
+  - `net9.0` -> `DOTNETCORE|9.0`
+  - `net10.0` -> `DOTNETCORE|10.0`
+- Writes `infra/main.parameters.json` (used by all subsequent azd and az commands).
 
 ## Validate before deploy
+
+> **Note**: `azd provision --preview` does not run the `preprovision` hook, so `infra/main.parameters.json` must already exist (generated above) before previewing.
 
 Preview infra changes:
 
@@ -97,11 +111,9 @@ Preview infra changes:
 azd provision --preview --no-prompt
 ```
 
-Note: If you need the full planned resource list, run:
+If you need the full ARM what-if output:
 
 ```bash
-set -a && eval "$(azd env get-values)" && set +a
-./infra/scripts/use-dev-params.sh
 az deployment group what-if --resource-group <your-resource-group> --template-file ./infra/main.bicep --parameters ./infra/main.parameters.json --no-pretty-print
 ```
 
@@ -208,7 +220,6 @@ After `azd provision` or `azd up`, the postprovision hook automatically stores t
 - `sql-connection-string`
 - `postgres-admin-password`
 - `postgres-connection-string`
-- `service-bus-connection-string`
 
 Retrieve them:
 
@@ -221,9 +232,6 @@ az keyvault secret show --vault-name $KV --name sql-connection-string -o tsv --q
 
 # PostgreSQL connection string
 az keyvault secret show --vault-name $KV --name postgres-connection-string -o tsv --query value
-
-# Service Bus connection string
-az keyvault secret show --vault-name $KV --name service-bus-connection-string -o tsv --query value
 ```
 
 ### Update E2E configuration
@@ -235,13 +243,11 @@ Edit [../samples/tests/Contoso.E2E.Runner/appsettings.json](../samples/tests/Con
   "E2E": {
     "Products": {
       "BaseAddress": "https://app-products-api-dev-{suffix}.azurewebsites.net",
-      "ConnectionString": "Server=pg-dev-{suffix}.postgres.database.azure.com;Port=5432;Database=coreexdev;User Id={postgres-admin};Password={password};Ssl Mode=Require;Trust Server Certificate=true;",
-      "ServiceBus": "Endpoint=sb://sb-dev-{suffix}.servicebus.windows.net/;SharedAccessKeyName=rootManageSharedAccessKey;SharedAccessKey={key};"
+      "ConnectionString": "Server=pg-dev-{suffix}.postgres.database.azure.com;Port=5432;Database=coreexdev;User Id={postgres-admin};Password={password};Ssl Mode=Require;Trust Server Certificate=true;"
     },
     "Shopping": {
       "BaseAddress": "https://app-shopping-api-dev-{suffix}.azurewebsites.net",
-      "ConnectionString": "Server=sql-dev-{suffix}.database.windows.net;Database=Contoso;User Id=sqladmin;Password={password};Encrypt=true;TrustServerCertificate=false;",
-      "ServiceBus": "Endpoint=sb://sb-dev-{suffix}.servicebus.windows.net/;SharedAccessKeyName=rootManageSharedAccessKey;SharedAccessKey={key};"
+      "ConnectionString": "Server=sql-dev-{suffix}.database.windows.net;Database=Contoso;User Id=sqladmin;Password={password};Encrypt=true;TrustServerCertificate=false;"
     }
   }
 }
