@@ -197,10 +197,9 @@ module appServices './modules/app-services.bicep' = {
     appInsightsConnectionString: appInsights.outputs.connectionString
     appInsightsResourceId: appInsights.outputs.id
     appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
-    sqlConnectionString: sql.outputs.connectionString
-    postgresConnectionString: postgres.outputs.connectionString
+    keyVaultName: keyVault.outputs.name
+    keyVaultUri: keyVault.outputs.vaultUri
     redisConnectionString: redis.outputs.connectionString
-    serviceBusConnectionString: serviceBus.outputs.connectionString
     otlpHttpEndpoint: aspireDashboard.outputs.otlpHttpEndpoint
   }
 }

@@ -12,6 +12,7 @@ sql_db="${AZURE_SQL_DB_NAME:-${sqlDatabaseName:-}}"
 postgres_server="${AZURE_POSTGRES_SERVER:-${postgresServerName:-}}"
 postgres_login="${AZURE_POSTGRES_ADMIN_LOGIN:-coreexpgadmin}"
 postgres_db="${AZURE_POSTGRES_DB_NAME:-${postgresDatabaseName:-}}"
+keyvault_reference_wait_seconds="${AZD_KEYVAULT_REFERENCE_WAIT_SECONDS:-60}"
 
 if [[ -z "${sql_server}" ]]; then
   echo "AZURE_SQL_SERVER (or azd output sqlServerName) is not set." >&2
@@ -106,3 +107,8 @@ echo "  - postgres-admin-password"
 echo "  - sql-connection-string"
 echo "  - postgres-connection-string"
 echo "  - service-bus-connection-string"
+
+if [[ "${keyvault_reference_wait_seconds}" =~ ^[0-9]+$ ]] && (( keyvault_reference_wait_seconds > 0 )); then
+  echo "Waiting ${keyvault_reference_wait_seconds}s for Key Vault reference RBAC propagation before deploy."
+  sleep "${keyvault_reference_wait_seconds}"
+fi

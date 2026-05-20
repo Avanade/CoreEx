@@ -7,11 +7,19 @@ param tags object = {}
 param appInsightsConnectionString string
 param appInsightsResourceId string
 param appInsightsInstrumentationKey string
-param sqlConnectionString string
-param postgresConnectionString string
+param keyVaultName string
+param keyVaultUri string
 param redisConnectionString string
-param serviceBusConnectionString string
 param otlpHttpEndpoint string
+
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: keyVaultName
+}
+
+var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+var sqlConnectionStringKeyVaultReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/sql-connection-string/)'
+var postgresConnectionStringKeyVaultReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/postgres-connection-string/)'
+var serviceBusConnectionStringKeyVaultReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/service-bus-connection-string/)'
 
 var sharedAppSettings = [
   {
@@ -56,7 +64,7 @@ var sharedAppSettings = [
   }
   {
     name: 'Aspire__Azure__Messaging__ServiceBus__ConnectionString'
-    value: serviceBusConnectionString
+    value: serviceBusConnectionStringKeyVaultReference
   }
   {
     name: 'OTEL_EXPORTER_OTLP_PROTOCOL'
@@ -71,14 +79,14 @@ var sharedAppSettings = [
 var sqlDbAppSettings = [
   {
     name: 'Aspire__Microsoft__Data__SqlClient__ConnectionString'
-    value: sqlConnectionString
+    value: sqlConnectionStringKeyVaultReference
   }
 ]
 
 var postgresDbAppSettings = [
   {
     name: 'Aspire__Npgsql__ConnectionString'
-    value: postgresConnectionString
+    value: postgresConnectionStringKeyVaultReference
   }
 ]
 
@@ -90,6 +98,9 @@ resource productsApi 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -109,6 +120,16 @@ resource productsApi 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
+resource productsApiKeyVaultSecretsUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, productsApi.id, 'KeyVaultSecretsUser')
+  scope: keyVault
+  properties: {
+    principalId: productsApi.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
+  }
+}
+
 resource shoppingApi 'Microsoft.Web/sites@2023-12-01' = {
   name: 'app-shopping-api-${environmentType}-${suffix}'
   location: location
@@ -117,6 +138,9 @@ resource shoppingApi 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -141,6 +165,16 @@ resource shoppingApi 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
+resource shoppingApiKeyVaultSecretsUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, shoppingApi.id, 'KeyVaultSecretsUser')
+  scope: keyVault
+  properties: {
+    principalId: shoppingApi.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
+  }
+}
+
 resource productsOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
   name: 'app-products-outbox-relay-${environmentType}-${suffix}'
   location: location
@@ -149,6 +183,9 @@ resource productsOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -165,6 +202,16 @@ resource productsOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
       alwaysOn: true
       appSettings: concat(sharedAppSettings, postgresDbAppSettings)
     }
+  }
+}
+
+resource productsOutboxRelayKeyVaultSecretsUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, productsOutboxRelay.id, 'KeyVaultSecretsUser')
+  scope: keyVault
+  properties: {
+    principalId: productsOutboxRelay.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
   }
 }
 
@@ -176,6 +223,9 @@ resource shoppingOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -195,6 +245,16 @@ resource shoppingOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
+resource shoppingOutboxRelayKeyVaultSecretsUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, shoppingOutboxRelay.id, 'KeyVaultSecretsUser')
+  scope: keyVault
+  properties: {
+    principalId: shoppingOutboxRelay.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
+  }
+}
+
 resource productsSubscribe 'Microsoft.Web/sites@2023-12-01' = {
   name: 'app-products-subscribe-${environmentType}-${suffix}'
   location: location
@@ -203,6 +263,9 @@ resource productsSubscribe 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -222,6 +285,16 @@ resource productsSubscribe 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
+resource productsSubscribeKeyVaultSecretsUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, productsSubscribe.id, 'KeyVaultSecretsUser')
+  scope: keyVault
+  properties: {
+    principalId: productsSubscribe.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
+  }
+}
+
 resource shoppingSubscribe 'Microsoft.Web/sites@2023-12-01' = {
   name: 'app-shopping-subscribe-${environmentType}-${suffix}'
   location: location
@@ -230,6 +303,9 @@ resource shoppingSubscribe 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -246,6 +322,16 @@ resource shoppingSubscribe 'Microsoft.Web/sites@2023-12-01' = {
       alwaysOn: true
       appSettings: concat(sharedAppSettings, sqlDbAppSettings)
     }
+  }
+}
+
+resource shoppingSubscribeKeyVaultSecretsUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, shoppingSubscribe.id, 'KeyVaultSecretsUser')
+  scope: keyVault
+  properties: {
+    principalId: shoppingSubscribe.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
   }
 }
 

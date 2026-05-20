@@ -20,6 +20,7 @@ $sqlDb       = if ([string]::IsNullOrWhiteSpace($env:AZURE_SQL_DB_NAME)) { (azd 
 $postgresServer = if ([string]::IsNullOrWhiteSpace($env:AZURE_POSTGRES_SERVER)) { (azd env get-value postgresServerName).Trim() } else { $env:AZURE_POSTGRES_SERVER }
 $postgresLogin  = if ([string]::IsNullOrWhiteSpace($env:AZURE_POSTGRES_ADMIN_LOGIN)) { 'coreexpgadmin' } else { $env:AZURE_POSTGRES_ADMIN_LOGIN }
 $postgresDb     = if ([string]::IsNullOrWhiteSpace($env:AZURE_POSTGRES_DB_NAME)) { (azd env get-value postgresDatabaseName).Trim() } else { $env:AZURE_POSTGRES_DB_NAME }
+$keyVaultReferenceWaitSeconds = if ([string]::IsNullOrWhiteSpace($env:AZD_KEYVAULT_REFERENCE_WAIT_SECONDS)) { 60 } else { [int]$env:AZD_KEYVAULT_REFERENCE_WAIT_SECONDS }
 
 if ([string]::IsNullOrWhiteSpace($sqlServer)) {
     throw 'AZURE_SQL_SERVER (or azd output sqlServerName) is not set.'
@@ -91,3 +92,8 @@ Write-Host "  - postgres-admin-password"
 Write-Host "  - sql-connection-string"
 Write-Host "  - postgres-connection-string"
 Write-Host "  - service-bus-connection-string"
+
+if ($keyVaultReferenceWaitSeconds -gt 0) {
+    Write-Host "Waiting $keyVaultReferenceWaitSeconds seconds for Key Vault reference RBAC propagation before deploy."
+    Start-Sleep -Seconds $keyVaultReferenceWaitSeconds
+}

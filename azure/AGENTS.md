@@ -112,6 +112,15 @@ The `azure/scripts/` folder includes two helper scripts that should be preferred
   - health and swagger endpoints for both services.
 - Update behavior: creates `appsettings.json.bak` before writing updated `E2E.Products` and `E2E.Shopping` values.
 
+### refresh-keyvault-appsettings
+
+- Files: `scripts/refresh-keyvault-appsettings.sh`, `scripts/refresh-keyvault-appsettings.ps1`.
+- Purpose: refreshes App Service Key Vault appsetting references and restarts targeted web apps.
+- Required argument: `--resource-group` / `-ResourceGroup`.
+- Optional arguments: one or more app names and wait-after-restart seconds.
+- Discovery behavior: when app names are omitted, all web apps in the resource group are targeted.
+- Primary use case: recover from startup failures immediately after deploy when Key Vault-backed settings have not been fully applied yet.
+
 When editing either helper script, keep the bash and PowerShell variants behaviorally identical.
 
 ## Validating changes
@@ -136,6 +145,7 @@ Do not run `azd up` or `azd down` without explicit user approval — these touch
 - **PostgreSQL password missing** — set `AZURE_POSTGRES_ADMIN_PASSWORD` when different from SQL admin password.
 - **Predeploy missing output keys** — run `azd provision --no-prompt` before `azd deploy --all --no-prompt` to refresh `sql*` and `postgres*` output values in azd env.
 - **API returns 404 at `/`** — expected; probe `/api/...`, `/health/ready/detailed`, or `/swagger`.
+- **Startup fails with invalid Service Bus/connection string right after deploy** — run `./scripts/refresh-keyvault-appsettings.sh --resource-group <rg>` (or the PowerShell variant) to refresh Key Vault references and restart apps.
 - **Aspire Dashboard requires token** — fetch from `az webapp log tail` (see [README.md](README.md#accessing-the-aspire-dashboard)).
 - **`azd init` says no project** — run from `azure/`, not the repo root.
 
