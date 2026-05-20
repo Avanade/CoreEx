@@ -1,13 +1,13 @@
 $ErrorActionPreference = 'Stop'
 
-# Ensures the current runner public IP has an Azure SQL firewall rule.
+# Ensures the current runner public IP has Azure SQL and PostgreSQL firewall rules.
 
 if (-not (Get-Command azd -ErrorAction SilentlyContinue)) {
     throw "The 'azd' command is required to resolve environment values."
 }
 
 if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-    throw "The 'az' command is required to manage Azure SQL firewall rules."
+    throw "The 'az' command is required to manage Azure firewall rules."
 }
 
 function Invoke-WithRetry {
@@ -38,13 +38,54 @@ function Invoke-WithRetry {
     }
 }
 
+function Ensure-FirewallRule {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $DbType,
+        [Parameter(Mandatory = $true)]
+        [string] $ServerName,
+        [Parameter(Mandatory = $true)]
+        [string] $ClientIp,
+        [Parameter(Mandatory = $true)]
+        [string] $FirewallRuleName,
+        [Parameter(Mandatory = $true)]
+        [string[]] $AzArgs
+    )
+
+    if ($DbType -eq 'sql') {
+        az sql server firewall-rule show @AzArgs --name $FirewallRuleName *> $null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Updating Azure SQL firewall rule '$FirewallRuleName' for $ClientIp."
+            az sql server firewall-rule update @AzArgs --name $FirewallRuleName --start-ip-address $ClientIp --end-ip-address $ClientIp | Out-Null
+        }
+        else {
+            Write-Host "Creating Azure SQL firewall rule '$FirewallRuleName' for $ClientIp."
+            az sql server firewall-rule create @AzArgs --name $FirewallRuleName --start-ip-address $ClientIp --end-ip-address $ClientIp | Out-Null
+        }
+        Write-Host "Azure SQL firewall rule '$FirewallRuleName' is ready."
+    }
+    elseif ($DbType -eq 'postgres') {
+        az postgres flexible-server firewall-rule show @AzArgs --rule-name $FirewallRuleName *> $null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Updating Azure PostgreSQL firewall rule '$FirewallRuleName' for $ClientIp."
+            az postgres flexible-server firewall-rule update @AzArgs --rule-name $FirewallRuleName --start-ip-address $ClientIp --end-ip-address $ClientIp | Out-Null
+        }
+        else {
+            Write-Host "Creating Azure PostgreSQL firewall rule '$FirewallRuleName' for $ClientIp."
+            az postgres flexible-server firewall-rule create @AzArgs --rule-name $FirewallRuleName --start-ip-address $ClientIp --end-ip-address $ClientIp | Out-Null
+        }
+        Write-Host "Azure PostgreSQL firewall rule '$FirewallRuleName' is ready."
+    }
+}
+
 $sqlServer = (azd env get-value sqlServerName).Trim()
+$postgresServer = (azd env get-value postgresServerName).Trim()
 $azureResourceGroup = (azd env get-value AZURE_RESOURCE_GROUP).Trim()
 $azureSubscriptionId = (azd env get-value AZURE_SUBSCRIPTION_ID).Trim()
 $azureEnvName = (azd env get-value AZURE_ENV_NAME).Trim()
 
-if ([string]::IsNullOrWhiteSpace($sqlServer) -or [string]::IsNullOrWhiteSpace($azureResourceGroup)) {
-    throw 'Unable to resolve sqlServerName/AZURE_RESOURCE_GROUP from the active azd environment.'
+if (([string]::IsNullOrWhiteSpace($sqlServer) -and [string]::IsNullOrWhiteSpace($postgresServer)) -or [string]::IsNullOrWhiteSpace($azureResourceGroup)) {
+    throw 'Unable to resolve sqlServerName and/or postgresServerName and AZURE_RESOURCE_GROUP from the active azd environment.'
 }
 
 $clientIp = ''
@@ -71,31 +112,45 @@ if ($clientIp -notmatch '^([0-9]{1,3}\.){3}[0-9]{1,3}$') {
 
 $effectiveEnvName = if ([string]::IsNullOrWhiteSpace($azureEnvName)) { 'env' } else { $azureEnvName }
 $firewallRuleName = "azd-$effectiveEnvName-$($clientIp -replace '\.', '-')"
-$azServerArgs = @('--resource-group', $azureResourceGroup, '--name', $sqlServer)
-$azFirewallArgs = @('--resource-group', $azureResourceGroup, '--server', $sqlServer)
-if (-not [string]::IsNullOrWhiteSpace($azureSubscriptionId)) {
-    $azServerArgs += @('--subscription', $azureSubscriptionId)
-    $azFirewallArgs += @('--subscription', $azureSubscriptionId)
-}
 
-if ($env:AZD_SQL_FIREWALL_WAIT_FOR_SERVER -eq '1') {
-    Write-Host "Waiting for Azure SQL server '$sqlServer' to become available."
-    Invoke-WithRetry -Attempts 12 -DelaySeconds 10 -Description 'Azure SQL server readiness' -ScriptBlock {
+if (-not [string]::IsNullOrWhiteSpace($sqlServer)) {
+    $azServerArgs = @('--resource-group', $azureResourceGroup, '--name', $sqlServer)
+    $azFirewallArgs = @('--resource-group', $azureResourceGroup, '--server', $sqlServer)
+    if (-not [string]::IsNullOrWhiteSpace($azureSubscriptionId)) {
+        $azServerArgs += @('--subscription', $azureSubscriptionId)
+        $azFirewallArgs += @('--subscription', $azureSubscriptionId)
+    }
+
+    if ($env:AZD_SQL_FIREWALL_WAIT_FOR_SERVER -eq '1') {
+        Write-Host "Waiting for Azure SQL server '$sqlServer' to become available."
+        Invoke-WithRetry -Attempts 12 -DelaySeconds 10 -Description 'Azure SQL server readiness' -ScriptBlock {
+            az sql server show @azServerArgs | Out-Null
+        }
+    }
+    else {
         az sql server show @azServerArgs | Out-Null
     }
-}
-else {
-    az sql server show @azServerArgs | Out-Null
+
+    Ensure-FirewallRule -DbType 'sql' -ServerName $sqlServer -ClientIp $clientIp -FirewallRuleName $firewallRuleName -AzArgs $azFirewallArgs
 }
 
-az sql server firewall-rule show @azFirewallArgs --name $firewallRuleName *> $null
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Updating Azure SQL firewall rule '$firewallRuleName' for $clientIp."
-    az sql server firewall-rule update @azFirewallArgs --name $firewallRuleName --start-ip-address $clientIp --end-ip-address $clientIp | Out-Null
-}
-else {
-    Write-Host "Creating Azure SQL firewall rule '$firewallRuleName' for $clientIp."
-    az sql server firewall-rule create @azFirewallArgs --name $firewallRuleName --start-ip-address $clientIp --end-ip-address $clientIp | Out-Null
-}
+if (-not [string]::IsNullOrWhiteSpace($postgresServer)) {
+    $azPostgresServerArgs = @('--resource-group', $azureResourceGroup, '--name', $postgresServer)
+    $azPostgresFirewallArgs = @('--resource-group', $azureResourceGroup, '--name', $postgresServer)
+    if (-not [string]::IsNullOrWhiteSpace($azureSubscriptionId)) {
+        $azPostgresServerArgs += @('--subscription', $azureSubscriptionId)
+        $azPostgresFirewallArgs += @('--subscription', $azureSubscriptionId)
+    }
 
-Write-Host "Azure SQL firewall rule '$firewallRuleName' is ready."
+    if ($env:AZD_POSTGRES_FIREWALL_WAIT_FOR_SERVER -eq '1') {
+        Write-Host "Waiting for Azure PostgreSQL server '$postgresServer' to become available."
+        Invoke-WithRetry -Attempts 12 -DelaySeconds 10 -Description 'Azure PostgreSQL server readiness' -ScriptBlock {
+            az postgres flexible-server show @azPostgresServerArgs | Out-Null
+        }
+    }
+    else {
+        az postgres flexible-server show @azPostgresServerArgs | Out-Null
+    }
+
+    Ensure-FirewallRule -DbType 'postgres' -ServerName $postgresServer -ClientIp $clientIp -FirewallRuleName $firewallRuleName -AzArgs $azPostgresFirewallArgs
+}

@@ -232,7 +232,8 @@ Optional arguments:
   --key-vault-name <key-vault-name> \
   --products-app-name <products-app-name> \
   --shopping-app-name <shopping-app-name> \
-  --skip-validation
+  --skip-validation \
+  --insecure
 ```
 
 The script:

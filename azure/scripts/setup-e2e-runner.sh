@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/setup-e2e-runner.sh --resource-group <resource-group> [--appsettings-path <path>] [--key-vault-name <name>] [--products-app-name <name>] [--shopping-app-name <name>] [--skip-validation]
+  ./scripts/setup-e2e-runner.sh --resource-group <resource-group> [--appsettings-path <path>] [--key-vault-name <name>] [--products-app-name <name>] [--shopping-app-name <name>] [--skip-validation] [--insecure]
 
 Description:
   Discovers the deployed Products and Shopping API endpoints, retrieves the
@@ -19,6 +19,7 @@ Options:
   --products-app-name, -p   Products API web app name. Auto-detected when omitted.
   --shopping-app-name, -s   Shopping API web app name. Auto-detected when omitted.
   --skip-validation         Skip the endpoint validation checks.
+  --insecure                Disable TLS certificate verification for validation requests.
   --help, -h                Show this help.
 EOF
 }
@@ -32,6 +33,7 @@ key_vault_name=""
 products_app_name=""
 shopping_app_name=""
 skip_validation="false"
+insecure="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -57,6 +59,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-validation)
       skip_validation="true"
+      shift
+      ;;
+    --insecure)
+      insecure="true"
       shift
       ;;
     --help|-h)
@@ -102,8 +108,13 @@ validate_request() {
   local url="$2"
   local method="${3:-GET}"
   local status_code
+  local curl_args=(-sS -o /dev/null -w '%{http_code}' -X "${method}")
 
-  status_code="$(curl -k -sS -o /dev/null -w '%{http_code}' -X "${method}" "${url}" || true)"
+  if [[ "${insecure}" == "true" ]]; then
+    curl_args=(-k "${curl_args[@]}")
+  fi
+
+  status_code="$(curl "${curl_args[@]}" "${url}" || true)"
   if [[ ! "${status_code}" =~ ^[23] ]]; then
     echo "Validation failed for ${label}: ${method} ${url} returned HTTP ${status_code:-unknown}." >&2
     exit 1
