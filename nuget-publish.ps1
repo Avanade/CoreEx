@@ -53,6 +53,7 @@ param(
         "src\CoreEx.AspNetCore.NSwag",
         "src\CoreEx.Azure.Messaging.ServiceBus",
         "src\CoreEx.Caching.FusionCache",
+        "src\CoreEx.CodeGen",
         "src\CoreEx.Data",
         "src\CoreEx.Database",
         "src\CoreEx.Database.Postgres",

@@ -11,6 +11,32 @@ public abstract partial class ReferenceData<TId, TSelf> : ReferenceDataCore<TId>
     where TSelf : ReferenceData<TId, TSelf>, IReferenceData<TId>, new()
 {
     /// <summary>
+    /// Throws an <see cref="InvalidOperationException"/> where <see cref="ReferenceDataCore{TId}.IsInactive"/>; otherwise, continues.
+    /// </summary>
+    /// <returns>The instance itself to support fluent-style method-chaining.</returns>
+    /// <remarks>This does verify whether the reference data is invalid also.</remarks>
+    public TSelf ThrowIfInactive()
+    {
+        if (IsInactive)
+            throw new InvalidOperationException("The reference data not be in an active state.");
+
+        return (TSelf)this;
+    }
+
+    /// <summary>
+    /// Throws an <see cref="InvalidOperationException"/> where not <see cref="IReferenceData.IsValid"/>; otherwise, continues.
+    /// </summary>
+    /// <returns>The instance itself to support fluent-style method-chaining.</returns>
+    /// <remarks>This does not verify whether the reference data is inactive.</remarks>
+    public TSelf ThrowIfInvalid()
+    {
+        if (!IsValid)
+            throw new InvalidOperationException("The reference data must not be in an invalid state.");
+
+        return (TSelf)this;
+    }
+
+    /// <summary>
     /// Tries to get the <typeparamref name="TSelf"/> <see cref="IReferenceData"/> item for the specified <paramref name="id"/>.
     /// </summary>
     /// <param name="id">The <see cref="IReferenceData{TId}"/> <see cref="IReferenceData.Id"/>.</param>

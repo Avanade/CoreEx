@@ -1,0 +1,1 @@
+﻿await CoreEx.CodeGen.CodeGenConsole.Create().RunAsync(args);

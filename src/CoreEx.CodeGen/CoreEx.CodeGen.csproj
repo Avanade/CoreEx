@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx .NET Code-Generation extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the code-generation of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data code-generation handlebars onramp</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OnRamp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts\**\*" />
+    <EmbeddedResource Include="**\Templates\**\*" />
+  </ItemGroup>
+
+</Project>

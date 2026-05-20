@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Title>CoreEx .NET extensions.</Title>
     <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
-    <PackageTags>coreex microservices event-driven railway-oriented reference-data</PackageTags>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data</PackageTags>
   </PropertyGroup>
 
   <!-- Bundle the Roslyn source generator into this package. -->

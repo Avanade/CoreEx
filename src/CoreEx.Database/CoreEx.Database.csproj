@@ -1,8 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx .NET Database extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data database outbox multi-select</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
   </ItemGroup>
+  
   <ItemGroup>
     <EmbeddedResource Include="Templates\**\*" />
   </ItemGroup>

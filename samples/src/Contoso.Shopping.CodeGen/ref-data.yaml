@@ -1,0 +1,14 @@
+collectionSortOrder: Code
+repository: EntityFramework
+entities:
+- name: BasketStatus
+- name: DiscountCoupon
+  properties:
+  - name: DiscountPercentage
+    type: decimal
+    excludeContract: true
+- name: UnitOfMeasure
+  plural: UnitsOfMeasure
+  properties:
+  - name: Scale
+    type: int

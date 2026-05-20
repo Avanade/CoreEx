@@ -1,0 +1,8 @@
+configType: CoreEx.CodeGen.RefData.Config.CodeGenConfig, CoreEx.CodeGen
+generators:
+- { type: 'CoreEx.CodeGen.RefData.Generators.ContractGenerator, CoreEx.CodeGen', template: 'Contract_cs', file: '{{Name}}.g.cs', directory: '{{Root.ContractsDirectory.FullName}}', text: Contract(s) generation }  
+- { type: 'CoreEx.CodeGen.RefData.Generators.RootGenerator, CoreEx.CodeGen', template: 'Controller_cs', file: 'ReferenceDataController.g.cs', directory: '{{Root.ApiDirectory.FullName}}/Controllers', text: ReferenceDataController generation }  
+- { type: 'CoreEx.CodeGen.RefData.Generators.RootGenerator, CoreEx.CodeGen', template: 'Service_cs', file: 'ReferenceDataService.g.cs', directory: '{{Root.ApplicationDirectory.FullName}}', text: ReferenceDataService generation }  
+- { type: 'CoreEx.CodeGen.RefData.Generators.RootGenerator, CoreEx.CodeGen', template: 'IRepository_cs', file: 'IReferenceDataRepository.g.cs', directory: '{{Root.ApplicationDirectory.FullName}}/{{Root.DataRepositoriesPath}}', text: IReferenceDataRepository generation }
+- { type: 'CoreEx.CodeGen.RefData.Generators.RootGenerator, CoreEx.CodeGen', template: 'Repository_cs', file: 'ReferenceDataRepository.g.cs', directory: '{{Root.DataDirectory.FullName}}/{{Root.DataRepositoriesPath}}', text: ReferenceDataRepository generation }
+- { type: 'CoreEx.CodeGen.RefData.Generators.MapperGenerator, CoreEx.CodeGen', template: 'Mapper_cs', file: '{{Name}}Mapper.g.cs', directory: '{{Root.DataDirectory.FullName}}/{{Root.DataMappingPath}}', text: Mapper(s) generation }
