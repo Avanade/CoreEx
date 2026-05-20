@@ -75,7 +75,7 @@ if ([string]::IsNullOrWhiteSpace($sqlPassword) -or [string]::IsNullOrWhiteSpace(
     throw 'Database admin passwords are required to run DbEx migrations.'
 }
 $sqlConnectionString = "Server=tcp:$sqlServer.database.windows.net,1433;Initial Catalog=$sqlDatabase;User ID=$sqlAdminLogin;Password=$sqlPassword;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-$postgresConnectionString = "Server=$postgresServer.postgres.database.azure.com;Port=5432;Database=$postgresDatabase;User Id=$postgresAdminLogin;Password=$postgresPassword;Ssl Mode=Require;Trust Server Certificate=true;"
+$postgresConnectionString = "Server=$postgresServer.postgres.database.azure.com;Port=5432;Database=$postgresDatabase;User Id=$postgresAdminLogin;Password=$postgresPassword;Ssl Mode=Require;"
 $projects = Get-ChildItem -LiteralPath (Join-Path $repoRoot 'samples/src') -Recurse -File -Filter 'Contoso.*.Database.csproj' |
     Sort-Object FullName
 

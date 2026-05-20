@@ -70,7 +70,7 @@ if [[ -z "${sql_password}" || -z "${postgres_password}" ]]; then
 fi
 
 sql_connection_string="Server=tcp:${sql_server}.database.windows.net,1433;Initial Catalog=${sql_database};User ID=${sql_admin_login};Password=${sql_password};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-postgres_connection_string="Server=${postgres_server}.postgres.database.azure.com;Port=5432;Database=${postgres_database};User Id=${postgres_admin_login};Password=${postgres_password};Ssl Mode=Require;Trust Server Certificate=true;"
+postgres_connection_string="Server=${postgres_server}.postgres.database.azure.com;Port=5432;Database=${postgres_database};User Id=${postgres_admin_login};Password=${postgres_password};Ssl Mode=Require;"
 
 readarray -t projects < <(find "${repo_root}/samples/src" -maxdepth 2 -type f -name 'Contoso.*.Database.csproj' | sort)
 if [[ ${#projects[@]} -eq 0 ]]; then

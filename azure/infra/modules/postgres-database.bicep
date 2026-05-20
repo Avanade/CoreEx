@@ -67,4 +67,4 @@ resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-12-01-prev
 output serverName string = server.name
 output databaseName string = db.name
 output fullyQualifiedDomainName string = '${server.name}.postgres.database.azure.com'
-output connectionString string = 'Server=${server.name}.postgres.database.azure.com;Port=5432;Database=${databaseName};User Id=${adminLogin};Password=${adminPassword};Ssl Mode=Require;Trust Server Certificate=true;'
+output connectionString string = 'Server=${server.name}.postgres.database.azure.com;Port=5432;Database=${databaseName};User Id=${adminLogin};Password=${adminPassword};Ssl Mode=Require;'

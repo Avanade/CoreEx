@@ -312,7 +312,7 @@ Edit [../samples/tests/Contoso.E2E.Runner/appsettings.json](../samples/tests/Con
   "E2E": {
     "Products": {
       "BaseAddress": "https://app-products-api-dev-{suffix}.azurewebsites.net",
-      "ConnectionString": "Server=pg-dev-{suffix}.postgres.database.azure.com;Port=5432;Database=coreexdev;User Id={postgres-admin};Password={password};Ssl Mode=Require;Trust Server Certificate=true;"
+      "ConnectionString": "Server=pg-dev-{suffix}.postgres.database.azure.com;Port=5432;Database=coreexdev;User Id={postgres-admin};Password={password};Ssl Mode=Require"
     },
     "Shopping": {
       "BaseAddress": "https://app-shopping-api-dev-{suffix}.azurewebsites.net",

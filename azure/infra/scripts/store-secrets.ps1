@@ -69,7 +69,7 @@ Write-Host 'Storing sql-connection-string...'
 az keyvault secret set --vault-name $kvName --name 'sql-connection-string' --value $sqlConn --output none
 
 Write-Host 'Building Postgres connection string...'
-$postgresConn   = "Server=${postgresServer}.postgres.database.azure.com;Port=5432;Database=${postgresDb};User Id=${postgresLogin};Password=${postgresPassword};Ssl Mode=Require;Trust Server Certificate=true;"
+$postgresConn   = "Server=${postgresServer}.postgres.database.azure.com;Port=5432;Database=${postgresDb};User Id=${postgresLogin};Password=${postgresPassword};Ssl Mode=Require;"
 
 Write-Host 'Storing postgres-connection-string...'
 az keyvault secret set --vault-name $kvName --name 'postgres-connection-string' --value $postgresConn --output none

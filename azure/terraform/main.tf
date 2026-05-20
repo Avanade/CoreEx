@@ -342,7 +342,7 @@ locals {
   sql_fqdn              = "${local.sql_server_name}.database.windows.net"
   sql_connection_string = "Data Source=tcp:${local.sql_fqdn},1433;Initial Catalog=${var.sql_database_name};User id=${var.sql_admin_login};Password=${var.sql_admin_password};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
   postgres_fqdn         = "${local.postgres_server_name}.postgres.database.azure.com"
-  postgres_connection_string = "Host=${local.postgres_fqdn};Port=5432;Database=${var.postgres_database_name};Username=${var.postgres_admin_login};Password=${local.postgres_admin_password_effective};Ssl Mode=Require;Trust Server Certificate=true;"
+  postgres_connection_string = "Host=${local.postgres_fqdn};Port=5432;Database=${var.postgres_database_name};Username=${var.postgres_admin_login};Password=${local.postgres_admin_password_effective};Ssl Mode=Require;"
 }
 
 resource "azapi_resource" "postgres_server" {

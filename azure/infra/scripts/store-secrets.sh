@@ -76,7 +76,7 @@ az keyvault secret set \
   --output none
 
 echo "Building Postgres connection string..."
-postgres_conn="Server=${postgres_server}.postgres.database.azure.com;Port=5432;Database=${postgres_db};User Id=${postgres_login};Password=${postgres_password};Ssl Mode=Require;Trust Server Certificate=true;"
+postgres_conn="Server=${postgres_server}.postgres.database.azure.com;Port=5432;Database=${postgres_db};User Id=${postgres_login};Password=${postgres_password};Ssl Mode=Require;"
 
 echo "Storing postgres-connection-string..."
 az keyvault secret set \
