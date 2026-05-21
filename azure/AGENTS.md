@@ -29,7 +29,7 @@ This file applies to anything under `azure/`. For application code, see the rele
 The Bicep deployment provisions the following resource set:
 
 - Linux App Service Plan.
-- 9 Web Apps: `aspire-dashboard`, `products-api`, `shopping-api`, `orders-api`, `order-workflow-worker`, `products-outbox-relay`, `shopping-outbox-relay`, `products-subscribe`, `shopping-subscribe`.
+- 7 Web Apps: `aspire-dashboard`, `products-api`, `shopping-api`, `products-outbox-relay`, `shopping-outbox-relay`, `products-subscribe`, `shopping-subscribe`.
 - Azure SQL Server + Database (Shopping and Orders domains, with firewall rules).
 - Azure Database for PostgreSQL Flexible Server + Database (Products domain).
 - Azure Service Bus (Standard) — namespace + topic + subscriptions.

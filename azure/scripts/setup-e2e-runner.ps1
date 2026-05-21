@@ -17,6 +17,10 @@ param (
     [Alias('s')]
     [string] $ShoppingAppName,
 
+    [Alias('i')]
+    [Alias('SkipCertificateValidation')]
+    [switch] $Insecure,
+
     [switch] $SkipValidation
 )
 
@@ -45,12 +49,24 @@ function Invoke-ValidateRequest {
     param (
         [string] $Label,
         [string] $Url,
-        [string] $Method = 'GET'
+        [string] $Method = 'GET',
+        [switch] $Insecure
     )
 
     $code = $null
     try {
-        $response = Invoke-WebRequest -Uri $Url -Method $Method -SkipCertificateCheck -UseBasicParsing -ErrorAction Stop
+        $invokeWebRequestParams = @{
+            Uri             = $Url
+            Method          = $Method
+            UseBasicParsing = $true
+            ErrorAction     = 'Stop'
+        }
+
+        if ($Insecure) {
+            $invokeWebRequestParams['SkipCertificateCheck'] = $true
+        }
+
+        $response = Invoke-WebRequest @invokeWebRequestParams
         $code = [int]$response.StatusCode
     }
     catch [Microsoft.PowerShell.Commands.HttpResponseException] {
@@ -111,12 +127,12 @@ if (-not $postgresConnectionString -or -not $sqlConnectionString) {
 
 # Validate endpoints.
 if (-not $SkipValidation) {
-    Invoke-ValidateRequest -Label 'Products API'    -Url "https://${productsHost}/api/products"
-    Invoke-ValidateRequest -Label 'Shopping API'    -Url "https://${shoppingHost}/api/customers/test/baskets" -Method POST
-    Invoke-ValidateRequest -Label 'Products health' -Url "https://${productsHost}/health/ready/detailed"
-    Invoke-ValidateRequest -Label 'Products swagger' -Url "https://${productsHost}/swagger"
-    Invoke-ValidateRequest -Label 'Shopping health' -Url "https://${shoppingHost}/health/ready/detailed"
-    Invoke-ValidateRequest -Label 'Shopping swagger' -Url "https://${shoppingHost}/swagger"
+    Invoke-ValidateRequest -Label 'Products API'     -Url "https://${productsHost}/api/products" -Insecure:$Insecure
+    Invoke-ValidateRequest -Label 'Shopping API'     -Url "https://${shoppingHost}/api/customers/test/baskets" -Method POST -Insecure:$Insecure
+    Invoke-ValidateRequest -Label 'Products health'  -Url "https://${productsHost}/health/ready/detailed" -Insecure:$Insecure
+    Invoke-ValidateRequest -Label 'Products swagger' -Url "https://${productsHost}/swagger" -Insecure:$Insecure
+    Invoke-ValidateRequest -Label 'Shopping health'  -Url "https://${shoppingHost}/health/ready/detailed" -Insecure:$Insecure
+    Invoke-ValidateRequest -Label 'Shopping swagger' -Url "https://${shoppingHost}/swagger" -Insecure:$Insecure
 }
 
 # Update appsettings.json.

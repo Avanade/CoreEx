@@ -143,22 +143,6 @@ Re-run infra only:
 azd provision --no-prompt
 ```
 
-If apps that use Key Vault-backed app settings fail on startup immediately after deploy, refresh Key Vault app setting references and restart the web apps:
-
-```bash
-./scripts/refresh-keyvault-appsettings.sh --resource-group <your-resource-group>
-```
-
-Optional arguments:
-
-```bash
-./scripts/refresh-keyvault-appsettings.sh \
-  --resource-group <your-resource-group> \
-  --app-name <web-app-name> \
-  --app-name <web-app-name> \
-  --wait-after-restart-seconds 20
-```
-
 ## Accessing the Aspire Dashboard
 
 After deployment, the Aspire Dashboard is publicly accessible from a dedicated HTTPS-enabled App Service. The six deployed services are configured to export OTLP telemetry to it automatically.
@@ -352,16 +336,6 @@ This launches an interactive CLI menu to select and execute test scenarios or ru
 
 ## Troubleshooting
 
-Key Vault app setting reference timing:
-
-- Symptom: app startup fails with invalid connection string errors (for example Service Bus) immediately after `azd up`.
-- Cause: app setting reference resolution can lag after role assignment and secret updates.
-- Recommended fix:
-
-```bash
-./scripts/refresh-keyvault-appsettings.sh --resource-group <your-resource-group>
-```
-
 No project exists / run azd init:
 
 ```bash
@@ -387,7 +361,7 @@ PostgreSQL password missing:
 
 Multi-target publish error (NETSDK1129):
 - Ensure `AZD_DOTNET_TARGET_FRAMEWORK` is set in your azd environment: `azd env set AZD_DOTNET_TARGET_FRAMEWORK net10.0`.
-- Load it into your current shell: `et -a && eval "$(azd env get-values)" && set +a`.
+- Load it into your current shell: `set -a && eval "$(azd env get-values)" && set +a`.
 
 `command not found` while loading environment values:
 - This usually means `azd env get-values` was run outside the azd project folder and returned `ERROR: no project exists...`.
