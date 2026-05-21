@@ -16,7 +16,7 @@ This file applies to anything under `azure/`. For application code, see the rele
 
 ## Folder layout
 
-- [azure.yaml](azure.yaml) — azd project manifest. Declares the 6 services and the pre/post hooks.
+- [azure.yaml](azure.yaml) — azd project manifest. Declares the 8 services and the pre/post hooks.
 - [infra/](infra/) — Bicep templates (primary IaC for `azd`).
   - [infra/main.bicep](infra/main.bicep) — Entry template.
   - [infra/modules/](infra/modules/) — Per-resource modules (`app-service-plan`, `app-services`, `aspire-dashboard`, `database`, `postgres-database`, `service-bus`, `redis`, `key-vault`, `application-insights`).
@@ -29,7 +29,7 @@ This file applies to anything under `azure/`. For application code, see the rele
 The Bicep deployment provisions the following resource set:
 
 - Linux App Service Plan.
-- 7 Web Apps: `aspire-dashboard`, `products-api`, `shopping-api`, `products-outbox-relay`, `shopping-outbox-relay`, `products-subscribe`, `shopping-subscribe`.
+- 9 Web Apps: `aspire-dashboard`, `products-api`, `shopping-api`, `orders-api`, `order-workflow-worker`, `products-outbox-relay`, `shopping-outbox-relay`, `products-subscribe`, `shopping-subscribe`.
 - Azure SQL Server + Database (Shopping and Orders domains, with firewall rules).
 - Azure Database for PostgreSQL Flexible Server + Database (Products domain).
 - Azure Service Bus (Standard) — namespace + topic + subscriptions.

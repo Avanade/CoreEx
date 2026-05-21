@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "9143201238151831317"
+      "templateHash": "5283003750108238735"
     }
   },
   "parameters": {
@@ -31,6 +31,13 @@
       "type": "string",
       "metadata": {
         "description": "Unique suffix for globally unique resource names. Use a short lowercase token, e.g. a1b2c3."
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional Key Vault name override. When empty, a unique Key Vault name is generated."
       }
     },
     "tags": {
@@ -187,7 +194,8 @@
   },
   "variables": {
     "suffix": "[toLower(parameters('nameSuffix'))]",
-    "keyVaultName": "[take(format('kv{0}{1}{2}', parameters('environmentType'), variables('suffix'), uniqueString(deployment().name, resourceGroup().id)), 24)]",
+    "computedKeyVaultName": "[take(format('kv{0}{1}{2}', parameters('environmentType'), variables('suffix'), uniqueString(deployment().name, resourceGroup().id)), 24)]",
+    "resolvedKeyVaultName": "[if(empty(parameters('keyVaultName')), variables('computedKeyVaultName'), parameters('keyVaultName'))]",
     "mergedTags": "[union(parameters('tags'), createObject('environment', parameters('environmentType'), 'managedBy', 'azd', 'azd-env-name', parameters('environmentType')))]"
   },
   "resources": [
@@ -283,7 +291,7 @@
             "value": "[parameters('location')]"
           },
           "name": {
-            "value": "[variables('keyVaultName')]"
+            "value": "[variables('resolvedKeyVaultName')]"
           },
           "tags": {
             "value": "[variables('mergedTags')]"
@@ -1089,14 +1097,17 @@
           "appInsightsInstrumentationKey": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appInsightsDeploy'), '2025-04-01').outputs.instrumentationKey.value]"
           },
-          "keyVaultName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyVaultDeploy'), '2025-04-01').outputs.name.value]"
+          "sqlConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sqlDeploy'), '2025-04-01').outputs.connectionString.value]"
           },
-          "keyVaultUri": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyVaultDeploy'), '2025-04-01').outputs.vaultUri.value]"
+          "postgresConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'postgresDeploy'), '2025-04-01').outputs.connectionString.value]"
           },
           "redisConnectionString": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'redisDeploy'), '2025-04-01').outputs.connectionString.value]"
+          },
+          "serviceBusConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'serviceBusDeploy'), '2025-04-01').outputs.connectionString.value]"
           },
           "otlpHttpEndpoint": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'aspireDashboardDeploy'), '2025-04-01').outputs.otlpHttpEndpoint.value]"
@@ -1109,7 +1120,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "776203396049316067"
+              "templateHash": "4869075254663625650"
             }
           },
           "parameters": {
@@ -1141,13 +1152,16 @@
             "appInsightsInstrumentationKey": {
               "type": "string"
             },
-            "keyVaultName": {
+            "sqlConnectionString": {
               "type": "string"
             },
-            "keyVaultUri": {
+            "postgresConnectionString": {
               "type": "string"
             },
             "redisConnectionString": {
+              "type": "string"
+            },
+            "serviceBusConnectionString": {
               "type": "string"
             },
             "otlpHttpEndpoint": {
@@ -1216,13 +1230,13 @@
             "sqlDbAppSettings": [
               {
                 "name": "Aspire__Microsoft__Data__SqlClient__ConnectionString",
-                "value": "[variables('sqlConnectionStringKeyVaultReference')]"
+                "value": "[parameters('sqlConnectionString')]"
               }
             ],
             "postgresDbAppSettings": [
               {
                 "name": "Aspire__Npgsql__ConnectionString",
-                "value": "[variables('postgresConnectionStringKeyVaultReference')]"
+                "value": "[parameters('postgresConnectionString')]"
               }
             ]
           },
@@ -1256,29 +1270,12 @@
               }
             },
             {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
-              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', format('app-products-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))), 'KeyVaultSecretsUser')]",
-              "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Web/sites', format('app-products-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))), '2023-12-01', 'full').identity.principalId]",
-                "principalType": "ServicePrincipal",
-                "roleDefinitionId": "[variables('keyVaultSecretsUserRoleDefinitionId')]"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', format('app-products-api-{0}-{1}', parameters('environmentType'), parameters('suffix')))]"
-              ]
-            },
-            {
               "type": "Microsoft.Web/sites",
               "apiVersion": "2023-12-01",
               "name": "[format('app-shopping-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
               "location": "[parameters('location')]",
               "tags": "[union(parameters('tags'), createObject('azd-service-name', 'shopping-api', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
               "kind": "app,linux",
-              "identity": {
-                "type": "SystemAssigned"
-              },
               "properties": {
                 "serverFarmId": "[parameters('appServicePlanId')]",
                 "httpsOnly": true,
@@ -1301,23 +1298,9 @@
               ]
             },
             {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
-              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', format('app-shopping-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))), 'KeyVaultSecretsUser')]",
-              "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Web/sites', format('app-shopping-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))), '2023-12-01', 'full').identity.principalId]",
-                "principalType": "ServicePrincipal",
-                "roleDefinitionId": "[variables('keyVaultSecretsUserRoleDefinitionId')]"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', format('app-shopping-api-{0}-{1}', parameters('environmentType'), parameters('suffix')))]"
-              ]
-            },
-            {
               "type": "Microsoft.Web/sites",
               "apiVersion": "2023-12-01",
-              "name": "[format('app-products-outbox-relay-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
+              "name": "[format('app-shopping-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
               "location": "[parameters('location')]",
               "tags": "[union(parameters('tags'), createObject('azd-service-name', 'products-outbox-relay', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
               "kind": "app,linux",
@@ -1515,8 +1498,10 @@
         "[resourceId('Microsoft.Resources/deployments', 'appInsightsDeploy')]",
         "[resourceId('Microsoft.Resources/deployments', 'appServicePlanDeploy')]",
         "[resourceId('Microsoft.Resources/deployments', 'aspireDashboardDeploy')]",
-        "[resourceId('Microsoft.Resources/deployments', 'keyVaultDeploy')]",
-        "[resourceId('Microsoft.Resources/deployments', 'redisDeploy')]"
+        "[resourceId('Microsoft.Resources/deployments', 'postgresDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'redisDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'serviceBusDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'sqlDeploy')]"
       ]
     },
     {

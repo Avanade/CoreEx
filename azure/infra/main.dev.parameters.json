@@ -11,6 +11,9 @@
     "nameSuffix": {
       "value": "dev01"
     },
+    "keyVaultName": {
+      "value": "__KEY_VAULT_NAME__"
+    },
     "tags": {
       "value": {
         "workload": "coreex",

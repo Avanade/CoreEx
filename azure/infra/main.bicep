@@ -14,6 +14,9 @@ param location string = resourceGroup().location
 @description('Unique suffix for globally unique resource names. Use a short lowercase token, e.g. a1b2c3.')
 param nameSuffix string
 
+@description('Optional Key Vault name override. When empty, a unique Key Vault name is generated.')
+param keyVaultName string = ''
+
 @description('Tags applied to all resources.')
 param tags object = {}
 
@@ -93,7 +96,8 @@ param redisSkuName string
 param redisHighAvailability string
 
 var suffix = toLower(nameSuffix)
-var keyVaultName = take('kv${environmentType}${suffix}${uniqueString(deployment().name, resourceGroup().id)}', 24)
+var computedKeyVaultName = take('kv${environmentType}${suffix}${uniqueString(deployment().name, resourceGroup().id)}', 24)
+var resolvedKeyVaultName = empty(keyVaultName) ? computedKeyVaultName : keyVaultName
 var mergedTags = union(tags, {
   environment: environmentType
   managedBy: 'azd'
@@ -113,7 +117,7 @@ module keyVault './modules/key-vault.bicep' = {
   name: 'keyVaultDeploy'
   params: {
     location: location
-    name: keyVaultName
+    name: resolvedKeyVaultName
     tags: mergedTags
   }
 }
