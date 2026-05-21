@@ -60,10 +60,16 @@ $appServiceLinuxFxVersion = switch ($targetFramework) {
 
 $keyVaultName = ''
 try {
-    $existingKeyVaultName = (azd env get-value keyVaultName 2>$null).Trim()
+    $existingKeyVaultNameRaw = (azd env get-value keyVaultName 2>$null).Trim()
 }
 catch {
-    $existingKeyVaultName = ''
+    $existingKeyVaultNameRaw = ''
+}
+$existingKeyVaultName = if ($existingKeyVaultNameRaw -and -not $existingKeyVaultNameRaw.Contains('ERROR:')) {
+    $existingKeyVaultNameRaw
+}
+else {
+    ''
 }
 if (-not [string]::IsNullOrWhiteSpace($existingKeyVaultName)) {
     az keyvault show --name $existingKeyVaultName --query name -o tsv *> $null

@@ -56,7 +56,13 @@ case "${target_framework}" in
 esac
 
 key_vault_name=""
-existing_key_vault_name="$(azd env get-value keyVaultName 2>/dev/null | tr -d '\r' || true)"
+existing_key_vault_name_raw="$(azd env get-value keyVaultName 2>/dev/null | tr -d '\r' || true)"
+existing_key_vault_name=""
+
+# azd can return key-not-found messages on stdout; only accept non-error values.
+if [[ -n "${existing_key_vault_name_raw}" && "${existing_key_vault_name_raw}" != *ERROR:* ]]; then
+  existing_key_vault_name="${existing_key_vault_name_raw}"
+fi
 if [[ -n "${existing_key_vault_name}" ]]; then
   if az keyvault show --name "${existing_key_vault_name}" --query name -o tsv >/dev/null 2>&1; then
     key_vault_name="${existing_key_vault_name}"
