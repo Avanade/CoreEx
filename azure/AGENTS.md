@@ -16,7 +16,7 @@ This file applies to anything under `azure/`. For application code, see the rele
 
 ## Folder layout
 
-- [azure.yaml](azure.yaml) — azd project manifest. Declares the 8 services and the pre/post hooks.
+- [azure.yaml](azure.yaml) — azd project manifest. Declares the 6 services and the pre/post hooks.
 - [infra/](infra/) — Bicep templates (primary IaC for `azd`).
   - [infra/main.bicep](infra/main.bicep) — Entry template.
   - [infra/modules/](infra/modules/) — Per-resource modules (`app-service-plan`, `app-services`, `aspire-dashboard`, `database`, `postgres-database`, `service-bus`, `redis`, `key-vault`, `application-insights`).
@@ -111,15 +111,6 @@ The `azure/scripts/` folder includes two helper scripts that should be preferred
   - `POST /api/customers/test/baskets` for Shopping.
   - health and swagger endpoints for both services.
 - Update behavior: creates `appsettings.json.bak` before writing updated `E2E.Products` and `E2E.Shopping` values.
-
-### refresh-keyvault-appsettings
-
-- Files: `scripts/refresh-keyvault-appsettings.sh`, `scripts/refresh-keyvault-appsettings.ps1`.
-- Purpose: refreshes App Service Key Vault appsetting references and restarts targeted web apps.
-- Required argument: `--resource-group` / `-ResourceGroup`.
-- Optional arguments: one or more app names and wait-after-restart seconds.
-- Discovery behavior: when app names are omitted, all web apps in the resource group are targeted.
-- Primary use case: recover from startup failures immediately after deploy when Key Vault-backed settings have not been fully applied yet.
 
 When editing either helper script, keep the bash and PowerShell variants behaviorally identical.
 

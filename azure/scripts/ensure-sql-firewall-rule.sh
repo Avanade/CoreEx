@@ -64,11 +64,21 @@ if ! command -v az >/dev/null 2>&1; then
   exit 1
 fi
 
-sql_server="$(azd env get-value sqlServerName | tr -d '\r')"
-postgres_server="$(azd env get-value postgresServerName | tr -d '\r')"
-azure_resource_group="$(azd env get-value AZURE_RESOURCE_GROUP | tr -d '\r')"
-azure_subscription_id="$(azd env get-value AZURE_SUBSCRIPTION_ID | tr -d '\r')"
-azure_env_name="$(azd env get-value AZURE_ENV_NAME | tr -d '\r')"
+get_azd_value() {
+  local value
+  value="$(azd env get-value "$1" 2>/dev/null | tr -d '\r')"
+  if [[ -z "${value}" || "${value}" == ERROR:* ]]; then
+    echo ""
+  else
+    echo "${value}"
+  fi
+}
+
+sql_server="$(get_azd_value sqlServerName)"
+postgres_server="$(get_azd_value postgresServerName)"
+azure_resource_group="$(get_azd_value AZURE_RESOURCE_GROUP)"
+azure_subscription_id="$(get_azd_value AZURE_SUBSCRIPTION_ID)"
+azure_env_name="$(get_azd_value AZURE_ENV_NAME)"
 
 if [[ -z "${sql_server}" && -z "${postgres_server}" ]] || [[ -z "${azure_resource_group}" ]]; then
   echo "Unable to resolve sqlServerName and/or postgresServerName and AZURE_RESOURCE_GROUP from the active azd environment." >&2

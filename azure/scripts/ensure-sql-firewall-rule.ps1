@@ -78,11 +78,25 @@ function Ensure-FirewallRule {
     }
 }
 
-$sqlServer = (azd env get-value sqlServerName).Trim()
-$postgresServer = (azd env get-value postgresServerName).Trim()
-$azureResourceGroup = (azd env get-value AZURE_RESOURCE_GROUP).Trim()
-$azureSubscriptionId = (azd env get-value AZURE_SUBSCRIPTION_ID).Trim()
-$azureEnvName = (azd env get-value AZURE_ENV_NAME).Trim()
+function Get-AzdEnvValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Key
+    )
+
+    $value = (azd env get-value $Key 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or $value.StartsWith('ERROR:')) {
+        return ''
+    }
+
+    return $value
+}
+
+$sqlServer = Get-AzdEnvValue -Key 'sqlServerName'
+$postgresServer = Get-AzdEnvValue -Key 'postgresServerName'
+$azureResourceGroup = Get-AzdEnvValue -Key 'AZURE_RESOURCE_GROUP'
+$azureSubscriptionId = Get-AzdEnvValue -Key 'AZURE_SUBSCRIPTION_ID'
+$azureEnvName = Get-AzdEnvValue -Key 'AZURE_ENV_NAME'
 
 if (([string]::IsNullOrWhiteSpace($sqlServer) -and [string]::IsNullOrWhiteSpace($postgresServer)) -or [string]::IsNullOrWhiteSpace($azureResourceGroup)) {
     throw 'Unable to resolve sqlServerName and/or postgresServerName and AZURE_RESOURCE_GROUP from the active azd environment.'

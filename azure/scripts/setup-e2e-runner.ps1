@@ -160,4 +160,5 @@ Write-Host "Key Vault: $KeyVaultName"
 Write-Host ""
 Write-Host "Next step:"
 Write-Host "  cd $repoRoot/samples/tests/Contoso.E2E.Runner"
-Write-Host "  dotnet run --framework `"`${env:AZD_DOTNET_TARGET_FRAMEWORK ?? `$env:DOTNET_TARGET_FRAMEWORK}`""
+$targetFramework = $env:AZD_DOTNET_TARGET_FRAMEWORK ?? $env:DOTNET_TARGET_FRAMEWORK
+Write-Host "  dotnet run --framework `"$targetFramework`""
