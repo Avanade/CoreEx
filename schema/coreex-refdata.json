@@ -1,0 +1,243 @@
+{
+  "title": "JSON Schema for CoreEx code-generation (https://github.com/avanade/coreex).",
+  "$schema": "https://json-schema.org/draft-04/schema#",
+  "definitions": {
+    "CodeGeneration": {
+      "type": "object",
+      "title": "Reference-data code-generation.",
+      "description": "This configuration is used for generating reference-data related code. This is a well understood, deterministic pattern, that is best suited for scenarios where reference-data capabilities are required in a consistent manner.",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "title": "The domain name.",
+          "description": "This is the .NET domain name. Attempts to default from the underlying data project file path; uses the second to last segment of the child-most sub-directory by convention. For example, \u0060/xxx/yyy/My.App.Sales.CodeGen\u0060, the domain would be \u0060Sales\u0060."
+        },
+        "idType": {
+          "type": "string",
+          "title": "The default reference data identifier type.",
+          "description": "Defaults to \u0060String\u0060.",
+          "enum": [
+            "String",
+            "Guid",
+            "Int32",
+            "Int64"
+          ]
+        },
+        "collectionSortOrder": {
+          "type": "string",
+          "title": "The default reference data collection sort order.",
+          "description": "This is the default collection sort order. Defaults to \u0060Code\u0060.",
+          "enum": [
+            "Code",
+            "Id",
+            "Text",
+            "SortOrder"
+          ]
+        },
+        "route": {
+          "type": "string",
+          "title": "The route prefix.",
+          "description": "Defaults to \u0060/api/refdata\u0060."
+        },
+        "routeConvention": {
+          "type": "string",
+          "title": "The route naming convention where not directly specified.",
+          "description": "Defaults to \u0060KebabCase\u0060.",
+          "enum": [
+            "KebabCase",
+            "SnakeCase",
+            "CamelCase",
+            "Lowercase"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "title": "The default repository implementation.",
+          "enum": [
+            "None",
+            "EntityFramework"
+          ]
+        },
+        "entityFrameworkRepositoryName": {
+          "type": "string",
+          "title": "The default Entity Framework (EF) repository parameter name.",
+          "description": "This is the .NET Entity Framework (EF) repository parameter name that should be used within the generated code. Defaults to \u0060ef\u0060."
+        },
+        "contractsProjectPath": {
+          "type": "string",
+          "title": "The relative path for the .NET contracts-related project.",
+          "description": "Defaults to \u0060Contracts\u0060."
+        },
+        "apiProjectPath": {
+          "type": "string",
+          "title": "The relative path for the .NET API-related project.",
+          "description": "Defaults to \u0060Api\u0060."
+        },
+        "applicationProjectPath": {
+          "type": "string",
+          "title": "The relative path for the .NET application-related project.",
+          "description": "Defaults to \u0060Application\u0060."
+        },
+        "dataProjectPath": {
+          "type": "string",
+          "title": "The relative path for the .NET data-related project.",
+          "description": "Defaults to automatic inference using expected name of \u0060Infrastructure\u0060."
+        },
+        "dataRepositoriesPath": {
+          "type": "string",
+          "title": "The path to append to the \u0060{DotNetDataProjectPath}\u0060 for the .NET generated repository code.",
+          "description": "Defaults to \u0060Repositories\u0060."
+        },
+        "dataModelsPath": {
+          "type": "string",
+          "title": "The path to append to the \u0060{DotNetDataProjectPath}\u0060 for the .NET generated models code.",
+          "description": "Defaults to \u0060Persistence\u0060."
+        },
+        "dataMappingPath": {
+          "type": "string",
+          "title": "The path to append to the \u0060{DotNetDataProjectPath}\u0060 for the .NET generated mapping code.",
+          "description": "Defaults to \u0060Mapping\u0060."
+        },
+        "entities": {
+          "type": "array",
+          "title": "The entity collection configuration.",
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        }
+      },
+      "required": [
+        "repository"
+      ]
+    },
+    "Entity": {
+      "type": "object",
+      "title": "Reference-data entity configuration.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "The reference-data entity (contract) name."
+        },
+        "plural": {
+          "type": "string",
+          "title": "The pluralized reference-data entity (contract) name.",
+          "description": "Defaults to \u0060{Name} with the last word pluralized."
+        },
+        "text": {
+          "type": "string",
+          "title": "The reference-data entity friendly text.",
+          "description": "Defaults to \u0060{Name}\u0060 converted to sentence case. This is primarily used in generated code comments."
+        },
+        "idType": {
+          "type": "string",
+          "title": "The reference-data identifier type.",
+          "description": "Defaults to root \u0060{IdType}\u0060.",
+          "enum": [
+            "String",
+            "Guid",
+            "Int32",
+            "Int64"
+          ]
+        },
+        "collectionSortOrder": {
+          "type": "string",
+          "title": "The collection sort order.",
+          "description": "This is the collection sort order. Defaults to root \u0060{CollectionSortOrder}\u0060.",
+          "enum": [
+            "Code",
+            "Id",
+            "Text",
+            "SortOrder"
+          ]
+        },
+        "route": {
+          "type": "string",
+          "title": "The route suffix.",
+          "description": "Defaults to \u0060{Plural}\u0060 and root \u0060{RouteConvention}\u0060 configuration."
+        },
+        "repository": {
+          "type": "string",
+          "title": "The repository implementation.",
+          "description": "Defaults to root \u0060{Repository}\u0060.",
+          "enum": [
+            "None",
+            "EntityFramework"
+          ]
+        },
+        "repositoryName": {
+          "type": "string",
+          "title": "The repository parameter name.",
+          "description": "This is the .NET repository parameter name that should be used within the generated code. Defaults from root \u0060{Repository}\u0060 and related configuration."
+        },
+        "model": {
+          "type": "string",
+          "title": "The corresponding repository model name.",
+          "description": "Defaults to \u0060{Name}\u0060 (assumes same)."
+        },
+        "mapper": {
+          "type": "string",
+          "title": "The mapper name.",
+          "description": "This is the .NET mapper name used within the generated code. Defaults to root \u0060{Name}Mapper\u0060."
+        },
+        "excludeMapper": {
+          "type": "boolean",
+          "title": "Indicates whether to exclude the generation of the mapper.",
+          "description": "Defaults to \u0060false\u0060."
+        },
+        "properties": {
+          "type": "array",
+          "title": "The property collection configuration.",
+          "items": {
+            "$ref": "#/definitions/Property"
+          }
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Property": {
+      "type": "object",
+      "title": "Reference-data property configuration.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "The property name."
+        },
+        "type": {
+          "type": "string",
+          "title": "The property type.",
+          "description": "Defaults to \u0060string?\u0060. Supports the following conventions: \u0060^\u0060-prefix for reference-data and \u0060?\u0060-suffix for nullable."
+        },
+        "text": {
+          "type": "string",
+          "title": "The property text.",
+          "description": "Defaults to \u0060{Name}\u0060 converted to sentence case. This is primarily used in generated code comments."
+        },
+        "model": {
+          "type": "string",
+          "title": "The corresponding data model property name.",
+          "description": "Defaults to \u0060{Name}\u0060 (assumes same)."
+        },
+        "excludeContract": {
+          "type": "boolean",
+          "title": "Indicates whether to exclude the property from the generated contract code.",
+          "description": "Defaults to \u0060false\u0060."
+        },
+        "excludeMapping": {
+          "type": "boolean",
+          "title": "Indicates whether to exclude the property from the generated mapping code.",
+          "description": "Defaults to \u0060false\u0060."
+        }
+      },
+      "required": [
+        "name"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/definitions/CodeGeneration"
+    }
+  ]
+}

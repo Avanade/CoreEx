@@ -48,14 +48,14 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, EntityConfig>
     /// </summary>
     [JsonPropertyName("excludeContract")]
     [CodeGenProperty("Exclude", Title = "Indicates whether to exclude the property from the generated contract code.", Description = "Defaults to `false`.")]
-    public bool ExcludeContract { get; set; }
+    public bool? ExcludeContract { get; set; }
 
     /// <summary>
     /// Indicates whether to exclude the property from the generated mapping code.
     /// </summary>
     [JsonPropertyName("excludeMapping")]
     [CodeGenProperty("Exclude", Title = "Indicates whether to exclude the property from the generated mapping code.", Description = "Defaults to `false`.")]
-    public bool ExcludeMapping { get; set; }
+    public bool? ExcludeMapping { get; set; }
 
     #endregion
 
@@ -93,6 +93,8 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, EntityConfig>
         // Others...
         Text = DefaultWhereNull(Text, () => OnRamp.Utility.StringConverter.ToSentenceCase(Name!));
         Model = DefaultWhereNull(Model, () => Name);
+        ExcludeContract = DefaultWhereNull(ExcludeContract, () => false);
+        ExcludeMapping = DefaultWhereNull(ExcludeMapping, () => false);
 
         return Task.CompletedTask;
     }

@@ -101,7 +101,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// </summary>
     [JsonPropertyName("excludeMapper")]
     [CodeGenProperty("Exclude", Title = "Indicates whether to exclude the generation of the mapper.", IsImportant = true, Description = "Defaults to `false`.")]
-    public bool ExcludeMapper { get; set; }
+    public bool? ExcludeMapper { get; set; }
 
     #endregion
 
@@ -117,12 +117,12 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// <summary>
     /// Gets the list of properties that are not excluded from the generated contract code.
     /// </summary>
-    public List<PropertyConfig>? ContractProperties => Properties?.Where(p => !p.ExcludeContract).ToList() ?? [];
+    public List<PropertyConfig>? ContractProperties => Properties?.Where(p => !(p.ExcludeContract ?? false)).ToList() ?? [];
 
     /// <summary>
     /// Gets the list of properties that are not excluded from the generated mapping code.
     /// </summary>
-    public List<PropertyConfig>? MappingProperties => Properties?.Where(p => !p.ExcludeMapping).ToList() ?? [];
+    public List<PropertyConfig>? MappingProperties => Properties?.Where(p => !(p.ExcludeMapping ?? false)).ToList() ?? [];
 
     #endregion
 
@@ -141,6 +141,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
         Repository = DefaultWhereNull(Repository, () => Root!.Repository);
         IdType = DefaultWhereNull(IdType, () => Root?.IdType);
         Mapper = DefaultWhereNull(Mapper, () => $"{Name}Mapper");
+        ExcludeMapper = DefaultWhereNull(ExcludeMapper, () => false);
 
         Plural = DefaultWhereNull(Plural, () =>
         {

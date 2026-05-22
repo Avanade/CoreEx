@@ -6,5 +6,5 @@
 public class MapperGenerator : CodeGeneratorBase<CodeGenConfig, EntityConfig>
 {
     /// <inheritdoc/>
-    protected override IEnumerable<EntityConfig> SelectGenConfig(CodeGenConfig config) => config.Entities?.Where(e => !e.ExcludeMapper) ?? [];
+    protected override IEnumerable<EntityConfig> SelectGenConfig(CodeGenConfig config) => config.Entities?.Where(e => !(e.ExcludeMapper ?? false)) ?? [];
 }
