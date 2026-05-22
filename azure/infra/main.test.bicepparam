@@ -29,6 +29,14 @@ param sqlTier = 'GeneralPurpose'
 param sqlMinCapacity = '0.5'
 param sqlAutoPauseDelay = 60
 
+param postgresAdminLogin = 'coreexpgadmin'
+param postgresAdminPassword = readEnvironmentVariable('AZURE_POSTGRES_ADMIN_PASSWORD', readEnvironmentVariable('AZURE_SQL_ADMIN_PASSWORD'))
+param postgresDatabaseName = 'coreextest'
+param postgresSkuName = 'Standard_B1ms'
+param postgresSkuTier = 'Burstable'
+param postgresVersion = '16'
+param postgresStorageSizeGb = 32
+
 // TODO: Confirm cache tier for test.
 param redisSkuName = 'Balanced_B0'
 param redisHighAvailability = 'Enabled'

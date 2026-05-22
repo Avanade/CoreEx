@@ -7,8 +7,16 @@ if ([string]::IsNullOrWhiteSpace($env:AZURE_SQL_ADMIN_PASSWORD)) {
 	throw 'AZURE_SQL_ADMIN_PASSWORD is not set. Set it before running azd provision.'
 }
 
+if ([string]::IsNullOrWhiteSpace($env:AZURE_POSTGRES_ADMIN_PASSWORD)) {
+    $env:AZURE_POSTGRES_ADMIN_PASSWORD = $env:AZURE_SQL_ADMIN_PASSWORD
+}
+
 if ([string]::IsNullOrWhiteSpace($env:AZURE_LOCATION)) {
     throw "AZURE_LOCATION is not set. Set it via 'azd env set AZURE_LOCATION <region>' before running azd provision."
+}
+
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+    throw "The 'az' command is required to validate an existing Key Vault from the azd environment."
 }
 
 $clientIp = ''
@@ -50,6 +58,30 @@ $appServiceLinuxFxVersion = switch ($targetFramework) {
     default { throw "Unsupported target framework '$targetFramework'. Expected net8.0, net9.0, or net10.0." }
 }
 
+$keyVaultName = ''
+try {
+    $existingKeyVaultNameRaw = (azd env get-value keyVaultName 2>$null).Trim()
+}
+catch {
+    $existingKeyVaultNameRaw = ''
+}
+$existingKeyVaultName = if ($existingKeyVaultNameRaw -and -not $existingKeyVaultNameRaw.Contains('ERROR:')) {
+    $existingKeyVaultNameRaw
+}
+else {
+    ''
+}
+if (-not [string]::IsNullOrWhiteSpace($existingKeyVaultName)) {
+    az keyvault show --name $existingKeyVaultName --query name -o tsv *> $null
+    if ($LASTEXITCODE -eq 0) {
+        $keyVaultName = $existingKeyVaultName
+        Write-Host "Reusing existing Key Vault '$keyVaultName' from azd environment."
+    }
+    else {
+        Write-Warning "Key Vault '$existingKeyVaultName' from azd environment was not found. A new Key Vault will be provisioned."
+    }
+}
+
 $templatePath = Join-Path $infraDir 'main.dev.parameters.json'
 $outputPath = Join-Path $infraDir 'main.parameters.json'
 
@@ -58,15 +90,20 @@ try {
     $json = Get-Content -Raw -Path $templatePath | ConvertFrom-Json
     $json.parameters.location.value = $env:AZURE_LOCATION
     $json.parameters.sqlAdminPassword.value = $env:AZURE_SQL_ADMIN_PASSWORD
+    $json.parameters.postgresAdminPassword.value = $env:AZURE_POSTGRES_ADMIN_PASSWORD
     $json.parameters.appServiceLinuxFxVersion.value = $appServiceLinuxFxVersion
     $json.parameters.sqlFirewallClientIp.value = $clientIp
+    $json.parameters.postgresFirewallClientIp.value = $clientIp
+    $json.parameters.keyVaultName.value = $keyVaultName
     $json | ConvertTo-Json -Depth 100 | Set-Content -Path $outputPath -NoNewline
 } catch {
     # Fallback: direct string replacement
     $content = Get-Content -Raw -Path $templatePath
     $content = $content.Replace('__AZURE_LOCATION__', $env:AZURE_LOCATION)
     $content = $content.Replace('__AZURE_SQL_ADMIN_PASSWORD__', $env:AZURE_SQL_ADMIN_PASSWORD)
+    $content = $content.Replace('__AZURE_POSTGRES_ADMIN_PASSWORD__', $env:AZURE_POSTGRES_ADMIN_PASSWORD)
     $content = $content.Replace('__APP_SERVICE_LINUX_FX_VERSION__', $appServiceLinuxFxVersion)
     $content = $content.Replace('__AZURE_CLIENT_IP__', $clientIp)
+    $content = $content.Replace('__KEY_VAULT_NAME__', $keyVaultName)
     Set-Content -Path $outputPath -Value $content -NoNewline
 }
