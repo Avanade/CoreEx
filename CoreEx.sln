@@ -221,6 +221,20 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "schema", "schema", "{7868FB
 		schema\coreex-refdata.json = schema\coreex-refdata.json
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{4BE535E8-747F-4CC5-85D6-CF1460964AA3}"
+	ProjectSection(SolutionItems) = preProject
+		samples\docs\application-layer.md = samples\docs\application-layer.md
+		samples\docs\aspire.md = samples\docs\aspire.md
+		samples\docs\contracts-layer.md = samples\docs\contracts-layer.md
+		samples\docs\domain-layer.md = samples\docs\domain-layer.md
+		samples\docs\hosts-layer.md = samples\docs\hosts-layer.md
+		samples\docs\infrastructure-layer.md = samples\docs\infrastructure-layer.md
+		samples\docs\layers.md = samples\docs\layers.md
+		samples\docs\patterns.md = samples\docs\patterns.md
+		samples\docs\testing.md = samples\docs\testing.md
+		samples\docs\tooling.md = samples\docs\tooling.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1162,6 +1176,7 @@ Global
 		{D7B0D852-BEE1-4CFE-9369-C487858A4DE1} = {3CEF11D5-9320-4BDA-A7A8-5D1FCE868FE3}
 		{902CF0FC-5CF1-404F-ABFA-F6008E29C8CC} = {83C087DA-703F-41A5-994B-C132EB812835}
 		{ABDC084E-26B9-4900-9BFF-A26D9D8542D0} = {7B24A1A9-1C76-4248-BB63-9D5C4328F5BD}
+		{4BE535E8-747F-4CC5-85D6-CF1460964AA3} = {5B5342D2-2392-4EB8-9933-A21DB9416534}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {99046729-5A7F-41B6-9415-F77D8E9C44F1}
