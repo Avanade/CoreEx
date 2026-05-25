@@ -8,8 +8,9 @@ param appInsightsConnectionString string
 param appInsightsResourceId string
 param appInsightsInstrumentationKey string
 param sqlConnectionString string
-param redisConnectionString string
+param postgresConnectionString string
 param serviceBusConnectionString string
+param redisConnectionString string
 param otlpHttpEndpoint string
 
 var sharedAppSettings = [
@@ -50,10 +51,6 @@ var sharedAppSettings = [
     value: '1.0.0'
   }
   {
-    name: 'Aspire__Microsoft__Data__SqlClient__ConnectionString'
-    value: sqlConnectionString
-  }
-  {
     name: 'Aspire__StackExchange__Redis__ConnectionString'
     value: redisConnectionString
   }
@@ -71,6 +68,20 @@ var sharedAppSettings = [
   }
 ]
 
+var sqlDbAppSettings = [
+  {
+    name: 'Aspire__Microsoft__Data__SqlClient__ConnectionString'
+    value: sqlConnectionString
+  }
+]
+
+var postgresDbAppSettings = [
+  {
+    name: 'Aspire__Npgsql__ConnectionString'
+    value: postgresConnectionString
+  }
+]
+
 resource productsApi 'Microsoft.Web/sites@2023-12-01' = {
   name: 'app-products-api-${environmentType}-${suffix}'
   location: location
@@ -79,6 +90,9 @@ resource productsApi 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -93,7 +107,7 @@ resource productsApi 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, postgresDbAppSettings)
     }
   }
 }
@@ -106,6 +120,9 @@ resource shoppingApi 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -120,7 +137,7 @@ resource shoppingApi 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: concat(sharedAppSettings, [
+      appSettings: concat(sharedAppSettings, sqlDbAppSettings, [
         {
           name: 'ProductsApi__BaseAddress'
           value: 'https://${productsApi.properties.defaultHostName}'
@@ -138,6 +155,9 @@ resource productsOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -152,7 +172,7 @@ resource productsOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, postgresDbAppSettings)
     }
   }
 }
@@ -165,6 +185,9 @@ resource shoppingOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -179,7 +202,7 @@ resource shoppingOutboxRelay 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, sqlDbAppSettings)
     }
   }
 }
@@ -192,6 +215,9 @@ resource productsSubscribe 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -206,7 +232,7 @@ resource productsSubscribe 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, postgresDbAppSettings)
     }
   }
 }
@@ -219,6 +245,9 @@ resource shoppingSubscribe 'Microsoft.Web/sites@2023-12-01' = {
     'hidden-link: /app-insights-resource-id': appInsightsResourceId
   })
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -233,7 +262,7 @@ resource shoppingSubscribe 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       alwaysOn: true
-      appSettings: sharedAppSettings
+      appSettings: concat(sharedAppSettings, sqlDbAppSettings)
     }
   }
 }
@@ -244,3 +273,4 @@ output productsOutboxRelayName string = productsOutboxRelay.name
 output shoppingOutboxRelayName string = shoppingOutboxRelay.name
 output productsSubscribeName string = productsSubscribe.name
 output shoppingSubscribeName string = shoppingSubscribe.name
+

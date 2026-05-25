@@ -14,6 +14,9 @@ param location string = resourceGroup().location
 @description('Unique suffix for globally unique resource names. Use a short lowercase token, e.g. a1b2c3.')
 param nameSuffix string
 
+@description('Optional Key Vault name override. When empty, a unique Key Vault name is generated.')
+param keyVaultName string = ''
+
 @description('Tags applied to all resources.')
 param tags object = {}
 
@@ -57,6 +60,31 @@ param sqlMinCapacity string
 @description('Azure SQL auto-pause delay in minutes. Set to -1 to disable.')
 param sqlAutoPauseDelay int
 
+@description('Azure PostgreSQL administrator login name.')
+param postgresAdminLogin string
+
+@secure()
+@description('Azure PostgreSQL administrator password.')
+param postgresAdminPassword string
+
+@description('Azure PostgreSQL database name used by Products domain.')
+param postgresDatabaseName string
+
+@description('Current runner public IPv4 address to allow through the Azure PostgreSQL firewall.')
+param postgresFirewallClientIp string = ''
+
+@description('Azure PostgreSQL flexible server SKU name. Example: Standard_B1ms.')
+param postgresSkuName string
+
+@description('Azure PostgreSQL flexible server tier. Example: Burstable.')
+param postgresSkuTier string
+
+@description('Azure PostgreSQL major version. Example: 16.')
+param postgresVersion string
+
+@description('Azure PostgreSQL storage size in GB.')
+param postgresStorageSizeGb int
+
 @description('Azure Managed Redis SKU name. Example: Balanced_B0.')
 param redisSkuName string
 
@@ -68,7 +96,8 @@ param redisSkuName string
 param redisHighAvailability string
 
 var suffix = toLower(nameSuffix)
-var keyVaultName = take('kv${environmentType}${suffix}${uniqueString(deployment().name, resourceGroup().id)}', 24)
+var computedKeyVaultName = take('kv${environmentType}${suffix}${uniqueString(deployment().name, resourceGroup().id)}', 24)
+var resolvedKeyVaultName = empty(keyVaultName) ? computedKeyVaultName : keyVaultName
 var mergedTags = union(tags, {
   environment: environmentType
   managedBy: 'azd'
@@ -88,7 +117,7 @@ module keyVault './modules/key-vault.bicep' = {
   name: 'keyVaultDeploy'
   params: {
     location: location
-    name: keyVaultName
+    name: resolvedKeyVaultName
     tags: mergedTags
   }
 }
@@ -143,6 +172,23 @@ module sql './modules/database.bicep' = {
   }
 }
 
+module postgres './modules/postgres-database.bicep' = {
+  name: 'postgresDeploy'
+  params: {
+    location: location
+    serverName: 'pg-${environmentType}-${suffix}'
+    databaseName: postgresDatabaseName
+    adminLogin: postgresAdminLogin
+    adminPassword: postgresAdminPassword
+    clientIp: postgresFirewallClientIp
+    skuName: postgresSkuName
+    skuTier: postgresSkuTier
+    version: postgresVersion
+    storageSizeGb: postgresStorageSizeGb
+    tags: mergedTags
+  }
+}
+
 module appServices './modules/app-services.bicep' = {
   name: 'appServicesDeploy'
   params: {
@@ -156,8 +202,9 @@ module appServices './modules/app-services.bicep' = {
     appInsightsResourceId: appInsights.outputs.id
     appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
     sqlConnectionString: sql.outputs.connectionString
-    redisConnectionString: redis.outputs.connectionString
+    postgresConnectionString: postgres.outputs.connectionString
     serviceBusConnectionString: serviceBus.outputs.connectionString
+    redisConnectionString: redis.outputs.connectionString
     otlpHttpEndpoint: aspireDashboard.outputs.otlpHttpEndpoint
   }
 }
@@ -180,6 +227,8 @@ output serviceBusNamespaceName string = serviceBus.outputs.namespaceName
 output redisHostName string = redis.outputs.hostName
 output sqlServerName string = sql.outputs.serverName
 output sqlDatabaseName string = sql.outputs.databaseName
+output postgresServerName string = postgres.outputs.serverName
+output postgresDatabaseName string = postgres.outputs.databaseName
 output productsApiAppName string = appServices.outputs.productsApiName
 output shoppingApiAppName string = appServices.outputs.shoppingApiName
 output productsOutboxRelayAppName string = appServices.outputs.productsOutboxRelayName
@@ -189,3 +238,4 @@ output shoppingSubscribeAppName string = appServices.outputs.shoppingSubscribeNa
 output aspireDashboardAppName string = aspireDashboard.outputs.appName
 output aspireDashboardUri string = aspireDashboard.outputs.dashboardUri
 output aspireDashboardOtlpGrpcEndpoint string = aspireDashboard.outputs.otlpGrpcEndpoint
+
