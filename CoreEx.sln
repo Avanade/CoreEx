@@ -80,6 +80,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{5B5342D2-2392-4EB8-9933-A21DB9416534}"
 	ProjectSection(SolutionItems) = preProject
 		samples\Directory.Build.props = samples\Directory.Build.props
+		samples\README.md = samples\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Products", "Products", "{3467DBAC-5C5C-4FED-8EB5-95F5D3FE12EC}"

@@ -46,6 +46,25 @@ Here is a high-level overview of some of the key capabilities provided by _CoreE
 - 🏗️ **Reference Data Code Generation** — Development-time `CoreEx.CodeGen` tooling that scaffolds the complete reference-data layer (contract, controller, service, repository interface, repository, and mapper) from a single schema-validated `ref-data.yaml` configuration file.
 - 🧪 **Testing Toolkit** — `CoreEx.UnitTesting` provides fluent value expectations, event-capture and outbox assertions (SQL Server, PostgreSQL, Azure Service Bus), JSON/YAML seed-data loading with placeholder substitution, and UnitTestEx bridge extensions covering every CoreEx subsystem.
 
+## Patterns in Practice
+
+The capabilities above come to life in the [Contoso reference samples](./samples/README.md), which implement a fully working multi-domain service topology. The samples are the primary demonstration of _why_ CoreEx exists — they show how the packages compose into a coherent, production-shaped architecture.
+
+The [Pattern Catalogue](./samples/docs/patterns.md) is the best entry point: it indexes every architectural and design pattern demonstrated across the samples, grouped by concern, each linked to the layer documentation that shows it in code.
+
+| Group | Patterns demonstrated |
+|---|---|
+| 🌐 **API** | Thin-controller HTTP endpoints, idempotency keys, read/write separation |
+| ⚙️ **Application** | CQRS, service orchestration, unit of work, composable validators, reusable policies |
+| 📋 **Contracts** | Technology-agnostic DTOs shared across API and messaging, first-class reference data |
+| 🏛️ **DDD** | Aggregates, entities, value objects with enforced invariants |
+| 🗄️ **Infrastructure** | Repository abstraction, explicit mappers, persistence models, anti-corruption adapters, typed HTTP clients |
+| 📨 **Messaging** | CloudEvent publishing, transactional outbox, outbox relay, event-driven replication, subscriber dispatch |
+| 🛠️ **Tooling** | Schema-driven code generation, database lifecycle management via migration scripts |
+| 🧪 **Testing** | Intra-domain host tests against real infrastructure, inter-domain mocking, unit tests, local Aspire orchestration for E2E validation |
+
+→ **[View the full pattern catalogue](./samples/docs/patterns.md)**
+
 ## Version 4
 
 This is a **major** version release; a re-imagine / re-invention of the existing capabilities to enable a more modern, flexible and maintainable codebase.
@@ -82,13 +101,16 @@ The included [change log](CHANGELOG.md) details all key changes per published ve
 
 ## Samples
 
-The repository includes Contoso reference samples that demonstrate CoreEx across API, database, outbox, subscriber, orchestration, and testing scenarios. See [samples/README.md](./samples/README.md) for the runnable topology, prerequisites, and commands.
+The repository includes [Contoso reference samples](./samples/README.md) that implement a fully working multi-domain service topology — Products, Shopping, and Orders — each with an API host, an Outbox Relay host, and an Event Subscriber host.
 
-Sample | Description
--|-
-[Contoso Products](./samples/README.md) | Reference microservice showing API, database migrations, transactional outbox, relay, subscriber, and test coverage for a product/inventory domain.  
-[Contoso Shopping](./samples/README.md) | Reference microservice showing aggregate-centric application design, cross-service HTTP integration, hybrid caching, messaging, and integration testing.  
-[Contoso Orders / Order.Workflow](./samples/README.md) | Additional sample areas for order processing and Durable Task orchestration that are currently in progress.  
+| Resource | Description |
+|---|---|
+| [samples/README.md](./samples/README.md) | Runnable topology, prerequisites, infrastructure setup, and getting-started commands |
+| [Pattern Catalogue](./samples/docs/patterns.md) | Every architectural and design pattern demonstrated, grouped by concern with links to layer docs |
+| [Layer Guide](./samples/docs/layers.md) | Business and host layer overview with the full dependency diagram |
+| [Tooling Guide](./samples/docs/tooling.md) | Code generation and database lifecycle tooling |
+| [Testing Guide](./samples/docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |
+| [Aspire & E2E Guide](./samples/docs/aspire.md) | Local orchestration and cross-domain end-to-end validation |
 
 ## License
 

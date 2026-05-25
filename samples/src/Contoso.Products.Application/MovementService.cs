@@ -34,7 +34,7 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
             return movements;
 
         // Adjust the inventory levels, create the reservations, and emit the events in a unit-of-work transaction.
-        await _unitOfWork.ExecuteAsync(async () =>
+        await _unitOfWork.TransactionAsync(async () =>
         {
             // Adjust inventory levels and persist movements.
             movements = await _movementRepository.CreateAsync(movements).ConfigureAwait(false);
@@ -47,7 +47,7 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
     }
 
     /// <inheritdoc/>
-    public Task<List<Movement>> ConfirmReservationAsync(string referenceId) => _unitOfWork.ExecuteAsync(async () =>
+    public Task<List<Movement>> ConfirmReservationAsync(string referenceId) => _unitOfWork.TransactionAsync(async () =>
     {
         // Confirm all movements for the specified reservation.
         var movements = await _movementRepository.ConfirmAsync(referenceId).ConfigureAwait(false);
@@ -61,7 +61,7 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
     });
 
     /// <inheritdoc/>
-    public Task<List<Movement>> CancelReservationAsync(string referenceId) => _unitOfWork.ExecuteAsync(async () =>
+    public Task<List<Movement>> CancelReservationAsync(string referenceId) => _unitOfWork.TransactionAsync(async () =>
     {
         // Cancel all movements for the specified reservation.
         var movements = await _movementRepository.CancelAsync(referenceId).ConfigureAwait(false);
@@ -101,7 +101,7 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
             return movements;
 
         // Adjust the inventory levels, and emit the events in a unit-of-work transaction.
-        await _unitOfWork.ExecuteAsync(async () =>
+        await _unitOfWork.TransactionAsync(async () =>
         {
             // Adjust inventory levels and persist movements.
             movements = await _movementRepository.CreateAsync(movements).ConfigureAwait(false);

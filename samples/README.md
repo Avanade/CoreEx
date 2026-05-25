@@ -1,26 +1,22 @@
 # Contoso Samples
 
-The `samples` folder contains reference implementations of three domain microservices built with CoreEx.
+The `samples` folder contains reference implementations of three domain microservices built with CoreEx: **Products**, **Shopping**, and **Orders** (Orders workflow is work in progress).
 
-- Products.
-- Shopping.
-- Orders.
+Each domain is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus.
 
-Additional sample areas are currently work in progress:
-
-- Order.Workflow.
-
-Each domain includes three runnable hosts:
-
-- API host (`*.Api`).
-- Outbox Relay host (`*.Outbox.Relay`).
-- Event Subscriber host (`*.Subscribe`).
-
-The sample also includes supporting projects for contracts, application, infrastructure, domain/data, and test coverage.
+> **Documentation** — detailed guides for layers, patterns, tooling, and testing are in [`samples/docs`](docs/).
+>
+> | Guide | Description |
+> |---|---|
+> | [Layers](docs/layers.md) | Business and host layer overview with dependency diagram |
+> | [Patterns](docs/patterns.md) | Catalogue of architectural patterns implemented across the samples |
+> | [Tooling](docs/tooling.md) | Code generation (`*.CodeGen`) and database management (`*.Database`) |
+> | [Testing](docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |
+> | [Aspire & E2E](docs/aspire.md) | Local orchestration and cross-domain end-to-end validation |
 
 ## Architecture
 
-The two domains are hosted as independent microservices that communicate via synchronous HTTP and asynchronous messaging over Azure Service Bus.
+The domains communicate via synchronous HTTP and asynchronous messaging over Azure Service Bus.
 
 ```mermaid
 graph TB
@@ -85,115 +81,76 @@ graph TB
 
 ### Inter-Domain Communication
 
-**① Synchronous HTTP — Shopping → Products**
+| Flow | Direction | Mechanism |
+|---|---|---|
+| ① Inventory reservation | Shopping → Products | Synchronous HTTP — `ProductAdapter` calls `POST /api/inventory/reserve` at basket checkout. |
+| ② – ④ Product replication | Products → Shopping | Products Outbox → Relay → Service Bus → `Shopping.Subscribe` keeps a local product replica in sync. |
+| ⑤ – ⑦ Reservation commands | Shopping → Products | On checkout success the outbox enqueues `reservation.confirm`; on failure Shopping publishes `reservation.cancel` directly to Service Bus (the transaction has already rolled back). |
 
-During basket checkout, Shopping calls `POST /api/inventory/reserve` on the Products API directly via `ProductAdapter` (anti-corruption layer) to validate and reserve stock in real time.
-
-**② – ④ Async event replication — Products → Shopping**
-
-Products publishes `product.created`, `product.updated`, and `product.deleted` events through its Outbox → Relay → Service Bus. Shopping.Subscribe consumes these and keeps a local `[Shopping].[Product]` replica in sync for offline queries.
-
-**⑤ – ⑦ Async reservation commands — Shopping → Products**
-
-- On checkout **success**: Shopping enqueues a `reservation.confirm` command via its Outbox → Relay → Service Bus → `Products.Subscribe`, which confirms the pending inventory movement.
-- On checkout **failure**: Shopping publishes `reservation.cancel` directly to Service Bus (bypassing the Outbox, since the database transaction has been rolled back) so the pending reservation is released.
-
-### Key Patterns
-
-| Pattern | Where Used |
-|---|---|
-| Transactional Outbox | Both domains — atomic event publishing with DB writes |
-| Anti-Corruption Layer | `ProductAdapter` / `ProductsHttpClient` in Shopping |
-| DDD Aggregate | `Basket` aggregate root with `BasketItem` and `ItemPricing` |
-| Hybrid Cache (L1 + L2) | Shopping API — FusionCache with Redis backplane |
-| Outbox Relay (partitioned) | Both domains — dedicated relay host per domain |
-| Railway-Oriented Programming | `Result<T>` flow control throughout |
-| ETag / Optimistic Concurrency | `Basket` implements `IETag` |
-
-## What This Demonstrates
-
-These samples are intended to show practical CoreEx usage across:
-
-- API composition and HTTP behaviors.
-- Data access and persistence workflows.
-- Outbox and event publishing/subscribing patterns.
-- End-to-end host orchestration with Aspire.
-- Unit and integration testing for service behaviors.
+See [Patterns](docs/patterns.md) for the full catalogue of architectural patterns demonstrated across the samples.
 
 ## Project Layout
 
-- `samples/src/Contoso.Products.*` for the Products domain services and supporting projects.
-- `samples/src/Contoso.Shopping.*` for the Shopping domain services and supporting projects.
-- `samples/aspire/Contoso.Aspire` to orchestrate both domains and view logs, traces, and metrics.
-- `samples/tests` for unit, integration, host-level tests, and the E2E runner.
+| Path | Purpose |
+|---|---|
+| `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Outbox.Relay, Subscribe, CodeGen, Database |
+| `src/Contoso.Shopping.*` | Shopping domain — same layer split plus Domain aggregate |
+| `src/Contoso.Orders.*` | Orders domain (work in progress) |
+| `aspire/Contoso.Aspire` | Aspire AppHost — orchestrates all hosts for local development and E2E validation |
+| `tests/Contoso.*.Test.*` | Unit, API, Outbox.Relay, and Subscribe test projects per domain |
+| `tests/Contoso.E2E.Runner` | Interactive E2E and load-simulation console runner |
+
+See [Layers](docs/layers.md) for the full layer-by-layer breakdown of each project's responsibilities.
 
 ## Prerequisites
 
-- A .NET SDK capable of building `net8.0`, `net9.0`, and `net10.0` targets. A current .NET 10 SDK is sufficient for local builds.
-- To run sample web hosts targeting `net8.0`, install the `Microsoft.AspNetCore.App 8.0` runtime locally.
+- .NET SDK targeting `net8.0`, `net9.0`, and `net10.0` (a current .NET 10 SDK is sufficient).
 - A container runtime (Docker or Podman).
-- Aspire CLI — install once:
+- Aspire CLI:
 
   ```bash
-  # Linux/macOS
-  curl -sSL https://aspire.dev/install.sh | bash
-
   # Windows (PowerShell)
   iwr -useb https://aspire.dev/install.ps1 | iex
+
+  # Linux/macOS
+  curl -sSL https://aspire.dev/install.sh | bash
   ```
 
   Verify with `aspire --version`. See [aspire.dev/get-started/install-cli](https://aspire.dev/get-started/install-cli/) for details.
 
-## Start Infrastructure
+## Getting Started
 
-Start sample dependencies using the root compose file:
+### 1 — Start Infrastructure
 
 ```bash
 podman compose -f docker-compose.yml up -d
 ```
 
-Stop dependencies when finished:
+This starts the required data store(s), Redis, and the Azure Service Bus emulator.
+
+### 2 — Initialize Databases
+
+Run migrations and seed reference data for each domain:
 
 ```bash
-podman compose -f docker-compose.yml down
+dotnet run --project samples/src/Contoso.Products.Database -- All
+dotnet run --project samples/src/Contoso.Shopping.Database -- All
+dotnet run --project samples/src/Contoso.Orders.Database   -- All
 ```
 
-## Initialize Sample Databases
+> The E2E runner's **Database Migration and Base Data Refresh** option can also apply pending migrations across all domains without restarting hosts. See [Aspire & E2E](docs/aspire.md) for details.
 
-From the repository root:
+See [Tooling](docs/tooling.md) for the full list of database commands and what each does.
 
-```bash
-dotnet run --project samples/src/Contoso.Products.Database -- Migrate
-dotnet run --project samples/src/Contoso.Products.Database -- Data
-
-dotnet run --project samples/src/Contoso.Shopping.Database -- Migrate
-dotnet run --project samples/src/Contoso.Shopping.Database -- Data
-
-dotnet run --project samples/src/Contoso.Orders.Database -- Migrate
-dotnet run --project samples/src/Contoso.Orders.Database -- Data
-```
-
-The E2E runner's `Database-Migration` scenario now applies schema and base data for Products, Shopping, and Orders.
-
-## Run With Aspire
-
-From the repository root:
+### 3 — Start All Hosts
 
 ```bash
 aspire run
 ```
 
-Or using `dotnet run`:
+This starts every domain API, Outbox Relay, and Subscribe host as a single distributed application and opens the Aspire Dashboard for centralized logs, traces, and metrics. See [Aspire & E2E](docs/aspire.md) for a full walkthrough.
 
-```bash
-dotnet run --project samples/aspire/Contoso.Aspire
-```
-
-This is the easiest way to run both domains and inspect runtime behavior through centralized logs, traces, and metrics.
-
-## Run Tests
-
-The `samples/tests` folder contains unit and integration-style tests that exercise API, relay, and subscriber functionality.
+### 4 — Run Tests
 
 ```bash
 dotnet test samples/tests/Contoso.Products.Test.Unit
@@ -203,154 +160,25 @@ dotnet test samples/tests/Contoso.Products.Test.Subscribe
 dotnet test samples/tests/Contoso.Shopping.Test.Api
 ```
 
-### Unit Tests
+The required infrastructure (data store, Redis, Service Bus emulator) must be running for API, Outbox.Relay, and Subscribe tests.
 
-`Contoso.Products.Test.Unit` contains isolated component tests (e.g. validators). These use `WithGenericTester<EntryPoint>` from `CoreEx.UnitTesting` and do not require a running database, cache, or message broker.
+See [Testing](docs/testing.md) for an explanation of test taxonomy, intra-domain vs inter-domain boundaries, data seeding, mock patterns, and the fluent assertion model.
 
-### Integration Tests (API)
-
-`Contoso.Products.Test.Api` and `Contoso.Shopping.Test.Api` are full integration tests that spin up the real API under test via `WithApiTester<Program>`. They require infrastructure (SQL Server, Redis, Service Bus emulator) to be running.
-
-#### Data Seeding and One-Time Setup
-
-Each integration test project has a `[OneTimeSetUp]` method that runs once before the test suite starts:
-
-1. **Migrate and seed the database** — `Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs)` applies pending schema migrations and resets all rows in the domain's schema to the contents of `Data/data.yaml` defined in the corresponding `*.Test.Common` project. The migration args include a `DataResetFilterPredicate` scoped to only the domain's SQL schema so test runs for one domain cannot affect the other.
-
-2. **Clear the hybrid cache** — `Test.ClearFusionCacheAsync()` flushes both the in-process L1 cache and the Redis L2 cache to ensure tests start from a known state.
-
-3. **Set up event capture** — `Test.UseExpectedSqlServerOutboxPublisher()` and (where relevant) `Test.UseExpectedAzureServiceBusPublisher()` wrap the event publishers with decorators so tests can assert which events were published to the outbox or Service Bus.
-
-4. **Mock downstream HTTP clients** — Shopping tests replace the `IHttpClientFactory` with a `MockHttpClientFactory` that intercepts calls to the Products API (e.g. `POST api/inventory/reserve`) so the Shopping API can be tested in isolation without a running Products API.
-
-```csharp
-[OneTimeSetUp]
-public async Task OneTimeSetUpAsync()
-{
-    await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
-    await Test.ClearFusionCacheAsync().ConfigureAwait(false);
-
-    Test.UseExpectedSqlServerOutboxPublisher();
-    Test.UseExpectedAzureServiceBusPublisher();
-
-    var mcf = MockHttpClientFactory.Create();
-    _mockHttpReserveRequest = mcf.CreateClient("ProductsApi").Request(HttpMethod.Post, "api/inventory/reserve");
-    Test.ReplaceHttpClientFactory(mcf);
-}
-```
-
-#### Test Data (data.yaml)
-
-Test data is defined in YAML in each domain's `*.Test.Common` project under `Data/data.yaml`. The `TestData` class in that project is used as an assembly marker so the framework can locate the file. Data includes products, inventory levels, movements, and (for Shopping) pre-existing baskets.
-
-IDs are expressed as small integers in YAML and converted to GUIDs at load time using `n.ToGuid()` helpers (e.g. `1.ToGuid()`), keeping data files human-readable while still using GUID primary keys at the database level.
-
-#### Resource-Based Response Expectations
-
-The `Resources/` folder in each test project contains JSON files used for two purposes:
-
-- **Expected responses** — compared against the actual API response body (specified paths such as `etag` or `changelog` are excluded from comparison to avoid timestamp sensitivity).
-- **Mock request/response bodies** — used to set up what the `MockHttpClientRequest` expects to receive and what it should return.
-
-#### Fluent Test Pattern
-
-Tests use a fluent expectation chain from `CoreEx.UnitTesting`:
-
-```csharp
-// Assert a successful POST that publishes an outbox event.
-var created = Test.Http<Product>()
-    .ExpectIdentifier()
-    .ExpectETag()
-    .ExpectChangeLogCreated()
-    .ExpectJsonFromResource("ProductMutateTests.Create_Success.res.json")
-    .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
-    .Run(HttpMethod.Post, "/api/products", product)
-    .AssertCreated()
-    .Value!;
-
-// Assert a validation failure.
-Test.Http()
-    .Run(HttpMethod.Post, "/api/products", invalidProduct)
-    .AssertBadRequest()
-    .AssertErrors("Text is required.", "Price must be greater than or equal to zero.");
-
-// Assert a checkout that calls the Products API mock and publishes an outbox event.
-_mockHttpReserveRequest
-    .WithJsonResourceBody("Basket_Checkout_Success.products.req.json")
-    .Respond.With(HttpStatusCode.OK);
-
-Test.Http<Basket>()
-    .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1"))
-    .Run(HttpMethod.Post, $"/api/baskets/{basketId}/checkout")
-    .AssertOK();
-
-_mockHttpReserveRequest.Verify(); // Confirms the mock was actually called.
-```
-
-## E2E Runner
-
-`Contoso.E2E.Runner` is an interactive console application for running end-to-end scenarios against both running APIs. It supports one-shot scenario execution, full basket lifecycle tests, and a parallel load simulation mode with live statistics.
-
-### Prerequisites
-
-Both domain APIs (and their relay/subscriber hosts) must be running before using the E2E runner. The easiest way to achieve this is via Aspire (see [Run With Aspire](#run-with-aspire) above).
-
-### Start the Runner
-
-From the repository root:
+### 5 — Run E2E Scenarios
 
 ```bash
 dotnet run --project samples/tests/Contoso.E2E.Runner
 ```
 
-On startup the runner checks `/health/ready` on both APIs. Press `ESC` to skip the health check if needed.
+The runner drives real HTTP calls across all domains, supports one-shot scenarios and parallel load simulation, and requires all hosts to be running (step 3 above).
 
-### Configuration
+See [Aspire & E2E](docs/aspire.md) for the interactive menu reference, configuration, and recommended first-run order.
 
-Default endpoints are defined in [samples/tests/Contoso.E2E.Runner/appsettings.json](tests/Contoso.E2E.Runner/appsettings.json). Override any value with a matching environment variable using `__` as a separator:
+## Stop Infrastructure
 
 ```bash
-E2E__Products__BaseAddress=https://localhost:7200
-E2E__Shopping__BaseAddress=https://localhost:7219
+podman compose -f docker-compose.yml down
 ```
-
-### Interactive Menu
-
-After the health check passes the runner displays a menu with three groups.
-
-**Set-Up** (run once before testing):
-
-| Choice | What it does |
-|---|---|
-| Database Migration and Base Data Refresh | Runs DbEx migrations for both databases and resets base reference data. |
-| Data Seeding for E2E Testing | Calls `POST /api/inventory/adjust` to set on-hand quantity to 1000 units for every active, stocked product. Run this before Shopping basket tests to ensure stock is available. |
-
-**Scenarios** (repeatable, APIs must be healthy):
-
-| Choice | What it does |
-|---|---|
-| Product Query Lifecycle | Queries products with randomised category, brand, and text filters. |
-| Product Update Lifecycle | Selects a random product, toggles a description suffix, and PUTs the update. |
-| Product Quantity Lifecycle | Queries the on-hand inventory for a random product. |
-| Shopping Basket Lifecycle | Creates a basket, adds 1–4 random items, optionally applies the `SAVE10` coupon, checks out, and verifies the resulting basket state. Exercises the full cross-domain flow including inventory reservation and reservation confirmation. |
-
-**Other:**
-
-| Choice | What it does |
-|---|---|
-| Run all scenarios as simulation | Runs all four scenarios in parallel workers (configurable parallelism and delay per scenario). Displays a live dashboard with per-scenario iteration counts, success rates, and throughput. Press `ESC` to stop gracefully. Errors are written to `logs/load-simulation-errors.log`. |
-| Retry APIs | Re-runs the health check without restarting the runner. |
-| Exit | Exits the runner. |
-
-### Recommended First-Run Order
-
-1. Start infrastructure: `podman compose -f docker-compose.yml up -d`.
-2. Migrate and seed databases (see [Initialize Sample Databases](#initialize-sample-databases)).
-3. Start all hosts via Aspire: `aspire run`.
-4. Start the runner: `dotnet run --project samples/tests/Contoso.E2E.Runner`.
-5. Select **Database Migration and Base Data Refresh** to apply any pending migrations.
-6. Select **Data Seeding for E2E Testing** to stock inventory.
-7. Run individual scenarios or select **Run all scenarios as simulation** for load testing.
 
 ## Troubleshooting
 
@@ -362,13 +190,13 @@ Symptom:
 
 Likely cause:
 
-- Local machine UTC time is skewed relative to message timestamps (for example, clock drift where local UTC is ahead of expected outbox processing windows).
+- Local machine UTC time is skewed relative to message timestamps (clock drift where local UTC is ahead of expected outbox processing windows).
 
 What to try:
 
 1. Verify and correct system date/time and time zone settings.
 2. Restart the outbox relay host (or restart all sample hosts from Aspire).
-3. If behavior persists, restart the machine to force a clean time sync and host restart state (this resolved the issue in local testing).
+3. If the behavior persists, restart the machine to force a clean time sync.
 
 ### Dependencies Not Healthy
 
@@ -378,18 +206,17 @@ Symptom:
 
 What to try:
 
-1. Ensure infrastructure containers are running via `podman compose -f docker-compose.yml up -d`.
-2. Check container health/status with `docker ps` or `podman ps`.
-3. Restart with `podman compose -f docker-compose.yml down && podman compose -f docker-compose.yml up -d`.
+1. Ensure infrastructure containers are running: `podman compose -f docker-compose.yml up -d`.
+2. Check container health: `docker ps` or `podman ps`.
+3. Restart containers: `podman compose -f docker-compose.yml down && podman compose -f docker-compose.yml up -d`.
 
 ### Database Errors On Startup
 
 Symptom:
 
-- API or relay hosts fail with database/schema-related errors.
+- API or relay hosts fail with database or schema-related errors.
 
 What to try:
 
-1. Re-run migrations for both databases.
-2. Re-run sample data seeding for both domains.
-3. Confirm the SQL dependency container is healthy before restarting hosts.
+1. Re-run migrations and data seeding for the affected domain (step 2 above).
+2. Confirm the data store container(s) are healthy before restarting hosts.

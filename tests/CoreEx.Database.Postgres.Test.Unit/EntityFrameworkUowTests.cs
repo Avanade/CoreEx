@@ -15,7 +15,7 @@ public class EntityFrameworkUowTests : DatabaseTestBase
 
         var act = async () =>
         {
-            await uow.ExecuteAsync(async () =>
+            await uow.TransactionAsync(async () =>
             {
                 var r = await ef.Table.DeleteAsync(2.ToGuid()).ConfigureAwait(false);
                 r.WasMutated.Should().BeTrue();    // I.e. was deleted successfully!
@@ -40,7 +40,7 @@ public class EntityFrameworkUowTests : DatabaseTestBase
         var uow = ExecutionContext.GetRequiredService<IUnitOfWork>();
         var dc = ExecutionContext.GetRequiredService<TestDbContext>();
 
-        var r = await uow.ExecuteAsync(async () =>
+        var r = await uow.TransactionAsync(async () =>
         {
             var r = await ef.Table.DeleteAsync(2.ToGuid()).ConfigureAwait(false);
             r.WasMutated.Should().BeTrue();    // I.e. was deleted successfully!
@@ -65,7 +65,7 @@ public class EntityFrameworkUowTests : DatabaseTestBase
         var uow = ExecutionContext.GetRequiredService<IUnitOfWork>();
         var dc = ExecutionContext.GetRequiredService<TestDbContext>();
 
-        await uow.ExecuteAsync(async () =>
+        await uow.TransactionAsync(async () =>
         {
             var r = await ef.Table.DeleteAsync(8.ToGuid()).ConfigureAwait(false);
             r.WasMutated.Should().BeTrue();    // I.e. was deleted successfully!
@@ -84,7 +84,7 @@ public class EntityFrameworkUowTests : DatabaseTestBase
         var uow = ExecutionContext.GetRequiredService<IUnitOfWork>();
         var dc = ExecutionContext.GetRequiredService<TestDbContext>();
 
-        await uow.ExecuteAsync(async () =>
+        await uow.TransactionAsync(async () =>
         {
             var r = await ef.Table.DeleteAsync(9.ToGuid()).ConfigureAwait(false);
             r.WasMutated.Should().BeTrue();    // I.e. was deleted successfully!
