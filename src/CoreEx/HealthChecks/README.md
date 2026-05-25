@@ -4,7 +4,7 @@
 
 ## Overview
 
-`CoreEx.HealthChecks` is a small, focused namespace that bridges CoreEx with the .NET `Microsoft.Extensions.Diagnostics.HealthChecks` infrastructure. It defines the standard tag names used when registering health checks (`live`, ``, `ready`) and provides extension methods that apply those tags consistently so that liveness and readiness probes can be separated at the `IHealthChecksBuilder` level without each host re-defining the tag strings.
+`CoreEx.HealthChecks` is a small, focused namespace that bridges CoreEx with the .NET `Microsoft.Extensions.Diagnostics.HealthChecks` infrastructure. It defines the standard tag names used when registering health checks (`live`, `startup`, `ready`) and provides extension methods that apply those tags consistently so that liveness and readiness probes can be separated at the `IHealthChecksBuilder` level without each host re-defining the tag strings.
 
 ## Key capabilities
 

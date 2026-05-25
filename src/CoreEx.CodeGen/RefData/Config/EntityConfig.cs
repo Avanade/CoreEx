@@ -23,7 +23,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// Gets or sets the pluralized entity name.
     /// </summary>
     [JsonPropertyName("plural")]
-    [CodeGenProperty("Primary", Title = "The pluralized reference-data entity (contract) name.", IsImportant = true, Description = "Defaults to `{Name} with the last word pluralized.")]
+    [CodeGenProperty("Primary", Title = "The pluralized reference-data entity (contract) name.", IsImportant = true, Description = "Defaults to `{Name}` with the last word pluralized.")]
     public string? Plural { get; set; }
 
     /// <summary>

@@ -6,7 +6,7 @@
 
 `CoreEx.Caching.FusionCache` binds the `IHybridCache` abstraction defined in `CoreEx` to the open-source <a href="https://github.com/ZiggyCreatures/FusionCache">FusionCache</a> library. Application code that depends on `IHybridCache` requires no changes; swapping in `FusionHybridCache` upgrades the backing store from the built-in `MemoryOnlyHybridCache` to FusionCache's full feature set, including a configurable L1 in-memory cache, an optional L2 distributed cache (e.g. Redis), a memory backplane for multi-node cache coherence, and tag-based invalidation.
 
-The package is deliberately thin: `FusionHybridCache` delegates every cache operation to the underlying `IFusionCache` instance after applying key qualification via `ICacheKeyProvider` and translating `HybridCacheEntryOptions` into `FusionCacheEntryOptions` via `FusionCacheExtensions.ToFusionCacheEntryOptions`. The `CacheStrategy` enum governs which tiers participate in each operation — `Local` disables the distributed tier, `Distributed` disables the in-memory tier, and `LocalAndDistributed` (the default) uses both.
+The package is deliberately thin: `FusionHybridCache` delegates every cache operation to the underlying `IFusionCache` instance after applying key qualification via `ICacheKeyProvider` and translating `HybridCacheEntryOptions` into `FusionCacheEntryOptions` via `FusionCacheExtensions.ToFusionCacheEntryOptions`. The `CacheStrategy` enum governs which tiers participate in each operation — `Local` disables the distributed tier, `Distributed` disables the in-memory tier, and `Hybrid` (the default) uses both.
 
 ## Key capabilities
 

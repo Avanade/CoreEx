@@ -121,7 +121,7 @@
         "plural": {
           "type": "string",
           "title": "The pluralized reference-data entity (contract) name.",
-          "description": "Defaults to \u0060{Name} with the last word pluralized."
+          "description": "Defaults to \u0060{Name}\u0060 with the last word pluralized."
         },
         "text": {
           "type": "string",

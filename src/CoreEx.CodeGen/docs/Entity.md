@@ -22,7 +22,7 @@ Provides the _primary_ configuration.
 Property | Description
 -|-
 **`name`** | The reference-data entity (contract) name. [Mandatory]
-**`plural`** | The pluralized reference-data entity (contract) name.<br/>&dagger; Defaults to `{Name} with the last word pluralized.
+**`plural`** | The pluralized reference-data entity (contract) name.<br/>&dagger; Defaults to `{Name}` with the last word pluralized.
 `text` | The reference-data entity friendly text.<br/>&dagger; Defaults to `{Name}` converted to sentence case. This is primarily used in generated code comments.
 **`idType`** | The reference-data identifier type. Valid options are: `String`, `Guid`, `Int32`, `Int64`.<br/>&dagger; Defaults to root `{IdType}`.
 **`collectionSortOrder`** | The collection sort order. Valid options are: `Code`, `Id`, `Text`, `SortOrder`.<br/>&dagger; This is the collection sort order. Defaults to root `{CollectionSortOrder}`.

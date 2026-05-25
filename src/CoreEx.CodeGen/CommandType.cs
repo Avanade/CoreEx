@@ -11,7 +11,7 @@ public enum CommandType
     RefData,
 
     /// <summary>
-    /// Counts the files and lines of code for child directories distinguising between generated and non-generated.
+    /// Counts the files and lines of code distinguishing between generated and non-generated.
     /// </summary>
     Count
 }
