@@ -1,4 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx AspNetCore .NET extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend web-api services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data aspnet webapi mvc http idempotency etag if-match </PackageTags>
+  </PropertyGroup>
+  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />

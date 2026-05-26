@@ -8,11 +8,8 @@
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
-  <!-- Versioning -->
-  <PropertyGroup>
-    <!-- Project-level override is allowed -->
-    <Version>4.0.0-preview-1</Version>
-  </PropertyGroup>
+  <!-- Versioning (defined in /Version.props at repo root) -->
+  <Import Project="$(MSBuildThisFileDirectory)..\Version.props" />
 
   <!-- Build Quality -->
   <PropertyGroup>

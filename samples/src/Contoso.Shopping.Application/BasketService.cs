@@ -17,7 +17,7 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
         var aggregate = Domain.Basket.CreateNew(customerId.ThrowIfNullOrEmpty());
 
         // Orchestrate the creation of the basket within a transaction, ensuring that any events are only published if the transaction is successful.
-        return _unitOfWork.ExecuteAsync(async () =>
+        return _unitOfWork.TransactionAsync(async () =>
         {
             // Create the aggregate in the repository, which will return the created aggregate with any updates (e.g. Id).
             var br = await _repository.CreateAsync(aggregate).ConfigureAwait(false);
@@ -99,7 +99,7 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
     /// <summary>
     /// Performs the "actual" update of the basket within a transaction, ensuring that any events are only published if the transaction is successful.
     /// </summary>
-    private Task<Result<Basket>> UpdateAsync(Domain.Basket basket, EventAction action) => _unitOfWork.ExecuteAsync(async () =>
+    private Task<Result<Basket>> UpdateAsync(Domain.Basket basket, EventAction action) => _unitOfWork.TransactionAsync(async () =>
     {
         if (!basket.HasChanges)
             return Result.Ok(BasketMapper.Map(basket));
@@ -128,7 +128,7 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
         {
             try
             {
-                return await _unitOfWork.ExecuteAsync(() => Result
+                return await _unitOfWork.TransactionAsync(() => Result
                     .GoAsync(() => _repository.UpdateAsync(basket))     // Update the basket aggregate to reflect the checkout (e.g. status change).
                     .ThenAsAsync(async basket =>
                     {

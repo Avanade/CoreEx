@@ -1,4 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx .NET PostgreSQL extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data postgresql postgres database</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Aspire.Azure.Npgsql" />
   </ItemGroup>

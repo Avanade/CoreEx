@@ -8,10 +8,8 @@
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
-  <!-- Versioning -->
-  <PropertyGroup>
-    <Version>4.0.0-preview-1</Version>
-  </PropertyGroup>
+  <!-- Versioning (defined in /Version.props at repo root) -->
+  <Import Project="..\..\Version.props" />
 
   <!-- Build Quality -->
   <PropertyGroup>
@@ -42,6 +40,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
     <OutputItemType>Analyzer</OutputItemType>
+    
     <!-- Not packed standalone; bundled into CoreEx package. -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>

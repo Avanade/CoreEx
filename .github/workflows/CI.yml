@@ -93,6 +93,14 @@ jobs:
     - name: Build samples
       run: dotnet build CoreEx.Samples.Build.slnf --no-restore --configuration Release
 
+    - name: CodeGen tool (samples/src/Contoso.Products.CodeGen)
+      working-directory: samples/src/Contoso.Products.CodeGen
+      run: dotnet run refdata --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: CodeGen tool (samples/src/Contoso.Shopping.CodeGen)
+      working-directory: samples/src/Contoso.Shopping.CodeGen
+      run: dotnet run refdata --no-build --configuration Release -f net10.0 --expect-no-changes
+
     - name: Database tool (samples/src/Contoso.Products.Database)
       working-directory: samples/src/Contoso.Products.Database
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes

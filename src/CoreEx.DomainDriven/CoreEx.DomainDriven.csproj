@@ -1,5 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Title>CoreEx .NET Domain-Driven extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data domain-driven ddd entity value-object aggregate aggregate-root events</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>

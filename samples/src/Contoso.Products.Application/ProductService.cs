@@ -18,7 +18,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         product.CategoryCode = product.SubCategory!.CategoryCode;
         product.IsInactive = true;
 
-        return await _unitOfWork.ExecuteAsync(async () =>
+        return await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.CreateAsync(product).ConfigureAwait(false);
             return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
@@ -39,7 +39,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         product.IsNonStocked = current.IsNonStocked;
         product.IsInactive = current.IsInactive;
 
-        return await _unitOfWork.ExecuteAsync(async () =>
+        return await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.UpdateAsync(product).ConfigureAwait(false);
             return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated)));
@@ -54,7 +54,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         if (product.IsInactive)
             return product;
 
-        return await _unitOfWork.ExecuteAsync(async () =>
+        return await _unitOfWork.TransactionAsync(async () =>
         {
             product.IsInactive = false;
 
@@ -71,7 +71,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         if (!product.IsInactive)
             return product;
 
-        return await _unitOfWork.ExecuteAsync(async () =>
+        return await _unitOfWork.TransactionAsync(async () =>
         {
             product.IsInactive = true;
 
@@ -89,7 +89,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         if (!product.IsInactive)
             throw new BusinessException("A product must first be deactivated before it can be deleted.");
 
-        await _unitOfWork.ExecuteAsync(async () =>
+        await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.DeleteAsync(id).ConfigureAwait(false);
             dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEventWith<Product>(default, EventAction.Deleted).WithKey(id)));

@@ -1,0 +1,16 @@
+collectionSortOrder: Code
+repository: EntityFramework
+entities:
+- name: Brand
+- name: Category
+- name: MovementKind
+- name: MovementStatus
+- name: SubCategory
+  properties:
+  - name: CategoryCode
+    type: ^Category
+- name: UnitOfMeasure
+  plural: UnitsOfMeasure
+  properties:
+  - name: Scale
+    type: int

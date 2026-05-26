@@ -3,6 +3,7 @@ global using Contoso.Shopping.Application.Interfaces;
 global using Contoso.Shopping.Contracts;
 global using CoreEx;
 global using CoreEx.AspNetCore.Mvc;
+global using CoreEx.Entities;
 global using CoreEx.Http;
 global using CoreEx.Json;
 global using CoreEx.RefData;

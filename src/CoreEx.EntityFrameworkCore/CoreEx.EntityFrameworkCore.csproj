@@ -1,4 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx .NET Entity Framework (EF) Core extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data entity-framework ef efcore</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />

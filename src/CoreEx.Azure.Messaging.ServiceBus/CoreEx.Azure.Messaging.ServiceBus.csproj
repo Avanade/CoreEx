@@ -1,4 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx Azure Service Bus .NET extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data azure servicebus cloud-events</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\CoreEx.Events\CoreEx.Events.csproj" />
   </ItemGroup>

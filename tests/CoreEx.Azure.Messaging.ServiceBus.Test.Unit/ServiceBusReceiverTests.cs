@@ -1,5 +1,4 @@
 ﻿using Azure.Messaging.ServiceBus;
-using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.Events.Publishing;
 using CoreEx.Hosting;
@@ -18,14 +17,20 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     {
         var c = Test.Services.GetRequiredService<ServiceBusClient>();
         await using var receiver = c.CreateReceiver("unit-test", "default");
-        while (true)
-        {
-            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(5));
-            if (messages.Count == 0)
-                break;
 
-            foreach (var m in messages)
-                await receiver.CompleteMessageAsync(m);
+        for (var i = 0; i < 2; i++)
+        {
+            while (true)
+            {
+                var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(5));
+                if (messages.Count == 0)
+                    break;
+
+                foreach (var m in messages)
+                    await receiver.CompleteMessageAsync(m);
+            }
+
+            await Task.Delay(100); // Allow some time for the service bus to reflect the completed messages before trying to receive again.
         }
     }
 
