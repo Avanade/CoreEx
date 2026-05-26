@@ -82,7 +82,7 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
 
 ## External clients and adapter implementations
 
-When a domain needs to call another domain's API over HTTP, the raw HTTP interaction is encapsulated in a **typed HTTP client** (`Clients/`) — a thin wrapper around `HttpClient` that serialises requests and maps responses to CoreEx `Result` types. The adapter implementation (`Adapters/`) then uses this client alongside other infrastructure concerns (local EF store, event publishers) to fulfil the Application-layer adapter interface.
+When a domain needs to call another domain's API over HTTP, the raw HTTP interaction is encapsulated in a **typed HTTP client** (`Clients/`) — a thin wrapper around `HttpClient` that serializes requests and maps responses to CoreEx `Result` types. The adapter implementation (`Adapters/`) then uses this client alongside other infrastructure concerns (local EF store, event publishers) to fulfill the Application-layer adapter interface.
 
 ```csharp
 // samples/src/Contoso.Shopping.Infrastructure/Clients/ProductsHttpClient.cs

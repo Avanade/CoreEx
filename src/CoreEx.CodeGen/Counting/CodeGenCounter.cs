@@ -4,10 +4,13 @@ internal class CodeGenCounter(CodeGeneratorArgs args)
 {
     private static readonly string[] _countExtensions = [".cs", ".json", ".jsn", ".yaml", ".yml", ".xml", ".sql", ".mysql", ".pgsql"];
 
-    public async Task<CodeGenStatistics> CountAsync()
+    public Task<CodeGenStatistics> CountAsync()
     {
-        if (args is null || args.OutputDirectory?.Parent is null || args.Logger is null || !args.Logger.IsEnabled(LogLevel.Information))
+        if (args is null || args.OutputDirectory?.Parent is null || args.Logger is null)
             throw new ArgumentNullException(nameof(args), "Arguments, and its OutputDirectory, and Logger cannot be null.");
+
+        if (!args.Logger.IsEnabled(LogLevel.Information))
+            throw new ArgumentException("Logger must be enabled for Information level.", nameof(args));
 
         args.Logger.LogInformation("{Content}", $"Counting: {args.OutputDirectory.Parent.FullName}");
         args.Logger.LogInformation("{Content}", $"Include: {string.Join(", ", _countExtensions)}");
@@ -24,7 +27,7 @@ internal class CodeGenCounter(CodeGeneratorArgs args)
         args.Logger.LogInformation("{Content}", "Note: Roslyn source generated files are excluded from the counts.");
 
         sw.Stop();
-        return new CodeGenStatistics { ElapsedMilliseconds = sw.ElapsedMilliseconds };
+        return Task.FromResult(new CodeGenStatistics { ElapsedMilliseconds = sw.ElapsedMilliseconds });
     }
 
     /// <summary>

@@ -26,7 +26,7 @@ public partial class {{Name}} : {{Inherits}} {{#ifeq ContractProperties.Count 0}
     [ReferenceData<{{Type}}>]
     public partial string{{#if IsNullable}}?{{/if}} {{Name}} { get; init; }
     {{else}}
-    public {{Type}}{{#if IsNullable}}?{{/if}} {{Name}} { get; init; }
+    public {{Type}}{{#if IsNullable}}?{{/if}} {{Name}} { get; init; }{{#unless IsNullable}} = default!;{{/unless}}
     {{/if}}
   {{/each}}
 }

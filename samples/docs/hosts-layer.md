@@ -24,7 +24,7 @@ The API host exposes the domain's capabilities as HTTP endpoints. Controllers de
 
 ### Controllers
 
-MVC controllers are the chosen style in the samples, but CoreEx supports minimal APIs equally — the developer chooses. Each controller is a thin routing shell: it declares the route, HTTP verb, OpenAPI metadata, and delegates to the `WebApi` helper which handles request deserialisation, response serialisation, status-code mapping, and error translation.
+MVC controllers are the chosen style in the samples, but CoreEx supports minimal APIs equally — the developer chooses. Each controller is a thin routing shell: it declares the route, HTTP verb, OpenAPI metadata, and delegates to the `WebApi` helper which handles request deserialization, response serialization, status-code mapping, and error translation.
 
 ```csharp
 // samples/src/Contoso.Products.Api/Controllers/ProductController.cs
@@ -50,13 +50,13 @@ Where a service uses `Result<T>` pipelines (Shopping), the `WithResult` variants
 
 Responsibilities that are deliberately offloaded to the `WebApi` helper include:
 
-- Deserialising the request body and binding route/query parameters.
+- Deserializing the request body and binding route/query parameters.
 - Mapping CoreEx exception types (`NotFoundException`, `ValidationException`, `BusinessException`, etc.) to the appropriate HTTP problem-detail responses.
 - Enforcing idempotency via the `[IdempotencyKey]` attribute and the `UseIdempotencyKey()` middleware.
 - Generating `Location` headers on POST responses via `WithLocationUri`.
 - Supporting `HTTP PATCH` with `application/merge-patch+json` semantics.
 
-> **Read vs write split**: Products separates read and write operations into distinct controllers (`ProductController` / `ProductReadController`, `MovementController` / `MovementReadController`). This keeps each controller focused and mirrors the CQRS-style split at the service level. There is no framework requirement to do this — it is a developer organisational choice.
+> **Read vs write split**: Products separates read and write operations into distinct controllers (`ProductController` / `ProductReadController`, `MovementController` / `MovementReadController`). This keeps each controller focused and mirrors the CQRS-style split at the service level. There is no framework requirement to do this — it is a developer organizational choice.
 
 > **See also**: [`WebApi`](../../src/CoreEx.AspNetCore/WebApis/WebApi.cs) · [`[IdempotencyKey]`](../../src/CoreEx.AspNetCore/Http/IdempotencyKeyAttribute.cs) · [Minimal APIs](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis)
 
@@ -166,7 +166,7 @@ public class ReservationConfirmSubscriber : SubscribedBase
 }
 ```
 
-Where a subscriber expects a typed payload, `SubscribedBase<TValue>` is used and a `ValueValidator` can be wired in to validate the deserialised value before `OnReceiveAsync` is called:
+Where a subscriber expects a typed payload, `SubscribedBase<TValue>` is used and a `ValueValidator` can be wired in to validate the deserialized value before `OnReceiveAsync` is called:
 
 ```csharp
 // samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductModifySubscriber.cs

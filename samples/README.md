@@ -9,7 +9,7 @@ Each domain is an independently deployable unit with an API host, an Outbox Rela
 > | Guide | Description |
 > |---|---|
 > | [Layers](docs/layers.md) | Business and host layer overview with dependency diagram |
-> | [Patterns](docs/patterns.md) | Catalogue of architectural patterns implemented across the samples |
+> | [Patterns](docs/patterns.md) | Catalog of architectural patterns implemented across the samples |
 > | [Tooling](docs/tooling.md) | Code generation (`*.CodeGen`) and database management (`*.Database`) |
 > | [Testing](docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |
 > | [Aspire & E2E](docs/aspire.md) | Local orchestration and cross-domain end-to-end validation |
@@ -87,7 +87,7 @@ graph TB
 | ② – ④ Product replication | Products → Shopping | Products Outbox → Relay → Service Bus → `Shopping.Subscribe` keeps a local product replica in sync. |
 | ⑤ – ⑦ Reservation commands | Shopping → Products | On checkout success the outbox enqueues `reservation.confirm`; on failure Shopping publishes `reservation.cancel` directly to Service Bus (the transaction has already rolled back). |
 
-See [Patterns](docs/patterns.md) for the full catalogue of architectural patterns demonstrated across the samples.
+See [Patterns](docs/patterns.md) for the full catalog of architectural patterns demonstrated across the samples.
 
 ## Project Layout
 

@@ -22,7 +22,7 @@ var dr = await _repository.CreateAsync(product).ConfigureAwait(false);
 return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
 ```
 
-On the consuming side, the Shopping domain's `ProductModifySubscriber` deserialises the inbound event directly into the same `Product` contract type (re-declared locally in the Application layer as an internal adapter model) and passes it straight through to the adapter:
+On the consuming side, the Shopping domain's `ProductModifySubscriber` deserializes the inbound event directly into the same `Product` contract type (re-declared locally in the Application layer as an internal adapter model) and passes it straight through to the adapter:
 
 ```csharp
 // samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductModifySubscriber.cs
@@ -45,7 +45,7 @@ public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBa
 
 ## Entity contracts
 
-Entity contracts represent the resource types exposed by the API. They are declared as `partial` classes annotated with `[Contract]`, which triggers the CoreEx source generator ([`CoreEx.Generator`](../../gen/CoreEx.Generator)) to emit supporting members (equality, cloning, JSON serialisation helpers, etc.) into a paired `*.g.cs` file, keeping hand-authored code free of boilerplate.
+Entity contracts represent the resource types exposed by the API. They are declared as `partial` classes annotated with `[Contract]`, which triggers the CoreEx source generator ([`CoreEx.Generator`](../../gen/CoreEx.Generator)) to emit supporting members (equality, cloning, JSON serialization helpers, etc.) into a paired `*.g.cs` file, keeping hand-authored code free of boilerplate.
 
 Mutable resources typically compose three cross-cutting interfaces:
 

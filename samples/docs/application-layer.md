@@ -78,7 +78,7 @@ Validators live in `Application/Validators/` and extend CoreEx's `Validator<T>`.
 
 **Declarative** — property rules are composed fluently in the constructor using a rich built-in rule set (`Mandatory()`, `MaximumLength()`, `IsValid()`, `PrecisionScale()`, `GreaterThanOrEqualTo()`, `Dictionary()`, `Entity()`, etc.). These run synchronously and cheaply before any I/O is attempted.
 
-**Programmatic** — `OnValidateAsync` is overridden to add behaviour that cannot be expressed declaratively: repository lookups, cross-property business rules, or dynamically-constructed validators built from retrieved data. The override pattern calls `context.ValidateFurtherAsync(...)` to compose additional property-level rules in the same structured way.
+**Programmatic** — `OnValidateAsync` is overridden to add behavior that cannot be expressed declaratively: repository lookups, cross-property business rules, or dynamically-constructed validators built from retrieved data. The override pattern calls `context.ValidateFurtherAsync(...)` to compose additional property-level rules in the same structured way.
 
 The two phases integrate naturally: `OnValidateAsync` should guard with `if (context.HasErrors) return;` to fail fast and avoid unnecessary I/O when declarative rules have already failed.
 

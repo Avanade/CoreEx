@@ -17,7 +17,7 @@ public abstract partial class ReferenceData<TId, TSelf> : ReferenceDataCore<TId>
     /// <remarks>This does verify whether the reference data is invalid also.</remarks>
     public TSelf ThrowIfInactive()
     {
-        ThrowIfInactive();
+        ThrowIfInvalid();
         if (IsInactive)
             throw new InvalidOperationException("The reference data must not be in an inactive state.");
 

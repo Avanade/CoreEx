@@ -17,7 +17,7 @@ public partial class UnitOfMeasure : ReferenceData<UnitOfMeasure>
     /// <summary>
     /// Gets or initializes the Scale.
     /// </summary>
-    public int Scale { get; init; }
+    public int Scale { get; init; } = default!;
 }
 
 /// <summary>

@@ -10,7 +10,7 @@ The solution is composed of focused, independently consumable packages — `Core
 
 ## Motivation
 
-- **Standardize** the scenarios .NET leaves open — there is no built-in standard for mapping a `NotFoundException` to HTTP 404, expressing a concurrency conflict as a `ProblemDetails` response, or publishing a domain event transactionally alongside a database commit. _CoreEx_ provides consistent, opinionated implementations of these patterns so every service in an organisation behaves the same way.
+- **Standardize** the scenarios .NET leaves open — there is no built-in standard for mapping a `NotFoundException` to HTTP 404, expressing a concurrency conflict as a `ProblemDetails` response, or publishing a domain event transactionally alongside a database commit. _CoreEx_ provides consistent, opinionated implementations of these patterns so every service in an organization behaves the same way.
 - **Simplify** development by eliminating the boilerplate that accumulates around every API endpoint and data operation — execution context scoping, idempotency key handling, paged query translation, outbox relay, ETag management, change-log stamping — freeing teams to focus on business logic rather than infrastructure ceremony.
 - **Enable flexibility** through opt-in modularity and composability — each package is an independent add-on, _CoreEx_ does not mandate an architectural style, and its abstractions (`IMapper`, `IUnitOfWork`, `IHybridCache`, `IEventPublisher`) are designed to be replaced or extended without disrupting the rest of the solution.
 
@@ -50,11 +50,12 @@ Here is a high-level overview of some of the key capabilities provided by _CoreE
 
 The capabilities above come to life in the [Contoso reference samples](./samples/README.md), which implement a fully working multi-domain service topology. The samples are the primary demonstration of _why_ CoreEx exists — they show how the packages compose into a coherent, production-shaped architecture.
 
-The [Pattern Catalogue](./samples/docs/patterns.md) is the best entry point: it indexes every architectural and design pattern demonstrated across the samples, grouped by concern, each linked to the layer documentation that shows it in code.
+The [Pattern Catalog](./samples/docs/patterns.md) is the best entry point: it indexes every architectural and design pattern demonstrated across the samples, grouped by concern, each linked to the layer documentation that shows it in code.
 
 | Group | Patterns demonstrated |
 |---|---|
-| 🌐 **API** | Thin-controller HTTP endpoints, idempotency keys, read/write separation |
+| 🏛️ **Architecture** | Domain microservices, event-driven architecture (async-primary, sync-selective), hexagonal architecture, eventual consistency |
+| 🌐 **API** | Thin-controller HTTP endpoints, idempotency keys |
 | ⚙️ **Application** | CQRS, service orchestration, unit of work, composable validators, reusable policies |
 | 📋 **Contracts** | Technology-agnostic DTOs shared across API and messaging, first-class reference data |
 | 🏛️ **DDD** | Aggregates, entities, value objects with enforced invariants |
@@ -63,7 +64,7 @@ The [Pattern Catalogue](./samples/docs/patterns.md) is the best entry point: it 
 | 🛠️ **Tooling** | Schema-driven code generation, database lifecycle management via migration scripts |
 | 🧪 **Testing** | Intra-domain host tests against real infrastructure, inter-domain mocking, unit tests, local Aspire orchestration for E2E validation |
 
-→ **[View the full pattern catalogue](./samples/docs/patterns.md)**
+→ **[View the full pattern catalog](./samples/docs/patterns.md)**
 
 ## Version 4
 
@@ -106,7 +107,7 @@ The repository includes [Contoso reference samples](./samples/README.md) that im
 | Resource | Description |
 |---|---|
 | [samples/README.md](./samples/README.md) | Runnable topology, prerequisites, infrastructure setup, and getting-started commands |
-| [Pattern Catalogue](./samples/docs/patterns.md) | Every architectural and design pattern demonstrated, grouped by concern with links to layer docs |
+| [Pattern Catalog](./samples/docs/patterns.md) | Every architectural and design pattern demonstrated, grouped by concern with links to layer docs |
 | [Layer Guide](./samples/docs/layers.md) | Business and host layer overview with the full dependency diagram |
 | [Tooling Guide](./samples/docs/tooling.md) | Code generation and database lifecycle tooling |
 | [Testing Guide](./samples/docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |

@@ -40,7 +40,7 @@ entities:
   - name: CategoryCode
     type: ^Category              # ^ prefix = reference-data typed property
 - name: UnitOfMeasure
-  plural: UnitsOfMeasure         # override pluralisation
+  plural: UnitsOfMeasure         # override pluralization
   properties:
   - name: Scale
     type: int

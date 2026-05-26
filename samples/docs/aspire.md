@@ -156,7 +156,7 @@ The Shopping Basket Lifecycle is the richest scenario — it exercises every int
 
 #### Load simulation
 
-Selecting **Run all scenarios as simulation** starts all four scenarios simultaneously in parallel worker pools. Each scenario runs its own workers concurrently with configurable parallelism and randomised per-step delays (to simulate realistic user behaviour rather than a hammer load).
+Selecting **Run all scenarios as simulation** starts all four scenarios simultaneously in parallel worker pools. Each scenario runs its own workers concurrently with configurable parallelism and randomised per-step delays (to simulate realistic user behavior rather than a hammer load).
 
 The live dashboard shows:
 - Per-scenario iteration count, success count, error count, and success rate.
