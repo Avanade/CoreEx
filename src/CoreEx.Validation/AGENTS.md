@@ -62,7 +62,7 @@ Use `When`/`WhenHasValue`/`DependsOn` to guard the declarative rules.
 ```csharp
 Property(p => p.DiscountCode)
     .Mandatory()
-    .When(() => product.HasDiscount);
+    .WhenEntity(product => product.HasDiscount);
 
 Property(p => p.ExpiresOn)
     .CompareValue(CompareOperator.GreaterThan, () => Runtime.UtcNow)

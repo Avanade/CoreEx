@@ -145,28 +145,64 @@ The Subscribe host `Program.cs` follows a predictable CoreEx shape. Key sections
 // 1. Execution context and dynamic service discovery
 builder.Services
     .AddExecutionContext()
-    .AddDynamicServicesUsing<ProductModifySubscriber>();  // discovers all [ScopedService] types in the assembly
+    .AddReferenceDataOrchestrator<ReferenceDataService>()
+    .AddMvcWebApi()
+    .AddHttpWebApi()
+    .AddHostedServiceManager();
 
-// 2. Infrastructure — database, EF, outbox publisher (for transactional writes inside subscribers)
+// Discover all [ScopedService] types in the subscriber, ref-data, and repository assemblies
+builder.Services.AddDynamicServicesUsing<ProductModifySubscriber, ReferenceDataService, ReferenceDataRepository>();
+
+// 2. Caching — L1 memory cache + L2 Redis + FusionCache hybrid + idempotency provider
+builder.Services.AddMemoryCache();
+builder.AddRedisDistributedCache("redis");
+builder.Services.AddFusionCache()
+    .WithRegisteredMemoryCache()
+    .WithRegisteredDistributedCache()
+    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = sp.GetRequiredService<IOptions<ConfigurationOptions>>().Value.ToString() }))
+    .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
+
+builder.Services
+    .AddFusionHybridCache()
+    .AddDefaultCacheKeyProvider()
+    .AddHybridCacheIdempotencyProvider();
+
+// 3. Infrastructure — database, EF, outbox publisher (for transactional writes inside subscribers)
+// SQL Server (Shopping) variant:
+builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
-    .AddSqlServerOutboxPublisher()
+    .AddSqlServerOutboxPublisher()              // <-- outbox publisher becomes the default IEventPublisher
     .AddDbContext<ShoppingDbContext>()
     .AddEfDb<ShoppingEfDb>();
 
-// 3. Azure Service Bus — add the primary publisher and/or a direct publisher if needed
+// PostgreSQL (Products) variant:
+builder.AddAzureNpgsqlDataSource("Postgres");
+builder.Services
+    .AddPostgresDatabase()
+    .AddPostgresUnitOfWork()
+    .AddEventFormatter()                        // <-- required for message formatting for publishing
+    .AddPostgresOutboxPublisher()               // <-- outbox publisher becomes the default IEventPublisher
+    .AddDbContext<ProductsDbContext>()
+    .AddEfDb<ProductsEfDb>();
+
+// 4. Azure Service Bus publisher — direct publish capability (not the default IEventPublisher)
+builder.AddAzureServiceBusClient("ServiceBus");
 builder.Services.AddAzureServiceBusPublisher((_, c) =>
 {
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
-}, addAsDefaultIEventPublisher: false);  // false when outbox publisher is the default IEventPublisher
+}, addAsDefaultIEventPublisher: false);  // false because outbox publisher is already the default
 
-// 4. Event formatter + subscriber manager
+// 5. Event formatter + subscriber manager (Shopping only — Products included AddEventFormatter earlier)
 builder.Services
-    .AddEventFormatter()                                               // required for message parsing
-    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<ProductModifySubscriber>());
+    .AddEventFormatter()                                                               // Adds the EventFormatter to enable message parsing.
+    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<ProductModifySubscriber>()); // Adds the SubscribedManager and dynamically links to the individual Subscribers.
 
-// 5. Azure Service Bus receiver wiring
+// Products variant (AddEventFormatter already called):
+builder.Services.AddSubscribedManager((_, c) => c.AddSubscribersUsing<ReservationConfirmSubscriber>());
+
+// 6. Azure Service Bus receiver wiring
 builder.Services.AzureServiceBusReceiving()
     .WithSessionReceiver(_ =>
     {
@@ -178,14 +214,38 @@ builder.Services.AzureServiceBusReceiving()
     .WithHostedService()           // runs the receiver as a BackgroundService
     .Build();
 
-// 6. Health checks, OpenTelemetry, middleware
+// 7. External API clients (if needed — Shopping only)
+builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
+
+// 8. Health checks, OpenTelemetry
 builder.Services.PostConfigureAllHealthChecks();
-// ...OpenTelemetry...
+builder.Services.AddControllers();
+builder.Services.AddOpenApiDocument(s =>
+{
+    s.Title = builder.Environment.ApplicationName;
+    s.AddCoreExConfiguration();
+});
+
+builder.WithCoreExTelemetry()
+    .WithCoreExServiceBusTelemetry()
+    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() for Products
+    .UseOtlpExporter();
+
+// 9. Build and middleware pipeline
+var app = builder.Build();
 
 app.UseCoreExExceptionHandler();
+app.UseHttpsRedirection();
+app.UseAuthorization();
 app.UseExecutionContext();
+app.MapControllers();
+
+app.UseOpenApi();
+app.UseSwaggerUi();
 app.MapHealthChecks();
 app.MapHostedServices();   // exposes pause/resume management endpoints per partition
+
+app.Run();
 ```
 
 `AddSubscribersUsing<T>()` scans the assembly containing `T` and auto-registers every `[Subscribe]`-decorated class — adding a new subscriber requires only creating the class, no `Program.cs` edits needed.

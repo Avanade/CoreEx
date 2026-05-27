@@ -252,7 +252,6 @@ Always call `.ConfigureAwait(false)` on every `await` inside service and reposit
 
 ## Do Not
 
-- Do not call `_unitOfWork.ExecuteAsync(...)` — the correct method is `_unitOfWork.TransactionAsync(...)`.
 - Do not publish events outside of `_unitOfWork.TransactionAsync(...)` — events must be committed atomically with the database write.
 - Do not call `HttpClient` directly from services — always go through an adapter interface.
 - Do not reference Infrastructure assemblies from the Application layer — all persistence and transport concerns are reached through interfaces.
