@@ -1,7 +1,7 @@
 ---
 applyTo: "**/*Validator*.cs"
-description: "Validator conventions: fluent validation API, rule definition, singleton pattern, and CoreEx validation framework usage"
-tags: ["validators", "validation", "fluent-api", "rules", "error-handling"]
+description: "Validator conventions: Validator<T,TSelf>, AbstractValidator, declarative rules, async OnValidateAsync, nested/dictionary validators, and Result-based invocation"
+tags: ["validators", "validation", "fluent-api", "rules", "error-handling", "application-layer"]
 ---
 
 # Validator Conventions
@@ -10,15 +10,22 @@ tags: ["validators", "validation", "fluent-api", "rules", "error-handling"]
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.Validation` | `Validator<T, TSelf>`, `Validator.Create<T>()`, `.Mandatory()`, `.MaximumLength()`, `.IsValid()`, `.PrecisionScale()`, `.GreaterThanOrEqualTo()`, `.LessThanOrEqualTo()`, `.Equal()`, `.NotFound()`, `.WhenValue()`, `.Error()`, `.DependsOn()`, `.Entity()`, `.Dictionary()`, `ValidationContext<T>`, `.ValidateFurtherAsync()`, `.ValidateAndThrowAsync()`, `.ValidateWithResultAsync()`, `.AssertErrors()` (test helper) |
+| `CoreEx.Validation` | `Validator<T, TSelf>`, `Validator<T>`, `AbstractValidator<T, TSelf>`, `AbstractValidator<T>`, `Validator.Create<T>()`, `.Mandatory()`, `.MaximumLength()`, `.IsValid()`, `.PrecisionScale()`, `.GreaterThanOrEqualTo()`, `.LessThanOrEqualTo()`, `.Equal()`, `.NotFound()`, `.WhenValue()`, `.Error()`, `.DependsOn()`, `.Entity()`, `.Dictionary()`, `.WithKeyValidator()`, `.WithValueValidator()`, `ValidationContext<T>`, `.ValidateFurtherAsync()`, `.ValidateAndThrowAsync()`, `.ValidateWithResultAsync()`, `.AssertErrors()` (test helper) |
+| `CoreEx` | `LText` — localised text label for use in `.WithKeyValidator(label, ...)` and similar |
 | `CoreEx.Localization` | `[Localization(...)]` attribute on contract properties |
+
+## Placement
+
+Validators live in `Application/Validators/`. They belong to the Application layer and may inject Application-layer dependencies (e.g., `IProductRepository`) — they must not reference Infrastructure directly.
 
 ## Base Class
 
-Use `Validator<TEntity, TSelf>` from `CoreEx.Validation`. Expose a static `Default` singleton instance:
+Choose the base class based on whether a `Default` singleton and constructor injection are needed:
+
+**`Validator<TEntity, TSelf>`** — use when no constructor injection is required. The two-type-argument form exposes a static `Default` singleton automatically:
 
 ```csharp
-public class ProductValidator : Validator<Product, ProductValidator>
+public class ProductValidator : Validator<Contracts.Product, ProductValidator>
 {
     public ProductValidator()
     {
@@ -31,18 +38,55 @@ public class ProductValidator : Validator<Product, ProductValidator>
 }
 ```
 
-Do **not** use FluentValidation unless the project already depends on it.
-
-## Static Default Instance
-
-The `Validator<T, TSelf>` base provides a `Default` singleton. Call `ValidateAndThrowAsync` or `ValidateWithResultAsync` without instantiating manually:
+**`Validator<TEntity>`** — use when constructor injection is required (e.g., a repository dependency). There is no `Default` singleton; register the validator in DI and inject it:
 
 ```csharp
-// Exception style (services)
+public class MovementRequestValidator : Validator<Contracts.MovementRequest>
+{
+    private readonly IProductRepository _repository;
+
+    public MovementRequestValidator(IProductRepository repository)
+    {
+        _repository = repository.ThrowIfNull();
+        Property(x => x.Id).Mandatory().MaximumLength(50);
+        // ...
+    }
+}
+```
+
+**`AbstractValidator<TEntity, TSelf>`** — a FluentValidation-style compatibility alias for `Validator<TEntity, TSelf>`. Use when your team prefers the `RuleFor(x => ...)` / `NotEmpty()` / `GreaterThanOrEqualTo()` syntax. Validation and error handling are still performed by CoreEx:
+
+```csharp
+public class ProductValidator : AbstractValidator<Product, ProductValidator>
+{
+    public ProductValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Sku).NotEmpty();
+        RuleFor(x => x.UnitOfMeasure).NotEmpty().IsValid();
+        RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
+    }
+}
+```
+
+Do **not** use the `FluentValidation` NuGet package — `AbstractValidator` here is `CoreEx.Validation.AbstractValidator`, not FluentValidation.
+
+## Invoking Validators
+
+For `Validator<T, TSelf>` (no injection), call via the static `Default` singleton:
+
+```csharp
+// Exception style — throws ValidationException on failure
 await ProductValidator.Default.ValidateAndThrowAsync(product);
 
-// Result style (domain-aggregate services)
+// Result style — returns Result<T> for pipeline composition
 var result = await ProductValidator.Default.ValidateWithResultAsync(product);
+```
+
+For `Validator<T>` (with injection), the instance is resolved from DI and invoked the same way:
+
+```csharp
+await _movementRequestValidator.ValidateAndThrowAsync(request);
 ```
 
 ## Common Rules
@@ -71,17 +115,29 @@ Property(p => p.UnitOfMeasure).Mandatory().IsValid();
 
 ## Nested / Collection Validators
 
-For entities with nested objects, create a separate `Validator.Create<T>()` for the nested type and reference it via `.Entity(validator)` or `.Dictionary(...)`:
+For entities with nested objects, create a separate `Validator.Create<T>()` for the nested type and reference it via `.Entity(validator)` or `.Dictionary(c => c.WithKeyValidator(...).WithValueValidator(...))`.
+
+Use `LText` to provide a localised label for dictionary keys in error messages:
 
 ```csharp
+private static readonly LText _productText = "Product";
+
 private static readonly Validator<MovementRequestProduct> _productValidator = Validator.Create<MovementRequestProduct>()
     .HasProperty(x => x.UnitOfMeasure, c => c.Mandatory().IsValid())
     .HasProperty(x => x.Quantity, c => c.GreaterThanOrEqualTo(0).DependsOn(x => x.UnitOfMeasure));
 
-// In parent validator:
+// In parent validator constructor:
 Property(x => x.Products).Mandatory().Dictionary(c => c
-    .WithKeyValidator("Product", k => k.Mandatory().MaximumLength(50))
+    .WithKeyValidator(_productText, k => k.Mandatory().MaximumLength(50))
     .WithValueValidator(v => v.Mandatory().Entity(_productValidator)));
+```
+
+When the value validator needs to access the dictionary key (e.g., to look up data keyed by that value), use `ctx.GetDictionaryKey<T>()` inside the rule lambda:
+
+```csharp
+var dv = Validator.Create<MovementRequestProduct>()
+    .HasProperty(x => x.UnitOfMeasure, c => c.Equal(
+        ctx => products[ctx.GetDictionaryKey<string>()].UnitOfMeasureCode));
 ```
 
 ## Async Validation (Database Checks)
@@ -122,7 +178,7 @@ public partial string? SubCategoryCode { get; set; }
 
 ## DependsOn for Conditional Precision
 
-Use `.DependsOn(x => x.OtherProp)` to skip a rule when a dependent property is already invalid:
+Use `.DependsOn(x => x.OtherProp)` to skip a rule when a dependent property is already invalid. This prevents misleading cascading errors:
 
 ```csharp
 Property(x => x.Quantity, c => c
@@ -132,3 +188,17 @@ Property(x => x.Quantity, c => c
         ctx => ctx.Entity.UnitOfMeasure!.Scale)
     .DependsOn(x => x.UnitOfMeasure));
 ```
+
+## Do Not
+
+- Do not use the `FluentValidation` NuGet package — `AbstractValidator` here is `CoreEx.Validation.AbstractValidator`, not FluentValidation.
+- Do not perform I/O in `OnValidateAsync` without first checking `context.HasErrors` — always fail fast.
+- Do not reference Infrastructure assemblies from validators — inject Application-layer repository interfaces only.
+- Do not instantiate validators with `new` at the call site when a `Default` singleton is available.
+- Do not add logic that requires async I/O to the constructor — use `OnValidateAsync` for that.
+
+## Further Reading
+
+- [`samples/docs/application-layer.md`](../../../samples/docs/application-layer.md#validators) — full validator walkthrough including declarative and programmatic phases.
+- [`samples/docs/patterns.md`](../../../samples/docs/patterns.md) — Validator pattern entry with cross-links.
+- [`src/CoreEx.Validation/README.md`](../../../src/CoreEx.Validation/README.md) — `Validator<T>`, rule set, `OnValidateAsync`, `ValidateFurtherAsync`, and `AbstractValidator`.

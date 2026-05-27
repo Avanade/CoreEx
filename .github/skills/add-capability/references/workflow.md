@@ -8,7 +8,7 @@ Before making changes, load:
    - `host-setup.instructions.md`
    - `event-subscribers.instructions.md`
    - `application-services.instructions.md`
-   - `database-project.instructions.md`
+   - `tooling.instructions.md`
 
 2. Sample host wiring from:
    - `samples/src/Contoso.Products.Api/Program.cs`

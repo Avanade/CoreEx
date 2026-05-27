@@ -49,3 +49,7 @@ The outbox sub-namespace provides ready-to-use `SqlServerOutboxPublisher`, `SqlS
 
 - [Microsoft.Data.SqlClient](https://github.com/dotnet/SqlClient) - The ADO.NET driver this package uses.
 - [sp_set_session_context](https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-set-session-context-transact-sql) - SQL Server session-context stored procedure used by `SetSqlSessionContextAsync`.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

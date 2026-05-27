@@ -1,6 +1,7 @@
 ﻿namespace Contoso.Products.Contracts;
 
-public class ProductLite : ProductBase
+[Contract]
+public partial class ProductLite : ProductBase
 {
     public decimal QtyOnHand { get; set; }
 }

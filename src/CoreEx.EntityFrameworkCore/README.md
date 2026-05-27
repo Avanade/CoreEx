@@ -51,4 +51,8 @@ The central type is `EfDb<TDbContext>`, which holds the `DbContext`, bridges its
 - **[`CoreEx.Data`](../CoreEx.Data/README.md)** - `IUnitOfWork`, `DataResult`, `QueryArgsConfig`; EF unit-of-work is typically composed using `EfDb` with an outbox publisher.
 - **[`CoreEx.Database`](../CoreEx.Database/README.md)** - `IDatabase` is bridged into `EfDb<TDbContext>` for transaction sharing and raw SQL fallback; `IDatabaseUnitOfWork` can wrap `EfDb`.
 - **[`CoreEx.Mapping`](../CoreEx/Mapping/README.md)** - `IBiDirectionMapper<TValue, TModel>` is the mapper contract used by `EfDbMappedModel`; `Mapper.MapStandardFrom` handles standard entity-contract properties.
-- **[`CoreEx.Invokers`](../CoreEx/Invokers/README.md)** - `EfDbInvoker` extends `InvokerBase<IEfDb>` using the standard OpenTelemetry tracing and logging pipeline.- **[`CoreEx.Invokers`](../CoreEx/Invokers/README.md)** - `EfDbInvoker` extends `InvokerBase<IEfDb>` using the standard OpenTelemetry tracing and logging pipeline.
+- **[`CoreEx.Invokers`](../CoreEx/Invokers/README.md)** - `EfDbInvoker` extends `InvokerBase<IEfDb>` using the standard OpenTelemetry tracing and logging pipeline.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

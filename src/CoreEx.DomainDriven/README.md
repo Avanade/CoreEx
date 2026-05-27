@@ -36,3 +36,7 @@ The package intentionally stays minimal: it does not dictate a persistence strat
 - **[`CoreEx`](../CoreEx/README.md)** - Provides `IIdentifier`, `IChangeLog`, `IETag`, `CompositeKey`, `EventData`, and `Result<T>` consumed by the DDD types.
 - **[`CoreEx.EntityFrameworkCore`](../CoreEx.EntityFrameworkCore/README.md)** - Persists `Entity<TId, TSelf>` and `Aggregate<TId, TSelf>` via `EfDbModel<TModel>`; uses `PersistenceState` to determine insert/update/delete operations.
 - **[`CoreEx.Validation`](../CoreEx.Validation/README.md)** - Validates entity state; `OnCheckCanMutate` can delegate to a CoreEx validator for pre-mutation rule checks.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

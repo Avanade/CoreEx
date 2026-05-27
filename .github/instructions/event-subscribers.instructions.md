@@ -1,7 +1,7 @@
 ---
 applyTo: "**/Subscribe/**/*.cs"
-description: "Event subscriber conventions: SubscribedBase inheritance, Service Bus integration, error handling, and scoped service registration"
-tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration"]
+description: "Event subscriber conventions: SubscribedBase, SubscribedBase<T>, ValueValidator, ErrorHandler, subject naming, and Subscribe host Program.cs composition"
+tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration", "subscribe-host"]
 ---
 
 # Event Subscriber Conventions
@@ -10,33 +10,42 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.Azure.Messaging.ServiceBus` | `SubscribedBase`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `ServiceBusSessionReceiverOptions`, `AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
-| `CoreEx.Events` | `EventData`, `EventData.Key`, `.ToData<T>()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
+| `CoreEx.Events` | `EventData`, `.Key`, `.Required()`, `.ToData<T>()`, `IValidator<T>` |
 | `CoreEx.Results` | `Result`, `Result.Success` |
-| `CoreEx` | `[ScopedService]`, `.ThrowIfNull()`, `.Required()` |
+| `CoreEx` | `[ScopedService]`, `.ThrowIfNull()` |
 
-## Structure
+## Subscriber Structure
 
-- Subscriber classes inherit from `SubscribedBase`.
-- Decorate with `[ScopedService]` and `[Subscribe("subject.pattern")]`.
-- Inject service dependencies via constructor and guard with `.ThrowIfNull()`.
-- Override `OnReceiveAsync` — return `Result.Success` on completion.
+Each subscriber is a small, focused class that:
+
+1. Opts in to one or more message subjects via `[Subscribe("subject")]` attributes.
+2. Extends `SubscribedBase` (untyped) or `SubscribedBase<TValue>` (typed payload with optional validation).
+3. Delegates immediately to an Application-layer service or adapter — no business logic in the subscriber.
+4. Returns `Result` or `Result<T>` so that error handling and dead-lettering decisions can be expressed declaratively.
+
+All subscribers are decorated with `[ScopedService]` for automatic DI discovery. Dependencies are injected via primary constructor and guarded with `.ThrowIfNull()`.
+
+### Untyped subscriber — `SubscribedBase`
+
+Use when the relevant data is carried in the message key, not the payload:
 
 ```csharp
 [ScopedService, Subscribe("contoso.products.reservation.confirm")]
-public class ReservationConfirmSubscriber : SubscribedBase
+public class ReservationConfirmSubscriber(IMovementService service) : SubscribedBase
 {
-    private readonly IMovementService _service;
+    private readonly IMovementService _service = service.ThrowIfNull();
 
-    public ReservationConfirmSubscriber(IMovementService service)
-    {
-        _service = service.ThrowIfNull();
-    }
+    internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
+        .Add<NotFoundException>(ex => ex.ErrorCode == "pending-reservation-not-found"
+            ? ErrorHandling.CompleteAsInformation
+            : null);
+
+    public ReservationConfirmSubscriber(IMovementService service) : this(service)
+        => ErrorHandler = DefaultErrorHandler;
 
     protected async override Task<Result> OnReceiveAsync(
-        EventData @event,
-        EventSubscriberArgs args,
-        CancellationToken cancellationToken = default)
+        EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
     {
         var referenceId = @event.Key.Required();
         await _service.ConfirmReservationAsync(referenceId).ConfigureAwait(false);
@@ -45,64 +54,116 @@ public class ReservationConfirmSubscriber : SubscribedBase
 }
 ```
 
+### Typed subscriber — `SubscribedBase<TValue>`
+
+Use when the message carries a typed payload that should be deserialized and optionally validated before `OnReceiveAsync` is called. Wire a `ValueValidator` to validate the deserialized value:
+
+```csharp
+[ScopedService]
+[Subscribe("contoso.products.product.created.v1")]
+[Subscribe("contoso.products.product.updated.v1")]
+public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBase<Product>
+{
+    private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();
+
+    public override IValidator<Product>? ValueValidator => ProductValidator.Default;
+
+    protected override Task<Result> OnReceiveAsync(
+        Product value, EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
+        => _adapter.ModifyAsync(value);
+}
+```
+
+Multiple `[Subscribe]` attributes on a single class handle multiple subjects with the same logic — no duplication required.
+
+### Key-only untyped subscriber
+
+When only the key is needed (no payload), use `SubscribedBase` and extract the key directly:
+
+```csharp
+[ScopedService, Subscribe("contoso.products.product.deleted.v1")]
+public class ProductDeleteSubscriber(IProductSyncAdapter adapter) : SubscribedBase
+{
+    private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();
+
+    protected override Task<Result> OnReceiveAsync(
+        EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
+        => _adapter.DeleteAsync(@event.Key.Required());
+}
+```
+
 ## Subject Naming
 
-Use dot-separated lowercase subject strings in the format:
+Use dot-separated lowercase subject strings:
 
 ```
-{solution}.{domain}.{entity}.{action}
+{solution}.{domain}.{entity}.{action}[.v{n}]
 ```
+
+- **Domain events** (published from the outbox) include a version suffix: `contoso.products.product.created.v1`
+- **Command messages** (point-to-point, no versioning semantics): `contoso.products.reservation.confirm`
 
 Examples:
 - `contoso.products.product.created.v1`
 - `contoso.products.product.updated.v1`
+- `contoso.products.product.deleted.v1`
 - `contoso.products.reservation.confirm`
 - `contoso.products.reservation.cancel`
-- `contoso.shopping.basket.checkedout.v1`
-
-Versioned event subjects (published from the domain outbox) include `.v1`. Command subjects (point-to-point) do not include a version suffix.
 
 ## Error Handling
 
-Define a static `ErrorHandler` when certain known exceptions should be swallowed or handled differently. Assign it to `this.ErrorHandler` in the constructor:
+Define a static `ErrorHandler` to control how specific exceptions are treated — for example, converting a known `NotFoundException` to an informational completion rather than dead-lettering:
 
 ```csharp
 internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
-    .Add<NotFoundException>(ex =>
-        ex.ErrorCode == "pending-reservation-not-found"
-            ? ErrorHandling.CompleteAsInformation
-            : null);
-
-public ReservationConfirmSubscriber(IMovementService service)
-{
-    _service = service.ThrowIfNull();
-    ErrorHandler = DefaultErrorHandler;
-}
+    .Add<NotFoundException>(ex => ex.ErrorCode == "pending-reservation-not-found"
+        ? ErrorHandling.CompleteAsInformation   // consume silently; log as informational
+        : null);                                // null = fall through to default handling (retry / dead-letter)
 ```
 
-- `ErrorHandling.CompleteAsInformation` — consume the message without error; log as informational.
-- `null` return — fall through to default error handling (retry / dead-letter).
+Assign it in the constructor: `ErrorHandler = DefaultErrorHandler;`
 
-Share the same `ErrorHandler` instance across related subscribers (e.g., both Confirm and Cancel use the same handler).
+Share the same `ErrorHandler` instance across related subscribers (e.g., both Confirm and Cancel subscribers can reference the same static instance).
 
 ## Accessing Event Data
 
-Extract the key and optional data from `EventData`:
-
 ```csharp
-var referenceId = @event.Key.Required();      // Message key (partition/session key)
-var data = @event.ToData<MyEventPayload>();   // Deserialize typed payload
+var key   = @event.Key.Required();          // Key from the message — throws if missing
+var value = @event.ToData<MyPayload>();     // Deserialize typed payload from untyped subscriber
 ```
 
-Use `.Required()` on the key to throw a descriptive error if it is missing rather than a null reference exception.
+In typed subscribers (`SubscribedBase<TValue>`), the deserialized value is passed directly as the first parameter to `OnReceiveAsync` — no manual deserialization needed.
 
-## Service Bus Registration
+## Program.cs Composition
 
-In `Program.cs`, register subscribers using `AddSubscribersUsing<T>()` to discover all subscriber classes in the same assembly:
+The Subscribe host `Program.cs` follows a predictable CoreEx shape. Key sections in order:
 
 ```csharp
-builder.Services.AddSubscribedManager((_, c) => c.AddSubscribersUsing<ReservationConfirmSubscriber>());
+// 1. Execution context and dynamic service discovery
+builder.Services
+    .AddExecutionContext()
+    .AddDynamicServicesUsing<ProductModifySubscriber>();  // discovers all [ScopedService] types in the assembly
 
+// 2. Infrastructure — database, EF, outbox publisher (for transactional writes inside subscribers)
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxPublisher()
+    .AddDbContext<ShoppingDbContext>()
+    .AddEfDb<ShoppingEfDb>();
+
+// 3. Azure Service Bus — add the primary publisher and/or a direct publisher if needed
+builder.Services.AddAzureServiceBusPublisher((_, c) =>
+{
+    c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+}, addAsDefaultIEventPublisher: false);  // false when outbox publisher is the default IEventPublisher
+
+// 4. Event formatter + subscriber manager
+builder.Services
+    .AddEventFormatter()                                               // required for message parsing
+    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<ProductModifySubscriber>());
+
+// 5. Azure Service Bus receiver wiring
 builder.Services.AzureServiceBusReceiving()
     .WithSessionReceiver(_ =>
     {
@@ -110,13 +171,34 @@ builder.Services.AzureServiceBusReceiving()
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
     })
-    .WithSubscribedSubscriber()
-    .WithHostedService()
+    .WithSubscribedSubscriber()    // routes received messages through the SubscribedManager
+    .WithHostedService()           // runs the receiver as a BackgroundService
     .Build();
+
+// 6. Health checks, OpenTelemetry, middleware
+builder.Services.PostConfigureAllHealthChecks();
+// ...OpenTelemetry...
+
+app.UseCoreExExceptionHandler();
+app.UseExecutionContext();
+app.MapHealthChecks();
+app.MapHostedServices();   // exposes pause/resume management endpoints per partition
 ```
 
-## Integration-Events Only
+`AddSubscribersUsing<T>()` scans the assembly containing `T` and auto-registers every `[Subscribe]`-decorated class — adding a new subscriber requires only creating the class, no `Program.cs` edits needed.
 
-- Subscribers react to integration events published over the broker. 
-- Do not use MediatR or in-process domain event dispatchers.
-- Keep subscriber logic thin — delegate to the Application service layer; do not embed business logic directly in the subscriber.
+`MapHostedServices()` exposes runtime management endpoints to **pause and resume** the receiver per partition without restarting the process.
+
+## Do Not
+
+- Do not embed business logic in subscriber classes — delegate immediately to an Application-layer service or adapter.
+- Do not use MediatR or in-process event dispatchers — subscribers react to integration events from the broker only.
+- Do not manually register subscriber classes in DI — `AddSubscribersUsing<T>()` discovers them automatically via `[ScopedService]`.
+- Do not omit `AddEventFormatter()` from `Program.cs` — it is required for message parsing and deserialization.
+- Do not set `addAsDefaultIEventPublisher: true` for the Service Bus publisher when the outbox publisher is the intended default `IEventPublisher`.
+
+## Further Reading
+
+- [`samples/docs/hosts-layer.md`](../../../samples/docs/hosts-layer.md#subscribe-host) — Subscribe host architecture, Program.cs shape, and subscriber patterns.
+- [`samples/docs/patterns.md`](../../../samples/docs/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries.
+- [`src/CoreEx.Azure.Messaging.ServiceBus/README.md`](../../../src/CoreEx.Azure.Messaging.ServiceBus/README.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration.

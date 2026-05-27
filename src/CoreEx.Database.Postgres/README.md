@@ -48,3 +48,7 @@ The outbox sub-namespace provides ready-to-use `PostgresOutboxPublisher`, `Postg
 
 - [Npgsql](https://www.npgsql.org/) - The PostgreSQL ADO.NET driver this package uses.
 - [PostgreSQL Error Codes](https://www.postgresql.org/docs/current/errcodes-appendix.html) - Reference for `SqlState` values including the CoreEx convention codes.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

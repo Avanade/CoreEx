@@ -46,5 +46,5 @@ For detailed step-by-step workflow, see [`references/workflow.md`](references/wo
 - [Host Setup Conventions](/.github/instructions/host-setup.instructions.md)
 - [Event Subscriber Conventions](/.github/instructions/event-subscribers.instructions.md)
 - [Application Service Conventions](/.github/instructions/application-services.instructions.md)
-- [Database Project Conventions](/.github/instructions/database-project.instructions.md)
+- [Developer Tooling Conventions](/.github/instructions/tooling.instructions.md)
 - Sample hosts: `samples/src/Contoso.Products.Api/Program.cs`, `samples/src/Contoso.Products.Subscribe/Program.cs`, `samples/src/Contoso.Products.Outbox.Relay/Program.cs`

@@ -41,3 +41,7 @@
 - **[`CoreEx.Database.Outbox`](../CoreEx.Database/Outbox/README.md)** - Outbox-pattern publisher that wraps `IEventPublisher`; persists events transactionally and relays them via a background relay host.
 - **[`CoreEx.DomainDriven`](../CoreEx.DomainDriven/README.md)** - `Aggregate<TId, TSelf>` accumulates `EventData` internally; the application layer forwards those to the publishing queue within the same unit-of-work.
 - **[`CoreEx.Invokers`](../CoreEx/Invokers/README.md)** - `EventPublisherInvoker` and `SubscribedInvoker` provide OpenTelemetry activity wrapping for publish and receive operations.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

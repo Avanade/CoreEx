@@ -98,3 +98,7 @@ Rules apply the actual validation logic to a property value. Each rule class is 
 - **[`CoreEx`](../CoreEx/README.md)** - Defines `ValidationException`, `MessageItem`, `IValidationResult`, `LText`, `ExecutionContext`, and `Wildcard` consumed throughout.
 - **[`CoreEx.RefData`](../CoreEx.RefData/README.md)** - Provides `IReferenceData` and `IReferenceDataCodeCollection` validated by `ReferenceDataRule`, `ReferenceDataCodeRule`, and `ReferenceDataCodeCollectionRule`.
 - **[`CoreEx.AspNetCore`](../CoreEx.AspNetCore/README.md)** - Converts `ValidationException` raised by `ValidateAndThrowAsync` into HTTP 400 responses with a structured error body.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

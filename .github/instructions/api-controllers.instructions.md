@@ -10,15 +10,14 @@ tags: ["controllers", "api", "routing", "cqrs", "dependency-injection"]
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.AspNetCore` | `WebApi`, `[IdempotencyKey]`, `[Accepts<T>]`, `[ProducesNotFoundProblem]`, `[Query]`, `[Paging]`, `HttpNames`, `app.UseCoreExExceptionHandler()`, `app.UseExecutionContext()`, `app.UseIdempotencyKey()`, `app.MapHealthChecks()` |
-| `CoreEx.AspNetCore.NSwag` | `[OpenApiTag]`, `app.UseOpenApi()`, `app.UseSwaggerUi()`, `s.AddCoreExConfiguration()` |
-| `CoreEx` | `WebApplicationBuilderExtensions.AddHostSettings()`, `AddExecutionContext()` |
+| `CoreEx.AspNetCore` | `WebApi`, `[IdempotencyKey]`, `[Accepts<T>]`, `[ProducesNotFoundProblem]`, `[Query]`, `[Paging]`, `HttpNames`, `.Required()`, `.Adjust(...)` |
+| `CoreEx.AspNetCore.NSwag` | `[OpenApiTag]` |
 
 ## Structure
 
 - Inherit from `ControllerBase`. Never inherit from `Controller` (that brings View support).
 - Decorate with `[ApiController]` and `[Route("...")]` on the class.
-- Add `[OpenApiTag("TagName")]` to group endpoints in the generated OpenAPI document.
+- Add `[OpenApiTag("TagName")]` to group endpoints in the generated OpenAPI document. Can also be placed on an individual action method to cross-tag it into a different OpenAPI group.
 - Inject `WebApi` and the relevant service interface via primary constructor. Guard with `.ThrowIfNull()`.
 - Split read operations and write operations into separate controller classes (`ProductController` for mutations, `ProductReadController` for queries) following CQRS conventions.
 
@@ -35,13 +34,28 @@ public class ProductController(WebApi webApi, IProductService service) : Control
 
 All action methods return `Task<IActionResult>` using the `WebApi` helper. Do not return typed `ActionResult<T>` directly.
 
+### Standard (exception-based services — Products style)
+
 | HTTP Verb | WebApi helper | Notes |
 |---|---|---|
 | `GET` / `HEAD` | `_webApi.GetAsync(...)` | Use both attributes together |
-| `POST` | `_webApi.PostAsync<TIn, TOut>(...)` or `PostWithResultAsync` | Add `[IdempotencyKey]` for safe POST |
+| `POST` | `_webApi.PostAsync<TIn, TOut>(...)` | Add `[IdempotencyKey]` for safe POST |
 | `PUT` | `_webApi.PutAsync<TIn, TOut>(...)` | Include ETag via `IF-MATCH` header |
 | `PATCH` | `_webApi.PatchAsync<T>(...)` | Requires `get:` and `put:` lambdas |
 | `DELETE` | `_webApi.DeleteAsync(...)` | Returns 204 No Content |
+
+### Result-based (`Result<T>` pipeline services — Shopping style)
+
+When the service returns `Result<T>`, use the `WithResult` variants. The controller code is equally thin.
+
+| HTTP Verb | WebApi helper | Notes |
+|---|---|---|
+| `GET` | `_webApi.GetWithResultAsync(...)` | |
+| `POST` (single out) | `_webApi.PostWithResultAsync<TOut>(...)` | |
+| `POST` (in + out) | `_webApi.PostWithResultAsync<TIn, TOut>(...)` | Use when body maps to a different output type |
+| `PUT` (single out) | `_webApi.PutWithResultAsync<TOut>(...)` | |
+| `PUT` (in + out) | `_webApi.PutWithResultAsync<TIn, TOut>(...)` | |
+| `DELETE` (typed) | `_webApi.DeleteWithResultAsync<T>(...)` | Use when delete returns the deleted resource |
 
 ## Route Parameters
 
@@ -106,17 +120,52 @@ public Task<IActionResult> GetCategoriesAsync([FromQuery] IEnumerable<string>? c
 
 Decorate actions with standard response metadata attributes:
 
-- `[ProducesResponseType<T>(StatusCodes.Status201Created)]`
-- `[ProducesNotFoundProblem()]` on GET/PUT/PATCH/DELETE where not-found is expected.
-- `[Accepts<T>]` to document the consumed media type.
+- `[ProducesResponseType<T>(statusCode)]` — preferred generic form for new code.
+- `[ProducesResponseType(typeof(T), statusCode)]` — equivalent non-generic form; either is acceptable.
+- `[ProducesNotFoundProblem()]` — shorthand for `[ProducesResponseType(typeof(ProblemDetails), 404)]`; use on GET/PUT/PATCH/DELETE where not-found is expected.
+- `[Accepts<T>]` — documents the consumed media type.
+
+## Query Schema Endpoint
+
+Read controllers that expose a `QueryAsync` should also expose a `$query` schema endpoint. This returns the JSON schema for the supported query/filter parameters:
+
+```csharp
+[HttpGet("$query")]
+[ProducesResponseType(typeof(JsonElement), 200)]
+public Task<IActionResult> QuerySchemaAsync() =>
+    _webApi.GetAsync(Request, (ro, _) => _service.QuerySchemaAsync());
+```
 
 ## Result-Based Services
 
-When the service returns `Result<T>` (Shopping-style domain services), use the `PostWithResultAsync` / `GetWithResultAsync` variants:
+When the service returns `Result<T>` (Shopping-style domain services), use the `WithResult` variants. See the Method Signatures table above for the full variant list.
 
 ```csharp
 [HttpPost("{basketId}/checkout")]
+[ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
 public Task<IActionResult> CheckoutAsync(string basketId) =>
     _webApi.PostWithResultAsync<Basket>(Request, (_, _) =>
         _service.CheckoutAsync(basketId.Required()), HttpStatusCode.OK);
+
+[HttpPost("{basketId}/items")]
+[IdempotencyKey]
+[Accepts<BasketItemAddRequest>]
+[ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
+public Task<IActionResult> ItemAddAsync(string basketId) =>
+    _webApi.PostWithResultAsync<BasketItemAddRequest, Basket>(Request, (ro, _) =>
+        _service.ItemAddAsync(basketId.Required(), ro.Value), HttpStatusCode.OK);
 ```
+
+## Do Not
+
+- Do not inherit from `Controller` — that pulls in View support; use `ControllerBase`.
+- Do not return `ActionResult<T>` directly — use the `WebApi` helper for consistent error translation and status-code mapping.
+- Do not inject `IUnitOfWork` into controllers — it belongs in the application service.
+- Do not put business logic in controllers — delegate immediately to the application service.
+- Do not call `HttpClient` or adapters directly from controllers — go through the application service.
+
+## Further Reading
+
+- [`samples/docs/hosts-layer.md`](../../samples/docs/hosts-layer.md) — API host composition, controller patterns, and `Program.cs` shape.
+- [`src/CoreEx.AspNetCore/README.md`](../../src/CoreEx.AspNetCore/README.md) — `WebApi` helper API reference.

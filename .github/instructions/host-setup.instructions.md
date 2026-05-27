@@ -6,7 +6,13 @@ tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "cac
 
 # Host Setup Conventions (Program.cs)
 
-## NuGet / Project References by Host Type
+The host is a **composition root only** — no business logic. There are three host types in a CoreEx solution. Each follows the same opening skeleton, then diverges based on its responsibilities.
+
+> **Further Reading**: [`samples/docs/hosts-layer.md`](../../samples/docs/hosts-layer.md) · [`samples/docs/layers.md`](../../samples/docs/layers.md) · [`samples/docs/patterns.md`](../../samples/docs/patterns.md)
+
+---
+
+## Key Registrations by Host Type
 
 ### API Host
 
@@ -15,56 +21,157 @@ tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "cac
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `UseIdempotencyKey()`, `MapHealthChecks()` |
 | `CoreEx.AspNetCore.NSwag` | `AddOpenApiDocument()`, `AddCoreExConfiguration()`, `UseOpenApi()`, `UseSwaggerUi()` |
 | `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
-| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher<T>()`, `AddSqlServerClient("SqlServer")` |
+| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()`, `AddSqlServerClient("SqlServer")` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()`, `AddAzureNpgsqlDataSource("Postgres")` |
 | `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` |
 | `CoreEx.Events` | `AddEventFormatter()` |
 | `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
 | `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
 | `FusionCache.Backplane.StackExchangeRedis` | `RedisBackplane`, `RedisBackplaneOptions` |
-| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()`, `UseOtlpExporter()` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `UseOtlpExporter()` |
 
 ### Subscribe Host
 
-All of the above **plus**:
-
 | Package | Key registrations |
 |---|---|
-| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddSubscribedManager()`, `AzureServiceBusReceiving()`, `AddHostedServiceManager()`, `MapHostedServices()`, `WithCoreExServiceBusTelemetry()` |
+| `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
+| `CoreEx.Events` | `AddEventFormatter()` |
+| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()`, `AddSqlServerClient("SqlServer")` |
+| `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)`, `AddSubscribedManager()`, `AzureServiceBusReceiving()`, `WithCoreExServiceBusTelemetry()` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExServiceBusTelemetry()`, `WithCoreExSqlServerTelemetry()`, `UseOtlpExporter()` |
 
 ### Outbox Relay Host
 
 | Package | Key registrations |
 |---|---|
-| `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `UseCoreExExceptionHandler()` |
+| `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
 | `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxRelay()`, `AddSqlServerOutboxRelayHostedService()` |
-| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient()`, `AddAzureServiceBusPublisher()`, `ServiceBusSessionStrategy` |
-| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()`, `WithCoreExServiceBusTelemetry()`, `UseOtlpExporter()` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxRelay()`, `AddPostgresOutboxRelayHostedService()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(...)`, `ServiceBusSessionStrategy` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `WithCoreExServiceBusTelemetry()`, `UseOtlpExporter()` |
 
 ---
 
-There are three host types in a CoreEx solution. Each follows the same skeleton but adds type-specific registrations.
+## API Host
 
----
-
-## Shared Skeleton (All Host Types)
+The API host is the primary HTTP composition root. It exposes controllers, OpenAPI docs, reference-data endpoints, and idempotency support.
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
-
 builder.AddHostSettings();
+
 builder.Services
+    .AddPrecisionTimeProvider()
     .AddExecutionContext()
+    .AddReferenceDataOrchestrator<ReferenceDataService>()
     .AddMvcWebApi()
     .AddHttpWebApi();
 
-// ... type-specific registrations follow ...
+builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
+
+// L1/L2 caching with FusionCache + Redis backplane.
+builder.Services.AddMemoryCache();
+builder.AddRedisDistributedCache("redis");
+builder.Services.AddFusionCache()
+    .WithRegisteredMemoryCache()
+    .WithRegisteredDistributedCache()
+    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = ... }))
+    .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
+builder.Services
+    .AddFusionHybridCache()
+    .AddDefaultCacheKeyProvider()
+    .AddHybridCacheIdempotencyProvider();
+
+// Database, EF, outbox publisher (SQL Server example; use Postgres equivalents for Products).
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddEventFormatter()
+    .AddSqlServerOutboxPublisher()
+    .AddDbContext<ShoppingDbContext>()
+    .AddEfDb<ShoppingEfDb>();
 
 builder.Services.PostConfigureAllHealthChecks();
 builder.Services.AddControllers();
-builder.Services.AddOpenApiDocument(s => {
-    s.Title = builder.Environment.ApplicationName;
-    s.AddCoreExConfiguration();
-});
+builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.ApplicationName; s.AddCoreExConfiguration(); });
+
+builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();
+
+var app = builder.Build();
+app.UseCoreExExceptionHandler();
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.UseExecutionContext();
+app.UseIdempotencyKey();       // After UseExecutionContext.
+app.MapControllers();
+app.UseOpenApi();
+app.UseSwaggerUi();
+app.MapHealthChecks();
+app.Run();
+```
+
+Key points:
+- `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` are exclusive to the API host.
+- FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are exclusive to the API host.
+- `AddEventFormatter()` is required wherever events are published or parsed.
+- `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` (no generic type parameter).
+- Products uses `AddPostgresDatabase()` / `AddPostgresUnitOfWork()` / `AddPostgresOutboxPublisher()` / `WithCoreExPostgresTelemetry()` instead of the SQL Server variants.
+- `UseIdempotencyKey()` must come **after** `UseExecutionContext()`.
+- If the domain also publishes directly to Service Bus (e.g. for cross-domain adapters), add `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` so the outbox publisher remains the default `IEventPublisher`.
+
+---
+
+## Subscribe Host
+
+The Subscribe host receives broker messages and delegates to Application-layer services. It does **not** have reference data, FusionCache, or idempotency — but it does have a database/outbox for its own domain writes, plus Service Bus wiring.
+
+```csharp
+builder.Services
+    .AddPrecisionTimeProvider()
+    .AddExecutionContext()
+    .AddMvcWebApi()
+    .AddHttpWebApi()
+    .AddHostedServiceManager();
+
+// Domain database + outbox publisher (for writes triggered by inbound events).
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxPublisher()
+    .AddDbContext<ShoppingDbContext>()
+    .AddEfDb<ShoppingEfDb>();
+
+// Service Bus: outbox relay is the default publisher; Service Bus is NOT the default IEventPublisher.
+builder.AddAzureServiceBusClient("ServiceBus");
+builder.Services.AddAzureServiceBusPublisher((_, c) =>
+{
+    c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+}, addAsDefaultIEventPublisher: false);
+
+// Subscriber wiring.
+builder.Services
+    .AddEventFormatter()
+    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
+
+builder.Services.AzureServiceBusReceiving()
+    .WithSessionReceiver(_ =>
+    {
+        var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
+        o.SessionProcessorOptions.MaxConcurrentSessions = 4;
+        return o;
+    })
+    .WithSubscribedSubscriber()
+    .WithHostedService()
+    .Build();
+
+builder.Services.PostConfigureAllHealthChecks();
+builder.Services.AddControllers();
+builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.ApplicationName; s.AddCoreExConfiguration(); });
+
+builder.WithCoreExTelemetry().WithCoreExServiceBusTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();
 
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
@@ -75,49 +182,64 @@ app.MapControllers();
 app.UseOpenApi();
 app.UseSwaggerUi();
 app.MapHealthChecks();
+app.MapHostedServices();   // Exposes pause/resume management endpoints — must follow MapHealthChecks.
 app.Run();
 ```
 
----
-
-## API Host
-
-Add: reference data, SQL Server, FusionCache, outbox publisher, idempotency.
-
-Key registrations:
-- `.AddReferenceDataOrchestrator<T>()`
-- `.AddDynamicServicesUsing<...>()`
-- `.AddFusionCache()` + `.WithRegisteredDistributedCache()` + `.WithBackplane(...)`
-- `.AddSqlServerDatabase()` + `.AddSqlServerUnitOfWork()` + `.AddSqlServerOutboxPublisher<T>()`
-- `.AddEventFormatter()`
-- Middleware: `.UseIdempotencyKey()` after `.UseExecutionContext()`
-
----
-
-## Subscribe Host
-
-All of API host **plus**:
-
-Key registrations:
-- `.AddHostedServiceManager()`
-- `.AddSubscribedManager((_, c) => c.AddSubscribersUsing<T>())`
-- `.AzureServiceBusReceiving()` → `.WithSessionReceiver(...)` → `.WithSubscribedSubscriber()` → `.WithHostedService()` → `.Build()`
-
-Middleware addition:
-- `app.MapHostedServices()` (after `.MapHealthChecks()`)
+Key points:
+- `AddHostedServiceManager()` must be registered before `AzureServiceBusReceiving()`.
+- `AddSubscribersUsing<T>()` scans the assembly of `T` and auto-registers all `[Subscribe]`-decorated classes — no manual registration per subscriber.
+- `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` keeps the outbox publisher as the default `IEventPublisher` for transactional writes.
+- `AddEventFormatter()` is required for message parsing and formatting.
+- `MapHostedServices()` must come **after** `MapHealthChecks()`.
+- No `AddReferenceDataOrchestrator`, no FusionCache, no `UseIdempotencyKey` in a Subscribe host.
 
 ---
 
 ## Outbox Relay Host
 
-Minimal: SQL Server, Service Bus publisher, relay background service only.
+The Outbox Relay host is minimal: it polls the outbox table and forwards committed events to Azure Service Bus. No controllers, no OpenAPI, no FusionCache.
 
-Key registrations:
-- `.AddHostedServiceManager()`
-- `.AddSqlServerOutboxRelay((_, c) => { ... })`
-- `.AddSqlServerOutboxRelayHostedService()`
-- `.AddAzureServiceBusPublisher((_, c) => { c.SessionIdStrategy = ...; })`
+```csharp
+builder.Services
+    .AddPrecisionTimeProvider()
+    .AddExecutionContext()
+    .AddMvcWebApi()
+    .AddHttpWebApi()
+    .AddHostedServiceManager();
 
-No: reference data, FusionCache, idempotency, controllers, Swagger.
+// Database + outbox relay (SQL Server example; use Postgres equivalents for Products).
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxRelay();   // No configuration lambda required.
 
-Middleware: minimal (no `.MapControllers()`, no `.UseOpenApi()`).
+builder.AddSqlServerOutboxRelayHostedService();
+
+// Service Bus publisher — this IS the default IEventPublisher for the relay.
+builder.AddAzureServiceBusClient("ServiceBus");
+builder.Services.AddAzureServiceBusPublisher((_, c) =>
+{
+    c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+});
+
+builder.Services.PostConfigureAllHealthChecks();
+
+builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().WithCoreExServiceBusTelemetry().UseOtlpExporter();
+
+var app = builder.Build();
+app.UseCoreExExceptionHandler();
+app.UseHttpsRedirection();
+app.UseExecutionContext();
+app.MapHealthChecks();
+app.MapHostedServices();
+app.Run();
+```
+
+Key points:
+- `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
+- `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` registers the background relay pump — call these on `builder`, not `builder.Services`.
+- No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`.
+- `UseAuthorization()` is also omitted in the Relay host.
+- Products uses `AddAzureNpgsqlDataSource("Postgres")` + `AddPostgresDatabase()` / `AddPostgresUnitOfWork()` / `AddPostgresOutboxRelay()` / `AddPostgresOutboxRelayHostedService()` / `WithCoreExPostgresTelemetry()` instead of the SQL Server variants.
