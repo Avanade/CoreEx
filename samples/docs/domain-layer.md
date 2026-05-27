@@ -62,3 +62,27 @@ public sealed record class ItemPricing
 Value objects enforce their own invariants in property initialisers using CoreEx guard extensions (`ThrowIfInactive`, `ThrowIfLessThanZero`) so that invalid instances simply cannot exist.
 
 > **See also**: [Value Object pattern](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects)
+
+---
+
+## Domain Events — Intentionally Not Supported
+
+CoreEx deliberately does not provide a native domain-event mechanism (e.g. MediatR `INotification` dispatch or an in-process event bus). This is a conscious architectural decision:
+
+- **Chatty emission** — fine-grained domain events (`PropertyChanged`, `ItemAdded`, etc.) generate high volumes of events that produce implicit, hard-to-trace side-effects throughout the application layer.
+- **Non-explicit side-effects** — handler chains driven by in-process events obscure control flow, making it difficult to reason about what a single aggregate mutation causes.
+- **Integration events are sufficient** — coarse-grained integration events are added to `IUnitOfWork.Events` by the application service after a successful repository operation, committed atomically via the transactional outbox, and consumed by other systems explicitly and auditably.
+
+```csharp
+// Events are added by the application SERVICE after the repository operation — not by the aggregate itself
+return ur.ThenAs(basket =>
+{
+    var contract = BasketMapper.Map(basket);
+    _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.CheckedOut));
+    return contract;
+});
+```
+
+A developer can opt in to a domain-event mechanism if genuinely needed — for example, dispatching via MediatR after the transaction commits — but this is an explicit extension, not a framework default.
+
+> **See also**: [`IAggregateRoot`](../../src/CoreEx.DomainDriven/IAggregateRoot.cs) · [`CoreEx.DomainDriven` README](../../src/CoreEx.DomainDriven/README.md#domain-events--intentionally-not-supported)

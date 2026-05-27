@@ -57,7 +57,7 @@ Property(p => p.Address).Entity(AddressValidator.Default);  // child entity
 
 ## Conditional Rules
 
-Use `When`/`WhenHasValue`/`DependsOn` to guard rules — never write branching `if` statements in a validator.
+Use `When`/`WhenHasValue`/`DependsOn` to guard the declarative rules.
 
 ```csharp
 Property(p => p.DiscountCode)
@@ -65,7 +65,7 @@ Property(p => p.DiscountCode)
     .When(() => product.HasDiscount);
 
 Property(p => p.ExpiresOn)
-    .CompareValue(CompareOperator.GreaterThan, DateTimeOffset.UtcNow)
+    .CompareValue(CompareOperator.GreaterThan, () => Runtime.UtcNow)
     .WhenHasValue();
 ```
 

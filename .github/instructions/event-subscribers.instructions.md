@@ -32,17 +32,20 @@ Use when the relevant data is carried in the message key, not the payload:
 
 ```csharp
 [ScopedService, Subscribe("contoso.products.reservation.confirm")]
-public class ReservationConfirmSubscriber(IMovementService service) : SubscribedBase
+public class ReservationConfirmSubscriber : SubscribedBase
 {
-    private readonly IMovementService _service = service.ThrowIfNull();
-
     internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
         .Add<NotFoundException>(ex => ex.ErrorCode == "pending-reservation-not-found"
             ? ErrorHandling.CompleteAsInformation
             : null);
 
-    public ReservationConfirmSubscriber(IMovementService service) : this(service)
-        => ErrorHandler = DefaultErrorHandler;
+    private readonly IMovementService _service;
+
+    public ReservationConfirmSubscriber(IMovementService service)
+    {
+        _service = service.ThrowIfNull();
+        ErrorHandler = DefaultErrorHandler;
+    }
 
     protected async override Task<Result> OnReceiveAsync(
         EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
