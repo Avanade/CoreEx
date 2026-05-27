@@ -35,11 +35,16 @@ The host is a **composition root only** — no business logic. There are three h
 | Package | Key registrations |
 |---|---|
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
-| `CoreEx.Events` | `AddEventFormatter()` |
+| `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
+| `CoreEx.Events` | `AddEventFormatter()`, `AddSubscribedManager()` |
 | `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()`, `AddSqlServerClient("SqlServer")` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()`, `AddAzureNpgsqlDataSource("Postgres")` |
 | `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` |
-| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)`, `AddSubscribedManager()`, `AzureServiceBusReceiving()`, `WithCoreExServiceBusTelemetry()` |
-| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExServiceBusTelemetry()`, `WithCoreExSqlServerTelemetry()`, `UseOtlpExporter()` |
+| `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)`, `AzureServiceBusReceiving()`, `WithCoreExServiceBusTelemetry()` |
+| `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
+| `FusionCache.Backplane.StackExchangeRedis` | `RedisBackplane`, `RedisBackplaneOptions` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExServiceBusTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `UseOtlpExporter()` |
 
 ### Outbox Relay Host
 
@@ -113,8 +118,8 @@ app.Run();
 ```
 
 Key points:
-- `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` are exclusive to the API host.
-- FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are exclusive to the API host.
+- `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
+- FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
 - `AddEventFormatter()` is required wherever events are published or parsed.
 - `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` (no generic type parameter).
 - Products uses `AddPostgresDatabase()` / `AddPostgresUnitOfWork()` / `AddPostgresOutboxPublisher()` / `WithCoreExPostgresTelemetry()` instead of the SQL Server variants.
@@ -125,15 +130,31 @@ Key points:
 
 ## Subscribe Host
 
-The Subscribe host receives broker messages and delegates to Application-layer services. It does **not** have reference data, FusionCache, or idempotency — but it does have a database/outbox for its own domain writes, plus Service Bus wiring.
+The Subscribe host receives broker messages and delegates to Application-layer services. Subscribers are **full application-layer consumers** — they invoke application services that may validate, persist data, and publish outbound events. Therefore, Subscribe hosts include reference data, caching, database, and idempotency support.
 
 ```csharp
 builder.Services
     .AddPrecisionTimeProvider()
     .AddExecutionContext()
+    .AddReferenceDataOrchestrator<ReferenceDataService>()
     .AddMvcWebApi()
     .AddHttpWebApi()
     .AddHostedServiceManager();
+
+builder.Services.AddDynamicServicesUsing<MySubscriber, ReferenceDataService, ReferenceDataRepository>();
+
+// L1/L2 caching with FusionCache + Redis backplane.
+builder.Services.AddMemoryCache();
+builder.AddRedisDistributedCache("redis");
+builder.Services.AddFusionCache()
+    .WithRegisteredMemoryCache()
+    .WithRegisteredDistributedCache()
+    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = ... }))
+    .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
+builder.Services
+    .AddFusionHybridCache()
+    .AddDefaultCacheKeyProvider()
+    .AddHybridCacheIdempotencyProvider();
 
 // Domain database + outbox publisher (for writes triggered by inbound events).
 builder.AddSqlServerClient("SqlServer");
@@ -144,7 +165,7 @@ builder.Services
     .AddDbContext<ShoppingDbContext>()
     .AddEfDb<ShoppingEfDb>();
 
-// Service Bus: outbox relay is the default publisher; Service Bus is NOT the default IEventPublisher.
+// Service Bus: outbox publisher is the default IEventPublisher.
 builder.AddAzureServiceBusClient("ServiceBus");
 builder.Services.AddAzureServiceBusPublisher((_, c) =>
 {
@@ -187,18 +208,20 @@ app.Run();
 ```
 
 Key points:
+- Subscribe hosts **do** include `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` — subscribers call application services that need reference data for validation and business logic.
+- Subscribe hosts **do** include FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` — caching is required for reference data; idempotency is required to safely handle duplicate message delivery.
+- Subscribe hosts **do** include database/EF Core and outbox publisher — subscribers persist domain data and publish outbound events as part of their message-processing logic.
 - `AddHostedServiceManager()` must be registered before `AzureServiceBusReceiving()`.
 - `AddSubscribersUsing<T>()` scans the assembly of `T` and auto-registers all `[Subscribe]`-decorated classes — no manual registration per subscriber.
 - `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` keeps the outbox publisher as the default `IEventPublisher` for transactional writes.
 - `AddEventFormatter()` is required for message parsing and formatting.
 - `MapHostedServices()` must come **after** `MapHealthChecks()`.
-- No `AddReferenceDataOrchestrator`, no FusionCache, no `UseIdempotencyKey` in a Subscribe host.
 
 ---
 
 ## Outbox Relay Host
 
-The Outbox Relay host is minimal: it polls the outbox table and forwards committed events to Azure Service Bus. No controllers, no OpenAPI, no FusionCache.
+The Outbox Relay host is minimal: it polls the outbox table and forwards committed events to Azure Service Bus. It has **no application logic** — no controllers, no OpenAPI, no FusionCache, no reference data, no EF Core DbContext. It only needs database connectivity to read the outbox table and Service Bus connectivity to publish.
 
 ```csharp
 builder.Services
@@ -238,6 +261,7 @@ app.Run();
 ```
 
 Key points:
+- The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services.
 - `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
 - `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` registers the background relay pump — call these on `builder`, not `builder.Services`.
 - No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`.

@@ -215,7 +215,7 @@ public class InventoryValidatorTests : WithGenericTester<EntryPoint>
 
 ## Subscribe Host Tests
 
-Subscribe test classes extend `WithApiTester<Program>` over the subscriber host. The `[OneTimeSetUp]` migrates/seeds the domain DB just like an API test. There is no FusionCache to clear (Subscribe hosts have no cache).
+Subscribe test classes extend `WithApiTester<Program>` over the subscriber host. The `[OneTimeSetUp]` migrates/seeds the domain DB and clears FusionCache, just like an API test. Subscribe hosts **do** have FusionCache — they are full application-layer consumers that need caching for reference data and idempotency.
 
 ```csharp
 public class ProductModifySubscriberTests : WithApiTester<Contoso.Shopping.Subscribe.Program>
@@ -224,7 +224,24 @@ public class ProductModifySubscriberTests : WithApiTester<Contoso.Shopping.Subsc
     public async Task OneTimeSetUpAsync()
     {
         await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+
         Test.UseExpectedSqlServerOutboxPublisher();
+    }
+}
+```
+
+**Products Subscribe host tests (Postgres):**
+```csharp
+public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.Program>
+{
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+    {
+        await Test.MigratePostgresDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+
+        Test.UseExpectedPostgresOutboxPublisher();
     }
 }
 ```
@@ -294,7 +311,7 @@ Basket_Checkout_Insufficient_Quantity
 - Do not use `[TestCase]` for integration tests — create separate named test methods for each scenario.
 - Do not use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` in Products tests — use the Postgres equivalents.
 - Do not use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` in Shopping tests — use the SQL Server equivalents.
-- Do not call `ClearFusionCacheAsync()` in Subscribe or Outbox Relay host tests — those hosts have no cache.
+- Do not call `ClearFusionCacheAsync()` in Outbox Relay host tests — relay hosts have no cache (they are minimal forwarding infrastructure only).
 - Do not test inter-domain HTTP calls against a real API — always mock with `MockHttpClientFactory`.
 - Do not call `Test.ReplaceHttpClientFactory()` inside individual tests — configure it once in `[OneTimeSetUp]`.
 - Do not use `FluentAssertions` — use `AwesomeAssertions` (the `AwesomeAssertions` NuGet package).

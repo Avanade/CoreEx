@@ -1,7 +1,6 @@
 ﻿namespace Contoso.Products.Contracts;
 
-[Contract]
-public partial class ProductReserve : IIdentifier<string>
+public class ProductReserve : IIdentifier<string>
 {
     public string Id { get; set; } = default!;
 

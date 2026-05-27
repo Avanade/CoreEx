@@ -59,12 +59,11 @@
           PackagePath="/"
           Visible="false" />
 
-    <!-- Per-package README.md for NuGet package details page. -->
+    <!-- Per-package README.md for NuGet package details page (required for all packages). -->
     <None Include="README.md"
           Pack="true"
           PackagePath="/"
-          Visible="false"
-          Condition="Exists('README.md')" />
+          Visible="false" />
 
     <!-- Per-package AGENTS.md for AI tooling (e.g. VS Copilot nuget_get_package_context). -->
     <!-- Path resolves relative to each .csproj, so picks up the local src/{Package}/AGENTS.md when present. -->

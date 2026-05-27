@@ -66,15 +66,15 @@ Semantic (error-oriented) exception types with automatic HTTP status mapping:
 
 | Exception | Description | HTTP Status | Error Type |
 |-----------|-------------|-------------|------------|
-| [`AuthenticationException`](./AuthenticationException.cs) | User not authenticated. | 401-Unauthorized | `AuthenticationError` |
-| [`AuthorizationException`](./AuthorizationException.cs) | User lacks permissions. | 403-Forbidden | `AuthorizationError` |
-| [`BusinessException`](./BusinessException.cs) | Business rule violation (message shown to consumer). | 400-Bad Request | `BusinessError` |
-| [`ConcurrencyException`](./ConcurrencyException.cs) | Data concurrency conflict (ETag mismatch). | 412-Precondition Failed | `ConcurrencyError` |
-| [`ConflictException`](./ConflictException.cs) | Data conflict (e.g., identifier already exists on create). | 409-Conflict | `ConflictError` |
-| [`DuplicateException`](./DuplicateException.cs) | Duplicate value (e.g., unique code already in use). | 409-Conflict | `DuplicateError` |
-| [`NotFoundException`](./NotFoundException.cs) | Entity not found. | 404-Not Found | `NotFoundError` |
-| [`TransientException`](./TransientException.cs) | Transient failure (retry candidate). | 503-Service Unavailable | `TransientError` |
-| [`ValidationException`](./ValidationException.cs) | Validation failure with message collection. | 400-Bad Request | `ValidationError` |
+| [`AuthenticationException`](./AuthenticationException.cs) | User not authenticated. | 401-Unauthorized | `authentication` |
+| [`AuthorizationException`](./AuthorizationException.cs) | User lacks permissions. | 403-Forbidden | `authorization` |
+| [`BusinessException`](./BusinessException.cs) | Business rule violation (message shown to consumer). | 400-Bad Request | `business` |
+| [`ConcurrencyException`](./ConcurrencyException.cs) | Data concurrency conflict (ETag mismatch). | 412-Precondition Failed | `concurrency` |
+| [`ConflictException`](./ConflictException.cs) | Data conflict (e.g., identifier already exists on create). | 409-Conflict | `conflict` |
+| [`DuplicateException`](./DuplicateException.cs) | Duplicate value (e.g., unique code already in use). | 409-Conflict | `duplicate` |
+| [`NotFoundException`](./NotFoundException.cs) | Entity not found. | 404-Not Found | `not-found` |
+| [`TransientException`](./TransientException.cs) | Transient failure (retry candidate). | 503-Service Unavailable | `transient` |
+| [`ValidationException`](./ValidationException.cs) | Validation failure with message collection. | 400-Bad Request | `validation` |
 
 All inherit from [`ExtendedException<TSelf>`](./Abstractions/ExtendedExceptionT.cs) implementing [`IExtendedException`](./Abstractions/IExtendedException.cs).
 
