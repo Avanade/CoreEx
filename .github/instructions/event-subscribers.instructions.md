@@ -11,7 +11,8 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 | Package | Key types provided |
 |---|---|
 | `CoreEx.Azure.Messaging.ServiceBus` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
-| `CoreEx.Events` | `EventData`, `.Key`, `.Required()`, `.ToData<T>()`, `IValidator<T>` |
+| `CoreEx.Events` | `EventData`, `.Key`, `.Required()`, `.ToData<T>()` |
+| `CoreEx.Validation` | `IValidator<T>` |
 | `CoreEx.Results` | `Result`, `Result.Success` |
 | `CoreEx` | `[ScopedService]`, `.ThrowIfNull()` |
 
