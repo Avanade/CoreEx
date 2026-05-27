@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.CodeGen/Program.cs;**/*.CodeGen/ref-data.yaml;**/*.Database/Program.cs;**/*.Database/dbex.yaml;**/*.Database/Migrations/**;**/*.Database/Data/**"
+applyTo: "**/*.CodeGen/Program.cs;**/*.CodeGen/ref-data.yaml;**/*.Database/Program.cs;**/*.Database/dbex.yaml;**/*.Database/Migrations/**;**/*.Database/Data/**;**/*.Database/Schema/**"
 description: "Developer tooling conventions: *.CodeGen reference-data C# code generation and *.Database schema migration, DbEx commands, seed data, and outbox provisioning"
 tags: ["tooling", "codegen", "database", "migrations", "dbex", "reference-data", "outbox"]
 ---
