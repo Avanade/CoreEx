@@ -10,11 +10,7 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.UnitTesting` | `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()` |
-| `CoreEx.UnitTesting.Database.SqlServer` | `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()` |
-| `CoreEx.UnitTesting.Database.Postgres` | `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()` |
-| `CoreEx.UnitTesting.Azure.ServiceBus` | `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()` |
-| `CoreEx.UnitTesting.AspNetCore` | `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
+| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions/extensions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
 | `UnitTestEx` | `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()` |
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
 | `AwesomeAssertions` | `.Should()`, `.Be()`, `.HaveCount()` |
