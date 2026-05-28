@@ -10,15 +10,13 @@ tags: ["contracts", "dto", "source-generation", "reference-data", "etag"]
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx` | `[Contract]`, `IIdentifier<T>`, `ICompositeKey`, `IETag`, `IChangeLog`, `ChangeLog`, `[ReadOnly]`, `[Localization]` |
+| `CoreEx` | `[Contract]`, `IIdentifier<T>`, `ICompositeKey`, `IETag`, `IChangeLog`, `ChangeLog`, `[ReadOnly]`, `[Localization]`; includes the `CoreEx.Generator` Roslyn source generator — no separate package reference required |
 | `CoreEx.RefData` | `ReferenceData<T>`, `ReferenceDataCollection<T>`, `[ReferenceData<T>]`, `[ReferenceData]`, `ReferenceDataSortOrder` |
-| `CoreEx.Generator` | Roslyn source generator — add as `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` |
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="CoreEx.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  <ProjectReference Include="CoreEx.csproj" />
-  <ProjectReference Include="CoreEx.RefData.csproj" />
+  <PackageReference Include="CoreEx" />
+  <PackageReference Include="CoreEx.RefData" />
 </ItemGroup>
 ```
 
@@ -30,7 +28,7 @@ When a domain **consumes** events from another domain, declare a local internal 
 
 ## Source Generation
 
-Mark entity contract classes with the `[Contract]` attribute and declare them `partial`. The Roslyn source generator ([`CoreEx.Generator`](../../../gen/CoreEx.Generator)) emits serialization, equality, and change-tracking code into a paired `*.g.cs` file. Never manually implement those generated members.
+Mark entity contract classes with the `[Contract]` attribute and declare them `partial`. The `CoreEx` package ships with a bundled Roslyn source generator ([`CoreEx.Generator`](https://github.com/Avanade/CoreEx/tree/main/gen/CoreEx.Generator)) that activates automatically — no extra package reference is needed. It emits serialization, equality, and change-tracking code into a paired `*.g.cs` file at compile time. Never manually implement those generated members.
 
 ```csharp
 [Contract]
@@ -82,19 +80,26 @@ Decorate server-assigned properties with `[ReadOnly(true)]` to signal that clien
 
 ## Reference Data Properties
 
-Use `[ReferenceData<TRefData>]` on code properties that back a reference data relationship. Declare the property `partial` so source generation can emit the navigation accessor:
+Use `[ReferenceData<TRefData>]` on code properties that back a reference data relationship. Three conditions must all be met for the source generator to emit the navigation accessor:
+
+1. The **class** is decorated with `[Contract]` and declared `partial`.
+2. The **property** is declared `partial`.
 
 ```csharp
-[ReferenceData<SubCategory>]
-[Localization("Sub-category")]
-public partial string? SubCategoryCode { get; set; }
+[Contract]
+public partial class ProductBase : IIdentifier<string?>
+{
+    [ReferenceData<SubCategory>]
+    [Localization("Sub-category")]
+    public partial string? SubCategoryCode { get; set; }
 
-[ReferenceData<UnitOfMeasure>]
-[Localization("Unit-of-measure")]
-public partial string? UnitOfMeasureCode { get; set; }
+    [ReferenceData<UnitOfMeasure>]
+    [Localization("Unit-of-measure")]
+    public partial string? UnitOfMeasureCode { get; set; }
+}
 ```
 
-The generated code exposes a strongly-typed `SubCategory` property alongside the raw code.
+The generated code exposes a strongly-typed `SubCategory` property alongside the raw `SubCategoryCode` string. If either `[Contract]` or `partial` is missing from the class, the navigation property will not be generated and the code will not compile correctly.
 
 ## Localization Labels
 
@@ -197,11 +202,11 @@ Contracts are data transfer objects. Keep them free of domain rules, validation 
 
 ## Generated Code
 
-Reference-data contract types (`*.g.cs`) are produced by the domain's `*.CodeGen` project. Never create or edit these files directly.
+Never create or edit `*.g.cs` files directly.
 
 | File pattern | Generator | Change instead |
 |---|---|---|
-| `*.g.cs` (ref-data types) | `*.CodeGen` project (`ref-data.yaml` + Handlebars templates) | `ref-data.yaml` or the templates in `CoreEx.CodeGen/RefData/Templates/` |
+| `*.g.cs` (ref-data types) | `*.CodeGen` project (`ref-data.yaml` + Handlebars templates) | `ref-data.yaml` or the templates |
 | `*.g.cs` (contract members) | Roslyn source generator (`CoreEx.Generator`) | The `[Contract]`-decorated partial class |
 
 ## Do Not
@@ -214,7 +219,7 @@ Reference-data contract types (`*.g.cs`) are produced by the domain's `*.CodeGen
 
 ## Further Reading
 
-- [`samples/docs/contracts-layer.md`](../../../samples/docs/contracts-layer.md) — unified API/event surface, source generation, reference data, and internal adapter models.
-- [`gen/CoreEx.Generator`](../../../gen/CoreEx.Generator) — Roslyn source generator that processes `[Contract]` and `[ReferenceData]` annotations.
-- [`src/CoreEx.RefData/README.md`](../../../src/CoreEx.RefData/README.md) — reference data types, collections, and sort order.
-- [`samples/docs/tooling.md`](../../../samples/docs/tooling.md) — `*.CodeGen` project usage and `ref-data.yaml` configuration.
+- [Contracts Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/contracts-layer.md) — unified API/event surface, source generation, reference data, and internal adapter models.
+- [CoreEx.Generator](https://github.com/Avanade/CoreEx/tree/main/gen/CoreEx.Generator) — Roslyn source generator that processes `[Contract]` and `[ReferenceData]` annotations.
+- [CoreEx.RefData README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.RefData/README.md) — reference data types, collections, and sort order.
+- [Tooling Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md) — `*.CodeGen` project usage and `ref-data.yaml` configuration.

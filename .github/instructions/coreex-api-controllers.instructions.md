@@ -1,25 +1,39 @@
 ---
 applyTo: "**/Controllers/**/*.cs"
-description: "API controller conventions for CoreEx: inheritance, routing, dependency injection, CQRS separation, and WebApi integration"
-tags: ["controllers", "api", "routing", "cqrs", "dependency-injection"]
+description: "API conventions for CoreEx: MVC ControllerBase and Minimal API approaches, WebApi integration, routing, CQRS separation"
+tags: ["controllers", "api", "routing", "cqrs", "dependency-injection", "minimal-api"]
 ---
 
-# API Controller Conventions
+# API Conventions
+
+CoreEx.AspNetCore supports two approaches for exposing HTTP endpoints. Choose one per host — they can coexist in the same application when needed.
+
+| Approach | Registration | Returns | Best for |
+|---|---|---|---|
+| **MVC Controllers** | `AddMvcWebApi()` | `IActionResult` | Familiar controller model; NSwag/OpenAPI attributes |
+| **Minimal APIs** | `AddHttpWebApi()` | `IResult` | Lightweight; less ceremony; endpoint groups in `Program.cs` |
+
+Both use the same `WebApi` helper — method names, `WithResult` variants, `ro.WithLocationUri`, `.Required()`, and `.Adjust(...)` are identical in both approaches.
 
 ## NuGet / Project References
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.AspNetCore` | `WebApi`, `[IdempotencyKey]`, `[Accepts<T>]`, `[ProducesNotFoundProblem]`, `[Query]`, `[Paging]`, `HttpNames`, `.Required()`, `.Adjust(...)` |
+| `CoreEx.AspNetCore` | `WebApi`, `[IdempotencyKey]`, `[Accepts<T>]`, `[ProducesNotFoundProblem]`, `[Query]`, `[Paging]`, `HttpNames`; Minimal API: `.WithQuery()`, `.WithPaging()`, `.Accepts<T>()`, `.ProducesNotFoundProblem()`, `.ProducesNoContent()`, `.ProducesCreated<T>()`, `.WithIdempotencyKey()` |
 | `CoreEx.AspNetCore.NSwag` | `[OpenApiTag]` |
+| `CoreEx` | `.Required()`, `.Adjust(...)` |
 
-## Structure
+---
+
+## MVC Controllers
+
+### Structure
 
 - Inherit from `ControllerBase`. Never inherit from `Controller` (that brings View support).
 - Decorate with `[ApiController]` and `[Route("...")]` on the class.
 - Add `[OpenApiTag("TagName")]` to group endpoints in the generated OpenAPI document. Can also be placed on an individual action method to cross-tag it into a different OpenAPI group.
 - Inject `WebApi` and the relevant service interface via primary constructor. Guard with `.ThrowIfNull()`.
-- Split read operations and write operations into separate controller classes (`ProductController` for mutations, `ProductReadController` for queries) following CQRS conventions.
+- Split read operations and write operations into separate controller classes (e.g., `ProductController` for mutations, `ProductReadController` for queries) following CQRS conventions.
 
 ```csharp
 [ApiController, Route("/api/products"), OpenApiTag("Products")]
@@ -30,11 +44,11 @@ public class ProductController(WebApi webApi, IProductService service) : Control
 }
 ```
 
-## Method Signatures
+### Method Signatures
 
 All action methods return `Task<IActionResult>` using the `WebApi` helper. Do not return typed `ActionResult<T>` directly.
 
-### Standard (exception-based services — Products style)
+#### Standard (exception-based services)
 
 | HTTP Verb | WebApi helper | Notes |
 |---|---|---|
@@ -44,7 +58,7 @@ All action methods return `Task<IActionResult>` using the `WebApi` helper. Do no
 | `PATCH` | `_webApi.PatchAsync<T>(...)` | Requires `get:` and `put:` lambdas |
 | `DELETE` | `_webApi.DeleteAsync(...)` | Returns 204 No Content |
 
-### Result-based (`Result<T>` pipeline services — Shopping style)
+#### Result-based (`Result<T>` pipeline services)
 
 When the service returns `Result<T>`, use the `WithResult` variants. The controller code is equally thin.
 
@@ -57,9 +71,9 @@ When the service returns `Result<T>`, use the `WithResult` variants. The control
 | `PUT` (in + out) | `_webApi.PutWithResultAsync<TIn, TOut>(...)` | |
 | `DELETE` (typed) | `_webApi.DeleteWithResultAsync<T>(...)` | Use when delete returns the deleted resource |
 
-## Route Parameters
+### Route Parameters
 
-Validate route parameters inline using `.Required()`:
+Use `.Required()` to validate route parameters at the point of first use. It **returns the value** when non-default, or throws a `ValidationException` when the value is null/default — which the `WebApi` error handler translates to a **400 validation response** (not a 500). This is the correct treatment: a missing or empty route parameter is a caller error, not a programming error.
 
 ```csharp
 [HttpGet("{id}"), HttpHead("{id}")]
@@ -67,7 +81,9 @@ public Task<IActionResult> GetAsync(string id) =>
     _webApi.GetAsync(Request, (_, _) => _service.GetAsync(id.Required()));
 ```
 
-## POST — Create with Location Header
+Do not use `.ThrowIfNull()` / `.ThrowIfNullOrEmpty()` on route parameters — those throw `ArgumentNullException`, which results in a 500 rather than a 400.
+
+### POST — Create with Location Header
 
 Use `ro.WithLocationUri(...)` to set the `Location` response header:
 
@@ -83,7 +99,7 @@ public Task<IActionResult> PostAsync() => _webApi.PostAsync<Product, Product>(Re
 });
 ```
 
-## PATCH — Merge-Patch
+### PATCH — Merge-Patch
 
 Always supply both `get:` and `put:` delegates. PATCH merges the incoming patch document over the fetched entity and calls `put`:
 
@@ -95,7 +111,7 @@ public Task<IActionResult> PatchAsync(string id) => _webApi.PatchAsync<Product>(
     put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id)));
 ```
 
-## Query Endpoints
+### Query Endpoints
 
 Expose `QueryArgs` and `PagingArgs` via `[Query]` and `[Paging]` action attributes. Access them via the request options object (`ro`):
 
@@ -106,7 +122,7 @@ public Task<IActionResult> QueryAsync() =>
     _webApi.GetAsync(Request, (ro, _) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs));
 ```
 
-## Reference Data Endpoints
+### Reference Data Endpoints
 
 Delegate to `ReferenceDataOrchestrator.Current.GetWithFilterAsync<T>()`. Support `codes`, `text`, and `isIncludeInactive` filter parameters:
 
@@ -116,7 +132,7 @@ public Task<IActionResult> GetCategoriesAsync([FromQuery] IEnumerable<string>? c
     => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetWithFilterAsync<Category>(codes, text, ro.IsIncludeInactive, ct));
 ```
 
-## Response Metadata Attributes
+### Response Metadata Attributes
 
 Decorate actions with standard response metadata attributes:
 
@@ -125,7 +141,7 @@ Decorate actions with standard response metadata attributes:
 - `[ProducesNotFoundProblem()]` — shorthand for `[ProducesResponseType(typeof(ProblemDetails), 404)]`; use on GET/PUT/PATCH/DELETE where not-found is expected.
 - `[Accepts<T>]` — documents the consumed media type.
 
-## Query Schema Endpoint
+### Query Schema Endpoint
 
 Read controllers that expose a `QueryAsync` should also expose a `$query` schema endpoint. This returns the JSON schema for the supported query/filter parameters:
 
@@ -136,9 +152,9 @@ public Task<IActionResult> QuerySchemaAsync() =>
     _webApi.GetAsync(Request, (ro, _) => _service.QuerySchemaAsync());
 ```
 
-## Result-Based Services
+### Result-Based Services
 
-When the service returns `Result<T>` (Shopping-style domain services), use the `WithResult` variants. See the Method Signatures table above for the full variant list.
+When the service returns `Result<T>`, use the `WithResult` variants:
 
 ```csharp
 [HttpPost("{basketId}/checkout")]
@@ -157,15 +173,101 @@ public Task<IActionResult> ItemAddAsync(string basketId) =>
         _service.ItemAddAsync(basketId.Required(), ro.Value), HttpStatusCode.OK);
 ```
 
+---
+
+## Minimal APIs
+
+Register the HTTP variant in `Program.cs` and map endpoints directly — no controller class required. `WebApi` is injected into the handler lambda alongside the service:
+
+```csharp
+// Program.cs
+builder.Services.AddHttpWebApi(); // or alongside AddMvcWebApi() if both are needed
+```
+
+### Attribute → RouteHandlerBuilder Equivalents
+
+MVC action attributes have direct `RouteHandlerBuilder` extension equivalents — chain them after `app.MapGet/Post/etc.`:
+
+| MVC attribute | Minimal API equivalent |
+|---|---|
+| `[Query(supportsOrderBy: true)]` | `.WithQuery(supportsOrderBy: true)` |
+| `[Paging(supportsCount: true)]` | `.WithPaging(supportsCount: true)` |
+| `[Accepts<T>]` | `.Accepts<T>()` |
+| `[ProducesNotFoundProblem]` | `.ProducesNotFoundProblem()` |
+| `[IdempotencyKey]` | `.WithIdempotencyKey()` |
+
+### Examples
+
+**GET by id:**
+```csharp
+app.MapGet("api/products/{id}",
+    (HttpRequest request, WebApi webApi, IProductReadService service, string id)
+        => webApi.GetWithResultAsync(request, (_, _) => service.GetAsync(id.Required())))
+    .Produces<Product>().ProducesNotFoundProblem();
+```
+
+**POST — create with Location header:**
+```csharp
+app.MapPost("api/products",
+    (HttpRequest request, WebApi webApi, IProductService service)
+        => webApi.PostWithResultAsync<Product, Product>(request, async (ro, _) =>
+        {
+            ro.WithLocationUri(p => new Uri($"api/products/{p.Id}", UriKind.Relative));
+            return await service.CreateAsync(ro.Value).ConfigureAwait(false);
+        }))
+    .Accepts<Product>().ProducesCreated<Product>().WithIdempotencyKey();
+```
+
+**PUT:**
+```csharp
+app.MapPut("api/products/{id}",
+    (HttpRequest request, WebApi webApi, IProductService service, string id)
+        => webApi.PutWithResultAsync<Product, Product>(request, (ro, _) =>
+            service.UpdateAsync(ro.Value.Adjust(p => p.Id = id))))
+    .Accepts<Product>().Produces<Product>().ProducesNotFoundProblem();
+```
+
+**PATCH — JSON Merge-Patch:**
+```csharp
+app.MapPatch("api/products/{id}",
+    (HttpRequest request, WebApi webApi, IProductService service, string id)
+        => webApi.PatchWithResultAsync<Product>(request,
+            get: (_, _) => service.GetAsync(id.Required()),
+            put: (ro, _) => service.UpdateAsync(ro.Value.Adjust(p => p.Id = id))))
+    .Accepts<Product>(HttpNames.MergePatchJsonMediaTypeName).Produces<Product>().ProducesNotFoundProblem();
+```
+
+**DELETE:**
+```csharp
+app.MapDelete("api/products/{id}",
+    (HttpRequest request, WebApi webApi, IProductService service, string id)
+        => webApi.DeleteWithResultAsync(request, (_, _) => service.DeleteAsync(id.Required())))
+    .ProducesNoContent();
+```
+
+**Query with filtering and paging:**
+```csharp
+app.MapGet("api/products",
+    (HttpRequest request, WebApi webApi, IProductReadService service)
+        => webApi.GetWithResultAsync(request, (ro, _) => service.QueryAsync(ro.QueryArgs, ro.PagingArgs)))
+    .Produces<ProductLite[]>().WithQuery(supportsOrderBy: true).WithPaging(supportsCount: true);
+```
+
+All the same rules apply as for MVC controllers: no business logic in the handler, delegate immediately to the application service, use `.Required()` on route parameters.
+
+---
+
 ## Do Not
 
 - Do not inherit from `Controller` — that pulls in View support; use `ControllerBase`.
 - Do not return `ActionResult<T>` directly — use the `WebApi` helper for consistent error translation and status-code mapping.
-- Do not inject `IUnitOfWork` into controllers — it belongs in the application service.
-- Do not put business logic in controllers — delegate immediately to the application service.
+- Do not inject `IUnitOfWork` into controllers or endpoint handlers — it belongs in the application service.
+- Do not put business logic in controllers or endpoint handlers — delegate immediately to the application service.
 - Do not call `HttpClient` or adapters directly from controllers — go through the application service.
 
 ## Further Reading
 
-- [`samples/docs/hosts-layer.md`](../../samples/docs/hosts-layer.md) — API host composition, controller patterns, and `Program.cs` shape.
-- [`src/CoreEx.AspNetCore/README.md`](../../src/CoreEx.AspNetCore/README.md) — `WebApi` helper API reference.
+- [Hosts Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) — API host composition, controller patterns, and `Program.cs` shape.
+- [CoreEx.AspNetCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/README.md) — `WebApi` helper API reference.
+- [CoreEx.AspNetCore Mvc README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Mvc/README.md) — MVC `WebApi` (`IActionResult`-returning), action attributes, and controller patterns.
+- [CoreEx.AspNetCore Http README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Http/README.md) — Minimal API `WebApi` (`IResult`-returning) and `RouteHandlerBuilder` extensions.

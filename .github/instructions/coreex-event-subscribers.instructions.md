@@ -10,11 +10,9 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.Azure.Messaging.ServiceBus` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
-| `CoreEx.Events` | `EventData`, `.Key`, `.Required()`, `.ToData<T>()` |
-| `CoreEx.Validation` | `IValidator<T>` |
-| `CoreEx.Results` | `Result`, `Result.Success` |
-| `CoreEx` | `[ScopedService]`, `.ThrowIfNull()` |
+| `CoreEx.Events` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `EventData`, `.Key` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
+| `CoreEx` | `[ScopedService]`, `.ThrowIfNull()`, `.Required()`, `Result`, `Result.Success`, `IValidator<T>` |
 
 ## Subscriber Structure
 
@@ -29,34 +27,21 @@ All subscribers are decorated with `[ScopedService]` for automatic DI discovery.
 
 ### Untyped subscriber — `SubscribedBase`
 
-Use when the relevant data is carried in the message key, not the payload:
+Use when the relevant data is carried in the message key rather than a typed payload. Extract the key with `.Required()`, which throws a `ValidationException` if the key is absent:
 
 ```csharp
-[ScopedService, Subscribe("contoso.products.reservation.confirm")]
-public class ReservationConfirmSubscriber : SubscribedBase
+[ScopedService, Subscribe("contoso.products.product.deleted")]
+public class ProductDeleteSubscriber(IProductSyncAdapter adapter) : SubscribedBase
 {
-    internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
-        .Add<NotFoundException>(ex => ex.ErrorCode == "pending-reservation-not-found"
-            ? ErrorHandling.CompleteAsInformation
-            : null);
+    private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();
 
-    private readonly IMovementService _service;
-
-    public ReservationConfirmSubscriber(IMovementService service)
-    {
-        _service = service.ThrowIfNull();
-        ErrorHandler = DefaultErrorHandler;
-    }
-
-    protected async override Task<Result> OnReceiveAsync(
+    protected override Task<Result> OnReceiveAsync(
         EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
-    {
-        var referenceId = @event.Key.Required();
-        await _service.ConfirmReservationAsync(referenceId).ConfigureAwait(false);
-        return Result.Success;
-    }
+        => _adapter.DeleteAsync(@event.Key.Required());
 }
 ```
+
+For custom exception handling (e.g. converting a specific `NotFoundException` to a silent completion rather than dead-lettering), set `ErrorHandler` in the constructor — see [Error Handling](#error-handling) below.
 
 ### Typed subscriber — `SubscribedBase<TValue>`
 
@@ -80,22 +65,6 @@ public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBa
 
 Multiple `[Subscribe]` attributes on a single class handle multiple subjects with the same logic — no duplication required.
 
-### Key-only untyped subscriber
-
-When only the key is needed (no payload), use `SubscribedBase` and extract the key directly:
-
-```csharp
-[ScopedService, Subscribe("contoso.products.product.deleted.v1")]
-public class ProductDeleteSubscriber(IProductSyncAdapter adapter) : SubscribedBase
-{
-    private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();
-
-    protected override Task<Result> OnReceiveAsync(
-        EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
-        => _adapter.DeleteAsync(@event.Key.Required());
-}
-```
-
 ## Subject Naming
 
 Use dot-separated lowercase subject strings:
@@ -104,15 +73,31 @@ Use dot-separated lowercase subject strings:
 {solution}.{domain}.{entity}.{action}[.v{n}]
 ```
 
-- **Domain events** (published from the outbox) include a version suffix: `contoso.products.product.created.v1`
-- **Command messages** (point-to-point, no versioning semantics): `contoso.products.reservation.confirm`
+The version suffix `[.v{n}]` is driven by whether the message carries a **payload** (a CloudEvent data element), not by whether it is an integration event or a command message:
+
+- **With payload** → include a version suffix. The payload has a schema that can evolve; consumers need to know which version to deserialise: `contoso.products.product.created.v1`
+- **Without payload (key-only)** → no version suffix. There is no data schema to version: `contoso.products.reservation.confirm`
+
+Command messages follow the same rule — a key-only command carries no version; a command that includes a payload does.
 
 Examples:
-- `contoso.products.product.created.v1`
-- `contoso.products.product.updated.v1`
-- `contoso.products.product.deleted.v1`
-- `contoso.products.reservation.confirm`
-- `contoso.products.reservation.cancel`
+- `contoso.products.product.created.v1` — has payload → versioned
+- `contoso.products.product.updated.v1` — has payload → versioned
+- `contoso.products.product.deleted` — key-only (no payload) → no version
+- `contoso.products.reservation.confirm` — key-only (no payload) → no version
+- `contoso.products.reservation.cancel` — key-only (no payload) → no version
+
+> **Note:** CoreEx supports integration events only — domain events (aggregate-internal) are not provided out of the box.
+
+### Publishing
+
+This same subject convention governs publishing. The `EventFormatter` in `CoreEx.Events` derives the subject automatically from the entity type and action when `EventData.CreateEventWith(value, action)` is called. Publishing is an **application service concern** — the service adds events to the unit of work inside `_unitOfWork.TransactionAsync(...)`, and they are committed atomically with the database write:
+
+```csharp
+_unitOfWork.Events.Add(EventData.CreateEventWith(product, EventAction.Created));
+```
+
+The **outbox** is purely a transactional relay mechanism — it durably captures the events inside the same database transaction, then an Outbox Relay host forwards them to the broker asynchronously. The application service is unaware of the broker; it only adds events to the unit of work.
 
 ## Error Handling
 
@@ -132,11 +117,18 @@ Share the same `ErrorHandler` instance across related subscribers (e.g., both Co
 ## Accessing Event Data
 
 ```csharp
-var key   = @event.Key.Required();          // Key from the message — throws if missing
-var value = @event.ToData<MyPayload>();     // Deserialize typed payload from untyped subscriber
+var key = @event.Key.Required();    // Returns the key, or throws ValidationException if null/default
 ```
 
-In typed subscribers (`SubscribedBase<TValue>`), the deserialized value is passed directly as the first parameter to `OnReceiveAsync` — no manual deserialization needed.
+In typed subscribers (`SubscribedBase<TValue>`), the deserialized value is passed directly as the first parameter to `OnReceiveAsync` — no manual deserialization needed. That is the preferred approach whenever a payload is expected.
+
+For the rare case where an untyped subscriber (`SubscribedBase`) needs to deserialize the payload, use the protected `DeserializeValue<T>` helper inherited from the base class:
+
+```csharp
+var result = DeserializeValue<MyPayload>(@event, args, valueIsRequired: true);
+if (result.IsFailure) return result.AsResult();
+var value = result.Value;
+```
 
 ## Program.cs Composition
 
@@ -151,8 +143,7 @@ builder.Services
     .AddHttpWebApi()
     .AddHostedServiceManager();
 
-// Discover all [ScopedService] types in the subscriber, ref-data, and repository assemblies
-builder.Services.AddDynamicServicesUsing<ProductModifySubscriber, ReferenceDataService, ReferenceDataRepository>();
+builder.Services.AddDynamicServicesUsing<MySubscriber, ReferenceDataService, ReferenceDataRepository>();
 
 // 2. Caching — L1 memory cache + L2 Redis + FusionCache hybrid + idempotency provider
 builder.Services.AddMemoryCache();
@@ -160,33 +151,32 @@ builder.AddRedisDistributedCache("redis");
 builder.Services.AddFusionCache()
     .WithRegisteredMemoryCache()
     .WithRegisteredDistributedCache()
-    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = sp.GetRequiredService<IOptions<ConfigurationOptions>>().Value.ToString() }))
+    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = ... }))
     .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
-
 builder.Services
     .AddFusionHybridCache()
     .AddDefaultCacheKeyProvider()
     .AddHybridCacheIdempotencyProvider();
 
 // 3. Infrastructure — database, EF, outbox publisher (for transactional writes inside subscribers)
-// SQL Server (Shopping) variant:
+// SQL Server variant:
 builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
-    .AddSqlServerOutboxPublisher()              // <-- outbox publisher becomes the default IEventPublisher
-    .AddDbContext<ShoppingDbContext>()
-    .AddEfDb<ShoppingEfDb>();
+    .AddSqlServerOutboxPublisher()              // outbox publisher becomes the default IEventPublisher
+    .AddDbContext<MyDbContext>()
+    .AddEfDb<MyEfDb>();
 
-// PostgreSQL (Products) variant:
-builder.AddAzureNpgsqlDataSource("Postgres");
-builder.Services
-    .AddPostgresDatabase()
-    .AddPostgresUnitOfWork()
-    .AddEventFormatter()                        // <-- required for message formatting for publishing
-    .AddPostgresOutboxPublisher()               // <-- outbox publisher becomes the default IEventPublisher
-    .AddDbContext<ProductsDbContext>()
-    .AddEfDb<ProductsEfDb>();
+// PostgreSQL variant (use instead):
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddEventFormatter()
+//     .AddPostgresOutboxPublisher()
+//     .AddDbContext<MyDbContext>()
+//     .AddEfDb<MyEfDb>();
 
 // 4. Azure Service Bus publisher — direct publish capability (not the default IEventPublisher)
 builder.AddAzureServiceBusClient("ServiceBus");
@@ -195,13 +185,10 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
 }, addAsDefaultIEventPublisher: false);  // false because outbox publisher is already the default
 
-// 5. Event formatter + subscriber manager (Shopping only — Products included AddEventFormatter earlier)
+// 5. Event formatter + subscriber manager
 builder.Services
-    .AddEventFormatter()                                                               // Adds the EventFormatter to enable message parsing.
-    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<ProductModifySubscriber>()); // Adds the SubscribedManager and dynamically links to the individual Subscribers.
-
-// Products variant (AddEventFormatter already called):
-builder.Services.AddSubscribedManager((_, c) => c.AddSubscribersUsing<ReservationConfirmSubscriber>());
+    .AddEventFormatter()
+    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
 
 // 6. Azure Service Bus receiver wiring
 builder.Services.AzureServiceBusReceiving()
@@ -215,7 +202,7 @@ builder.Services.AzureServiceBusReceiving()
     .WithHostedService()           // runs the receiver as a BackgroundService
     .Build();
 
-// 7. External API clients (if needed — Shopping only)
+// 7. External API clients (if needed — for domains with inter-domain HTTP calls)
 builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
 
 // 8. Health checks, OpenTelemetry
@@ -229,7 +216,7 @@ builder.Services.AddOpenApiDocument(s =>
 
 builder.WithCoreExTelemetry()
     .WithCoreExServiceBusTelemetry()
-    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() for Products
+    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() for PostgreSQL
     .UseOtlpExporter();
 
 // 9. Build and middleware pipeline
@@ -263,6 +250,6 @@ app.Run();
 
 ## Further Reading
 
-- [`samples/docs/hosts-layer.md`](../../../samples/docs/hosts-layer.md#subscribe-host) — Subscribe host architecture, Program.cs shape, and subscriber patterns.
-- [`samples/docs/patterns.md`](../../../samples/docs/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries.
-- [`src/CoreEx.Azure.Messaging.ServiceBus/README.md`](../../../src/CoreEx.Azure.Messaging.ServiceBus/README.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration.
+- [Hosts Layer Guide — Subscribe Host](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) — Subscribe host architecture, Program.cs shape, and subscriber patterns.
+- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries.
+- [CoreEx.Azure.Messaging.ServiceBus README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/README.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration.

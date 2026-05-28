@@ -65,7 +65,7 @@ entities:
     excludeContract: true       # exclude from generated contract (present in persistence model only)
 ```
 
-The full schema reference is in [`src/CoreEx.CodeGen/docs/`](../../../src/CoreEx.CodeGen/docs/). Add the `$schema` annotation to the file for IDE YAML validation and auto-complete.
+Add the `$schema` annotation to the file for IDE YAML validation and auto-complete.
 
 ---
 
@@ -75,24 +75,24 @@ The full schema reference is in [`src/CoreEx.CodeGen/docs/`](../../../src/CoreEx
 
 | Package | Use case |
 |---|---|
-| `DbEx.SqlServer` + `DbEx.SqlServer.Console` | SQL Server domains (e.g. Shopping) |
-| `DbEx.Postgres` + `DbEx.Postgres.Console` | PostgreSQL domains (e.g. Products) |
+| `DbEx.SqlServer` + `DbEx.SqlServer.Console` | SQL Server domains |
+| `DbEx.Postgres` + `DbEx.Postgres.Console` | PostgreSQL domains |
 | `CoreEx.Database` | `SqlStatement` type — add its assembly to the migration runner for extended schema scripts |
 
-> **Polyglot**: Products uses `PostgresMigrationConsole` with `.pgsql` scripts and PostgreSQL functions; Shopping uses `SqlServerMigrationConsole` with `.sql` scripts and stored procedures. Choose the correct package per domain.
+> **Polyglot**: Use `PostgresMigrationConsole` with `.pgsql` scripts and PostgreSQL functions for PostgreSQL domains. Use `SqlServerMigrationConsole` with `.sql` scripts and stored procedures for SQL Server domains. Choose the correct package per domain.
 
 ### `Program.cs` pattern
 
 ```csharp
-// PostgreSQL domain (Products)
+// PostgreSQL domain example
 public static Task<int> Main(string[] args) => PostgresMigrationConsole
-    .Create<Program>("Server=127.0.0.1;Database=contoso;Username=postgres;Password=...")
+    .Create<Program>("Server=127.0.0.1;Database=mydb;Username=postgres;Password=...")
     .Configure(c => ConfigureMigrationArgs(c.Args))
     .RunAsync(args);
 
-// SQL Server domain (Shopping)
+// SQL Server domain example
 public static Task<int> Main(string[] args) => SqlServerMigrationConsole
-    .Create<Program>("Data Source=127.0.0.1,1433;Initial Catalog=Contoso;User id=sa;Password=...")
+    .Create<Program>("Data Source=127.0.0.1,1433;Initial Catalog=MyDb;User id=sa;Password=...")
     .Configure(c => ConfigureMigrationArgs(c.Args))
     .RunAsync(args);
 
@@ -101,8 +101,8 @@ public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
     args.AddAssembly<SqlStatement>().AddAssembly<Program>()
         .IncludeExtendedSchemaScripts()
         .DataParserArgs
-            .RefDataColumnDefault("SortOrder", _ => 0)
-            .RefDataColumnDefault("Scale", _ => 0);
+            .RefDataColumnDefault("SortOrder", _ => 0)        // standard — always include; defaults every ref-data row's SortOrder to zero
+            .RefDataColumnDefault("Scale", _ => 0);           // domain-specific example — only needed when a ref-data entity has a Scale column (e.g. UnitOfMeasure); omit if not applicable
 
     // Scope data reset to this domain's schema only.
     args.DataResetFilterPredicate = ts => ts.Schema == "{domain-schema}";
@@ -136,11 +136,16 @@ Composite commands for common scenarios:
 
 ### `dbex.yaml` structure
 
+Schema, table, and column names follow the casing convention of the target database:
+- **PostgreSQL** — `snake_case` throughout
+- **SQL Server** — `PascalCase` throughout
+
 ```yaml
+# PostgreSQL example
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/main/schema/dbex.json
-schema: products        # database schema name (omit for SQL Server PascalCase schemas)
+schema: products        # snake_case schema name
 outbox: true            # generate full transactional outbox infrastructure
-outboxName: outbox      # prefix for outbox tables and procedures/functions
+outboxName: outbox      # prefix for outbox tables and functions
 tables:
 # Reference-data tables
 - name: brand
@@ -151,7 +156,23 @@ tables:
 - name: inventory
 ```
 
-Add the `$schema` annotation for IDE YAML validation and auto-complete.
+```yaml
+# SQL Server example
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/main/schema/dbex.json
+schema: Products        # PascalCase schema name
+outbox: true
+outboxName: Outbox      # prefix for outbox tables and stored procedures
+tables:
+# Reference-data tables
+- name: Brand
+- name: Category
+- name: UnitOfMeasure
+# Transactional tables
+- name: Product
+- name: Inventory
+```
+
+Add the `$schema` annotation to each file for IDE YAML validation and auto-complete.
 
 ### `CodeGen` phase — generated Infrastructure C#
 
@@ -187,7 +208,8 @@ SQL conventions:
 - Wrap each script in `BEGIN TRANSACTION ... COMMIT TRANSACTION` (SQL Server) or equivalent.
 - Use explicit schema-qualified names.
 - Include `CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn` audit columns on aggregate tables.
-- Use `TIMESTAMP` / `ROWVERSION` for optimistic-concurrency columns mapped to `ETag`.
+- **SQL Server**: add a `ROWVERSION` / `TIMESTAMP` column for optimistic-concurrency mapped to `ETag`.
+- **PostgreSQL**: use the built-in hidden `xmin` system column for optimistic-concurrency — no explicit column is required in the schema.
 
 ### `Schema` — idempotent objects
 
@@ -206,7 +228,9 @@ These `.g.sql` / `.g.pgsql` files are generated by DbEx — never edit them dire
 
 ### `Data` — seeding
 
-Seed data lives in `Data/ref-data.yaml`. The root node is the schema/domain name. DbEx infers column types from the live schema.
+Seed data in `Data/ref-data.yaml` is **cross-environment** — it is applied in every environment including production. It should therefore contain only shared **reference data** (lookup tables, code lists) that must exist everywhere. Do not seed master or transactional data here unless it is genuinely required in all environments; test-specific data belongs in the test project's own `data.yaml`, applied only during test setup.
+
+The root node is the schema/domain name. DbEx infers column types from the live schema.
 
 Prefixes control merge behaviour and identifier generation:
 
@@ -238,7 +262,7 @@ products:
 
 ## Further Reading
 
-- [`samples/docs/tooling.md`](../../../samples/docs/tooling.md) — full `*.CodeGen` and `*.Database` walkthrough with command reference.
-- [`src/CoreEx.CodeGen/docs/`](../../../src/CoreEx.CodeGen/docs/) — `ref-data.yaml` schema: `CodeGeneration.md`, `Entity.md`, `Property.md`.
+- [Tooling Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md) — full `*.CodeGen` and `*.Database` walkthrough with command reference.
+- [CodeGen Schema Docs](https://github.com/Avanade/CoreEx/tree/main/src/CoreEx.CodeGen/docs) — `ref-data.yaml` schema: `CodeGeneration.md`, `Entity.md`, `Property.md`.
 - [DbEx on GitHub](https://github.com/Avanade/DbEx) — DbEx command reference, YAML schema, and migration script conventions.
 - [OnRamp on GitHub](https://github.com/Avanade/OnRamp) — Handlebars-based code generation engine used by `*.CodeGen`.

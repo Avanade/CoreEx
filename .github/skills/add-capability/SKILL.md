@@ -43,8 +43,8 @@ For detailed step-by-step workflow, see [`references/workflow.md`](references/wo
 
 ## Key References
 
-- [Host Setup Conventions](/.github/instructions/host-setup.instructions.md)
-- [Event Subscriber Conventions](/.github/instructions/event-subscribers.instructions.md)
-- [Application Service Conventions](/.github/instructions/application-services.instructions.md)
-- [Developer Tooling Conventions](/.github/instructions/tooling.instructions.md)
+- [Host Setup Conventions](/.github/instructions/coreex-host-setup.instructions.md)
+- [Event Subscriber Conventions](/.github/instructions/coreex-event-subscribers.instructions.md)
+- [Application Service Conventions](/.github/instructions/coreex-application-services.instructions.md)
+- [Developer Tooling Conventions](/.github/instructions/coreex-tooling.instructions.md)
 - Sample hosts: `samples/src/Contoso.Products.Api/Program.cs`, `samples/src/Contoso.Products.Subscribe/Program.cs`, `samples/src/Contoso.Products.Outbox.Relay/Program.cs`

@@ -5,10 +5,10 @@
 Before making changes, load:
 
 1. Instruction files in `/.github/instructions/`:
-   - `host-setup.instructions.md`
-   - `event-subscribers.instructions.md`
-   - `application-services.instructions.md`
-   - `tooling.instructions.md`
+   - `coreex-host-setup.instructions.md`
+   - `coreex-event-subscribers.instructions.md`
+   - `coreex-application-services.instructions.md`
+   - `coreex-tooling.instructions.md`
 
 2. Sample host wiring from:
    - `samples/src/Contoso.Products.Api/Program.cs`

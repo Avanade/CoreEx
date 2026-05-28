@@ -68,7 +68,7 @@ Reusable templates and examples:
 When skills reference each other, instructions, or samples:
 
 - **Relative paths**: `../other-skill/references/...` (for other skills)
-- **Absolute workspace paths**: `/.github/instructions/host-setup.instructions.md`, `/samples/src/Contoso.Products.Api/Program.cs`
+- **Absolute workspace paths**: `/.github/instructions/coreex-host-setup.instructions.md`, `/samples/src/Contoso.Products.Api/Program.cs`
 - Always verify links work before committing
 - Prefer workspace-relative links for durability
 
@@ -132,9 +132,9 @@ For detailed step-by-step guidance, see [`references/workflow.md`](references/wo
 
 ## Key References
 
-- [Application Services Instructions](/.github/instructions/application-services.instructions.md)
-- [Contracts Instructions](/.github/instructions/contracts.instructions.md)
-- [Host Setup Instructions](/.github/instructions/host-setup.instructions.md)
+- [Application Services Instructions](/.github/instructions/coreex-application-services.instructions.md)
+- [Contracts Instructions](/.github/instructions/coreex-contracts.instructions.md)
+- [Host Setup Instructions](/.github/instructions/coreex-host-setup.instructions.md)
 - [Sample Domains](./samples/src/Contoso.Products/)
 - [Roslyn Source Generation](./docs/capabilities.md)
 ```

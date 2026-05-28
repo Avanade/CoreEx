@@ -10,7 +10,7 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions/extensions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
+| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
 | `UnitTestEx` | `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()` |
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
 | `AwesomeAssertions` | `.Should()`, `.Be()`, `.HaveCount()` |
@@ -35,9 +35,9 @@ Every integration test class must have a `[OneTimeSetUp]` method. Order of opera
 1. Migrate + seed the domain database.
 2. Clear the hybrid cache.
 3. Register event-capture publishers.
-4. Set up inter-domain HTTP mocks (Shopping only).
+4. Set up inter-domain HTTP mocks (for domains with cross-domain adapters).
 
-**Shopping (SQL Server):**
+**(SQL Server example):**
 ```csharp
 [OneTimeSetUp]
 public async Task OneTimeSetUpAsync()
@@ -55,7 +55,7 @@ public async Task OneTimeSetUpAsync()
 }
 ```
 
-**Products (Postgres):**
+**(PostgreSQL example):**
 ```csharp
 [OneTimeSetUp]
 public async Task OneTimeSetUpAsync()
@@ -67,9 +67,9 @@ public async Task OneTimeSetUpAsync()
 }
 ```
 
-**Outbox assertion helpers are database-specific.** Use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` for Products; use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` for Shopping. Never mix them.
+**Outbox assertion helpers are database-specific.** Use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` for PostgreSQL domains; use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` for SQL Server domains. Never mix them.
 
-`DataResetFilterPredicate` in `DbMigration.ConfigureMigrationArgs` scopes the reset to the domain's own schema — Products and Shopping test runs do not corrupt each other even when run concurrently.
+`DataResetFilterPredicate` in `DbMigration.ConfigureMigrationArgs` scopes the reset to the domain's own schema — multiple domains' test runs do not corrupt each other even when run concurrently.
 
 ---
 
@@ -96,7 +96,7 @@ Test.Http()
     .AssertOK()
     .AssertJsonFromResource("ReadTests.Product_Get_Found.res.json", "etag", "changelog");
 
-// POST — Products (Postgres outbox)
+// POST — PostgreSQL domain (Postgres outbox)
 var created = Test.Http<Product>()
     .ExpectIdentifier()
     .ExpectETag()
@@ -109,7 +109,7 @@ var created = Test.Http<Product>()
     .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))
     .Value!;
 
-// POST — Shopping (SQL Server outbox)
+// POST — SQL Server domain (SQL Server outbox)
 Test.Http<Basket>()
     .ExpectSqlServerOutboxEvents(e => e
         .AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1"))
@@ -138,7 +138,7 @@ Expected response bodies live in `Resources/` as `.res.json` files. Reference th
 .AssertJsonFromResource("Basket_Checkout_Insufficient_Quantity.products.res.json", "traceid");
 ```
 
-Mock request bodies use `.req.json`; mock response bodies from a downstream API use `.products.res.json` (by convention, prefixed with the remote domain name).
+Mock request bodies use `.req.json`; mock response bodies from a downstream API use `.{domain}.res.json` (prefixed with the remote domain name by convention).
 
 ---
 
@@ -218,7 +218,7 @@ public class InventoryValidatorTests : WithGenericTester<EntryPoint>
 Subscribe test classes extend `WithApiTester<Program>` over the subscriber host. The `[OneTimeSetUp]` migrates/seeds the domain DB and clears FusionCache, just like an API test. Subscribe hosts **do** have FusionCache — they are full application-layer consumers that need caching for reference data and idempotency.
 
 ```csharp
-public class ProductModifySubscriberTests : WithApiTester<Contoso.Shopping.Subscribe.Program>
+public class ProductModifySubscriberTests : WithApiTester<YourDomain.Subscribe.Program>
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
@@ -231,21 +231,6 @@ public class ProductModifySubscriberTests : WithApiTester<Contoso.Shopping.Subsc
 }
 ```
 
-**Products Subscribe host tests (Postgres):**
-```csharp
-public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.Program>
-{
-    [OneTimeSetUp]
-    public async Task OneTimeSetUpAsync()
-    {
-        await Test.MigratePostgresDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
-        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
-
-        Test.UseExpectedPostgresOutboxPublisher();
-    }
-}
-```
-
 ---
 
 ## Outbox Relay Host Tests
@@ -253,7 +238,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
 Relay tests extend `WithApiTester<Program>` over the relay host. Use `Test.ScopedType<ExecutionContext>` to write events directly to the outbox, wait for the relay background service to forward them, then assert via `Test.GetAndClearAzureServiceBusAsync()`.
 
 ```csharp
-public class RelayTests : WithApiTester<Contoso.Products.Outbox.Relay.Program>
+public class RelayTests : WithApiTester<YourDomain.Outbox.Relay.Program>
 {
     [Test]
     public async Task Outbox_Relay()
@@ -309,9 +294,9 @@ Basket_Checkout_Insufficient_Quantity
 ## Do Not
 
 - Do not use `[TestCase]` for integration tests — create separate named test methods for each scenario.
-- Do not use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` in Products tests — use the Postgres equivalents.
-- Do not use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` in Shopping tests — use the SQL Server equivalents.
-- Do not call `ClearFusionCacheAsync()` in Outbox Relay host tests — relay hosts have no cache (they are minimal forwarding infrastructure only).
+- Do not use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` in PostgreSQL domain tests — use the Postgres equivalents.
+- Do not use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` in SQL Server domain tests — use the SQL Server equivalents.
+- Do not call `ClearFusionCacheAsync()` in Outbox Relay host tests — relay hosts have no cache.
 - Do not test inter-domain HTTP calls against a real API — always mock with `MockHttpClientFactory`.
 - Do not call `Test.ReplaceHttpClientFactory()` inside individual tests — configure it once in `[OneTimeSetUp]`.
 - Do not use `FluentAssertions` — use `AwesomeAssertions` (the `AwesomeAssertions` NuGet package).
@@ -319,5 +304,5 @@ Basket_Checkout_Insufficient_Quantity
 
 ## Further Reading
 
-- [`samples/docs/testing.md`](../../samples/docs/testing.md) — full test architecture, data seeding, schema isolation, and E2E runner.
-- [`samples/docs/patterns.md`](../../samples/docs/patterns.md) — pattern catalog linking testing patterns to layer docs.
+- [Testing Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/testing.md) — full test architecture, data seeding, schema isolation, and E2E runner.
+- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — pattern catalog linking testing patterns to layer docs.

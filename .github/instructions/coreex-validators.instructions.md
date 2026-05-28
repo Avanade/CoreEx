@@ -10,9 +10,9 @@ tags: ["validators", "validation", "fluent-api", "rules", "error-handling", "app
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.Validation` | `Validator<T, TSelf>`, `Validator<T>`, `AbstractValidator<T, TSelf>`, `AbstractValidator<T>`, `Validator.Create<T>()`, `.Mandatory()`, `.MaximumLength()`, `.IsValid()`, `.PrecisionScale()`, `.GreaterThanOrEqualTo()`, `.LessThanOrEqualTo()`, `.Equal()`, `.NotFound()`, `.WhenValue()`, `.Error()`, `.DependsOn()`, `.Entity()`, `.Dictionary()`, `.WithKeyValidator()`, `.WithValueValidator()`, `ValidationContext<T>`, `.ValidateFurtherAsync()`, `.ValidateAndThrowAsync()`, `.ValidateWithResultAsync()`, `.AssertErrors()` (test helper) |
-| `CoreEx` | `LText` — localised text label for use in `.WithKeyValidator(label, ...)` and similar |
-| `CoreEx.Localization` | `[Localization(...)]` attribute on contract properties |
+| `CoreEx.Validation` | `Validator<T, TSelf>`, `Validator<T>`, `AbstractValidator<T, TSelf>`, `AbstractValidator<T>`, `Validator.Create<T>()`, `.Mandatory()`, `.MaximumLength()`, `.IsValid()`, `.PrecisionScale()`, `.GreaterThanOrEqualTo()`, `.LessThanOrEqualTo()`, `.Equal()`, `.NotFound()`, `.WhenValue()`, `.Error()`, `.DependsOn()`, `.Entity()`, `.Dictionary()`, `.WithKeyValidator()`, `.WithValueValidator()`, `ValidationContext<T>`, `.ValidateFurtherAsync()`, `.ValidateAndThrowAsync()`, `.ValidateWithResultAsync()` |
+| `CoreEx` | `LText` — localised text label for use in `.WithKeyValidator(label, ...)`; `[Localization(...)]` attribute on contract properties |
+| `CoreEx.UnitTesting` | `.AssertErrors()` — test-only helper for asserting expected validation errors inline |
 
 ## Placement
 
@@ -199,6 +199,6 @@ Property(x => x.Quantity, c => c
 
 ## Further Reading
 
-- [`samples/docs/application-layer.md`](../../../samples/docs/application-layer.md#validators) — full validator walkthrough including declarative and programmatic phases.
-- [`samples/docs/patterns.md`](../../../samples/docs/patterns.md) — Validator pattern entry with cross-links.
-- [`src/CoreEx.Validation/README.md`](../../../src/CoreEx.Validation/README.md) — `Validator<T>`, rule set, `OnValidateAsync`, `ValidateFurtherAsync`, and `AbstractValidator`.
+- [Application Layer Guide — Validators](https://github.com/Avanade/CoreEx/blob/main/samples/docs/application-layer.md) — full validator walkthrough including declarative and programmatic phases.
+- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Validator pattern entry with cross-links.
+- [CoreEx.Validation README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Validation/README.md) — `Validator<T>`, rule set, `OnValidateAsync`, `ValidateFurtherAsync`, and `AbstractValidator`.

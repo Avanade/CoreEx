@@ -1,14 +1,14 @@
 ---
 applyTo: "**/Program.cs"
-description: "Host setup conventions for Program.cs: API host, Subscribe host, middleware, service registration, and distributed caching"
+description: "Host setup conventions for Program.cs: API host, Subscribe host, Outbox Relay host, middleware, service registration, and distributed caching"
 tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "caching"]
 ---
 
 # Host Setup Conventions (Program.cs)
 
-The host is a **composition root only** — no business logic. There are three host types in a CoreEx solution. Each follows the same opening skeleton, then diverges based on its responsibilities.
+The host is a **composition root only** — no business logic. There are three host types in a CoreEx solution depending on the capabilities required. Each follows the same opening skeleton, then diverges based on its responsibilities.
 
-> **Further Reading**: [`samples/docs/hosts-layer.md`](../../samples/docs/hosts-layer.md) · [`samples/docs/layers.md`](../../samples/docs/layers.md) · [`samples/docs/patterns.md`](../../samples/docs/patterns.md)
+> **Further Reading**: [Hosts Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md)
 
 ---
 
@@ -88,15 +88,26 @@ builder.Services
     .AddDefaultCacheKeyProvider()
     .AddHybridCacheIdempotencyProvider();
 
-// Database, EF, outbox publisher (SQL Server example; use Postgres equivalents for Products).
+// Database, EF, outbox publisher.
+// SQL Server variant:
 builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
     .AddEventFormatter()
     .AddSqlServerOutboxPublisher()
-    .AddDbContext<ShoppingDbContext>()
-    .AddEfDb<ShoppingEfDb>();
+    .AddDbContext<MyDbContext>()
+    .AddEfDb<MyEfDb>();
+
+// PostgreSQL variant (use instead of SQL Server):
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddEventFormatter()
+//     .AddPostgresOutboxPublisher()
+//     .AddDbContext<MyDbContext>()
+//     .AddEfDb<MyEfDb>();
 
 builder.Services.PostConfigureAllHealthChecks();
 builder.Services.AddControllers();
@@ -121,8 +132,7 @@ Key points:
 - `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
 - FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
 - `AddEventFormatter()` is required wherever events are published or parsed.
-- `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` (no generic type parameter).
-- Products uses `AddPostgresDatabase()` / `AddPostgresUnitOfWork()` / `AddPostgresOutboxPublisher()` / `WithCoreExPostgresTelemetry()` instead of the SQL Server variants.
+- `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` take no generic type parameter.
 - `UseIdempotencyKey()` must come **after** `UseExecutionContext()`.
 - If the domain also publishes directly to Service Bus (e.g. for cross-domain adapters), add `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` so the outbox publisher remains the default `IEventPublisher`.
 
@@ -156,16 +166,26 @@ builder.Services
     .AddDefaultCacheKeyProvider()
     .AddHybridCacheIdempotencyProvider();
 
-// Domain database + outbox publisher (for writes triggered by inbound events).
+// Domain database + outbox publisher.
+// SQL Server variant:
 builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
     .AddSqlServerOutboxPublisher()
-    .AddDbContext<ShoppingDbContext>()
-    .AddEfDb<ShoppingEfDb>();
+    .AddDbContext<MyDbContext>()
+    .AddEfDb<MyEfDb>();
 
-// Service Bus: outbox publisher is the default IEventPublisher.
+// PostgreSQL variant (use instead of SQL Server):
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddPostgresOutboxPublisher()
+//     .AddDbContext<MyDbContext>()
+//     .AddEfDb<MyEfDb>();
+
+// Service Bus: keep outbox publisher as the default IEventPublisher.
 builder.AddAzureServiceBusClient("ServiceBus");
 builder.Services.AddAzureServiceBusPublisher((_, c) =>
 {
@@ -192,7 +212,10 @@ builder.Services.PostConfigureAllHealthChecks();
 builder.Services.AddControllers();
 builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.ApplicationName; s.AddCoreExConfiguration(); });
 
-builder.WithCoreExTelemetry().WithCoreExServiceBusTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();
+builder.WithCoreExTelemetry()
+    .WithCoreExServiceBusTelemetry()
+    .WithCoreExSqlServerTelemetry()   // or .WithCoreExPostgresTelemetry() for PostgreSQL
+    .UseOtlpExporter();
 
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
@@ -210,11 +233,10 @@ app.Run();
 Key points:
 - Subscribe hosts **do** include `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` — subscribers call application services that need reference data for validation and business logic.
 - Subscribe hosts **do** include FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` — caching is required for reference data; idempotency is required to safely handle duplicate message delivery.
-- Subscribe hosts **do** include database/EF Core and outbox publisher — subscribers persist domain data and publish outbound events as part of their message-processing logic.
+- Subscribe hosts **do** include database/EF Core and outbox publisher — subscribers persist domain data and publish outbound events.
 - `AddHostedServiceManager()` must be registered before `AzureServiceBusReceiving()`.
 - `AddSubscribersUsing<T>()` scans the assembly of `T` and auto-registers all `[Subscribe]`-decorated classes — no manual registration per subscriber.
 - `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` keeps the outbox publisher as the default `IEventPublisher` for transactional writes.
-- `AddEventFormatter()` is required for message parsing and formatting.
 - `MapHostedServices()` must come **after** `MapHealthChecks()`.
 
 ---
@@ -231,7 +253,7 @@ builder.Services
     .AddHttpWebApi()
     .AddHostedServiceManager();
 
-// Database + outbox relay (SQL Server example; use Postgres equivalents for Products).
+// SQL Server example; use Postgres equivalents for PostgreSQL domains.
 builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
@@ -239,6 +261,14 @@ builder.Services
     .AddSqlServerOutboxRelay();   // No configuration lambda required.
 
 builder.AddSqlServerOutboxRelayHostedService();
+
+// PostgreSQL variant:
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddPostgresOutboxRelay();
+// builder.AddPostgresOutboxRelayHostedService();
 
 // Service Bus publisher — this IS the default IEventPublisher for the relay.
 builder.AddAzureServiceBusClient("ServiceBus");
@@ -263,7 +293,5 @@ app.Run();
 Key points:
 - The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services.
 - `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
-- `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` registers the background relay pump — call these on `builder`, not `builder.Services`.
-- No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`.
-- `UseAuthorization()` is also omitted in the Relay host.
-- Products uses `AddAzureNpgsqlDataSource("Postgres")` + `AddPostgresDatabase()` / `AddPostgresUnitOfWork()` / `AddPostgresOutboxRelay()` / `AddPostgresOutboxRelayHostedService()` / `WithCoreExPostgresTelemetry()` instead of the SQL Server variants.
+- `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` register the background relay pump — call these on `builder`, not `builder.Services`.
+- No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`, no `UseAuthorization()`.

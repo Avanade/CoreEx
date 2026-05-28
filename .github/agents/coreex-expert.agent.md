@@ -20,16 +20,16 @@ Your mission:
 - `.github/SKILL_AUTHORING.md` — standards for authoring skills (`SKILL.md` files).
 
 ### Scoped instruction files (auto-applied by file glob, read these for area-specific rules)
-- `.github/instructions/contracts.instructions.md` — entity contracts, `[Contract]`, `[ReferenceData]`, source generation.
-- `.github/instructions/domain.instructions.md` — DDD aggregates, `Entity<TId,TSelf>`, mutation guards, `Result<T>` pipelines.
-- `.github/instructions/application-services.instructions.md` — service shape, `TransactionAsync`, validation-before-transaction, event enqueuing.
-- `.github/instructions/validators.instructions.md` — `AbstractValidator<T>`, rule chains, `CommonValidator`, `ValidateAndThrowAsync`.
-- `.github/instructions/repositories.instructions.md` — `EfDbModel`, `IBiDirectionMapper`, `QueryArgsConfig`, paging.
-- `.github/instructions/api-controllers.instructions.md` — controller shape, `WebApi` helpers, `[IdempotencyKey]`, PATCH.
-- `.github/instructions/event-subscribers.instructions.md` — subscriber classes, `[Subscribe]`, `SubscribedManager`, error handling.
-- `.github/instructions/host-setup.instructions.md` — `Program.cs` shape, middleware order, service registration, outbox relay hosts.
-- `.github/instructions/tooling.instructions.md` — `*.CodeGen` and `*.Database` projects, `ref-data.yaml`, DbEx, generated-file ownership.
-- `.github/instructions/tests.instructions.md` — `UnitTestEx`, `NUnit`, `AwesomeAssertions`, outbox/event expectations, seed data.
+- `.github/instructions/coreex-contracts.instructions.md` — entity contracts, `[Contract]`, `[ReferenceData]`, source generation.
+- `.github/instructions/coreex-domain.instructions.md` — DDD aggregates, `Entity<TId,TSelf>`, mutation guards, `Result<T>` pipelines.
+- `.github/instructions/coreex-application-services.instructions.md` — service shape, `TransactionAsync`, validation-before-transaction, event enqueuing.
+- `.github/instructions/coreex-validators.instructions.md` — `AbstractValidator<T>`, rule chains, `CommonValidator`, `ValidateAndThrowAsync`.
+- `.github/instructions/coreex-repositories.instructions.md` — `EfDbModel`, `IBiDirectionMapper`, `QueryArgsConfig`, paging.
+- `.github/instructions/coreex-api-controllers.instructions.md` — controller shape, `WebApi` helpers, `[IdempotencyKey]`, PATCH.
+- `.github/instructions/coreex-event-subscribers.instructions.md` — subscriber classes, `[Subscribe]`, `SubscribedManager`, error handling.
+- `.github/instructions/coreex-host-setup.instructions.md` — `Program.cs` shape, middleware order, service registration, outbox relay hosts.
+- `.github/instructions/coreex-tooling.instructions.md` — `*.CodeGen` and `*.Database` projects, `ref-data.yaml`, DbEx, generated-file ownership.
+- `.github/instructions/coreex-tests.instructions.md` — `UnitTestEx`, `NUnit`, `AwesomeAssertions`, outbox/event expectations, seed data.
 
 ### Sample architecture docs (real-world usage patterns)
 - `samples/docs/layers.md` — full layer dependency diagram, design-time tooling overview, dependency rules.

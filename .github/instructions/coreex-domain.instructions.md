@@ -1,20 +1,19 @@
 ---
 applyTo: "**/Domain/**/*.cs"
-description: "Domain layer conventions: aggregates, entities, value objects, PersistenceState tracking, and Result-based mutation methods"
+description: "Domain layer conventions: aggregates, entities, value objects, PersistenceState tracking, and mutation methods"
 tags: ["domain", "ddd", "aggregates", "entities", "value-objects", "result"]
 ---
 
 # Domain Layer Conventions
 
-The Domain layer is **optional**. It is introduced only when a domain contains aggregates with meaningful business rules and invariants that must be enforced at the model level — not in orchestration code. Shopping includes this layer; Products, being a largely CRUD-oriented domain, does not.
+The Domain layer is **optional**. It is introduced only when a domain contains aggregates with meaningful business rules and invariants that must be enforced at the model level — not in orchestration code. For example, a checkout/basket domain with state-machine transitions and nested item rules benefits from this layer; a simple CRUD-oriented domain (like a product catalog) typically does not.
 
 ## NuGet / Project References
 
 | Package | Key types provided |
 |---|---|
 | `CoreEx.DomainDriven` | `Aggregate<TId, TSelf>`, `Entity<TId, TSelf>`, `PersistenceState`, `.AsNew()`, `.AsNotModified()`, `.SetPersistenceState()` |
-| `CoreEx` | `Result`, `Result<T>`, `Runtime.NewId()`, `.ThrowIfNull()`, `.ThrowIfNullOrEmpty()`, `.ThrowIfInactive()`, `.ThrowIfLessThanZero()`, `ValidationException` |
-| `CoreEx.Results` | `Result.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `Result.BusinessError()`, `Result.NotFoundError()`, `Result.ValidationError()` |
+| `CoreEx` | `Result`, `Result<T>`, `Result.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `Result.BusinessError()`, `Result.NotFoundError()`, `Result.ValidationError()`, `Runtime.NewId()`, `.ThrowIfNull()`, `.ThrowIfNullOrEmpty()`, `.ThrowIfInactive()`, `.ThrowIfLessThanZero()`, `ValidationException` |
 
 ## Aggregates
 
@@ -85,7 +84,7 @@ protected override void OnMutate()
 
 ### Public Mutation Methods
 
-All public mutation methods must return `Result` or `Result<T>` so the Application layer can compose them in pipelines. Use `Modify(...)` to apply the mutation, which enforces the `OnCheckCanMutate()` guard:
+Public mutation methods should return `Result` or `Result<T>` — this is the preferred style because it makes failures explicit and composable in `Result<T>` pipelines in the Application layer. `BusinessException` can be thrown where that feels more natural, but the `Result` return style is recommended for consistency with the aggregate's `OnCheckCanMutate()` pattern. Use `Modify(...)` to apply the mutation, which enforces the `OnCheckCanMutate()` guard:
 
 ```csharp
 public Result ItemAdd(BasketItem item) => Modify(() =>
@@ -143,6 +142,8 @@ public sealed class BasketItem : Entity<string, BasketItem>
 
 Keep mutation methods on child entities `internal` so they can only be invoked by the owning aggregate — never directly from the Application layer.
 
+Guard methods (`.ThrowIfNull()`, `.ThrowIfNullOrEmpty()`, `.ThrowIfInactive()`, `.ThrowIfLessThanZero()`) **return the guarded value** when the check passes, making them natural for inline use in property setters, `init` expressions, and method calls — as shown throughout the examples above. They also chain: `value.ThrowIfNull().ThrowIfInactive()` checks both conditions and returns the value if both pass.
+
 ## PersistenceState
 
 `PersistenceState` tracks the lifecycle of each aggregate and entity so the Infrastructure layer knows exactly what to persist without being told explicitly:
@@ -173,7 +174,6 @@ public sealed record class ItemPricing
     public decimal Quantity { get; init => field = value.ThrowIfLessThanZero(); }
     public decimal Total => UnitPrice * Quantity;
 
-    // Additional validation that cannot be expressed in a single property rule.
     public ItemPricing EnsureIsValid() => DecimalRuleHelper.CheckScale(Quantity, UnitOfMeasure.Scale) ? this
         : throw new ValidationException($"Quantity decimal places exceed the unit-of-measure scale of {UnitOfMeasure.Scale}.");
 }
@@ -189,19 +189,20 @@ Only introduce a Domain layer when the domain genuinely has:
 - Business rules that depend on the current aggregate state, not on external I/O.
 - The need to protect consistency boundaries across multiple child entities.
 
-For CRUD-oriented domains (like Products), skip the Domain layer entirely and let the Application service orchestrate directly against repository interfaces.
+For CRUD-oriented domains, skip the Domain layer entirely and let the Application service orchestrate directly against repository interfaces.
 
 ## Do Not
 
 - Do not perform async I/O (repository calls, HTTP requests) inside domain classes — async work belongs in Application services or Policies.
 - Do not expose child entity mutation methods as `public` — use `internal` so only the owning aggregate can drive mutations.
-- Do not throw exceptions for expected business failures in domain methods — return `Result.BusinessError(...)` or `Result.NotFoundError()` and let the Application layer propagate.
+- Prefer returning `Result.BusinessError(...)` or `Result.NotFoundError()` over throwing exceptions for expected business failures in domain methods — this keeps failures explicit and composable. Throwing `BusinessException` is acceptable where it feels more natural, but the `Result` style is recommended for consistency.
 - Do not reference Infrastructure, Application, or host assemblies from the Domain layer — it depends only on Contracts and CoreEx.
 - Do not model value objects as classes with mutable properties — use `sealed record` with `init` setters and invariant enforcement at construction.
 
 ## Further Reading
 
-- [`samples/docs/domain-layer.md`](../../../samples/docs/domain-layer.md) — aggregates, entities, value objects, and `PersistenceState` walkthrough.
-- [`samples/docs/patterns.md`](../../../samples/docs/patterns.md) — Aggregate, Entity, and Value Object pattern entries with cross-links.
-- [`samples/docs/layers.md`](../../../samples/docs/layers.md) — when to introduce the Domain layer and its position in the dependency graph.
-- [`src/CoreEx.DomainDriven/README.md`](../../../src/CoreEx.DomainDriven/README.md) — `Aggregate<TId,TSelf>`, `Entity<TId,TSelf>`, and `PersistenceState`.
+- [Domain Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/domain-layer.md) — aggregates, entities, value objects, and `PersistenceState` walkthrough.
+- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Aggregate, Entity, and Value Object pattern entries with cross-links.
+- [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) — when to introduce the Domain layer and its position in the dependency graph.
+- [CoreEx.DomainDriven README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/README.md) — `Aggregate<TId,TSelf>`, `Entity<TId,TSelf>`, and `PersistenceState`.
+- [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) — `Result<T>` type, pipeline operators (`.GoAsync`, `.ThenAs`, `.ThenAsAsync`), and error propagation semantics.

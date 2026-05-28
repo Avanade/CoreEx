@@ -10,20 +10,28 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "mapping", "ad
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `EventData` |
-| `CoreEx.EntityFrameworkCore` | `EfDb<TContext>`, `EfDbModel<T>`, `EfDbMappedModel<TContract,TModel,TMapper>`, `EfDbOptions`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.GetWithResultAsync()`, `.CreateWithResultAsync()`, `.UpdateWithResultAsync()`, `.Query()` |
-| `CoreEx.Database.SqlServer` | SQL Server outbox publisher, ADO.NET helpers — **Shopping only** |
-| `CoreEx.Database.Postgres` | PostgreSQL outbox publisher, ADO.NET helpers — **Products only** |
-| `CoreEx.Data` | `DataResult<T>`, `ItemsResult<T>`, `QueryArgsConfig`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)`, `.ToMappedItemsResultAsync()` |
-| `CoreEx.Results` | `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()` |
+| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()` |
+| `CoreEx.Events` | `EventData` |
+| `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
+| `CoreEx.EntityFrameworkCore` | `EfDb<TContext>`, `EfDbModel<T>`, `EfDbMappedModel<TContract,TModel,TMapper>`, `EfDbOptions`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.GetWithResultAsync()`, `.CreateWithResultAsync()`, `.UpdateWithResultAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
+| `CoreEx.Database.SqlServer` | SQL Server outbox publisher, ADO.NET helpers |
+| `CoreEx.Database.Postgres` | PostgreSQL outbox publisher, ADO.NET helpers |
 
-> **Polyglot data**: Products uses PostgreSQL (`CoreEx.Database.Postgres` + `Npgsql.EntityFrameworkCore.PostgreSQL`); Shopping uses SQL Server (`CoreEx.Database.SqlServer` + `Microsoft.EntityFrameworkCore.SqlServer`). Layers above Infrastructure are database-agnostic.
+> **Polyglot data**: Use `CoreEx.Database.Postgres` + `Npgsql.EntityFrameworkCore.PostgreSQL` for PostgreSQL domains. Use `CoreEx.Database.SqlServer` + `Microsoft.EntityFrameworkCore.SqlServer` for SQL Server domains. Layers above Infrastructure are database-agnostic.
 
 ## Structure
 
-- Define the repository interface in the Application project under `Application/Repositories/`.
-- Implement in the Infrastructure project under `Repositories/`. Register with `[ScopedService<IInterface>]`.
-- Inject the domain's `*EfDb` class via primary constructor and guard with `.ThrowIfNull()`.
+The Infrastructure project is organised into focused sub-folders. The table below shows the standard layout and where each type lives:
+
+| Sub-folder | Contents |
+|---|---|
+| `Repositories/` | `IXxxRepository` implementations (registered with `[ScopedService<IInterface>]`); `*EfDb.cs` — typed model accessor; `*DbContext.cs` — hand-authored EF `DbContext` (implements `IEfDbContext`, calls `AddGeneratedModels()`); `*DbContext.g.cs` — **generated** ModelBuilder configuration produced by the `*.Database` tooling. |
+| `Mapping/` | Bidirectional mappers (`BiDirectionMapper<TContract, TModel, TSelf>`) between Contract types and Persistence model types. |
+| `Adapters/` | Implementations of `IXxxAdapter` interfaces defined in `Application/Adapters/`. Registered with `[ScopedService<IInterface>]`. |
+| `Clients/` | Typed HTTP client wrappers — one class per external service. Registered via `AddTypedHttpClient<T>()` in `Program.cs`. |
+| `Persistence/` | EF entity/model classes. These are **generated** (`*.g.cs`) by the `*.Database` tooling project — do not create or edit manually. |
+
+Repository and adapter implementations follow the same primary-constructor + guard pattern:
 
 ```csharp
 [ScopedService<IProductRepository>]
@@ -41,11 +49,33 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
 | Create / Update | `Task<DataResult<TEntity>>` | Includes mutation flag for event decisions |
 | Delete | `Task<DataResult>` | Carries mutation flag only |
 | Collection query | `Task<ItemsResult<T>>` | Items + optional total count |
-| Domain aggregate (Shopping) | `Task<Result<TAgg>>` | Wraps EF result with domain-model mapping |
+| Result pipeline (optional) | `Task<Result<T>>` | Developer choice — can be used on any repository method; enables explicit failure propagation without exceptions |
 
-## EfDb — Unit-of-Work Facade
+## EfDb and DbContext
 
-The `*EfDb` sub-class (`ProductsEfDb` / `ShoppingEfDb`) is the **unit-of-work facade** over the `DbContext`. It declares a typed property per entity model and configures global options (e.g., logical-delete filters). The `DbContext` delegates connection and transaction management to CoreEx's `IDatabase`, so the same connection is shared across a request.
+### DbContext
+
+`*DbContext` inherits from EF Core's `DbContext` and **must** implement `IEfDbContext`. This interface exposes the `IDatabase` instance to `EfDb`, which uses it to synchronise EF Core's transaction with the underlying ADO.NET connection — ensuring raw SQL and EF operations share the same connection and transaction:
+
+```csharp
+public partial class ProductsDbContext(DbContextOptions<ProductsDbContext> options, SqlServerDatabase database) // PostgreSQL: PostgresDatabase
+    : DbContext(options), IEfDbContext
+{
+    public IDatabase BaseDatabase { get; } = database.ThrowIfNull();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.AddGeneratedModels(); // wires in the generated *DbContext.g.cs ModelBuilder configurations
+    }
+}
+```
+
+`*DbContext.g.cs` (generated by the `*.Database` tooling) contains the `ModelBuilder` entity configurations. The hand-authored `*DbContext.cs` must call `modelBuilder.AddGeneratedModels()` in `OnModelCreating` to apply them — without this call the generated configuration is not wired up.
+
+### EfDb
+
+`*EfDb` extends `EfDb<TContext>` and acts as a **typed accessor** over the `DbContext`. It exposes strongly-typed `EfDbModel<T>` and `EfDbMappedModel<TContract,TModel,TMapper>` properties per entity, and uses `EfDbOptions` to configure per-model behaviour. Repositories inject `*EfDb` directly — not the `DbContext` itself:
 
 ```csharp
 public sealed class ProductsEfDb(ProductsDbContext dbContext) : EfDb<ProductsDbContext>(dbContext, _options)
@@ -61,6 +91,10 @@ public sealed class ProductsEfDb(ProductsDbContext dbContext) : EfDb<ProductsDbC
     // ...
 }
 ```
+
+`EfDbOptions` configures key behaviours: default `EfDbArgs`, per-model options (e.g. `WithLogicalDeleteFilter()`), and tenant filtering. See the [CoreEx.Database README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Database/README.md) for full detail.
+
+> **Unit of work**: `EfDb` is **not** the unit of work. Transactions are managed by `IUnitOfWork` (from `CoreEx.Data`), with concrete SQL Server and PostgreSQL implementations wired to `IDatabase` and registered in DI. Application services inject `IUnitOfWork`; repositories inject `*EfDb`.
 
 ## EF Delegate Shortcuts
 
@@ -131,9 +165,9 @@ Expose the query schema for the `$query` endpoint via `ToJsonSchema()`:
 public Task<JsonElement> QuerySchemaAsync() => Task.FromResult(_queryConfig.ToJsonSchema());
 ```
 
-## Domain-Aggregate Repositories (Result Pattern)
+## Result&lt;T&gt; Pipeline in Repositories
 
-For Shopping-style aggregate repositories, chain `Result` operations using `.GoAsync` / `.ThenAs` / `.ThenAsAsync`. Map between persistence models and domain aggregates using the explicit infrastructure mappers:
+Using the `Result<T>` pipeline is a developer choice — it can be applied in repositories, application services, or domain methods wherever explicit failure propagation is preferred over exceptions. When used in a repository, chain operations using `.GoAsync` / `.ThenAs` / `.ThenAsAsync`. The example below also shows Domain ↔ Persistence mapping via infrastructure mappers:
 
 ```csharp
 public Task<Result<Domain.Basket>> GetAsync(string id) => Result
@@ -177,14 +211,14 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
 }
 ```
 
-Infrastructure-level mapping is always Contract ↔ Persistence. Application-level mapping (Domain aggregate ↔ Contract) lives in `Application/Mapping/` and uses `Mapper<TSource, TDest, TSelf>`. Do not conflate the two.
+Infrastructure-level mapping covers either **Contract ↔ Persistence** (CRUD domains) or **Domain ↔ Persistence** (domains with a Domain layer, where the aggregate is mapped to/from the persistence model). Application-level mapping (Domain aggregate ↔ Contract) lives in `Application/Mapping/` and uses `Mapper<TSource, TDest, TSelf>`. Do not conflate the two.
 
 ## External Clients and Adapter Implementations
 
 When a domain calls another domain's API over HTTP, split the concern across two focused classes:
 
 - **Typed HTTP client** (`Clients/`) — thin wrapper around `HttpClient` handling serialization and response mapping to `Result` types. One class per external service.
-- **Adapter implementation** (`Adapters/`) — implements the Application-layer `IXxxAdapter` interface. May combine the typed client with local EF reads (e.g., reading from the local event-replicated store) and event publication.
+- **Adapter implementation** (`Adapters/`) — implements the Application-layer `IXxxAdapter` interface. May combine the typed client with local EF reads and event publication.
 
 ```csharp
 // Infrastructure/Clients/ProductsHttpClient.cs
@@ -208,7 +242,7 @@ public class ProductAdapter(ShoppingEfDb ef, ProductsHttpClient client, IEventPu
         .GoAsync(() => _ef.Products.GetWithResultAsync(id))
         .ThenAs(p => ProductMapper.From.Map(p));
 
-    // ReserveInventoryAsync — calls the Products API in real time (synchronous integration).
+    // ReserveInventoryAsync — calls the remote API in real time (synchronous integration).
     public async Task<Result> ReserveInventoryAsync(Domain.Basket basket)
         => await _client.CreateReservationAsync(BuildRequest(basket)).ConfigureAwait(false);
 }
@@ -218,12 +252,7 @@ Keep the typed HTTP client and the adapter orchestration in separate, independen
 
 ## Generated Code
 
-Persistence model classes (`Persistence/*.g.cs`) and the EF `DbContext` partial (`Repositories/*DbContext.g.cs`) are generated by the domain's `*.Database` project. Never create or edit these files directly.
-
-| File pattern | Generator | Change instead |
-|---|---|---|
-| `Persistence/*.g.cs` | `*.Database` project (DbEx) | DbEx YAML config or SQL migration scripts |
-| `*DbContext.g.cs` | `*.Database` project (DbEx) | DbEx YAML config |
+Persistence model classes (`Persistence/*.g.cs`) and the EF `DbContext` partial (`Repositories/*DbContext.g.cs`) are generated by the domain's `*.Database` project. Never create or edit these files directly — run `dotnet run -- CodeGen` (or `dotnet run -- All`) in the `*.Database` project to regenerate.
 
 ## ConfigureAwait
 
@@ -240,8 +269,9 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 
 ## Further Reading
 
-- [`samples/docs/infrastructure-layer.md`](../../../samples/docs/infrastructure-layer.md) — full walkthrough of persistence models, repositories, mapping, and external client/adapter patterns.
-- [`samples/docs/patterns.md`](../../../samples/docs/patterns.md) — Adapter, Repository, Mapper, Persistence, and HTTP Client pattern entries with cross-links.
-- [`samples/docs/layers.md`](../../../samples/docs/layers.md) — layer dependency rules and the role of the Infrastructure layer.
-- [`samples/docs/tooling.md`](../../../samples/docs/tooling.md) — `*.Database` project: schema, persistence-model generation, and outbox provisioning.
-- [`src/CoreEx.EntityFrameworkCore/README.md`](../../../src/CoreEx.EntityFrameworkCore/README.md) — `EfDb`, `EfDbModel`, `EfDbMappedModel`, and `EfDbOptions`.
+- [Infrastructure Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/infrastructure-layer.md) — full walkthrough of persistence models, repositories, mapping, and external client/adapter patterns.
+- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Adapter, Repository, Mapper, Persistence, and HTTP Client pattern entries.
+- [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) — layer dependency rules and the role of the Infrastructure layer.
+- [Tooling Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md) — `*.Database` project: schema, persistence-model generation, and outbox provisioning.
+- [CoreEx.EntityFrameworkCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.EntityFrameworkCore/README.md) — `EfDb`, `EfDbModel`, `EfDbMappedModel`, and `EfDbOptions`.
+- [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) — `Result<T>` type, pipeline operators (`.GoAsync`, `.ThenAs`, `.ThenAsAsync`), and error propagation semantics.
