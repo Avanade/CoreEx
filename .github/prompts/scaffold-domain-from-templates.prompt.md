@@ -18,123 +18,191 @@ Use the `/generate-domain` skill instead when:
 - You want the agent to **reason about your domain model** and apply conventions (validation rules, event naming, query config) appropriately.
 - You are unsure which operations or patterns to include and want guided scaffolding.
 
-## Inputs Required
+---
 
-If not supplied, ask for:
+## Scaffolding Questions
 
-1. `Solution` (e.g. `Contoso`).
-2. `Domain` (e.g. `Orders`).
-3. `Entity` (e.g. `Order`).
-4. `ChildEntity` (e.g. `OrderItem`).
-5. `targetRoot` (default: `samples/src`).
-6. `testsRoot` (default: `samples/tests`).
+Ask all unanswered questions before materializing any files:
 
-## Naming Helper (Auto-Derive)
+| # | Question | Options | Default |
+|---|----------|---------|---------|
+| 1 | **Solution** (e.g. `Contoso`) | free text | — |
+| 2 | **Domain** (e.g. `Orders`) | free text | — |
+| 3 | **Entity** (e.g. `Order`) | free text | — |
+| 4 | **Database engine** | `SQL Server` / `PostgreSQL` | `SQL Server` |
+| 5 | **Reference Data** — generate a CodeGen project for reference data (e.g. `{Entity}Status`)? | `Yes` / `No` | `No` |
+| 6 | **Child Entity** — does `{Entity}` own a child entity (e.g. `{Entity}Item`)? If Yes, provide the child entity name. | `Yes <name>` / `No` | `No` |
+| 7 | **Domain project** — include a DDD domain project (`{Solution}.{Domain}.Domain`) with aggregate roots and value objects? | `Yes` / `No` | `No` |
+| 8 | **ROP** — use Railway Oriented Programming (`Result<T>`) in service and repository layers? | `Yes` / `No` | `No` |
+| 9 | **Outbox Relay** — include an `{Solution}.{Domain}.Outbox.Relay` hosted-service project? | `Yes` / `No` | `Yes` |
+| 10 | **Subscribe** — include an `{Solution}.{Domain}.Subscribe` event-subscriber hosted-service project? | `Yes` / `No` | `Yes` |
+| 11 | `targetRoot` (root folder for domain projects) | path | `samples/src` |
+| 12 | `testsRoot` (root folder for test projects) | path | `samples/tests` |
 
-Derive naming values from `Entity` unless the user explicitly overrides them:
+---
 
-- `EntityPlural` = English plural form of `Entity`.
-	- Default rule: append `s`.
-	- If ends with `y` preceded by a consonant: replace `y` with `ies`.
-	- If ends with `s`, `x`, `z`, `ch`, `sh`: append `es`.
-	- Preserve casing (e.g. `Order` -> `Orders`, `Category` -> `Categories`).
-- `entityKebab` = kebab-case of `Entity`.
-- `entityPluralKebab` = kebab-case of `EntityPlural`.
-- `EntityPluralVar` = `EntityPlural` unless overridden.
+## Naming Derivations (Auto-Derive)
 
-Example:
+Derive all naming variants from the supplied values unless explicitly overridden:
 
-- `Entity = Order` -> `EntityPlural = Orders`, `entityKebab = order`, `entityPluralKebab = orders`.
-- `Entity = Category` -> `EntityPlural = Categories`, `entityKebab = category`, `entityPluralKebab = categories`.
+| Placeholder | Rule | Example |
+|-------------|------|---------|
+| `{EntityPlural}` | English plural of `{Entity}`. Append `s`; `y`→`ies` after consonant; `s/x/z/ch/sh`→`es`. | `Order` → `Orders`, `Category` → `Categories` |
+| `{entityKebab}` | kebab-case of `{Entity}` | `Order` → `order`, `SalesOrder` → `sales-order` |
+| `{entityPluralKebab}` | kebab-case of `{EntityPlural}` | `Orders` → `orders` |
+| `{domainKebab}` | kebab-case of `{Domain}` | `Orders` → `orders` |
+| `{solution-kebab}` | kebab-case of `{Solution}` | `Contoso` → `contoso` |
+| `{entity_kebab}` | snake_case of `{entityKebab}` (replace `-` with `_`) | `sales-order` → `sales_order` |
+| `{entity_status_kebab}` | snake_case of `{Entity}Status` kebab | `OrderStatus` → `order_status` |
+| `{child_entity_kebab}` | snake_case of `{ChildEntity}` kebab | `OrderItem` → `order_item` |
+| `{MigrationTimestamp}` | UTC timestamp at scaffold time, format `yyyymmdd-hhmmss` | `20260529-143000` |
+
+---
 
 ## Placeholders to Replace
 
-For every template file, replace all placeholders:
+Replace every occurrence in every materialized file:
 
-- `{Solution}`
-- `{Domain}`
-- `{Entity}`
-- `{ChildEntity}`
-- `{EntityPlural}`
-- `{EntityPluralKebab}` where present
-- `{entityKebab}`
-- `{entityPluralKebab}`
-- `{EntityPlural}` in class/type names
-- `{EntityPlural}` / `{EntityPluralVar}` in repository/EfDb property names
+- `{Solution}`, `{Domain}`, `{Entity}`, `{ChildEntity}`, `{EntityPlural}`
+- `{entityKebab}`, `{entityPluralKebab}`, `{domainKebab}`, `{solution-kebab}`
+- `{entity_kebab}`, `{entity_status_kebab}`, `{child_entity_kebab}`
+- `{MigrationTimestamp}`
 
-If `EntityPluralVar` is not supplied, default to `{EntityPlural}`.
+> **Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files.** These are produced exclusively by `CoreEx.CodeGen` (`dotnet run` in the CodeGen project) or DbEx migrations; hand-authoring them defeats the generator.
+
+---
+
+## Conditional File-Inclusion Rules
+
+### Database Engine
+
+| Condition | Include | Exclude |
+|-----------|---------|---------|
+| SQL Server | `*/sqlserver/**` | `*/postgres/**` |
+| PostgreSQL | `*/postgres/**` | `*/sqlserver/**` |
+
+`*/_shared/**` is always included regardless of engine.
+
+### Reference Data (Q5)
+
+| Answer | Action |
+|--------|--------|
+| **Yes** | Include `CodeGen/` project. Include ref-data patterns in Application and Infrastructure (service registration, `ReferenceDataService`, `AddReferenceDataOrchestrator` calls). |
+| **No** | Omit `CodeGen/` project entirely. Remove all ref-data patterns (`ReferenceDataService`, status table migration, status mapper, `{Entity}Status` contract usages). |
+
+### Child Entity (Q6)
+
+| Answer | Action |
+|--------|--------|
+| **Yes `<name>`** | Include `Database/*/Migrations/*-childentity*` migration. Add child entity to `dbex.yaml`. Include child entity contract, mapper, persistence model, and EfDb relationship. |
+| **No** | Skip all child entity files. |
+
+### Domain Project (Q7)
+
+| Answer | Action |
+|--------|--------|
+| **Yes** | Include `Domain/` project (`{Solution}.{Domain}.Domain`). Add `ProjectReference` to Domain from Application. |
+| **No** | Skip `Domain/` project entirely. |
+
+### ROP — Railway Oriented Programming (Q8)
+
+| Answer | Action |
+|--------|--------|
+| **Yes** | Use `Application/rop/` templates for service and interfaces; use `Infrastructure/_shared/rop/` for repository. Skip the non-ROP equivalents. |
+| **No** | Use default `Application/` service and interfaces; use `Infrastructure/_shared/Repositories/EntityRepository.cs.template`. Skip `*/rop/` folders. |
+
+### Outbox Relay (Q9)
+
+| Answer | Action |
+|--------|--------|
+| **Yes** | Include `Outbox.Relay/<engine>/` project (`csproj`, `Program.cs`, `appsettings.json`). |
+| **No** | Skip `Outbox.Relay/` entirely. |
+
+### Subscribe (Q10)
+
+| Answer | Action |
+|--------|--------|
+| **Yes** | Include `Subscribe/<engine>/` (`csproj`, `Program.cs`, `appsettings.json`) and `Subscribe/_shared/` (`GlobalUsing.cs`, `Subscribers/{Entity}EventSubscriber.cs`). |
+| **No** | Skip `Subscribe/` entirely. |
+
+---
 
 ## Output Projects
 
-Create these projects under `{targetRoot}`:
+Create the following projects under `{targetRoot}`:
 
+**Always:**
 - `{Solution}.{Domain}.Contracts`
 - `{Solution}.{Domain}.Application`
 - `{Solution}.{Domain}.Infrastructure`
 - `{Solution}.{Domain}.Api`
 - `{Solution}.{Domain}.Database`
 
-Create these test projects under `{testsRoot}`:
+**Conditional:**
+- `{Solution}.{Domain}.CodeGen` — Reference Data = Yes
+- `{Solution}.{Domain}.Domain` — Domain = Yes
+- `{Solution}.{Domain}.Outbox.Relay` — Outbox Relay = Yes
+- `{Solution}.{Domain}.Subscribe` — Subscribe = Yes
 
+**Test projects** under `{testsRoot}`:
 - `{Solution}.{Domain}.Test.Unit`
 - `{Solution}.{Domain}.Test.Api`
+
+---
 
 ## Materialization Rules
 
 1. Copy each `.template` file into the corresponding project location.
-2. Remove `.template` suffix from output files.
-3. Rename `Domain.*.csproj.template` to `{Solution}.{Domain}.*.csproj`.
-4. Rename `Entity*` files to use concrete entity names.
-5. Keep folder structure identical to template tree.
-6. Preserve line endings and indentation.
+2. Remove the `.template` suffix from output files.
+3. Rename `Domain.*.csproj.template` → `{Solution}.{Domain}.*.csproj`.
+4. Rename `Entity*` files to use the concrete entity name (e.g. `{Entity}Service.cs`).
+5. Keep folder structure identical to the template tree (after stripping `_shared/`, `sqlserver/`, `postgres/`, `rop/` routing segments).
+6. Preserve line endings and indentation exactly.
+7. For `Subscribe/_shared/` files: output into the root of the Subscribe project (not a `_shared/` subfolder).
+8. For `Subscribers/` subfolder: output into `Subscribers/` within the Subscribe project.
+
+---
 
 ## Required Post-Generation Adjustments
 
 After template materialization:
 
-1. In API controllers:
-- Ensure routes use concrete kebab-case paths.
-- Verify OpenApi tags use `{EntityPlural}`.
+1. **API controllers**: Confirm routes use concrete kebab-case paths; OpenApi tags use `{EntityPlural}`.
+2. **Database seed data**: If Reference Data = Yes, ensure `{Entity}Status` seed values (e.g. `Pending`, `Confirmed`, `Cancelled`) are present unless alternatives were supplied.
+3. **Infrastructure EfDb**: Confirm the mapped model property uses the concrete plural entity name.
+4. **Subscribe Program.cs**: If Reference Data = No, remove the `AddReferenceDataOrchestrator<ReferenceDataService>()` line.
+5. **Program files**: Confirm all namespaces match the generated project names.
+6. **Test projects**: Confirm namespaces match `{Solution}.{Domain}.Test.Unit` / `{Solution}.{Domain}.Test.Api`; unit tests follow `WithGenericTester<EntryPoint>`; API tests follow `WithApiTester<{Solution}.{Domain}.Api.Program>`; assertions use AwesomeAssertions (not FluentAssertions).
+7. **Solution structure**: Add all generated domain and test projects to the Visual Studio solution, grouped under a solution folder named `{Domain}`.
 
-2. In Database seed data:
-- If status model is used, ensure `Pending`, `Confirmed`, `Cancelled` values are present unless the caller supplied alternatives.
-
-3. In Infrastructure repository:
-- Ensure EfDb mapped model property uses concrete plural entity name.
-
-4. In Program files:
-- Ensure namespaces match generated project names.
-
-5. In test projects:
-- Ensure test namespaces and project names match `{Solution}.{Domain}.Test.Unit` and `{Solution}.{Domain}.Test.Api`.
-- Ensure Unit tests follow `WithGenericTester<EntryPoint>` patterns.
-- Ensure Api tests follow `WithApiTester<{Solution}.{Domain}.Api.Program>` patterns.
-- Ensure assertions use AwesomeAssertions (not FluentAssertions).
-
-6. In solution structure:
-- Add all generated domain and test projects to the Visual Studio solution.
-- Group all generated domain and test projects under a solution folder named `{Domain}`.
+---
 
 ## Validation
 
-Run `dotnet build` for all generated projects to check for compilation errors:
+Run `dotnet build` for all generated projects:
 
-- `{targetRoot}/{Solution}.{Domain}.Contracts`
-- `{targetRoot}/{Solution}.{Domain}.Application`
-- `{targetRoot}/{Solution}.{Domain}.Infrastructure`
-- `{targetRoot}/{Solution}.{Domain}.Api`
-- `{targetRoot}/{Solution}.{Domain}.Database`
-- `{testsRoot}/{Solution}.{Domain}.Test.Unit`
-- `{testsRoot}/{Solution}.{Domain}.Test.Api`
+```
+dotnet build {targetRoot}/{Solution}.{Domain}.Contracts
+dotnet build {targetRoot}/{Solution}.{Domain}.Application
+dotnet build {targetRoot}/{Solution}.{Domain}.Infrastructure
+dotnet build {targetRoot}/{Solution}.{Domain}.Api
+dotnet build {targetRoot}/{Solution}.{Domain}.Database
+dotnet build {testsRoot}/{Solution}.{Domain}.Test.Unit
+dotnet build {testsRoot}/{Solution}.{Domain}.Test.Api
+```
 
-Run tests and ensure they pass:
+Also build any conditional projects that were included.
 
-- `dotnet test {testsRoot}/{Solution}.{Domain}.Test.Unit`
-- `dotnet test {testsRoot}/{Solution}.{Domain}.Test.Api`
+Run tests:
 
-If errors are found, fix them before completing.
+```
+dotnet test {testsRoot}/{Solution}.{Domain}.Test.Unit
+dotnet test {testsRoot}/{Solution}.{Domain}.Test.Api
+```
 
-If tests fail, fix the generated code/tests and rerun until both Unit and Api test projects pass.
+Fix all compilation errors and test failures before reporting completion.
+
+---
 
 ## Completion Gate
 

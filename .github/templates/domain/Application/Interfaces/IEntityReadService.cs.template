@@ -5,4 +5,6 @@ public interface I{Entity}ReadService
     Task<Contracts.{Entity}?> GetAsync(string id);
 
     Task<ItemsResult<{Entity}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging);
+
+    Task<JsonElement> QuerySchemaAsync();
 }

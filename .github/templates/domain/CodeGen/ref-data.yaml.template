@@ -1,0 +1,18 @@
+# CoreEx CodeGen — Reference Data configuration.
+# Each entry generates contracts, persistence models, mappers, controller endpoints, service entries, and repository interface entries.
+# Run: dotnet run -- refdata
+
+collectionSortOrder: Code
+repository: EntityFramework
+
+entities:
+  # -- Add one entry per reference-data type used in this domain --
+  - name: {Entity}Status
+  # Example with custom plural:
+  # - name: UnitOfMeasure
+  #   plural: UnitsOfMeasure
+  # Example with extra property:
+  # - name: Priority
+  #   properties:
+  #   - name: SortKey
+  #     type: int

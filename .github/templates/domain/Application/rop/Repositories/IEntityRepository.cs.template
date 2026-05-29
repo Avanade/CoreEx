@@ -1,0 +1,16 @@
+namespace {Solution}.{Domain}.Application.Repositories;
+
+public interface I{Entity}Repository
+{
+    Task<Result<Contracts.{Entity}?>> GetAsync(string id);
+
+    Task<Result<Contracts.{Entity}>> CreateAsync(Contracts.{Entity} entity);
+
+    Task<Result<Contracts.{Entity}>> UpdateAsync(Contracts.{Entity} entity);
+
+    Task<Result> DeleteAsync(string id);
+
+    Task<Result<ItemsResult<Contracts.{Entity}Lite>>> QueryAsync(QueryArgs? query, PagingArgs? paging);
+
+    Task<JsonElement> QuerySchemaAsync();
+}

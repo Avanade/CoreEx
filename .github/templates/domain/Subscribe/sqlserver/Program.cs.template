@@ -1,0 +1,53 @@
+var builder = WebApplication.CreateBuilder(args);
+
+// ---- Database (SQL Server) --------------------------------------------------
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxPublisher()
+    .AddSqlServerEfDb<{Domain}EfDb>();
+
+// ---- Caching ----------------------------------------------------------------
+builder.AddRedisDistributedCache("Redis");
+builder.Services
+    .AddFusionCache()
+    .WithDistributedCache()
+    .WithStackExchangeRedisBackplane();
+
+// ---- Application services ---------------------------------------------------
+builder.Services
+    .AddScoped<I{Entity}Service, {Entity}Service>()
+    .AddReferenceDataOrchestrator<ReferenceDataService>(); // conditional: Reference Data = Yes
+
+// ---- Subscriber (Azure Service Bus) ----------------------------------------
+builder.AddAzureServiceBusClient("ServiceBus");
+builder.Services
+    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<{Entity}EventSubscriber>());
+
+builder.Services
+    .AzureServiceBusReceiving()
+    .WithSessionReceiver(o => o.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId)
+    .WithSubscribedSubscriber()
+    .WithHostedService()
+    .Build();
+
+// ---- Hosted service management ---------------------------------------------
+builder.Services.AddHostedServiceManager();
+
+// ---- Telemetry -------------------------------------------------------------
+builder.Services
+    .AddOpenTelemetry()
+    .WithTracing(t => t
+        .WithCoreExSqlServerTelemetry()
+        .WithCoreExServiceBusTelemetry()
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter());
+
+// ---- Build -----------------------------------------------------------------
+var app = builder.Build();
+
+app.MapHealthChecks("/health");
+app.MapHostedServices();
+
+app.Run();

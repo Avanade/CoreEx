@@ -1,9 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\CoreEx.Data\CoreEx.Data.csproj" />
-    <ProjectReference Include="..\..\..\src\CoreEx.DomainDriven\CoreEx.DomainDriven.csproj" />
-    <ProjectReference Include="..\..\..\src\CoreEx.RefData\CoreEx.RefData.csproj" />
-    <ProjectReference Include="..\..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
+    <PackageReference Include="CoreEx.Data" />
+    <PackageReference Include="CoreEx.DomainDriven" />
+    <PackageReference Include="CoreEx.RefData" />
+    <PackageReference Include="CoreEx.Validation" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\{Solution}.{Domain}.Contracts\{Solution}.{Domain}.Contracts.csproj" />
   </ItemGroup>
+
 </Project>

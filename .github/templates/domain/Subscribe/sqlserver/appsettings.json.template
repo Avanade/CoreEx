@@ -1,0 +1,15 @@
+{
+  "CoreEx": {
+    "Host": {
+      "SolutionName": "{Solution}",
+      "DomainName": "{Domain}"
+    }
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}

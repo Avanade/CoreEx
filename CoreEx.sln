@@ -230,6 +230,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{4BE535E8-7
 		samples\docs\hosts-layer.md = samples\docs\hosts-layer.md
 		samples\docs\infrastructure-layer.md = samples\docs\infrastructure-layer.md
 		samples\docs\layers.md = samples\docs\layers.md
+		samples\docs\local-dev.md = samples\docs\local-dev.md
 		samples\docs\patterns.md = samples\docs\patterns.md
 		samples\docs\testing.md = samples\docs\testing.md
 		samples\docs\tooling.md = samples\docs\tooling.md

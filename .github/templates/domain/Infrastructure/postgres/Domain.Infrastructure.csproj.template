@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="CoreEx.Data" />
+    <PackageReference Include="CoreEx.Database.Postgres" />
+    <PackageReference Include="CoreEx.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{Solution}.{Domain}.Application\{Solution}.{Domain}.Application.csproj" />
+    <ProjectReference Include="..\{Solution}.{Domain}.Contracts\{Solution}.{Domain}.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

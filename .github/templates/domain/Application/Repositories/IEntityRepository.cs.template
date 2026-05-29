@@ -11,4 +11,6 @@ public interface I{Entity}Repository
     Task<DataResult> DeleteAsync(string id);
 
     Task<ItemsResult<Contracts.{Entity}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging);
+
+    Task<JsonElement> QuerySchemaAsync();
 }

@@ -1,0 +1,13 @@
+namespace {Solution}.{Domain}.Infrastructure.Repositories;
+
+public sealed class {Domain}EfDb({Domain}DbContext dbContext) : EfDb<{Domain}DbContext>(dbContext, _options)
+{
+    private static readonly EfDbOptions _options = new EfDbOptions()
+        .WithModel<Persistence.{Entity}>(m => m.WithLogicalDeleteFilter());
+
+    // After running {Solution}.{Domain}.CodeGen, add generated reference-data model properties here.
+    // Example: public EfDbModel<Persistence.{Entity}Status> {Entity}Statuses => Model<Persistence.{Entity}Status>();
+
+    public EfDbMappedModel<Contracts.{Entity}, Persistence.{Entity}, {Entity}Mapper> {EntityPlural}
+        => Model<Persistence.{Entity}>().ToMappedModel<Contracts.{Entity}, {Entity}Mapper>({Entity}Mapper.Default);
+}

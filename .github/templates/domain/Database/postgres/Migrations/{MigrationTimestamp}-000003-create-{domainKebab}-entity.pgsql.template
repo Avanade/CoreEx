@@ -1,0 +1,15 @@
+-- Migration Script — Primary entity table.
+
+BEGIN TRANSACTION;
+
+CREATE TABLE "{domainKebab}"."{entity_kebab}" (
+  "{entity_kebab}_id" VARCHAR(50)  NOT NULL PRIMARY KEY,
+  "status_code"       VARCHAR(50)  NOT NULL,
+  "created_by"        VARCHAR(250) NULL,
+  "created_on"        TIMESTAMPTZ  NULL,
+  "updated_by"        VARCHAR(250) NULL,
+  "updated_on"        TIMESTAMPTZ  NULL,
+  "is_deleted"        BOOLEAN      NOT NULL DEFAULT FALSE
+);
+
+COMMIT TRANSACTION;

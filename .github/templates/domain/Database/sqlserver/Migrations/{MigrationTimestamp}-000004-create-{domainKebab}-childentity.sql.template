@@ -1,0 +1,16 @@
+-- Migration Script — Child entity table.
+-- Conditionally included when Child Entity = Yes.
+
+BEGIN TRANSACTION
+
+CREATE TABLE [{Domain}].[{ChildEntity}] (
+  [{ChildEntity}Id] NVARCHAR(50)   NOT NULL PRIMARY KEY,
+  [{Entity}Id]      NVARCHAR(50)   NOT NULL FOREIGN KEY REFERENCES [{Domain}].[{Entity}]([{Entity}Id]) ON DELETE CASCADE,
+  [Quantity]        DECIMAL(18, 4) NOT NULL DEFAULT 0,
+  [CreatedBy]       NVARCHAR(250)  NULL,
+  [CreatedOn]       DATETIMEOFFSET NULL,
+  [UpdatedBy]       NVARCHAR(250)  NULL,
+  [UpdatedOn]       DATETIMEOFFSET NULL
+);
+
+COMMIT TRANSACTION

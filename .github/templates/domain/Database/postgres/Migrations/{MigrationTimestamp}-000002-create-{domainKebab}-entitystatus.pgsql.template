@@ -1,0 +1,18 @@
+-- Migration Script — Reference Data: {entity_status_kebab} lookup table.
+-- Conditionally included when Reference Data = Yes.
+
+BEGIN TRANSACTION;
+
+CREATE TABLE "{domainKebab}"."{entity_status_kebab}" (
+  "{entity_status_kebab}_id" VARCHAR(50)  NOT NULL PRIMARY KEY,
+  "code"                     VARCHAR(50)  NOT NULL UNIQUE,
+  "text"                     VARCHAR(250) NULL,
+  "is_active"                BOOLEAN      NULL,
+  "sort_order"               INTEGER      NULL,
+  "created_by"               VARCHAR(250) NULL,
+  "created_on"               TIMESTAMPTZ  NULL,
+  "updated_by"               VARCHAR(250) NULL,
+  "updated_on"               TIMESTAMPTZ  NULL
+);
+
+COMMIT TRANSACTION;

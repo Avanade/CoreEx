@@ -1,0 +1,38 @@
+var builder = WebApplication.CreateBuilder(args);
+
+// ---- Database (SQL Server) --------------------------------------------------
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxRelay();
+
+builder.AddSqlServerOutboxRelayHostedService();
+
+// ---- Messaging (Azure Service Bus) -----------------------------------------
+builder.AddAzureServiceBusClient("ServiceBus");
+builder.Services
+    .AddAzureServiceBusPublisher(o =>
+    {
+        o.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+    });
+
+// ---- Hosted service management ---------------------------------------------
+builder.Services.AddHostedServiceManager();
+
+// ---- Telemetry -------------------------------------------------------------
+builder.Services
+    .AddOpenTelemetry()
+    .WithTracing(t => t
+        .WithCoreExSqlServerTelemetry()
+        .WithCoreExServiceBusTelemetry()
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter());
+
+// ---- Build -----------------------------------------------------------------
+var app = builder.Build();
+
+app.MapHealthChecks("/health");
+app.MapHostedServices();
+
+app.Run();

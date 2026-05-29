@@ -1,0 +1,10 @@
+namespace {Solution}.{Domain}.Application.Interfaces;
+
+public interface I{Entity}ReadService
+{
+    Task<Result<Contracts.{Entity}?>> GetAsync(string id);
+
+    Task<Result<ItemsResult<Contracts.{Entity}Lite>>> QueryAsync(QueryArgs? query, PagingArgs? paging);
+
+    Task<JsonElement> QuerySchemaAsync();
+}

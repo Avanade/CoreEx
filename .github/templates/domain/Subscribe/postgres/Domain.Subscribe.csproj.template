@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{Solution}.{Domain}.Subscribe</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Aspire integration -->
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="*" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="*" />
+    <!-- CoreEx -->
+    <PackageReference Include="CoreEx.AspNetCore" Version="*" />
+    <PackageReference Include="CoreEx.Azure.Messaging.ServiceBus" Version="*" />
+    <PackageReference Include="CoreEx.Caching.FusionCache" Version="*" />
+    <PackageReference Include="CoreEx.Database.Postgres" Version="*" />
+    <PackageReference Include="CoreEx.EntityFrameworkCore" Version="*" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="*" />
+    <!-- OpenTelemetry -->
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="*" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="*" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{Solution}.{Domain}.Application\{Solution}.{Domain}.Application.csproj" />
+    <ProjectReference Include="..\{Solution}.{Domain}.Infrastructure\{Solution}.{Domain}.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Azure.Experimental.EnableActivitySource" Value="true" Trim="true" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,27 @@
+using CoreEx.Database;
+using DbEx.Migration;
+using DbEx.Postgres.Console;
+
+namespace {Solution}.{Domain}.Database;
+
+public class Program
+{
+    public static Task<int> Main(string[] args) => PostgresMigrationConsole
+        .Create<Program>("Server=127.0.0.1;Database={domainKebab};Username=postgres;Password=yourStrong#!Password")
+        .Configure(c => ConfigureMigrationArgs(c.Args))
+        .RunAsync(args);
+
+    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
+    {
+        args.AddAssembly<SqlStatement>().AddAssembly<Program>()
+            .IncludeExtendedSchemaScripts()
+            .DataParserArgs
+                .RefDataColumnDefault("SortOrder", _ => 0)
+                .RefDataColumnDefault("Scale", _ => 0);
+
+        // Only reset data for the {domainKebab} schema.
+        args.DataResetFilterPredicate = ts => ts.Schema == "{domainKebab}";
+
+        return args;
+    }
+}

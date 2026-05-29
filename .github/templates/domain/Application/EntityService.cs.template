@@ -17,7 +17,7 @@ public class {Entity}Service(IUnitOfWork unitOfWork, I{Entity}Repository reposit
         entity.Id = Runtime.NewId();
         entity.StatusCode ??= "P";
 
-        return await _unitOfWork.ExecuteAsync(async () =>
+        return await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.CreateAsync(entity).ConfigureAwait(false);
             return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
@@ -34,7 +34,7 @@ public class {Entity}Service(IUnitOfWork unitOfWork, I{Entity}Repository reposit
         var current = await _repository.GetAsync(entity.Id).ConfigureAwait(false);
         NotFoundException.ThrowIfDefault(current);
 
-        return await _unitOfWork.ExecuteAsync(async () =>
+        return await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.UpdateAsync(entity).ConfigureAwait(false);
             return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated)));
@@ -47,7 +47,7 @@ public class {Entity}Service(IUnitOfWork unitOfWork, I{Entity}Repository reposit
         if (entity is null)
             return;
 
-        await _unitOfWork.ExecuteAsync(async () =>
+        await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.DeleteAsync(id).ConfigureAwait(false);
             dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEventWith<{Entity}>(default, EventAction.Deleted).WithKey(id)));

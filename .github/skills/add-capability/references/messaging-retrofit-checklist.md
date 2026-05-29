@@ -5,42 +5,62 @@ Use this checklist as the completion gate for `/add-capability` messaging and in
 ## Discovery
 
 - [ ] Identified the target domain and its existing project/host shape.
-- [ ] Determined whether API, Database, Outbox.Relay, and Subscribe projects already exist.
-- [ ] Determined whether SQL Server/outbox and Azure Service Bus are already present, missing, or intentionally not used.
-- [ ] Confirmed any user choices that could not be inferred safely.
+- [ ] Determined which of Api, Database, Outbox.Relay, and Subscribe projects already exist.
+- [ ] Identified the database engine in use: **SQL Server** or **PostgreSQL**.
+- [ ] Determined whether outbox infrastructure (migration file + `dbex.yaml outbox: true`) is already present.
+- [ ] Determined whether Azure Service Bus wiring is already present or missing.
+- [ ] Determined whether reference data is present (`ReferenceDataService` / `*.CodeGen` project).
+- [ ] Confirmed any choices that could not be inferred safely (engine, subjects, payloads).
 
 ## Project and Package Alignment
 
 - [ ] Added only the missing projects required by the requested retrofit.
-- [ ] Added only the missing package and project references required by the affected hosts.
-- [ ] Preserved the existing layered references and naming conventions.
+- [ ] Added only the missing package and project references for the affected hosts.
+- [ ] `<RuntimeHostConfigurationOption Include="Azure.Experimental.EnableActivitySource" Value="true" Trim="true" />` present in csproj for every new Relay and Subscribe project.
+- [ ] Preserved existing layered references and naming conventions.
+- [ ] No second database engine introduced — all new wiring uses the engine already in the domain.
 
-## Relay Retrofit
+## Relay Retrofit (Mode A)
 
-- [ ] Relay host was added or aligned when requested.
-- [ ] Relay `Program.cs` uses the expected CoreEx host setup, SQL Server relay wiring, Service Bus publisher wiring, health checks, and telemetry.
-- [ ] API host has event formatter and outbox publisher wiring when the domain is expected to publish integration events.
-- [ ] Database project contains required outbox tables and stored procedures when relay support is added.
+- [ ] `*.Outbox.Relay` project created or aligned.
+- [ ] Relay `Program.cs` database wiring is engine-correct:
+  - SQL Server: `AddSqlServerClient` → `.AddSqlServerDatabase().AddSqlServerUnitOfWork().AddSqlServerOutboxRelay()` → `AddSqlServerOutboxRelayHostedService()`
+  - PostgreSQL: `AddAzureNpgsqlDataSource` → `.AddPostgresDatabase().AddPostgresUnitOfWork().AddPostgresOutboxRelay()` → `AddPostgresOutboxRelayHostedService()`
+- [ ] Service Bus publisher wired: `AddAzureServiceBusClient` + `AddAzureServiceBusPublisher(o => o.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId)`
+- [ ] `AddHostedServiceManager()` registered in services.
+- [ ] `app.MapHostedServices()` called in middleware pipeline.
+- [ ] Telemetry uses split names: `WithCoreExSqlServerTelemetry()` or `WithCoreExPostgresTelemetry()` **and** `WithCoreExServiceBusTelemetry()`.
+- [ ] API host has outbox publisher wiring (no generic type parameter):
+  - SQL Server: `AddSqlServerOutboxPublisher()`
+  - PostgreSQL: `AddPostgresOutboxPublisher()`
+- [ ] Database project has outbox migration file and `dbex.yaml` contains `outbox: true` and `outboxName: outbox`.
 
-## Subscribe Retrofit
+## Subscribe Retrofit (Mode B)
 
-- [ ] Subscribe host was added or aligned when requested.
-- [ ] Subscribe `Program.cs` uses hosted service manager, subscribed manager, Service Bus receiver, hosted service mapping, health checks, and telemetry.
-- [ ] Subscriber classes inherit from `SubscribedBase`.
-- [ ] Subscriber classes use `[ScopedService]` and `[Subscribe("...")]`.
-- [ ] Subscriber logic delegates to Application services rather than embedding business logic.
-- [ ] Shared subscriber error handling is added where needed.
+- [ ] `*.Subscribe` project created or aligned.
+- [ ] Subscribe `Program.cs` database wiring is engine-correct:
+  - SQL Server: `AddSqlServerClient` → `.AddSqlServerDatabase().AddSqlServerUnitOfWork().AddSqlServerOutboxPublisher().AddSqlServerEfDb<{Domain}EfDb>()`
+  - PostgreSQL: `AddAzureNpgsqlDataSource` → `.AddPostgresDatabase().AddPostgresUnitOfWork().AddPostgresOutboxPublisher().AddPostgresEfDb<{Domain}EfDb>()`
+- [ ] Redis + FusionCache wiring present: `AddRedisDistributedCache` + `AddFusionCache().WithDistributedCache().WithStackExchangeRedisBackplane()`.
+- [ ] If reference data present: `AddReferenceDataOrchestrator<ReferenceDataService>()` included.
+- [ ] Service Bus receiver wired: `AddAzureServiceBusClient`, `AddSubscribedManager(...)`, `AzureServiceBusReceiving().WithSessionReceiver(...).WithSubscribedSubscriber().WithHostedService().Build()`.
+- [ ] `AddHostedServiceManager()` registered in services.
+- [ ] `app.MapHostedServices()` called in middleware pipeline.
+- [ ] Telemetry uses split names: `WithCoreExSqlServerTelemetry()` or `WithCoreExPostgresTelemetry()` **and** `WithCoreExServiceBusTelemetry()`.
+- [ ] Subscriber classes inherit `SubscribedBase<T>` (generic).
+- [ ] Subscriber classes carry `[ScopedService]` and `[Subscribe("...")]` attributes.
+- [ ] Subscriber logic delegates to Application services — no business logic embedded in subscriber classes.
 
 ## Host and Convention Alignment
 
-- [ ] Middleware order follows repo conventions.
-- [ ] Dynamic service registration is used where expected.
-- [ ] OpenTelemetry-compatible wiring is preserved or aligned for the affected hosts.
-- [ ] Health endpoints and hosted service mapping are present where applicable.
+- [ ] Middleware order follows repo conventions for each host type.
+- [ ] Dynamic service registration (`AddDynamicServicesUsing<T>`) used where already established in the domain.
+- [ ] Health endpoints (`MapHealthChecks("/health")`) present in all new host `Program.cs` files.
+- [ ] OpenTelemetry wiring preserves or aligns existing telemetry across the affected hosts.
 
 ## Validation
 
-- [ ] Affected projects build or pass diagnostics.
+- [ ] All affected projects build cleanly with no compiler errors or nullable warnings.
 - [ ] Any related tests were added or updated where practical.
-- [ ] The final summary distinguishes completed retrofits from any blocked or intentionally deferred items.
+- [ ] The final summary distinguishes completed retrofits from any blocked or deferred items.
 - [ ] Any remaining user decisions are listed explicitly as follow-up items.

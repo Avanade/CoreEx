@@ -9,4 +9,6 @@ public class {Entity}ReadService(I{Entity}Repository repository) : I{Entity}Read
 
     public Task<ItemsResult<{Entity}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
         => _repository.QueryAsync(query, paging);
+
+    public Task<JsonElement> QuerySchemaAsync() => _repository.QuerySchemaAsync();
 }

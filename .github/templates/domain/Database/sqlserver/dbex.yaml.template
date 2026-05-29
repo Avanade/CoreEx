@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/main/schema/dbex.json
+outbox: true
+outboxName: outbox
+tables:
+# Reference-data (conditionally included when Reference Data = Yes)
+- name: {Entity}Status
+
+# Transactional-data
+- name: {Entity}
+# Conditionally include when Child Entity = Yes:
+# - name: {ChildEntity}

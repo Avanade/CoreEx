@@ -1,0 +1,66 @@
+namespace {Solution}.{Domain}.Application;
+
+[ScopedService<I{Entity}Service>]
+public class {Entity}Service(IUnitOfWork unitOfWork, I{Entity}Repository repository) : I{Entity}Service
+{
+    private readonly IUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
+    private readonly I{Entity}Repository _repository = repository.ThrowIfNull();
+
+    public Task<Result<Contracts.{Entity}?>> GetAsync(string id) =>
+        _repository.GetAsync(id);
+
+    public Task<Result<Contracts.{Entity}>> CreateAsync(Contracts.{Entity} entity)
+    {
+        entity.ThrowIfNull();
+        entity.Id = Runtime.NewId();
+        entity.StatusCode ??= "P";
+
+        return {Entity}Validator.Default.ValidateWithResultAsync(entity)
+            .ThenAsAsync(() => _unitOfWork.TransactionAsync(async () =>
+            {
+                var dr = await _repository.CreateAsync(entity).ConfigureAwait(false);
+                return dr.ThenAs(v =>
+                {
+                    _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created));
+                    return v;
+                });
+            }));
+    }
+
+    public Task<Result<Contracts.{Entity}>> UpdateAsync(Contracts.{Entity} entity)
+    {
+        entity.ThrowIfNull();
+        entity.Id.ThrowIfNullOrEmpty();
+
+        return {Entity}Validator.Default.ValidateWithResultAsync(entity)
+            .ThenAsAsync(() => _repository.GetAsync(entity.Id))
+            .Then(current => current is null
+                ? Result.Fail<Contracts.{Entity}>(new NotFoundException())
+                : Result.Ok(entity))
+            .ThenAsAsync(_ => _unitOfWork.TransactionAsync(async () =>
+            {
+                var dr = await _repository.UpdateAsync(entity).ConfigureAwait(false);
+                return dr.ThenAs(v =>
+                {
+                    _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated));
+                    return v;
+                });
+            }));
+    }
+
+    public Task<Result> DeleteAsync(string id) =>
+        _repository.GetAsync(id)
+            .ThenAsAsync(current =>
+            {
+                if (current is null)
+                    return Task.FromResult(Result.Success);
+
+                return _unitOfWork.TransactionAsync(async () =>
+                {
+                    var dr = await _repository.DeleteAsync(id).ConfigureAwait(false);
+                    return dr.ThenAs(() =>
+                        _unitOfWork.Events.Add(
+                            EventData.CreateEventWith<Contracts.{Entity}>(default, EventAction.Deleted).WithKey(id)));
+                });
+            });
+}

@@ -1,0 +1,12 @@
+namespace {Solution}.{Domain}.Application.Interfaces;
+
+public interface I{Entity}Service
+{
+    Task<Result<Contracts.{Entity}?>> GetAsync(string id);
+
+    Task<Result<Contracts.{Entity}>> CreateAsync(Contracts.{Entity} entity);
+
+    Task<Result<Contracts.{Entity}>> UpdateAsync(Contracts.{Entity} entity);
+
+    Task<Result> DeleteAsync(string id);
+}

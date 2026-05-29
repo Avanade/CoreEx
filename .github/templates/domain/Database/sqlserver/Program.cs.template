@@ -1,0 +1,27 @@
+using CoreEx.Database;
+using DbEx.Migration;
+using DbEx.SqlServer.Console;
+
+namespace {Solution}.{Domain}.Database;
+
+public class Program
+{
+    public static Task<int> Main(string[] args) => SqlServerMigrationConsole
+        .Create<Program>("Data Source=127.0.0.1,1433;Initial Catalog={Solution};User id=sa;Password=yourStrong(!)Password;TrustServerCertificate=true")
+        .Configure(c => ConfigureMigrationArgs(c.Args))
+        .RunAsync(args);
+
+    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
+    {
+        args.AddAssembly<SqlStatement>().AddAssembly<Program>()
+            .IncludeExtendedSchemaScripts()
+            .DataParserArgs
+                .RefDataColumnDefault("SortOrder", _ => 0)
+                .RefDataColumnDefault("Scale", _ => 0);
+
+        // Only reset data for the {Domain} schema.
+        args.DataResetFilterPredicate = ts => ts.Schema == "{Domain}";
+
+        return args;
+    }
+}

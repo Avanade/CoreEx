@@ -1,8 +1,0 @@
-outbox: true
-tables:
-# Reference-data
-- name: {Entity}Status
-
-# Transactional-data
-- name: {Entity}
-- name: {ChildEntity}

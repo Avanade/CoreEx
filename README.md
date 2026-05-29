@@ -75,6 +75,8 @@ This is a **major** version release; a re-imagine / re-invention of the existing
 
 Version 4 is currently in **preview**; the packages are published with a `-preview` suffix and may contain future breaking changes. The packages in their current state can be used for Production-based solutions. Feedback is very welcome to help shape the final release.
 
+The Copilot and Claude [AI](#ai) integrations should be considered experimental and subject to change/improvements.
+
 ## Status
 
 The build status is [![CI](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml/badge.svg)](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml) with the NuGet package status as follows, including links to the underlying source code and documentation:
@@ -114,6 +116,31 @@ The repository includes [Contoso reference samples](./samples/README.md) that im
 | [Tooling Guide](./samples/docs/tooling.md) | Code generation and database lifecycle tooling |
 | [Testing Guide](./samples/docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |
 | [Aspire & E2E Guide](./samples/docs/aspire.md) | Local orchestration and cross-domain end-to-end validation |
+
+## AI
+
+The repository includes an AI workflow set in [`.github/`](./.github/) that gives GitHub Copilot and Claude Code authoritative knowledge of CoreEx patterns, conventions, and architecture — no need to explain CoreEx to the tool each time. The artefacts can also be copied into a consuming project.
+
+**Agent** — `coreex-expert` provides architecture guidance, pattern recommendations, and design reviews aligned to the sample implementations. See the [agent README](./.github/agents/README.md) for the resolution flowchart and local doc cache design.
+
+**Commands** — type `/` in chat to invoke. Skills use `#file:` attachment in Copilot Chat.
+
+| Command | What it does | Claude Code | GitHub Copilot Chat |
+|---------|-------------|-------------|---------------------|
+| [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
+| [`/scaffold-domain-from-templates`](./.github/templates/domain/README.md) | Fast domain scaffolding via template substitution | `/scaffold-domain-from-templates` | `/scaffold-domain-from-templates` |
+| [`/generate-domain`](./.github/skills/generate-domain/README.md) | Guided, reasoning-based domain generation | `/generate-domain` | `#file:.github/skills/generate-domain/SKILL.md` |
+| [`/add-capability`](./.github/skills/add-capability/README.md) | Retrofit an existing domain with messaging/integration | `/add-capability` | `#file:.github/skills/add-capability/SKILL.md` |
+| [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) | Cache CoreEx docs and per-package AI guides locally | `/coreex-docs-sync` | `#file:.github/skills/coreex-docs-sync/SKILL.md` |
+| [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) | Map and document an existing codebase | `/acquire-codebase-knowledge` | `#file:.github/skills/acquire-codebase-knowledge/SKILL.md` |
+| [`/aspire`](./.github/skills/aspire/README.md) | Orchestrate Aspire apps locally (start, stop, logs) | `/aspire` | `#file:.github/skills/aspire/SKILL.md` |
+| `/init` · `/setup` | Initialize or configure a solution | `/init` · `/setup` | `/init` · `/setup` |
+
+**Instructions** — 10 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
+
+**Domain templates** — 77 ready-made templates covering all layers, both SQL Server and PostgreSQL, and optional features (CodeGen, Domain, Outbox Relay, Subscribe, ROP). See the [domain templates README](./.github/templates/domain/README.md).
+
+→ **[Full AI workflow overview](./.github/README.md)**
 
 ## License
 

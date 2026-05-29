@@ -17,4 +17,9 @@ public class {Entity}ReadController(WebApi webApi, I{Entity}ReadService service)
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> QueryAsync() => _webApi.GetAsync(Request, (ro, _)
         => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs));
+
+    [HttpGet("$schema")]
+    [ProducesResponseType(typeof(JsonElement), StatusCodes.Status200OK)]
+    public Task<IActionResult> QuerySchemaAsync() => _webApi.GetAsync(Request, (_, _)
+        => _service.QuerySchemaAsync());
 }
