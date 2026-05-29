@@ -1,5 +1,5 @@
 ---
-name: sync-coreex-docs
+name: coreex-docs-sync
 description: "Fetch the CoreEx sample architecture docs and all per-package AI usage guides from GitHub and cache them locally under .github/docs/coreex/. Guides for all CoreEx packages are synced regardless of which ones the project currently references, enabling the CoreEx Expert to guide on and recommend any package."
 argument-hint: No arguments required. Run to set up or refresh the local doc cache.
 tags: ["docs", "cache", "sync", "coreex-expert", "offline"]
@@ -26,7 +26,7 @@ Fetches the CoreEx sample architecture docs and AI usage guides for all CoreEx p
 1. **Detects** the current `CoreEx` NuGet version from `Directory.Packages.props`, `*.csproj`, or `Directory.Build.props`.
 2. **Detects** all `CoreEx.*` package references currently in the project — recorded in the manifest for the expert's awareness, not used to limit what is synced.
 3. **Creates** `.github/docs/coreex/` and `.github/docs/coreex/agents/` if they do not exist.
-4. **Fetches** the 10 sample architecture docs and writes them to `.github/docs/coreex/`.
+4. **Fetches** the 11 sample architecture docs and writes them to `.github/docs/coreex/`.
 5. **Fetches** all 16 per-package `AGENTS.md` guides and writes them to `.github/docs/coreex/agents/`.
 6. **Writes** `.github/docs/coreex/.manifest` with sync date, CoreEx version, and the list of packages currently referenced in the project.
 7. **Reports** success, any fetch failures, and a reminder of when to re-run.
@@ -36,6 +36,7 @@ Fetches the CoreEx sample architecture docs and AI usage guides for all CoreEx p
 ```
 .github/docs/coreex/
   .manifest                              # synced date, coreex-version, referenced-packages
+  local-dev.md
   layers.md
   patterns.md
   contracts-layer.md

@@ -33,7 +33,7 @@ These files are present when the CoreEx AI workflow set has been copied into the
 
 ### Per-package AI usage guides
 
-Check `.github/docs/coreex/agents/` for locally cached guides first (see [Local doc cache](#local-doc-cache)). `/sync-coreex-docs` caches guides for **all** CoreEx packages — check the manifest's `referenced-packages` field to distinguish packages already in the project from ones the project would need to add.
+Check `.github/docs/coreex/agents/` for locally cached guides first (see [Local doc cache](#local-doc-cache)). `/coreex-docs-sync` caches guides for **all** CoreEx packages — check the manifest's `referenced-packages` field to distinguish packages already in the project from ones the project would need to add.
 
 If a guide is not cached locally, fetch from GitHub:
 
@@ -58,6 +58,7 @@ If a guide is not cached locally, fetch from GitHub:
 
 Check `.github/docs/coreex/` for a local cache first (see [Local doc cache](#local-doc-cache)). If local copies are present, prefer them. Otherwise fetch from GitHub:
 
+- [Local Development Setup](https://github.com/Avanade/CoreEx/blob/main/samples/docs/local-dev.md) — infrastructure services (Docker/Podman), connection strings, Service Bus emulator config, startup sequences, and Aspire E2E guide.
 - [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) — full layer dependency diagram, design-time tooling overview, dependency rules.
 - [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — error handling, railway-oriented flows, outbox, adapters, policies, testing.
 - [Contracts Layer](https://github.com/Avanade/CoreEx/blob/main/samples/docs/contracts-layer.md) — generated contracts, interfaces, reference data code properties.
@@ -71,7 +72,7 @@ Check `.github/docs/coreex/` for a local cache first (see [Local doc cache](#loc
 
 ## Local doc cache
 
-`/sync-coreex-docs` populates two local folders. Prefer local copies over GitHub URLs or fetches whenever they are present.
+`/coreex-docs-sync` populates two local folders. Prefer local copies over GitHub URLs or fetches whenever they are present.
 
 | Folder | Contents |
 |---|---|
@@ -84,9 +85,9 @@ A manifest at `.github/docs/coreex/.manifest` records the sync date, CoreEx vers
 
 1. Check for the file under `.github/docs/coreex/` or `.github/docs/coreex/agents/` respectively.
 2. If found, use the local copy. Then read `.github/docs/coreex/.manifest` and check:
-   - `synced` date: if older than 30 days, recommend running `/sync-coreex-docs`.
-   - `coreex-version`: scan `*.csproj`, `Directory.Packages.props`, and `Directory.Build.props` for the `CoreEx` package version; if it differs from the manifest, recommend running `/sync-coreex-docs`.
-3. If no local cache exists and you are about to fetch a GitHub URL, offer first: *"I can run `/sync-coreex-docs` to cache the CoreEx docs and all package guides locally — this avoids repeated GitHub fetches. Want me to do that first?"*
+   - `synced` date: if older than 30 days, recommend running `/coreex-docs-sync`.
+   - `coreex-version`: scan `*.csproj`, `Directory.Packages.props`, and `Directory.Build.props` for the `CoreEx` package version; if it differs from the manifest, recommend running `/coreex-docs-sync`.
+3. If no local cache exists and you are about to fetch a GitHub URL, offer first: *"I can run `/coreex-docs-sync` to cache the CoreEx docs and all package guides locally — this avoids repeated GitHub fetches. Want me to do that first?"*
 
 **At the start of a session involving CoreEx guidance**, read `.github/docs/coreex/.manifest` if it exists. The `referenced-packages` field lists which CoreEx packages this project currently uses — distinguish between guiding on an **already-referenced** package and recommending a **new** one the project would need to add.
 

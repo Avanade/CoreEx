@@ -26,6 +26,25 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 - **Linting**: No separate `dotnet format`. Build is the lint pass (nullable, LangVersion=preview, TreatWarningsAsErrors in `src\Directory.Build.props`).
 - **Formatting**: 4 spaces for `*.cs`, 2 spaces for `*.json|*.xml|*.yaml|*.props|*.csproj|*.sln|*.sql` per `.editorconfig`.
 
+## Local Development Infrastructure
+
+All sample hosts depend on containerised infrastructure. Start it before running any host or integration test:
+
+```bash
+podman compose -f docker-compose.yml up -d   # Podman preferred; `docker compose` also works
+```
+
+| Service | Port(s) | Purpose |
+|---|---|---|
+| `db-sql-server` | 1433 | Shopping domain database; Service Bus emulator backing store |
+| `db-postgres` | 5432 | Products domain database |
+| `redis-cache` | 6379 | FusionCache Redis backplane (all domains) |
+| `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled); config at `servicebus/Config.json` |
+| `dts-emulator` | 8080, 8082 | Azure Durable Task Scheduler emulator; task hubs `default` and `order` |
+| `aspire-dashboard` | 18888 UI, 4317 OTLP | Standalone OpenTelemetry dashboard; usable without running the full Aspire AppHost |
+
+Connection strings for each service in development are in each host's `appsettings.Development.json` under the `Aspire:` configuration key hierarchy. See [`samples/docs/local-dev.md`](../samples/docs/local-dev.md) for full detail, connection string patterns, and startup sequences.
+
 ## Architecture
 - **Two roles**: framework packages (`src\`) + sample reference implementations (`samples\`).
 - **Business layers** (strict inward dependency — inner layers have no knowledge of outer): `*.Contracts` → `*.Application` → `*.Domain` (optional) → `*.Infrastructure`.
@@ -117,8 +136,13 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 
 ### House Rules
 - Code comments end with a period/full stop.
-- Use `GlobalUsing.cs` per project; do not scatter `using` directives.
 - Always use `.ConfigureAwait(false)` in service/repository code.
+- `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>` are set in `Directory.Build.props` — treat nullable warnings as errors, never suppress them with `!` without justification.
+- Every project has a single `GlobalUsing.cs` at the project root. All `using` statements go there — never in individual source files. The code generator (`*.CodeGen`) emits no `using` statements and depends on this.
+- File-scoped namespace declarations only: `namespace Foo.Bar;` — never block-scoped.
+- Single-line `if` bodies do not need braces: `if (x) return;`
+- Use expression-bodied syntax (`=>`) when the entire method or property body is a single expression.
+- Private instance fields are always prefixed with `_`.
 
 ### Generated Code
 Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each generator owns its outputs:

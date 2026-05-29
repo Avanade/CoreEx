@@ -1,13 +1,197 @@
+root = true
+
+# ── Universal ────────────────────────────────────────────────────────────────
+
 [*]
-indent_style = space
-indent_size = 4
+charset                  = utf-8
+indent_style             = space
+indent_size              = 4
 trim_trailing_whitespace = true
-insert_final_newline = false
+insert_final_newline     = true
+
+# ── C# source files ──────────────────────────────────────────────────────────
 
 [*.cs]
 indent_style = space
-indent_size = 4
+indent_size  = 4
+
+# ── Formatting ───────────────────────────────────────────────────────────────
+
+# Allman-style braces — opening brace always on its own line.
+csharp_new_line_before_open_brace                                   = all
+csharp_new_line_before_else                                         = true
+csharp_new_line_before_catch                                        = true
+csharp_new_line_before_finally                                      = true
+csharp_new_line_before_members_in_object_initializers              = true
+csharp_new_line_before_members_in_anonymous_types                  = true
+csharp_new_line_between_query_expression_clauses                   = true
+
+# Indentation
+csharp_indent_case_contents                                         = true
+csharp_indent_switch_labels                                         = true
+csharp_indent_labels                                                = flush_left
+
+# Spacing
+csharp_space_after_cast                                             = false
+csharp_space_after_keywords_in_control_flow_statements             = true
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_call_parameter_list_parentheses        = false
+csharp_space_before_colon_in_inheritance_clause                    = true
+csharp_space_after_colon_in_inheritance_clause                     = true
+csharp_space_around_binary_operators                               = before_and_after
+
+# Wrapping
+csharp_preserve_single_line_statements                             = false
+csharp_preserve_single_line_blocks                                 = true
+
+# Using directives — System.* first; no blank lines between groups.
+dotnet_sort_system_directives_first                                 = false
+dotnet_separate_import_directive_groups                            = false
+
+# ── Language rules — standards (IDE warning; not a build error without EnforceCodeStyleInBuild) ──
+
+# File-scoped namespaces required.
+csharp_style_namespace_declarations                                = file_scoped:warning
+
+# Null-forgiving operator: prefer is-null checks over reference equality.
+dotnet_style_prefer_is_null_check_over_reference_equality_method  = true:warning
+
+# ── Language rules — modernisation (IDE suggestion) ──────────────────────────
+
+# Braces: omit on single-line if/else/for/while bodies; require when multi-line.
+csharp_prefer_braces                                               = when_multiline:suggestion
+
+# Expression-bodied members: prefer => when the entire body is a single expression.
+csharp_style_expression_bodied_methods                             = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties                          = true:suggestion
+csharp_style_expression_bodied_accessors                           = when_on_single_line:suggestion
+csharp_style_expression_bodied_indexers                            = when_on_single_line:suggestion
+csharp_style_expression_bodied_operators                           = when_on_single_line:suggestion
+csharp_style_expression_bodied_lambdas                             = when_on_single_line:suggestion
+csharp_style_expression_bodied_local_functions                     = when_on_single_line:suggestion
+# Constructors typically contain guard clauses — keep block bodies.
+csharp_style_expression_bodied_constructors                        = false:suggestion
+
+# var: prefer explicit type for built-ins; prefer var when type is obvious from RHS.
+csharp_style_var_for_built_in_types                                = false:suggestion
+csharp_style_var_when_type_is_apparent                             = true:suggestion
+csharp_style_var_elsewhere                                         = true:suggestion
+
+# Null handling and pattern matching.
+dotnet_style_null_propagation                                      = true:suggestion
+dotnet_style_coalesce_expression                                   = true:suggestion
+csharp_style_prefer_null_check_over_type_check                     = true:suggestion
+csharp_style_prefer_is_not_expression                              = true:suggestion
+csharp_style_prefer_pattern_matching                               = true:suggestion
+csharp_style_prefer_switch_expression                              = true:suggestion
+
+# Object and collection initialisers.
+dotnet_style_object_initializer                                    = true:suggestion
+dotnet_style_collection_initializer                                = true:suggestion
+
+# Modern using declarations (using var x = ... instead of using (var x = ...)).
+csharp_prefer_simple_using_statement                               = true:suggestion
+
+# Auto-properties over explicit backing fields where no extra logic exists.
+dotnet_style_prefer_auto_properties                                = true:suggestion
+
+# Throw expressions (x ?? throw ...).
+csharp_style_throw_expression                                      = true:suggestion
+
+# Conditional delegate invocation (handler?.Invoke() vs if (handler != null) handler()).
+csharp_style_conditional_delegate_call                             = true:suggestion
+
+# Tuple/anonymous type member names.
+dotnet_style_prefer_inferred_tuple_names                           = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names           = true:suggestion
+
+# Accessibility modifiers — always explicit, even when the default would apply.
+dotnet_style_require_accessibility_modifiers                       = always:suggestion
+
+# Preferred modifier order.
+csharp_preferred_modifier_order                                    = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:suggestion
+
+# ── Naming conventions ───────────────────────────────────────────────────────
+# Rules are evaluated top-to-bottom; the first match wins.
+
+## Symbol groups
+
+dotnet_naming_symbols.private_fields.applicable_kinds             = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities   = private,private_protected
+
+dotnet_naming_symbols.non_private_fields.applicable_kinds         = field
+dotnet_naming_symbols.non_private_fields.applicable_accessibilities = public,internal,protected,protected_internal
+
+dotnet_naming_symbols.constants.applicable_kinds                  = field,local
+dotnet_naming_symbols.constants.required_modifiers                = const
+
+dotnet_naming_symbols.interfaces.applicable_kinds                 = interface
+
+dotnet_naming_symbols.type_parameters.applicable_kinds            = type_parameter
+
+dotnet_naming_symbols.async_methods.applicable_kinds              = method
+dotnet_naming_symbols.async_methods.required_modifiers            = async
+
+## Naming styles
+
+# _camelCase
+dotnet_naming_style.prefix_underscore.capitalization              = camel_case
+dotnet_naming_style.prefix_underscore.required_prefix             = _
+
+# PascalCase
+dotnet_naming_style.pascal_case.capitalization                    = pascal_case
+
+# IPascalCase
+dotnet_naming_style.i_prefix_pascal_case.capitalization           = pascal_case
+dotnet_naming_style.i_prefix_pascal_case.required_prefix          = I
+
+# TPascalCase
+dotnet_naming_style.t_prefix_pascal_case.capitalization           = pascal_case
+dotnet_naming_style.t_prefix_pascal_case.required_prefix          = T
+
+# PascalCaseAsync
+dotnet_naming_style.pascal_case_async.capitalization              = pascal_case
+dotnet_naming_style.pascal_case_async.required_suffix             = Async
+
+## Rules
+
+# Private fields → _camelCase  (warning — agreed standard)
+dotnet_naming_rule.private_fields_underscore.symbols              = private_fields
+dotnet_naming_rule.private_fields_underscore.style                = prefix_underscore
+dotnet_naming_rule.private_fields_underscore.severity             = warning
+
+# Non-private fields → PascalCase  (suggestion — rare in this codebase)
+dotnet_naming_rule.non_private_fields_pascal.symbols              = non_private_fields
+dotnet_naming_rule.non_private_fields_pascal.style                = pascal_case
+dotnet_naming_rule.non_private_fields_pascal.severity             = suggestion
+
+# Constants → PascalCase  (suggestion)
+dotnet_naming_rule.constants_pascal.symbols                       = constants
+dotnet_naming_rule.constants_pascal.style                         = pascal_case
+dotnet_naming_rule.constants_pascal.severity                      = suggestion
+
+# Interfaces → IPascalCase  (warning — agreed standard)
+dotnet_naming_rule.interfaces_i_prefix.symbols                    = interfaces
+dotnet_naming_rule.interfaces_i_prefix.style                      = i_prefix_pascal_case
+dotnet_naming_rule.interfaces_i_prefix.severity                   = warning
+
+# Type parameters → TPascalCase  (suggestion)
+dotnet_naming_rule.type_parameters_t_prefix.symbols               = type_parameters
+dotnet_naming_rule.type_parameters_t_prefix.style                 = t_prefix_pascal_case
+dotnet_naming_rule.type_parameters_t_prefix.severity              = suggestion
+
+# Async methods → PascalCaseAsync  (warning — agreed standard)
+dotnet_naming_rule.async_methods_async_suffix.symbols             = async_methods
+dotnet_naming_rule.async_methods_async_suffix.style               = pascal_case_async
+dotnet_naming_rule.async_methods_async_suffix.severity            = warning
+
+# ── Structured data files ─────────────────────────────────────────────────────
 
 [*.{json,jsn,xml,yaml,yml,props,csproj,sln,sql}]
 indent_style = space
-indent_size = 2
+indent_size  = 2
+
+# ── Markdown ──────────────────────────────────────────────────────────────────
+
+[*.md]
+trim_trailing_whitespace = false

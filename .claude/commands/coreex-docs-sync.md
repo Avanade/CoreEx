@@ -30,6 +30,7 @@ Fetch each URL below and write to the corresponding local path. Report each as i
 
 | URL | Local path |
 |---|---|
+| `https://raw.githubusercontent.com/Avanade/CoreEx/main/samples/docs/local-dev.md` | `.github/docs/coreex/local-dev.md` |
 | `https://raw.githubusercontent.com/Avanade/CoreEx/main/samples/docs/layers.md` | `.github/docs/coreex/layers.md` |
 | `https://raw.githubusercontent.com/Avanade/CoreEx/main/samples/docs/patterns.md` | `.github/docs/coreex/patterns.md` |
 | `https://raw.githubusercontent.com/Avanade/CoreEx/main/samples/docs/contracts-layer.md` | `.github/docs/coreex/contracts-layer.md` |
@@ -83,4 +84,4 @@ Summarise:
 - How many package guides were written successfully (out of 16).
 - Any files that failed to fetch (with the error).
 - The CoreEx version and referenced packages recorded in the manifest.
-- A reminder: *"Re-run `/sync-coreex-docs` after bumping the CoreEx NuGet version or when the CoreEx Expert suggests the cache is stale."*
+- A reminder: *"Re-run `/coreex-docs-sync` after bumping the CoreEx NuGet version or when the CoreEx Expert suggests the cache is stale."*
