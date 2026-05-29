@@ -77,20 +77,23 @@ if (condition)
 
 ## Expression-Bodied Members
 
-Use `=>` syntax when the entire method, property, or constructor body is a single expression. Do not use `=>` when there are multiple statements.
+Use `=>` syntax whenever the entire body is a single expression — methods, properties, constructors, operators, and accessors. Use a block body when there are multiple statements. The choice is entirely the developer's; the IDE makes no suggestion in either direction.
 
 ```csharp
-// Single-statement method delegation — use =>
+// Method delegation — use =>
 public Task<Product?> GetAsync(string id) => _repository.GetAsync(id);
 
-// Multi-line delegation that fits on one logical line — use =>
+// Multi-line single expression — use =>
 public Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
     => _repository.QueryAsync(query, paging);
+
+// Constructor with single expression — use =>
+public DataResult(bool wasMutated) => WasMutated = wasMutated;
 
 // Computed property — use =>
 public string DisplayName => $"{First} {Last}";
 
-// Multiple statements — use block body
+// Multiple statements — block body required
 public async Task<Product> UpdateAsync(Product product)
 {
     product.ThrowIfNull();
@@ -116,3 +119,4 @@ private readonly ILogger<ProductService> _logger;
 - Do not add braces to single-line `if` bodies.
 - Do not suppress nullable warnings with `!` without a comment explaining why.
 - Do not name private fields without the `_` prefix.
+- Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.

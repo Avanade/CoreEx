@@ -59,57 +59,56 @@ dotnet_style_prefer_is_null_check_over_reference_equality_method  = true:warning
 # ── Language rules — modernisation (IDE suggestion) ──────────────────────────
 
 # Braces: omit on single-line if/else/for/while bodies; require when multi-line.
-csharp_prefer_braces                                               = when_multiline:suggestion
+csharp_prefer_braces                                               = when_multiline:none
 
 # Expression-bodied members: prefer => when the entire body is a single expression.
-csharp_style_expression_bodied_methods                             = when_on_single_line:suggestion
-csharp_style_expression_bodied_properties                          = true:suggestion
-csharp_style_expression_bodied_accessors                           = when_on_single_line:suggestion
-csharp_style_expression_bodied_indexers                            = when_on_single_line:suggestion
-csharp_style_expression_bodied_operators                           = when_on_single_line:suggestion
-csharp_style_expression_bodied_lambdas                             = when_on_single_line:suggestion
-csharp_style_expression_bodied_local_functions                     = when_on_single_line:suggestion
-# Constructors typically contain guard clauses — keep block bodies.
-csharp_style_expression_bodied_constructors                        = false:suggestion
+csharp_style_expression_bodied_methods                             = when_on_single_line:none
+csharp_style_expression_bodied_properties                          = true:none
+csharp_style_expression_bodied_accessors                           = when_on_single_line:none
+csharp_style_expression_bodied_indexers                            = when_on_single_line:none
+csharp_style_expression_bodied_operators                           = when_on_single_line:none
+csharp_style_expression_bodied_lambdas                             = when_on_single_line:none
+csharp_style_expression_bodied_local_functions                     = when_on_single_line:none
+csharp_style_expression_bodied_constructors                        = when_on_single_line:none
 
 # var: prefer explicit type for built-ins; prefer var when type is obvious from RHS.
-csharp_style_var_for_built_in_types                                = false:suggestion
-csharp_style_var_when_type_is_apparent                             = true:suggestion
-csharp_style_var_elsewhere                                         = true:suggestion
+csharp_style_var_for_built_in_types                                = false:none
+csharp_style_var_when_type_is_apparent                             = true:none
+csharp_style_var_elsewhere                                         = true:none
 
 # Null handling and pattern matching.
-dotnet_style_null_propagation                                      = true:suggestion
-dotnet_style_coalesce_expression                                   = true:suggestion
-csharp_style_prefer_null_check_over_type_check                     = true:suggestion
-csharp_style_prefer_is_not_expression                              = true:suggestion
-csharp_style_prefer_pattern_matching                               = true:suggestion
-csharp_style_prefer_switch_expression                              = true:suggestion
+dotnet_style_null_propagation                                      = true:none
+dotnet_style_coalesce_expression                                   = true:none
+csharp_style_prefer_null_check_over_type_check                     = true:none
+csharp_style_prefer_is_not_expression                              = true:none
+csharp_style_prefer_pattern_matching                               = true:none
+csharp_style_prefer_switch_expression                              = true:none
 
 # Object and collection initialisers.
-dotnet_style_object_initializer                                    = true:suggestion
-dotnet_style_collection_initializer                                = true:suggestion
+dotnet_style_object_initializer                                    = true:none
+dotnet_style_collection_initializer                                = true:none
 
 # Modern using declarations (using var x = ... instead of using (var x = ...)).
-csharp_prefer_simple_using_statement                               = true:suggestion
+csharp_prefer_simple_using_statement                               = true:none
 
 # Auto-properties over explicit backing fields where no extra logic exists.
-dotnet_style_prefer_auto_properties                                = true:suggestion
+dotnet_style_prefer_auto_properties                                = true:none
 
 # Throw expressions (x ?? throw ...).
-csharp_style_throw_expression                                      = true:suggestion
+csharp_style_throw_expression                                      = true:none
 
 # Conditional delegate invocation (handler?.Invoke() vs if (handler != null) handler()).
-csharp_style_conditional_delegate_call                             = true:suggestion
+csharp_style_conditional_delegate_call                             = true:none
 
 # Tuple/anonymous type member names.
-dotnet_style_prefer_inferred_tuple_names                           = true:suggestion
-dotnet_style_prefer_inferred_anonymous_type_member_names           = true:suggestion
+dotnet_style_prefer_inferred_tuple_names                           = true:none
+dotnet_style_prefer_inferred_anonymous_type_member_names           = true:none
 
 # Accessibility modifiers — always explicit, even when the default would apply.
-dotnet_style_require_accessibility_modifiers                       = always:suggestion
+dotnet_style_require_accessibility_modifiers                       = for_non_interface_members:none
 
 # Preferred modifier order.
-csharp_preferred_modifier_order                                    = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:suggestion
+csharp_preferred_modifier_order                                    = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:none
 
 # ── Naming conventions ───────────────────────────────────────────────────────
 # Rules are evaluated top-to-bottom; the first match wins.
