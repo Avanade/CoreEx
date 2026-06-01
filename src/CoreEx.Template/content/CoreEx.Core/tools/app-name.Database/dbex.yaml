@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/main/schema/dbex.json
+#if (implement-postgres)
+schema: db-name
+#endif
+#if (outbox-enabled)
+outbox: true
+#if (implement-postgres)
+outboxName: outbox
+#endif
+#else
+outbox: false
+#endif
+tables:
+# Reference-data
+
+# Transactional-data

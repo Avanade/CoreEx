@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Repositories;
+namespace Contoso.Shopping.Infrastructure.Repositories;
 
 public sealed class ShoppingEfDb(ShoppingDbContext dbContext) : EfDb<ShoppingDbContext>(dbContext, _options)
 {

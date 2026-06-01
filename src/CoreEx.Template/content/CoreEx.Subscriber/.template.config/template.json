@@ -1,0 +1,171 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "https://github.com/avanade/coreex",
+  "classifications": [ "CoreEx", "Microservice", "Subscriber" ],
+  "identity": "CoreEx.Subscriber",
+  "name": "CoreEx Subscriber host",
+  "description": "An ASP.NET Core Subscriber host project for a CoreEx domain-based microservice.",
+  "shortName": "coreex-subscriber",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "app-name.Subscriber",
+  "preferNameDirectory": false,
+  "symbols": {
+    "coreex-version": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "COREEX_VERSION"
+      },
+      "replaces": "coreex-version"
+    },
+    "domain-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueSecondToLastDotDelimited",
+      "fileRename": "domain-name",
+      "replaces": "domain-name"
+    },
+    "solution-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastDotDelimited",
+      "fileRename": "solution-name",
+      "replaces": "solution-name"
+    },
+    "solution-parent-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastTwoDotDelimited",
+      "replaces": "solution-parent-name"
+    },
+    "domain-name-lower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueSecondToLastDotDelimitedLower",
+      "replaces": "domain-name-lower"
+    },
+    "solution-name-lower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastDotDelimitedLower",
+      "replaces": "solution-name-lower"
+    },
+    "refdata-enabled": {
+      "type": "parameter",
+      "datatype": "bool",
+      "displayName": "Reference data enabled",
+      "description": "Indicates whether reference data pattern/capabilities is enabled.",
+      "defaultValue": "true"
+    },
+    "data-provider": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "SqlServer",
+          "displayName": "SQL Server",
+          "description": "Indicates to use SQL Server as the data provider."
+        },
+        {
+          "choice": "Postgres",
+          "displayName": "PostgreSQL",
+          "description": "Indicates to use PostgreSQL as the data provider."
+        },
+        {
+          "choice": "None",
+          "displayName": "None",
+          "description": "Indicates no data provider is used (e.g. a facade over an external system such as Dynamics 365)."
+        }
+      ],
+      "defaultValue": "SqlServer",
+      "displayName": "Data provider",
+      "description": "Determines the data provider technology to use."
+    },
+    "implement-sqlserver": {
+      "type": "computed",
+      "value": "data-provider == 'SqlServer'"
+    },
+    "implement-postgres": {
+      "type": "computed",
+      "value": "data-provider == 'Postgres'"
+    },
+    "implement-none-data": {
+      "type": "computed",
+      "value": "data-provider == 'None'"
+    },
+    "messaging-provider": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "ServiceBus",
+          "displayName": "Azure Service Bus",
+          "description": "Indicates to use Azure Service Bus as the messaging provider."
+        },
+        {
+          "choice": "None",
+          "displayName": "None",
+          "description": "Indicates no messaging provider is used."
+        }
+      ],
+      "defaultValue": "ServiceBus",
+      "displayName": "Messaging provider",
+      "description": "Determines the messaging provider technology to use."
+    },
+    "implement-servicebus": {
+      "type": "computed",
+      "value": "messaging-provider == 'ServiceBus'"
+    },
+    "implement-none-messaging": {
+      "type": "computed",
+      "value": "messaging-provider == 'None'"
+    }
+  },
+  "specialCustomOperations": {
+    "*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!-- #if" ],
+            "actionableElse": [ "<!-- #else" ],
+            "actionableElseif": [ "<!-- #elseif", "<!-- #elif" ],
+            "endif": [ "<!-- #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    }
+  },
+  "forms": {
+    "ValueSecondToLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^(?:.*\\.)?([^.]+)\\.[^.]+$",
+      "replacement": "$1"
+    },
+    "ValueWithoutLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^(.*)\\.([^\\.]+)$",
+      "replacement": "$1"
+    },
+    "LowerCase": {
+      "identifier": "lowerCase"
+    },
+    "ValueSecondToLastDotDelimitedLower": {
+      "identifier": "chain",
+      "steps": [ "ValueSecondToLastDotDelimited", "LowerCase" ]
+    },
+    "ValueWithoutLastDotDelimitedLower": {
+      "identifier": "chain",
+      "steps": [ "ValueWithoutLastDotDelimited", "LowerCase" ]
+    },
+    "ValueWithoutLastTwoDotDelimited": {
+      "identifier": "chain",
+      "steps": [ "ValueWithoutLastDotDelimited", "ValueWithoutLastDotDelimited" ]
+    }
+  }
+}

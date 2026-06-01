@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="CoreEx.AspNetCore" />
+    <!--#if (implement-servicebus)-->
+    <PackageReference Include="CoreEx.Azure.Messaging.ServiceBus" />
+    <PackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
+    <!--#endif-->
+    <!--#if (implement-sqlserver)-->
+    <PackageReference Include="Aspire.Microsoft.Data.SqlClient" />
+    <!--#endif-->
+    <!--#if (implement-postgres)-->
+    <PackageReference Include="Aspire.Azure.Npgsql" />
+    <!--#endif-->
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="appsettings.Development.json">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

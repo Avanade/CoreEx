@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\app-name.Contracts\app-name.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CoreEx.Data" />
+    <!--#if (domain-driven-enabled)-->
+    <PackageReference Include="CoreEx.DomainDriven" />
+    <!--#endif-->
+    <!--#if (refdata-enabled)-->
+    <PackageReference Include="CoreEx.RefData" />
+    <!--#endif-->
+    <PackageReference Include="CoreEx.Validation" />
+  </ItemGroup>
+</Project>

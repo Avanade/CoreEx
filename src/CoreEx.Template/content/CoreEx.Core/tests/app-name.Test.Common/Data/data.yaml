@@ -1,0 +1,6 @@
+# Test seed data for the domain-name domain.
+# Populate this file with test fixtures following the DbEx YAML format.
+# Each entity type is a top-level key; rows are listed beneath it.
+# Example:
+#   domain-name.Product:
+#     - { id: "00000000-0000-0000-0000-000000000001", code: "P001", name: "Widget", isActive: true }

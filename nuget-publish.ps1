@@ -62,6 +62,7 @@ param(
         "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.Events",
         "src\CoreEx.RefData",
+        "src\CoreEx.Template",
         "src\CoreEx.Validation",
         "src\CoreEx.UnitTesting")
     )

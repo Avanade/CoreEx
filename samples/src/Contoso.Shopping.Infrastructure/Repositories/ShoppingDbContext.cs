@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Repositories;
+namespace Contoso.Shopping.Infrastructure.Repositories;
 
 public partial class ShoppingDbContext(DbContextOptions<ShoppingDbContext> options, SqlServerDatabase database) : DbContext(options), IEfDbContext
 {

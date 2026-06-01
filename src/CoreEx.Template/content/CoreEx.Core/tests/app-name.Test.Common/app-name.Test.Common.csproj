@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+  </ItemGroup>
+  <!--#if (!implement-none-data)-->
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\app-name.Database\app-name.Database.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\**\*" />
+  </ItemGroup>
+  <!--#endif-->
+</Project>

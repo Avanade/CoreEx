@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\app-name.Application\app-name.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CoreEx.Data" />
+    <!--#if (implement-sqlserver)-->
+    <PackageReference Include="CoreEx.Database.SqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <!--#endif-->
+    <!--#if (implement-postgres)-->
+    <PackageReference Include="CoreEx.Database.Postgres" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!--#endif-->
+    <!--#if (implement-sqlserver || implement-postgres)-->
+    <PackageReference Include="CoreEx.EntityFrameworkCore" />
+    <!--#endif-->
+    <!--#if (refdata-enabled)-->
+    <PackageReference Include="CoreEx.RefData" />
+    <!--#endif-->
+  </ItemGroup>
+</Project>
