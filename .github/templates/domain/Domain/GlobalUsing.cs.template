@@ -1,6 +1,0 @@
-global using CoreEx;
-global using CoreEx.DomainDriven;
-global using CoreEx.DomainDriven.Aggregates;
-global using CoreEx.Results;
-global using {Solution}.{Domain}.Domain;
-global using {Solution}.{Domain}.Domain.ValueObjects;
