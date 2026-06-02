@@ -1,6 +1,6 @@
-# app-name -- CoreEx Microservice
+# app-name -- CoreEx Application Services
 
-This is a **CoreEx domain-based microservice** for the `domain-name` domain.
+This represents the **CoreEx domain-based application services** for the `domain-name` domain.
 
 **AI assistance:** run `/coreex-expert` for CoreEx architecture guidance, pattern decisions, and sample-aligned implementation advice. The full CoreEx doc cache is pre-loaded in `.github/docs/coreex/` -- the expert reads it automatically.
 

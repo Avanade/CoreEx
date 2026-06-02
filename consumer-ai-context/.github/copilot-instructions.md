@@ -8,7 +8,7 @@ CoreEx is a modular .NET framework for enterprise back-end services. It provides
 
 | NuGet Package | Capability |
 |---|---|
-| `CoreEx` | Core: exceptions, `Result<T>`, execution context, DI helpers, entity markers, JSON, mapping |
+| `CoreEx` | Core: exceptions, `Result<T>`, execution context, DI helpers, entity markers, JSON, mapping, and Roslyn source generator for `[Contract]`-decorated and `[ReferenceData]`-decorated types |
 | `CoreEx.AspNetCore` | HTTP API: `WebApi` helpers, idempotency, health checks, middleware |
 | `CoreEx.AspNetCore.NSwag` | OpenAPI / NSwag integration |
 | `CoreEx.Validation` | Fluent validation: `Validator<T>`, `AbstractValidator<T>`, rules |
@@ -44,6 +44,16 @@ CoreEx does not impose a specific folder or project structure. The following lay
 The Domain layer is **optional**. Introduce it only when the domain has aggregates with non-trivial invariants enforced at the model level. Simple CRUD-oriented domains can skip it entirely.
 
 ## Universal Rules
+
+### Before Generating Any Code
+
+1. Run `Get-ChildItem .github/instructions -File` to enumerate all instruction files.
+2. Identify which instruction files match the target layer (contracts, domain, application, etc.).
+3. Read each matching file in full with `get_file` before writing any code.
+
+### Using Statements
+
+Every project has a single `GlobalUsing.cs` at its root where all namespace imports are declared. When emitting code, do **not** add `using` statements to individual files. If a referenced namespace is missing, add the `global using` to that project's `GlobalUsing.cs` instead. If unsure whether an import already exists, check the project's `GlobalUsing.cs` and amend it — unless the user has explicitly instructed otherwise.
 
 ### Always Prefer CoreEx Primitives
 

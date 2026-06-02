@@ -4,7 +4,7 @@
   "classifications": [ "CoreEx", "Microservice", "Relay" ],
   "identity": "CoreEx.Relay",
   "name": "CoreEx Outbox Relay host",
-  "description": "An ASP.NET Core Outbox Relay host project for a CoreEx domain-based microservice.",
+  "description": "An ASP.NET Core Outbox Relay host, and test, projects for a CoreEx domain-based microservice.",
   "shortName": "coreex-relay",
   "tags": {
     "language": "C#",

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.CodeGen.RefData.Config;
+namespace CoreEx.CodeGen.RefData.Config;
 
 /// <summary>
 /// Provides the root code-generation configuration.
@@ -142,6 +142,11 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// </summary>
     public List<EntityConfig>? EntitiesWithRepository => Entities?.Where(x => x.Repository != "None").ToList();
 
+    /// <summary>
+    /// Gets the list of configured entities that have an API implementation specified (i.e. not excluded).
+    /// </summary>
+    public List<EntityConfig>? EntitiesWithApi => Entities?.Where(x => !(x.ExcludeApi ?? false)).ToList();
+
     #endregion
 
     /// <summary>
@@ -225,7 +230,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
         ApiDirectory = new DirectoryInfo(Path.Combine(CodeGenArgs.OutputDirectory.FullName, ApiProjectPath));
         if (!ApiDirectory.Exists)
-            throw new CodeGenException(this, nameof(ApiProjectPath), $"'{ApiProjectPath}' does not exist relative to '{CodeGenArgs.OutputDirectory.FullName}'.");
+            CodeGenArgs.Logger!.LogWarning("The API project directory '{ApiDirectory}' does not exist relative to '{CodeGenDirectory}'. API-related code will not be generated.", ApiProjectPath, CodeGenDirectory.FullName);
 
         // Using the Application project relative path, get the absolute path and ensure it exists.
         if (ApplicationProjectPath is not null)

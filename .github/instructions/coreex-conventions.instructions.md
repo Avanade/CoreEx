@@ -114,6 +114,7 @@ private readonly ILogger<ProductService> _logger;
 
 ## Do Not
 
+- Do not emit `#nullable enable` or `#nullable restore` pragma directives in hand-authored files — nullable is enabled project-wide via `<Nullable>enable</Nullable>` in `Directory.Build.props`. These pragmas are reserved for auto-generated `.g.cs` files produced by code generators.
 - Do not add `using` statements to individual `.cs` files — declare all imports in `GlobalUsing.cs`.
 - Do not use block-scoped namespace declarations.
 - Do not add braces to single-line `if` bodies.

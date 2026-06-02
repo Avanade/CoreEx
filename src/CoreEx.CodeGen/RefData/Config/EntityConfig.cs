@@ -97,6 +97,13 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     #region Exclude
 
     /// <summary>
+    /// Indicates whether to exclude the generation of the API.
+    /// </summary>
+    [JsonPropertyName("excludeApi")]
+    [CodeGenProperty("Exclude", Title = "Indicates whether to exclude the generation of the API.", IsImportant = true, Description = "Defaults to `false`.")]
+    public bool? ExcludeApi { get; set; }
+
+    /// <summary>
     /// Indicates whether to exclude the generation of the mapper.
     /// </summary>
     [JsonPropertyName("excludeMapper")]

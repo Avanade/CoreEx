@@ -1,10 +1,10 @@
 {
   "$schema": "http://json.schemastore.org/template",
   "author": "https://github.com/avanade/coreex",
-  "classifications": [ "CoreEx", "Microservice" ],
+  "classifications": [ "CoreEx", "Microservice", "Application" ],
   "identity": "CoreEx.Solution",
-  "name": "CoreEx domain-based microservice application",
-  "description": "A solution template for a domain-based microservice application using CoreEx.",
+  "name": "CoreEx Application Services",
+  "description": "A solution template for the core application services, tooling, and test projects using CoreEx.",
   "shortName": "coreex",
   "tags": {
     "language": "C#",
@@ -190,6 +190,10 @@
         {
           "condition": "(implement-postgres)",
           "exclude": [ "tools/app-name.Database/Migrations/*.sql" ]
+        },
+        {
+          "condition": "(!outbox-enabled)",
+          "exclude": [ "tools/app-name.Database/Migrations/*outbox-tables.*" ]
         }
       ]
     }

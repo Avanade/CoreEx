@@ -20,6 +20,31 @@ tags: ["contracts", "dto", "source-generation", "reference-data", "etag"]
 </ItemGroup>
 ```
 
+## Root vs. Subordinate (contract or entity)
+
+Note that the terms Contract and Entity are interchangeable in this context. The conventions below apply to all DTOs that represent a resource, whether they are persisted entities or plain request/response models.
+
+If the user specifies that it is Reference Data then treat as defined by [Reference Data Contracts](#reference-data-contracts).
+
+Before generating any contract, determine whether it is a **root** or a **subordinate** contract.  
+Always ask the user if this is not explicit in their request.
+
+| Concern | Root | Subordinate |
+|---|---|---|
+| `IIdentifier<string?>` | ✅ Always (unless explicitly requested otherwise). The user may also specify a different type | ❌ Omit |
+| `IETag` | ✅ Always (unless explicitly requested otherwise) | ❌ Omit |
+| `IChangeLog` | ✅ When audit trail is needed (ask) | ❌ Omit |
+| `[ReadOnly(true)]` on `Id`, `ETag`, `ChangeLog` | ✅ Required | N/A |
+| `[Contract]` + `partial` | ✅ Always for generated members | Only if generated members are needed |
+
+**Root** — owns its own identity, is persisted independently, and is retrieved/mutated via its own API endpoint (e.g. `Product`, `Order`, `Person`).
+
+**Subordinate** — a child, line-item, value object, or request/response DTO that is generally accessed through a root (e.g. `OrderLine`, `Address`, `BasketItemAddRequest`).
+
+> **Agent instruction:** When asked to create a contract and the category is not explicit,  
+> ask: *"Is `{Name}` a root contract (it has its own identity) or a subordinate contract (accessed only through a parent)?"*  
+> Do not assume root. Do not generate `IIdentifier`, `IETag`, or `IChangeLog` until confirmed.
+
 ## Unified API and Messaging Surface
 
 The same contract type is used for both the HTTP API response **and** the event message payload. A `Product` returned from `GET /api/products/{id}` is the same `Contracts.Product` type published as a `product.created` event body. Do not split a resource into separate API and event DTOs.
@@ -29,6 +54,8 @@ When a domain **consumes** events from another domain, declare a local internal 
 ## Source Generation
 
 Mark entity contract classes with the `[Contract]` attribute and declare them `partial`. The `CoreEx` package ships with a bundled Roslyn source generator ([`CoreEx.Generator`](https://github.com/Avanade/CoreEx/tree/main/gen/CoreEx.Generator)) that activates automatically — no extra package reference is needed. It emits serialization, equality, and change-tracking code into a paired `*.g.cs` file at compile time. Never manually implement those generated members.
+
+> Both `[Contract]` and `[ReferenceData]` trigger this Roslyn source generator. For reference data types the flow is two-stage: the `*.CodeGen` project (OnRamp/Handlebars) first generates the class decorated with `[ReferenceData]`, then the Roslyn generator processes that attribute at compile time to emit additional members -- see [Reference Data Contracts](#reference-data-contracts).
 
 ```csharp
 [Contract]
@@ -80,7 +107,7 @@ Decorate server-assigned properties with `[ReadOnly(true)]` to signal that clien
 
 ## Reference Data Properties
 
-Use `[ReferenceData<TRefData>]` on code properties that back a reference data relationship. Three conditions must all be met for the source generator to emit the navigation accessor:
+Use `[ReferenceData<TRefData>]` on code properties that back a reference data relationship. Two conditions must both be met for the source generator to emit the navigation accessor:
 
 1. The **class** is decorated with `[Contract]` and declared `partial`.
 2. The **property** is declared `partial`.
@@ -100,6 +127,45 @@ public partial class ProductBase : IIdentifier<string?>
 ```
 
 The generated code exposes a strongly-typed `SubCategory` property alongside the raw `SubCategoryCode` string. If either `[Contract]` or `partial` is missing from the class, the navigation property will not be generated and the code will not compile correctly.
+
+> **Agent instruction — property type resolution:** When generating contract properties, apply this hierarchy for every property first, then generate the complete contract in a single pass. Do not ask about individual properties mid-list.
+>
+> **Step 1 — Honour explicit types**  
+> If the user specifies a CLR type (e.g. `string Gender`, `int Rating`), use it as-is. No lookup. No question.
+>
+> **Step 2 — Infer obvious primitives by name pattern (silent — no question)**
+>
+> | Name pattern | Inferred type |
+> |---|---|
+> | `First*`, `Last*`, `*Name`, `*Description`, `*Text`, `*Notes`, `*Comment`, `Sku`, `Email`, `Phone`, `Url` | `string?` |
+> | `Is*`, `Has*`, `Can*`, `Allow*` | `bool` |
+> | `*Price`, `*Amount`, `*Cost`, `*Rate`, `*Total`, `*Balance`, `*Percentage` | `decimal` |
+> | `*Date`, `*On`, `*At`, `Created*`, `Updated*`, `Deleted*` | `DateTime?` |
+> | `*Quantity`, `*Qty` | `decimal` |
+> | `*Count`, `*Number`, `*Sequence` | `int` |
+>
+> **Step 3 — Check `ref-data.yaml` for any remaining untyped noun properties**  
+> Search `entities:` in `tools/[domain].CodeGen/ref-data.yaml` for each unresolved property name:
+> - **Found** — wire up silently as `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }`. No question.
+> - **Not found** — add to the candidates list for Step 4.
+>
+> **Step 4 — Ask once, for all remaining candidates, at the end**  
+> After processing every property, if any candidates remain unresolved, ask a single question:  
+> *"The following properties could be reference data types — which should I add to `ref-data.yaml`? (select any, or none to treat as plain properties): `Gender`, `Status`, `Priority`"*  
+> Never ask per-property. Never interrupt before all properties have been analysed.
+>
+> **Step 5 — Single batch edit and one CodeGen run**  
+> For all properties the user confirms as reference data:
+> 1. Add **all** confirmed types to `ref-data.yaml` under `entities:` in a **single edit**.
+> 2. Offer to run `dotnet run` from the `*.CodeGen` directory **once** to generate all of them in one pass.
+> 3. On success, summarise the generated artefacts; on failure relay the **complete output verbatim** then fix `ref-data.yaml` and offer to re-run. Do not create `.g.cs` files manually.
+>
+> **Step 6 — Generate the complete contract in one pass**  
+> Once all types are resolved and CodeGen has run (if needed), emit the full contract:
+> - Reference data properties: `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }` — the property name is always `{Name}Code`; the navigation property `{Name}` is Roslyn-generated and must not be hand-authored.
+> - Plain properties: use the inferred or explicit CLR type.
+> - Apply `[Localization("Human label")]` where the raw property name would produce a poor validation message (e.g. `SubCategoryCode` → `"Sub-category"`).
+> - For any property confirmed as plain (Step 4, user selected none or a subset), use `string?` as the default if no better type can be inferred.
 
 ## Localization Labels
 
@@ -137,46 +203,92 @@ public class ProductLite : ProductBase
 }
 ```
 
-## Typed Collection Classes
-
-Pair entity contracts with a typed collection class when the contract represents a resource commonly returned as a list:
-
-```csharp
-public partial class MovementCollection : List<Movement> { }
-```
-
 ## Reference Data Contracts
 
-Reference data types inherit from `ReferenceData<TSelf>` and use `[ReferenceData]` attribute. Pair each type with a typed collection class:
+Reference data contracts are **generated, not hand-authored**. The source of truth is the `entities:` section of `ref-data.yaml` in the domain's `*.CodeGen` project. Running the CodeGen generates all artefacts across every layer -- contract class, API endpoint, service method, repository interface, repository implementation, and mapper -- as `.g.cs` files that must never be edited directly.
 
-```csharp
-[ReferenceData]
-public partial class Category : ReferenceData<Category> { }
+> **Agent instruction:** When asked to create or modify a reference data type:
+> 1. Edit `ref-data.yaml` in `tools/[domain].CodeGen/` -- add or update the entry under `entities:`.
+> 2. Offer to run `dotnet run` from the CodeGen directory on the user's behalf.
+> 3. If confirmed, execute it and summarise the generated artefacts on success; on failure relay the **complete output verbatim** — it provides the diagnostic needed to fix the entry.
+> 4. On failure, fix the issue in `ref-data.yaml` and offer to re-run -- do not create or edit `.g.cs` files to work around a generation error.
+> 5. If the user declines, remind them to run `dotnet run` from the `*.CodeGen` directory before the new types are available.
+>
+> If the user **explicitly requests** hand-authoring instead of CodeGen, use the pattern shown in [Hand-authored contracts (explicit request only)](#hand-authored-contracts-explicit-request-only) below.
 
-public class CategoryCollection() : ReferenceDataCollection<Category>(ReferenceDataSortOrder.Code) { }
+### `ref-data.yaml` -- entity definition
+
+The standard `IReferenceData` properties (`Id`, `Code`, `Text`, `Description`, `SortOrder`, `IsActive`, `StartsOn`, `EndsOn` etc.) are automatically included in every generated type -- do not declare them under `properties:`. Only additional domain-specific columns need to be listed, and most reference data entities require none at all.
+
+```yaml
+entities:
+- name: Brand                   # minimal form -- no extra properties needed
+- name: Category                # same; just name is sufficient for most entities
+- name: SubCategory
+  properties:
+  - name: CategoryCode
+    type: ^Category             # ^ prefix = ref-data navigation property (typed accessor generated)
+- name: UnitOfMeasure
+  plural: UnitsOfMeasure        # override irregular pluralization
+  idType: Guid                  # override identifier type; defaults to string
+  properties:
+  - name: Scale
+    type: int                   # additional stored column (not part of IReferenceData)
+  - name: DiscountPercentage
+    type: decimal
+    excludeContract: true       # exclude from generated contract (persistence model only)
 ```
 
-Reference data contract `*.g.cs` files are generated by the domain's `*.CodeGen` project from `ref-data.yaml`. A hand-authored partial class in the same namespace can extend the generated type with additional computed members or constants:
+Key `entities:` options:
+
+| Key | Required | Default | Purpose |
+|---|---|---|---|
+| `name` | Yes | -- | Entity name (PascalCase) |
+| `plural` | No | Auto-pluralized | Override when pluralization is irregular |
+| `idType` | No | `string` | Identifier type override (e.g. `Guid`, `int`) |
+| `properties[].name` | Yes (if any) | -- | Additional stored property name |
+| `properties[].type` | Yes (if any) | -- | CLR type; prefix `^` for a ref-data navigation accessor |
+| `properties[].excludeContract` | No | `false` | Exclude from the generated contract (persistence only) |
+
+### Hand-authored extensions (optional)
+
+After CodeGen runs, an optional hand-authored `partial` class in the same namespace can add constants or computed members. Do not redeclare `[ReferenceData]`, the base class, or the collection class -- those are owned by the generator.
 
 ```csharp
-// MovementKind.g.cs — generated, do not edit.
-// MovementKind.cs — hand-authored extension.
+// MovementKind.cs -- hand-authored extension; MovementKind.g.cs is generated, do not edit.
 public partial class MovementKind
 {
-    public const string Adjust = "A";
-    public const string Issue  = "I";
+    public const string Adjust  = "A";
+    public const string Issue   = "I";
     public const string Receive = "R";
 }
-```
 
-For reference data that carries additional stored fields (e.g., `UnitOfMeasure.Scale`), add those as plain properties on the hand-authored partial and mark computed ones with `[JsonIgnore]`:
-
-```csharp
+// UnitOfMeasure.cs -- computed property derived from a generated stored field.
 public partial class UnitOfMeasure
 {
     [JsonIgnore]
     public int Precision => 16 - Scale; // Scale is a generated stored field
 }
+```
+
+### Hand-authored contracts (explicit request only)
+
+If the user explicitly requests a hand-authored reference data contract (i.e., without CodeGen), declare the type and its paired collection class directly:
+
+```csharp
+[ReferenceData]
+public partial class Category : ReferenceData<Category>;
+
+public class CategoryCollection() : ReferenceDataCollection<Category>(ReferenceDataSortOrder.Code);
+```
+
+Use `ReferenceData<TId, TSelf>` when a non-string identifier type is required:
+
+```csharp
+[ReferenceData]
+public partial class Priority : ReferenceData<int, Priority>;
+
+public class PriorityCollection() : ReferenceDataCollection<Priority>(ReferenceDataSortOrder.Code);
 ```
 
 ## Casing Transformations
@@ -206,7 +318,7 @@ Never create or edit `*.g.cs` files directly.
 
 | File pattern | Generator | Change instead |
 |---|---|---|
-| `*.g.cs` (ref-data types) | `*.CodeGen` project (`ref-data.yaml` + Handlebars templates) | `ref-data.yaml` or the templates |
+| `*.g.cs` (ref-data types, cross-layer) | `*.CodeGen` project (`ref-data.yaml` + Handlebars/OnRamp) | Edit `ref-data.yaml` and re-run `dotnet run` |
 | `*.g.cs` (contract members) | Roslyn source generator (`CoreEx.Generator`) | The `[Contract]`-decorated partial class |
 
 ## Do Not
@@ -216,6 +328,7 @@ Never create or edit `*.g.cs` files directly.
 - Do not implement members that the Roslyn source generator emits (equality, cloning, serialization helpers).
 - Do not place domain rules, validators, or service calls in contract classes.
 - Do not edit `*.g.cs` files directly — regenerate via the appropriate tooling.
+- Do not emit `#nullable enable` or `#nullable restore` pragma directives — nullable is enabled project-wide via `Directory.Build.props`.
 
 ## Further Reading
 

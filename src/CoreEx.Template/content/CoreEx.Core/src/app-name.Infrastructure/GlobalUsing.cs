@@ -34,3 +34,4 @@ global using Microsoft.EntityFrameworkCore;
 #endif
 global using Microsoft.Extensions.DependencyInjection;
 global using System.Text.Json.Serialization;
+global using app-name.Application.Repositories;

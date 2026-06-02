@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Contracts;
+namespace Contoso.Products.Contracts;
 
 [Contract]
 public partial class Movement : IIdentifier<string?>, IETag, IChangeLog
@@ -35,5 +35,3 @@ public partial class Movement : IIdentifier<string?>, IETag, IChangeLog
         _ => false
     };
 }
-
-public partial class MovementCollection : List<Movement> { }

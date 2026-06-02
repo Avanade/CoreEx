@@ -4,7 +4,7 @@
   "classifications": [ "CoreEx", "Microservice", "Subscriber" ],
   "identity": "CoreEx.Subscriber",
   "name": "CoreEx Subscriber host",
-  "description": "An ASP.NET Core Subscriber host project for a CoreEx domain-based microservice.",
+  "description": "An ASP.NET Core Subscriber host, and test, projects for a CoreEx domain-based microservice.",
   "shortName": "coreex-subscriber",
   "tags": {
     "language": "C#",

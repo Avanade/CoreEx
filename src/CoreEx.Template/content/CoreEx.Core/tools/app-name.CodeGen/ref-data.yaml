@@ -1,5 +1,9 @@
 # Reference data entity definitions.
 # See https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen for more information.
+apiProjectPath: ../../src/app-name.Api
+applicationProjectPath: ../../src/app-name.Application
+contractsProjectPath: ../../src/app-name.Contracts
+dataProjectPath: ../../src/app-name.Infrastructure
 collectionSortOrder: Code
 repository: EntityFramework
 entities:

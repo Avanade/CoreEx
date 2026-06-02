@@ -31,7 +31,7 @@ Running `dotnet run` reads `ref-data.yaml`, validates it against the CoreEx JSON
 
 | Artefact | Target layer | Description |
 |---|---|---|
-| `*.g.cs` contract class | Contracts | Typed reference-data entity contract extending `ReferenceData<TSelf>` |
+| `*.g.cs` contract class | Contracts | Typed reference-data entity contract extending `ReferenceData<TSelf>`, decorated with `[ReferenceData]` which triggers the Roslyn source generator to emit additional members at compile time |
 | `*.g.cs` controller route | API host | HTTP GET endpoint exposing the entity collection |
 | `*.g.cs` service method | Application | Service method delegating to the repository |
 | `*.g.cs` repository interface | Application | `IXxxRepository` interface declaration |
@@ -55,6 +55,7 @@ entities:
     type: ^Category             # ^ prefix = typed reference-data property (generates navigation accessor)
 - name: UnitOfMeasure
   plural: UnitsOfMeasure        # override pluralization where irregular
+  idType: Guid                  # override identifier type; defaults to string
   properties:
   - name: Scale
     type: int                   # additional stored column beyond the standard ReferenceData fields
@@ -66,6 +67,26 @@ entities:
 ```
 
 Add the `$schema` annotation to the file for IDE YAML validation and auto-complete.
+
+The standard `IReferenceData` properties (`Id`, `Code`, `Text`, `Description`, `SortOrder`, `IsActive`, etc.) are automatically included in every generated type — do not declare them under `properties:`. Only additional domain-specific columns need to be listed; most reference data entities require no `properties:` entry at all.
+
+Key `entities:` options:
+
+| Key | Required | Default | Purpose |
+|---|---|---|---|
+| `name` | Yes | -- | Entity name (PascalCase) |
+| `plural` | No | Auto-pluralized | Override when pluralization is irregular |
+| `idType` | No | `string` | Identifier type override (e.g. `Guid`, `int`) |
+| `properties[].name` | Yes (if any) | -- | Additional stored property name |
+| `properties[].type` | Yes (if any) | -- | CLR type; prefix `^` for a ref-data navigation accessor |
+| `properties[].excludeContract` | No | `false` | Exclude from the generated contract (persistence only) |
+
+> **Agent instruction:** When asked to create or modify a reference data type:
+> 1. Add or update the entry under `entities:` in `ref-data.yaml`.
+> 2. Offer to run `dotnet run` from the `*.CodeGen` directory on the user's behalf.
+> 3. If confirmed, execute it and summarise the generated artefacts on success; on failure relay the **complete output verbatim** — it provides the diagnostic needed to fix the entry.
+> 4. On failure, fix the issue in `ref-data.yaml` and offer to re-run -- do not create or edit `.g.cs` files to work around a generation error.
+> 5. If the user declines, remind them to run `dotnet run` from the `*.CodeGen` directory before the new types are available.
 
 ---
 
@@ -124,6 +145,7 @@ Run with `dotnet run -- <command>`. Default (no arguments) runs `All`.
 | `Reset` | Deletes all data from the database (scoped by `DataResetFilterPredicate`) |
 | `Script` | Scaffolds a new timestamped migration script file |
 | `Drop` | Drops the database |
+| `Inspect` | Read-only; reports existence and current column schema (type, nullability, default, PK, identity, computed, unique, and whether it is reference data) for one or more tables in a schema, as markdown. Safe to run freely |
 
 Composite commands for common scenarios:
 
@@ -132,7 +154,35 @@ Composite commands for common scenarios:
 | `All` | `Create` → `Migrate` → `CodeGen` → `Schema` → `Data` |
 | `Deploy` | `Migrate` → `Schema` |
 | `DeployWithData` | `Migrate` → `Schema` → `Data` |
+| `CreateMigrateAndCodeGen` | `Create` → `Migrate` → `CodeGen` |
 | `ResetAndAll` | `Reset` → `All` |
+
+### Provisioning the Transactional Outbox
+
+The outbox table(s) are created via a DbEx-generated migration script — never hand-authored. This applies only to domains that have a `*.Database` project (i.e. a `data-provider` other than `None`).
+
+When a solution is scaffolded with outbox enabled, the `coreex` template **already ships the outbox create migration script** (`*-create-<schema>-outbox-tables.{sql,pgsql}`) under `Migrations/`. In that case nothing needs scaffolding — the script just needs to be applied via `Migrate`. Only scaffold a new create script when one does **not** already exist (e.g. outbox was enabled after the solution was generated).
+
+> **Migration scripts are immutable once applied.** A create script runs exactly once and is never re-run, regenerated, or edited. If the outbox schema later needs to change (e.g. a DbEx version bump alters its shape), author a **new** timestamped `ALTER` migration script for the delta — do not modify or re-scaffold the original create script.
+
+> **Agent instruction:** When asked to create the database outbox table(s):
+> 1. **Validate `dbex.yaml` first.** All three conditions must hold:
+>    - Root-level `outbox: true` is set.
+>    - Root-level `schema:` has a value (call it `xxx`).
+>    - Root-level `outboxName:` has a value (call it `yyy`).
+>    If any condition fails, **stop and error** — state which is missing. Do not attempt to scaffold the script.
+> 2. **Check for an existing create script.** Look under `Migrations/` for a `*-create-*-outbox-tables.{sql,pgsql}` script (the template ships one when outbox is enabled). If present, **do not scaffold another** — skip to step 4 to apply it. Only when none exists, proceed to step 3.
+> 3. **Scaffold the migration script** using the extracted `schema` (`xxx`) and `outboxName` (`yyy`) values:
+>    ```
+>    dotnet run -- script outbox xxx yyy
+>    ```
+> 4. **Ask** whether the (new or existing) script should be deployed/migrated to the database.
+> 5. **If confirmed**, run:
+>    ```
+>    dotnet run -- CreateMigrateAndCodeGen
+>    ```
+>    Summarise the output on success; on failure relay the **complete output verbatim** — it provides the diagnostic needed to resolve the issue.
+> 6. **If declined**, remind the user to run `dotnet run -- CreateMigrateAndCodeGen` before the outbox table(s) exist in the database.
 
 ### `dbex.yaml` structure
 
@@ -185,6 +235,29 @@ The `CodeGen` command generates `.g.cs` files into the Infrastructure project:
 
 These files are the only `.g.cs` outputs of `*.Database`; all other generated C# comes from `*.CodeGen`. Never edit them directly.
 
+### Inspecting current database state
+
+The `Inspect` command queries the **live database** and reports, per table, whether it exists and — when it does — its current column schema as markdown. It is read-only and has no side effects, so run it freely without confirmation.
+
+```
+dotnet run -- inspect <schema> <table> [<table> ...]
+```
+
+The schema is the **first** argument; every argument after it is a table name within that schema. Example:
+
+```
+dotnet run -- inspect public contact gender
+```
+
+The output is the authoritative source of truth for what the database currently contains. **Do not infer table existence or configuration from the file system** — the presence of a script under `Migrations/` or an entry under `tables:` in `dbex.yaml` only means it was *authored*, not that it has been *applied* to the target database. Migration scripts may or may not have been run. Only `Inspect` reflects reality.
+
+Reading the output:
+- Branch on the `## SCHEMA.TABLE - Exists: Yes|No` header first. `No` means the table is absent and must be created.
+- Use the **Qualified Name** bullet (e.g. `"public"."contact"` or `[Test].[Contact]`) for DDL casing and quoting — not the uppercased header text.
+- Honour the **Reference Data: Yes|No** flag for routing decisions (a reference data table is maintained via `ref-data.yaml` + CodeGen, not by hand).
+- PostgreSQL reports canonical type names (`CHARACTER VARYING(50)`, `TIMESTAMP WITH TIME ZONE`); treat these as equivalent to the `VARCHAR(50)` / `TIMESTAMPTZ` forms you would author in a script.
+- Per the disclaimer in the output, the live database remains the ultimate truth; the report is derived from system catalogs and may not capture every nuance.
+
 ### `Migrate` — schema evolution
 
 Migration scripts are embedded resources under `Migrations/`. Use timestamp-ordered names:
@@ -207,9 +280,51 @@ Scripts are **immutable once applied**. Subsequent changes require new scripts (
 SQL conventions:
 - Wrap each script in `BEGIN TRANSACTION ... COMMIT TRANSACTION` (SQL Server) or equivalent.
 - Use explicit schema-qualified names.
-- Include `CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn` audit columns on aggregate tables.
+- Include the `IChangeLog` audit columns on aggregate tables, named **exactly** `CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn` (SQL Server) / `created_by`, `created_on`, `updated_by`, `updated_on` (PostgreSQL). The date/time columns use the `On` suffix — **never** `CreatedDate`/`UpdatedDate` or `created_date`/`updated_date`. Type them `DATETIMEOFFSET` (SQL Server) / `TIMESTAMPTZ` (PostgreSQL) and the `*By` columns as the contract's user type (typically `NVARCHAR(n)` / `VARCHAR(n)`).
 - **SQL Server**: add a `ROWVERSION` / `TIMESTAMP` column for optimistic-concurrency mapped to `ETag`.
 - **PostgreSQL**: use the built-in hidden `xmin` system column for optimistic-concurrency — no explicit column is required in the schema.
+- Logical (soft) delete on root/aggregate tables is an infrastructure-only column — `IsDeleted` (SQL Server) / `is_deleted` (PostgreSQL) — with **no** corresponding contract/entity property; default to including it (confirm) when creating such a table.
+
+### Mapping contract types to columns
+
+When authoring a migration script for an entity that has a corresponding .NET contract, the column types must mirror the contract's property types. Do not substitute a different type (most importantly for the primary key) unless the user explicitly asks. Before authoring, establish whether the table already exists and its current shape — see [Inspecting current database state](#inspecting-current-database-state) and the [Creating or altering a table for an entity](#creating-or-altering-a-table-for-an-entity) workflow.
+
+| Contract (.NET) type | SQL Server | PostgreSQL |
+|---|---|---|
+| `string` / `string?` | `NVARCHAR(n)` | `VARCHAR(n)` / `TEXT` |
+| `Guid` | `UNIQUEIDENTIFIER` | `UUID` |
+| `int` | `INT` | `INTEGER` |
+| `long` | `BIGINT` | `BIGINT` |
+| `short` | `SMALLINT` | `SMALLINT` |
+| `decimal` | `DECIMAL(p,s)` | `DECIMAL(p,s)` |
+| `double` | `FLOAT` | `DOUBLE PRECISION` |
+| `bool` | `BIT` | `BOOLEAN` |
+| `DateTime` | `DATETIME2` | `TIMESTAMP` |
+| `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
+
+> **Agent instruction:** When generating a migration script for an entity that has a .NET contract:
+> 1. **Map the primary key column to the contract's identifier type.** A contract with `IIdentifier<string?>` (the default) maps to `NVARCHAR(50) NOT NULL PRIMARY KEY` (SQL Server) / `VARCHAR(50) NOT NULL PRIMARY KEY` (PostgreSQL). A `Guid` identifier maps to `UNIQUEIDENTIFIER` / `UUID`; an `int` to `INT` / `INTEGER`; and so on. Never assume `UNIQUEIDENTIFIER`/`UUID` for a `string` identifier.
+> 2. **Do not add value-generation defaults** (e.g. `DEFAULT (NEWSEQUENTIALID())`, `IDENTITY`, `gen_random_uuid()`) unless explicitly requested. By convention the application services layer assigns identifier and other values — the database should not default them.
+> 3. **Map every other column to its contract property type** per the table above, preserving nullability (`?` → nullable column).
+> 4. **If in doubt about a type, nullability, or precision/length, ask** rather than guessing.
+
+### Creating or altering a table for an entity
+
+When asked to create or change a database table for a .NET entity (e.g. *"create a table for the Employee entity"*), do **not** blindly scaffold a `CREATE TABLE` script. The table — or a related reference data table — may already exist with a different shape. Use `Inspect` to establish the current state first.
+
+> **Agent instruction:**
+> 1. **Identify every table involved.** This includes the entity's own table plus any reference data tables implied by its `[ReferenceData<T>]` properties (each typed reference-data property maps to a lookup table that may need to exist).
+> 2. **Inspect the current state.** Run `dotnet run -- inspect <schema> <table> [<table> ...]` (read-only — no confirmation needed). If unapplied migration scripts may exist, offer to run `dotnet run -- Migrate` first (a mutation — confirm before running) so the inspection reflects the fully migrated schema.
+> 3. **Branch per table on the `Inspect` result:**
+>    - **Not found** → author a new timestamped `CREATE TABLE` migration script under `Migrations/`, and register the table under `tables:` in `dbex.yaml`. Map column types per [Mapping contract types to columns](#mapping-contract-types-to-columns).
+>    - **Found, Reference Data: Yes** → do **not** recreate or alter it directly. Reference it from the entity table per step 4 below. Any change to the reference data table's own shape flows through `ref-data.yaml` + CodeGen, not a hand-authored script.
+>    - **Found, schema differs from the contract** → author a new timestamped `ALTER TABLE` migration script for the **delta only** (applied scripts are immutable — never edit the original create script).
+>    - **Found, schema already matches** → no script is needed; say so.
+> 4. **Confirm how each reference-data relationship is represented.** For every `[ReferenceData<T>]` property on the entity, ask whether the column should reference the lookup by its **Code** (the default) or by its **Id**:
+>    - **By Code (default)** → name the column with a `Code` suffix (e.g. `Employee.GenderCode` / `gender_code`), typed to match the reference data `Code` column (typically `NVARCHAR(50)` / `VARCHAR(50)`). **Do not create a foreign key constraint.**
+>    - **By Id** → name the column with an `Id` suffix (e.g. `Employee.GenderId` / `gender_id`), typed to match the reference data identifier type. A foreign key is **not** created automatically — **ask whether one is required** and add it only if confirmed.
+> 5. **Confirm logical-delete support** (for root/aggregate tables). Ask whether the table should support logical (soft) deletes — **default yes**. If yes, add an infrastructure-only column: `IsDeleted` (SQL Server) / `is_deleted` (PostgreSQL). This is a persistence concern only — the .NET contract/entity must **not** declare an equivalent property.
+> 6. **Offer to apply.** Offer to run `dotnet run -- CreateMigrateAndCodeGen`. Summarise the output on success; on failure relay the **complete output verbatim**.
 
 ### `Schema` — idempotent objects
 

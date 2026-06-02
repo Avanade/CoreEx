@@ -197,7 +197,7 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
     {
         Id = source.Id!,
         Sku = source.Sku!,
-        SubCategoryCode = source.SubCategory?.Code!,
+        SubCategoryCode = source.SubCategoryCode,
         Price = source.Price
     };
 
@@ -210,6 +210,8 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
     };
 }
 ```
+
+Do **not** map the standard `IETag` (`ETag`) and `IChangeLog` (`CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn`) properties in the `OnMap` overrides — the base mapper handles these automatically in both directions. Map only the domain-specific properties, as shown above.
 
 Infrastructure-level mapping covers either **Contract ↔ Persistence** (CRUD domains) or **Domain ↔ Persistence** (domains with a Domain layer, where the aggregate is mapped to/from the persistence model). Application-level mapping (Domain aggregate ↔ Contract) lives in `Application/Mapping/` and uses `Mapper<TSource, TDest, TSelf>`. Do not conflate the two.
 
