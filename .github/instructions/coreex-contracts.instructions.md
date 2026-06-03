@@ -45,6 +45,8 @@ Always ask the user if this is not explicit in their request.
 > ask: *"Is `{Name}` a root contract (it has its own identity) or a subordinate contract (accessed only through a parent)?"*  
 > Do not assume root. Do not generate `IIdentifier`, `IETag`, or `IChangeLog` until confirmed.
 
+> **Identifier type — do not substitute.** The identifier type is `IIdentifier<string?>` by **default**. Use `string?` unless the user **explicitly** states a different type (e.g. "use a `Guid` id", "the key is an `int`"). **Never** silently change it — in particular, do **not** default to `Guid` because it is common elsewhere. The chosen type is authoritative and must flow through unchanged to every downstream artefact: the `ref-data.yaml` `idType`, the persistence model, and the database primary-key column type (a `string?` id → `NVARCHAR(50)`/`VARCHAR(50)`, **not** `UNIQUEIDENTIFIER`/`UUID`). If a plan or prior step states one type, the implementation must match it exactly — flag any discrepancy rather than resolving it by changing the type.
+
 ## Unified API and Messaging Surface
 
 The same contract type is used for both the HTTP API response **and** the event message payload. A `Product` returned from `GET /api/products/{id}` is the same `Contracts.Product` type published as a `product.created` event body. Do not split a resource into separate API and event DTOs.

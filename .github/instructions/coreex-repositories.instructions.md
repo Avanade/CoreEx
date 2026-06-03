@@ -211,7 +211,28 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
 }
 ```
 
-Do **not** map the standard `IETag` (`ETag`) and `IChangeLog` (`CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn`) properties in the `OnMap` overrides — the base mapper handles these automatically in both directions. Map only the domain-specific properties, as shown above.
+Generated persistence models inherit from `ModelBase<TId>` — or `ReferenceDataModelBase<TId>` for reference data (which extends `ModelBase<TId>`) — both in the `CoreEx.Data.Models` namespace. `ModelBase` supplies the standard `Id`, `CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn`, and `ETag` members; the EF code-generation maps the database `RowVersion` (`TIMESTAMP`) column onto the `string? ETag` property, so there is **no** `RowVersion` member on the model. `ReferenceDataModelBase` adds the standard reference-data members (`Code`, `Text`, `Description`, `SortOrder`, `IsActive`, `StartsOn`, `EndsOn`).
+
+Consequently, do **not** map the `IETag` (`ETag`) or `IChangeLog` (`ChangeLog`) surface in the `OnMap` overrides — the base `BiDirectionMapper` maps the inherited `ModelBase` change-log and ETag members to/from the contract automatically, in both directions. Map `Id` and the domain-specific properties explicitly (as shown above); leave the inherited base-class members to the base mapper.
+
+```csharp
+// ❌ DO NOT do this — none of it belongs in OnMap; the base mapper already handles it.
+protected override Contracts.Employee OnMap(Persistence.Employee source) => new()
+{
+    Id = source.Id,
+    // ...domain properties...
+    ETag = source.RowVersion is null ? null : Convert.ToBase64String(source.RowVersion),  // ❌ no RowVersion member — model exposes ETag (string); base mapper owns it anyway
+    ChangeLog = new ChangeLog                                                              // ❌ base mapper owns the change-log surface
+    {
+        CreatedBy = source.CreatedBy,
+        CreatedDate = source.CreatedDate,   // ❌ no such member (it is CreatedOn) AND should not be mapped at all
+        UpdatedBy = source.UpdatedBy,
+        UpdatedDate = source.UpdatedDate,   // ❌ no such member (it is UpdatedOn) AND should not be mapped at all
+    }
+};
+```
+
+> Note: the `ModelBase` change-log members are `CreatedOn`/`UpdatedOn` (`DateTimeOffset?`), **never** `CreatedDate`/`UpdatedDate` — but in a mapper the entire block is removed regardless, since the base mapper owns it.
 
 Infrastructure-level mapping covers either **Contract ↔ Persistence** (CRUD domains) or **Domain ↔ Persistence** (domains with a Domain layer, where the aggregate is mapped to/from the persistence model). Application-level mapping (Domain aggregate ↔ Contract) lives in `Application/Mapping/` and uses `Mapper<TSource, TDest, TSelf>`. Do not conflate the two.
 
