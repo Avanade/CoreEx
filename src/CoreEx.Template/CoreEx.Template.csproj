@@ -39,18 +39,21 @@
     </Task>
   </UsingTask>
 
-  <!-- Copy AI context files from the CoreEx repo into the CoreEx.Core template at pack time.
+     <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Core template at pack time.
        This ensures every generated solution is immediately AI-ready without a separate sync step.
        Files sourced:
-         - consumer-ai-context/.github/copilot-instructions.md  → .github/copilot-instructions.md
+         - consumer-instructions/.github/copilot-instructions.md → .github/copilot-instructions.md
+        - .github/prompts/coreex-scaffold.prompt.md            → .github/prompts/coreex-scaffold.prompt.md
+        - .github/skills/coreex-scaffold/*                     → .github/skills/coreex-scaffold/
          - .github/agents/coreex-expert.agent.md               → .github/agents/coreex-expert.agent.md
          - .claude/commands/coreex-expert.md                    → .claude/commands/coreex-expert.md
          - .claude/commands/coreex-docs-sync.md                 → .claude/commands/coreex-docs-sync.md
          - .github/instructions/*.instructions.md               → .github/instructions/
+        - docs/application-scaffolding-guide.md                → .github/docs/coreex/application-scaffolding-guide.md
          - samples/docs/*.md                                     → .github/docs/coreex/
          - src/CoreEx.*/AGENTS.md                               → .github/docs/coreex/agents/
   -->
-  <Target Name="CopyConsumerAiContext" BeforeTargets="_GetPackageFiles">
+    <Target Name="CopyTemplateAiContext" BeforeTargets="_GetPackageFiles">
     <PropertyGroup>
       <_RepoRoot>$(MSBuildThisFileDirectory)..\..\</_RepoRoot>
       <_AiGenRoot>$(BaseIntermediateOutputPath)generated\CoreEx.Core\</_AiGenRoot>
@@ -58,8 +61,14 @@
 
     <!-- Single files and package AGENTS.md files (need explicit source→dest mapping) -->
     <ItemGroup>
-      <_AiFile Include="$(_RepoRoot)consumer-ai-context\.github\copilot-instructions.md"
+      <_AiFile Include="$(_RepoRoot)consumer-instructions\.github\copilot-instructions.md"
                DestSubPath=".github\copilot-instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\prompts\coreex-scaffold.prompt.md"
+               DestSubPath=".github\prompts\coreex-scaffold.prompt.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\coreex-scaffold\SKILL.md"
+               DestSubPath=".github\skills\coreex-scaffold\SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\coreex-scaffold\README.md"
+               DestSubPath=".github\skills\coreex-scaffold\README.md" />
       <_AiFile Include="$(_RepoRoot).github\agents\coreex-expert.agent.md"
                DestSubPath=".github\agents\coreex-expert.agent.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-expert.md"
@@ -119,6 +128,7 @@
 
     <!-- Architecture / sample docs -->
     <ItemGroup>
+      <_AiFile Include="$(_RepoRoot)docs\application-scaffolding-guide.md" DestSubPath=".github\docs\coreex\application-scaffolding-guide.md" />
       <_AiFile Include="$(_RepoRoot)samples\docs\application-layer.md"  DestSubPath=".github\docs\coreex\application-layer.md" />
       <_AiFile Include="$(_RepoRoot)samples\docs\aspire.md"              DestSubPath=".github\docs\coreex\aspire.md" />
       <_AiFile Include="$(_RepoRoot)samples\docs\contracts-layer.md"     DestSubPath=".github\docs\coreex\contracts-layer.md" />
@@ -143,6 +153,9 @@
     <ItemGroup>
       <!-- Single files -->
       <None Include="$(_AiGenRoot).github\copilot-instructions.md"           Pack="true" PackagePath="content\CoreEx.Core\.github\copilot-instructions.md" />
+      <None Include="$(_AiGenRoot).github\prompts\coreex-scaffold.prompt.md" Pack="true" PackagePath="content\CoreEx.Core\.github\prompts\coreex-scaffold.prompt.md" />
+      <None Include="$(_AiGenRoot).github\skills\coreex-scaffold\SKILL.md"  Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\SKILL.md" />
+      <None Include="$(_AiGenRoot).github\skills\coreex-scaffold\README.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\README.md" />
       <None Include="$(_AiGenRoot).github\agents\coreex-expert.agent.md"     Pack="true" PackagePath="content\CoreEx.Core\.github\agents\coreex-expert.agent.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-expert.md"          Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-expert.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-docs-sync.md"       Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-docs-sync.md" />
@@ -178,6 +191,7 @@
       <None Include="$(_AiGenRoot).github\instructions\coreex-tooling.instructions.md"               Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-tooling.instructions.md" />
       <None Include="$(_AiGenRoot).github\instructions\coreex-validators.instructions.md"            Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-validators.instructions.md" />
       <!-- Architecture / sample docs (explicit) -->
+      <None Include="$(_AiGenRoot).github\docs\coreex\application-scaffolding-guide.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\application-scaffolding-guide.md" />
       <None Include="$(_AiGenRoot).github\docs\coreex\application-layer.md"   Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\application-layer.md" />
       <None Include="$(_AiGenRoot).github\docs\coreex\aspire.md"               Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\aspire.md" />
       <None Include="$(_AiGenRoot).github\docs\coreex\contracts-layer.md"      Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\contracts-layer.md" />

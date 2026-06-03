@@ -14,10 +14,11 @@ The per-capability instruction files live in the repo's root [`.github/instructi
 
 ### GitHub Copilot
 
-1. Copy `consumer-ai-context/.github/copilot-instructions.md` to your project's `.github/copilot-instructions.md`.
+1. Copy `consumer-instructions/.github/copilot-instructions.md` to your project's `.github/copilot-instructions.md`.
 2. Copy the instruction files from the repo's `.github/instructions/` that match what you're building into your project's `.github/instructions/` folder.
+3. If you want the guided greenfield scaffolding workflow in a non-template repository, copy the canonical files from the repo's [`.github/prompts/`](../.github/prompts/) and [`.github/skills/coreex-scaffold/`](../.github/skills/coreex-scaffold/) folders.
 
-Copilot applies the global instructions to every chat interaction and injects the file-scoped instructions automatically based on which file is open.
+Copilot applies the global instructions to every chat interaction and injects the file-scoped instructions automatically based on which file is open. If you copied the greenfield scaffold prompt and skill, run `/coreex-scaffold` to choose the right `CoreEx.Template` commands before generating the solution.
 
 ### Claude Code
 
@@ -34,6 +35,8 @@ Copilot applies the global instructions to every chat interaction and injects th
 ```
 
 Add or remove `@` import lines to match which instruction files you copied. Claude Code reads `CLAUDE.md` on startup and follows the imports — no content duplication needed.
+
+If you copied the greenfield scaffold prompt and skill, you can invoke `/coreex-scaffold` directly in Claude Code as well.
 
 ## Which Instruction Files to Copy
 
@@ -58,3 +61,7 @@ Copy only the files that match what your project contains. Add more as you intro
 - [Capabilities Guide](https://github.com/Avanade/CoreEx/blob/main/docs/capabilities.md) — deep capability and pattern explanations
 - [Application Scaffolding Guide](https://github.com/Avanade/CoreEx/blob/main/docs/application-scaffolding-guide.md) — deciding what to build for a new service
 - [Sample Reference Architecture](https://github.com/Avanade/CoreEx/tree/main/samples) — complete Contoso domains (Products / Shopping) demonstrating all patterns
+
+## Why This Folder Exists
+
+The repo's root [`.github/copilot-instructions.md`](../.github/copilot-instructions.md) is written for contributors working inside the CoreEx repository itself. The consumer version in this folder is a separate, intentionally different file for teams consuming CoreEx from NuGet in their own repositories.

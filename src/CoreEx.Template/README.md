@@ -39,6 +39,16 @@ To uninstall:
 dotnet new uninstall CoreEx.Template
 ```
 
+## AI-Guided Scaffolding
+
+The generated solution includes a small bootstrap AI workflow set under `.github/`:
+
+- `/coreex-scaffold` -- interviews for project needs, recommends the smallest safe `dotnet new coreex*` command set, and can run the commands.
+- `.github/skills/coreex-scaffold/` -- the packaged workflow guidance for greenfield scaffolding.
+- `.github/docs/coreex/application-scaffolding-guide.md` -- the decision-oriented guide behind the workflow.
+
+The packaged workflow assets are sourced from the repository's canonical `.github/` set, while the generated solution still receives the consumer-specific `copilot-instructions.md` variant from `consumer-instructions/`.
+
 ---
 
 ## Naming Convention

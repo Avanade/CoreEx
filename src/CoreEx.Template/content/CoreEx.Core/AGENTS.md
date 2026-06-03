@@ -2,7 +2,7 @@
 
 This represents the **CoreEx domain-based application services** for the `domain-name` domain.
 
-**AI assistance:** run `/coreex-expert` for CoreEx architecture guidance, pattern decisions, and sample-aligned implementation advice. The full CoreEx doc cache is pre-loaded in `.github/docs/coreex/` -- the expert reads it automatically.
+**AI assistance:** run `/coreex-scaffold` to choose and scaffold the right greenfield solution shape, or run `/coreex-expert` for CoreEx architecture guidance, pattern decisions, and sample-aligned implementation advice. The full CoreEx doc cache is pre-loaded in `.github/docs/coreex/` -- the expert reads it automatically.
 
 > Re-run `/coreex-docs-sync` after bumping the CoreEx NuGet version in `Directory.Packages.props`.
 
@@ -71,6 +71,7 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 
 - `.github/docs/coreex/layers.md` -- full layered architecture and dependency rules
 - `.github/docs/coreex/patterns.md` -- CoreEx request/response and event patterns
+- `.github/docs/coreex/application-scaffolding-guide.md` -- choosing the smallest safe CoreEx solution shape before adding code
 - `.github/docs/coreex/contracts-layer.md` -- entities, DTOs, event schemas
 - `.github/docs/coreex/application-layer.md` -- services, validators, repository interfaces
 - `.github/docs/coreex/infrastructure-layer.md` -- EF Core, outbox, external integrations
