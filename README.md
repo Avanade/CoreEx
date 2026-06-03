@@ -123,14 +123,12 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 
 **Agent** — `coreex-expert` provides architecture guidance, pattern recommendations, and design reviews aligned to the sample implementations. See the [agent README](./.github/agents/README.md) for the resolution flowchart and local doc cache design.
 
-**Commands** — type `/` in chat to invoke. Skills use `#file:` attachment in Copilot Chat.
+**Commands and templates** — type `/` in chat to invoke skills and prompts. Use `dotnet new` in a terminal for deterministic scaffolding.
 
 | Command | What it does | Claude Code | GitHub Copilot Chat |
 |---------|-------------|-------------|---------------------|
 | [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
-| [`/scaffold-domain-from-templates`](./.github/templates/domain/README.md) | Fast domain scaffolding via template substitution | `/scaffold-domain-from-templates` | `/scaffold-domain-from-templates` |
-| [`/generate-domain`](./.github/skills/generate-domain/README.md) | Guided, reasoning-based domain generation | `/generate-domain` | `#file:.github/skills/generate-domain/SKILL.md` |
-| [`/add-capability`](./.github/skills/add-capability/README.md) | Retrofit an existing domain with messaging/integration | `/add-capability` | `#file:.github/skills/add-capability/SKILL.md` |
+| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
 | [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) | Cache CoreEx docs and per-package AI guides locally | `/coreex-docs-sync` | `#file:.github/skills/coreex-docs-sync/SKILL.md` |
 | [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) | Map and document an existing codebase | `/acquire-codebase-knowledge` | `#file:.github/skills/acquire-codebase-knowledge/SKILL.md` |
 | [`/aspire`](./.github/skills/aspire/README.md) | Orchestrate Aspire apps locally (start, stop, logs) | `/aspire` | `#file:.github/skills/aspire/SKILL.md` |

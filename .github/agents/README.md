@@ -123,9 +123,9 @@ Copy the following from this repository into any project that references CoreEx 
   skills/
     coreex-docs-sync/
       SKILL.md
-    generate-domain/           # optional — new domain scaffolding
-    add-capability/            # optional — retrofit messaging/integration
     acquire-codebase-knowledge/ # optional — repo onboarding docs
 ```
 
 On first use, run `/coreex-docs-sync` to populate the local cache. Re-run whenever the CoreEx NuGet version is bumped.
+
+For deterministic project scaffolding, use the [CoreEx.Template](../src/CoreEx.Template/README.md) `dotnet new` template pack rather than an agent skill.
