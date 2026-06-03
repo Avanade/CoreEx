@@ -1,3 +1,4 @@
+using CoreEx.Database;
 #if (implement-sqlserver)
 using DbEx.Migration;
 using DbEx.SqlServer.Console;
@@ -15,7 +16,7 @@ public class Program
 
     /// <summary>Configure the <see cref="MigrationArgs"/>.</summary>
     public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args) =>
-        args.AddAssembly<Program>().IncludeExtendedSchemaScripts();
+        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF Core code-generation templates (do not remove).
 }
 #elif (implement-postgres)
 using DbEx.Migration;
@@ -34,6 +35,6 @@ public class Program
 
     /// <summary>Configure the <see cref="MigrationArgs"/>.</summary>
     public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args) =>
-        args.AddAssembly<Program>().IncludeExtendedSchemaScripts();
+        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF Core code-generation templates (do not remove).
 }
 #endif

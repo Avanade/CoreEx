@@ -16,9 +16,11 @@
     <PackageVersion Include="CoreEx.Caching.FusionCache" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data" Version="coreex-version" />
     <!--#if (implement-postgres)-->
+    <PackageVersion Include="CoreEx.Database" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Database.Postgres" Version="coreex-version" />
     <!--#endif-->
     <!--#if (implement-sqlserver)-->
+    <PackageVersion Include="CoreEx.Database" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Database.SqlServer" Version="coreex-version" />
     <!--#endif-->
     <!--#if (domain-driven-enabled)-->

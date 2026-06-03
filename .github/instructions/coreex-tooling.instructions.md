@@ -87,6 +87,8 @@ Key `entities:` options:
 > 3. If confirmed, execute it and summarise the generated artefacts on success; on failure relay the **complete output verbatim** — it provides the diagnostic needed to fix the entry.
 > 4. On failure, fix the issue in `ref-data.yaml` and offer to re-run -- do not create or edit `.g.cs` files to work around a generation error.
 > 5. If the user declines, remind them to run `dotnet run` from the `*.CodeGen` directory before the new types are available.
+>
+> **Do not pre-create output directories.** A configured target path (e.g. `apiProjectPath`) that points to a not-yet-existing project directory does **not** cause CodeGen to fail — it simply emits a *warning* and skips that output. Never create an empty directory, stub project, or placeholder file to "unblock" code generation. If a target project is genuinely missing and its artefacts are needed, raise it with the user rather than fabricating the folder.
 
 ---
 
@@ -230,7 +232,7 @@ The `CodeGen` command generates `.g.cs` files into the Infrastructure project:
 
 | Generated artefact | Location | Description |
 |---|---|---|
-| `<Entity>.g.cs` | `Infrastructure/Persistence/` | Schema-aligned persistence model extending `ModelBase<TId>`, with optional marker interfaces (`ILogicallyDeleted`) |
+| `<Entity>.g.cs` | `Infrastructure/Persistence/` | Schema-aligned persistence model extending `ModelBase<TId>` (or `ReferenceDataModelBase<TId>` for reference data), both from `CoreEx.Data.Models`; the base supplies `Id`, `CreatedBy`/`CreatedOn`/`UpdatedBy`/`UpdatedOn`, and `ETag` (the DB `RowVersion` column is mapped onto `ETag`), with optional marker interfaces (`ILogicallyDeleted`) |
 | `*DbContext.g.cs` | `Infrastructure/Repositories/` | Partial `DbContext` class exposing `AddGeneratedModels(ModelBuilder)` to register all persistence models with EF Core |
 
 These files are the only `.g.cs` outputs of `*.Database`; all other generated C# comes from `*.CodeGen`. Never edit them directly.
@@ -285,6 +287,59 @@ SQL conventions:
 - **PostgreSQL**: use the built-in hidden `xmin` system column for optimistic-concurrency — no explicit column is required in the schema.
 - Logical (soft) delete on root/aggregate tables is an infrastructure-only column — `IsDeleted` (SQL Server) / `is_deleted` (PostgreSQL) — with **no** corresponding contract/entity property; default to including it (confirm) when creating such a table.
 
+### Standard table templates
+
+**Mirror these canonical shapes** when authoring create scripts — copy and adapt rather than inventing column names. They encode the standard names, types, and lengths. Note the audit columns use the `On` suffix (`CreatedOn`/`UpdatedOn`) — **never** `CreatedDate`/`UpdatedDate`.
+
+**Reference-data table** — the standard `IReferenceData` columns. The primary key is the contract's identifier type (`NVARCHAR(50)` / `VARCHAR(50)` for the default `string`):
+
+```sql
+-- SQL Server
+CREATE TABLE [Schema].[Xxx] (
+  [XxxId] NVARCHAR(50) NOT NULL PRIMARY KEY,
+  [Code] NVARCHAR(50) NOT NULL UNIQUE,
+  [Text] NVARCHAR(250) NULL,
+  [IsActive] BIT NULL,
+  [SortOrder] INT NULL,
+  [RowVersion] TIMESTAMP NOT NULL,        -- ETag (optimistic concurrency)
+  [CreatedBy] NVARCHAR(250) NULL,
+  [CreatedOn] DATETIMEOFFSET NULL,
+  [UpdatedBy] NVARCHAR(250) NULL,
+  [UpdatedOn] DATETIMEOFFSET NULL
+);
+```
+
+```sql
+-- PostgreSQL (no RowVersion column — the hidden xmin provides concurrency)
+CREATE TABLE "schema"."xxx" (
+  "xxx_id" VARCHAR(50) NOT NULL PRIMARY KEY,
+  "code" VARCHAR(50) NOT NULL UNIQUE,
+  "text" VARCHAR(250) NULL,
+  "is_active" BOOLEAN NULL,
+  "sort_order" INTEGER NULL,
+  "created_by" VARCHAR(250) NULL,
+  "created_on" TIMESTAMPTZ NULL,
+  "updated_by" VARCHAR(250) NULL,
+  "updated_on" TIMESTAMPTZ NULL
+);
+```
+
+**Aggregate / transactional table** — domain columns first, then the identical audit + concurrency columns. Reference-data relationships are stored by `Code` by default (e.g. `[StatusCode] NVARCHAR(50) NOT NULL`) with no foreign key — see [Creating or altering a table for an entity](#creating-or-altering-a-table-for-an-entity):
+
+```sql
+-- SQL Server
+CREATE TABLE [Schema].[Order] (
+  [OrderId] NVARCHAR(50) NOT NULL PRIMARY KEY,
+  [CustomerId] NVARCHAR(100) NOT NULL,
+  [StatusCode] NVARCHAR(50) NOT NULL,     -- references [OrderStatus].[Code]; no FK by convention
+  [CreatedBy] NVARCHAR(250) NULL,
+  [CreatedOn] DATETIMEOFFSET NULL,
+  [UpdatedBy] NVARCHAR(250) NULL,
+  [UpdatedOn] DATETIMEOFFSET NULL,
+  [RowVersion] TIMESTAMP NOT NULL
+);
+```
+
 ### Mapping contract types to columns
 
 When authoring a migration script for an entity that has a corresponding .NET contract, the column types must mirror the contract's property types. Do not substitute a different type (most importantly for the primary key) unless the user explicitly asks. Before authoring, establish whether the table already exists and its current shape — see [Inspecting current database state](#inspecting-current-database-state) and the [Creating or altering a table for an entity](#creating-or-altering-a-table-for-an-entity) workflow.
@@ -312,9 +367,11 @@ When authoring a migration script for an entity that has a corresponding .NET co
 
 When asked to create or change a database table for a .NET entity (e.g. *"create a table for the Employee entity"*), do **not** blindly scaffold a `CREATE TABLE` script. The table — or a related reference data table — may already exist with a different shape. Use `Inspect` to establish the current state first.
 
+> **Inspect first — this is a hard gate.** Inspection is the **first action**, ahead of authoring anything. Do **not** write (or plan to write) a `CREATE`/`ALTER` script before the `Inspect` result is in hand — the result determines *whether* a script is even needed and *which kind*. A plan that scaffolds scripts before inspecting is wrong; fix the plan, don't proceed.
+
 > **Agent instruction:**
 > 1. **Identify every table involved.** This includes the entity's own table plus any reference data tables implied by its `[ReferenceData<T>]` properties (each typed reference-data property maps to a lookup table that may need to exist).
-> 2. **Inspect the current state.** Run `dotnet run -- inspect <schema> <table> [<table> ...]` (read-only — no confirmation needed). If unapplied migration scripts may exist, offer to run `dotnet run -- Migrate` first (a mutation — confirm before running) so the inspection reflects the fully migrated schema.
+> 2. **Inspect the current state — before authoring any script.** Run `dotnet run -- inspect <schema> <table> [<table> ...]` (read-only — no confirmation needed). If unapplied migration scripts may exist, offer to run `dotnet run -- Migrate` first (a mutation — confirm before running) so the inspection reflects the fully migrated schema. Only proceed to authoring once you know each table's actual state.
 > 3. **Branch per table on the `Inspect` result:**
 >    - **Not found** → author a new timestamped `CREATE TABLE` migration script under `Migrations/`, and register the table under `tables:` in `dbex.yaml`. Map column types per [Mapping contract types to columns](#mapping-contract-types-to-columns).
 >    - **Found, Reference Data: Yes** → do **not** recreate or alter it directly. Reference it from the entity table per step 4 below. Any change to the reference data table's own shape flows through `ref-data.yaml` + CodeGen, not a hand-authored script.
@@ -325,6 +382,8 @@ When asked to create or change a database table for a .NET entity (e.g. *"create
 >    - **By Id** → name the column with an `Id` suffix (e.g. `Employee.GenderId` / `gender_id`), typed to match the reference data identifier type. A foreign key is **not** created automatically — **ask whether one is required** and add it only if confirmed.
 > 5. **Confirm logical-delete support** (for root/aggregate tables). Ask whether the table should support logical (soft) deletes — **default yes**. If yes, add an infrastructure-only column: `IsDeleted` (SQL Server) / `is_deleted` (PostgreSQL). This is a persistence concern only — the .NET contract/entity must **not** declare an equivalent property.
 > 6. **Offer to apply.** Offer to run `dotnet run -- CreateMigrateAndCodeGen`. Summarise the output on success; on failure relay the **complete output verbatim**.
+>
+> **On failure, do not add defensive existence-guards.** Migration scripts are plain DDL — DbEx tracks which have been applied and runs each exactly once, so a `CREATE TABLE` does **not** need `IF NOT EXISTS` / `IF OBJECT_ID(...) IS NULL` wrappers. If a script fails because an object already exists (or differs), that means the `Inspect` step was skipped or stale: **re-inspect** to learn the real state, then either remove the redundant create script (object already correct), or author a separate `ALTER` migration for the delta. Wrapping the DDL in conditional guards to make it "pass" masks the underlying state mismatch and is not the convention — never do it.
 
 ### `Schema` — idempotent objects
 

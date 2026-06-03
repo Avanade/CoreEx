@@ -145,9 +145,7 @@ var dv = Validator.Create<MovementRequestProduct>()
 Override `OnValidateAsync` for validators that need to query the database. Check `context.HasErrors` first to skip expensive async work if earlier rules already failed:
 
 ```csharp
-protected async override Task OnValidateAsync(
-    ValidationContext<MovementRequest> context,
-    CancellationToken cancellationToken)
+protected async override Task OnValidateAsync(ValidationContext<MovementRequest> context, CancellationToken cancellationToken)
 {
     if (context.HasErrors)
         return;
@@ -161,6 +159,25 @@ protected async override Task OnValidateAsync(
                 .NotFound().WhenValue(v => !products.ContainsKey(v))
                 .Error("{0} is non-stocked.").WhenValue(v => products[v].IsNonStocked))
         )), cancellationToken).ConfigureAwait(false);
+}
+```
+
+## Adding Errors Manually
+
+When adding an error directly (e.g. a custom check inside `OnValidateAsync`), identify the property using the **member-access expression** overload of `context.AddError` — `context.AddError(x => x.Property, ...)`. Never pass a property-name string such as `nameof(...)`; the expression resolves the label, JSON name, and metadata automatically.
+
+```csharp
+protected override Task OnValidateAsync(ValidationContext<Contracts.Employee> context, CancellationToken cancellationToken)
+{
+    if (context.HasErrors)
+        return Task.CompletedTask;
+
+    // Use Runtime.UtcNow (the ambient, ExecutionContext-aware clock) — never DateTime.UtcNow / DateTimeOffset.UtcNow.
+    var minDob = DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16));
+    if (context.Value.DateOfBirth > minDob)
+        context.AddError(x => x.DateOfBirth, "Employee must be at least 16 years old.");   // expression — not nameof(...)
+
+    return Task.CompletedTask;
 }
 ```
 
@@ -196,6 +213,7 @@ Property(x => x.Quantity, c => c
 - Do not reference Infrastructure assemblies from validators — inject Application-layer repository interfaces only.
 - Do not instantiate validators with `new` at the call site when a `Default` singleton is available.
 - Do not add logic that requires async I/O to the constructor — use `OnValidateAsync` for that.
+- Do not pass a property-name string (e.g. `nameof(...)`) to `context.AddError` — use the member-access expression overload, `context.AddError(x => x.Property, ...)`.
 
 ## Further Reading
 

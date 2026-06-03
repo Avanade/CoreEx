@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CoreEx.Database" />
     <!--#if (implement-sqlserver)-->
     <PackageReference Include="DbEx.SqlServer" />
     <!--#endif-->

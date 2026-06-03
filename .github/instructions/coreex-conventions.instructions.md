@@ -102,6 +102,34 @@ public async Task<Product> UpdateAsync(Product product)
 }
 ```
 
+## Line Length and Method Declarations
+
+Keep declarations and statements on a **single line**. Do not wrap a method (or constructor/delegate) declaration across multiple lines by placing each parameter on its own line — keep the signature on one line even when it has several parameters. Only break a line when it would otherwise exceed **250 characters**.
+
+```csharp
+// Correct — single line, even with multiple parameters
+protected override Task OnValidateAsync(ValidationContext<Contracts.Employee> context, CancellationToken cancellationToken)
+
+// Incorrect — needlessly split across lines while under 250 characters
+protected override Task OnValidateAsync(
+    ValidationContext<Contracts.Employee> context,
+    CancellationToken cancellationToken)
+```
+
+## Ambient Runtime (Clock and GUIDs)
+
+Obtain the current time and new `Guid` values from CoreEx's ambient `Runtime` (`CoreEx` namespace) rather than the BCL statics. `Runtime` is `ExecutionContext`-aware and provider-backed (`TimeProvider` / `IdentifierGenerator`), making values consistent across a request and substitutable in tests.
+
+```csharp
+DateTimeOffset now = Runtime.UtcNow;             // DateTimeOffset
+DateTime utc       = Runtime.UtcNow.UtcDateTime; // DateTime (when a DateTime is required)
+Guid id            = Runtime.NewGuid();          // new Guid
+```
+
+- Need a `DateTimeOffset` → `Runtime.UtcNow` (**never** `DateTimeOffset.UtcNow`).
+- Need a `DateTime` → `Runtime.UtcNow.UtcDateTime` (**never** `DateTime.UtcNow`).
+- Need a `Guid` → `Runtime.NewGuid()` (**never** `Guid.NewGuid()`).
+
 ## Private Field Naming
 
 Private instance fields are always prefixed with `_`. No exceptions.
@@ -120,4 +148,7 @@ private readonly ILogger<ProductService> _logger;
 - Do not add braces to single-line `if` bodies.
 - Do not suppress nullable warnings with `!` without a comment explaining why.
 - Do not name private fields without the `_` prefix.
+- Do not split method/constructor declarations (one parameter per line) or otherwise wrap statements across lines unless the line would exceed 250 characters.
+- Do not use `DateTime.UtcNow` or `DateTimeOffset.UtcNow` — use `Runtime.UtcNow` (or `Runtime.UtcNow.UtcDateTime` for a `DateTime`).
+- Do not use `Guid.NewGuid()` — use `Runtime.NewGuid()`.
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
