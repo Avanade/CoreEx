@@ -106,6 +106,8 @@ Key `entities:` options:
 
 ### `Program.cs` pattern
 
+This is the generated baseline (the `Main` is provider-specific; `ConfigureMigrationArgs` is a plain block-bodied method — note **no** `=>` before the `{`):
+
 ```csharp
 // PostgreSQL domain example
 public static Task<int> Main(string[] args) => PostgresMigrationConsole
@@ -121,17 +123,17 @@ public static Task<int> Main(string[] args) => SqlServerMigrationConsole
 
 public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
 {
-    args.AddAssembly<SqlStatement>().AddAssembly<Program>()
-        .IncludeExtendedSchemaScripts()
-        .DataParserArgs
-            .RefDataColumnDefault("SortOrder", _ => 0)        // standard — always include; defaults every ref-data row's SortOrder to zero
-            .RefDataColumnDefault("Scale", _ => 0);           // domain-specific example — only needed when a ref-data entity has a Scale column (e.g. UnitOfMeasure); omit if not applicable
-
-    // Scope data reset to this domain's schema only.
-    args.DataResetFilterPredicate = ts => ts.Schema == "{domain-schema}";
+    args.AddAssembly<SqlStatement>();   // Assembly with the requisite CoreEx EF code-generation templates (do not remove).
+    args.DataResetFilterPredicate = ts => ts.Schema == "{domain-schema}";   // Only reset data for this domain's schema.
     return args;
 }
 ```
+
+`Create<Program>(...)` already registers the `Program` assembly (which carries the embedded `Migrations/`, `Schema/`, and `Data/` resources), so there is no need to add it again. The single required `AddAssembly<SqlStatement>()` brings in the CoreEx EF code-generation templates used by the `CodeGen` command.
+
+**Optional additions** (only when the domain needs them — not in the baseline):
+- `.DataParserArgs.RefDataColumnDefault("<Column>", _ => <value>)` — default a **domain-specific** ref-data seed column when the YAML omits it (e.g. `Scale` for a `UnitOfMeasure`). Add one per such column; omit entirely if not needed. (Do **not** do this for `SortOrder` — it is auto-assigned, see below.)
+- `.IncludeExtendedSchemaScripts()` — enable the extended `SqlStatement`-based schema scripting when the domain uses it.
 
 ### DbEx commands
 
@@ -290,6 +292,8 @@ dotnet run -- script outbox <schema> <name>     # transactional outbox table(s)
 
 Scripts are **immutable once applied**. Subsequent changes require new scripts (e.g. `ALTER TABLE`). Use moustache-style `{{Parameter}}` for environment-specific values resolved from `MigrationArgs.Parameters`.
 
+> **Never modify the database — or DbEx's journal — directly to unblock a migration.** DbEx tracks applied scripts in an internal **journal** table that it owns exclusively; do **not** insert/pre-seed/back-fill journal rows, and do **not** hand-run `CREATE`/`ALTER`/`DROP`/`INSERT` to reconcile state. If `migrate`/`database` fails because the live database is out of step with the scripts (e.g. "the journal is empty but the objects already exist", or scripts re-running over existing objects), **stop and ask the user** — reconciling environment state is their decision. The usual clean fix for a disposable local/dev database is to drop and rebuild via `dotnet run -- dropanddatabase` (destructive — confirm first); production/shared environments are reconciled by the user. Never edit the database or journal yourself.
+
 SQL conventions:
 - Wrap each script in `BEGIN TRANSACTION ... COMMIT TRANSACTION` (SQL Server) or equivalent.
 - Use explicit schema-qualified names.
@@ -437,6 +441,8 @@ products:
     - { code: XC, text: Cross country, category_code: B }  # FK column by code; DbEx resolves id at runtime
 ```
 
+**`SortOrder` is auto-assigned from row order.** When a ref-data row does not specify `SortOrder`, DbEx assigns it based on the row's position in the YAML. So **order the rows the way they should sort** — normally **by `Code`** — otherwise the resulting `SortOrder` (and thus default display order) will look arbitrary. Only specify an explicit `SortOrder` value when it must differ from positional order.
+
 ## Do Not
 
 - Do not edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly — they are owned by `*.CodeGen` or `*.Database` tooling.
@@ -446,6 +452,8 @@ products:
 - Do not write persistence models or `DbContext` partials by hand — run `dotnet run -- CodeGen` (or `dotnet run -- All`) to regenerate.
 - Do not hand-create or hand-name migration script files — scaffold via `dotnet run -- script <type> ...`; names must be `yyyyMMdd-HHmmss-<kebab-name>` using the current date+time (never a placeholder date or a per-day index) and be fully kebab-lower-case.
 - Do not author a schema-create script — the template already provides the default schema; only create one if the user explicitly asks for an additional schema.
+- Do not modify the database directly to unblock anything — no ad-hoc `CREATE`/`ALTER`/`DROP`/`INSERT`/`UPDATE`/`DELETE`, and never touch DbEx's journal/tracking table (no pre-seeding rows). Structural change = migration script; data = `Data/*.yaml`. If state is inconsistent, stop and ask the user.
+- Do not leave ref-data seed rows unordered, and do not default `SortOrder` via `RefDataColumnDefault` — order the YAML rows by `Code` so DbEx's positional `SortOrder` assignment is sensible.
 
 ## Further Reading
 

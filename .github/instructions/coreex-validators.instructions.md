@@ -143,20 +143,22 @@ The extension is **`Compare`** (not `CompareValue`), and the `CompareOperator` m
 
 #### Runtime-computed values (delegate overloads)
 
-Most comparison rules (and many others) provide a **delegate overload** — `Func<PropertyContext<TEntity, TProperty>, TProperty>` — so the value can be computed at runtime. Prefer a declarative rule with a delegate over an imperative check in `OnValidateAsync` whenever the rule can express it. For example, the "at least 16 years old" check is a `GreaterThan` rule, not hand-written logic:
+Most comparison rules (and many others) provide a **delegate overload** — `Func<PropertyContext<TEntity, TProperty>, TProperty>` — so the value can be computed at runtime. Prefer a declarative rule with a delegate over an imperative check in `OnValidateAsync` whenever the rule can express it. For example, "at least 16 years old" is a comparison rule, not hand-written logic.
+
+Mind the direction: the threshold is `today − 16 years` — the **latest** acceptable birth date — so being at least 16 means `DateOfBirth <= threshold`. A rule passes when its condition holds, so the correct rule is **`LessThanOrEqualTo`** (it errors when `DateOfBirth` is *after* the threshold, i.e. younger than 16):
 
 ```csharp
 // ✅ Preferred — declarative rule with a computed threshold (no OnValidateAsync needed)
 Property(x => x.DateOfBirth)
     .Mandatory()
-    .GreaterThan(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "16 years old");
+    .LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16");
 ```
 
-The delegate parameter is the `PropertyContext` (use `ctx => ctx.Entity...` to compute relative to other properties; ignore it with `_ =>` for an absolute value such as one derived from `Runtime.UtcNow`).
+The delegate parameter is the `PropertyContext` (use `ctx => ctx.Entity...` to compute relative to other properties; ignore it with `_ =>` for an absolute value such as one derived from `Runtime.UtcNow`). Always sanity-check the comparison direction so the rule *fails* on the invalid case, matching the equivalent imperative check (`if (DateOfBirth > threshold) AddError(...)`).
 
 #### Message text is a suffix, not a full sentence
 
-The optional text argument on these rules (e.g. `"zero"`, `_ => "16 years old"`) supplies **only the value substitution** (`{2}`) in the standard message template — it is **not** a complete error message. For instance `CompareGreaterThanFormat` is `"{0} must be greater than {2}."`, so `.GreaterThan(..., _ => "16 years old")` renders *"Date Of Birth must be greater than 16 years old."* Keep the text short (the value rendering only); the standard wrapper supplies the rest. The default templates live in `ValidatorStrings.cs` (each is an overridable, localizable `LText`) — consult it rather than re-inventing full messages. To override the *entire* message, use `.Error("...")` instead.
+The optional text argument on these rules (e.g. `"zero"`, `_ => "the minimum age of 16"`) supplies **only the value substitution** (`{2}`) in the standard message template — it is **not** a complete error message. For instance `CompareLessThanEqualFormat` is `"{0} must be less than or equal to {2}."`, so `.LessThanOrEqualTo(..., _ => "the minimum age of 16")` renders *"Date Of Birth must be less than or equal to the minimum age of 16."* Keep the text short (the value rendering only); the standard wrapper supplies the rest. The default templates live in `ValidatorStrings.cs` (each is an overridable, localizable `LText`) — consult it rather than re-inventing full messages. To override the *entire* message, use `.Error("...")` instead.
 
 ## Reference Data Fields
 
@@ -223,7 +225,7 @@ protected async override Task OnValidateAsync(ValidationContext<MovementRequest>
 
 ## Adding Errors Manually
 
-**Prefer a declarative rule first.** Most checks — including those needing runtime-computed values — are expressible as rules via the delegate overloads (see [Runtime-computed values](#runtime-computed-values-delegate-overloads)); the "at least 16 years old" check below is better written as `Property(x => x.DateOfBirth).GreaterThan(_ => ..., _ => "16 years old")`. Reserve manual `OnValidateAsync` + `AddError` for logic that genuinely cannot be a rule (e.g. multi-field conditions or checks requiring async I/O).
+**Prefer a declarative rule first.** Most checks — including those needing runtime-computed values — are expressible as rules via the delegate overloads (see [Runtime-computed values](#runtime-computed-values-delegate-overloads)); the "at least 16 years old" check below is better written as `Property(x => x.DateOfBirth).LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")`. Reserve manual `OnValidateAsync` + `AddError` for logic that genuinely cannot be a rule (e.g. multi-field conditions or checks requiring async I/O).
 
 When you do add an error directly, identify the property using the **member-access expression** overload of `context.AddError` — `context.AddError(x => x.Property, ...)`. Never pass a property-name string such as `nameof(...)`; the expression resolves the label, JSON name, and metadata automatically.
 
@@ -282,7 +284,7 @@ Property(x => x.Quantity, c => c
 - Do not pass a property-name string (e.g. `nameof(...)`) to `context.AddError` — use the member-access expression overload, `context.AddError(x => x.Property, ...)`.
 - Do not apply `.IsValid()` to a `*Code` string property — validate the typed reference-data navigation property instead (e.g. `Gender`, not `GenderCode`).
 - Do not use `CompareValue(...)` or a `CompareOperator.GreaterThanEqual` value — the extension is `.Compare(...)` and the operator is `CompareOperator.GreaterThanOrEqualTo` (or use the dedicated `.GreaterThanOrEqualTo(...)` rule).
-- Do not hand-write logic in `OnValidateAsync` for something expressible as a rule — use the delegate overloads for runtime-computed values (e.g. `.GreaterThan(_ => ..., _ => "16 years old")`).
+- Do not hand-write logic in `OnValidateAsync` for something expressible as a rule — use the delegate overloads for runtime-computed values (e.g. `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")`). Sanity-check the comparison direction so the rule fails on the *invalid* case.
 - Do not put a full sentence in a rule's text argument — it is only the `{2}` value substitution in the standard message template; override the whole message with `.Error("...")`, and consult `ValidatorStrings.cs` for the defaults.
 - Do not add a redundant `[Localization]` whose value equals the auto-derived label (e.g. `[Localization("Salary")]` on `Salary`) — only annotate to change the label.
 

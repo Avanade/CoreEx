@@ -26,7 +26,7 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.12.47" />
     <PackageVersion Include="Spectre.Console" Version="0.49.1" />
     <PackageVersion Include="System.Linq.Dynamic.Core" Version="1.7.1" />
-    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+    <PackageVersion Include="YamlDotNet" Version="18.0.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.5.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.5.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.5.0" />
@@ -65,13 +65,13 @@
   <ItemGroup>
     <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="DbEx.Postgres" Version="3.1.0" />
-    <PackageVersion Include="DbEx.SqlServer" Version="3.1.0" />
+    <PackageVersion Include="DbEx.Postgres" Version="3.1.1" />
+    <PackageVersion Include="DbEx.SqlServer" Version="3.1.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="NUnit" Version="4.3.2" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.9.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="5.0.0" />
-    <PackageVersion Include="OnRamp" Version="2.2.4" />
+    <PackageVersion Include="OnRamp" Version="2.2.5" />
     <PackageVersion Include="UnitTestEx" Version="5.11.0" />
     <PackageVersion Include="UnitTestEx.NUnit" Version="5.11.0" />
   </ItemGroup>

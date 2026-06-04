@@ -15,8 +15,12 @@ public class Program
         .RunAsync(args);
 
     /// <summary>Configure the <see cref="MigrationArgs"/>.</summary>
-    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args) =>
-        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF Core code-generation templates (do not remove).
+    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
+    {
+        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF code-generation templates (do not remove).
+        args.DataResetFilterPredicate = ts => ts.Schema == "domain-name";   // Only reset data for the specified schema.
+        return args;
+    }
 }
 #elif (implement-postgres)
 using DbEx.Migration;
@@ -34,7 +38,11 @@ public class Program
         .RunAsync(args);
 
     /// <summary>Configure the <see cref="MigrationArgs"/>.</summary>
-    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args) =>
-        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF Core code-generation templates (do not remove).
+    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
+    {
+        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF code-generation templates (do not remove).
+        args.DataResetFilterPredicate = ts => ts.Schema == "db-name";   // Only reset data for the specified schema.
+        return args;
+    }
 }
 #endif

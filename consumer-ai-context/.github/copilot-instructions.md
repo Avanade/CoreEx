@@ -57,6 +57,17 @@ Do **not** assert unverified root causes (e.g. "circular dependency", "build ord
 
 **Stop looping.** If two attempts at the same fix have not worked, do not keep trying variations of the same thing. **Stop and ask the user** — describe what you tried, the exact error, and the options you see. A short question resolves far more than repeated thrashing, and the user often has context that unblocks it immediately. Never fabricate files, directories, projects, or hand-written generated code to force past a block you do not understand.
 
+### Never Modify the Database Directly
+
+The AI must **never** alter the database itself to "fix" or "unblock" a problem. This is absolute:
+
+- **Structural changes go through migration scripts only** — author a script (`dotnet run -- script ...`) and apply it via `dotnet run -- migrate` / `database`. Never run ad-hoc `CREATE`/`ALTER`/`DROP` against the live database.
+- **Data changes go through `Data/*.yaml`** (applied by the `Data` command) — never hand-run `INSERT`/`UPDATE`/`DELETE`.
+- **Never touch DbEx's internal migration journal / tracking table.** Do not insert, pre-seed, back-fill, or edit journal rows to stop scripts re-running. The journal is owned exclusively by DbEx.
+- **Do not run `execute`/ad-hoc SQL to reconcile state.**
+
+If `dotnet run -- database` (or `migrate`) fails because the live database is inconsistent with the scripts — e.g. "the journal is empty but the objects already exist", or scripts re-running over existing objects — this is a **state-reconciliation decision that belongs to the user, not the AI**. **Stop and ask.** Present the legitimate options and let them choose, for example: in a disposable local/dev database, drop and rebuild cleanly with `dotnet run -- dropanddatabase` (destructive — confirm first); otherwise the user reconciles the environment manually. Never resolve it by editing the database or its journal yourself.
+
 ### Before Generating Any Code
 
 1. Run `Get-ChildItem .github/instructions -File` to enumerate all instruction files.
