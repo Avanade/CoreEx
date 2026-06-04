@@ -12,6 +12,7 @@
     <Content Include="content\**" PackagePath="content" />
     <!-- Un-pack the raw template.json files; version-stamped copies are packed by GenerateVersionedTemplateJson. -->
     <Content Update="content\**\.template.config\template.json" Pack="false" />
+    <Content Update="content\CoreEx.Bootstrap\.template.config\template.json" Pack="true" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,7 +40,7 @@
     </Task>
   </UsingTask>
 
-     <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Core template at pack time.
+     <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Core and CoreEx.Bootstrap templates at pack time.
        This ensures every generated solution is immediately AI-ready without a separate sync step.
        Files sourced:
          - consumer-instructions/.github/copilot-instructions.md → .github/copilot-instructions.md
@@ -203,6 +204,8 @@
       <None Include="$(_AiGenRoot).github\docs\coreex\patterns.md"             Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\patterns.md" />
       <None Include="$(_AiGenRoot).github\docs\coreex\testing.md"              Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\testing.md" />
       <None Include="$(_AiGenRoot).github\docs\coreex\tooling.md"              Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\tooling.md" />
+      <_BootstrapAiGenerated Include="$(_AiGenRoot)**\*" Exclude="$(_AiGenRoot).template.config\template.json" />
+      <None Include="@(_BootstrapAiGenerated)" Pack="true" PackagePath="content\CoreEx.Bootstrap\%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
   </Target>
 
