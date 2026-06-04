@@ -104,13 +104,72 @@ await _movementRequestValidator.ValidateAndThrowAsync(request);
 | Conditional rule | `.WhenValue(predicate)` |
 | Custom error text | `.Error("message")` |
 
-## Reference Data Fields
+### Full rule and clause reference
 
-Use `.IsValid()` on `ReferenceData`-typed properties to validate that the code is a known active value:
+The table above lists the most common rules; the full set of fluent extension methods is below. All are part of `CoreEx.Validation` — consult the [CoreEx.Validation README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Validation/README.md) for complete detail and overloads before hand-rolling logic in `OnValidateAsync` (most needs are already covered by a rule).
+
+| Category | Rules (extension methods) |
+|---|---|
+| Presence (required) | `Mandatory()`, `NotNull()`, `NotEmpty()` |
+| Absence (must be unset) | `Null()`, `None()`, `Empty()` |
+| Strings | `MaximumLength(n)`, `MinimumLength(n)`, `Length(exact)`, `String(maxLength)`, `String(min, max, regex)`, `Matches(regex)`, `Wildcard()`, `Email()` / `Email(maxLength)` |
+| Numbers / decimals | `Numeric(allowNegatives)`, `Positive()`, `Decimal(precision, scale)`, `PrecisionScale(precision, scale)` |
+| Comparisons (value) | `Equal(v)`, `NotEqual(v)`, `LessThan(v)`, `LessThanOrEqualTo(v)`, `GreaterThan(v)`, `GreaterThanOrEqualTo(v)`, `Compare(op, v)` — each with a delegate overload for runtime values (see below) |
+| Comparisons (other) | `CompareProperty(op, x => x.Other)`, `CompareValues(values)`, `Between(min, max)`, `InclusiveBetween(min, max)`, `ExclusiveBetween(min, max)` |
+| Enums | `Enum()`, `Enum(allowed[])`, string `Enum(c => c....)` |
+| Reference data | `IsValid(allowInactive)` / `ReferenceData(allowInactive)` (typed property), `ReferenceDataCodes()` / `AreValid()` (code collection), string `ReferenceData(c => c....)` |
+| Collections | `Collection(...)`, with `WithDuplicateIdCheck()` / `WithDuplicateKeyCheck()` / `WithDuplicatePropertyCheck()` / `WithDuplicateCheck()` |
+| Dictionaries | `Dictionary(...)` (with `WithKeyValidator(...)` / `WithValueValidator(...)`) |
+| Child / shared / external | `Entity(validator)` (child entity), `Common(commonValidator)` (shared value rules), `Interop(validator)` (external/FluentValidation) |
+| Always-error (guard with a clause) | `Error(text)`, `Duplicate()`, `NotFound()`, `Invalid()`, `Immutable()` |
+| Clauses (conditional execution) | `When(...)`, `WhenValue(pred)`, `WhenHasValue()`, `WhenEntity(pred)`, `DependsOn(x => x.Other)` |
+
+### Comparisons
+
+Prefer the dedicated comparison rules — `.GreaterThanOrEqualTo(value)`, `.LessThanOrEqualTo(value)`, `.GreaterThan(value)`, `.LessThan(value)`, `.Equal(value)`. For the general form use the **`.Compare(...)`** extension with a `CompareOperator` value:
 
 ```csharp
+// ✅ Idiomatic — dedicated rule (preferred)
+Property(x => x.Salary).GreaterThanOrEqualTo(0m, _ => "zero").PrecisionScale(18, 2);
+
+// ✅ Equivalent — general Compare extension
+Property(x => x.Salary).Compare(CompareOperator.GreaterThanOrEqualTo, 0m, "zero").PrecisionScale(18, 2);
+
+// ❌ Wrong — no such method `CompareValue`, and `GreaterThanEqual` is not a valid CompareOperator
+Property(x => x.Salary).CompareValue(CompareOperator.GreaterThanEqual, 0m, "zero").PrecisionScale(18, 2);
+```
+
+The extension is **`Compare`** (not `CompareValue`), and the `CompareOperator` members are `Equal`, `NotEqual`, `LessThan`, `LessThanOrEqualTo`, `GreaterThan`, `GreaterThanOrEqualTo` (there is no `GreaterThanEqual`).
+
+#### Runtime-computed values (delegate overloads)
+
+Most comparison rules (and many others) provide a **delegate overload** — `Func<PropertyContext<TEntity, TProperty>, TProperty>` — so the value can be computed at runtime. Prefer a declarative rule with a delegate over an imperative check in `OnValidateAsync` whenever the rule can express it. For example, the "at least 16 years old" check is a `GreaterThan` rule, not hand-written logic:
+
+```csharp
+// ✅ Preferred — declarative rule with a computed threshold (no OnValidateAsync needed)
+Property(x => x.DateOfBirth)
+    .Mandatory()
+    .GreaterThan(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "16 years old");
+```
+
+The delegate parameter is the `PropertyContext` (use `ctx => ctx.Entity...` to compute relative to other properties; ignore it with `_ =>` for an absolute value such as one derived from `Runtime.UtcNow`).
+
+#### Message text is a suffix, not a full sentence
+
+The optional text argument on these rules (e.g. `"zero"`, `_ => "16 years old"`) supplies **only the value substitution** (`{2}`) in the standard message template — it is **not** a complete error message. For instance `CompareGreaterThanFormat` is `"{0} must be greater than {2}."`, so `.GreaterThan(..., _ => "16 years old")` renders *"Date Of Birth must be greater than 16 years old."* Keep the text short (the value rendering only); the standard wrapper supplies the rest. The default templates live in `ValidatorStrings.cs` (each is an overridable, localizable `LText`) — consult it rather than re-inventing full messages. To override the *entire* message, use `.Error("...")` instead.
+
+## Reference Data Fields
+
+Use `.IsValid()` on the **typed reference-data navigation property** to validate that the value is a known active item — **not** the serialized `*Code` string property. For a contract with `GenderCode`, validate the generated `Gender` property; for `SubCategoryCode`, validate `SubCategory`; and so on.
+
+```csharp
+// ✅ Correct — validate the typed navigation property
 Property(p => p.SubCategory).Mandatory().IsValid();
 Property(p => p.UnitOfMeasure).Mandatory().IsValid();
+Property(x => x.Gender).IsValid();
+
+// ❌ Wrong — do not apply .IsValid() to the *Code string property
+Property(x => x.GenderCode).IsValid();
 ```
 
 ## Nested / Collection Validators
@@ -142,7 +201,7 @@ var dv = Validator.Create<MovementRequestProduct>()
 
 ## Async Validation (Database Checks)
 
-Override `OnValidateAsync` for validators that need to query the database. Check `context.HasErrors` first to skip expensive async work if earlier rules already failed:
+Override `OnValidateAsync` for validators that need to query the database. Check `context.HasErrors` first to skip expensive async work if earlier rules already failed — this global guard is appropriate here because the I/O assumes a valid entity. (When a check merely augments a single property, gate on that property with `context.HasError(x => x.Prop)` instead — see [Adding Errors Manually](#adding-errors-manually).)
 
 ```csharp
 protected async override Task OnValidateAsync(ValidationContext<MovementRequest> context, CancellationToken cancellationToken)
@@ -164,18 +223,25 @@ protected async override Task OnValidateAsync(ValidationContext<MovementRequest>
 
 ## Adding Errors Manually
 
-When adding an error directly (e.g. a custom check inside `OnValidateAsync`), identify the property using the **member-access expression** overload of `context.AddError` — `context.AddError(x => x.Property, ...)`. Never pass a property-name string such as `nameof(...)`; the expression resolves the label, JSON name, and metadata automatically.
+**Prefer a declarative rule first.** Most checks — including those needing runtime-computed values — are expressible as rules via the delegate overloads (see [Runtime-computed values](#runtime-computed-values-delegate-overloads)); the "at least 16 years old" check below is better written as `Property(x => x.DateOfBirth).GreaterThan(_ => ..., _ => "16 years old")`. Reserve manual `OnValidateAsync` + `AddError` for logic that genuinely cannot be a rule (e.g. multi-field conditions or checks requiring async I/O).
+
+When you do add an error directly, identify the property using the **member-access expression** overload of `context.AddError` — `context.AddError(x => x.Property, ...)`. Never pass a property-name string such as `nameof(...)`; the expression resolves the label, JSON name, and metadata automatically.
+
+**Choose the right guard — `HasErrors` vs `HasError(x => x.Prop)`:**
+- `context.HasErrors` (global) — bail early only when the *following logic needs the whole entity in a valid state*, e.g. before async I/O / database lookups (see [Async Validation](#async-validation-database-checks)).
+- `context.HasError(x => x.Prop)` (per-property) — when you are simply layering an additional rule onto a single property, gate on **that property only**. This still runs your check when unrelated properties have failed, and skips it only when the property itself is already in error (avoiding a misleading second message).
 
 ```csharp
-protected override Task OnValidateAsync(ValidationContext<Contracts.Employee> context, CancellationToken cancellationToken)
+protected override Task OnValidateAsync(ValidationContext<Employee> context, CancellationToken cancellationToken)
 {
-    if (context.HasErrors)
-        return Task.CompletedTask;
-
-    // Use Runtime.UtcNow (the ambient, ExecutionContext-aware clock) — never DateTime.UtcNow / DateTimeOffset.UtcNow.
-    var minDob = DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16));
-    if (context.Value.DateOfBirth > minDob)
-        context.AddError(x => x.DateOfBirth, "Employee must be at least 16 years old.");   // expression — not nameof(...)
+    // Only gate on DateOfBirth — an unrelated failure elsewhere should not skip this check.
+    if (!context.HasError(x => x.DateOfBirth))
+    {
+        // Use Runtime.UtcNow (the ambient, ExecutionContext-aware clock) — never DateTime.UtcNow / DateTimeOffset.UtcNow.
+        var minDob = DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16));
+        if (context.Value.DateOfBirth > minDob)
+            context.AddError(x => x.DateOfBirth, "Employee must be at least 16 years old.");   // expression — not nameof(...)
+    }
 
     return Task.CompletedTask;
 }
@@ -183,7 +249,7 @@ protected override Task OnValidateAsync(ValidationContext<Contracts.Employee> co
 
 ## Localization Labels
 
-Property names in error messages use the property name by default. Override with `[Localization("...")]` on the contract property or pass a custom label into the rule:
+Property names in error messages use an auto-derived label by default (the PascalCase property name split into words, e.g. `DateOfBirth` → "Date Of Birth"). Override with `[Localization("...")]` on the contract property (or a custom label in the rule) **only when the default is undesired** — do not add `[Localization("Salary")]` to a `Salary` property, as it merely repeats the default:
 
 ```csharp
 // Contract
@@ -214,6 +280,11 @@ Property(x => x.Quantity, c => c
 - Do not instantiate validators with `new` at the call site when a `Default` singleton is available.
 - Do not add logic that requires async I/O to the constructor — use `OnValidateAsync` for that.
 - Do not pass a property-name string (e.g. `nameof(...)`) to `context.AddError` — use the member-access expression overload, `context.AddError(x => x.Property, ...)`.
+- Do not apply `.IsValid()` to a `*Code` string property — validate the typed reference-data navigation property instead (e.g. `Gender`, not `GenderCode`).
+- Do not use `CompareValue(...)` or a `CompareOperator.GreaterThanEqual` value — the extension is `.Compare(...)` and the operator is `CompareOperator.GreaterThanOrEqualTo` (or use the dedicated `.GreaterThanOrEqualTo(...)` rule).
+- Do not hand-write logic in `OnValidateAsync` for something expressible as a rule — use the delegate overloads for runtime-computed values (e.g. `.GreaterThan(_ => ..., _ => "16 years old")`).
+- Do not put a full sentence in a rule's text argument — it is only the `{2}` value substitution in the standard message template; override the whole message with `.Error("...")`, and consult `ValidatorStrings.cs` for the defaults.
+- Do not add a redundant `[Localization]` whose value equals the auto-derived label (e.g. `[Localization("Salary")]` on `Salary`) — only annotate to change the label.
 
 ## Further Reading
 

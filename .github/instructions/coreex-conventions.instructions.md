@@ -24,15 +24,17 @@ Nullable warnings are treated as errors. Never suppress a nullable warning with 
 Every project has a single `GlobalUsing.cs` at the project root that declares all namespace imports. Do not add `using` statements to individual source files.
 
 ```csharp
-// GlobalUsing.cs — all usings for the project declared here
+// GlobalUsing.cs — all usings for the project declared here (sorted alphabetically)
+global using Contoso.Products.Application.Interfaces;
+global using CoreEx;
+global using Microsoft.Extensions.Logging;
 global using System;
 global using System.Collections.Generic;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Microsoft.Extensions.Logging;
-global using CoreEx;
-global using Contoso.Products.Application.Interfaces;
 ```
+
+**Always re-sort after editing**: Whenever you add or change an entry in `GlobalUsing.cs`, re-sort the **entire** file alphabetically (ordinal) so the order stays deterministic — all namespaces sorted equally, with no special grouping for `System.*`, one `global using` per line. Never simply append a new entry at the end.
 
 **Why this matters for code generation**: The `*.CodeGen` project emits no `using` statements in generated files. Every namespace referenced by generated code must already be declared in `GlobalUsing.cs`, or the generated output will not compile. When adding a new namespace dependency, add it to `GlobalUsing.cs` — not to the generated file.
 
@@ -144,6 +146,7 @@ private readonly ILogger<ProductService> _logger;
 
 - Do not emit `#nullable enable` or `#nullable restore` pragma directives in hand-authored files — nullable is enabled project-wide via `<Nullable>enable</Nullable>` in `Directory.Build.props`. These pragmas are reserved for auto-generated `.g.cs` files produced by code generators.
 - Do not add `using` statements to individual `.cs` files — declare all imports in `GlobalUsing.cs`.
+- Do not leave `GlobalUsing.cs` unsorted after editing — re-sort the whole file alphabetically (all namespaces equally, no `System.*` grouping) rather than appending new entries at the end.
 - Do not use block-scoped namespace declarations.
 - Do not add braces to single-line `if` bodies.
 - Do not suppress nullable warnings with `!` without a comment explaining why.

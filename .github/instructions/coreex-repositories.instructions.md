@@ -107,7 +107,27 @@ public Task<DataResult<Contracts.Product>> UpdateAsync(Contracts.Product product
 public Task<DataResult> DeleteAsync(string id) => _ef.Products.DeleteAsync(id);
 ```
 
+### EfDb method reference and the `WithResult` convention
+
+The model accessors (`EfDbModel<T>` and `EfDbMappedModel<...>`) expose two variants of every operation. **Read the suffix:**
+
+- **`...Async`** — returns the value directly (e.g. `TValue?`, `DataResult<TValue>`) and throws on error (exception flow).
+- **`...WithResultAsync`** — returns a `Result<...>` for ROP pipelines (failure is returned, not thrown). Use these in `Result<T>` chains.
+
+| Operation | Exception flow | ROP flow |
+|---|---|---|
+| Get by key | `GetAsync(key)` → `TValue?` | `GetWithResultAsync(key)` → `Result<TValue>` |
+| Create | `CreateAsync(value)` → `DataResult<TValue>` | `CreateWithResultAsync(value)` → `Result<DataResult<TValue>>` |
+| Update | `UpdateAsync(value)` → `DataResult<TValue>` | `UpdateWithResultAsync(value)` → `Result<DataResult<TValue>>` |
+| Delete | `DeleteAsync(key)` → `DataResult` | `DeleteWithResultAsync(key)` → `Result<DataResult>` |
+
+Querying: `Query(...)` returns a filtered `IQueryable<TModel>` (logical-delete and tenant filters already applied); `QueryTracked(...)` is the change-tracked variant. Materialize via the extensions `ToMappedItemsResultAsync<TSource, TItem>()` (→ `ItemsResult<TItem>` with paging/count), `ToMappedItemsAsync<...>()`, or `ToItemsResultAsync<TItem>()`.
+
+Per-model behaviour is configured on `EfDbOptions` / `EfDbModelOptions`: `WithModel<T>(...)`, `WithLogicalDeleteFilter()`, `WithTenantFilter()`, `WithFilter(...)`, `WithGetKey(...)`, `WithArgs(...)`, `WithOnBeforeCreateOrUpdate(...)`, `WithUpdateModelMapper(...)`.
+
 ## Dynamic Query Configuration
+
+> **GlobalUsing requirement:** `QueryArgsConfig` and the related query types live in the `CoreEx.Data.Querying` namespace. When introducing query configuration, ensure `global using CoreEx.Data.Querying;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing. This prevents avoidable compilation errors (per the Global Usings convention, imports go in `GlobalUsing.cs`, never in individual files).
 
 Define a `static readonly QueryArgsConfig _queryConfig` once at class level for OData-style filtering and ordering:
 
@@ -186,6 +206,8 @@ public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket) => Result
 ```
 
 ## Mapping
+
+> **GlobalUsing requirement:** Mappers are declared in the `<Domain>.Infrastructure.Mapping` namespace but referenced elsewhere in the project (repositories, adapters, `*EfDb`). Whenever you add a Contract ↔ Persistence mapper, ensure `global using <Domain>.Infrastructure.Mapping;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing. This prevents avoidable compilation errors when other classes reference the mapper (e.g. `ProductMapper.Default`).
 
 The `Mapping/` sub-folder contains **bidirectional mappers** between Contract types and Persistence model types. Extend `BiDirectionMapper<TFrom, TTo, TSelf>` — do not use AutoMapper or reflection-based conventions:
 
@@ -289,6 +311,8 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 - Do not conflate Application-level mapping (aggregate ↔ contract) with Infrastructure-level mapping (contract ↔ persistence model).
 - Do not write raw `DbContext` queries for standard CRUD — use the `EfDb` delegate methods.
 - Do not edit `*.g.cs` persistence or DbContext files directly — regenerate via the `*.Database` tooling project.
+- Do not add a mapper without ensuring the `<Domain>.Infrastructure.Mapping` namespace is in the Infrastructure `GlobalUsing.cs`; likewise ensure `CoreEx.Data.Querying` is present when adding `QueryArgsConfig` query configuration.
+- Do not mix EfDb flows — use the `...WithResultAsync` methods inside `Result<T>` pipelines and the plain `...Async` methods for exception flow; do not wrap a throwing `...Async` call to fake a `Result`.
 
 ## Further Reading
 

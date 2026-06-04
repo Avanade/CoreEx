@@ -64,6 +64,15 @@ Mark entity contract classes with the `[Contract]` attribute and declare them `p
 public partial class Product : ProductBase, IETag, IChangeLog { }
 ```
 
+### How the generator runs (do not chase phantom build problems)
+
+The Roslyn source generator runs **automatically as part of compilation** — every `dotnet build` and every IDE design-time build. You do **not** trigger it manually, and there is no separate step to "make it generate".
+
+Common misconceptions to avoid:
+- **Missing generated members before a build is normal — not an error to fix by hand.** If a `partial` property or class has no visible implementation, it is because the project simply hasn't been built yet. Build it; do **not** hand-author the generated partial implementation or create the `.g.cs` file to "unblock" things.
+- **Other compilation errors do not stop the generator.** Roslyn runs source generators on the parsed compilation regardless of unrelated errors; there is **no build-ordering requirement and no "circular dependency"** whereby errors elsewhere prevent generation. Do not invent such a dependency — fix the actual reported errors and rebuild.
+- **If a member is still missing after a clean build, the contract declaration is malformed**, not the build process. Check that the class has `[Contract]` and is `partial`, the property is `partial`, and the attributes are correct (see below) — then rebuild. Never substitute a hand-written implementation for the generated one.
+
 Plain value-object or request contracts that do not need generated members (equality, cloning, etc.) can be declared as ordinary, non-`partial` classes without `[Contract]`:
 
 ```csharp
@@ -166,18 +175,25 @@ The generated code exposes a strongly-typed `SubCategory` property alongside the
 > Once all types are resolved and CodeGen has run (if needed), emit the full contract:
 > - Reference data properties: `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }` — the property name is always `{Name}Code`; the navigation property `{Name}` is Roslyn-generated and must not be hand-authored.
 > - Plain properties: use the inferred or explicit CLR type.
-> - Apply `[Localization("Human label")]` where the raw property name would produce a poor validation message (e.g. `SubCategoryCode` → `"Sub-category"`).
+> - Apply `[Localization("Human label")]` **only** where the auto-derived label would be wrong/undesired (e.g. `SubCategoryCode` → `"Sub-category"`). Do **not** add it when the value would equal the default (e.g. `[Localization("Salary")]` on `Salary` is redundant).
 > - For any property confirmed as plain (Step 4, user selected none or a subset), use `string?` as the default if no better type can be inferred.
 
 ## Localization Labels
 
-Decorate properties with `[Localization("Human label")]` when the default property name would produce a poor validation error message:
+CoreEx automatically derives a human-friendly label from the property name (the PascalCase name is split into words — e.g. `DateOfBirth` → "Date Of Birth"). **Only** decorate a property with `[Localization("Human label")]` when that default would be wrong or undesired — typically to drop a `Code` suffix or hyphenate (e.g. `SubCategoryCode` → "Sub-category").
 
 ```csharp
+// ✅ Needed — default "Sub Category Code" is undesired
 [Localization("Sub-category")]
 public partial string? SubCategoryCode { get; set; }
-// Validation error: "Sub-category is required." (not "SubCategoryCode is required.")
+// Validation error: "Sub-category is required." (not "Sub Category Code is required.")
+
+// ❌ Redundant — the default already yields "Salary"; do not annotate
+[Localization("Salary")]
+public decimal Salary { get; set; }
 ```
+
+Omit `[Localization]` whenever the attribute value would equal the auto-derived label — it is noise. Add it only to change the label.
 
 ## Inheritance for Shared Fields
 
@@ -329,7 +345,10 @@ Never create or edit `*.g.cs` files directly.
 - Do not add `[Contract]` or `partial` to plain value-object or request classes that need no generated members.
 - Do not implement members that the Roslyn source generator emits (equality, cloning, serialization helpers).
 - Do not place domain rules, validators, or service calls in contract classes.
+- Do not add a redundant `[Localization]` attribute whose value equals the auto-derived label (e.g. `[Localization("Salary")]` on `Salary`) — only annotate to change the label.
 - Do not edit `*.g.cs` files directly — regenerate via the appropriate tooling.
+- Do not hand-author a generated partial implementation (or create its `.g.cs`) because it is "missing" — it appears after a build; the generator runs automatically during compilation.
+- Do not invent a build-ordering or "circular dependency" excuse for missing generated code — Roslyn runs the generator even when other errors exist; fix the real errors and rebuild.
 - Do not emit `#nullable enable` or `#nullable restore` pragma directives — nullable is enabled project-wide via `Directory.Build.props`.
 
 ## Further Reading

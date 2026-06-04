@@ -145,7 +145,7 @@ Run with `dotnet run -- <command>`. Default (no arguments) runs `All`.
 | `Schema` | Drops and re-creates idempotent schema objects from `Schema/` on every run (stored procs, functions) |
 | `Data` | Applies YAML/JSON seed data with INSERT or MERGE semantics |
 | `Reset` | Deletes all data from the database (scoped by `DataResetFilterPredicate`) |
-| `Script` | Scaffolds a new timestamped migration script file |
+| `Script` | Scaffolds a new migration script, correctly named `yyyyMMdd-HHmmss-<kebab-name>` (current UTC date+time, lower-cased). Subcommands: `schema`, `create`, `alter`, `refdata`, `outbox`. Prefer this over hand-creating script files |
 | `Drop` | Drops the database |
 | `Inspect` | Read-only; reports existence and current column schema (type, nullability, default, PK, identity, computed, unique, and whether it is reference data) for one or more tables in a schema, as markdown. Safe to run freely |
 
@@ -154,6 +154,7 @@ Composite commands for common scenarios:
 | Composite | Runs |
 |---|---|
 | `All` | `Create` → `Migrate` → `CodeGen` → `Schema` → `Data` |
+| `Database` | `Create` → `Migrate` → `Schema` → `Data` (database-only; no `CodeGen`) — the standard non-destructive bring-up to make the live database reflect all authored scripts |
 | `Deploy` | `Migrate` → `Schema` |
 | `DeployWithData` | `Migrate` → `Schema` → `Data` |
 | `CreateMigrateAndCodeGen` | `Create` → `Migrate` → `CodeGen` |
@@ -241,6 +242,13 @@ These files are the only `.g.cs` outputs of `*.Database`; all other generated C#
 
 The `Inspect` command queries the **live database** and reports, per table, whether it exists and — when it does — its current column schema as markdown. It is read-only and has no side effects, so run it freely without confirmation.
 
+> **Bring the database up to date first.** `Inspect` only reflects what is actually in the database, so before inspecting (especially before any create/alter decision) run `dotnet run -- database` to ensure the database exists and all authored migrations/schema/data are applied. `Database` is non-destructive (`Create` → `Migrate` → `Schema` → `Data`; no `Drop`/`Reset`), so run it as the standard precursor, then inspect:
+>
+> ```
+> dotnet run -- database        # create-if-missing + apply migrations/schema/data
+> dotnet run -- inspect <schema> <table> [<table> ...]
+> ```
+
 ```
 dotnet run -- inspect <schema> <table> [<table> ...]
 ```
@@ -262,20 +270,23 @@ Reading the output:
 
 ### `Migrate` — schema evolution
 
-Migration scripts are embedded resources under `Migrations/`. Use timestamp-ordered names:
+Migration scripts are embedded resources under `Migrations/`.
+
+**Scaffold new scripts with the DbEx `Script` command — do not hand-create the file.** It generates a correctly named, correctly cased, correctly templated script every time:
 
 ```
-# PostgreSQL (.pgsql)
-20260101-000001-create-products-schema.pgsql
-20260101-000101-create-products-category.pgsql
-20260101-000201-create-products-product.pgsql
-20260101-000301-create-products-outbox.pgsql   # if outbox: true in dbex.yaml
-
-# SQL Server (.sql)
-20260101-000001-create-shopping-schema.sql
-20260101-000101-create-shopping-basket-status.sql
-20260101-000201-create-shopping-basket.sql
+dotnet run -- script schema <schema>            # new schema (rarely needed — see below)
+dotnet run -- script create <schema> <table>    # new table
+dotnet run -- script alter  <schema> <table>    # alter an existing table
+dotnet run -- script refdata <schema> <table>   # new reference-data table
+dotnet run -- script outbox <schema> <name>     # transactional outbox table(s)
 ```
+
+**Naming convention** (what `Script` produces, and what any hand-named file must match): `yyyyMMdd-HHmmss-<kebab-description>.{sql|pgsql}`.
+- The leading segment is the **current UTC date *and* time** (`yyyyMMdd-HHmmss`) at the moment of creation — **not** a placeholder date (e.g. `20250101`) and **not** a per-day incrementing index (e.g. `000001`). The time component provides natural ordering and uniqueness without tracking indices.
+- The entire filename is **kebab-lower-case** — all lowercase, words separated by hyphens (e.g. `20260603-142530-create-bar-employee.sql`, never `...-create-Bar-Employee.sql`).
+
+> **Do not author a schema-create script.** The `coreex` template already ships the default schema-create migration, so the schema exists from the first `Migrate`. Never emit a `create-<schema>-schema` script unless the user **explicitly** asks for an additional schema.
 
 Scripts are **immutable once applied**. Subsequent changes require new scripts (e.g. `ALTER TABLE`). Use moustache-style `{{Parameter}}` for environment-specific values resolved from `MigrationArgs.Parameters`.
 
@@ -371,11 +382,11 @@ When asked to create or change a database table for a .NET entity (e.g. *"create
 
 > **Agent instruction:**
 > 1. **Identify every table involved.** This includes the entity's own table plus any reference data tables implied by its `[ReferenceData<T>]` properties (each typed reference-data property maps to a lookup table that may need to exist).
-> 2. **Inspect the current state — before authoring any script.** Run `dotnet run -- inspect <schema> <table> [<table> ...]` (read-only — no confirmation needed). If unapplied migration scripts may exist, offer to run `dotnet run -- Migrate` first (a mutation — confirm before running) so the inspection reflects the fully migrated schema. Only proceed to authoring once you know each table's actual state.
+> 2. **Bring the database up to date, then inspect — before authoring any script.** First run `dotnet run -- database` (non-destructive: `Create` → `Migrate` → `Schema` → `Data`) so the live database reflects all authored scripts, then run `dotnet run -- inspect <schema> <table> [<table> ...]` (read-only). Only proceed to authoring once you know each table's actual state.
 > 3. **Branch per table on the `Inspect` result:**
->    - **Not found** → author a new timestamped `CREATE TABLE` migration script under `Migrations/`, and register the table under `tables:` in `dbex.yaml`. Map column types per [Mapping contract types to columns](#mapping-contract-types-to-columns).
+>    - **Not found** → scaffold the script with `dotnet run -- script create <schema> <table>` (or `script refdata <schema> <table>` for a reference-data table) so it is correctly named/timestamped/cased, fill in the columns, and register the table under `tables:` in `dbex.yaml`. Map column types per [Mapping contract types to columns](#mapping-contract-types-to-columns). **Do not create a schema-create script** — the schema already exists (template-provided).
 >    - **Found, Reference Data: Yes** → do **not** recreate or alter it directly. Reference it from the entity table per step 4 below. Any change to the reference data table's own shape flows through `ref-data.yaml` + CodeGen, not a hand-authored script.
->    - **Found, schema differs from the contract** → author a new timestamped `ALTER TABLE` migration script for the **delta only** (applied scripts are immutable — never edit the original create script).
+>    - **Found, schema differs from the contract** → scaffold with `dotnet run -- script alter <schema> <table>` and include the **delta only** (applied scripts are immutable — never edit the original create script).
 >    - **Found, schema already matches** → no script is needed; say so.
 > 4. **Confirm how each reference-data relationship is represented.** For every `[ReferenceData<T>]` property on the entity, ask whether the column should reference the lookup by its **Code** (the default) or by its **Id**:
 >    - **By Code (default)** → name the column with a `Code` suffix (e.g. `Employee.GenderCode` / `gender_code`), typed to match the reference data `Code` column (typically `NVARCHAR(50)` / `VARCHAR(50)`). **Do not create a foreign key constraint.**
@@ -433,6 +444,8 @@ products:
 - Do not alter applied migration scripts — subsequent schema changes require new scripts.
 - Do not hand-author the outbox stored procedures or functions — set `outbox: true` in `dbex.yaml` and let DbEx generate them.
 - Do not write persistence models or `DbContext` partials by hand — run `dotnet run -- CodeGen` (or `dotnet run -- All`) to regenerate.
+- Do not hand-create or hand-name migration script files — scaffold via `dotnet run -- script <type> ...`; names must be `yyyyMMdd-HHmmss-<kebab-name>` using the current date+time (never a placeholder date or a per-day index) and be fully kebab-lower-case.
+- Do not author a schema-create script — the template already provides the default schema; only create one if the user explicitly asks for an additional schema.
 
 ## Further Reading
 

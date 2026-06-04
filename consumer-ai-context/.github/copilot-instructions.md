@@ -45,15 +45,31 @@ The Domain layer is **optional**. Introduce it only when the domain has aggregat
 
 ## Universal Rules
 
+### Do Not Fabricate Blockers — Verify, Then Ask
+
+When something appears blocked, broken, or "not generated yet", do **not** invent a root cause and an elaborate workaround. Take the one authoritative action that establishes the truth, then proceed:
+
+- **Need to know the schema / whether a table exists?** Bring the database up to date first with `dotnet run -- database` (non-destructive create + migrate + schema + data), then run `dotnet run -- inspect <schema> <table> ...` — do not guess from the file system.
+- **Generated/partial code seems missing?** Build it (`dotnet build`). The Roslyn source generator and the CodeGen/DbEx tooling produce their output during build — missing output before a build is normal, not an error to hand-fix.
+- **Unsure what a convention is?** Read the matching `*.instructions.md` file before acting.
+
+Do **not** assert unverified root causes (e.g. "circular dependency", "build ordering problem", "the generator can't run because of other errors") — these are usually wrong. Fix the actual reported errors and rebuild.
+
+**Stop looping.** If two attempts at the same fix have not worked, do not keep trying variations of the same thing. **Stop and ask the user** — describe what you tried, the exact error, and the options you see. A short question resolves far more than repeated thrashing, and the user often has context that unblocks it immediately. Never fabricate files, directories, projects, or hand-written generated code to force past a block you do not understand.
+
 ### Before Generating Any Code
 
 1. Run `Get-ChildItem .github/instructions -File` to enumerate all instruction files.
 2. Identify which instruction files match the target layer (contracts, domain, application, etc.).
 3. Read each matching file in full with `get_file` before writing any code.
 
+### Do Not Create Projects Unless Explicitly Asked
+
+Never create a new project or add a project to the solution (e.g. an `*.Api`, `*.Subscribe`, `*.Outbox.Relay`, `*.Domain`, `*.CodeGen`, or `*.Database` project) unless the user **explicitly** requests it. Adding a project is a deliberate, structural decision the user owns — it is not something to infer from a feature request ("create a service", "create a contract") or to do in order to "unblock" tooling. In particular, a configured path that points to a not-yet-existing project (e.g. `apiProjectPath` in `ref-data.yaml`) does **not** justify scaffolding that project or creating placeholder folders/files — CodeGen merely warns and skips the missing target (see `coreex-tooling.instructions.md`). If a project genuinely appears to be missing and is needed, raise it with the user and let them decide.
+
 ### Using Statements
 
-Every project has a single `GlobalUsing.cs` at its root where all namespace imports are declared. When emitting code, do **not** add `using` statements to individual files. If a referenced namespace is missing, add the `global using` to that project's `GlobalUsing.cs` instead. If unsure whether an import already exists, check the project's `GlobalUsing.cs` and amend it — unless the user has explicitly instructed otherwise.
+Every project has a single `GlobalUsing.cs` at its root where all namespace imports are declared. When emitting code, do **not** add `using` statements to individual files. If a referenced namespace is missing, add the `global using` to that project's `GlobalUsing.cs` instead. If unsure whether an import already exists, check the project's `GlobalUsing.cs` and amend it — unless the user has explicitly instructed otherwise. Whenever you edit `GlobalUsing.cs`, re-sort the entire file alphabetically (all namespaces sorted equally) rather than appending to the end.
 
 ### Always Prefer CoreEx Primitives
 
@@ -98,6 +114,10 @@ Never create or edit the following file types directly — they are owned by too
 | `*.g.sql` / `*.g.pgsql` | `*.Database` tooling (outbox schema objects) |
 
 Regenerate by re-running the relevant tooling project (`dotnet run` in `*.CodeGen` or `*.Database`).
+
+### Database Tables and Migrations
+
+Before authoring any migration script to create or alter a table (e.g. "create a table for the Employee entity"), **bring the database up to date and inspect it first** — run `dotnet run -- database` (non-destructive: create-if-missing + migrate + schema + data) to make the live database reflect all authored scripts, then `dotnet run -- inspect <schema> <table> [<table> ...]` (read-only) and let the result decide whether a script is needed and which kind. The file system is not authoritative: a script under `Migrations/` or an entry in `dbex.yaml` only means it was *authored*, not *applied*. **Never plan or jump straight to a `CREATE`/`ALTER` script without inspecting first** — this is a hard gate. See `coreex-tooling.instructions.md` for the full create/alter workflow.
 
 ## Layer Dependency Summary
 

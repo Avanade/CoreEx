@@ -31,6 +31,25 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
 }
 ```
 
+> **Do not inject validators (or mappers/policies) into the service constructor.** A `Validator<T, TSelf>` is invoked via its static `Default` singleton, so it is never a constructor parameter.
+>
+> ```csharp
+> // ❌ Wrong — validator injected
+> public class EmployeeService(IUnitOfWork unitOfWork, IEmployeeRepository repository, EmployeeValidator validator) : IEmployeeService
+>
+> // ✅ Correct — only the unit of work and repository (validator called via EmployeeValidator.Default)
+> public class EmployeeService(IUnitOfWork unitOfWork, IEmployeeRepository repository) : IEmployeeService
+> ```
+
+## Service Operations — Confirm Scope
+
+Before generating a service, confirm which operations it should expose — never silently assume the full set.
+
+> **Agent instruction:**
+> - When asked to create a service **without** specifying the operations, confirm the standard CRUD set with the user — **Get**, **Create**, **Update**, **Delete** — presenting each as **default-selected** so the user can deselect any that are not wanted.
+> - Even when the user asks for "CRUD" (or "the usual"), still confirm the four operations (Get / Create / Update / Delete, each default-selected) rather than assuming all four — they may want only a subset.
+> - **Never add a Query (collection/search) operation unless it is explicitly requested.** Querying needs deliberate, additional design — `QueryArgsConfig` filter/order fields, paging, and a purpose-built read shape (see [CQRS — Read Services](#cqrs--read-services)) — so it must not be inferred from a generic "create a service"/"CRUD" request. If querying is asked for, gather those specifics first.
+
 ## Guard Clauses
 
 `.ThrowIfNull()` and `.ThrowIfNullOrEmpty()` **return the guarded value** when the check passes, so they can be used inline at the point of first use rather than as separate pre-checks. This keeps code tight without sacrificing safety:
@@ -70,13 +89,30 @@ public class ProductValidator : Validator<Contracts.Product, ProductValidator>
     public ProductValidator()
     {
         Property(p => p.Sku).Mandatory().MaximumLength(50);
-        Property(p => p.SubCategoryCode).Mandatory().IsValid();
+        Property(p => p.SubCategory).Mandatory().IsValid();   // typed ref-data nav property, not SubCategoryCode
         Property(p => p.Price).PrecisionScale(null, 2).GreaterThanOrEqualTo(0, _ => "zero");
     }
 }
 
 // Call via Default singleton — never use new ProductValidator() at the call site:
 await ProductValidator.Default.ValidateAndThrowAsync(product);
+```
+
+**Choose the invocation that matches the flow — never bare `ValidateAsync`:**
+
+| Flow | Method | Behaviour |
+|---|---|---|
+| Exception style (non-ROP) | `ValidateAndThrowAsync(value)` | Throws `ValidationException` on failure — stops execution |
+| `Result<T>` pipeline (ROP) | `ValidateWithResultAsync(value)` | Returns a `Result` to compose / short-circuit on |
+
+`ValidateAsync(value)` merely **returns the validation result without throwing** — calling it and ignoring the return *swallows the errors and continues*. Do **not** use it for fail-fast validation. In a non-ROP service use `ValidateAndThrowAsync`; in a `Result<T>` pipeline use `ValidateWithResultAsync`.
+
+```csharp
+// ❌ Wrong — does not throw; the failure is swallowed and execution continues
+await EmployeeValidator.Default.ValidateAsync(employee, cancellationToken).ConfigureAwait(false);
+
+// ✅ Correct (non-ROP) — throws ValidationException on failure
+await EmployeeValidator.Default.ValidateAndThrowAsync(employee, cancellationToken).ConfigureAwait(false);
 ```
 
 **`Validator<T>`** — use when constructor injection is required (e.g., a repository for async I/O). No singleton; instantiate directly at the call site using dependencies already in scope in the service:
@@ -93,8 +129,7 @@ public class MovementRequestValidator : Validator<MovementRequest>
         // ... declarative rules
     }
 
-    protected async override Task OnValidateAsync(
-        ValidationContext<MovementRequest> context, CancellationToken cancellationToken)
+    protected async override Task OnValidateAsync(ValidationContext<MovementRequest> context, CancellationToken cancellationToken)
     {
         if (context.HasErrors) return; // fail fast — skip I/O if declarative phase found errors
 
@@ -180,15 +215,42 @@ return await _unitOfWork.TransactionAsync(async () =>
 }).ConfigureAwait(false);
 ```
 
-- `WhereMutated(action)` — executes `action` only when the data result records a mutation; add the event inside this callback.
+**When eventing is enabled, every mutating operation must publish its event inside the transaction.** `Create`, `Update`, and `Delete` each add their event (`EventAction.Created` / `Updated` / `Deleted`) via `_unitOfWork.Events.Add(...)` within the `TransactionAsync` scope — a transaction that writes but adds no event is a bug. (Eventing is enabled when the solution was scaffolded with it, or whenever the domain publishes domain events; if a domain is genuinely event-free, omit it.)
+
+```csharp
+// ❌ Wrong — writes inside the transaction but never adds the event
+return await _unitOfWork.TransactionAsync(async ct =>
+{
+    var result = await _repository.CreateAsync(employee, ct).ConfigureAwait(false);
+    return result.Value!;
+}, cancellationToken).ConfigureAwait(false);
+
+// ✅ Correct — event added within the same transaction, only on mutation
+return await _unitOfWork.TransactionAsync(async ct =>
+{
+    var dr = await _repository.CreateAsync(employee, ct).ConfigureAwait(false);
+    return dr.WhereMutated(v =>
+        _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
+}, cancellationToken).ConfigureAwait(false);
+```
+
+- `WhereMutated(action)` — executes `action` only when the data result records a mutation; add the event inside this callback. **Mind the overload:** `DataResult<T>` (from `Create`/`Update`) carries the value, so use `WhereMutated(v => ...)`; `DataResult` (from `Delete`) has **no value**, so use the parameterless `WhereMutated(() => ...)` — not `WhereMutated(_ => ...)`.
 - `EventData.CreateEventWith(value, action)` — creates a typed event from the entity.
 - `EventAction.Created`, `EventAction.Updated`, `EventAction.Deleted` — use the standard constants.
 
-For delete where the entity value is no longer available, carry the ID via `.WithKey(id)`:
+For delete the `DataResult` has no value, so use the parameterless `WhereMutated(() => ...)` and carry the identity via `.WithKey(id)`:
 
 ```csharp
-_unitOfWork.Events.Add(
-    EventData.CreateEventWith<Product>(default, EventAction.Deleted).WithKey(id));
+public async Task DeleteAsync(string id)
+{
+    await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.DeleteAsync(id.ThrowIfNullOrEmpty()).ConfigureAwait(false);
+        dr.WhereMutated(() =>                                    // () — no value on a delete DataResult
+            _unitOfWork.Events.Add(
+                EventData.CreateEventWith<Employee>(default, EventAction.Deleted).WithKey(id)));
+    }).ConfigureAwait(false);
+}
 ```
 
 ## Result&lt;T&gt; Pipeline Style
@@ -222,6 +284,26 @@ var pr = await Result.GoAsync(() => SomeValidator.Default.ValidateWithResultAsyn
 if (pr.IsFailure)
     return pr.AsResult();
 ```
+
+#### Operator reference and the `As` / `Async` naming convention
+
+The pipeline operators come in **families**, each with consistent modifier suffixes. **Read the suffix to know what an operator does:**
+
+- **`As`** — the operation **changes the result type** (`Result` → `Result<T>`, `Result<T>` → `Result<U>`, or `Result<T>` → `Result`). The non-`As` form keeps the same type. This is **by design**: you must explicitly opt into a type change, so a `T` flowing through unchanged uses `Then`, while producing a different type uses `ThenAs`. If the compiler complains a delegate returns the "wrong" type, you almost certainly want the `As` variant.
+- **`Async`** — the supplied delegate is asynchronous (returns a `Task`).
+- **`AsAsync`** — both: an async delegate that also changes the type.
+
+| Family | Runs the delegate when… | Same-type / type-changing |
+|---|---|---|
+| `Then` | result is **success** | `Then` / `ThenAs` |
+| `When` | success **and** a condition holds | `When` / `WhenAs` |
+| `Any` | **always** (success or failure) | `Any` / `AnyAs` |
+| `OnFailure` | result is **failure** | `OnFailure` / `OnFailureAs` |
+| `Match` | branches on success vs failure, returning a value | `Match` / `MatchAs` |
+
+Each has `Async` and `AsAsync` variants too (e.g. `ThenAsync`, `ThenAsAsync`). Start a pipeline with `Result.Go(...)` / `Result.GoAsync(...)`; also available: `Bind`, `Combine`, and `.AsResult()` to drop a `Result<T>` to a `Result`.
+
+Failure factories (return a failed result of the matching type): `Result.ValidationError(...)`, `NotFoundError(...)`, `BusinessError(...)`, `ConflictError(...)`, `ConcurrencyError(...)`, `DuplicateError(...)`, `AuthenticationError(...)`, `AuthorizationError(...)`, `TransientError(...)`. Success factories: `Result.Success`, `Result<T>.Ok(value)`. See the [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) for the full set.
 
 ## CQRS — Read Services
 
@@ -338,6 +420,12 @@ Always call `.ConfigureAwait(false)` on every `await` inside service and reposit
 - Do not add business logic to controllers — services own all use-case orchestration.
 - Do not register Validators, Mappers, or Policies in DI or inject them into service constructors — call or instantiate them directly at the point of use (YAGNI: refactor to DI only when there is a real need to mock or replace them).
 - Do not use `new ProductValidator()` at the call site when `Validator<T, TSelf>` provides a `Default` singleton — use `ProductValidator.Default`.
+- Do not inject a validator into a service constructor — a `Validator<T, TSelf>` is invoked via its `Default` singleton, never as a constructor dependency.
+- Do not call bare `ValidateAsync(...)` for fail-fast validation — it returns the result without throwing, silently swallowing errors. Use `ValidateAndThrowAsync` (non-ROP) or `ValidateWithResultAsync` (ROP).
+- Do not perform a mutating `TransactionAsync` without adding its event (`_unitOfWork.Events.Add(...)`) when eventing is enabled — the write and the event must be committed together.
+- Do not use `WhereMutated(_ => ...)` on a delete — `DataResult` (delete) has no value; use the parameterless `WhereMutated(() => ...)`. The value-carrying `WhereMutated(v => ...)` is only for `DataResult<T>` (create/update).
+- Do not reach for a non-`As` Result operator when the delegate changes the result type — use the `As` variant (e.g. `ThenAs`/`ThenAsAsync`); the `As` suffix exists to make the type change explicit.
+- Do not generate service operations the user did not confirm — confirm the CRUD set (Get/Create/Update/Delete, each default-selected) when operations are unspecified, and never add a Query operation without an explicit request.
 
 ## Further Reading
 
