@@ -60,6 +60,9 @@
       <_AiGenRoot>$(BaseIntermediateOutputPath)generated\CoreEx.Core\</_AiGenRoot>
     </PropertyGroup>
 
+      <!-- Clear previously generated AI assets so wildcard Bootstrap packing cannot pick up stale files. -->
+      <RemoveDir Directories="$(_AiGenRoot)" />
+
     <!-- Single files and package AGENTS.md files (need explicit source→dest mapping) -->
     <ItemGroup>
       <_AiFile Include="$(_RepoRoot)consumer-instructions\.github\copilot-instructions.md"
@@ -70,10 +73,8 @@
                DestSubPath=".github\skills\coreex-scaffold\SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github\skills\coreex-scaffold\README.md"
                DestSubPath=".github\skills\coreex-scaffold\README.md" />
-      <_CoreExScaffoldReference Include="$(_RepoRoot).github\skills\coreex-scaffold\references\**\*" />
-      <_AiFile Include="@(_CoreExScaffoldReference)">
-        <DestSubPath>.github\skills\coreex-scaffold\references\%(RecursiveDir)%(Filename)%(Extension)</DestSubPath>
-      </_AiFile>
+      <_AiFile Include="$(_RepoRoot).github\skills\coreex-scaffold\references\workflow.md"
+               DestSubPath=".github\skills\coreex-scaffold\references\workflow.md" />
       <_AiFile Include="$(_RepoRoot).github\agents\coreex-expert.agent.md"
                DestSubPath=".github\agents\coreex-expert.agent.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-expert.md"
@@ -161,8 +162,7 @@
       <None Include="$(_AiGenRoot).github\prompts\coreex-scaffold.prompt.md" Pack="true" PackagePath="content\CoreEx.Core\.github\prompts\coreex-scaffold.prompt.md" />
       <None Include="$(_AiGenRoot).github\skills\coreex-scaffold\SKILL.md"  Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\SKILL.md" />
       <None Include="$(_AiGenRoot).github\skills\coreex-scaffold\README.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\README.md" />
-      <_CoreExScaffoldReferenceGenerated Include="$(_AiGenRoot).github\skills\coreex-scaffold\references\**\*" />
-      <None Include="@(_CoreExScaffoldReferenceGenerated)" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\references\%(RecursiveDir)%(Filename)%(Extension)" />
+      <None Include="$(_AiGenRoot).github\skills\coreex-scaffold\references\workflow.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\references\workflow.md" />
       <None Include="$(_AiGenRoot).github\agents\coreex-expert.agent.md"     Pack="true" PackagePath="content\CoreEx.Core\.github\agents\coreex-expert.agent.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-expert.md"          Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-expert.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-docs-sync.md"       Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-docs-sync.md" />
