@@ -1,20 +1,20 @@
 ---
 name: coreex-scaffold
-description: "Guide a developer through CoreEx solution shaping after the repository has already been bootstrapped, or for an existing scaffolded solution missing runtime hosts. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current CoreEx solution shape, and adding missing Api/Outbox.Relay/Subscribe hosts to an existing repo. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, user questions, dotnet new install/list, dry-run validation, and either template generation or manual retrofit work depending on repo shape."
-argument-hint: "Optional: proposed solution name, required hosts, database choice, messaging choice, and architectural constraints."
+description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, and adding missing Api/Outbox.Relay/Subscribe hosts to an existing repo. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, and either template generation or manual retrofit work depending on repo shape."
+argument-hint: "Optional: base solution name, whether this is new or retrofit, required hosts, database choice, and messaging needs."
 tags: ["coreex", "scaffolding", "retrofit", "template", "hosts"]
 ---
 
 # CoreEx Scaffold
 
-Guides a repository through the right CoreEx setup path based on its current shape.
+Guides a repository through the right CoreEx setup path by interviewing the user in simple English and translating the answers into safe CoreEx template commands.
 
 ## When to Use
 
 - Starting a new CoreEx domain or service from a repository that already contains only the bootstrap AI assets.
 - Deciding whether the first cut should create just the API host or also include the outbox relay and/or subscriber hosts.
 - Adding missing `Api`, `Outbox.Relay`, or `Subscribe` hosts to an existing scaffolded CoreEx solution.
-- Converting project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
+- Converting plain-English project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
 
 ## When Not to Use
 
@@ -22,52 +22,48 @@ Guides a repository through the right CoreEx setup path based on its current sha
 - You still need to create the initial bootstrap repository; run `coreex-bootstrap` before this skill is used.
 - You want architectural guidance for an existing implementation beyond project setup; use `CoreEx Expert` instead.
 
-## Workflow
+## Workflow Overview
 
-### Prerequisite
+1. **Inspect the workspace shape first.**
+2. **Interview the user in simple English.** Ask one short question at a time and turn the answers into template inputs.
+3. **Validate the naming shape before any template command.**
+4. **Choose the safest implementation path.** Prefer dry-runs and stop on layout mismatches.
+5. **Apply the right shape.** Generate only what is missing or explicitly requested.
+6. **Summarize the result.** Show the derived inputs, commands, and any deferred steps.
+
+For step-by-step guidance, see [references/workflow.md](references/workflow.md).
+
+## Interactive Interview Rules
+
+- Ask short, plain-English questions. Do not ask the user to supply template flag names.
+- Prefer either/or or small-choice questions before freeform questions.
+- Ask one topic at a time: name, new vs retrofit, HTTP API, event publishing, event consumption, data storage, reference data, domain layer, and ROP.
+- If the user gives a partial or non-canonical name, stop and help them reach `[Company].[Product].[Domain]` before any template command.
+- If the workspace already proves a choice, confirm it instead of asking again.
+- Before any real `dotnet new` command, restate the derived inputs in one compact summary and ask for confirmation when there is any ambiguity.
+
+## Quick Reference
+
+| User answer | Template impact |
+|---|---|
+| "I need HTTP endpoints." | Add `coreex-api`. |
+| "I need to publish events reliably." | Add `coreex-relay`; use a messaging provider and keep outbox enabled where relevant. |
+| "I need to consume events." | Add `coreex-subscriber`; use a messaging provider. |
+| "This service stores its own data in SQL Server." | `--data-provider SqlServer` |
+| "This service stores its own data in Postgres." | `--data-provider Postgres` |
+| "This is a facade. No local database." | `--data-provider None` |
+| "I need reference data." | `--refdata-enabled true` |
+| "I want a Domain layer." | `--domain-driven-enabled true` |
+| "I want Result/ROP style pipelines." | `--rop-enabled true` |
+
+## Prerequisite
 
 Assume the repository is already in one of these states before this skill runs:
 - a bootstrap-only shell created earlier by `coreex-bootstrap`; or
 - an existing CoreEx solution that is missing some runtime hosts.
 
-### Main Workflow Steps
-
-1. **Inspect the workspace shape first.**
-   - Determine whether the repository is a bootstrap-only shell or already contains real solution content.
-   - Use specific evidence such as an existing `.slnx`, populated `src/`, existing `Database` or `CodeGen` projects, or existing test projects.
-
-2. **Validate the naming shape before any template command.**
-   - For `coreex`, `coreex-api`, `coreex-relay`, `coreex-subscriber` (all domain templates): Require the canonical format `[Company].[Product].[Domain]`.
-   - Do not pass host-specific names such as `Company.Product.Domain.Api` to the host templates; those templates derive the suffixes automatically.
-   - The existing repository may use a non-canonical root such as `Company.Product`.  Before calling any template, stop and ask what the domain name segment should be.
-
-3. **Branch to the right path.**
-   - If the workspace is bootstrap-only, run the scaffold interview and choose the smallest safe domain shape.
-   - If the workspace is already scaffolded, infer the current solution name, providers, and capability flags from local artifacts and ask only what is still missing.
-
-4. **Choose the safest implementation path.**
-   - Verify the template pack first with `dotnet new list --tag CoreEx`.
-   - If missing, run `dotnet new install CoreEx.Template`.
-   - Always use `dotnet new ... --dry-run` before the first real template invocation unless the workspace is empty and the command shape is already obvious.
-   - Inspect the dry-run file actions and stop if they show nested root folders, incorrect host/test project names, or any conflicting layout.
-   - For existing repos, do not run templates directly into the workspace when they create nested root folders or conflicting layout.
-   - Prefer a manual retrofit aligned to the repo structure when template output does not fit.
-
-5. **Apply the right shape.**
-   - For a bootstrap-only repo, run `coreex` first, then add host templates (`coreex-api`, `coreex-relay`, `coreex-subscriber`) only as needed.
-   - For domain templates (`coreex` and host templates), pass the canonical three-part base solution name to `-n` and use `-o .` at the repository root.
-   - For all host templates, keep `-n <SolutionName>` equal to the same base solution name used for `coreex`.
-   - For existing solutions, add only the requested or clearly missing runtime hosts.
-   - Preserve existing provider and capability choices unless the user explicitly asks to change them.
-
-6. **Summarize the result and next steps.**
-   - Call out what was created or added.
-   - Call out what was intentionally omitted or deferred.
-   - Mention prerequisites still needed, such as package feeds, CodeGen, or database tooling steps.
-
 ## Naming Rules
 
-**Domain and Host Templates:**
 - All of `coreex`, `coreex-api`, `coreex-relay`, `coreex-subscriber` require the canonical format: `[Company].[Product].[Domain]`.
 - `coreex -n Company.Product.Domain` establishes the canonical base solution name.
 - `coreex-api -n Company.Product.Domain` generates the API host and its tests from that same base name.
