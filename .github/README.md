@@ -47,7 +47,7 @@ Instructions are passive — no action is needed to activate them. The global fi
 |---------|------|-------------|
 | [`CoreEx.Template`](../src/CoreEx.Template/README.md) | Template pack | Deterministic `dotnet new` scaffolding for a CoreEx solution plus API, relay, and subscriber hosts. Use `dotnet new install CoreEx.Template` and then the `coreex*` templates in a terminal. |
 | [`/acquire-codebase-knowledge`](./skills/acquire-codebase-knowledge/README.md) | Skill | Maps an unfamiliar codebase and produces seven structured onboarding documents. |
-| [`/coreex-scaffold`](./skills/coreex-scaffold/README.md) | Skill-backed prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
+| [`/coreex-scaffold`](./skills/solution-scaffolder/README.md) | Skill-backed prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
 | [`/coreex-docs-sync`](./skills/coreex-docs-sync/README.md) | Skill | Fetches and caches CoreEx architecture docs and all per-package AI guides locally under `.github/docs/coreex/`. |
 | [`/aspire`](./skills/aspire/README.md) | Skill | Orchestrates Aspire distributed apps locally: start, stop, logs, debug. |
 | `/init` | Prompt | Initializes a new CoreEx solution or workspace. |

@@ -1,12 +1,12 @@
 ---
-agent: coreex-scaffold
+agent: solution-scaffolder
 description: Guide me through choosing and running the right CoreEx.Template dotnet new commands for a new solution
 ---
 
 Guide this workspace through greenfield CoreEx scaffolding.
 
 Execution mode:
-- Run this prompt through the `coreex-scaffold` custom agent.
+- Run this prompt through the `solution-scaffolder` custom agent.
 - Use `mcp_microsoft_git_confirm_options` for the interview when it is available.
 - Ask exactly one question per turn.
 - Each turn must use a single editable field with the default preselected or prefilled.
@@ -18,7 +18,7 @@ Goals:
 - Confirm whether the current workspace is suitable for greenfield scaffolding; if not, stop before generating files.
 - Treat a repository that only contains the bootstrap AI shell as greenfield and safe to scaffold.
 - Ask only the questions needed to choose the smallest safe CoreEx shape.
-- Use `.github/skills/coreex-scaffold/SKILL.md` as the primary workflow source when it exists.
+- Use `.github/skills/solution-scaffolder/SKILL.md` as the primary workflow source when it exists.
 - Recommend the exact `dotnet new coreex*` command set grounded in the user's needs.
 - Verify `CoreEx.Template` is installed; install or update it when needed.
 - Run the selected `dotnet new` commands in the correct order.
