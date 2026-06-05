@@ -35,12 +35,34 @@ For step-by-step guidance, see [references/workflow.md](references/workflow.md).
 
 ## Interactive Interview Rules
 
+- When `mcp_microsoft_git_confirm_options` is available, use it for every interview step.
+- Each interview turn must contain exactly one editable field plus optional readonly context fields.
 - Ask short, plain-English questions. Do not ask the user to supply template flag names.
 - Prefer either/or or small-choice questions before freeform questions.
 - Ask one topic at a time: name, new vs retrofit, HTTP API, event publishing, event consumption, data storage, reference data, domain layer, and ROP.
+- Do not batch multiple scaffold questions into a single assistant message.
 - If the user gives a partial or non-canonical name, stop and help them reach `[Company].[Product].[Domain]` before any template command.
 - If the workspace already proves a choice, confirm it instead of asking again.
 - Before any real `dotnet new` command, restate the derived inputs in one compact summary and ask for confirmation when there is any ambiguity.
+
+## Default Selection Policy
+
+When the workspace does not already prove a value, preselect the safest default that still keeps the workflow moving:
+
+| Question | Default |
+|---|---|
+| Base solution name | Best canonical guess from workspace hints; if only two parts exist, use `Company.Product.Domain` with `Product` as a temporary middle segment |
+| New domain or retrofit | `New domain` in a bootstrap-only repo |
+| HTTP API | `Yes` |
+| Reliable event publishing | `No` |
+| Event consumption | `No` |
+| Data storage | `No local database` |
+| Messaging provider | `Yes` for Azure Service Bus when messaging is needed |
+| Reference data | `No` |
+| Domain layer | `No` |
+| Result/ROP style | `No` |
+
+Set outbox to `true` only when the user chose owned persistence and reliable publishing. Otherwise keep it `false`.
 
 ## Quick Reference
 

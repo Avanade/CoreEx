@@ -11,6 +11,34 @@ Use this workflow to guide the user through CoreEx solution shape decisions in p
 - If the user seems unsure, give a recommended default and explain it in one sentence.
 - Before running any real command, restate the derived inputs in a compact summary.
 
+## Mandatory Interview Mechanics
+
+- When `mcp_microsoft_git_confirm_options` is available, use it for each interview step.
+- Ask exactly one scaffold question per turn.
+- Each confirmation card must contain exactly one editable option plus optional readonly context.
+- Preselect or prefill a default for the current question.
+- Never batch multiple scaffold questions into one assistant message.
+- Wait for the user to confirm the current card before moving to the next question.
+
+## Default Selection Policy
+
+Use these defaults when the workspace does not already prove the answer:
+
+| Question | Default |
+|---|---|
+| Base solution name | Best canonical guess from workspace hints; if only two parts exist, insert `Product` as the temporary middle segment |
+| New domain or retrofit | `New domain` for bootstrap-only repos |
+| HTTP API | `Yes` |
+| Reliable event publishing | `No` |
+| Event consumption | `No` |
+| Data storage | `No local database` |
+| Messaging provider | `Yes` for Azure Service Bus when messaging is required |
+| Reference data | `No` |
+| Domain layer | `No` |
+| Result/ROP style | `No` |
+
+Derive `outbox-enabled` after the interview. Default it to `false` unless the user chose owned persistence and reliable publishing.
+
 ## Phase 1: Inspect The Workspace
 
 Decide which path applies.
@@ -29,11 +57,21 @@ If the workspace already shows the current provider, naming shape, or enabled ca
 
 Ask the questions in this order. Skip questions that the workspace has already answered with high confidence.
 
+Implementation notes:
+- Use one `confirm_options` call per question when the tool is available.
+- Include only one editable field in the card for the current question.
+- Use readonly fields to show prior confirmed answers when that context helps the user answer quickly.
+- If `confirm_options` is unavailable, ask the same question as plain chat text and still ask only one question per message.
+
 ### 1. Base solution name
 
 Ask:
 
 > What should the base solution name be? Use `Company.Product.Domain`, for example `Avanade.Product.Books`.
+
+Default:
+
+> Prefill the best canonical guess from workspace hints. If only a two-part name exists, use `Product` as the temporary middle segment and ask the user to correct it if needed.
 
 If the user gives only two parts, ask:
 
@@ -60,6 +98,8 @@ Interpretation:
 - `New domain` means the skill may need `coreex` plus one or more host templates.
 - `Add missing hosts` means preserve the existing provider and capability choices unless the user explicitly wants to change them.
 
+Default: `New domain` for a bootstrap-only repo.
+
 ### 3. HTTP API need
 
 Ask:
@@ -74,6 +114,8 @@ Recommended options:
 Interpretation:
 
 - `Yes` means add `coreex-api` if it does not already exist.
+
+Default: `Yes`.
 
 ### 4. Reliable event publishing
 
@@ -92,6 +134,8 @@ Interpretation:
 - `Yes` usually means use a messaging provider and add `coreex-relay`.
 - `Not sure` should trigger one brief explanation: if events must be stored with the database change and sent later, the answer is usually `Yes`.
 
+Default: `No`.
+
 ### 5. Event consumption
 
 Ask:
@@ -106,6 +150,8 @@ Recommended options:
 Interpretation:
 
 - `Yes` means add `coreex-subscriber`.
+
+Default: `No`.
 
 ### 6. Data storage
 
@@ -125,6 +171,8 @@ Interpretation:
 - `Postgres` maps to `--data-provider Postgres`.
 - `No local database` maps to `--data-provider None`.
 
+Default: `No local database`.
+
 ### 7. Messaging provider
 
 Ask this only if the user needs to publish or consume events.
@@ -140,6 +188,8 @@ Interpretation:
 
 - `Yes` maps to `--messaging-provider ServiceBus`.
 - Any other answer should pause command generation until the supported provider choice is clear.
+
+Default: `Yes` for Azure Service Bus.
 
 ### 8. Reference data
 
@@ -159,6 +209,8 @@ Interpretation:
 - `No` maps to `--refdata-enabled false`.
 - `Not sure` should get one short explanation and then a confirmation question.
 
+Default: `No`.
+
 ### 9. Domain layer
 
 Ask:
@@ -176,6 +228,8 @@ Interpretation:
 - `Yes` maps to `--domain-driven-enabled true`.
 - `No` maps to `--domain-driven-enabled false`.
 
+Default: `No`.
+
 ### 10. Result/ROP style
 
 Ask:
@@ -192,6 +246,8 @@ Interpretation:
 
 - `Yes` maps to `--rop-enabled true`.
 - `No` maps to `--rop-enabled false`.
+
+Default: `No`.
 
 ## Phase 3: Translate Answers Into Inputs
 

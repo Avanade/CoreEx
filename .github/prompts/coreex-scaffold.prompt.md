@@ -1,10 +1,18 @@
 ---
-agent: agent
+agent: coreex-scaffold
 description: Guide me through choosing and running the right CoreEx.Template dotnet new commands for a new solution
-tools: ['execute/runInTerminal', 'read', 'search', 'todo']
 ---
 
 Guide this workspace through greenfield CoreEx scaffolding.
+
+Execution mode:
+- Run this prompt through the `coreex-scaffold` custom agent.
+- Use `mcp_microsoft_git_confirm_options` for the interview when it is available.
+- Ask exactly one question per turn.
+- Each turn must use a single editable field with the default preselected or prefilled.
+- Do not batch multiple scaffold questions into one message.
+- After each confirmed answer, move to the next question in the workflow.
+- If the tool is unavailable, fall back to one plain-English question per message and still ask only one question at a time.
 
 Goals:
 - Confirm whether the current workspace is suitable for greenfield scaffolding; if not, stop before generating files.
@@ -35,3 +43,13 @@ Guardrails:
 - If the repository contains only the bootstrap template output, `dotnet new ... --force` is allowed to replace placeholder bootstrap files.
 - Do not scaffold an outbox relay when `--data-provider None` or `--outbox-enabled false`.
 - Keep the recommendation minimal; explain tradeoffs briefly only when a choice is still open.
+
+Default policy:
+- Use the safest default that still keeps the workflow moving.
+- Prefill the base solution name with the best canonical guess from workspace hints.
+- Default `New domain` for bootstrap-only repos.
+- Default `HTTP API` to `Yes`.
+- Default reliable publishing, consumption, reference data, Domain layer, and ROP to `No`.
+- Default data storage to `None` unless the workspace already proves owned persistence.
+- Default messaging to `ServiceBus` only when messaging is needed.
+- Default outbox to `No` unless owned persistence and reliable publishing are both selected.

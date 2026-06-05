@@ -29,11 +29,17 @@ If the prompt file is not present, attach the skill file directly in Copilot Cha
 ## What it will do
 
 1. Inspect the workspace to confirm it is suitable for greenfield scaffolding.
-2. Ask about the business/domain shape first, then derive the required hosts.
+2. Ask about the business/domain shape through one-question-at-a-time confirmation cards with defaults, then derive the required hosts.
 3. Recommend the exact `dotnet new coreex*` commands.
 4. Install `CoreEx.Template` if it is not already available.
 5. When starting from `coreex-bootstrap`, replace the bootstrap placeholders with `dotnet new ... --force`.
 6. Run the selected commands and summarize the output.
+
+## Interview behavior
+
+- The scaffold flow should use a form-style confirmation card for each question when `mcp_microsoft_git_confirm_options` is available.
+- Each card should contain a single editable field and a preselected default.
+- The agent should ask one question at a time and wait for confirmation before moving on.
 
 ## Reference
 
