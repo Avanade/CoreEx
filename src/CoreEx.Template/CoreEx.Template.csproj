@@ -77,6 +77,8 @@
                DestSubPath=".github\skills\coreex-scaffold\references\workflow.md" />
       <_AiFile Include="$(_RepoRoot).github\agents\coreex-expert.agent.md"
                DestSubPath=".github\agents\coreex-expert.agent.md" />
+      <_AiFile Include="$(_RepoRoot).github\agents\coreex-scaffold.agent.md"
+           DestSubPath=".github\agents\coreex-scaffold.agent.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-expert.md"
                DestSubPath=".claude\commands\coreex-expert.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-docs-sync.md"
@@ -164,6 +166,7 @@
       <None Include="$(_AiGenRoot).github\skills\coreex-scaffold\README.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\README.md" />
       <None Include="$(_AiGenRoot).github\skills\coreex-scaffold\references\workflow.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\coreex-scaffold\references\workflow.md" />
       <None Include="$(_AiGenRoot).github\agents\coreex-expert.agent.md"     Pack="true" PackagePath="content\CoreEx.Core\.github\agents\coreex-expert.agent.md" />
+      <None Include="$(_AiGenRoot).github\agents\coreex-scaffold.agent.md"   Pack="true" PackagePath="content\CoreEx.Core\.github\agents\coreex-scaffold.agent.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-expert.md"          Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-expert.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-docs-sync.md"       Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-docs-sync.md" />
       <!-- Per-package AI usage guides -->
