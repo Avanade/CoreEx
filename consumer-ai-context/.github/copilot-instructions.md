@@ -78,6 +78,10 @@ If `dotnet run -- database` (or `migrate`) fails because the live database is in
 
 Never create a new project or add a project to the solution (e.g. an `*.Api`, `*.Subscribe`, `*.Outbox.Relay`, `*.Domain`, `*.CodeGen`, or `*.Database` project) unless the user **explicitly** requests it. Adding a project is a deliberate, structural decision the user owns — it is not something to infer from a feature request ("create a service", "create a contract") or to do in order to "unblock" tooling. In particular, a configured path that points to a not-yet-existing project (e.g. `apiProjectPath` in `ref-data.yaml`) does **not** justify scaffolding that project or creating placeholder folders/files — CodeGen merely warns and skips the missing target (see `coreex-tooling.instructions.md`). If a project genuinely appears to be missing and is needed, raise it with the user and let them decide.
 
+### Validator Unit Tests
+
+Validators are the primary unit-test target. When you create or change a validator, plan to **offer** to create/update its matching `{Validator}Tests` (in `*.Test.Unit/Validators/`) in the same change — covering both error and success cases. Proceed if the user declines or defers, but note the coverage gap. See `coreex-validators.instructions.md` and `coreex-tests.instructions.md`.
+
 ### Using Statements
 
 Every project has a single `GlobalUsing.cs` at its root where all namespace imports are declared. When emitting code, do **not** add `using` statements to individual files. If a referenced namespace is missing, add the `global using` to that project's `GlobalUsing.cs` instead. If unsure whether an import already exists, check the project's `GlobalUsing.cs` and amend it — unless the user has explicitly instructed otherwise. Whenever you edit `GlobalUsing.cs`, re-sort the entire file alphabetically (all namespaces sorted equally) rather than appending to the end.

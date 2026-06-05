@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Test.Unit.Validators;
+namespace Contoso.Products.Test.Unit.Validators;
 
 public class InventoryReservationRequestValidatorTests : WithGenericTester<EntryPoint>
 {
@@ -55,10 +55,10 @@ public class InventoryReservationRequestValidatorTests : WithGenericTester<Entry
         };
 
         new MovementRequestValidator(_mock.Object).AssertErrors(req,
-            ("products.P1.value.unitOfMeasure", "Unit-of-measure is invalid."),
-            ("products.P1.value.quantity", "Quantity must be greater than or equal to '0'."),
+            ("products.P1.unitOfMeasure", "Unit-of-measure is invalid."),
+            ("products.P1.quantity", "Quantity must be greater than or equal to '0'."),
             ("products.key", "Product is required."),
-            ("products.P2.value.quantity", "Quantity exceeds the maximum decimal places (0)."));
+            ("products.P2.quantity", "Quantity exceeds the maximum decimal places (0)."));
     }));
 
     [Test]

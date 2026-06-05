@@ -1,7 +1,8 @@
-global using Contoso.Products.Contracts;
-global using Contoso.Products.Application;
-global using Contoso.Products.Application.Validators;
-global using Contoso.Products.Application.Repositories;
+global using Contoso.Shopping.Application.Adapters.Products;
+global using Contoso.Shopping.Contracts;
+global using Contoso.Shopping.Application;
+global using Contoso.Shopping.Application.Validators;
+global using Contoso.Shopping.Application.Repositories;
 global using CoreEx;
 global using CoreEx.RefData;
 global using CoreEx.RefData.Abstractions;

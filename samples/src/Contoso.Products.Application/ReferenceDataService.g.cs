@@ -28,7 +28,7 @@ public partial class ReferenceDataService(IReferenceDataRepository repository) :
     ];
 
     /// <inheritdoc/>
-    public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
+    public virtual async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         _ when type == typeof(Brand) => await _repository.GetAllBrandsAsync(cancellationToken).ConfigureAwait(false),
         _ when type == typeof(Category) => await _repository.GetAllCategoriesAsync(cancellationToken).ConfigureAwait(false),

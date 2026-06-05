@@ -173,43 +173,80 @@ _mockHttpReserveRequest.Verify();
 
 ---
 
-## Unit and Validator Tests
+## Unit Tests — Validators
 
-Unit tests use `Test.Scoped(test => { ... })`. For relay-style tests that need a named scoped type, use `Test.ScopedType<ExecutionContext>`:
+Unit tests are for logic with **no external dependencies**; any injected services are **mocked**. **Validators are the primary unit-test target** — they encode the most conditional logic. Application service orchestration is exercised by the host integration tests (`*.Test.Api` / `*.Test.Subscribe`), **not** here.
+
+Maintain **one test class per validator**, under `*.Test.Unit/Validators/`, named `{Validator}Tests` and extending `WithGenericTester<EntryPoint>` — `EntryPoint` (in the template) configures the DI/host services the validator needs. Each `[Test]` runs inside `Test.Scoped(test => { ... })`. Invoke the validator exactly as the application does:
 
 ```csharp
-// Validator unit test
-[Test]
-public void Empty_Required() => Test.Scoped(test =>
+public class ProductValidatorTests : WithGenericTester<EntryPoint>
 {
-    var p = new Product();
-    new ProductValidator().AssertErrors(p,
-        ("sku", "Sku is required."),
-        ("text", "Text is required."),
-        ("subCategory", "Sub-category is required."),
-        ("unitOfMeasure", "Unit-of-measure is required."));
-});
-
-// Repository-dependent validator — mock the dependency, test the logic
-public class InventoryValidatorTests : WithGenericTester<EntryPoint>
-{
-    private readonly Mock<IProductRepository> _mock = new();
-
-    [OneTimeSetUp]
-    public void OneTimeSetUp()
+    [Test]
+    public void Empty_Required() => Test.Scoped(test =>
     {
-        _mock.Setup(x => x.GetForReservationAsync(It.IsAny<string[]>()))
-            .ReturnsAsync(new Dictionary<string, ProductReserve> { ["P1"] = new() { UnitOfMeasureCode = "EA" } });
-    }
+        var p = new Product();
+        ProductValidator.Default.AssertErrors(p,
+            ("sku", "Sku is required."),
+            ("text", "Text is required."),
+            ("subCategory", "Sub-category is required."),
+            ("unitOfMeasure", "Unit-of-measure is required."));
+    });
 
     [Test]
-    public void Invalid_Product() => Test.Scoped(test =>
+    public void Success() => Test.Scoped(test =>
     {
-        new MovementRequestValidator(_mock.Object).AssertErrors(req,
-            ("products.P2", "Product is non-stocked and therefore cannot be transacted."));
+        var p = new Product { Sku = "X", Text = "Test", SubCategoryCode = "XC", UnitOfMeasureCode = "EA", Price = 9.99m };
+        ProductValidator.Default.AssertSuccess(p);
     });
 }
 ```
+
+- **`Validator<T, TSelf>`** (has a `Default`) → call `XxxValidator.Default`.
+- **`Validator<T>`** (injected deps) → mock the dependency with `Mock<IXxx>` configured in `[OneTimeSetUp]`, then `new XxxValidator(_mock.Object)`:
+
+```csharp
+private readonly Mock<IProductRepository> _mock = new();
+
+[OneTimeSetUp]
+public void OneTimeSetUp() => _mock.Setup(x => x.GetForReservationAsync(It.IsAny<string[]>()))
+    .ReturnsAsync(new Dictionary<string, ProductReserve> { ["P1"] = new() { UnitOfMeasureCode = "EA" } });
+
+[Test]
+public void Invalid_Product() => Test.Scoped(test =>
+    new MovementRequestValidator(_mock.Object).AssertErrors(req,
+        ("products.P2", "Product is non-stocked and therefore cannot be transacted.")));
+```
+
+### Asserting outcomes
+
+- **`AssertSuccess(value)`** — asserts the value passes (no errors).
+- **`AssertErrors(value, (jsonName, text)…)`** — asserts the **exact** set of expected errors. Each tuple is `("<json property name>", "<expected message>")`. **Order does not matter**, but **every** produced error must be accounted for (and there must be no extras). Use **JSON** property names (camelCase) with these path forms:
+  - **Nested object** — dotted: `person.address.street`.
+  - **Array / list item** — `[index]`: `person.addresses[0].street`.
+  - **Dictionary** — `<dictionary>.<key>.<valueProperty>`: e.g. `products.P1.unitOfMeasure` means the `products` dictionary, key `P1`, and `unitOfMeasure` is a property of that entry's value. An error on the entry's value itself is just `<dictionary>.<key>` (e.g. `products.P1`). The **actual key** is the path segment — there is no `.value` segment. The literal `key` segment (e.g. `products.key`) appears **only** when the dictionary key is itself null/empty (so there is no key value to name) — it flags the missing/blank key to the consumer.
+
+  If unsure of the exact path a rule produces, confirm it against the validator's actual output rather than guessing.
+
+### Expected message text
+
+Error text derives from the standard templates in [`ValidatorStrings.cs`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Validation/ValidatorStrings.cs) (unless a rule overrides the whole message via `.Error(...)`). Placeholders: `{0}` = the property's localized text (label), `{1}` = the value being validated, `{2}` onward = rule-specific extras (compare-to value, max length, etc.). Compose the expected string from the template + label + extras — e.g. `MandatoryFormat` "{0} is required." → `"Sku is required."`; `CompareGreaterThanEqualFormat` "{0} must be greater than or equal to {2}." with compare-text `"zero"` → `"Price must be greater than or equal to zero."`.
+
+### Reference data in unit tests
+
+Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataServiceDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, add a case to its `GetAsync` switch:
+
+```csharp
+_ when type == typeof(Gender) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<GenderCollection>("hr.$^gender")!),
+```
+
+`Gender` is the reference-data **contract type**; `"hr.$^gender"` is the appropriately-cased `schema.$^table` key into the pre-configured seed data.
+
+### Coverage
+
+Add as many `[Test]` methods as needed for meaningful coverage — confirm both **error** and **success** outcomes. Exercise each rule's failure path, reference-data validity, and — importantly — **inter-field relationships** (`DependsOn`, conditional `When*` rules, cross-property compares) by constructing inputs that hit each branch. Prefer clear, scenario-named methods over `[TestCase]`. Aim for coverage that is genuinely representative rather than mirroring any prior hand-crafted set.
+
+> For relay-style tests that need a named scoped type, use `Test.ScopedType<ExecutionContext>` (see Outbox Relay Host Tests).
 
 ---
 

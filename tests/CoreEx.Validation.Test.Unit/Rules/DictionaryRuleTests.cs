@@ -1,4 +1,5 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
+using CoreEx.Validation;
 
 namespace CoreEx.Validation.Test.Unit.Rules;
 
@@ -118,12 +119,45 @@ public class DictionaryRuleTests
         pv.ValidateAsSuccess(p);
     }
 
+    [Test]
+    public void WithValueValidator_InlineConfigure_NoErrantValueSegment()
+    {
+        // Inline configure path must not inject ".value" into the error property path.
+        // Path must be "values.post" — NOT "values.post.value".
+        var pv = Validator.Create<PersonWithValues>()
+            .HasProperty(p => p.Values, c => c.Dictionary(c => c.WithValueValidator(v => v.MaximumLength(4))));
+        var p = new PersonWithValues
+        {
+            Values = new Dictionary<string, string> { { "home", "ok" }, { "post", "toolong" } }
+        };
+        pv.ValidateAsError(p, "values.post", "must not exceed 4 character(s) in length.");
+    }
+
+    [Test]
+    public void WithValueValidator_DirectValidator_Parity()
+    {
+        // Direct IValidatorEx<TValue> path (entity validator) must produce the same nested path as the inline configure path.
+        var av = Validator.Create<Address>().HasProperty(p => p.Street, c => c.Mandatory().MaximumLength(20));
+        var pv = Validator.Create<Person>()
+            .HasProperty(p => p.Addresses, c => c.Dictionary(c => c.WithValueValidator(av)));
+        var p = new Person
+        {
+            Addresses = new Dictionary<string, Address> { { "home", new Address { Street = "1 St" } }, { "post", new Address() } }
+        };
+        pv.ValidateAsError(p, "addresses.post.street", "Street is required.");
+    }
+
     public class Person : IIdentifier<string?>
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
         public int? Age { get; set; }
         public Dictionary<string, Address>? Addresses { get; set; }
+    }
+
+    public class PersonWithValues
+    {
+        public Dictionary<string, string>? Values { get; set; }
     }
 
     public class Address

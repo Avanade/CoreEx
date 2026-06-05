@@ -163,8 +163,6 @@
           "condition": "(!refdata-enabled)",
           "exclude": [
             "src/app-name.Infrastructure/Repositories/ReferenceDataRepository.cs",
-            "src/app-name.Application/Repositories/IReferenceDataRepository.cs",
-            "src/app-name.Application/ReferenceDataService.cs",
             "tools/app-name.CodeGen/**",
             "tools/app-name.Database/Data/ref-data.yaml"
           ]

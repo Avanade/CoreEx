@@ -14,7 +14,4 @@
     <ProjectReference Include="..\..\src\app-name.Contracts\app-name.Contracts.csproj" />
     <ProjectReference Include="..\app-name.Test.Common\app-name.Test.Common.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Using Include="NUnit.Framework" />
-  </ItemGroup>
 </Project>

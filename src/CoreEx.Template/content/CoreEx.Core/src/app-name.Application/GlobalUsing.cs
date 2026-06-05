@@ -12,4 +12,6 @@ global using CoreEx.RefData.Abstractions;
 global using CoreEx.Results;
 #endif
 global using CoreEx.Validation;
+#if (implement-sqlserver || implement-postgres)
 global using app-name.Application.Repositories;
+#endif

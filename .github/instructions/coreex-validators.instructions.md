@@ -18,6 +18,12 @@ tags: ["validators", "validation", "fluent-api", "rules", "error-handling", "app
 
 Validators live in `Application/Validators/`. They belong to the Application layer and may inject Application-layer dependencies (e.g., `IProductRepository`) — they must not reference Infrastructure directly.
 
+## Unit Tests (maintain alongside the validator)
+
+Validators are the primary unit-test target, so a validator and its test are maintained together.
+
+> **Agent instruction:** When you create or modify a validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataServiceDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
+
 ## Base Class
 
 Choose the base class based on whether a `Default` singleton and constructor injection are needed:
