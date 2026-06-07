@@ -242,6 +242,33 @@ _ when type == typeof(Gender) => Task.FromResult((IReferenceDataCollection)jdr.D
 
 `Gender` is the reference-data **contract type**; `"hr.$^gender"` is the appropriately-cased `schema.$^table` key into the pre-configured seed data.
 
+**Only test valid vs not-valid — not active/inactive.** A validator's reference-data rule is the `.IsValid()` extension; assert just the two outcomes: a **valid** code (use a real seeded code) and a **not-valid** code (use a code that is not in the seed — it fails naturally, no arranging required). Do **not** write tests targeting `IReferenceData.IsActive`/`IsInactive` — active/inactive handling is built into `IsValid()`, is framework behaviour we trust, and arranging inactive data just to prove it adds cost for no real coverage.
+
+**Adding test-only entries with `ExtendForTesting`.** The seed YAML is the **production** data set, so it may not contain entries that exercise a validator rule depending on a reference-data entity's **extended property** (a custom property added to the ref-data type). Where such a value is needed, chain `ExtendForTesting(IEnumerable<IReferenceData>)` (from `UnitTestEx`) onto the deserialized collection to append test-only items. It mutates and returns the collection, so it composes inline in the decorator's `GetAsync`:
+
+```csharp
+_ when type == typeof(Category) => Task.FromResult((IReferenceDataCollection)jdr
+    .Deserialize<CategoryCollection>("products.$^category")!
+    .ExtendForTesting([new Category { Id = Runtime.NewId(), Code = "X", OtherProperty = false }])),
+```
+
+Give each added entry a **unique `Id`** so it cannot collide with a seeded row, using a value appropriate to the reference data's **identifier type**:
+- `string` id (the default) → `Runtime.NewId()` (a unique GUID-as-string).
+- `Guid` id → `Runtime.NewGuid()`.
+- `int` (or other) id → a unique value of that type that won't clash with seeded ids.
+
+This keeps the production seed clean while letting a test arrange a code carrying the exact extended-property values the scenario needs.
+
+**Arrange via the `{Name}Code` property, not the typed navigation property.** When constructing the entity/contract under test, set the reference-data relationship using the string **`{Name}Code`** property (e.g. `new Employee { GenderCode = "M" }`), **not** the typed `{Name}` navigation property (e.g. `Gender`). The typed property resolves its value through the `ReferenceDataOrchestrator`, which is not wired up while arranging the input — so assigning it directly is unreliable. The validator's `.IsValid()` reads from the code regardless.
+
+```csharp
+// ✅ Correct — set the code variant when arranging
+var e = new Employee { FirstName = "Jo", LastName = "Bloggs", GenderCode = "M" };
+
+// ❌ Wrong — typed nav property depends on the orchestrator (not set during arrange)
+var e = new Employee { FirstName = "Jo", LastName = "Bloggs", Gender = ... };
+```
+
 ### Coverage
 
 Add as many `[Test]` methods as needed for meaningful coverage — confirm both **error** and **success** outcomes. Exercise each rule's failure path, reference-data validity, and — importantly — **inter-field relationships** (`DependsOn`, conditional `When*` rules, cross-property compares) by constructing inputs that hit each branch. Prefer clear, scenario-named methods over `[TestCase]`. Aim for coverage that is genuinely representative rather than mirroring any prior hand-crafted set.
@@ -338,6 +365,8 @@ Basket_Checkout_Insufficient_Quantity
 - Do not call `Test.ReplaceHttpClientFactory()` inside individual tests — configure it once in `[OneTimeSetUp]`.
 - Do not use `FluentAssertions` — use `AwesomeAssertions` (the `AwesomeAssertions` NuGet package).
 - Do not omit `.Verify()` after a `MockHttpClientRequest` action — it confirms the mock was actually invoked.
+- Do not set a typed reference-data navigation property (e.g. `Gender`) when arranging a test input — set the `{Name}Code` string (e.g. `GenderCode = "M"`); the typed property depends on the `ReferenceDataOrchestrator`, which is not set during arrange.
+- Do not write validator tests for reference-data `IsActive`/`IsInactive` — assert only valid vs not-valid via `.IsValid()` (a not-valid case just uses an unseeded code); active/inactive is trusted framework behaviour. Reserve `ExtendForTesting` for rules that depend on a ref-data **extended property**.
 
 ## Further Reading
 

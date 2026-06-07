@@ -18,7 +18,7 @@ public class EntryPoint
     {
         public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
         {
-            _ when type == typeof(Category) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<CategoryCollection>("products.$^category")!),
+            _ when type == typeof(Category) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<CategoryCollection>("products.$^category")!.ExtendForTesting([new Category { Id = Runtime.NewId(), Code = "X", IsInactive = false }])),
             _ when type == typeof(SubCategory) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<SubCategoryCollection>("products.$^sub_category")!),
             _ when type == typeof(UnitOfMeasure) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<UnitOfMeasureCollection>("products.$^unit_of_measure")!),
             _ when type == typeof(Brand) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<BrandCollection>("products.$^brand")!),

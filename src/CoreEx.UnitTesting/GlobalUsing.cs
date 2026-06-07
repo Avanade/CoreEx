@@ -1,4 +1,4 @@
-﻿global using CloudNative.CloudEvents;
+global using CloudNative.CloudEvents;
 global using CoreEx;
 global using CoreEx.Azure.Messaging.ServiceBus;
 global using CoreEx.Data;
@@ -12,6 +12,7 @@ global using CoreEx.Events.Subscribing;
 global using CoreEx.Hosting;
 global using CoreEx.Http.Abstractions;
 global using CoreEx.Json;
+global using CoreEx.RefData.Abstractions;
 global using CoreEx.Security;
 global using CoreEx.Text;
 global using CoreEx.UnitTesting.Events;

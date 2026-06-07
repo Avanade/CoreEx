@@ -14,6 +14,18 @@ The solution is composed of focused, independently consumable packages — `Core
 - **Simplify** development by eliminating the boilerplate that accumulates around every API endpoint and data operation — execution context scoping, idempotency key handling, paged query translation, outbox relay, ETag management, change-log stamping — freeing teams to focus on business logic rather than infrastructure ceremony.
 - **Enable flexibility** through opt-in modularity and composability — each package is an independent add-on, _CoreEx_ does not mandate an architectural style, and its abstractions (`IMapper`, `IUnitOfWork`, `IHybridCache`, `IEventPublisher`) are designed to be replaced or extended without disrupting the rest of the solution.
 
+## Better Together
+
+The greatest developer velocity gains come not from any single capability, but from the intersection of all three:
+
+<img src="./images/BetterTogetherVenn.png" alt="Better Together — Framework, Code-gen, and Gen AI / Copilot" width="600" />
+
+- **Framework** _(**CoreEx**, UnitTestEx, DbEx)_ — encapsulates proven patterns and complexity into tested, shared components. Every team inherits a consistent, production-hardened baseline rather than rebuilding infrastructure from scratch, maximising reuse and freeing engineers to focus on differentiated business logic.
+- **Code-generation** _(CoreEx.Generator, CoreEx.CodeGen, DbEx / OnRamp)_ — automates the translation of intent into implementation. Roslyn source generation, dev-time scaffolding, and database/entity layer generation combine to produce repetitive layers predictably and consistently every time — deterministic by design — eliminating manual error and accelerating the path from design to working code.
+- **Gen AI / Copilot** — accelerates the development of the unique business value that only your organisation can deliver. AI assistance — probabilistic and context-aware — augments engineers during coding, testing, and review, compressing the feedback loop between idea and production-ready solution.
+
+Where all three converge, the compound effect is multiplicative: the framework constrains the solution space so AI suggestions land in the right patterns; code-generation handles the deterministic heavy lifting so AI can focus on novel logic; and AI in turn accelerates how quickly teams adopt, extend, and validate both.
+
 ## Key Capabilities
 
 Here is a high-level overview of some of the key capabilities provided by _CoreEx_:
