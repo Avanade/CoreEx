@@ -47,7 +47,6 @@
         - .github/prompts/coreex-scaffold.prompt.md            → .github/prompts/coreex-scaffold.prompt.md
         - .github/skills/solution-scaffolder/*                 → .github/skills/solution-scaffolder/
          - .github/agents/coreex-expert.agent.md               → .github/agents/coreex-expert.agent.md
-         - .github/agents/solution-scaffolder.agent.md         → .github/agents/solution-scaffolder.agent.md
          - .claude/commands/coreex-expert.md                    → .claude/commands/coreex-expert.md
          - .claude/commands/coreex-docs-sync.md                 → .claude/commands/coreex-docs-sync.md
          - .github/instructions/*.instructions.md               → .github/instructions/
@@ -78,8 +77,6 @@
                DestSubPath=".github\skills\solution-scaffolder\references\workflow.md" />
       <_AiFile Include="$(_RepoRoot).github\agents\coreex-expert.agent.md"
                DestSubPath=".github\agents\coreex-expert.agent.md" />
-      <_AiFile Include="$(_RepoRoot).github\agents\solution-scaffolder.agent.md"
-           DestSubPath=".github\agents\solution-scaffolder.agent.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-expert.md"
                DestSubPath=".claude\commands\coreex-expert.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-docs-sync.md"
@@ -167,7 +164,6 @@
       <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\README.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\README.md" />
       <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\references\workflow.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\references\workflow.md" />
       <None Include="$(_AiGenRoot).github\agents\coreex-expert.agent.md"     Pack="true" PackagePath="content\CoreEx.Core\.github\agents\coreex-expert.agent.md" />
-      <None Include="$(_AiGenRoot).github\agents\solution-scaffolder.agent.md"   Pack="true" PackagePath="content\CoreEx.Core\.github\agents\solution-scaffolder.agent.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-expert.md"          Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-expert.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-docs-sync.md"       Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-docs-sync.md" />
       <!-- Per-package AI usage guides -->
