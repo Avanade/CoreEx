@@ -1,4 +1,5 @@
 using solution-name.Infrastructure.Repositories;
+using app-name.Application;
 using app-name.Subscriber.Subscribers;
 
 namespace app-name.Subscriber;
@@ -48,7 +49,7 @@ public class Program
 
         // Add the repository and related database services.
 #if (implement-sqlserver)
-        builder.AddSqlClientConnection("SqlServer");    // Adds the SqlClient connection (using Aspire library).
+        builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
@@ -72,7 +73,7 @@ public class Program
         builder.AddAzureServiceBusClient("ServiceBus"); // Adds the Azure Service Bus client (using Aspire library).
 
         // Add event formatter and subscribed-manager.
-        builder.Services.AddSubscribedManager((_, c) => c.AddSubscribersUsing<XxxSubscriber>()); // TODO: update with one of your subscriber types.
+        builder.Services.AddSubscribedManager((_, c) => c.AddSubscribersUsing<PlaceholderSubscriber>()); // Add your subscriber types here.
 
         // Build and create the Azure Service Bus receiving services.
         builder.Services.AzureServiceBusReceiving()

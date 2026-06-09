@@ -20,7 +20,7 @@ public class Program
 
         // Add the repository and related outbox relay services.
 #if (implement-sqlserver)
-        builder.AddSqlClientConnection("SqlServer");    // Adds the SqlClient connection (using Aspire library).
+        builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.

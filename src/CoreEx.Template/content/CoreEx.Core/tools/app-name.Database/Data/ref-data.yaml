@@ -1,5 +1,5 @@
 #if (implement-sqlserver)
-domain-name:
+domain-name: []
 #elif (implement-postgres)
-db-name:
+db-name: []
 #endif

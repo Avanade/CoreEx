@@ -22,6 +22,9 @@ public partial class domain-nameDbContext(DbContextOptions<domain-nameDbContext>
         // Add the generated models to the model builder.
         AddGeneratedModels(modelBuilder);
     }
+
+    /// <summary>Adds the generated models to the model builder (generated or empty stub).</summary>
+    partial void AddGeneratedModels(ModelBuilder modelBuilder);
 }
 #elif (implement-postgres)
 /// <summary>Provides the <b>domain-name</b> <see cref="DbContext"/> with <see cref="IEfDbContext"/> support.</summary>
@@ -45,5 +48,8 @@ public partial class domain-nameDbContext(DbContextOptions<domain-nameDbContext>
         // Add the generated models to the model builder.
         AddGeneratedModels(modelBuilder);
     }
+
+    /// <summary>Adds the generated models to the model builder (generated or empty stub).</summary>
+    partial void AddGeneratedModels(ModelBuilder modelBuilder);
 }
 #endif
