@@ -8,8 +8,6 @@ global using CoreEx.RefData;
 #endif
 global using CoreEx.Validation;
 global using Microsoft.AspNetCore.Mvc;
-global using Microsoft.Extensions.Options;
-global using StackExchange.Redis;
+global using NSwag.Annotations;
 global using System.Net;
 global using System.Text.Json;
-global using ZiggyCreatures.Caching.Fusion;

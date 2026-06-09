@@ -112,6 +112,36 @@ public partial class Product : ProductBase, IETag, IChangeLog
 }
 ```
 
+## Documentation Comments
+
+Give **every contract property a `<summary>`** (and the contract class itself). The standard `Id`/`ETag`/`ChangeLog` members — which implement `IIdentifier`/`IETag`/`IChangeLog` — may use `<inheritdoc/>` instead. See [XML Documentation Comments](#) in the conventions. (Common mistake: leaving the contract properties undocumented — they each need a summary.)
+
+```csharp
+/// <summary>Represents the <c>Employee</c> contract.</summary>
+[Contract]
+public partial class Employee : IIdentifier<string?>, IETag, IChangeLog
+{
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public string? Id { get; set; }
+
+    /// <summary>Gets or sets the employee's first name.</summary>
+    public string? FirstName { get; set; }
+
+    /// <summary>Gets or sets the employee's gender (reference data).</summary>
+    [ReferenceData<Gender>]
+    public partial string? GenderCode { get; set; }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public string? ETag { get; set; }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public ChangeLog? ChangeLog { get; set; }
+}
+```
+
 ## ReadOnly Properties
 
 Decorate server-assigned properties with `[ReadOnly(true)]` to signal that clients cannot supply them. Common examples: `Id`, `ETag`, `ChangeLog`, `CategoryCode` (derived from SubCategory). NSwag/OpenAPI automatically excludes these from inbound request schemas.
@@ -345,6 +375,7 @@ Never create or edit `*.g.cs` files directly.
 - Do not add `[Contract]` or `partial` to plain value-object or request classes that need no generated members.
 - Do not implement members that the Roslyn source generator emits (equality, cloning, serialization helpers).
 - Do not place domain rules, validators, or service calls in contract classes.
+- Do not leave contract properties without a `<summary>` — every property gets one (standard `Id`/`ETag`/`ChangeLog` may use `<inheritdoc/>`). See the *Documentation Comments* section.
 - Do not add a redundant `[Localization]` attribute whose value equals the auto-derived label (e.g. `[Localization("Salary")]` on `Salary`) — only annotate to change the label.
 - Do not edit `*.g.cs` files directly — regenerate via the appropriate tooling.
 - Do not hand-author a generated partial implementation (or create its `.g.cs`) because it is "missing" — it appears after a build; the generator runs automatically during compilation.

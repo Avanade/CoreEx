@@ -47,11 +47,11 @@
       "valueTransform": "ValueSecondToLastDotDelimitedLower",
       "replaces": "domain-name-lower"
     },
-    "solution-name-lower": {
+    "domain-parent-lower": {
       "type": "derived",
       "valueSource": "name",
-      "valueTransform": "ValueWithoutLastDotDelimitedLower",
-      "replaces": "solution-name-lower"
+      "valueTransform": "DomainParentLower",
+      "replaces": "domain-parent-lower"
     },
     "refdata-enabled": {
       "type": "parameter",
@@ -166,6 +166,10 @@
     "ValueWithoutLastTwoDotDelimited": {
       "identifier": "chain",
       "steps": [ "ValueWithoutLastDotDelimited", "ValueWithoutLastDotDelimited" ]
+    },
+    "DomainParentLower": {
+      "identifier": "chain",
+      "steps": [ "ValueWithoutLastDotDelimited", "ValueSecondToLastDotDelimited", "LowerCase" ]
     }
   }
 }

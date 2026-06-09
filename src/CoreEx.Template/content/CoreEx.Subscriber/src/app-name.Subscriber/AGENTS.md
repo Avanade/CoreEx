@@ -49,7 +49,7 @@ The subscriber uses Azure Service Bus **session-enabled topics** for ordered, pa
   "Azure": {
     "Messaging": {
       "ServiceBus": {
-        "QueueOrTopicName": "solution-name-lower",
+        "QueueOrTopicName": "domain-parent-lower",
         "SubscriptionName": "domain-name-lower"
       }
     }

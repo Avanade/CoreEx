@@ -34,6 +34,12 @@
       "valueTransform": "ValueAfterLastDotDelimitedLower",
       "replaces": "domain-name-lower"
     },
+    "domain-parent-lower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueSecondToLastDotDelimitedLower",
+      "replaces": "domain-parent-lower"
+    },
     "db-name": {
       "type": "derived",
       "valueSource": "name",
@@ -192,6 +198,10 @@
         {
           "condition": "(!outbox-enabled)",
           "exclude": [ "tools/app-name.Database/Migrations/*outbox-tables.*" ]
+        },
+        {
+          "condition": "(!implement-servicebus)",
+          "exclude": [ "servicebus/**" ]
         }
       ]
     }
@@ -250,6 +260,10 @@
     "ValueAfterLastDotDelimitedLower": {
       "identifier": "chain",
       "steps": [ "ValueAfterLastDotDelimited", "LowerCase" ]
+    },
+    "ValueSecondToLastDotDelimitedLower": {
+      "identifier": "chain",
+      "steps": [ "ValueSecondToLastDotDelimited", "LowerCase" ]
     }
   }
 }

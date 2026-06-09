@@ -162,6 +162,7 @@ app.Run();
 ```
 
 Key points:
+- **`AddDynamicServicesUsing<T1, T2, …>()` takes ONE representative type _per assembly_, not one per service.** It scans the **assembly** of each type argument for all `[ScopedService]`-decorated types and registers them. One Application type (`ReferenceDataService`) plus one Infrastructure type (`ReferenceDataRepository`) already register **every** service and repository in those assemblies. **Adding a new entity does not change this line** — do **not** add `EmployeeService`/`EmployeeRepository` (or any other same-assembly types); that is redundant. Add another type argument only when you introduce a **new assembly** that contains `[ScopedService]` types.
 - `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
 - FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
 - `AddEventFormatter()` is required wherever events are published or parsed.

@@ -254,8 +254,8 @@ tables:
 
 Add the `$schema` annotation to each file for IDE YAML validation and auto-complete.
 
-**Keep table entries minimal — `- name: Xxx` is the norm.** A table entry needs only its `name`; everything else is by-convention. Do **not** add properties speculatively:
-- **`efModel`** is a **choice string** — `Yes` (default), `No`, `ModelOnly`, or `ModelBuilderOnly` — **not** a boolean. Omit it to get the default (`Yes`, generate the EF model); never write `efModel: true`.
+**Keep table entries minimal — write `- name: Xxx` and nothing else.** A table entry needs only its `name`; everything else is by-convention. Use the simple `- name: Xxx` form (not the inline-object `- { name: Xxx, ... }` form) and do **not** add properties speculatively:
+- **`efModel`** is a **choice string** — `Yes` (default), `No`, `ModelOnly`, or `ModelBuilderOnly` — **not** a boolean. **Omit it entirely** — the default is already `Yes` (generate the EF model), so `efModel: Yes` is redundant noise. Never write `efModel: true`, and don't add `efModel: Yes`.
 - **The `IsDeleted` logical-delete column is recognised by convention** (the table-level `columnNameIsDeleted`, default `IsDeleted`). Do **not** declare it under `columns:` — and there is no per-column `isDeleted` flag (a column entry only supports `name`, `property`, `type`, `valueConverter`, `default`). DbEx detects the `IsDeleted` column from the live schema automatically. Only set the table-level `columnNameIsDeleted: "X"` if the column is non-standardly named.
 - **`schema:`** on a table is a valid **override**, but only use it when the table genuinely lives in a **different, existing** schema. Do not invent a separate schema (e.g. `Ref`) for reference data — by default every table (reference and transactional) lives in the domain's root `schema:`, consistent with the migration scripts and the seed `Data/ref-data.seed.yaml`.
 
@@ -469,12 +469,12 @@ Seed data in `Data/ref-data.seed.yaml` is **cross-environment** — it is applie
 
 ```
 <Schema>:              # root mapping key = schema name (no prefix, no dots)
-  - $^<Table>:         # list entry = table, with a $ / $^ prefix
+  - $^<Table>:         # YAML LIST ITEM (note the leading "- ") = table, with a $ / $^ prefix
     - <row>            # rows
 ```
 
 - The **schema** is the root mapping key — **never** a dotted `Schema.Table:` key (e.g. `Bar.Gender:` is **wrong**), and **never** prefixed.
-- Each **table** is a **list item** with a prefix on it (`- $Table:` or `- $^Table:`) — never mash schema and table (`- $Bar.$^Gender:` is wrong).
+- Each **table** is a YAML **list item** — it **must** begin with `- ` (e.g. `- $^Gender:`). A bare mapping key without the dash (`$^Gender:`) is **wrong** — that makes it an object property, not a list entry, and DbEx will not process it. Also never mash schema and table (`- $Bar.$^Gender:` is wrong).
 - The **prefix is required** on reference-data table entries. **Reference data always uses `$^`** (merge + auto-generate the identifier) — this is the default **regardless of the identifier's type**. `^` auto-generates the id for *any* id type, not just `Guid` (DbEx handles, and can be extended per type) — so a `string`/`NVARCHAR(50)` PK still uses `$^`. Use a different prefix **only when explicitly asked**: plain `$` (merge, no auto-id) when ids are supplied/assigned externally. An **unprefixed** entry is a plain INSERT — not re-runnable; never use it for reference data.
 
 DbEx infers column types from the live schema.
@@ -491,7 +491,7 @@ Prefixes control merge behaviour and identifier generation (on the table entry):
 | `^` | Auto-generate the primary-key identifier (**any** id type — not GUID-only) |
 | `$^` | Both — merge + auto-generated id; **the default for reference data**, whatever the id type |
 
-Prefer the `Code: Text` **shorthand** (it sets `Code` and `Text`); use an inline object only for extra columns. Do **not** spell out `Id` (auto-generated via `^`), `IsActive` (defaults active), or `SortOrder` (auto-assigned by row order — see below).
+Prefer the `Code: Text` **shorthand** (it sets `Code` and `Text`); use an inline object only for extra columns. **Never set the identifier column** (`{Name}Id`, e.g. `GenderId`) — `$^` auto-generates it, so supplying it is wrong unless you were **explicitly** asked to provide ids. Likewise omit `IsActive` (defaults active) and `SortOrder` (auto-assigned by row order — see below). The ideal row is just `M: Male`.
 
 ```yaml
 # SQL Server (PascalCase) — schema "Bar", reference table "Gender"
@@ -529,12 +529,14 @@ products:
 - Do not modify the database directly to unblock anything — no ad-hoc `CREATE`/`ALTER`/`DROP`/`INSERT`/`UPDATE`/`DELETE`, and never touch DbEx's journal/tracking table (no pre-seeding rows). Structural change = migration script; data = `Data/*.yaml`. If state is inconsistent, stop and ask the user.
 - Do not leave ref-data seed rows unordered, and do not default `SortOrder` via `RefDataColumnDefault` — order the YAML rows by `Code` so DbEx's positional `SortOrder` assignment is sensible.
 - Do not use a dotted `Schema.Table:` seed key (e.g. `Bar.Gender:`) or mash schema and table into one prefixed key (`- $Schema.$^Table:`) — the schema is the **root mapping key**, and the prefixed table is a **list entry** beneath it (`Schema:` → `- $^Table:` → rows).
+- Do not omit the leading `- ` on a table entry — it is a YAML **list item** (`- $^Gender:`), not a bare mapping key (`$^Gender:`); without the dash DbEx will not process it.
+- Do not set the identifier column (`{Name}Id`, e.g. `GenderId`) in seed rows — `$^` auto-generates it; supply ids only when explicitly asked.
 - Do not write an **unprefixed** ref-data table entry — it is a plain INSERT (not re-runnable). Default reference data to **`$^`** (merge + auto-generate the id, **any** id type — `^` is not GUID-only); use plain `$` only when explicitly asked (ids supplied externally). Do not downgrade `$^` to `$` just because the PK is a `string`/`NVARCHAR(50)`.
 - Do not work out of order — follow the [database-first order of operations](#order-of-operations-database-first) (inspect → author migrations → seed + `dbex.yaml` → `All` → CoreEx CodeGen → .NET code). Add seed rows and `dbex.yaml` tables only **after** their create migrations exist, and apply them together via `All` (Migrate creates the tables before Data seeds / CodeGen introspects). Never run a bring-up that would seed, or CodeGen, against tables whose create migration does not yet exist.
 - Do not continue past a failed `dotnet run -- database` bring-up — stop and surface the error; a broken baseline invalidates everything downstream, and pressing on causes churn-y, misdirected fixes.
 - Do not keep the `script` scaffold's generated-key PK — `[{Name}Id] UNIQUEIDENTIFIER ... DEFAULT (NEWSEQUENTIALID())` (SQL Server) or `"{name}_id" SERIAL` (PostgreSQL) — replace it with the agreed identifier type's column (`string` default → `NVARCHAR(50)`/`VARCHAR(50)`), dropping the value-generation default **unless the user explicitly asks to keep/include it**.
 - Do not change the agreed identifier type to make a failure go away — it is locked for the task; never revert to `UNIQUEIDENTIFIER` (or flip the type) in a fixing loop. If you think it is wrong, stop and ask.
-- Do not write `efModel: true` in `dbex.yaml` — `efModel` is a choice (`Yes`/`No`/`ModelOnly`/`ModelBuilderOnly`, default `Yes`); omit it or use `efModel: Yes`.
+- Do not add `efModel` to a `dbex.yaml` table entry when it would be the default — write the bare `- name: Xxx` (not `- { name: Xxx, efModel: Yes }`). `efModel: Yes` is redundant (it's the default); `efModel: true` is invalid (it's a `Yes`/`No`/`ModelOnly`/`ModelBuilderOnly` choice). Only set `efModel` for a non-default (`No`/`ModelOnly`/`ModelBuilderOnly`).
 - Do not declare the `IsDeleted` column under a table's `columns:` (and there is no `isDeleted` column flag) — it is recognised by convention from the live schema; keep table entries to `- name: Xxx` unless an override is genuinely needed.
 - Do not add a per-table `schema:` override for reference data (e.g. a `Ref` schema) — reference and transactional tables both live in the domain's root `schema:` unless a different schema actually exists.
 - Do not use the wrong casing in seed data — match the provider (SQL Server PascalCase `Code`/`Text`/`IsActive`/`SortOrder`; PostgreSQL snake_case `code`/`text`/`is_active`/`sort_order`), and do not hand-write `id`/`IsActive`/`SortOrder` rows — prefer the `Code: Text` shorthand.

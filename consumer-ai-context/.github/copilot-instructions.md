@@ -117,7 +117,7 @@ Every project has a single `GlobalUsing.cs` at its root where all namespace impo
 - Use exception-based flow for simpler CRUD-oriented services where pipeline composition adds no value.
 - Use `WebApi` helpers in controllers — never return typed `ActionResult<T>` directly.
 - Use `[ScopedService<TInterface>]` on service and repository classes for automatic DI discovery — avoid manual `services.AddScoped<>()` registration.
-- Use `AddDynamicServicesUsing<T1, T2, ...>()` in `Program.cs` to discover and register all `[ScopedService]`-decorated types from the specified assemblies.
+- Use `AddDynamicServicesUsing<T1, T2, ...>()` in `Program.cs` to register `[ScopedService]`-decorated types — pass **one representative type per assembly** (it scans each type argument's whole assembly), **not** one per service/repository. Adding a new entity in an existing assembly does **not** change this call; add a type argument only for a **new** assembly.
 
 ### Mapping
 
