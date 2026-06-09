@@ -86,7 +86,7 @@ A manifest at `.github/docs/coreex/.manifest` records the sync date, CoreEx vers
 1. Check for the file under `.github/docs/coreex/` or `.github/docs/coreex/agents/` respectively.
 2. If found, use the local copy. Then read `.github/docs/coreex/.manifest` and check:
    - `synced` date: if older than 30 days, recommend running `/coreex-docs-sync`.
-   - `coreex-version`: scan `*.csproj`, `Directory.Packages.props`, and `Directory.Build.props` for the `CoreEx` package version; if it differs from the manifest, recommend running `/coreex-docs-sync`.
+   - `4.0.0-preview-1`: scan `*.csproj`, `Directory.Packages.props`, and `Directory.Build.props` for the `CoreEx` package version; if it differs from the manifest, recommend running `/coreex-docs-sync`.
 3. If no local cache exists and you are about to fetch a GitHub URL, offer first: *"I can run `/coreex-docs-sync` to cache the CoreEx docs and all package guides locally — this avoids repeated GitHub fetches. Want me to do that first?"*
 
 **At the start of a session involving CoreEx guidance**, read `.github/docs/coreex/.manifest` if it exists. The `referenced-packages` field lists which CoreEx packages this project currently uses — distinguish between guiding on an **already-referenced** package and recommending a **new** one the project would need to add.

@@ -15,4 +15,4 @@ Operational contract:
 
 Outcome:
 - Recommend and, when requested, run the exact `dotnet new coreex*` command set implied by the skill workflow.
-- Summarize the derived shape, executed validation, and any deferred manual steps.
+- Summarize the derived shape, executed validation, optional local runnable-state setup, and any deferred manual steps.

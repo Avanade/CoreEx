@@ -1,6 +1,6 @@
 ---
 name: solution-scaffolder
-description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, and adding missing Api/Outbox.Relay/Subscribe hosts to an existing repo. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, solution wiring, focused build/test validation, and either template generation or manual retrofit work depending on repo shape."
+description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, adding missing Api/Outbox.Relay/Subscribe hosts to an existing repo, and optionally preparing a first local runnable state with local dependency assets plus database/code-generation steps. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, solution wiring, optional local dependency asset creation, focused build/test validation, and either template generation or manual retrofit work depending on repo shape."
 argument-hint: "Optional: base solution name, whether this is new or retrofit, required hosts, database choice, and messaging needs."
 tags: ["coreex", "scaffolding", "retrofit", "template", "hosts"]
 ---
@@ -29,7 +29,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 3. **Validate the naming shape before any template command.**
 4. **Choose the safest implementation path.** Prefer dry-runs and stop on layout mismatches.
 5. **Apply the right shape.** Generate only what is missing or explicitly requested.
-6. **Validate the scaffold.** Wire projects into the solution, build, and run the narrowest safe tests.
+6. **Validate the scaffold.** Wire projects into the solution, then choose between shape validation and fully runnable local validation.
 7. **Summarize the result.** Show the derived inputs, commands, validations, and any deferred steps.
 
 For step-by-step guidance, see [references/workflow.md](references/workflow.md).
@@ -158,6 +158,10 @@ dotnet new coreex-subscriber -n Company.Product.Domain.Subscriber ...
 - Always run the unit test project when present.
 - Run API, relay, or subscriber test projects only when their required local dependencies are available; otherwise skip them and report the reason explicitly.
 - Treat missing local infrastructure such as SQL Server, Postgres, Redis, or Service Bus as a validation skip, not as a scaffolding failure, unless the user explicitly asked for full local environment setup.
+- When the user explicitly wants a first local runnable state, create any missing local dependency assets before broader validation, using bundled templates where available.
+- When `data-provider != None` and the user wants runnable local state, run the `*.Database` tool from its own project directory so `dbex.yaml` resolves correctly; prefer `dotnet run -- All` for first-run local setup.
+- When `refdata-enabled` is `true` and the user wants runnable local state, run the `*.CodeGen` tool from its own project directory so its config file resolves correctly.
+- If generated code fails to compile before environment or tool execution becomes relevant, treat that as a template or package-version defect first; prefer fixing the template pack rather than teaching the workflow to hand-patch generated output every time.
 - If `refdata-enabled` is `true`, call out the `*.CodeGen` tool as the next step or run it only when the user wants a fully generated local state.
 - If `data-provider != None`, call out the `*.Database` tool as the next step or run it only when the user wants local schema setup as part of scaffolding.
 

@@ -314,15 +314,58 @@ After generation and solution wiring, validate in this order:
 3. Run broader API, relay, and subscriber test projects only when their local dependencies are available.
 4. Report any skipped validations explicitly.
 
+For local development there are two validation modes:
+
+- **Shape validation**: stop after solution wiring, `dotnet build`, and the unit test project. This is the default minimum bar.
+- **Runnable local validation**: when the user explicitly wants the repo left in a first-run local state, also create missing local dependency assets, start those dependencies, run the tooling projects from their own directories, then run the broader test projects.
+
 ### Validation policy
 
 - `dotnet build` is the default minimum bar for a successful scaffold.
 - `dotnet test` for `tests/[solution].Test.Unit` should run by default when the project exists.
 - API, relay, and subscriber tests may depend on local SQL Server or Postgres, Redis, Service Bus, or other host prerequisites. If those are not configured, skip those tests and say why.
 - A missing local dependency is a deferred setup item, not necessarily a scaffolding failure.
+- If the user wants runnable local validation and local dependency files are missing, materialize them first from bundled templates or repo-standard equivalents, for example `.github/skills/solution-scaffolder/assets/docker-compose.local.yml` and `.github/skills/solution-scaffolder/assets/servicebus-config.template.json`.
+- If the generated shape includes SQL Server, Redis, or Service Bus and the repo lacks a root `docker-compose.yml`, create one before trying to run broader tests.
+- If Service Bus emulator wiring is needed and the repo lacks `servicebus/Config.json`, create it before starting the dependency stack.
+- For `tools/[solution].Database`, run from that directory so `dbex.yaml` is discovered correctly. Prefer `dotnet run -- All` for first-run local setup and `dotnet run -- CodeGen` or `dotnet run -- Database` for narrower follow-up work.
+- For `tools/[solution].CodeGen`, run from that directory so `ref-data.yaml` is discovered correctly.
 - If `refdata-enabled` is `true`, call out `tools/[solution].CodeGen` as the next step, or run it only when the user wants the repo left in a fully generated state.
 - If `data-provider != None`, call out `tools/[solution].Database` as the next step, or run it only when the user wants local schema setup as part of scaffolding.
+- If generated code fails compile due to placeholder types, missing project references, wrong package APIs, or other issues unrelated to missing local dependencies, classify that as a template defect and surface it explicitly.
 - If `dotnet new` reports duplicate CoreEx template identities, surface that warning and note which template source was used.
+
+### Runnable Local Validation Steps
+
+When the user explicitly asks for successful local build and test, use this order after project generation:
+
+1. Ensure the solution and host/test projects are wired into the `.slnx`.
+2. Create any missing local dependency assets such as `docker-compose.yml` and `servicebus/Config.json`.
+3. Start the local dependency stack.
+4. Run `tools/[solution].Database` from its own directory.
+5. Run `tools/[solution].CodeGen` from its own directory when reference data is enabled.
+6. Run `dotnet build` on the solution.
+7. Run the unit test project.
+8. Run API, relay, and subscriber test projects individually so one hanging host does not block the others.
+
+### Template Defects vs Workflow Steps
+
+Do not turn permanent template defects into ad-hoc workflow patches unless the user explicitly wants local recovery for the current repo.
+
+Typical **workflow** responsibilities:
+
+- creating missing local dependency assets
+- starting local containers or emulators
+- running `*.Database` and `*.CodeGen` from the correct directories
+- choosing which tests to run based on available dependencies
+
+Typical **template** responsibilities:
+
+- generated code compiles immediately after scaffold
+- project references match the generated code's layer usage
+- generated hosts use the current package APIs
+- placeholder files are compile-safe when no domain logic exists yet
+- empty starter YAML files are syntactically valid
 
 ## Phase 7: Final Output
 
