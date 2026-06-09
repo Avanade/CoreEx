@@ -73,6 +73,10 @@
                DestSubPath=".github\skills\solution-scaffolder\SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\README.md"
                DestSubPath=".github\skills\solution-scaffolder\README.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\assets\servicebus-config.template.json"
+           DestSubPath=".github\skills\solution-scaffolder\assets\servicebus-config.template.json" />
+      <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\assets\docker-compose.local.yml"
+           DestSubPath=".github\skills\solution-scaffolder\assets\docker-compose.local.yml" />
       <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\references\workflow.md"
                DestSubPath=".github\skills\solution-scaffolder\references\workflow.md" />
       <_AiFile Include="$(_RepoRoot).github\agents\coreex-expert.agent.md"
@@ -162,6 +166,8 @@
       <None Include="$(_AiGenRoot).github\prompts\coreex-scaffold.prompt.md" Pack="true" PackagePath="content\CoreEx.Core\.github\prompts\coreex-scaffold.prompt.md" />
       <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\SKILL.md"  Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\SKILL.md" />
       <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\README.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\README.md" />
+      <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\assets\servicebus-config.template.json" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\assets\servicebus-config.template.json" />
+      <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\assets\docker-compose.local.yml" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\assets\docker-compose.local.yml" />
       <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\references\workflow.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\references\workflow.md" />
       <None Include="$(_AiGenRoot).github\agents\coreex-expert.agent.md"     Pack="true" PackagePath="content\CoreEx.Core\.github\agents\coreex-expert.agent.md" />
       <None Include="$(_AiGenRoot).claude\commands\coreex-expert.md"          Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-expert.md" />
