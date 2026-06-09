@@ -119,10 +119,25 @@
         {
           "type": "conditional",
           "configuration": {
-            "actionableIf": [ "<!-- #if" ],
-            "actionableElse": [ "<!-- #else" ],
-            "actionableElseif": [ "<!-- #elseif", "<!-- #elif" ],
-            "endif": [ "<!-- #endif" ],
+            "actionableIf": [ "<!--#if" ],
+            "actionableElse": [ "<!--#else" ],
+            "actionableElseif": [ "<!--#elseif", "<!--#elif" ],
+            "endif": [ "<!--#endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.props": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!--#if" ],
+            "actionableElse": [ "<!--#else" ],
+            "actionableElseif": [ "<!--#elseif", "<!--#elif" ],
+            "endif": [ "<!--#endif" ],
             "trim": true,
             "wholeLine": true
           }

@@ -16,7 +16,6 @@ public class Program
 
         // Add CoreEx services.
         builder.Services
-            .AddPrecisionTimeProvider()
             .AddExecutionContext()
 // #if (refdata-enabled)
             .AddReferenceDataOrchestrator<ReferenceDataService>()

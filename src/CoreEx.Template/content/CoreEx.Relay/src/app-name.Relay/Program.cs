@@ -12,7 +12,6 @@ public class Program
 
         // Add CoreEx services.
         builder.Services
-            .AddPrecisionTimeProvider()
             .AddExecutionContext()
             .AddMvcWebApi()
             .AddHttpWebApi()
