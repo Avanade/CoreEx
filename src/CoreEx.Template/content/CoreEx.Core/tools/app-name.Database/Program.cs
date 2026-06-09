@@ -1,5 +1,5 @@
 using CoreEx.Database;
-#if (implement-sqlserver)
+// #if (implement-sqlserver)
 using DbEx.Migration;
 using DbEx.SqlServer.Console;
 
@@ -20,7 +20,7 @@ public class Program
             .AddAssembly<Program>()
             .IncludeExtendedSchemaScripts();
 }
-#elif (implement-postgres)
+// #elif (implement-postgres)
 using DbEx.Migration;
 using DbEx.Postgres.Console;
 
@@ -41,4 +41,4 @@ public class Program
             .AddAssembly<Program>()
             .IncludeExtendedSchemaScripts();
 }
-#endif
+// #endif

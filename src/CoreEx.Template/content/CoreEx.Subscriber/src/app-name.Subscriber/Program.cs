@@ -1,5 +1,5 @@
 using solution-name.Infrastructure.Repositories;
-using app-name.Application;
+using solution-name.Application;
 using app-name.Subscriber.Subscribers;
 
 namespace app-name.Subscriber;
@@ -18,17 +18,17 @@ public class Program
         builder.Services
             .AddPrecisionTimeProvider()
             .AddExecutionContext()
-#if (refdata-enabled)
+// #if (refdata-enabled)
             .AddReferenceDataOrchestrator<ReferenceDataService>()
-#endif
+// #endif
             .AddMvcWebApi()
             .AddHttpWebApi()
             .AddHostedServiceManager();
 
-#if (refdata-enabled)
+// #if (refdata-enabled)
         // Add all the dynamically registered services.
         builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
-#endif
+// #endif
 
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.
@@ -48,7 +48,7 @@ public class Program
             .AddHybridCacheIdempotencyProvider();       // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
         // Add the repository and related database services.
-#if (implement-sqlserver)
+// #if (implement-sqlserver)
         builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
@@ -57,7 +57,7 @@ public class Program
             .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher as the IEventPublisher.
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#elif (implement-postgres)
+// #elif (implement-postgres)
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
@@ -66,9 +66,9 @@ public class Program
             .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher as the IEventPublisher.
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#endif
+// #endif
 
-#if (implement-servicebus)
+// #if (implement-servicebus)
         // Add the Azure Service Bus client and subscribe wiring.
         builder.AddAzureServiceBusClient("ServiceBus"); // Adds the Azure Service Bus client (using Aspire library).
 
@@ -86,7 +86,7 @@ public class Program
             .WithSubscribedSubscriber()                 // Adds the service bus subscriber using the SubscribedManager.
             .WithHostedService()                        // Adds the service bus receiver as a hosted service.
             .Build();                                   // Builds all the services and adds to the service collection.
-#endif
+// #endif
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();
@@ -103,14 +103,14 @@ public class Program
 
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
-#if (implement-sqlserver)
+// #if (implement-sqlserver)
             .WithCoreExSqlServerTelemetry()
-#elif (implement-postgres)
+// #elif (implement-postgres)
             .WithCoreExPostgresTelemetry()
-#endif
-#if (implement-servicebus)
+// #endif
+// #if (implement-servicebus)
             .WithCoreExServiceBusTelemetry()
-#endif
+// #endif
             .UseOtlpExporter();
 
         // Build the application.

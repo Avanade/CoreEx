@@ -9,6 +9,6 @@ public class PlaceholderSubscriber : SubscribedBase
     protected override Task<Result> OnReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
     {
         // This is a placeholder subscriber. Replace with your actual event handling logic.
-        return Task.FromResult(Result.Success());
+        return Task.FromResult(Result.Success);
     }
 }
