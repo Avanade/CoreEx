@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Infrastructure.Repositories;
 
-/// <summary>
-/// Provides the underlying reference-data repository.
-/// </summary>
+/// <summary>Provides the underlying reference-data repository.</summary>
 [ScopedService<IReferenceDataRepository>]
 public partial class ReferenceDataRepository : IReferenceDataRepository
 {

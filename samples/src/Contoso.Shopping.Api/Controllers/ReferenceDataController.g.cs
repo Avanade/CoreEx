@@ -8,9 +8,7 @@
 
 namespace Contoso.Shopping.Api.Controllers;
 
-/// <summary>
-/// Represents the reference-data controller.
-/// </summary>
+/// <summary>Represents the reference-data controller.</summary>
 [ApiController, Route("/api/refdata")]
 public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi) : ControllerBase
 {

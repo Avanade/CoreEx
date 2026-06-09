@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Contracts;
 
-/// <summary>
-/// Represents the 'Movement Status' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Movement Status' reference-data contract.</summary>
 [ReferenceData]
 public partial class MovementStatus : ReferenceData<MovementStatus> { }
 

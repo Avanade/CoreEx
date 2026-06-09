@@ -8,15 +8,11 @@
 
 namespace Contoso.Shopping.Contracts;
 
-/// <summary>
-/// Represents the 'Unit Of Measure' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Unit Of Measure' reference-data contract.</summary>
 [ReferenceData]
 public partial class UnitOfMeasure : ReferenceData<UnitOfMeasure> 
 {
-    /// <summary>
-    /// Gets or initializes the Scale.
-    /// </summary>
+    /// <summary>Gets or initializes the Scale.</summary>
     public int Scale { get; init; } = default!;
 }
 

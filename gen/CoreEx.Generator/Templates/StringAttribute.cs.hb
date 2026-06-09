@@ -4,9 +4,7 @@
 
 namespace CoreEx.Entities;
 
-/// <summary>
-/// Indicates that the corresponding property should be extended (source generation) to include <see cref="string"/> <see cref="Cleaner"/> capabilities.
-/// </summary>
+/// <summary>Indicates that the corresponding property should be extended (source generation) to include <see cref="string"/> <see cref="Cleaner"/> capabilities.</summary>
 /// <param name="trim">The <see cref="StringTrim"/> (defaults to <see cref="StringTrim.UseDefault"/>).</param>
 /// <param name="transform">The <see cref="StringTransform"/> (defaults to <see cref="StringTransform.UseDefault"/>).</param>
 /// <param name="casing">The <see cref="StringCase"/> (defaults to <see cref="StringCase.UseDefault"/>).</param>

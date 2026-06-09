@@ -6,6 +6,8 @@ tags: ["controllers", "api", "routing", "cqrs", "dependency-injection", "minimal
 
 # API Conventions
 
+> **Precondition — the Api host must exist.** Controllers live in the `*.Api` host, which is **not** part of the base `coreex` solution. Before authoring a controller, confirm an Api host is present (`**/*.Api/*.Api.csproj`); if it is absent, run the scaffolding workflow first (see `coreex-host-setup.instructions.md` → "Scaffolding an API host") — which confirms creation, generates it via the `coreex-api` template using the recorded solution options, and hands off the `.slnx` wiring as a manual step. Also ensure the entity's application service exists (create per *Service Operations — Confirm Scope* in `coreex-application-services.instructions.md` if not).
+
 CoreEx.AspNetCore supports two approaches for exposing HTTP endpoints. Choose one per host — they can coexist in the same application when needed.
 
 | Approach | Registration | Returns | Best for |
@@ -31,16 +33,25 @@ Both use the same `WebApi` helper — method names, `WithResult` variants, `ro.W
 
 - Inherit from `ControllerBase`. Never inherit from `Controller` (that brings View support).
 - Decorate with `[ApiController]` and `[Route("...")]` on the class.
-- Add `[OpenApiTag("TagName")]` to group endpoints in the generated OpenAPI document. Can also be placed on an individual action method to cross-tag it into a different OpenAPI group.
 - Inject `WebApi` and the relevant service interface via primary constructor. Guard with `.ThrowIfNull()`.
-- Split read operations and write operations into separate controller classes (e.g., `ProductController` for mutations, `ProductReadController` for queries) following CQRS conventions.
+- **Mirror the service CQRS split:** a **`XxxController`** exposes the **mutating** endpoints (POST/PUT/PATCH/DELETE) and injects `IXxxService`; a **`XxxReadController`** exposes the **read** endpoints (GET/query) and injects `IXxxReadService`.
+- **Unify them in OpenAPI with a shared `[OpenApiTag("Xxx")]`.** Put the **same** tag on both controllers so Swagger/OpenAPI presents one logical "Xxx" group — CQRS is an **internal** structuring concern, not something the external API surface should expose. (A tag may also be placed on an individual action to cross-tag it.)
 
 ```csharp
+// Mutating endpoints
 [ApiController, Route("/api/products"), OpenApiTag("Products")]
 public class ProductController(WebApi webApi, IProductService service) : ControllerBase
 {
     private readonly WebApi _webApi = webApi.ThrowIfNull();
     private readonly IProductService _service = service.ThrowIfNull();
+}
+
+// Read endpoints — same route base and same OpenApiTag so they appear as one "Products" group
+[ApiController, Route("/api/products"), OpenApiTag("Products")]
+public class ProductReadController(WebApi webApi, IProductReadService service) : ControllerBase
+{
+    private readonly WebApi _webApi = webApi.ThrowIfNull();
+    private readonly IProductReadService _service = service.ThrowIfNull();
 }
 ```
 
@@ -99,9 +110,22 @@ public Task<IActionResult> PostAsync() => _webApi.PostAsync<Product, Product>(Re
 });
 ```
 
-### PATCH — Merge-Patch
+> **Agent instruction — confirm idempotency for every POST.** When adding a `POST`, ask whether the operation should be **idempotent** (safe to retry without creating a duplicate). A general **create-style** POST is a strong candidate — default to offering it. If confirmed, decorate the action with **`[IdempotencyKey]`** (MVC) or `.WithIdempotencyKey()` (Minimal API): a retried request carrying the same key then returns the original result instead of creating a second resource. Omit it only when the user confirms the POST is **not** idempotent (e.g. a deliberately non-repeatable command). This applies to `POST` specifically; `PUT`/`PATCH`/`DELETE` are inherently idempotent and do not take the attribute.
 
-Always supply both `get:` and `put:` delegates. PATCH merges the incoming patch document over the fetched entity and calls `put`:
+For a **full-entity update**, expose **both** endpoints by default — they share the same write `UpdateAsync`:
+- **`PUT`** — full replace.
+- **`PATCH`** — merge-patch (RFC 7396) over the current entity.
+
+Only implement **specialized/partial** update or patch endpoints when the user **explicitly** asks; the default is the PUT + PATCH pair.
+
+```csharp
+[HttpPut("{id}")]
+[Accepts<Product>]
+public Task<IActionResult> UpdateAsync(string id) => _webApi.PutAsync<Product, Product>(Request,
+    (ro, _) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id)));
+```
+
+`PATCH` always supplies both `get:` and `put:` delegates: it **fetches** the current entity, merges the patch document over it, then calls `put`. The fetch uses the write service's own primary `GetAsync` (`XxxService` exposes a by-id `GetAsync` for exactly this), so the mutating controller depends on a **single** service — no need to also inject `IXxxReadService`:
 
 ```csharp
 [HttpPatch("{id}")]
@@ -264,6 +288,10 @@ All the same rules apply as for MVC controllers: no business logic in the handle
 - Do not inject `IUnitOfWork` into controllers or endpoint handlers — it belongs in the application service.
 - Do not put business logic in controllers or endpoint handlers — delegate immediately to the application service.
 - Do not call `HttpClient` or adapters directly from controllers — go through the application service.
+- Do not put mutating and read endpoints in one controller — split into `XxxController` (mutations, `IXxxService`) and `XxxReadController` (reads, `IXxxReadService`).
+- Do not expose the CQRS split externally — give both controllers the **same** `[OpenApiTag("Xxx")]` so they surface as one OpenAPI group; do not use distinct tags/route bases per controller.
+- Do not omit the `PATCH` when exposing a full `PUT` update — offer both by default; add specialized/partial update or patch endpoints only on explicit request.
+- Do not add a `POST` without confirming idempotency — apply `[IdempotencyKey]` (`.WithIdempotencyKey()` for Minimal APIs) when it is idempotent (create-style POSTs almost always are); omit only when the user confirms it is not.
 
 ## Further Reading
 

@@ -8,9 +8,7 @@
 
 namespace Contoso.Shopping.Infrastructure.Mapping;
 
-/// <summary>
-/// Provides mapping from <see cref="Persistence.BasketStatus"/> to <see cref="Contracts.BasketStatus"/>.
-/// </summary>
+/// <summary>Provides mapping from <see cref="Persistence.BasketStatus"/> to <see cref="Contracts.BasketStatus"/>.</summary>
 internal partial class BasketStatusMapper : Mapper<Persistence.BasketStatus, Contracts.BasketStatus, BasketStatusMapper>
 {
     /// <inheritdoc/>
@@ -33,9 +31,7 @@ internal partial class BasketStatusMapper : Mapper<Persistence.BasketStatus, Con
         return destination;
     }
 
-    /// <summary>
-    /// Provides the opportunity to extend the <see cref="OnMap" /> method.
-    /// </summary>
+    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
     partial void OnMapExtend(Persistence.BasketStatus source, Contracts.BasketStatus destination);
 }
 

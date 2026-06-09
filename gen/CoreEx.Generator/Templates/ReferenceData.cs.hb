@@ -18,16 +18,12 @@ namespace {{Namespace}};
     {{/if}}
 {{indent}}    public partial {{Type}} {{Name}} { get => field;{{#unless IsReadOnly}} {{#if IsInitOnly}}init{{else}}set{{/if}} => field = value; {{/unless}} }
 
-{{indent}}    /// <summary>
-{{indent}}    /// Gets the corresponding <see cref="{{RefDataType}}"/> value as per the related <see cref="{{Name}}"/>.
-{{indent}}    /// </summary>
+{{indent}}    /// <summary>Gets the corresponding <see cref="{{RefDataType}}"/> value as per the related <see cref="{{Name}}"/>.</summary>
 {{indent}}    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
 {{indent}}    [global::System.Text.Json.Serialization.JsonIgnore]
 {{indent}}    public {{RefDataType}} {{RefDataName}} { get => ({{RefDataType}}){{Name}}; {{#if IsSettable}}set => {{Name}} = value; {{/if}} }
 
-{{indent}}    /// <summary>
-{{indent}}    /// Gets the related <see cref="{{RefDataName}}"/> text where explicitly requested.
-{{indent}}    /// </summary>
+{{indent}}    /// <summary>Gets the related <see cref="{{RefDataName}}"/> text where explicitly requested.</summary>
 {{indent}}    /// <remarks>Generally, the guidance (by design) is that the text should not be initialized/set directly; only offered to support advanced, serialization, and testing scenarios.</remarks>
 {{indent}}    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
 {{indent}}    [global::System.ComponentModel.ReadOnly(true)]
@@ -37,9 +33,7 @@ namespace {{Namespace}};
   {{/if}}
 
 {{/each}}
-{{indent}}    /// <summary>
-{{indent}}    /// An implicit cast operator that converts a <paramref name="code"/> to a <see cref="{{ClassName}}"/> instance.
-{{indent}}    /// </summary>
+{{indent}}    /// <summary>An implicit cast operator that converts a <paramref name="code"/> to a <see cref="{{ClassName}}"/> instance.</summary>
 {{indent}}    /// <param name="code">The <see cref="global::CoreEx.RefData.Abstractions.IReferenceData.Code"/>.</param>
 {{indent}}    /// <returns>The corresponding <see cref="{{ClassName}}"/> instance where <paramref name="code"/> is not <see langword="null"/>; otherwise, <see langword="null"/>.</returns>
 {{indent}}    [return: global::System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(code))]

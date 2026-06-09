@@ -8,18 +8,14 @@
 
 namespace {{Root.ApplicationNamespace}}.{{Root.DataRepositoriesPath}};
 
-/// <summary>
-/// Enables the underlying reference-data repository.
-/// </summary>
+/// <summary>Enables the underlying reference-data repository.</summary>
 public partial interface IReferenceDataRepository
 {
 {{#each Entities}}
   {{#unless @first}}
 
   {{/unless}}
-    /// <summary>
-    /// Gets all <see cref="{{Name}}"/> items.
-    /// </summary>
+    /// <summary>Gets all <see cref="{{Name}}"/> items.</summary>
     /// <returns>The <see cref="{{Name}}Collection"/>.</returns>
     Task<{{Name}}Collection> GetAll{{Plural}}Async(CancellationToken cancellationToken = default);
 {{/each}}

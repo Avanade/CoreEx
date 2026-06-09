@@ -57,9 +57,7 @@ namespace {{Namespace}};
     {{/if}}
 {{indent}}    public partial {{Type}} {{Name}} { get => field;{{#unless IsReadOnly}} {{#if IsInitOnly}}init{{else}}set{{/if}} => field = value; {{/unless}} }
 
-{{indent}}    /// <summary>
-{{indent}}    /// Gets the corresponding <see cref="{{RefDataType}}"/> value as per the related <see cref="{{Name}}"/>.
-{{indent}}    /// </summary>
+{{indent}}    /// <summary>Gets the corresponding <see cref="{{RefDataType}}"/> value as per the related <see cref="{{Name}}"/>.</summary>
 {{indent}}    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
 {{indent}}    [global::System.Text.Json.Serialization.JsonIgnore]
 {{indent}}    [global::System.Text.Json.Serialization.JsonPropertyName("{{JsonName}}")]
@@ -68,9 +66,7 @@ namespace {{Namespace}};
     {{/if}}
 {{indent}}    public {{RefDataType}} {{RefDataName}} { get => ({{RefDataType}}){{Name}}; {{#if IsSettable}}set => {{Name}} = value; {{/if}} }
 
-{{indent}}    /// <summary>
-{{indent}}    /// Gets the related <see cref="{{RefDataName}}"/> text where explicitly requested.
-{{indent}}    /// </summary>
+{{indent}}    /// <summary>Gets the related <see cref="{{RefDataName}}"/> text where explicitly requested.</summary>
 {{indent}}    /// <remarks>Generally, the guidance (by design) is that the text should not be initialized/set directly; only offered to support advanced, serialization, and testing scenarios.</remarks>
 {{indent}}    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
 {{indent}}    [global::System.ComponentModel.ReadOnly(true)]
@@ -84,9 +80,7 @@ namespace {{Namespace}};
       {{/unless}}
 {{indent}}    public partial {{Type}} {{Name}} { get => {{RefDataCodeCollectionFieldName}}; set => {{RefDataCodeCollectionFieldName}} = value; }
 
-{{indent}}    /// <summary>
-{{indent}}    /// Gets or sets the <see cref="global::CoreEx.RefData.ReferenceDataCodeCollection{TRef}"/> (<see cref="{{RefDataType}}"/>) encapsulation of the underlying <see cref="{{Name}}"/>.
-{{indent}}    /// </summary>
+{{indent}}    /// <summary>Gets or sets the <see cref="global::CoreEx.RefData.ReferenceDataCodeCollection{TRef}"/> (<see cref="{{RefDataType}}"/>) encapsulation of the underlying <see cref="{{Name}}"/>.</summary>
 {{indent}}    [global::System.Text.Json.Serialization.JsonIgnore]
 {{indent}}    public global::CoreEx.RefData.ReferenceDataCodeCollection<{{RefDataType}}> {{RefDataName}} { get => new(ref {{RefDataCodeCollectionFieldName}}); set => {{RefDataCodeCollectionFieldName}} = value?.ToCodeList(); }
     {{else}}

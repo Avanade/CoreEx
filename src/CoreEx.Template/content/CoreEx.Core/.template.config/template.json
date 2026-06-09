@@ -3,7 +3,7 @@
   "author": "https://github.com/avanade/coreex",
   "classifications": [ "CoreEx", "Microservice", "Application" ],
   "identity": "CoreEx.Solution",
-  "name": "CoreEx Application Services",
+  "name": "CoreEx Application services",
   "description": "A solution template for the core application services, tooling, and test projects using CoreEx.",
   "shortName": "coreex",
   "tags": {
@@ -164,7 +164,7 @@
           "exclude": [
             "src/app-name.Infrastructure/Repositories/ReferenceDataRepository.cs",
             "tools/app-name.CodeGen/**",
-            "tools/app-name.Database/Data/ref-data.yaml"
+            "tools/app-name.Database/Data/ref-data.seed.yaml"
           ]
         },
         {

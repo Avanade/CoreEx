@@ -4,9 +4,7 @@
 
 namespace CoreEx.RefData;
 
-/// <summary>
-/// Indicates that the corresponding property should be extended (source generation) to include the full suite of reference data code collection properties/capabilities.
-/// </summary>
+/// <summary>Indicates that the corresponding property should be extended (source generation) to include the full suite of reference data code collection properties/capabilities.</summary>
 /// <remarks>This is dependent on either <see cref="CoreEx.Entities.ContractAttribute"/> or <see cref="CoreEx.Entities.ReferenceDataAttribute"/> usage.
 /// <para>Primarily, a corresponding <see cref="CoreEx.RefData.ReferenceDataCodeCollection{TRef}"/> <typeparam name="TReferenceData"/> property will be created (and linked) for non-serialized usage.</para>
 /// <para>The property must be declared as <see langword="partial"/> for this to be generated correctly.</para></remarks>

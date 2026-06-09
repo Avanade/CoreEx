@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Test.Subscribe;
+namespace Contoso.Products.Test.Subscribe;
 
 /// <summary>
 /// NOTE: Using the ServiceBusSubscribedSubscriber bypasses the need to actually send a message to the Service Bus, instead it simulates the receive of a message.
@@ -8,7 +8,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigratePostgresDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigratePostgresDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
         Test.UseExpectedPostgresOutboxPublisher();

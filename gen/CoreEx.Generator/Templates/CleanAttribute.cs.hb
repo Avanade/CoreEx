@@ -4,9 +4,7 @@
 
 namespace CoreEx.Entities;
 
-/// <summary>
-/// Indicates that the corresponding property should be extended (source generation) to include <see cref="Cleaner"/> capabilities.
-/// </summary>
+/// <summary>Indicates that the corresponding property should be extended (source generation) to include <see cref="Cleaner"/> capabilities.</summary>
 /// <remarks>This is dependent on either <see cref="CoreEx.Entities.ContractAttribute"/> or <see cref="CoreEx.Entities.ReferenceDataAttribute"/> usage.
 /// <para>This is used for the generation of <see cref="CoreEx.Entities.Extended.RuntimeMetadata"/> functionality; this otherwise does not get used for the implementation of the property itself.</para></remarks>
 [global::System.AttributeUsage(global::System.AttributeTargets.Property, AllowMultiple = false)]

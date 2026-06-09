@@ -19,6 +19,7 @@ global using CoreEx.UnitTesting.Events;
 global using CoreEx.Validation;
 global using DbEx;
 global using DbEx.Migration;
+global using DbEx.Migration.Data;
 global using DbEx.Postgres.Migration;
 global using DbEx.SqlServer.Migration;
 global using AwesomeAssertions;

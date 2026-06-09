@@ -3,7 +3,7 @@
   "author": "https://github.com/avanade/coreex",
   "classifications": [ "CoreEx", "Microservice", "API" ],
   "identity": "CoreEx.Api",
-  "name": "CoreEx Web API host",
+  "name": "CoreEx API host",
   "description": "An ASP.NET Core Web API host, and test, projects for a CoreEx domain-based microservice.",
   "shortName": "coreex-api",
   "tags": {

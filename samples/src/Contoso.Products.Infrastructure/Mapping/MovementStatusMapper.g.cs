@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Infrastructure.Mapping;
 
-/// <summary>
-/// Provides mapping from <see cref="Persistence.MovementStatus"/> to <see cref="Contracts.MovementStatus"/>.
-/// </summary>
+/// <summary>Provides mapping from <see cref="Persistence.MovementStatus"/> to <see cref="Contracts.MovementStatus"/>.</summary>
 internal partial class MovementStatusMapper : Mapper<Persistence.MovementStatus, Contracts.MovementStatus, MovementStatusMapper>
 {
     /// <inheritdoc/>
@@ -33,9 +31,7 @@ internal partial class MovementStatusMapper : Mapper<Persistence.MovementStatus,
         return destination;
     }
 
-    /// <summary>
-    /// Provides the opportunity to extend the <see cref="OnMap" /> method.
-    /// </summary>
+    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
     partial void OnMapExtend(Persistence.MovementStatus source, Contracts.MovementStatus destination);
 }
 

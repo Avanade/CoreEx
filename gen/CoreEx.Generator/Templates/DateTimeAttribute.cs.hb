@@ -4,9 +4,7 @@
 
 namespace CoreEx.Entities;
 
-/// <summary>
-/// Indicates that the corresponding property should be extended (source generation) to include <see cref="System.DateTime"/> <see cref="Cleaner"/> capabilities.
-/// </summary>
+/// <summary>Indicates that the corresponding property should be extended (source generation) to include <see cref="System.DateTime"/> <see cref="Cleaner"/> capabilities.</summary>
 /// <param name="transform">The <see cref="DateTimeTransform"/> (defaults to <see cref="DateTimeTransform.UseDefault"/>).</param>
 /// <remarks>This is dependent on either <see cref="CoreEx.Entities.ContractAttribute"/> or <see cref="CoreEx.Entities.ReferenceDataAttribute"/> usage.
 /// <para>The property must be declared as <see langword="partial"/> for this to be generated correctly.</para></remarks>

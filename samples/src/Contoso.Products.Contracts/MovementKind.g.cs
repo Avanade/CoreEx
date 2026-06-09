@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Contracts;
 
-/// <summary>
-/// Represents the 'Movement Kind' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Movement Kind' reference-data contract.</summary>
 [ReferenceData]
 public partial class MovementKind : ReferenceData<MovementKind> { }
 
