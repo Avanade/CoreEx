@@ -1,5 +1,4 @@
 using solution-name.Infrastructure.Repositories;
-using solution-name.Application;
 using app-name.Subscriber.Subscribers;
 
 namespace app-name.Subscriber;
@@ -16,18 +15,19 @@ public class Program
 
         // Add CoreEx services.
         builder.Services
-            .AddExecutionContext()
-// #if (refdata-enabled)
-            .AddReferenceDataOrchestrator<ReferenceDataService>()
-// #endif
-            .AddMvcWebApi()
-            .AddHttpWebApi()
-            .AddHostedServiceManager();
+           .AddExecutionContext()
+           .AddMvcWebApi()
+           .AddHttpWebApi()
+           .AddHostedServiceManager();
 
-// #if (refdata-enabled)
-        // Add all the dynamically registered services.
-        builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
-// #endif
+        // NOTE: Reference-data orchestrator and dynamic service registration are performed AFTER CodeGen runs.
+        // See: BOOTSTRAP_PHASE_2.md in your project root for the post-CodeGen setup steps.
+        // The following will be uncommented and moved here after running: dotnet run --project tools/app-name.CodeGen
+        //
+        // // #if (refdata-enabled)
+        // builder.Services.AddReferenceDataOrchestrator<ReferenceDataService>();
+        // builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
+        // // #endif
 
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.
@@ -47,7 +47,7 @@ public class Program
             .AddHybridCacheIdempotencyProvider();       // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
         // Add the repository and related database services.
-// #if (implement-sqlserver)
+#if (implement-sqlserver)
         builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
