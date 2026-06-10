@@ -15,16 +15,16 @@ public class Program
         // Add CoreEx services.
         builder.Services
             .AddExecutionContext()
-#if (refdata-enabled)
+// #if (refdata-enabled)
             .AddReferenceDataOrchestrator<ReferenceDataService>()
-#endif
+// #endif
             .AddMvcWebApi()
             .AddHttpWebApi();
 
-#if (refdata-enabled)
+// #if (refdata-enabled)
         // Add all the dynamically registered services.
         builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
-#endif
+// #endif
 
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.
@@ -44,29 +44,29 @@ public class Program
             .AddHybridCacheIdempotencyProvider();       // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
         // Add the repository and related database services.
-#if (implement-sqlserver)
-        builder.AddSqlClientConnection("SqlServer");    // Adds the SqlClient connection (using Aspire library).
+// #if (implement-sqlserver)
+        builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
-#if (outbox-enabled)
-            .AddSqlServerOutboxPublisher<domain-nameOutboxPublisher>()  // Adds the domain-nameOutboxPublisher as the IEventPublisher.
-#endif
+// #if (outbox-enabled)
+            .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher as the IEventPublisher.
+// #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#elif (implement-postgres)
+// #elif (implement-postgres)
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
-#if (outbox-enabled)
-            .AddPostgresOutboxPublisher<domain-nameOutboxPublisher>()   // Adds the domain-nameOutboxPublisher as the IEventPublisher.
-#endif
+// #if (outbox-enabled)
+            .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher as the IEventPublisher.
+// #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#endif
+// #endif
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();
@@ -83,11 +83,11 @@ public class Program
 
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
-#if (implement-sqlserver)
+// #if (implement-sqlserver)
             .WithCoreExSqlServerTelemetry()
-#elif (implement-postgres)
+// #elif (implement-postgres)
             .WithCoreExPostgresTelemetry()
-#endif
+// #endif
             .UseOtlpExporter();
 
         // Build the application.

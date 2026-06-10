@@ -1,0 +1,429 @@
+# Workflow
+
+Use this workflow to guide the user through CoreEx solution shape decisions in plain English, then turn the answers into safe `dotnet new` inputs.
+
+## Principles
+
+- Ask one short question at a time.
+- Use simple English, not template parameter names.
+- Prefer small fixed choices before freeform text.
+- Reuse what the workspace already proves.
+- If the user seems unsure, give a recommended default and explain it in one sentence.
+- Before running any real command, restate the derived inputs in a compact summary.
+- Finish with executable validation, not just generated files.
+
+## Mandatory Interview Mechanics
+
+- When `mcp_microsoft_git_confirm_options` is available, use it for each interview step.
+- Ask exactly one scaffold question per turn.
+- Each confirmation card must contain exactly one editable option plus optional readonly context.
+- Use a `text` field only for the base solution name.
+- Use `select` fields for every other interview question so the workflow stays multiple-choice.
+- Preselect or prefill a default for the current question.
+- Never batch multiple scaffold questions into one assistant message.
+- Wait for the user to confirm the current card before moving to the next question.
+
+## Default Selection Policy
+
+Use these defaults when the workspace does not already prove the answer:
+
+| Question | Default |
+|---|---|
+| Base solution name | The workspace root folder name if it is already in `[Company].[Product].[Domain]` form; otherwise the best canonical guess from workspace hints. If only two parts exist, insert `Product` as the temporary middle segment. The user can override during the interview. |
+| New domain or retrofit | `New domain` for bootstrap-only repos |
+| HTTP API | `Yes` |
+| Reliable event publishing | `No` |
+| Event consumption | `No` |
+| Data storage | `No local database` |
+| Messaging provider | `Yes` for Azure Service Bus when messaging is required |
+| Reference data | `No` |
+| Domain layer | `No` |
+| Result/ROP style | `No` |
+
+Derive `outbox-enabled` after the interview. Default it to `false` unless the user chose owned persistence and reliable publishing.
+
+## Phase 1: Inspect The Workspace
+
+Decide which path applies.
+
+### Bootstrap-only shell
+
+Treat the repo as bootstrap-only when the workspace mostly contains AI assets, docs, or starter shell content and does not yet contain a populated CoreEx solution for the target domain.
+
+### Existing scaffolded solution
+
+Treat the repo as scaffolded when there is already a real solution shape, such as a populated `src/`, `tests/`, `*.Database`, `*.CodeGen`, or one or more existing hosts.
+
+If the workspace already shows the current provider, naming shape, or enabled capabilities, confirm those choices instead of asking open-ended questions again.
+
+## Phase 2: Run The Interview
+
+Ask the questions in this order. Skip questions that the workspace has already answered with high confidence.
+
+Implementation notes:
+- Use one `confirm_options` call per question when the tool is available.
+- Include only one editable field in the card for the current question.
+- Use readonly fields to show prior confirmed answers when that context helps the user answer quickly.
+- If `confirm_options` is unavailable, ask the same question as plain chat text and still ask only one question per message.
+
+### 1. Base solution name
+
+Ask:
+
+> What should the base solution name be? Use `Company.Product.Domain`, for example `Avanade.Product.Books`.
+
+Default:
+
+> Use the workspace root folder name if it is already in `[Company].[Product].[Domain]` form. If only a two-part name exists, use `Product` as the temporary middle segment and ask the user to correct it if needed.
+
+If the user gives only two parts, ask:
+
+> I still need the domain part. What is the business domain name, for example `Books` or `Orders`?
+
+Rules:
+
+- Do not continue to template commands until the name is in `[Company].[Product].[Domain]` form.
+- Do not ask for host-specific names such as `.Api` or `.Subscriber` — those are derived automatically from the base name.
+
+### 2. New domain or retrofit
+
+Ask:
+
+> Are we creating a new CoreEx domain here, or adding missing hosts to an existing one?
+
+Recommended options:
+
+- `New domain`
+- `Add missing hosts`
+
+Interpretation:
+
+- `New domain` means the skill may need `coreex` plus one or more host templates.
+- `Add missing hosts` means preserve the existing provider and capability choices unless the user explicitly wants to change them.
+
+Default: `New domain` for a bootstrap-only repo.
+
+### 3. HTTP API need
+
+Ask:
+
+> Do you need an HTTP API for this solution?
+
+Recommended options:
+
+- `Yes`
+- `No`
+
+Interpretation:
+
+- `Yes` means add `coreex-api` if it does not already exist.
+
+Default: `Yes`.
+
+### 4. Reliable event publishing
+
+Ask:
+
+> Does this solution need to publish events reliably to other systems?
+
+Recommended options:
+
+- `Yes`
+- `No`
+- `Not sure`
+
+Interpretation:
+
+- `Yes` usually means use a messaging provider and add `coreex-relay`.
+- `Not sure` should trigger one brief explanation: if events must be stored with the database change and sent later, the answer is usually `Yes`.
+
+Default: `No`.
+
+### 5. Event consumption
+
+Ask:
+
+> Does this solution need to receive events from other systems?
+
+Recommended options:
+
+- `Yes`
+- `No`
+
+Interpretation:
+
+- `Yes` means add `coreex-subscriber`.
+
+Default: `No`.
+
+### 6. Data storage
+
+Ask:
+
+> Will this solution store its own data? If yes, which database do you want to use?
+
+Recommended options:
+
+- `SQL Server`
+- `Postgres`
+- `No local database`
+
+Interpretation:
+
+- `SQL Server` maps to `--data-provider SqlServer`.
+- `Postgres` maps to `--data-provider Postgres`.
+- `No local database` maps to `--data-provider None`.
+
+Default: `No local database`.
+
+### 7. Messaging provider
+
+Ask this only if the user needs to publish or consume events.
+
+> For messaging, should I use Azure Service Bus?
+
+Recommended options:
+
+- `Yes`
+- `No, I need something else`
+
+Interpretation:
+
+- `Yes` maps to `--messaging-provider ServiceBus`.
+- Any other answer should pause command generation until the supported provider choice is clear.
+
+Default: `Yes` for Azure Service Bus.
+
+### 8. Reference data
+
+Ask:
+
+> Do you need reference data code generation, such as managed lists of codes and descriptions?
+
+Recommended options:
+
+- `Yes`
+- `No`
+- `Not sure`
+
+Interpretation:
+
+- `Yes` maps to `--refdata-enabled true`.
+- `No` maps to `--refdata-enabled false`.
+- `Not sure` should get one short explanation and then a confirmation question.
+
+Default: `No`.
+
+### 9. Domain layer
+
+Ask:
+
+> Do you want a separate Domain layer for richer business logic?
+
+Recommended options:
+
+- `Yes`
+- `No`
+- `Not sure`
+
+Interpretation:
+
+- `Yes` maps to `--domain-driven-enabled true`.
+- `No` maps to `--domain-driven-enabled false`.
+
+Default: `No`.
+
+### 10. Result/ROP style
+
+Ask:
+
+> Do you want Result or ROP style service pipelines?
+
+Recommended options:
+
+- `Yes`
+- `No`
+- `Not sure`
+
+Interpretation:
+
+- `Yes` maps to `--rop-enabled true`.
+- `No` maps to `--rop-enabled false`.
+
+Default: `No`.
+
+## Phase 3: Translate Answers Into Inputs
+
+Build a structured decision summary before any command is run.
+
+| Interview outcome | Derived input |
+|---|---|
+| Base solution name confirmed as `Company.Product.Domain` | `-n Company.Product.Domain` for `coreex`; can be omitted if the folder is already named `Company.Product.Domain` |
+| HTTP API needed | `dotnet new coreex-api -n Company.Product.Domain.Api ...` |
+| Publish events reliably | `dotnet new coreex-relay -n Company.Product.Domain.Relay ...` |
+| Consume events | `dotnet new coreex-subscriber -n Company.Product.Domain.Subscriber ...` |
+| SQL Server | `--data-provider SqlServer` |
+| Postgres | `--data-provider Postgres` |
+| No local database | `--data-provider None` |
+| Azure Service Bus | `--messaging-provider ServiceBus` |
+| Reference data needed | `--refdata-enabled true` |
+| Domain layer needed | `--domain-driven-enabled true` |
+| Result/ROP style needed | `--rop-enabled true` |
+
+If the user is retrofitting an existing solution, only include flags that are required for missing projects or that the user explicitly asked to change.
+
+## Phase 4: Confirm Before Generation
+
+Before any real template command, summarize the inputs in plain English. Use a compact confirmation like this:
+
+> Here is the shape I derived: base name `Avanade.Product.Books`, new domain, API yes, relay yes, subscriber no, SQL Server, Service Bus, reference data yes, Domain layer no, ROP no. I will dry-run the matching `dotnet new` commands next.
+
+If anything in that summary is uncertain, ask for confirmation before proceeding.
+State that the workflow will finish by wiring projects into the solution and running build/test validation.
+
+## Phase 5: Safe Command Path
+
+1. Check the template pack with `dotnet new list --tag CoreEx`.
+2. Install `CoreEx.Template` if it is missing.
+3. Always run `--dry-run` before the first real template invocation unless the workspace is empty and the command shape is already obvious.
+4. Stop if the dry-run shows nested root folders, incorrect host names, or a layout that conflicts with the existing repo.
+5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscriber`).
+6. For retrofit work, add only the missing hosts unless the user explicitly asked for broader reshaping.
+7. After generating all host templates, run `dotnet sln` to add every new host project and its test project to the `.slnx` solution file.
+8. Verify that each expected generated host and test project exists on disk before moving to validation.
+
+### Critical naming rule for host templates
+
+The `coreex` solution template takes the **3-part base name** (`Company.Product.Domain`).
+Each host template takes a **4-part name** with the host suffix appended. **Always pass `-n` explicitly for host templates** — the folder name alone cannot supply the suffix:
+
+```sh
+dotnet new coreex-api        -n Company.Product.Domain.Api
+dotnet new coreex-relay      -n Company.Product.Domain.Relay
+dotnet new coreex-subscriber -n Company.Product.Domain.Subscriber
+```
+
+Passing the 3-part base name to host templates causes all three to emit into the same directory and overwrite each other.
+
+## Phase 6: Validate The Scaffold
+
+After generation and solution wiring, validate in this order:
+
+1. Run `dotnet build` on the `.slnx`.
+2. Run the unit test project when present.
+3. Run broader API, relay, and subscriber test projects only when their local dependencies are available.
+4. Report any skipped validations explicitly.
+
+For local development there are two validation modes:
+
+- **Shape validation**: stop after solution wiring, `dotnet build`, and the unit test project. This is the default minimum bar.
+- **Runnable local validation**: when the user explicitly wants the repo left in a first-run local state, also create missing local dependency assets, start those dependencies, run the tooling projects from their own directories, then run the broader test projects.
+
+### Validation policy
+
+- `dotnet build` is the default minimum bar for a successful scaffold.
+- `dotnet test` for `tests/[solution].Test.Unit` should run by default when the project exists.
+- API, relay, and subscriber tests may depend on local SQL Server or Postgres, Redis, Service Bus, or other host prerequisites. If those are not configured, skip those tests and say why.
+- A missing local dependency is a deferred setup item, not necessarily a scaffolding failure.
+- If the user wants runnable local validation and local dependency files are missing, materialize them first from bundled templates or repo-standard equivalents, for example `.github/skills/solution-scaffolder/assets/docker-compose.local.yml` and `.github/skills/solution-scaffolder/assets/servicebus-config.template.json`.
+- If the generated shape includes SQL Server, Redis, or Service Bus and the repo lacks a root `docker-compose.yml`, create one before trying to run broader tests.
+- If Service Bus emulator wiring is needed and the repo lacks `servicebus/Config.json`, create it before starting the dependency stack.
+- For `tools/[solution].Database`, run from that directory so `dbex.yaml` is discovered correctly. Prefer `dotnet run -- All` for first-run local setup and `dotnet run -- CodeGen` or `dotnet run -- Database` for narrower follow-up work.
+- For `tools/[solution].CodeGen`, run from that directory so `ref-data.yaml` is discovered correctly.
+- If `refdata-enabled` is `true`, call out `tools/[solution].CodeGen` as the next step, or run it only when the user wants the repo left in a fully generated state.
+- If `data-provider != None`, call out `tools/[solution].Database` as the next step, or run it only when the user wants local schema setup as part of scaffolding.
+- If generated code fails compile due to placeholder types, missing project references, wrong package APIs, or other issues unrelated to missing local dependencies, classify that as a template defect and surface it explicitly.
+- If `dotnet new` reports duplicate CoreEx template identities, surface that warning and note which template source was used.
+
+### Runnable Local Validation Steps
+
+When the user explicitly asks for successful local build and test, use this order after project generation:
+
+1. Ensure the solution and host/test projects are wired into the `.slnx`.
+2. Create any missing local dependency assets such as `docker-compose.yml` and `servicebus/Config.json`.
+3. Start the local dependency stack.
+4. Run `tools/[solution].Database` from its own directory.
+5. Run `tools/[solution].CodeGen` from its own directory when reference data is enabled.
+6. Run `dotnet build` on the solution.
+7. Run the unit test project.
+8. Run API, relay, and subscriber test projects individually so one hanging host does not block the others.
+
+### Template Defects vs Workflow Steps
+
+Do not turn permanent template defects into ad-hoc workflow patches unless the user explicitly wants local recovery for the current repo.
+
+Typical **workflow** responsibilities:
+
+- creating missing local dependency assets
+- starting local containers or emulators
+- running `*.Database` and `*.CodeGen` from the correct directories
+- choosing which tests to run based on available dependencies
+
+Typical **template** responsibilities:
+
+- generated code compiles immediately after scaffold
+- project references match the generated code's layer usage
+- generated hosts use the current package APIs
+- placeholder files are compile-safe when no domain logic exists yet
+- empty starter YAML files are syntactically valid
+
+## Phase 7: Final Output
+
+After generation, report:
+
+- what was created or proposed
+- which answers were translated into template inputs
+- which validations were run successfully
+- which validations were skipped and why
+- what was intentionally omitted
+- the `dotnet sln` commands that were run (or still need to be run) to add host and test projects to the solution file
+- any next prerequisite, such as package feeds, CodeGen, or database tooling
+
+## Command Examples
+
+### Full event-driven (SQL Server, Service Bus, refdata, ROP)
+
+```sh
+# From the solution root folder named Avanade.Erp.Sales
+dotnet new coreex --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true --outbox-enabled true --rop-enabled true
+
+dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
+dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider SqlServer --messaging-provider ServiceBus
+dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
+
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Outbox.Relay
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscriber
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
+
+dotnet build Avanade.Erp.Sales.slnx
+dotnet test tests/Avanade.Erp.Sales.Test.Unit
+```
+
+### API only, no messaging (facade over external system)
+
+```sh
+dotnet new coreex -n Avanade.Erp.Sales --data-provider None --messaging-provider None
+dotnet new coreex-api -n Avanade.Erp.Sales.Api --data-provider None
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
+dotnet build Avanade.Erp.Sales.slnx
+dotnet test tests/Avanade.Erp.Sales.Test.Unit
+```
+
+### API + Subscriber only (no outbox relay)
+
+```sh
+dotnet new coreex -n Avanade.Erp.Sales --data-provider SqlServer --messaging-provider ServiceBus --outbox-enabled false
+dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --outbox-enabled false
+dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider SqlServer --messaging-provider ServiceBus
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscriber
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
+dotnet build Avanade.Erp.Sales.slnx
+dotnet test tests/Avanade.Erp.Sales.Test.Unit
+```
+

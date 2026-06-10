@@ -4,13 +4,13 @@ global using CoreEx.DependencyInjection;
 global using CoreEx.Entities;
 global using CoreEx.Events;
 global using CoreEx.Localization;
-#if (refdata-enabled)
+// #if (refdata-enabled)
 global using CoreEx.RefData;
 global using CoreEx.RefData.Abstractions;
-#endif
-#if (rop-enabled)
+// #endif
+// #if (rop-enabled)
 global using CoreEx.Results;
-#endif
+// #endif
 global using CoreEx.Validation;
 #if (implement-sqlserver || implement-postgres)
 global using app-name.Application.Repositories;

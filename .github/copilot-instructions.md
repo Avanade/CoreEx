@@ -164,15 +164,14 @@ See [INSTRUCTION_AUTHORING.md](.github/INSTRUCTION_AUTHORING.md#generated-code) 
 - `samples\docs\<layer>.md` — detailed walkthrough for each layer: `contracts-layer.md`, `application-layer.md`, `domain-layer.md`, `infrastructure-layer.md`, `hosts-layer.md`, `testing.md`, `tooling.md`.
 - `.github\instructions\*.instructions.md` — area-specific rules auto-injected when editing matching files (`Program.cs`, contracts, application services, repositories, validators, subscribers, tests).
 
-## Agent Customizations (Prompts and Skills)
+## Agent Customizations (Prompts, Skills, and Templates)
 
-The following prompts and skills are available in this repository. Type `/` in chat to invoke them.
+The following prompts, skills, and templates are available in this repository. Type `/` in chat to invoke prompts and skills. Use `dotnet new` in a terminal for templates.
 
 | Command | Type | When to use |
 |---------|------|-------------|
-| `/generate-domain` | Skill | Guided scaffolding of a new CoreEx domain across all 5 layers. Use when your entity has custom fields, business rules, or you want the agent to reason about conventions, validation, and event naming. The agent will ask for inputs and generate code tailored to your domain model. |
-| `/add-capability` | Skill | Retrofit an existing CoreEx domain with additional capabilities. Use when a domain already exists and you want to add messaging/integration features such as `Outbox.Relay`, `Subscribe`, Azure Service Bus wiring, or initial subscriber scaffolding without regenerating the domain. |
-| `/scaffold-domain-from-templates` | Prompt | Fast, deterministic domain scaffolding by cloning and materializing the canonical templates in `.github\templates\domain\` with placeholder substitution. Use when your entity fits the standard template shape and you want exact output with no creative generation. |
+| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding for solution, API, relay, and subscriber shapes. Use `dotnet new install CoreEx.Template` and then run `dotnet new coreex`, `coreex-api`, `coreex-relay`, or `coreex-subscriber` as needed. |
+| `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review aligned to the samples and repo instructions. |
 | `/init` | Prompt | Initialize a new CoreEx solution or workspace. |
 | `/setup` | Prompt | Configure an existing CoreEx solution with standard tooling and settings. |
 

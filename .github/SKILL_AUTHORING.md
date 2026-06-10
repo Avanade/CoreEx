@@ -94,39 +94,36 @@ tags: ["tag1", "tag2", "tag3"]
 
 ```yaml
 ---
-name: generate-domain
-description: "Scaffold a new CoreEx domain across all layers following framework conventions"
-argument-hint: "Domain name, entity fields, business rules (optional)"
-tags: ["scaffolding", "domain", "code-generation"]
+name: coreex-design-review
+description: "Review a proposed CoreEx design against repository conventions and samples"
+argument-hint: "Feature, domain, or host shape to review"
+tags: ["design-review", "architecture", "coreex"]
 ---
 
-# Generate Domain
+# CoreEx Design Review
 
-Guides you through creating a new CoreEx domain from scratch. Asks about entity shape, validation, messaging needs, and generates code tailored to your domain model.
+Reviews a proposed feature or service shape against current CoreEx guidance. Focuses on layering, host responsibilities, validation, persistence, and messaging choices.
 
 ## When to Use
 
-- Creating a new bounded context or microservice
-- Entity has custom fields, business rules, or complex validation
-- You want the agent to reason about conventions and event naming
-- Scaffolding Products, Orders, Shopping, or similar sample domains
+- Reviewing a proposed API, subscriber, relay, or orchestration shape
+- Comparing multiple implementation options before coding
+- Checking whether a design aligns to existing samples and instructions
+- Creating a small evidence-backed plan for a change
 
 ## When Not to Use
 
-- Entity fits a standard template shape — use `/scaffold-domain-from-templates` instead
-- Domain already exists — use `/add-capability` to retrofit messaging/integration
-- You need just one file (a contract or service) — manually create it
+- Deterministic project scaffolding — use the `CoreEx.Template` `dotnet new` templates instead
+- Repository onboarding — use `/acquire-codebase-knowledge`
+- Running the local distributed app — use `/aspire`
 
 ## Workflow Overview
 
-1. **Load Context** — examine existing domains and conventions
-2. **Gather Inputs** — domain name, entity fields, validation rules, events
-3. **Contracts** — define DTOs with source-generation markers
-4. **Application Services** — validation, unit-of-work patterns, event publishing
-5. **Infrastructure** — repositories, mappers, database access
-6. **API Host** — controllers, registration, middleware
-7. **Database** — migrations, schema, outbox tables
-8. **Tests** — integration and API test scaffolding
+1. **Inspect Context** — examine the current domain, hosts, and nearby sample
+2. **Identify Shape** — decide API-only, API plus relay, API plus subscriber, or orchestration
+3. **Check Conventions** — validate layering, instructions, and naming expectations
+4. **Assess Risks** — call out migration, compatibility, and operational tradeoffs
+5. **Recommend Next Steps** — provide the smallest safe implementation path
 
 For detailed step-by-step guidance, see [`references/workflow.md`](references/workflow.md).
 
@@ -135,8 +132,8 @@ For detailed step-by-step guidance, see [`references/workflow.md`](references/wo
 - [Application Services Instructions](/.github/instructions/coreex-application-services.instructions.md)
 - [Contracts Instructions](/.github/instructions/coreex-contracts.instructions.md)
 - [Host Setup Instructions](/.github/instructions/coreex-host-setup.instructions.md)
-- [Sample Domains](./samples/src/Contoso.Products/)
-- [Roslyn Source Generation](./docs/capabilities.md)
+- [CoreEx Template Pack](../src/CoreEx.Template/README.md)
+- [CoreEx Capabilities](./docs/capabilities.md)
 ```
 
 ## Quality Gates

@@ -226,6 +226,66 @@
           }
         }
       ]
+    },
+    "*.csproj": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!--#if" ],
+            "actionableElse": [ "<!--#else" ],
+            "actionableElseif": [ "<!--#elseif", "<!--#elif" ],
+            "endif": [ "<!--#endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.props": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!--#if" ],
+            "actionableElse": [ "<!--#else" ],
+            "actionableElseif": [ "<!--#elseif", "<!--#elif" ],
+            "endif": [ "<!--#endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.cs": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "// #if" ],
+            "actionableElse": [ "// #else" ],
+            "actionableElseif": [ "// #elseif", "// #elif" ],
+            "endif": [ "// #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.yaml": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "# #if" ],
+            "actionableElse": [ "# #else" ],
+            "actionableElseif": [ "# #elseif", "# #elif" ],
+            "endif": [ "# #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
     }
   },
   "forms": {
