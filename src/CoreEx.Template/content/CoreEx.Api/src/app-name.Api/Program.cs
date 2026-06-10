@@ -64,7 +64,6 @@ public class Program
            .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
 #elif (implement-postgres)
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
-#endif
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
