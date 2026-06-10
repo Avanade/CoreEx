@@ -234,13 +234,18 @@ Error text derives from the standard templates in [`ValidatorStrings.cs`](https:
 
 ### Reference data in unit tests
 
-Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataServiceDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, add a case to its `GetAsync` switch:
+Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataServiceDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, **add a new arm to** its `GetAsync` switch — inserting it **before** the final `_ => throw …` catch-all:
 
 ```csharp
-_ when type == typeof(Gender) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<GenderCollection>("hr.$^gender")!),
+public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
+{
+    _ when type == typeof(Gender) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<GenderCollection>("hr.$^gender")!),
+    // ...other ref-data arms...
+    _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")   // ← never remove this catch-all
+};
 ```
 
-`Gender` is the reference-data **contract type**; `"hr.$^gender"` is the appropriately-cased `schema.$^table` key into the pre-configured seed data.
+**Never remove or replace the final `_ => throw …` catch-all arm** — only add arms above it. It is the guard that surfaces an unhandled ref-data type; dropping it (e.g. "replacing the throw-only body") would silently break the decorator. `Gender` is the reference-data **contract type**; `"hr.$^gender"` is the appropriately-cased `schema.$^table` key into the pre-configured seed data.
 
 **Only test valid vs not-valid — not active/inactive.** A validator's reference-data rule is the `.IsValid()` extension; assert just the two outcomes: a **valid** code (use a real seeded code) and a **not-valid** code (use a code that is not in the seed — it fails naturally, no arranging required). Do **not** write tests targeting `IReferenceData.IsActive`/`IsInactive` — active/inactive handling is built into `IsValid()`, is framework behaviour we trust, and arranging inactive data just to prove it adds cost for no real coverage.
 
@@ -271,7 +276,9 @@ var e = new Employee { FirstName = "Jo", LastName = "Bloggs", Gender = ... };
 
 ### Coverage
 
-Add as many `[Test]` methods as needed for meaningful coverage — confirm both **error** and **success** outcomes. Exercise each rule's failure path, reference-data validity, and — importantly — **inter-field relationships** (`DependsOn`, conditional `When*` rules, cross-property compares) by constructing inputs that hit each branch. Prefer clear, scenario-named methods over `[TestCase]`. Aim for coverage that is genuinely representative rather than mirroring any prior hand-crafted set.
+Add as many `[Test]` methods as needed for meaningful coverage — confirm both **error** and **success** outcomes. Focus on the validator's own decisions: `Mandatory`/presence where it matters, **inter-field relationships** (`DependsOn`, conditional `When*` rules, cross-property compares), custom `OnValidateAsync` logic, and reference-data **valid vs not-valid** — construct inputs that hit each branch. Prefer clear, scenario-named methods over `[TestCase]`. Aim for coverage that is genuinely representative rather than mirroring any prior hand-crafted set.
+
+**Skip framework-guaranteed constraints.** Do **not** write boundary tests for **length** rules (`MaximumLength`, `MinimumLength`, `Length`, `String`) — assume the declared length logic works (as with reference-data active/inactive). Such tests only re-prove built-in CoreEx behaviour and add fiddly string-padding for no real coverage; spend the effort on the conditional/business logic instead.
 
 > For relay-style tests that need a named scoped type, use `Test.ScopedType<ExecutionContext>` (see Outbox Relay Host Tests).
 
@@ -367,6 +374,8 @@ Basket_Checkout_Insufficient_Quantity
 - Do not omit `.Verify()` after a `MockHttpClientRequest` action — it confirms the mock was actually invoked.
 - Do not set a typed reference-data navigation property (e.g. `Gender`) when arranging a test input — set the `{Name}Code` string (e.g. `GenderCode = "M"`); the typed property depends on the `ReferenceDataOrchestrator`, which is not set during arrange.
 - Do not write validator tests for reference-data `IsActive`/`IsInactive` — assert only valid vs not-valid via `.IsValid()` (a not-valid case just uses an unseeded code); active/inactive is trusted framework behaviour. Reserve `ExtendForTesting` for rules that depend on a ref-data **extended property**.
+- Do not remove or replace the final `_ => throw …` catch-all arm of `ReferenceDataServiceDecorator.GetAsync` when adding a ref-data type — insert the new arm **above** it; the catch-all must remain.
+- Do not write validator tests for **length** rules (`MaximumLength`/`MinimumLength`/`Length`/`String`) — assume the declared length logic works (framework-guaranteed, like reference-data active/inactive); test conditional/business logic instead.
 
 ## Further Reading
 

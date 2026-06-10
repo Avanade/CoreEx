@@ -132,6 +132,41 @@ Guid id            = Runtime.NewGuid();          // new Guid
 - Need a `DateTime` → `Runtime.UtcNow.UtcDateTime` (**never** `DateTime.UtcNow`).
 - Need a `Guid` → `Runtime.NewGuid()` (**never** `Guid.NewGuid()`).
 
+## XML Documentation Comments
+
+Document the public surface with XML doc comments, and **never duplicate** a description that an interface already provides:
+
+- **Interfaces** — give **every** member (method, property, event) a `<summary>` describing the operation. Document parameters/returns (`<param>`, `<returns>`) where it adds clarity.
+- **Contract / DTO properties** — every property on a contract (including `[Contract]` partial classes) gets a `<summary>`. (Standard `Id`/`ETag`/`ChangeLog` members that implement `IIdentifier`/`IETag`/`IChangeLog` may use `<inheritdoc/>`.)
+- **Implementing / overriding members** — on the concrete class member that implements an interface member (or overrides a base member), use **`<inheritdoc/>`** rather than repeating the summary.
+- **Everything else** — a public type or member that is **not** an interface implementation/override gets its own `<summary>` (classes, standalone methods, properties, etc.).
+
+> **Do not invert this** (a common mistake): the `<summary>` goes on the **interface** member and on **contract properties**; the concrete class member that *implements* an interface gets **`<inheritdoc/>`**, not a fresh summary. Leaving interfaces or contract properties undocumented while summarising the implementing class is **backwards** — fix it the right way round.
+
+```csharp
+public interface IEmployeeService
+{
+    /// <summary>Gets the <see cref="Employee"/> for the specified <paramref name="id"/>.</summary>
+    Task<Employee?> GetAsync(string id);
+
+    /// <summary>Creates a new <see cref="Employee"/>.</summary>
+    Task<DataResult<Employee>> CreateAsync(Employee employee);
+}
+
+[ScopedService<IEmployeeService>]
+public class EmployeeService(IUnitOfWork unitOfWork, IEmployeeRepository repository) : IEmployeeService
+{
+    private readonly IUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
+    private readonly IEmployeeRepository _repository = repository.ThrowIfNull();
+
+    /// <inheritdoc/>
+    public Task<Employee?> GetAsync(string id) => _repository.GetAsync(id);
+
+    /// <inheritdoc/>
+    public Task<DataResult<Employee>> CreateAsync(Employee employee) => /* ... */;
+}
+```
+
 ## Private Field Naming
 
 Private instance fields are always prefixed with `_`. No exceptions.
@@ -155,3 +190,5 @@ private readonly ILogger<ProductService> _logger;
 - Do not use `DateTime.UtcNow` or `DateTimeOffset.UtcNow` — use `Runtime.UtcNow` (or `Runtime.UtcNow.UtcDateTime` for a `DateTime`).
 - Do not use `Guid.NewGuid()` — use `Runtime.NewGuid()`.
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
+- Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
+- Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.

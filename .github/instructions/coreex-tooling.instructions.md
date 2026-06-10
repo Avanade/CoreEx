@@ -15,6 +15,24 @@ Each domain has two developer-time tooling projects that have **no runtime prese
 
 ---
 
+## Order of operations (database-first)
+
+A change that touches the database, code generation, and hand-written code must be done **in dependency order** — the database is the baseline everything else generates from or builds on. **Plan the full sequence first, execute it in order, and do not begin a step until the previous one has succeeded.** Doing things out of order (CodeGen first, or adding seed rows / `dbex.yaml` tables before the create migrations exist) is the main cause of confused, self-inflicted "fixes".
+
+1. **Establish & inspect.** Bring the DB up to date (`dotnet run -- database`), then `dotnet run -- inspect <schema> <table>…` to confirm current state and decide create-vs-alter — see [Creating or altering a table for an entity](#creating-or-altering-a-table-for-an-entity). **If the bring-up fails, STOP and surface the verbatim error — do not continue or start editing unrelated files.**
+2. **Author migration script(s)** for the absent/changed table(s): `dotnet run -- script refdata|create <schema> <table>`, then fill in the columns.
+3. **Add reference-data rows** to `Data/ref-data.seed.yaml`.
+4. **Register the tables** in `dbex.yaml` `tables:`.
+5. **Apply & generate (DB side):** `dotnet run -- All` (Create → Migrate → CodeGen → Schema → Data) — Migrate applies the new scripts (tables now exist), CodeGen generates the EF persistence models from the live schema, Data seeds. **If it fails, STOP and surface the verbatim error** — a broken baseline invalidates everything downstream.
+6. **CoreEx CodeGen — contracts:** edit `*.CodeGen/ref-data.yaml` and run `dotnet run` (in `*.CodeGen`) to generate the reference-data contracts/services/repositories/mappers.
+7. **Hand-written .NET code:** application services, validators, controllers, tests — last, on top of the generated baseline.
+
+Steps 3–4 come **after** the migration scripts (step 2) and are only applied/introspected by step 5 — where, within `All`, Migrate creates the tables **before** Data seeds and **before** CodeGen introspects `dbex.yaml`. Never add seed rows or `dbex.yaml` tables (or run CodeGen) before the create migrations exist; that is exactly what makes the bring-up fail (seeding into, or generating models from, tables that do not yet exist).
+
+> Two distinct `dotnet run` code-gen steps in different projects: step 5's `All` invokes the **DbEx** CodeGen in `*.Database` (EF persistence models from `dbex.yaml` + live schema); step 6 is the **CoreEx** CodeGen in `*.CodeGen` (contracts etc. from `*.CodeGen/ref-data.yaml`). Do not conflate them.
+
+---
+
 ## `*.CodeGen` — Reference-Data C# Code Generation
 
 ### How it works
@@ -42,7 +60,14 @@ All outputs carry the `.g.cs` suffix and must never be edited directly — regen
 
 ### `ref-data.yaml` structure
 
+> ⚠️ **Two related but distinct reference-data files — do not confuse them:**
+> - **`*.CodeGen/ref-data.yaml`** (this section) — *defines* the reference-data **entities/contracts** (`entities:` with `name`/`idType`/`properties`); consumed by CodeGen to generate C#.
+> - **`*.Database/Data/ref-data.seed.yaml`** (see [`Data` — seeding](#data--seeding)) — *seeds* reference-data **rows** into the database (`Schema:` → `- $^Table:` → rows); a completely different format. The `.seed.` in the filename marks it as the seed file.
+>
+> When you mean to add seed rows, edit the **Database/Data** file in the seed format — never put `entities:`-style definitions there, and never put `Schema:`/row data here.
+
 ```yaml
+# *.CodeGen/ref-data.yaml — entity/contract DEFINITIONS (not seed data)
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/CoreEx/refs/heads/main/schema/coreex-refdata.json
 collectionSortOrder: Code       # sort order applied to all collection types
 repository: EntityFramework     # repository implementation strategy
@@ -229,6 +254,23 @@ tables:
 
 Add the `$schema` annotation to each file for IDE YAML validation and auto-complete.
 
+**Keep table entries minimal — write `- name: Xxx` and nothing else.** A table entry needs only its `name`; everything else is by-convention. Use the simple `- name: Xxx` form (not the inline-object `- { name: Xxx, ... }` form) and do **not** add properties speculatively:
+- **`efModel`** is a **choice string** — `Yes` (default), `No`, `ModelOnly`, or `ModelBuilderOnly` — **not** a boolean. **Omit it entirely** — the default is already `Yes` (generate the EF model), so `efModel: Yes` is redundant noise. Never write `efModel: true`, and don't add `efModel: Yes`.
+- **The `IsDeleted` logical-delete column is recognised by convention** (the table-level `columnNameIsDeleted`, default `IsDeleted`). Do **not** declare it under `columns:` — and there is no per-column `isDeleted` flag (a column entry only supports `name`, `property`, `type`, `valueConverter`, `default`). DbEx detects the `IsDeleted` column from the live schema automatically. Only set the table-level `columnNameIsDeleted: "X"` if the column is non-standardly named.
+- **`schema:`** on a table is a valid **override**, but only use it when the table genuinely lives in a **different, existing** schema. Do not invent a separate schema (e.g. `Ref`) for reference data — by default every table (reference and transactional) lives in the domain's root `schema:`, consistent with the migration scripts and the seed `Data/ref-data.seed.yaml`.
+
+So a typical Gender + Employee domain is simply:
+
+```yaml
+tables:
+# Reference-data
+- name: Gender
+# Transactional-data
+- name: Employee
+```
+
+(Add `columns:`, `efModel`, `efModelName`, `includeColumns`/`excludeColumns`, or `columnName*` overrides only when a specific need arises.)
+
 ### `CodeGen` phase — generated Infrastructure C#
 
 The `CodeGen` command generates `.g.cs` files into the Infrastructure project:
@@ -373,10 +415,12 @@ When authoring a migration script for an entity that has a corresponding .NET co
 | `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
 
 > **Agent instruction:** When generating a migration script for an entity that has a .NET contract:
-> 1. **Map the primary key column to the contract's identifier type.** A contract with `IIdentifier<string?>` (the default) maps to `NVARCHAR(50) NOT NULL PRIMARY KEY` (SQL Server) / `VARCHAR(50) NOT NULL PRIMARY KEY` (PostgreSQL). A `Guid` identifier maps to `UNIQUEIDENTIFIER` / `UUID`; an `int` to `INT` / `INTEGER`; and so on. Never assume `UNIQUEIDENTIFIER`/`UUID` for a `string` identifier.
-> 2. **Do not add value-generation defaults** (e.g. `DEFAULT (NEWSEQUENTIALID())`, `IDENTITY`, `gen_random_uuid()`) unless explicitly requested. By convention the application services layer assigns identifier and other values — the database should not default them.
-> 3. **Map every other column to its contract property type** per the table above, preserving nullability (`?` → nullable column).
-> 4. **If in doubt about a type, nullability, or precision/length, ask** rather than guessing.
+> 1. **The `script` scaffold's PK is a placeholder — replace it.** `dotnet run -- script create|refdata` seeds the primary key with a generated-key placeholder: `[{Name}Id] UNIQUEIDENTIFIER NOT NULL DEFAULT (NEWSEQUENTIALID()) PRIMARY KEY` (SQL Server) or `"{name}_id" SERIAL PRIMARY KEY` (PostgreSQL). **Neither is the default to keep** — overwrite it to match the contract's identifier type.
+> 2. **Map the primary key column to the contract's identifier type.** The identifier is `string` **by default** → `[{Name}Id] NVARCHAR(50) NOT NULL PRIMARY KEY` (SQL Server) / `"{name}_id" VARCHAR(50) NOT NULL PRIMARY KEY` (PostgreSQL). Use `UNIQUEIDENTIFIER`/`UUID` **only** when the contract identifier is explicitly a `Guid`; `INT`/`INTEGER` for `int`; etc. Never leave the scaffold's `UNIQUEIDENTIFIER` (SQL Server) or `SERIAL` (PostgreSQL) for a `string` identifier.
+> 3. **Drop the scaffold's value-generation default.** Remove `DEFAULT (NEWSEQUENTIALID())` (SQL Server) and **replace `SERIAL` with the plain column type** (PostgreSQL — `SERIAL` is an auto-increment sequence, i.e. a DB-assigned value); never add `IDENTITY` / `gen_random_uuid()` either — unless explicitly requested. The application services layer assigns identifier and other values; the database should not default them.
+> 4. **Map every other column to its contract property type** per the table above, preserving nullability (`?` → nullable column).
+> 5. **Lock the agreed identifier type — never deviate, especially in fixing loops.** Once the type is agreed (the `string` default, or whatever the user explicitly specified), it is fixed for the whole task. Do **not** silently change it, and do **not** revert to the scaffold's `UNIQUEIDENTIFIER` (or flip it again) while troubleshooting a build/migration failure — a failure is never resolved by changing the PK type. If you believe the agreed type is wrong, **stop and ask** rather than changing it.
+> 6. **If in doubt about a type, nullability, or precision/length, ask** rather than guessing.
 
 ### Creating or altering a table for an entity
 
@@ -417,23 +461,53 @@ These `.g.sql` / `.g.pgsql` files are generated by DbEx — never edit them dire
 
 ### `Data` — seeding
 
-Seed data in `Data/ref-data.yaml` is **cross-environment** — it is applied in every environment including production. It should therefore contain only shared **reference data** (lookup tables, code lists) that must exist everywhere. Do not seed master or transactional data here unless it is genuinely required in all environments; test-specific data belongs in the test project's own `data.yaml`, applied only during test setup.
+> ⚠️ **This is `*.Database/Data/ref-data.seed.yaml` — the seed-data file** (the `.seed.` distinguishes it), *not* the `*.CodeGen/ref-data.yaml` entity-definition file (see [`ref-data.yaml` structure](#ref-datayaml-structure)). It uses the seed format below (`Schema:` → `- $^Table:` → rows) — **never** the `entities:` definition format, and **never** list full property rows like `{ GenderId, Code, Text, SortOrder, IsActive }`; use the `Code: Text` shorthand.
 
-The root node is the schema/domain name. DbEx infers column types from the live schema.
+Seed data in `Data/ref-data.seed.yaml` is **cross-environment** — it is applied in every environment including production. It should therefore contain only shared **reference data** (lookup tables, code lists) that must exist everywhere. Do not seed master or transactional data here unless it is genuinely required in all environments; test-specific data belongs in the test project's own `data.yaml`, applied only during test setup.
 
-Prefixes control merge behaviour and identifier generation:
+**Structure** — there is exactly one valid shape, three levels deep:
+
+```
+<Schema>:              # root mapping key = schema name (no prefix, no dots)
+  - $^<Table>:         # YAML LIST ITEM (note the leading "- ") = table, with a $ / $^ prefix
+    - <row>            # rows
+```
+
+- The **schema** is the root mapping key — **never** a dotted `Schema.Table:` key (e.g. `Bar.Gender:` is **wrong**), and **never** prefixed.
+- Each **table** is a YAML **list item** — it **must** begin with `- ` (e.g. `- $^Gender:`). A bare mapping key without the dash (`$^Gender:`) is **wrong** — that makes it an object property, not a list entry, and DbEx will not process it. Also never mash schema and table (`- $Bar.$^Gender:` is wrong).
+- The **prefix is required** on reference-data table entries. **Reference data always uses `$^`** (merge + auto-generate the identifier) — this is the default **regardless of the identifier's type**. `^` auto-generates the id for *any* id type, not just `Guid` (DbEx handles, and can be extended per type) — so a `string`/`NVARCHAR(50)` PK still uses `$^`. Use a different prefix **only when explicitly asked**: plain `$` (merge, no auto-id) when ids are supplied/assigned externally. An **unprefixed** entry is a plain INSERT — not re-runnable; never use it for reference data.
+
+DbEx infers column types from the live schema.
+
+**Names follow the provider's casing** (same as the schema and migration scripts):
+- **SQL Server** — PascalCase: schema `Bar`, table `Gender`, columns `Code`, `Text`, `IsActive`, `SortOrder`.
+- **PostgreSQL** — snake_case: schema `bar`, table `gender`, columns `code`, `text`, `is_active`, `sort_order`.
+
+Prefixes control merge behaviour and identifier generation (on the table entry):
 
 | Prefix | Meaning |
 |---|---|
-| `$` | MERGE (upsert) — safe to re-run; use for reference data |
-| `^` | Auto-generate GUID for the primary key |
-| `$^` | Both — upsert with auto-generated GUID (typical for reference data) |
+| `$` | MERGE (upsert) — safe to re-run |
+| `^` | Auto-generate the primary-key identifier (**any** id type — not GUID-only) |
+| `$^` | Both — merge + auto-generated id; **the default for reference data**, whatever the id type |
+
+Prefer the `Code: Text` **shorthand** (it sets `Code` and `Text`); use an inline object only for extra columns. **Never set the identifier column** (`{Name}Id`, e.g. `GenderId`) — `$^` auto-generates it, so supplying it is wrong unless you were **explicitly** asked to provide ids. Likewise omit `IsActive` (defaults active) and `SortOrder` (auto-assigned by row order — see below). The ideal row is just `M: Male`.
 
 ```yaml
+# SQL Server (PascalCase) — schema "Bar", reference table "Gender"
+Bar:
+  - $^Gender:           # merge + auto-generated id (the ref-data default, any id type)
+    - F: Female
+    - M: Male
+    - X: Other
+```
+
+```yaml
+# PostgreSQL (snake_case) — schema "products"
 products:
-  - $^brand:            # merge + auto-GUID primary key
-    - YETI: Yeti Cycles
+  - $^brand:            # merge + auto-generated id (the ref-data default, any id type)
     - CANYON: Canyon Bicycles
+    - YETI: Yeti Cycles
   - $^unit_of_measure:
     - EA: Each
     - { code: HR, text: Hour, scale: 2 }   # inline object for additional columns
@@ -454,6 +528,18 @@ products:
 - Do not author a schema-create script — the template already provides the default schema; only create one if the user explicitly asks for an additional schema.
 - Do not modify the database directly to unblock anything — no ad-hoc `CREATE`/`ALTER`/`DROP`/`INSERT`/`UPDATE`/`DELETE`, and never touch DbEx's journal/tracking table (no pre-seeding rows). Structural change = migration script; data = `Data/*.yaml`. If state is inconsistent, stop and ask the user.
 - Do not leave ref-data seed rows unordered, and do not default `SortOrder` via `RefDataColumnDefault` — order the YAML rows by `Code` so DbEx's positional `SortOrder` assignment is sensible.
+- Do not use a dotted `Schema.Table:` seed key (e.g. `Bar.Gender:`) or mash schema and table into one prefixed key (`- $Schema.$^Table:`) — the schema is the **root mapping key**, and the prefixed table is a **list entry** beneath it (`Schema:` → `- $^Table:` → rows).
+- Do not omit the leading `- ` on a table entry — it is a YAML **list item** (`- $^Gender:`), not a bare mapping key (`$^Gender:`); without the dash DbEx will not process it.
+- Do not set the identifier column (`{Name}Id`, e.g. `GenderId`) in seed rows — `$^` auto-generates it; supply ids only when explicitly asked.
+- Do not write an **unprefixed** ref-data table entry — it is a plain INSERT (not re-runnable). Default reference data to **`$^`** (merge + auto-generate the id, **any** id type — `^` is not GUID-only); use plain `$` only when explicitly asked (ids supplied externally). Do not downgrade `$^` to `$` just because the PK is a `string`/`NVARCHAR(50)`.
+- Do not work out of order — follow the [database-first order of operations](#order-of-operations-database-first) (inspect → author migrations → seed + `dbex.yaml` → `All` → CoreEx CodeGen → .NET code). Add seed rows and `dbex.yaml` tables only **after** their create migrations exist, and apply them together via `All` (Migrate creates the tables before Data seeds / CodeGen introspects). Never run a bring-up that would seed, or CodeGen, against tables whose create migration does not yet exist.
+- Do not continue past a failed `dotnet run -- database` bring-up — stop and surface the error; a broken baseline invalidates everything downstream, and pressing on causes churn-y, misdirected fixes.
+- Do not keep the `script` scaffold's generated-key PK — `[{Name}Id] UNIQUEIDENTIFIER ... DEFAULT (NEWSEQUENTIALID())` (SQL Server) or `"{name}_id" SERIAL` (PostgreSQL) — replace it with the agreed identifier type's column (`string` default → `NVARCHAR(50)`/`VARCHAR(50)`), dropping the value-generation default **unless the user explicitly asks to keep/include it**.
+- Do not change the agreed identifier type to make a failure go away — it is locked for the task; never revert to `UNIQUEIDENTIFIER` (or flip the type) in a fixing loop. If you think it is wrong, stop and ask.
+- Do not add `efModel` to a `dbex.yaml` table entry when it would be the default — write the bare `- name: Xxx` (not `- { name: Xxx, efModel: Yes }`). `efModel: Yes` is redundant (it's the default); `efModel: true` is invalid (it's a `Yes`/`No`/`ModelOnly`/`ModelBuilderOnly` choice). Only set `efModel` for a non-default (`No`/`ModelOnly`/`ModelBuilderOnly`).
+- Do not declare the `IsDeleted` column under a table's `columns:` (and there is no `isDeleted` column flag) — it is recognised by convention from the live schema; keep table entries to `- name: Xxx` unless an override is genuinely needed.
+- Do not add a per-table `schema:` override for reference data (e.g. a `Ref` schema) — reference and transactional tables both live in the domain's root `schema:` unless a different schema actually exists.
+- Do not use the wrong casing in seed data — match the provider (SQL Server PascalCase `Code`/`Text`/`IsActive`/`SortOrder`; PostgreSQL snake_case `code`/`text`/`is_active`/`sort_order`), and do not hand-write `id`/`IsActive`/`SortOrder` rows — prefer the `Code: Text` shorthand.
 
 ## Further Reading
 

@@ -10,9 +10,7 @@ namespace Contoso.Products.Infrastructure.Repositories;
 
 public partial class ProductsDbContext
 {
-    /// <summary>
-    /// Adds the generated models to the <paramref name="modelBuilder"/>.
-    /// </summary>
+    /// <summary>Adds the generated models to the <paramref name="modelBuilder"/>.</summary>
     /// <param name="modelBuilder">The <see cref="Microsoft.EntityFrameworkCore.ModelBuilder"/>.</param>
     public void AddGeneratedModels(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
     {

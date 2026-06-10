@@ -8,45 +8,29 @@
 
 namespace Contoso.Shopping.Infrastructure.Persistence;
 
-/// <summary>
-/// Persistence model representing the '<c>[Shopping].[BasketItem]</c>' database table.
-/// </summary>
+/// <summary>Persistence model representing the '<c>[Shopping].[BasketItem]</c>' database table.</summary>
 /// <remarks>The <see cref="Id"/> primary key column is '<c>BasketItemId</c>' (type '<c>NVARCHAR(50)</c>').</remarks>
 public partial class BasketItem : ModelBase<string>
 {
-    /// <summary>
-    /// Gets or sets the value of the '<c>BasketId</c>' column (type '<c>NVARCHAR(50)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>BasketId</c>' column (type '<c>NVARCHAR(50)</c>').</summary>
     public string BasketId { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>ProductId</c>' column (type '<c>NVARCHAR(50)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>ProductId</c>' column (type '<c>NVARCHAR(50)</c>').</summary>
     public string ProductId { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>Sku</c>' column (type '<c>NVARCHAR(50)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>Sku</c>' column (type '<c>NVARCHAR(50)</c>').</summary>
     public string Sku { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>Text</c>' column (type '<c>NVARCHAR(250)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>Text</c>' column (type '<c>NVARCHAR(250)</c>').</summary>
     public string Text { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>UnitOfMeasureCode</c>' column (type '<c>NVARCHAR(50)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>UnitOfMeasureCode</c>' column (type '<c>NVARCHAR(50)</c>').</summary>
     public string UnitOfMeasureCode { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>UnitPrice</c>' column (type '<c>DECIMAL(18, 2)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>UnitPrice</c>' column (type '<c>DECIMAL(18, 2)</c>').</summary>
     public decimal UnitPrice { get; set; }
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>Quantity</c>' column (type '<c>DECIMAL(18, 2)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>Quantity</c>' column (type '<c>DECIMAL(18, 2)</c>').</summary>
     public decimal Quantity { get; set; }
 }
 

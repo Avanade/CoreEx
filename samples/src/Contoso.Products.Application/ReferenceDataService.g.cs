@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Application;
 
-/// <summary>
-/// Provides the <see cref="IReferenceDataProvider"/> implementation.
-/// </summary>
+/// <summary>Provides the <see cref="IReferenceDataProvider"/> implementation.</summary>
 [ScopedService]
 public partial class ReferenceDataService(IReferenceDataRepository repository) : IReferenceDataProvider
 {

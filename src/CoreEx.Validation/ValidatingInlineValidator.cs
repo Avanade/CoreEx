@@ -57,8 +57,7 @@ internal sealed class ValidatingInlineValidator<TValue>(Action<ValidatingInlineV
     }
 
     /// <summary>
-    /// Validates the <paramref name="value"/> treating <typeparamref name="TValue"/> as the root entity at the path
-    /// already established in <paramref name="args"/>, without adding a '<c>.value</c>' property path segment.
+    /// Validates the <paramref name="value"/> treating <typeparamref name="TValue"/> as the root entity at the path already established in <paramref name="args"/>, without adding a '<c>.value</c>' property path segment.
     /// </summary>
     /// <remarks>Used by <see cref="Rules.DictionaryRule{TEntity, TProperty, TKey, TValue}"/> and <see cref="Rules.CollectionRule{TEntity, TProperty, TItem}"/>
     /// when the validator was configured via an inline <see cref="Action{T}"/> to avoid an errant '<c>.value</c>' segment in error property paths.</remarks>

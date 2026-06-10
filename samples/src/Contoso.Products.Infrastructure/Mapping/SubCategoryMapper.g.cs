@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Infrastructure.Mapping;
 
-/// <summary>
-/// Provides mapping from <see cref="Persistence.SubCategory"/> to <see cref="Contracts.SubCategory"/>.
-/// </summary>
+/// <summary>Provides mapping from <see cref="Persistence.SubCategory"/> to <see cref="Contracts.SubCategory"/>.</summary>
 internal partial class SubCategoryMapper : Mapper<Persistence.SubCategory, Contracts.SubCategory, SubCategoryMapper>
 {
     /// <inheritdoc/>
@@ -34,9 +32,7 @@ internal partial class SubCategoryMapper : Mapper<Persistence.SubCategory, Contr
         return destination;
     }
 
-    /// <summary>
-    /// Provides the opportunity to extend the <see cref="OnMap" /> method.
-    /// </summary>
+    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
     partial void OnMapExtend(Persistence.SubCategory source, Contracts.SubCategory destination);
 }
 

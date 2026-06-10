@@ -19,6 +19,7 @@ global using CoreEx.RefData;
 global using CoreEx.Validation;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.Extensions.Options;
+global using NSwag.Annotations;
 global using OpenTelemetry;
 global using OpenTelemetry.Trace;
 global using StackExchange.Redis;

@@ -41,6 +41,8 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
 }
 ```
 
+**One repository per entity — the CQRS split is at the service layer, not here.** A single `XxxRepository` serves both the write `XxxService` and the read `XxxReadService` when they share a data source (the usual case for a SQL-backed domain) — do **not** create a separate read repository to mirror the read service. Introduce an additional repository only when an operation targets a **genuinely different** data source (e.g. a read served from a separate store or search index); the owning service then calls the appropriate repository per operation.
+
 ## Return Types
 
 | Operation | Return type | Notes |

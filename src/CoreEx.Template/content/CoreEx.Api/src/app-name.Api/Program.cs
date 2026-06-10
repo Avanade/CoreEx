@@ -1,3 +1,9 @@
+using Microsoft.Extensions.Options;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
+using StackExchange.Redis;
+using ZiggyCreatures.Caching.Fusion;
+using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
 using solution-name.Infrastructure.Repositories;
 
 namespace app-name.Api;
@@ -44,12 +50,17 @@ public class Program
             .AddHybridCacheIdempotencyProvider();       // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
         // Add the repository and related database services.
+<<<<<<< HEAD
 // #if (implement-sqlserver)
+=======
+#if (implement-sqlserver)
+>>>>>>> 9d0485ed6ca54a21eadbcd1a620214ee380e5905
         builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+<<<<<<< HEAD
 // #if (outbox-enabled)
             .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher as the IEventPublisher.
 // #endif
@@ -57,13 +68,28 @@ public class Program
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
 // #elif (implement-postgres)
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
+=======
+#if (outbox-enabled)
+            .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher/IEventPublisher.
+#endif
+            .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
+            .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
+#elif (implement-postgres)
+        builder.AddAzureNpgsqlDataSource("Postgres");   // Adds the NpgsqlDataSource (using Aspire library).
+>>>>>>> 9d0485ed6ca54a21eadbcd1a620214ee380e5905
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+<<<<<<< HEAD
 // #if (outbox-enabled)
             .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher as the IEventPublisher.
 // #endif
+=======
+#if (outbox-enabled)
+            .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher/IEventPublisher.
+#endif
+>>>>>>> 9d0485ed6ca54a21eadbcd1a620214ee380e5905
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
 // #endif

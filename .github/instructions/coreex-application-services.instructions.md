@@ -307,9 +307,14 @@ Failure factories (return a failed result of the matching type): `Result.Validat
 
 ## CQRS — Read Services
 
-Split read operations into a separate service with an `IXxxReadService` interface. This is the surface expression of CQRS: the write model (mutations + events) and the read model (queries returning purpose-built shapes) are designed and scaled independently.
+Split a domain's service operations **by mutation** — this is the convention:
 
-The interface lives in `Interfaces/` alongside the write service interface (e.g., `IProductReadService.cs` next to `IProductService.cs`). The implementation lives in the same folder as the write service implementation.
+- **Mutating** operations — `Create`, `Update`, `Delete`, and any other state-changing operation — live in **`XxxService`** (`IXxxService`). These own validation, the unit of work, and event publication. `XxxService` **also** exposes a primary by-id `GetAsync(id)` to support its own mutation flows (the PATCH pre-fetch, fetch-then-update, concurrency/not-found checks).
+- **Query and read-model** operations — `QueryAsync` (collections/search) and other purpose-built read shapes — live in **`XxxReadService`** (`IXxxReadService`), which also exposes the by-id `GetAsync` for the read API.
+
+This is the surface expression of CQRS: the write model (mutations + events) and the read model (queries returning purpose-built shapes) are designed and scaled independently. Both interfaces live in `Interfaces/` side by side (`IProductService.cs`, `IProductReadService.cs`); both implementations live together in the service folder.
+
+A primary by-id `GetAsync` therefore appears on **both** services — this is intentional. Each is a single line delegating to the shared `IXxxRepository.GetAsync`, so there is no real logic duplication; having `XxxService` own a `GetAsync` keeps the mutating controller dependent on **one** service (no need to also resolve `IXxxReadService` just for the PATCH fetch). The meaningful divergence — queries and read-optimized shapes — stays exclusive to `XxxReadService`.
 
 ```csharp
 [ScopedService<IProductReadService>]
@@ -322,6 +327,8 @@ public class ProductReadService(IProductRepository repository) : IProductReadSer
         => _repository.QueryAsync(query, paging);
 }
 ```
+
+**The repository stays singular — CQRS is a service-layer split, not a data-layer one.** Both `XxxService` and `XxxReadService` inject the **same** `IXxxRepository` when they share a data source (e.g. the one SQL database) — do **not** split the repository to mirror the services. Only when a specific operation targets a **different** data source (e.g. a read served from a separate store or search index) is an additional repository introduced; the owning service injects and calls the appropriate repository per operation.
 
 ## Anti-Corruption Layer (Adapters)
 
@@ -414,6 +421,8 @@ Always call `.ConfigureAwait(false)` on every `await` inside service and reposit
 ## Do Not
 
 - Do not publish events outside of `_unitOfWork.TransactionAsync(...)` — events must be committed atomically with the database write.
+- Do not put **query/collection or read-model** operations in `XxxService`, nor mutating operations in `XxxReadService` — queries belong in `XxxReadService`. (A primary by-id `GetAsync` legitimately appears on **both**: the write service uses it to support its own mutations, e.g. the PATCH pre-get.)
+- Do not split the repository to mirror the CQRS services — both share one `IXxxRepository` per data source; add another repository only for a genuinely different data source.
 - Do not call `HttpClient` directly from services — always go through an adapter interface.
 - Do not reference Infrastructure assemblies from the Application layer — all persistence and transport concerns are reached through interfaces.
 - Do not implement rules in `OnValidateAsync` that require I/O without first guarding with `if (context.HasErrors) return;`.

@@ -8,9 +8,7 @@
 
 namespace Contoso.Shopping.Contracts;
 
-/// <summary>
-/// Represents the 'Basket Status' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Basket Status' reference-data contract.</summary>
 [ReferenceData]
 public partial class BasketStatus : ReferenceData<BasketStatus> { }
 

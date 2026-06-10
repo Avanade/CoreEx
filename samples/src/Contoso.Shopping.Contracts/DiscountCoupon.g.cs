@@ -8,9 +8,7 @@
 
 namespace Contoso.Shopping.Contracts;
 
-/// <summary>
-/// Represents the 'Discount Coupon' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Discount Coupon' reference-data contract.</summary>
 [ReferenceData]
 public partial class DiscountCoupon : ReferenceData<DiscountCoupon> { }
 

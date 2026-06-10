@@ -10,7 +10,7 @@ public class EntryPoint
         builder.Services.AddReferenceDataOrchestrator<ReferenceDataServiceDecorator>();
 
         // Reuse the "real" database configured reference data.
-        var jdr = JsonDataReader.ParseYaml<Contoso.Products.Database.Program>("ref-data.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
+        var jdr = JsonDataReader.ParseYaml<Contoso.Products.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
         builder.Services.AddSingleton(new ReferenceDataServiceDecorator(jdr));
     }
 

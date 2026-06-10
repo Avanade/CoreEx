@@ -57,6 +57,8 @@ Do **not** assert unverified root causes (e.g. "circular dependency", "build ord
 
 **Stop looping.** If two attempts at the same fix have not worked, do not keep trying variations of the same thing. **Stop and ask the user** — describe what you tried, the exact error, and the options you see. A short question resolves far more than repeated thrashing, and the user often has context that unblocks it immediately. Never fabricate files, directories, projects, or hand-written generated code to force past a block you do not understand.
 
+**Do not change an agreed decision to make an error disappear.** Once something is settled — most commonly an entity's **identifier type** (`string` by default unless the user explicitly specified otherwise) — it is fixed for the whole task. When a build or migration fails, fix the actual cause; do **not** quietly flip the decision (e.g. switch a `string` id to `UNIQUEIDENTIFIER`/`Guid`, or revert a scaffold default) to silence the error. A failure is never resolved by changing the agreed type. If you believe the decision itself is wrong, stop and ask.
+
 ### Never Modify the Database Directly
 
 The AI must **never** alter the database itself to "fix" or "unblock" a problem. This is absolute:
@@ -68,6 +70,20 @@ The AI must **never** alter the database itself to "fix" or "unblock" a problem.
 
 If `dotnet run -- database` (or `migrate`) fails because the live database is inconsistent with the scripts — e.g. "the journal is empty but the objects already exist", or scripts re-running over existing objects — this is a **state-reconciliation decision that belongs to the user, not the AI**. **Stop and ask.** Present the legitimate options and let them choose, for example: in a disposable local/dev database, drop and rebuild cleanly with `dotnet run -- dropanddatabase` (destructive — confirm first); otherwise the user reconciles the environment manually. Never resolve it by editing the database or its journal yourself.
 
+### Order of Operations — Database First
+
+When a change spans the database, code generation, and hand-written code (e.g. "add an Employee entity with a Gender reference data"), plan and execute **in this exact order**. The database is the baseline everything else is generated from or built on; doing things out of order — CodeGen first, or adding seed rows / `dbex.yaml` tables *before* the tables can be created — is the main cause of confused, churn-y "fixes". **Plan the whole sequence first; do not start a step until the previous one has succeeded.**
+
+1. **Establish & inspect.** Bring the DB up to date (`dotnet run -- database`), then `dotnet run -- inspect <schema> <table>…` to confirm current state and decide create-vs-alter. **If the bring-up fails, STOP and alert the user with the verbatim error — do not proceed, and do not start "fixing" things that may not be broken.**
+2. **Author migration script(s)** for the absent/changed table(s) — `dotnet run -- script refdata|create <schema> <table>`, then fill in the columns (see *Creating or altering a table* in `coreex-tooling.instructions.md`).
+3. **Add reference-data rows** to `Data/ref-data.seed.yaml`.
+4. **Register the tables** in `dbex.yaml` `tables:`.
+5. **Apply & generate (DB side):** `dotnet run -- All` (Create → Migrate → CodeGen → Schema → Data) — Migrate creates the tables, CodeGen generates the EF persistence models from the now-present schema, Data seeds. **If it fails, STOP and alert with the verbatim error** — a broken baseline invalidates everything downstream.
+6. **Generate contracts:** edit `*.CodeGen/ref-data.yaml` and run `dotnet run` (in `*.CodeGen`) for the ref-data contracts/services/repositories/mappers.
+7. **Hand-written .NET code:** application services, validators, controllers, tests — **last**, on the generated baseline.
+
+Steps 3–4 (seed rows, `dbex.yaml` tables) come **after** the migration scripts of step 2 and are only applied/introspected in step 5 — where Migrate creates the tables *before* Data seeds and *before* CodeGen reads them. **Never add seed rows or `dbex.yaml` tables, or run CodeGen, before the tables can be created** (that was the ordering error: seeding/`dbex.yaml` before the create migrations exist makes the bring-up fail).
+
 ### Before Generating Any Code
 
 1. Run `Get-ChildItem .github/instructions -File` to enumerate all instruction files.
@@ -77,6 +93,14 @@ If `dotnet run -- database` (or `migrate`) fails because the live database is in
 ### Do Not Create Projects Unless Explicitly Asked
 
 Never create a new project or add a project to the solution (e.g. an `*.Api`, `*.Subscribe`, `*.Outbox.Relay`, `*.Domain`, `*.CodeGen`, or `*.Database` project) unless the user **explicitly** requests it. Adding a project is a deliberate, structural decision the user owns — it is not something to infer from a feature request ("create a service", "create a contract") or to do in order to "unblock" tooling. In particular, a configured path that points to a not-yet-existing project (e.g. `apiProjectPath` in `ref-data.yaml`) does **not** justify scaffolding that project or creating placeholder folders/files — CodeGen merely warns and skips the missing target (see `coreex-tooling.instructions.md`). If a project genuinely appears to be missing and is needed, raise it with the user and let them decide.
+
+**Adding an API host (the explicit-ask exception).** When the user asks to **create a CRUD API** for an entity, or to create a service **and** expose it via an API, an Api host *is* explicitly requested. If none exists (`**/*.Api/*.Api.csproj` absent), **confirm** where to create it, then scaffold it with the `coreex-api` template — **run from the solution root** (the folder containing `src/` and `tests/`); the template merges its own `src/`/`tests/`, so running it inside `src/` yields nested `src/src/...` paths (if that happens, delete the misplaced output and re-run from the root — do **not** hand-move files). Default its options (`data-provider`, `refdata-enabled`, `outbox-enabled`) from the solution-root **`AGENTS.md` "Feature Configuration"** (the record of the original `coreex` selections; cross-check `dbex.yaml`). Author the controller and keep `AGENTS.md` current in-session; the `.slnx` wiring (host → `/hosts/`, test → `/tests/`) is **not** done in-session — hand it off as a **Manual step** for the user to run. Confirm before creating; never auto-create. Full workflow: `coreex-host-setup.instructions.md` → "Scaffolding an API host".
+
+**Modifying the solution file (`.slnx`):** the correct command is `dotnet sln <Solution>.slnx add <project>.csproj --solution-folder <folder>` (and `remove`) — it supports `.slnx` and creates the folder as needed; **never hand-edit the `.slnx` XML** (manual edits are error-prone and have wiped solution files). But **do not run `.slnx` changes in-session** — writing the `.slnx` makes the IDE reload the solution, which can interrupt and discard the agent's pending changes. Instead, hand them to the user as **Manual steps** (see below).
+
+**Manual steps (end-of-task hand-off).** Some actions are deferred for the user to run **after they accept the agent's changes** — chiefly `.slnx` modifications, and any other step that would disrupt the IDE or that the agent should not perform itself. Do all file/code work in-session, then end the response with a single **"Manual steps"** checklist: numbered, copy-pasteable commands, each with a one-line reason. Batch to minimise writes — one `dotnet sln add` per target solution-folder (a single call takes multiple project paths). As more hosts are added (API / Subscribe / Outbox Relay), append their `dotnet sln add` commands to the same list.
+
+Deferring the `.slnx` add does **not** block in-session verification: compilation does not require solution membership. Build and test a new or edited project **by its `.csproj` path** — `dotnet build <project>.csproj`, `dotnet test <testproject>.csproj` — which also builds its referenced projects. Do **not** rely on a solution-wide build to verify a project that is not yet in the `.slnx` — it would silently skip it.
 
 ### Validator Unit Tests
 
@@ -93,7 +117,7 @@ Every project has a single `GlobalUsing.cs` at its root where all namespace impo
 - Use exception-based flow for simpler CRUD-oriented services where pipeline composition adds no value.
 - Use `WebApi` helpers in controllers — never return typed `ActionResult<T>` directly.
 - Use `[ScopedService<TInterface>]` on service and repository classes for automatic DI discovery — avoid manual `services.AddScoped<>()` registration.
-- Use `AddDynamicServicesUsing<T1, T2, ...>()` in `Program.cs` to discover and register all `[ScopedService]`-decorated types from the specified assemblies.
+- Use `AddDynamicServicesUsing<T1, T2, ...>()` in `Program.cs` to register `[ScopedService]`-decorated types — pass **one representative type per assembly** (it scans each type argument's whole assembly), **not** one per service/repository. Adding a new entity in an existing assembly does **not** change this call; add a type argument only for a **new** assembly.
 
 ### Mapping
 

@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Infrastructure.Persistence;
 
-/// <summary>
-/// Persistence reference-data model representing the '<c>"products"."brand"</c>' database table.
-/// </summary>
+/// <summary>Persistence reference-data model representing the '<c>"products"."brand"</c>' database table.</summary>
 public partial class Brand : ReferenceDataModelBase<string> { }
 
 #nullable restore

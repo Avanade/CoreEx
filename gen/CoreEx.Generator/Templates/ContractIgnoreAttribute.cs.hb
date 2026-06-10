@@ -4,9 +4,7 @@
 
 namespace CoreEx.Entities;
 
-/// <summary>
-/// Indicates that the corresponding property should <i>not</i> be included in the source generation of the <i>CoreEx<i> extended contract functionality.
-/// </summary>
+/// <summary>Indicates that the corresponding property should <i>not</i> be included in the source generation of the <i>CoreEx<i> extended contract functionality.</summary>
 /// <remarks>This is dependent on either <see cref="CoreEx.Entities.ContractAttribute"/> or <see cref="CoreEx.Entities.ReferenceDataAttribute"/> usage.
 /// <para>This is used for the generation of <see cref="CoreEx.Entities.Extended.RuntimeMetadata"/> functionality; this otherwise does not get used for the implementation of the property itself.</para></remarks>
 [global::System.AttributeUsage(global::System.AttributeTargets.Property, AllowMultiple = false)]
