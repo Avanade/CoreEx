@@ -3,9 +3,9 @@ global using CoreEx.AspNetCore.Mvc;
 global using CoreEx.Azure.Messaging.ServiceBus;
 global using CoreEx.Caching;
 global using CoreEx.Database;
-// #if (implement-sqlserver)
+// #if implement-sqlserver
 global using CoreEx.Database.SqlServer;
-// #elif (implement-postgres)
+// #elif implement-postgres
 global using CoreEx.Database.Postgres;
 // #endif
 global using CoreEx.DependencyInjection;
@@ -15,7 +15,7 @@ global using CoreEx.Events.Subscribing;
 global using CoreEx.Http;
 global using CoreEx.Json;
 global using CoreEx.Results;
-// #if (refdata-enabled)
+// #if refdata-enabled
 global using CoreEx.RefData;
 // #endif
 global using CoreEx.Validation;
@@ -32,6 +32,6 @@ global using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
 // NOTE: Application layer using statements will be added after CodeGen runs.
 // See: BOOTSTRAP_PHASE_2.md in your project root.
 // Add the following after generating subscriber implementations:
-// // #if (refdata-enabled)
+// // #if refdata-enabled
 // global using solution-name.Application;
 // // #endif

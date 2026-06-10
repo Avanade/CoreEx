@@ -18,7 +18,7 @@ public class Program
             .AddHostedServiceManager();
 
         // Add the repository and related outbox relay services.
-// #if (implement-sqlserver)
+// #if implement-sqlserver
         builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
@@ -26,7 +26,7 @@ public class Program
             .AddSqlServerOutboxRelay();                 // Adds the SqlServerOutboxRelay.
 
         builder.AddSqlServerOutboxRelayHostedService(); // Adds the SqlServerOutboxRelayHostedService.
-// #elif (implement-postgres)
+// #elif implement-postgres
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
@@ -36,7 +36,7 @@ public class Program
         builder.AddPostgresOutboxRelayHostedService();  // Adds the PostgresOutboxRelayHostedService.
 // #endif
 
-// #if (implement-servicebus)
+// #if implement-servicebus
         // Add the Azure Service Bus publisher.
         builder.AddAzureServiceBusClient("ServiceBus"); // Adds the Azure Service Bus client (using Aspire library).
         builder.Services.AddAzureServiceBusPublisher(); // Adds the Azure Service Bus as the IEventPublisher.
@@ -47,12 +47,12 @@ public class Program
 
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
-// #if (implement-sqlserver)
+// #if implement-sqlserver
             .WithCoreExSqlServerTelemetry()
-// #elif (implement-postgres)
+// #elif implement-postgres
             .WithCoreExPostgresTelemetry()
 // #endif
-// #if (implement-servicebus)
+// #if implement-servicebus
             .WithCoreExServiceBusTelemetry()
 // #endif
             .UseOtlpExporter();

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="CoreEx" />
-    <!--#if (refdata-enabled)-->
+    <!--#if refdata-enabled-->
     <PackageReference Include="CoreEx.RefData" />
     <!--#endif-->
   </ItemGroup>

@@ -2,15 +2,15 @@ global using CoreEx;
 global using CoreEx.AspNetCore.Mvc;
 global using CoreEx.Caching;
 global using CoreEx.Database;
-// #if (implement-sqlserver)
+// #if implement-sqlserver
 global using CoreEx.Database.SqlServer;
-// #elif (implement-postgres)
+// #elif implement-postgres
 global using CoreEx.Database.Postgres;
 // #endif
 global using CoreEx.Entities;
 global using CoreEx.Http;
 global using CoreEx.Json;
-// #if (refdata-enabled)
+// #if refdata-enabled
 global using CoreEx.RefData;
 // #endif
 global using CoreEx.Validation;
@@ -28,6 +28,6 @@ global using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
 // NOTE: Application layer using statements will be added after CodeGen runs.
 // See: BOOTSTRAP_PHASE_2.md in your project root.
 // Add the following after generating application services:
-// // #if (refdata-enabled)
+// // #if refdata-enabled
 // global using solution-name.Application;
 // // #endif

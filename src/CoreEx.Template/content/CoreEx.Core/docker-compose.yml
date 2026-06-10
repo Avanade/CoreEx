@@ -1,7 +1,7 @@
 name: domain-name-lower
 
 services:
-#if (implement-sqlserver || implement-servicebus)
+#if implement-sqlserver || implement-servicebus
   db-sql-server:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
@@ -10,7 +10,7 @@ services:
     ports:
       - "1433:1433"
 #endif
-#if (implement-postgres)
+#if implement-postgres
   db-postgres:
     image: postgres
     environment:
@@ -30,7 +30,7 @@ services:
     ports:
       - "18888:18888"
       - "4317:18889"
-#if (implement-servicebus)
+#if implement-servicebus
   servicebus-emulator:
     image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
     depends_on:

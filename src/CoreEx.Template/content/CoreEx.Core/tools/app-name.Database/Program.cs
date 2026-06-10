@@ -1,5 +1,5 @@
 using CoreEx.Database;
-#if (implement-sqlserver)
+#if implement-sqlserver
 using DbEx.Migration;
 using DbEx.SqlServer.Console;
 
@@ -22,7 +22,7 @@ public class Program
         return args;
     }
 }
-#elif (implement-postgres)
+#elif implement-postgres
 using DbEx.Migration;
 using DbEx.Postgres.Console;
 

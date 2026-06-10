@@ -1,6 +1,6 @@
 global using CoreEx.Entities;
 global using CoreEx.Localization;
-// #if (refdata-enabled)
+// #if refdata-enabled
 global using CoreEx.RefData;
 // #endif
 global using System.ComponentModel;

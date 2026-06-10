@@ -51,19 +51,19 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 
 ## This Host's Feature Configuration
 
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 - **Data provider:** SQL Server -- `builder.AddSqlClientConnection("SqlServer")` (Aspire connection name)
-<!-- #elif (implement-postgres) -->
+<!-- #elif implement-postgres -->
 - **Data provider:** PostgreSQL -- `builder.AddNpgsqlDataSource("Postgres")` (Aspire connection name)
 <!-- #else -->
 - **Data provider:** None -- this host uses no database; services call external systems directly
 <!-- #endif -->
-<!-- #if (outbox-enabled && !implement-none-data) -->
+<!-- #if outbox-enabled && !implement-none-data -->
 - **Transactional outbox:** Enabled -- events are written to the DB outbox by `domain-nameOutboxPublisher`; the Relay host reads and forwards them
 <!-- #else -->
 - **Transactional outbox:** Disabled -- events are published directly to the message broker
 <!-- #endif -->
-<!-- #if (refdata-enabled) -->
+<!-- #if refdata-enabled -->
 - **Reference data:** Enabled -- `ReferenceDataOrchestrator<ReferenceDataService>` is registered; reference data is hydrated via `ReferenceDataRepository`
 <!-- #else -->
 - **Reference data:** Disabled
@@ -78,16 +78,16 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 | `CoreEx.AspNetCore` | Web API base types, middleware, `WebApiPublisher` |
 | `CoreEx.AspNetCore.NSwag` | NSwag OpenAPI integration |
 | `CoreEx.Caching.FusionCache` | FusionCache `IHybridCache` integration |
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 | `CoreEx.Database.SqlServer` | SQL Server database access |
 <!-- #endif -->
-<!-- #if (implement-postgres) -->
+<!-- #if implement-postgres -->
 | `CoreEx.Database.Postgres` | PostgreSQL database access |
 <!-- #endif -->
-<!-- #if (!implement-none-data) -->
+<!-- #if !implement-none-data -->
 | `CoreEx.EntityFrameworkCore` | EF Core integration (`EfDb`, `IEfDbContext`) |
 <!-- #endif -->
-<!-- #if (refdata-enabled) -->
+<!-- #if refdata-enabled -->
 | `CoreEx.RefData` | Reference data orchestration |
 <!-- #endif -->
 
@@ -101,9 +101,9 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 - `.github/docs/coreex/local-dev.md` -- running locally with .NET Aspire
 - `.github/docs/coreex/agents/CoreEx.AspNetCore.md` -- Web API patterns
 - `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` -- caching
-<!-- #if (!implement-none-data) -->
+<!-- #if !implement-none-data -->
 - `.github/docs/coreex/agents/CoreEx.EntityFrameworkCore.md` -- EF Core patterns
 <!-- #endif -->
-<!-- #if (refdata-enabled) -->
+<!-- #if refdata-enabled -->
 - `.github/docs/coreex/agents/CoreEx.RefData.md` -- reference data patterns
 <!-- #endif -->

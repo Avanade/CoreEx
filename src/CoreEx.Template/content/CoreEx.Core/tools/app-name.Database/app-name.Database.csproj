@@ -4,10 +4,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CoreEx.Database" />
-    <!--#if (implement-sqlserver)-->
+    <!--#if implement-sqlserver-->
     <PackageReference Include="DbEx.SqlServer" />
     <!--#endif-->
-    <!--#if (implement-postgres)-->
+    <!--#if implement-postgres-->
     <PackageReference Include="DbEx.Postgres" />
     <!--#endif-->
   </ItemGroup>

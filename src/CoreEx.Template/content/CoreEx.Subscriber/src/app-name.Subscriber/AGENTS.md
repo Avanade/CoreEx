@@ -8,7 +8,7 @@ This is the **Message Subscriber host** for the `domain-name` domain, part of th
 
 ## Host Responsibilities
 
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 This is a **background worker host** -- it runs a Service Bus session receiver as a hosted service and delegates message handling to typed subscriber classes. It should contain:
 
 - `Program.cs` -- startup, DI registration, subscriber wiring
@@ -26,7 +26,7 @@ Read `.github/docs/coreex/hosts-layer.md` for the full host-layer guide.
 
 ---
 
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 ## Adding a New Subscriber
 
 1. Create a class in `Subscribers/`, e.g. `ProductCreatedSubscriber.cs`
@@ -71,19 +71,19 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 
 ## This Host's Feature Configuration
 
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 - **Messaging:** Azure Service Bus -- session receiver with `SubscribedManager` dispatch
 <!-- #else -->
 - **Messaging:** None configured -- add a messaging provider to enable message receiving
 <!-- #endif -->
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 - **Database:** SQL Server -- used for outbox publishing when subscribers need to emit their own events
-<!-- #elif (implement-postgres) -->
+<!-- #elif implement-postgres -->
 - **Database:** PostgreSQL -- used for outbox publishing when subscribers need to emit their own events
 <!-- #else -->
 - **Database:** None -- no database configured; subscribers do not persist data directly
 <!-- #endif -->
-<!-- #if (refdata-enabled) -->
+<!-- #if refdata-enabled -->
 - **Reference data:** Enabled -- `ReferenceDataOrchestrator<ReferenceDataService>` is registered; reference data is available in subscriber logic
 <!-- #else -->
 - **Reference data:** Disabled
@@ -95,21 +95,21 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 
 | Package | Purpose |
 |---|---|
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 | `CoreEx.Azure.Messaging.ServiceBus` | Service Bus session receiver, `SubscribedManager` |
 <!-- #endif -->
 | `CoreEx.Events` | `ISubscriber<T>`, `SubscriberBase<T>`, `EventSubscriberAttribute` |
 | `CoreEx.Caching.FusionCache` | FusionCache `IHybridCache` integration |
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 | `CoreEx.Database.SqlServer` | SQL Server outbox for outbound events |
 <!-- #endif -->
-<!-- #if (implement-postgres) -->
+<!-- #if implement-postgres -->
 | `CoreEx.Database.Postgres` | PostgreSQL outbox for outbound events |
 <!-- #endif -->
-<!-- #if (!implement-none-data) -->
+<!-- #if !implement-none-data -->
 | `CoreEx.EntityFrameworkCore` | EF Core integration (`EfDb`, `IEfDbContext`) |
 <!-- #endif -->
-<!-- #if (refdata-enabled) -->
+<!-- #if refdata-enabled -->
 | `CoreEx.RefData` | Reference data orchestration |
 <!-- #endif -->
 
@@ -120,11 +120,11 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 - `.github/docs/coreex/hosts-layer.md` -- subscriber host startup patterns
 - `.github/docs/coreex/patterns.md` -- event and messaging patterns
 - `.github/docs/coreex/local-dev.md` -- running locally with .NET Aspire
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 - `.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md` -- Service Bus receiver, session config, subscriber patterns
 <!-- #endif -->
 - `.github/docs/coreex/agents/CoreEx.Events.md` -- event type system and subscriber contracts
 - `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` -- caching
-<!-- #if (refdata-enabled) -->
+<!-- #if refdata-enabled -->
 - `.github/docs/coreex/agents/CoreEx.RefData.md` -- reference data patterns
 <!-- #endif -->

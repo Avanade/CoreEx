@@ -1,6 +1,6 @@
 namespace app-name.Infrastructure.Repositories;
 
-// #if (implement-sqlserver)
+// #if implement-sqlserver
 /// <summary>Provides the <b>domain-name</b> <see cref="DbContext"/> with <see cref="IEfDbContext"/> support.</summary>
 public partial class domain-nameDbContext(DbContextOptions<domain-nameDbContext> options, SqlServerDatabase database) : DbContext(options), IEfDbContext
 {
@@ -26,7 +26,7 @@ public partial class domain-nameDbContext(DbContextOptions<domain-nameDbContext>
     /// <summary>Adds the generated models to the model builder (generated or empty stub).</summary>
     partial void AddGeneratedModels(ModelBuilder modelBuilder);
 }
-// #elif (implement-postgres)
+// #elif implement-postgres
 /// <summary>Provides the <b>domain-name</b> <see cref="DbContext"/> with <see cref="IEfDbContext"/> support.</summary>
 public partial class domain-nameDbContext(DbContextOptions<domain-nameDbContext> options, PostgresDatabase database) : DbContext(options), IEfDbContext
 {

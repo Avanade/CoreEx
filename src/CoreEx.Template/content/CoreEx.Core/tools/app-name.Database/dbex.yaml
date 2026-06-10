@@ -1,13 +1,13 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/DbEx/refs/heads/main/schema/dbex.json
 dotNetDataProjectPath: ../../src/app-name.Infrastructure
-# #if (implement-postgres)
+# #if implement-postgres
 schema: db-name
 # #elseif (implement-sqlserver)
 schema: domain-name
 # #endif
-# #if (outbox-enabled)
+# #if outbox-enabled
 outbox: true
-# #if (implement-postgres)
+# #if implement-postgres
 outboxName: outbox
 # #elseif (implement-sqlserver)
 outboxName: Outbox

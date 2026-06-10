@@ -32,14 +32,14 @@ This guarantees at-least-once delivery without distributed transactions.
 
 The relay connects to the same database as the API host -- use the **same Aspire resource name** so Aspire wires up the connection string automatically:
 
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 - `builder.AddSqlClientConnection("SqlServer")` -- matches the Aspire SQL Server resource
-<!-- #elif (implement-postgres) -->
+<!-- #elif implement-postgres -->
 - `builder.AddNpgsqlDataSource("Postgres")` -- matches the Aspire PostgreSQL resource
 <!-- #else -->
 - No database configured -- this relay has no data provider
 <!-- #endif -->
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 - `builder.AddAzureServiceBusClient("ServiceBus")` -- matches the Aspire Service Bus resource
 <!-- #endif -->
 
@@ -49,14 +49,14 @@ Relay timing and retry settings are configured via `appsettings.json` -- read `.
 
 ## This Host's Feature Configuration
 
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 - **Database:** SQL Server outbox (`AddSqlServerOutboxRelay()` + `AddSqlServerOutboxRelayHostedService()`)
-<!-- #elif (implement-postgres) -->
+<!-- #elif implement-postgres -->
 - **Database:** PostgreSQL outbox (`AddPostgresOutboxRelay()` + `AddPostgresOutboxRelayHostedService()`)
 <!-- #else -->
 - **Database:** None -- this relay has no database outbox configured
 <!-- #endif -->
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 - **Message broker:** Azure Service Bus (`AddAzureServiceBusPublisher()`)
 <!-- #else -->
 - **Message broker:** None configured
@@ -68,13 +68,13 @@ Relay timing and retry settings are configured via `appsettings.json` -- read `.
 
 | Package | Purpose |
 |---|---|
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 | `CoreEx.Database.SqlServer` | SQL Server outbox relay implementation |
 <!-- #endif -->
-<!-- #if (implement-postgres) -->
+<!-- #if implement-postgres -->
 | `CoreEx.Database.Postgres` | PostgreSQL outbox relay implementation |
 <!-- #endif -->
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 | `CoreEx.Azure.Messaging.ServiceBus` | Azure Service Bus publisher |
 <!-- #endif -->
 | `CoreEx.Events` | Event publishing abstractions |
@@ -86,13 +86,13 @@ Relay timing and retry settings are configured via `appsettings.json` -- read `.
 - `.github/docs/coreex/hosts-layer.md` -- relay startup patterns and outbox configuration
 - `.github/docs/coreex/infrastructure-layer.md` -- outbox schema and EF Core setup
 - `.github/docs/coreex/local-dev.md` -- running locally with .NET Aspire
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 - `.github/docs/coreex/agents/CoreEx.Database.SqlServer.md` -- SQL Server outbox details
 <!-- #endif -->
-<!-- #if (implement-postgres) -->
+<!-- #if implement-postgres -->
 - `.github/docs/coreex/agents/CoreEx.Database.Postgres.md` -- PostgreSQL outbox details
 <!-- #endif -->
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 - `.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md` -- Service Bus publisher
 <!-- #endif -->
 - `.github/docs/coreex/agents/CoreEx.Events.md` -- event publishing abstractions

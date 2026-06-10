@@ -73,7 +73,7 @@ Find this commented block:
         // See: BOOTSTRAP_PHASE_2.md in your project root for the post-CodeGen setup steps.
         // The following will be uncommented and moved here after running: dotnet run --project tools/solution-name.CodeGen
         //
-        // // #if (refdata-enabled)
+        // // #if refdata-enabled
         // builder.Services.AddReferenceDataOrchestrator<ReferenceDataService>();
         // builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
         // // #endif
@@ -99,7 +99,7 @@ Find this commented block:
 // NOTE: Application layer using statements will be added after CodeGen runs.
 // See: BOOTSTRAP_PHASE_2.md in your project root.
 // Add the following after generating application services:
-// // #if (refdata-enabled)
+// // #if refdata-enabled
 // global using solution-name.Application;
 // // #endif
 ```
