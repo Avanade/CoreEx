@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Abstractions;
+namespace CoreEx.Database.Abstractions;
 
 /// <summary>
 /// Provides the standard <see cref="IDatabase"/> invoker functionality.
@@ -62,15 +62,15 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
                 {
                     await txn.RollbackAsync(cancellationToken).ConfigureAwait(false);
 
-                    if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Information))
-                        tracer.Logger.LogInformation("Unit-of-work transaction rolled back due to error: {Error} [DatabaseId: {DatabaseId}]", exception.Message, unitOfWork.Database.DatabaseId);
+                    if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
+                        tracer.Logger.LogError("Unit-of-work transaction rolled back due to error: {Error} [DatabaseId: {DatabaseId}]", exception.Message, unitOfWork.Database.DatabaseId);
                 }
                 else
                 {
                     await txn.RollbackAsync(savePoint, cancellationToken).ConfigureAwait(false);
 
-                    if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Information))
-                        tracer.Logger.LogInformation("Unit-of-work transaction save-point '{SavePoint}' rolled back due to error: {Error} [DatabaseId: {DatabaseId}]", savePoint, exception.Message, unitOfWork.Database.DatabaseId);
+                    if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
+                        tracer.Logger.LogError("Unit-of-work transaction save-point '{SavePoint}' rolled back due to error: {Error} [DatabaseId: {DatabaseId}]", savePoint, exception.Message, unitOfWork.Database.DatabaseId);
                 }
             }
 

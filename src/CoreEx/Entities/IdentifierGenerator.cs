@@ -1,8 +1,9 @@
-﻿namespace CoreEx.Entities.Extended;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Provides a <see cref="string"/> and <see cref="Guid"/> <see cref="IIdentifierGenerator"/> where each is created using a <see cref="Guid"/>.
 /// </summary>
+/// <remarks>A custom <see cref="IIdentifierGenerator"/> can be used to support different identifier generation strategies and identifier types as necessary.</remarks>
 public class IdentifierGenerator : IIdentifierGenerator
 {
     private static readonly IIdentifierGenerator _default = new IdentifierGenerator();

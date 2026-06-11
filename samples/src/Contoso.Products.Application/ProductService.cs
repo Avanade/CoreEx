@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Application;
+namespace Contoso.Products.Application;
 
 [ScopedService<IProductService>]
 public class ProductService(IUnitOfWork unitOfWork, IProductRepository repository) : IProductService
@@ -12,7 +12,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
     {
         product.ThrowIfNull();
 
-        await ProductValidator.Default.ValidateAndThrowAsync(product);
+        await ProductValidator.Default.ValidateAndThrowAsync(product).ConfigureAwait(false);
 
         product.Id = Runtime.NewId();
         product.CategoryCode = product.SubCategory!.CategoryCode;
@@ -92,7 +92,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.DeleteAsync(id).ConfigureAwait(false);
-            dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEventWith<Product>(default, EventAction.Deleted).WithKey(id)));
+            dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEvent<Product>(EventAction.Deleted).WithKey(id)));
         }).ConfigureAwait(false);
     }
 }

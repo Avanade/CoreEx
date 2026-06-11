@@ -14,7 +14,7 @@ public class OrderService(IUnitOfWork unitOfWork, IOrderRepository repository) :
 
         await OrderValidator.Default.ValidateAndThrowAsync(order).ConfigureAwait(false);
 
-        order.Id = Runtime.NewId();
+        await IdentifierGenerator.Current.AssignIdentifierAsync(order).ConfigureAwait(false);
         order.StatusCode ??= "P";
 
         return await _unitOfWork.TransactionAsync(async () =>
@@ -50,7 +50,7 @@ public class OrderService(IUnitOfWork unitOfWork, IOrderRepository repository) :
         await _unitOfWork.TransactionAsync(async () =>
         {
             var dr = await _repository.DeleteAsync(id).ConfigureAwait(false);
-            dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEventWith<Order>(default, EventAction.Deleted).WithKey(id)));
+            dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEvent<Order>(EventAction.Deleted).WithKey(id)));
         }).ConfigureAwait(false);
     }
 }

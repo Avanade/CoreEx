@@ -342,7 +342,7 @@ SQL conventions:
 - Include the `IChangeLog` audit columns on aggregate tables, named **exactly** `CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn` (SQL Server) / `created_by`, `created_on`, `updated_by`, `updated_on` (PostgreSQL). The date/time columns use the `On` suffix — **never** `CreatedDate`/`UpdatedDate` or `created_date`/`updated_date`. Type them `DATETIMEOFFSET` (SQL Server) / `TIMESTAMPTZ` (PostgreSQL) and the `*By` columns as the contract's user type (typically `NVARCHAR(n)` / `VARCHAR(n)`).
 - **SQL Server**: add a `ROWVERSION` / `TIMESTAMP` column for optimistic-concurrency mapped to `ETag`.
 - **PostgreSQL**: use the built-in hidden `xmin` system column for optimistic-concurrency — no explicit column is required in the schema.
-- Logical (soft) delete on root/aggregate tables is an infrastructure-only column — `IsDeleted` (SQL Server) / `is_deleted` (PostgreSQL) — with **no** corresponding contract/entity property; default to including it (confirm) when creating such a table.
+- Logical (soft) delete on root/aggregate tables is an infrastructure-only column — `[IsDeleted] BIT NOT NULL DEFAULT (0)` (SQL Server) / `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` (PostgreSQL) — with **no** corresponding contract/entity property; default to including it (confirm) when creating such a table. It must be **NOT NULL** and **default to the DB's `false`** (`0` / `FALSE`), never nullable.
 
 ### Standard table templates
 
@@ -389,6 +389,7 @@ CREATE TABLE [Schema].[Order] (
   [OrderId] NVARCHAR(50) NOT NULL PRIMARY KEY,
   [CustomerId] NVARCHAR(100) NOT NULL,
   [StatusCode] NVARCHAR(50) NOT NULL,     -- references [OrderStatus].[Code]; no FK by convention
+  [IsDeleted] BIT NOT NULL DEFAULT (0),   -- logical delete (default yes — confirm); NOT NULL, defaults false; no contract property
   [CreatedBy] NVARCHAR(250) NULL,
   [CreatedOn] DATETIMEOFFSET NULL,
   [UpdatedBy] NVARCHAR(250) NULL,
@@ -441,7 +442,7 @@ When asked to create or change a database table for a .NET entity (e.g. *"create
 >    - **Only if the user explicitly asks for an Id reference** → name it `{Name}Id`, typed to match the reference data identifier; and even then a foreign key is **not** automatic — ask whether one is required and add it only if confirmed.
 >
 >    **Never** default to `{Name}Id` + a `REFERENCES` foreign key — that contradicts both the contract (whose property is `{Name}Code`) and the CoreEx convention (reference data is resolved by code, not FK-joined).
-> 5. **Confirm logical-delete support** (for root/aggregate tables). Ask whether the table should support logical (soft) deletes — **default yes**. If yes, add an infrastructure-only column: `IsDeleted` (SQL Server) / `is_deleted` (PostgreSQL). This is a persistence concern only — the .NET contract/entity must **not** declare an equivalent property.
+> 5. **Confirm logical-delete support** (for root/aggregate tables). Ask whether the table should support logical (soft) deletes — **default yes**. If yes, add an infrastructure-only column: `[IsDeleted] BIT NOT NULL DEFAULT (0)` (SQL Server) / `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` (PostgreSQL) — it must be **NOT NULL** and default to the DB's `false` (`0` / `FALSE`), **never nullable**. This is a persistence concern only — the .NET contract/entity must **not** declare an equivalent property.
 > 6. **Offer to apply.** Offer to run `dotnet run -- CreateMigrateAndCodeGen`. Summarise the output on success; on failure relay the **complete output verbatim**.
 >
 > **On failure, do not add defensive existence-guards.** Migration scripts are plain DDL — DbEx tracks which have been applied and runs each exactly once, so a `CREATE TABLE` does **not** need `IF NOT EXISTS` / `IF OBJECT_ID(...) IS NULL` wrappers. If a script fails because an object already exists (or differs), that means the `Inspect` step was skipped or stale: **re-inspect** to learn the real state, then either remove the redundant create script (object already correct), or author a separate `ALTER` migration for the delta. Wrapping the DDL in conditional guards to make it "pass" masks the underlying state mismatch and is not the convention — never do it.
@@ -546,6 +547,7 @@ products:
 - Do not keep the `script` scaffold's generated-key PK — `[{Name}Id] UNIQUEIDENTIFIER ... DEFAULT (NEWSEQUENTIALID())` (SQL Server) or `"{name}_id" SERIAL` (PostgreSQL) — replace it with the agreed identifier type's column (`string` default → `NVARCHAR(50)`/`VARCHAR(50)`), dropping the value-generation default **unless the user explicitly asks to keep/include it**.
 - Do not change the agreed identifier type to make a failure go away — it is locked for the task; never revert to `UNIQUEIDENTIFIER` (or flip the type) in a fixing loop. If you think it is wrong, stop and ask.
 - Do not default a reference-data relationship to a `{Name}Id` column or a `REFERENCES` foreign key — mirror the contract's `{Name}Code` string property (e.g. `[GenderCode] NVARCHAR(50) NULL`, **no FK**). Use `{Name}Id`/FK only when the user explicitly asks.
+- Do not make the logical-delete column nullable or default-less — it is `[IsDeleted] BIT NOT NULL DEFAULT (0)` (SQL Server) / `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` (PostgreSQL): **NOT NULL**, defaulting to the DB's `false`.
 - Do not add `efModel` to a `dbex.yaml` table entry when it would be the default — write the bare `- name: Xxx` (not `- { name: Xxx, efModel: Yes }`). `efModel: Yes` is redundant (it's the default); `efModel: true` is invalid (it's a `Yes`/`No`/`ModelOnly`/`ModelBuilderOnly` choice). Only set `efModel` for a non-default (`No`/`ModelOnly`/`ModelBuilderOnly`).
 - Do not declare the `IsDeleted` column under a table's `columns:` (and there is no `isDeleted` column flag) — it is recognised by convention from the live schema; keep table entries to `- name: Xxx` unless an override is genuinely needed.
 - Do not add a per-table `schema:` override for reference data (e.g. a `Ref` schema) — reference and transactional tables both live in the domain's root `schema:` unless a different schema actually exists.

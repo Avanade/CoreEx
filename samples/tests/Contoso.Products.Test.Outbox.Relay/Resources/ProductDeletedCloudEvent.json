@@ -1,7 +1,7 @@
 {
   "specversion": "1.0",
   "id": "019c72b9-e9ab-7a00-97e9-cdf97f2f6024",
-  "type": "contoso.products.product.deleted.v1",
+  "type": "contoso.products.product.deleted",
   "source": "urn:contoso:products",
   "subject": "0000000d-0000-0000-0000-000000000000",
   "time": "2026-02-18T21:48:32.5446661Z",

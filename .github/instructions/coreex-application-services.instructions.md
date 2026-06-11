@@ -202,6 +202,33 @@ if (basket.HasExpiredItems)
         .WithDetail("One or more items in the basket have expired and must be removed before checkout.");
 ```
 
+## Assigning the identifier on Create
+
+The **service** assigns the new identifier on `Create` — the database does **not** generate it (the migration scaffold's value-generation default is dropped unless a key is explicitly DB-generated; see the tooling guidance). Set it from the ambient `Runtime` **after validation, before the transaction**, alongside any other server-controlled fields:
+
+```csharp
+public async Task<Product> CreateAsync(Product product)
+{
+    product.ThrowIfNull();
+    await ProductValidator.Default.ValidateAndThrowAsync(product).ConfigureAwait(false);
+
+    product.Id = Runtime.NewId();           // service-assigned identity — never left to the caller or the DB
+    product.CategoryCode = product.SubCategory!.CategoryCode;   // derive any other server-set fields here
+    product.IsInactive = true;
+
+    return await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.CreateAsync(product).ConfigureAwait(false);
+        return dr.WhereMutated(v =>
+            _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
+    }).ConfigureAwait(false);
+}
+```
+
+- **Match the generator to the identifier type:** `string` key → `Runtime.NewId()`; `Guid` key → `Runtime.NewGuid()`. Never use `Guid.NewGuid()` / `Guid.NewGuid().ToString()` directly — always go through `Runtime` so the clock/GUID source stays test-controllable.
+- **Always assign on Create** so the value is deterministic and present before the event is published — don't rely on the caller-supplied `Id` and don't defer to the database.
+- **Exception — DB-generated keys only:** if a key is explicitly an identity/sequence column (the rare, explicitly-requested case), the database assigns it; the service does **not** set `Id` and reads it back from the create result instead.
+
 ## Unit of Work and Events
 
 Wrap all side-effectful database operations in `_unitOfWork.TransactionAsync(...)`. Both the database write and the outbox event publication are committed atomically inside this scope — events are only dispatched if the transaction commits successfully.
@@ -235,7 +262,7 @@ return await _unitOfWork.TransactionAsync(async ct =>
 ```
 
 - `WhereMutated(action)` — executes `action` only when the data result records a mutation; add the event inside this callback. **Mind the overload:** `DataResult<T>` (from `Create`/`Update`) carries the value, so use `WhereMutated(v => ...)`; `DataResult` (from `Delete`) has **no value**, so use the parameterless `WhereMutated(() => ...)` — not `WhereMutated(_ => ...)`.
-- `EventData.CreateEventWith(value, action)` — creates a typed event from the entity.
+- `EventData.CreateEventWith(value, action)` — a typed event **carrying the entity value** (Create/Update). For a **no-value** event (Delete), use `EventData.CreateEvent<T>(action).WithKey(id)` — the type + action + key, **no value** (avoids the awkward `CreateEventWith<T>(default, …)`).
 - `EventAction.Created`, `EventAction.Updated`, `EventAction.Deleted` — use the standard constants.
 
 For delete the `DataResult` has no value, so use the parameterless `WhereMutated(() => ...)` and carry the identity via `.WithKey(id)`:
@@ -248,7 +275,7 @@ public async Task DeleteAsync(string id)
         var dr = await _repository.DeleteAsync(id.ThrowIfNullOrEmpty()).ConfigureAwait(false);
         dr.WhereMutated(() =>                                    // () — no value on a delete DataResult
             _unitOfWork.Events.Add(
-                EventData.CreateEventWith<Employee>(default, EventAction.Deleted).WithKey(id)));
+                EventData.CreateEvent<Employee>(EventAction.Deleted).WithKey(id)));
     }).ConfigureAwait(false);
 }
 ```

@@ -20,7 +20,7 @@ public partial class OrderMutateTests
             .AssertOK();
 
         Test.Http()
-            .ExpectSqlServerOutboxEvents(e => e.AssertMetadata("contoso", "contoso.orders.order.deleted.v1", order.Id!))
+            .ExpectSqlServerOutboxEvents(e => e.AssertMetadata("contoso", "contoso.orders.order.deleted", order.Id!))
             .Run(HttpMethod.Delete, $"/api/orders/{order.Id}")
             .AssertNoContent();
 

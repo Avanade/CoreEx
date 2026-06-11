@@ -100,6 +100,24 @@ Bar:                                  # schema
 - Reference data is linked **by code** — `GenderCode: M`, not an id/FK.
 - Set scenario flags explicitly where a test needs them — e.g. `IsDeleted: true`, `IsInactive: true`.
 
+> ### ⚠️ Writing the GUID literal in resource files (`.res.json` / `.event.json`)
+>
+> In seed YAML and test code, use `^N` / `N.ToGuid()` — **never hand-write the GUID**. But resource files can't call code, so when a deterministic id/FK must appear as a **literal string** you must compute `N.ToGuid()` correctly. Two rules the agent gets wrong:
+>
+> 1. **The number goes in the FIRST segment, not the last.** `1.ToGuid()` is `00000001-0000-0000-0000-000000000000`, **not** `00000000-0000-0000-0000-000000000001`.
+> 2. **The first segment is the number in lowercase HEXADECIMAL, zero-padded to 8 digits — not decimal.** It is *not* a straight digit substitution; convert to hex. (For `N ≤ 9` hex and decimal coincide, which hides the bug; it surfaces at `N ≥ 10`.)
+>
+> | `N` | first segment (hex) | full `N.ToGuid()` literal |
+> |---|---|---|
+> | 1 | `00000001` | `00000001-0000-0000-0000-000000000000` |
+> | 2 | `00000002` | `00000002-0000-0000-0000-000000000000` |
+> | 12 | `0000000c` | `0000000c-0000-0000-0000-000000000000` |
+> | 16 | `00000010` | `00000010-0000-0000-0000-000000000000` |
+> | 255 | `000000ff` | `000000ff-0000-0000-0000-000000000000` |
+> | 1000 | `000003e8` | `000003e8-0000-0000-0000-000000000000` |
+>
+> Formula: `N.ToString("x8") + "-0000-0000-0000-000000000000"`. When in doubt, prefer excluding the volatile `id` from the resource (the `Expect*` helpers / `.AssertJsonFromResource(..., "id")` auto-exclude it) so no literal is needed; only write the literal for a **non-id** field that genuinely carries a deterministic GUID (e.g. a foreign-key column in a query result or event payload).
+
 In the test, reference the seeded row by the same number:
 
 ```csharp
@@ -246,6 +264,46 @@ Test.Http<Product>()
     .AssertOK();
 ```
 
+### Update of a non-existent id → 404 (ETag + value still required)
+
+Concurrency is checked **before** existence. So a "PUT a non-existent id → `NotFound`" test must **still send a valid ETag and a full value body** — otherwise the precondition check fires first and you get **`428 Precondition Required`** ("*A concurrency error occurred; an ETag is required either as an If-Match header (preferred) or specified within the request body (where supported).*"), not the `404` the test intends.
+
+```csharp
+// ✅ Correct — supply an ETag (any well-formed value) and a complete body; the 404 comes from the row not existing.
+var val = new Product { Id = 404.ToGuid().ToString(), Text = "Does not exist" /* ...all mandatory fields... */ };
+Test.Http<Product>()
+    .Run(HttpMethod.Put, $"/api/products/{val.Id}", val, requestModifier: r => r.WithIfMatch("any-etag"))
+    .AssertNotFound();
+
+// ❌ Wrong — no If-Match / no body ETag → 428 Precondition Required, never reaches the not-found check.
+Test.Http<Product>()
+    .Run(HttpMethod.Put, $"/api/products/{404.ToGuid()}", val)
+    .AssertNotFound();   // fails: actual is 428
+```
+
+The ETag value need not match anything (the row doesn't exist) — it only has to be **present** to clear the precondition gate. The body must still satisfy model validation (all mandatory fields), since validation also precedes the repository lookup.
+
+### Get of a soft-deleted row → 404 (when `IsDeleted` is supported)
+
+When the entity supports soft-delete (`IsDeleted` column), a row flagged deleted must be **invisible to reads** — a `GET` of it returns **`404 Not Found`**, exactly as if it never existed. This needs its own test because a row that is *present in the table* but filtered out is a different code path from a row that was never seeded.
+
+1. **Seed a deleted row** — add a row to the domain's read seed file with `IsDeleted: true`:
+
+```yaml
+Bar:
+  - Product:
+    - { ProductId: ^9, Name: Ghost, Sku: GHOST-1, IsDeleted: true }   # soft-deleted — must not be readable
+```
+
+2. **Assert the GET 404s** (and that it does **not** appear in a list/query):
+
+```csharp
+// Direct get of the soft-deleted row → 404.
+Test.Http().Run(HttpMethod.Get, $"/api/products/{9.ToGuid()}").AssertNotFound();
+```
+
+The point of the test is that the soft-delete filter is actually applied on read — a missing filter would return the row with `200 OK` instead of `404`. (Optionally also assert the row is absent from a collection/query result.)
+
 ### Delete — get → delete → get → delete (idempotent)
 
 The canonical delete test is a **four-step** flow that proves both the delete and its **idempotency**: GET (exists) → DELETE (204 + event) → GET (now 404) → DELETE again (204, **no** event). `DELETE` **always** returns **204 No Content** — **never 404**, even for a non-existent or already-deleted id; only the **first** delete (where the row existed) emits the event. The 404 belongs to the **GET**, not the DELETE.
@@ -254,9 +312,9 @@ The canonical delete test is a **four-step** flow that proves both the delete an
 // 1. Confirm it exists (the EmployeeId: ^2 seed).
 Test.Http().Run(HttpMethod.Get, $"/api/products/{2.ToGuid()}").AssertOK();
 
-// 2. Delete — 204, and a "deleted" outbox event (delete carries the key, no value body).
+// 2. Delete — 204, and a "deleted" outbox event. Delete has NO value body, so the subject has NO version suffix.
 Test.Http()
-    .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.deleted.v1"))
+    .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.deleted"))
     .Run(HttpMethod.Delete, $"/api/products/{2.ToGuid()}")
     .AssertNoContent();
 
@@ -277,17 +335,20 @@ A delete of a **non-existent** id behaves like step 4 — 204 No Content with no
 Assert published events with `ExpectXxxOutboxEvents(e => e.AssertWithValue(destination, subject))` (provider-specific). The two strings:
 
 - **`destination`** — the topic/queue the event is published to: the `CoreEx:Events:Destination` value from `appsettings.json` (the domain's messaging topic, e.g. `contoso`). Do not assume it equals the subject's first segment.
-- **`subject`** — composed as **`{solutionname}.{domainname}.{entity}.{action}[.v{version}]`**, all **lower-case**, dot-separated:
+- **`subject`** — composed as **`{solutionname}.{domainname}.{entity}.{action}`** + an **optional `.v{major}` version suffix**, all **lower-case**, dot-separated:
   - `solutionname` / `domainname` — from `CoreEx:Host:SolutionName` / `:DomainName` in `appsettings.json` (lower-cased; `SolutionName` may itself contain dots, e.g. `my.foo`).
   - `entity` — the entity/contract name (e.g. `employee`).
   - `action` — the **past-tense `EventAction`** set in the **service code** (`EventData.CreateEventWith(v, EventAction.Created)` → `created`; `Updated` → `updated`; `Deleted` → `deleted`).
-  - `version` — the optional version suffix (commonly `v1`).
+  - **`.v{major}` version suffix — present *only when the event carries a value*** (e.g. Create/Update). Its value is the **major** of the contract's `[Schema("v2.0")]` attribute → `.v2`; **unannotated defaults to `.v1`**. An event with **no value** (e.g. Delete) has **no version suffix at all**.
 
 ```csharp
+// Create — has a value → version suffix (default v1, or the [Schema] major).
 .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
+// Delete — no value → no version suffix.
+.ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.deleted"))
 ```
 
-If unsure of the exact subject (casing/version), **run the test once** — the assertion failure reports the actual event subject; copy it verbatim. **Delete** events carry no value body but do carry the key (`EventData.CreateEventWith<T>(default, EventAction.Deleted).WithKey(id)`); assert them with the `…deleted…` subject (there is no value to JSON-compare).
+So a `[Schema("v2.0")] Product` create event is `…product.created.v2`. If unsure of the exact subject, **run the test once** — the assertion failure reports the actual event subject; copy it verbatim. **Delete** events carry no value body but do carry the key (`EventData.CreateEvent<T>(EventAction.Deleted).WithKey(id)`); assert them with the unversioned `…deleted` subject (there is no value to JSON-compare).
 
 ### HTTP assertion methods
 
@@ -569,6 +630,7 @@ Basket_Checkout_Insufficient_Quantity
 - Do not use the `Code`-suffixed name in test JSON (`.res.json`/`.req.json`/inline bodies) for a reference-data property — use the non-`Code` JSON name (`gender`, not `genderCode`).
 - Do not omit `.WithMergePatchJsonContentType()` on a PATCH test — the request default is plain JSON, not merge-patch.
 - Do not assert `AssertNotFound()` on a `DELETE` — delete is idempotent and always returns 204 No Content (the 404 belongs to the *GET* in a get→delete→get flow). Only the first delete emits an event; assert `ExpectNoXxxOutboxEvents()` on a repeat/non-existent delete.
+- Do not add a `.vN` version suffix to a **no-value** event subject (e.g. `…deleted`) — the version applies **only** when the event carries a value (create/update). Derive the version from the contract's `[Schema("vX.Y")]` major (default `.v1`); don't guess or hard-code it.
 
 ## Further Reading
 

@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 /// <summary>
 /// Provides standardized runtime utility capabilities.
@@ -15,10 +15,12 @@ public static class Runtime
     /// Gets a new <see cref="Guid"/> value using the <see cref="IdentifierGenerator.Current"/> <see cref="IIdentifierGenerator"/>.
     /// </summary>
     /// <returns>A <see cref="Guid"/>.</returns>
+    /// <remarks><b>Note:</b> It is recommended that the <see cref="IdentifierGenerator.AssignIdentifierAsync{TFor}(TFor)"/> method is used for assigning identifiers to entities.</remarks>
     public static Guid NewGuid() => IdentifierGenerator.Current.GenerateGuid();
 
     /// <summary>
     /// Gets a new <see cref="Guid"/> value (see <see cref="NewGuid"/>) that is a formatted as a <see cref="string"/>.
     /// </summary>
+    /// <remarks><b>Note:</b> It is recommended that the <see cref="IdentifierGenerator.AssignIdentifierAsync{TFor}(TFor)"/> method is used for assigning identifiers to entities.</remarks>
     public static string NewId() => IdentifierGenerator.Current.GenerateGuid().ToString();
 }

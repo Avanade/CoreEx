@@ -57,7 +57,7 @@ public async Task<DataResult> DeleteAsync(Guid id, CancellationToken ct = defaul
     {
         var dr = await repo.DeleteAsync(id, ct).ConfigureAwait(false);
         dr.WhereMutated(() =>
-            uow.Events.Add(EventData.CreateEventWith<Order>(default, EventAction.Deleted).WithKey(id)));
+            uow.Events.Add(EventData.CreateEvent<Order>(EventAction.Deleted).WithKey(id)));
         return dr;
     }).ConfigureAwait(false);
 ```

@@ -19,7 +19,7 @@ return dr.WhereMutated(v =>
 // Delete — no value; set the key explicitly
 dr.WhereMutated(() =>
     _unitOfWork.Events.Add(
-        EventData.CreateEventWith<Order>(default, EventAction.Deleted).WithKey(id)));
+        EventData.CreateEvent<Order>(EventAction.Deleted).WithKey(id)));
 
 // Multiple events from a collection
 _unitOfWork.Events.Add(
