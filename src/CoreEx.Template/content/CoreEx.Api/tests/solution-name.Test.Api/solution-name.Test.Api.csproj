@@ -12,8 +12,19 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\app-name.Api\app-name.Api.csproj" />
     <ProjectReference Include="..\solution-name.Test.Common\solution-name.Test.Common.csproj" />
+    <!--#if (implement-sqlserver || implement-postgres)-->
+    <ProjectReference Include="..\..\tools\solution-name.Database\solution-name.Database.csproj" />
+    <!--#endif-->
   </ItemGroup>
   <ItemGroup>
     <Using Include="NUnit.Framework" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.unittest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" />
   </ItemGroup>
 </Project>

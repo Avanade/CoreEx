@@ -8,6 +8,8 @@ global using CoreEx.RefData;
 #endif
 global using CoreEx.Validation;
 global using Microsoft.AspNetCore.Mvc;
+global using solution-name.Application;
+global using solution-name.Contracts;
 global using NSwag.Annotations;
 global using System.Net;
 global using System.Text.Json;

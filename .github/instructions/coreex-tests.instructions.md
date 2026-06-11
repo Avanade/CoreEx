@@ -71,17 +71,98 @@ public async Task OneTimeSetUpAsync()
 
 `DataResetFilterPredicate` in `DbMigration.ConfigureMigrationArgs` scopes the reset to the domain's own schema — multiple domains' test runs do not corrupt each other even when run concurrently.
 
+For the **API read/mutate test classes** (see [API Tests — Structure & Generation](#api-tests--structure--generation)), pass the class's specific dataset via the **named-file overload** so read and mutate classes load only their own data: `MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], …)` / `MigratePostgresDataAsync<TestData>(["mutate-data.seed.yaml"], …)`. The no-argument overload loads every `Data/*.seed.yaml`, which would mix the read and mutate datasets.
+
 ---
 
-## Test Data (`data.yaml`)
+## Test Data (seed files)
 
-Test data lives in `Data/data.yaml` in the `*.Test.Common` project. The `TestData` marker class locates the YAML file — do not rename or move it.
+Test seed data lives under `Data/` in the `*.Test.Common` project, located via the `TestData` marker class (do not rename/move it). These are **test datasets**, distinct from the production `*.Database/Data/ref-data.seed.yaml`.
 
-IDs are written as small integers in the YAML and resolved to GUIDs at load time. Reference them consistently in tests via `n.ToGuid()`:
+Use **one read dataset and one mutate dataset per domain** — `read-data.seed.yaml` and `mutate-data.seed.yaml` — shared across all of the domain's entities to avoid duplication. The relevant test class loads its dataset by name in `[OneTimeSetUp]`:
 
 ```csharp
-Test.Http().Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}").AssertOK();
+await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);   // or MigratePostgresDataAsync
 ```
+
+A developer may override/extend by passing additional files in the list when a class needs bespoke data.
+
+**Format** — `Schema:` → `- <Table>:` → rows, where each row is an **inline object** keyed by **column name** (in the provider's casing). Unlike the production `ref-data.seed.yaml` (which uses `$^<Table>` + auto-id + `Code: Text` shorthand), test data uses a **plain `- <Table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**:
+
+```yaml
+Bar:                                  # schema
+  - Employee:                         # table — plain, no $^ prefix
+    - { EmployeeId: ^1, FirstName: Bob, LastName: Smith, GenderCode: M, Salary: 50000, DateOfBirth: 1990-01-01 }
+    - { EmployeeId: ^2, FirstName: Jane, LastName: Doe, GenderCode: F, Salary: 60000, DateOfBirth: 1985-06-15 }
+```
+
+- **`^N` is a deterministic GUID** — `^1` equals `1.ToGuid()`. Use it for the **identifier** and for any **GUID foreign-key reference** to another seeded row (e.g. a `Movement` row with `{ ProductId: ^1 }` points at the product seeded as `^1`). This is what lets a test target a specific row by the same `N.ToGuid()`.
+- Reference data is linked **by code** — `GenderCode: M`, not an id/FK.
+- Set scenario flags explicitly where a test needs them — e.g. `IsDeleted: true`, `IsInactive: true`.
+
+In the test, reference the seeded row by the same number:
+
+```csharp
+Test.Http().Run(HttpMethod.Get, $"/api/employees/{1.ToGuid()}").AssertOK();   // the EmployeeId: ^1 row
+```
+
+---
+
+## API Tests — Structure & Generation
+
+Intra-domain API (integration) tests run the real host over the real DB/cache/outbox (`WithApiTester<{Solution}.Api.Program>` — reference `Program` fully-qualified; it is `public`, no extra `using` needed). The `*.Test.Api` project's `GlobalUsing.cs` (shipped by the template) already provides the imports and the two aliases the setup uses — **`DbMigration`** (= `{Solution}.Database.Program`, for `DbMigration.ConfigureMigrationArgs`) and **`TestData`** (= `{Solution}.Test.Common.TestData`, the embedded-data marker) — plus `{Solution}.Contracts`, CoreEx, UnitTestEx, AwesomeAssertions, NUnit. Use those aliases; don't re-derive them.
+
+Organise them **per entity**, split read vs mutate, one file per operation:
+
+| Class (per entity) | Endpoints | `[OneTimeSetUp]` seeds |
+|---|---|---|
+| `XxxReadTests` | reads (GET/query) | `read-data.seed.yaml` |
+| `XxxMutateTests` | mutations (POST/PUT/PATCH/DELETE) | `mutate-data.seed.yaml` |
+
+Each is a **`partial class`**; the `[OneTimeSetUp]` lives in `XxxReadTests.cs` / `XxxMutateTests.cs`, and **each operation goes in its own partial sub-file** `Xxx{Read|Mutate}Tests.{Operation}.cs` (Operation = the controller operation: `Get`, `Query`, `Create`, `Update`, `Patch`, `Delete`, …) — isolating operations for discoverability and maintenance. Example for `Employee`:
+
+```
+EmployeeReadTests.cs            // [OneTimeSetUp] → read-data.seed.yaml + ClearFusionCacheAsync
+EmployeeReadTests.Get.cs
+EmployeeReadTests.Query.cs
+EmployeeMutateTests.cs          // [OneTimeSetUp] → mutate-data.seed.yaml (+ outbox publisher, HTTP mocks)
+EmployeeMutateTests.Create.cs
+EmployeeMutateTests.Update.cs
+EmployeeMutateTests.Patch.cs
+EmployeeMutateTests.Delete.cs
+```
+
+```csharp
+// EmployeeMutateTests.cs
+public partial class EmployeeMutateTests : WithApiTester<MyApp.Api.Program>
+{
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+    {
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+        Test.UseExpectedSqlServerOutboxPublisher();   // provider-specific; see One-Time Setup
+    }
+}
+
+// EmployeeMutateTests.Create.cs
+public partial class EmployeeMutateTests
+{
+    [Test]
+    public void Create_Success() => /* Test.Http<Employee>()… .AssertCreated()… */;
+}
+```
+
+**Isolation:** read and mutate are separate classes with separate seed files, so mutations never disturb read expectations. Within a `XxxMutateTests` class, write each test to be **independent** — act on a distinct seeded id or create its own data; never depend on another test's side effects or run order.
+
+**Expected `.req.json` / `.res.json` resources** (the JSON representation of the request/response) live under `Resources/{TestClass}/…` and are referenced via `.ExpectJsonFromResource(...)` / `.AssertJsonFromResource("EmployeeReadTests.Employee_Get_Found.res.json", "etag", "changelog")` (exclude volatile fields). Create one by running the test and copying the **actual** JSON into the resource file — they are intentionally copy-paste-friendly for troubleshooting and scale better than inline assertions as entities grow.
+
+> **Agent instruction — co-design seed, tests, and resources together.** These three must agree, so author them in order:
+> 1. **Seed first** — add/extend the domain's `read-data.seed.yaml` / `mutate-data.seed.yaml` with the known rows the tests will reference, as object rows with deterministic **`^N` ids** (= `N.ToGuid()`); for mutate, the baselines a test needs — e.g. an existing SKU for a duplicate-conflict test, a row to update/delete.
+> 2. **Tests next** — one partial file per operation; reference seeded rows via `n.ToGuid()` / known codes; keep mutate tests independent.
+> 3. **Resources last** — capture `.res.json`/`.req.json` from the actual run; the response resource must match the seeded values.
+>
+> Cover, per operation: **Get** (found, not-found, ETag/not-modified); **Query** (filter, order, paging, field selection); **Create** (success + Location + outbox event, bad-data validation, duplicate/conflict, idempotency-key); **Update** (success + ETag/concurrency, not-found); **Patch** (merge success, not-found); **Delete** (idempotent — always 204, never 404): **get → delete → get → delete** = exists → 204+event → now 404 → 204 with **no** event. Assert outbox events on mutating success paths (provider-specific `ExpectXxxOutboxEvents`) and `ExpectNoXxxOutboxEvents` on failure paths.
 
 ---
 
@@ -129,6 +210,107 @@ Test.Http()
     .AssertBadRequest();
 ```
 
+### Expectation helpers (assert *and* auto-exclude from the JSON compare)
+
+These `Test.Http<T>()` expectations both **assert the value is present** and **automatically exclude it from the JSON comparison** — so the `.res.json` should **omit** these fields and you do **not** list them as manual excludes:
+
+- `ExpectIdentifier()` — asserts `Id` has a value; excludes it from the compare.
+- `ExpectETag()` — asserts `ETag` has a value; excludes it.
+- `ExpectChangeLogCreated()` / `ExpectChangeLogUpdated()` — assert the `ChangeLog` create/update values are set; exclude `changelog`.
+
+(For a plain GET via `.AssertJsonFromResource(...)` *without* these expectations, exclude the volatile fields manually — e.g. `"etag", "changelog"` — as in the GET example above.)
+
+### Update (PUT) and Patch with ETag (concurrency)
+
+Send the ETag for concurrency-controlled mutations. **Fetch the current entity first** to get its `ETag`, then PUT with `If-Match`:
+
+```csharp
+// Arrange: get the current row (the EmployeeId: ^1 seed) to obtain its ETag.
+var val = Test.Http<Product>()
+    .Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}").AssertOK().Value!;
+val.Text = "Updated text";
+
+// Act/Assert: PUT with If-Match.
+Test.Http<Product>()
+    .Run(HttpMethod.Put, $"/api/products/{val.Id}", val, requestModifier: r => r.WithIfMatch(val.ETag))
+    .AssertOK();
+```
+> If the serialized request body already contains `ETag` and no `If-Match` header is set, that body `ETag` is used as the concurrency token.
+
+For **PATCH**, also set the **merge-patch content type** (the request default is plain JSON):
+
+```csharp
+Test.Http<Product>()
+    .Run(HttpMethod.Patch, $"/api/products/{p.Id}", new { text = p.Text },
+         requestModifier: r => r.WithIfMatch(val.ETag).WithMergePatchJsonContentType())
+    .AssertOK();
+```
+
+### Delete — get → delete → get → delete (idempotent)
+
+The canonical delete test is a **four-step** flow that proves both the delete and its **idempotency**: GET (exists) → DELETE (204 + event) → GET (now 404) → DELETE again (204, **no** event). `DELETE` **always** returns **204 No Content** — **never 404**, even for a non-existent or already-deleted id; only the **first** delete (where the row existed) emits the event. The 404 belongs to the **GET**, not the DELETE.
+
+```csharp
+// 1. Confirm it exists (the EmployeeId: ^2 seed).
+Test.Http().Run(HttpMethod.Get, $"/api/products/{2.ToGuid()}").AssertOK();
+
+// 2. Delete — 204, and a "deleted" outbox event (delete carries the key, no value body).
+Test.Http()
+    .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.deleted.v1"))
+    .Run(HttpMethod.Delete, $"/api/products/{2.ToGuid()}")
+    .AssertNoContent();
+
+// 3. Confirm it is gone — the GET now 404s (it is the GET, not the DELETE, that returns not-found).
+Test.Http().Run(HttpMethod.Get, $"/api/products/{2.ToGuid()}").AssertNotFound();
+
+// 4. Repeat delete is idempotent — still 204, but emits NO event.
+Test.Http()
+    .ExpectNoPostgresOutboxEvents()
+    .Run(HttpMethod.Delete, $"/api/products/{2.ToGuid()}")
+    .AssertNoContent();
+```
+
+A delete of a **non-existent** id behaves like step 4 — 204 No Content with no event. **Never assert `AssertNotFound()` on a `DELETE`.**
+
+### Outbox event assertions — destination & subject
+
+Assert published events with `ExpectXxxOutboxEvents(e => e.AssertWithValue(destination, subject))` (provider-specific). The two strings:
+
+- **`destination`** — the topic/queue the event is published to: the `CoreEx:Events:Destination` value from `appsettings.json` (the domain's messaging topic, e.g. `contoso`). Do not assume it equals the subject's first segment.
+- **`subject`** — composed as **`{solutionname}.{domainname}.{entity}.{action}[.v{version}]`**, all **lower-case**, dot-separated:
+  - `solutionname` / `domainname` — from `CoreEx:Host:SolutionName` / `:DomainName` in `appsettings.json` (lower-cased; `SolutionName` may itself contain dots, e.g. `my.foo`).
+  - `entity` — the entity/contract name (e.g. `employee`).
+  - `action` — the **past-tense `EventAction`** set in the **service code** (`EventData.CreateEventWith(v, EventAction.Created)` → `created`; `Updated` → `updated`; `Deleted` → `deleted`).
+  - `version` — the optional version suffix (commonly `v1`).
+
+```csharp
+.ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
+```
+
+If unsure of the exact subject (casing/version), **run the test once** — the assertion failure reports the actual event subject; copy it verbatim. **Delete** events carry no value body but do carry the key (`EventData.CreateEventWith<T>(default, EventAction.Deleted).WithKey(id)`); assert them with the `…deleted…` subject (there is no value to JSON-compare).
+
+### HTTP assertion methods
+
+Use the `Assert*` helper matching the expected status; for anything not listed, assert `.Response.StatusCode` directly.
+
+| Outcome | Helper |
+|---|---|
+| 200 OK | `.AssertOK()` |
+| 201 Created | `.AssertCreated()` (pair with `.AssertLocationHeader(...)`) |
+| 204 No Content (DELETE) | `.AssertNoContent()` |
+| 304 Not Modified (ETag / If-None-Match) | `.AssertNotModified()` |
+| 400 Bad Request | `.AssertBadRequest()` + `.AssertErrors("…")` |
+| 404 Not Found | `.AssertNotFound()` |
+| 409 Conflict (duplicate) | `.AssertConflict()` |
+
+### `Test.Http()` vs `Test.Http<T>()`
+
+Use **`Test.Http<T>()`** when you need the deserialized response `.Value` (e.g. to capture the created entity, then re-`Get` and compare). Use the untyped **`Test.Http()`** when you only assert status / `.AssertJsonFromResource(...)` / errors.
+
+### Test host configuration — leave appsettings alone
+
+Do **not** create or edit `appsettings*.json` (including `appsettings.unittest.json`) for API tests. The test host runs via `WebApplicationFactory`, which loads the host's **Development** settings automatically — connection strings, cache, messaging, etc. are already wired. There is nothing for the agent to configure here.
+
 ## Resource-Based JSON Assertions
 
 Expected response bodies live in `Resources/` as `.res.json` files. Reference them by dot-separated path. Exclude volatile fields as extra parameters:
@@ -139,6 +321,10 @@ Expected response bodies live in `Resources/` as `.res.json` files. Reference th
 ```
 
 Mock request bodies use `.req.json`; mock response bodies from a downstream API use `.{domain}.res.json` (prefixed with the remote domain name by convention).
+
+**Reference-data properties serialize by their non-`Code` name, value only.** A contract `[ReferenceData<Gender>] string? GenderCode` property serializes to JSON as **`"gender": "M"`** (the Roslyn generator sets the `JsonPropertyName` to the non-`Code` suffix and emits just the code value). So in `.res.json` / `.req.json` resources — and in any inline request body — use the **non-`Code`** JSON name (`gender`, `subCategory`, `unitOfMeasure`), even though the C# contract property is `GenderCode` / `SubCategoryCode` / `UnitOfMeasureCode`. (Note the three distinct representations: C# property `GenderCode` → JSON `gender` → DB/seed column `GenderCode`/`gender_code`.)
+
+A ref-data value (e.g. `"gender": "M"`) is **real, deterministic data — include it in the `.res.json` and do not exclude it.** The **only** volatile fields are `id`, `etag`, and `changelog` (server-assigned/timestamped); exclude those — via the `Expect*` helpers on mutations (which auto-exclude), or as explicit `.AssertJsonFromResource(..., "etag", "changelog")` arguments on a plain GET.
 
 ---
 
@@ -376,6 +562,13 @@ Basket_Checkout_Insufficient_Quantity
 - Do not write validator tests for reference-data `IsActive`/`IsInactive` — assert only valid vs not-valid via `.IsValid()` (a not-valid case just uses an unseeded code); active/inactive is trusted framework behaviour. Reserve `ExtendForTesting` for rules that depend on a ref-data **extended property**.
 - Do not remove or replace the final `_ => throw …` catch-all arm of `ReferenceDataServiceDecorator.GetAsync` when adding a ref-data type — insert the new arm **above** it; the catch-all must remain.
 - Do not write validator tests for **length** rules (`MaximumLength`/`MinimumLength`/`Length`/`String`) — assume the declared length logic works (framework-guaranteed, like reference-data active/inactive); test conditional/business logic instead.
+- Do not put an entity's read and mutate API tests in one class — split into `XxxReadTests` (seeds `read-data.seed.yaml`) and `XxxMutateTests` (seeds `mutate-data.seed.yaml`), one partial sub-file per operation (`Xxx{Read|Mutate}Tests.{Operation}.cs`).
+- Do not load the whole dataset in an API read/mutate class — use the named-file `MigrateXxxDataAsync<TestData>(["read-data.seed.yaml"|"mutate-data.seed.yaml"], …)` overload so the class loads only its dataset.
+- Do not write order-dependent or interfering mutate tests — each must act on a distinct seeded id or create its own data.
+- Do not include `id`/`etag`/`changelog` in a `.res.json` used with `ExpectIdentifier()`/`ExpectETag()`/`ExpectChangeLogCreated()`/`ExpectChangeLogUpdated()` (or list them as manual excludes) — those helpers assert presence and auto-exclude from the compare.
+- Do not use the `Code`-suffixed name in test JSON (`.res.json`/`.req.json`/inline bodies) for a reference-data property — use the non-`Code` JSON name (`gender`, not `genderCode`).
+- Do not omit `.WithMergePatchJsonContentType()` on a PATCH test — the request default is plain JSON, not merge-patch.
+- Do not assert `AssertNotFound()` on a `DELETE` — delete is idempotent and always returns 204 No Content (the 404 belongs to the *GET* in a get→delete→get flow). Only the first delete emits an event; assert `ExpectNoXxxOutboxEvents()` on a repeat/non-existent delete.
 
 ## Further Reading
 

@@ -1,3 +1,11 @@
+global using CoreEx;
+global using CoreEx.Database.SqlServer.Outbox;
 global using AwesomeAssertions;
 global using NUnit.Framework;
+global using System.Net;
+global using UnitTestEx;
 global using UnitTestEx.NUnit;
+global using UnitTestEx.Expectations;
+global using solution-name.Contracts;
+global using DbMigration = solution-name.Database.Program;
+global using TestData = solution-name.Test.Common.TestData;
