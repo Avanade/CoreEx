@@ -4,18 +4,18 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CoreEx.Data" />
-    <!--#if (implement-sqlserver)-->
+    <!--#if implement-sqlserver-->
     <PackageReference Include="CoreEx.Database.SqlServer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <!--#endif-->
-    <!--#if (implement-postgres)-->
+    <!--#if implement-postgres-->
     <PackageReference Include="CoreEx.Database.Postgres" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <!--#endif-->
-    <!--#if (implement-sqlserver || implement-postgres)-->
+    <!--#if implement-sqlserver || implement-postgres-->
     <PackageReference Include="CoreEx.EntityFrameworkCore" />
     <!--#endif-->
-    <!--#if (refdata-enabled)-->
+    <!--#if refdata-enabled-->
     <PackageReference Include="CoreEx.RefData" />
     <!--#endif-->
   </ItemGroup>

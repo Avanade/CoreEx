@@ -1,5 +1,0 @@
-{Domain}:
-  - $^{Entity}Status:
-    - P: Pending
-    - C: Confirmed
-    - X: Cancelled

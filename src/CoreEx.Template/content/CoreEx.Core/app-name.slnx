@@ -2,16 +2,16 @@
   <Folder Name="/src/">
     <Project Path="src\app-name.Contracts\app-name.Contracts.csproj" />
     <Project Path="src\app-name.Application\app-name.Application.csproj" />
-    <!--#if (domain-driven-enabled)-->
+    <!--#if domain-driven-enabled-->
     <Project Path="src\app-name.Domain\app-name.Domain.csproj" />
     <!--#endif-->
     <Project Path="src\app-name.Infrastructure\app-name.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tools/">
-    <!--#if (!implement-none-data)-->
+    <!--#if !implement-none-data-->
     <Project Path="tools\app-name.Database\app-name.Database.csproj" />
     <!--#endif-->
-    <!--#if (refdata-enabled && !implement-none-data)-->
+    <!--#if refdata-enabled && !implement-none-data-->
     <Project Path="tools\app-name.CodeGen\app-name.CodeGen.csproj" />
     <!--#endif-->
   </Folder>

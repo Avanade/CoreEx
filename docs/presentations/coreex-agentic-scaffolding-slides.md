@@ -125,8 +125,8 @@ The key idea is layered context. Prompts ask for what we need, skills decide wha
 
 ## Slide 4 - Core Building Blocks
 ### Assets in the Repository
-- Bootstrap skill: coreex-project-bootstrap.
-- Domain generation prompts: generate-domain, scaffold-domain-from-templates.
+- Deterministic template pack: CoreEx.Template with `dotnet new coreex*`.
+- Agent guidance: CoreEx Expert for shape and capability decisions.
 - Environment and startup prompts: init, setup.
 - File-scoped instructions for controllers, services, repositories, validators, tests, and host setup.
 - Starter docs for architecture, conventions, and domains.

@@ -2,7 +2,7 @@
 
 This represents the **CoreEx domain-based application services** for the `domain-name` domain.
 
-**AI assistance:** run `/coreex-expert` for CoreEx architecture guidance, pattern decisions, and sample-aligned implementation advice. The full CoreEx doc cache is pre-loaded in `.github/docs/coreex/` -- the expert reads it automatically.
+**AI assistance:** run `/coreex-scaffold` to choose and scaffold the right greenfield solution shape, or run `/coreex-expert` for CoreEx architecture guidance, pattern decisions, and sample-aligned implementation advice. The full CoreEx doc cache is pre-loaded in `.github/docs/coreex/` -- the expert reads it automatically.
 
 > Re-run `/coreex-docs-sync` after bumping the CoreEx NuGet version in `Directory.Packages.props`.
 
@@ -32,34 +32,34 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 
 ## Feature Configuration
 
-<!-- #if (implement-sqlserver) -->
+<!-- #if implement-sqlserver -->
 - **Data provider:** SQL Server (`CoreEx.Database.SqlServer`, `CoreEx.EntityFrameworkCore`)
-<!-- #elif (implement-postgres) -->
+<!-- #elif implement-postgres -->
 - **Data provider:** PostgreSQL (`CoreEx.Database.Postgres`, `CoreEx.EntityFrameworkCore`)
 <!-- #else -->
 - **Data provider:** None -- facade solution (e.g. over Dynamics 365 via HttpClient)
 <!-- #endif -->
-<!-- #if (refdata-enabled && !implement-none-data) -->
+<!-- #if refdata-enabled && !implement-none-data -->
 - **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataService.cs` and `tools/app-name.CodeGen/`
 <!-- #else -->
 - **Reference data:** Disabled
 <!-- #endif -->
-<!-- #if (domain-driven-enabled) -->
+<!-- #if domain-driven-enabled -->
 - **Domain project:** Enabled -- `src/app-name.Domain/` (aggregates, value objects)
 <!-- #else -->
 - **Domain project:** Disabled -- domain logic lives in Application
 <!-- #endif -->
-<!-- #if (rop-enabled) -->
+<!-- #if rop-enabled -->
 - **Railway-Oriented Programming:** Enabled -- service methods return `Result`/`Result<T>`
 <!-- #else -->
 - **Railway-Oriented Programming:** Disabled -- standard exception-based error handling
 <!-- #endif -->
-<!-- #if (outbox-enabled && !implement-none-data) -->
+<!-- #if outbox-enabled && !implement-none-data -->
 - **Transactional outbox:** Enabled -- events committed atomically with data via the outbox table
 <!-- #else -->
 - **Transactional outbox:** Disabled
 <!-- #endif -->
-<!-- #if (implement-servicebus) -->
+<!-- #if implement-servicebus -->
 - **Messaging:** Azure Service Bus (`CoreEx.Azure.Messaging.ServiceBus`)
 <!-- #else -->
 - **Messaging:** None configured
@@ -71,6 +71,7 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 
 - `.github/docs/coreex/layers.md` -- full layered architecture and dependency rules
 - `.github/docs/coreex/patterns.md` -- CoreEx request/response and event patterns
+- `.github/docs/coreex/application-scaffolding-guide.md` -- choosing the smallest safe CoreEx solution shape before adding code
 - `.github/docs/coreex/contracts-layer.md` -- entities, DTOs, event schemas
 - `.github/docs/coreex/application-layer.md` -- services, validators, repository interfaces
 - `.github/docs/coreex/infrastructure-layer.md` -- EF Core, outbox, external integrations

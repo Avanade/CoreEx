@@ -12,22 +12,21 @@ public class Program
 
         // Add CoreEx services.
         builder.Services
-            .AddPrecisionTimeProvider()
             .AddExecutionContext()
             .AddMvcWebApi()
             .AddHttpWebApi()
             .AddHostedServiceManager();
 
         // Add the repository and related outbox relay services.
-#if (implement-sqlserver)
-        builder.AddSqlClientConnection("SqlServer");    // Adds the SqlClient connection (using Aspire library).
+// #if implement-sqlserver
+        builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
             .AddSqlServerOutboxRelay();                 // Adds the SqlServerOutboxRelay.
 
         builder.AddSqlServerOutboxRelayHostedService(); // Adds the SqlServerOutboxRelayHostedService.
-#elif (implement-postgres)
+// #elif implement-postgres
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
@@ -35,27 +34,27 @@ public class Program
             .AddPostgresOutboxRelay();                  // Adds the PostgresOutboxRelay.
 
         builder.AddPostgresOutboxRelayHostedService();  // Adds the PostgresOutboxRelayHostedService.
-#endif
+// #endif
 
-#if (implement-servicebus)
+// #if implement-servicebus
         // Add the Azure Service Bus publisher.
         builder.AddAzureServiceBusClient("ServiceBus"); // Adds the Azure Service Bus client (using Aspire library).
         builder.Services.AddAzureServiceBusPublisher(); // Adds the Azure Service Bus as the IEventPublisher.
-#endif
+// #endif
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();
 
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
-#if (implement-sqlserver)
+// #if implement-sqlserver
             .WithCoreExSqlServerTelemetry()
-#elif (implement-postgres)
+// #elif implement-postgres
             .WithCoreExPostgresTelemetry()
-#endif
-#if (implement-servicebus)
+// #endif
+// #if implement-servicebus
             .WithCoreExServiceBusTelemetry()
-#endif
+// #endif
             .UseOtlpExporter();
 
         // Build the application.

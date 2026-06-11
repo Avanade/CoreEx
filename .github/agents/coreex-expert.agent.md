@@ -86,7 +86,7 @@ A manifest at `.github/docs/coreex/.manifest` records the sync date, CoreEx vers
 1. Check for the file under `.github/docs/coreex/` or `.github/docs/coreex/agents/` respectively.
 2. If found, use the local copy. Then read `.github/docs/coreex/.manifest` and check:
    - `synced` date: if older than 30 days, recommend running `/coreex-docs-sync`.
-   - `coreex-version`: scan `*.csproj`, `Directory.Packages.props`, and `Directory.Build.props` for the `CoreEx` package version; if it differs from the manifest, recommend running `/coreex-docs-sync`.
+   - `4.0.0-preview-1`: scan `*.csproj`, `Directory.Packages.props`, and `Directory.Build.props` for the `CoreEx` package version; if it differs from the manifest, recommend running `/coreex-docs-sync`.
 3. If no local cache exists and you are about to fetch a GitHub URL, offer first: *"I can run `/coreex-docs-sync` to cache the CoreEx docs and all package guides locally — this avoids repeated GitHub fetches. Want me to do that first?"*
 
 **At the start of a session involving CoreEx guidance**, read `.github/docs/coreex/.manifest` if it exists. The `referenced-packages` field lists which CoreEx packages this project currently uses — distinguish between guiding on an **already-referenced** package and recommending a **new** one the project would need to add.
@@ -107,8 +107,8 @@ Do not set up the local cache silently — always offer and wait for confirmatio
 
 These skills are part of the CoreEx AI workflow set and live in `.github/skills/`. They can be copied from the [CoreEx repository](https://github.com/Avanade/CoreEx/tree/main/.github/skills) into a consuming project:
 
-- Greenfield domain scaffolding → advise using `/generate-domain`.
-- Retrofit capability on an existing domain → advise using `/add-capability`.
+- Greenfield domain or host scaffolding → advise using the [CoreEx.Template](../../src/CoreEx.Template/README.md) `dotnet new` templates.
+- Retrofit capability on an existing domain → inspect the current code and recommend the smallest manual changes aligned to the samples and instructions.
 - Repo mapping or onboarding documentation → advise using `/acquire-codebase-knowledge`.
 
 ## Response format

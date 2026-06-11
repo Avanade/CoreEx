@@ -41,14 +41,13 @@ Instructions are passive — no action is needed to activate them. The global fi
 | `coreex-tests.instructions.md` | Test files — UnitTestEx, NUnit, AwesomeAssertions, outbox/event assertions |
 | `coreex-domain.instructions.md` | Domain files — aggregates, mutation guards, `Result<T>` pipelines |
 
-## Prompts and Skills
+## Prompts, Skills, and Templates
 
 | Command | Type | What it does |
 |---------|------|-------------|
-| [`/scaffold-domain-from-templates`](./templates/domain/README.md) | Prompt | Fast, deterministic domain scaffolding — clones the canonical templates with placeholder substitution. Use when your entity fits the standard shape and you want exact output. |
-| [`/generate-domain`](./skills/generate-domain/README.md) | Skill | Guided, reasoning-based domain scaffolding — use when your entity has custom fields, business rules, or you want the agent to apply conventions for you. |
-| [`/add-capability`](./skills/add-capability/README.md) | Skill | Retrofits an existing domain with messaging/integration capabilities (Outbox Relay, Subscribe, Service Bus wiring). |
+| [`CoreEx.Template`](../src/CoreEx.Template/README.md) | Template pack | Deterministic `dotnet new` scaffolding for a CoreEx solution plus API, relay, and subscriber hosts. Use `dotnet new install CoreEx.Template` and then the `coreex*` templates in a terminal. |
 | [`/acquire-codebase-knowledge`](./skills/acquire-codebase-knowledge/README.md) | Skill | Maps an unfamiliar codebase and produces seven structured onboarding documents. |
+| [`/coreex-scaffold`](./skills/solution-scaffolder/README.md) | Skill-backed prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
 | [`/coreex-docs-sync`](./skills/coreex-docs-sync/README.md) | Skill | Fetches and caches CoreEx architecture docs and all per-package AI guides locally under `.github/docs/coreex/`. |
 | [`/aspire`](./skills/aspire/README.md) | Skill | Orchestrates Aspire distributed apps locally: start, stop, logs, debug. |
 | `/init` | Prompt | Initializes a new CoreEx solution or workspace. |

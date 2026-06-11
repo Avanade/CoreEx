@@ -47,10 +47,10 @@ Use this progression:
 
 | Need | Best starting point | Why |
 |---|---|---|
-| New implementation solution with one or more domains and standard hosts. | `coreex-project-bootstrap` | The starter is built to scaffold solution structure, package choices, standard `Program.cs` wiring, tests, and layered projects. |
-| Existing domain needs new messaging/integration capability added incrementally. | `/add-capability` | Best when the domain already exists and you want to retrofit capabilities such as `Outbox.Relay`, `Subscribe`, Service Bus wiring, or subscriber scaffolding without re-scaffolding the whole domain. |
-| New domain that mostly fits the standard template shape. | `/scaffold-domain-from-templates` | Fastest path when the entity shape is conventional and you want deterministic output. |
-| New domain with custom rules, non-trivial fields, validation nuance, query behavior, or event naming decisions. | `/generate-domain` | Best when the agent needs to reason about the model and apply CoreEx conventions instead of copying templates verbatim. |
+| New implementation solution with one or more domains and standard hosts. | `CoreEx.Template` via `dotnet new coreex*` | This is the deterministic scaffolding path for layered solution structure, package choices, standard `Program.cs` wiring, tests, and host projects. |
+| Existing domain needs new messaging or integration capability added incrementally. | Inspect first, then make a manual CoreEx-aligned change | Capability retrofits are now normal implementation work guided by the samples and instruction files rather than a dedicated scaffolding command. |
+| New domain with a conventional entity shape. | `dotnet new coreex` plus only the required `coreex-api`, `coreex-relay`, or `coreex-subscriber` hosts | Fastest path when you want deterministic output and only need to fill in the domain-specific logic. |
+| New domain with richer rules or more design uncertainty. | Ask `CoreEx Expert` to choose the shape, then scaffold with `dotnet new coreex*` | Best when you want sample-aligned advice before committing to a host set or capability mix. |
 
 ## Recommended Application Shapes
 
@@ -338,22 +338,21 @@ Those answers usually determine the host set, package set, and scaffold depth mo
 | Master-data service that other domains depend on. | API + database + outbox relay. | Validation, reference data, outbox, Service Bus publisher, idempotency. |
 | Event-driven domain maintaining local replicas or reacting to commands. | API + subscribe + outbox relay. | Service Bus subscriber/publisher, outbox, reference data, cache, health/telemetry. |
 | Long-running business process or approval workflow. | API + worker/orchestration host, optionally plus outbox/subscribers. | Durable orchestration, telemetry, external-event waits, retries, compensation. |
-| Rich aggregate domain with nested rules. | Domain scaffold via `/generate-domain`. | DomainDriven patterns, validators, Result pipelines where appropriate, explicit mapping. |
-| Straightforward conventional entity. | Domain scaffold via `/scaffold-domain-from-templates`. | Standard contracts/application/infrastructure/API/database shape with minimal custom reasoning. |
+| Rich aggregate domain with nested rules. | `dotnet new coreex --domain-driven-enabled true` plus only the required hosts. | DomainDriven patterns, validators, Result pipelines where appropriate, explicit mapping. |
+| Straightforward conventional entity. | `dotnet new coreex` plus only the required hosts. | Standard contracts/application/infrastructure/API/database shape with minimal custom reasoning. |
 
 ## Where to Go Next
 
 - Read `coreex-starter/README.md` for starter/bootstrap expectations.
 - Read `docs/capabilities.md` for the underlying framework features and patterns.
 - Read `docs/orchestration.md` before adding a workflow worker.
+- Read `src/CoreEx.Template/README.md` before scaffolding a new solution or host.
 - Use the Product and Shopping samples as the concrete reference architecture for API, subscribe, and outbox relay hosts.
 
 ## Evidence
 
 - `coreex-starter/README.md`
-- `coreex-starter/.github/skills/coreex-project-bootstrap/SKILL.md`
-- `.github/skills/generate-domain/SKILL.md`
-- `.github/prompts/scaffold-domain-from-templates.prompt.md`
+- `src/CoreEx.Template/README.md`
 - `docs/capabilities.md`
 - `docs/orchestration.md`
 - `samples/src/Contoso.Products.Api/Program.cs`
