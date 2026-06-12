@@ -1,5 +1,5 @@
 using CoreEx.Database;
-#if implement-sqlserver
+// #if implement-sqlserver
 using DbEx.Migration;
 using DbEx.SqlServer.Console;
 
@@ -17,12 +17,12 @@ public class Program
     /// <summary>Configure the <see cref="MigrationArgs"/>.</summary>
     public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
     {
-        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF code-generation templates (do not remove).
+        args.AddAssembly<SqlStatement>().AddAssembly<Program>();   // SqlStatement = CoreEx EF code-gen templates; Program = this project's embedded migrations/data. Both REQUIRED — the API tests call ConfigureMigrationArgs directly (not via Main), so the Database assembly must be added here. Do not remove.
         args.DataResetFilterPredicate = ts => ts.Schema == "domain-name";   // Only reset data for the specified schema.
         return args;
     }
 }
-#elif implement-postgres
+// #elif implement-postgres
 using DbEx.Migration;
 using DbEx.Postgres.Console;
 
@@ -40,9 +40,9 @@ public class Program
     /// <summary>Configure the <see cref="MigrationArgs"/>.</summary>
     public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
     {
-        args.AddAssembly<SqlStatement>();   // Add the assembly containing the requisite CoreEx EF code-generation templates (do not remove).
+        args.AddAssembly<SqlStatement>().AddAssembly<Program>();   // SqlStatement = CoreEx EF code-gen templates; Program = this project's embedded migrations/data. Both REQUIRED — the API tests call ConfigureMigrationArgs directly (not via Main), so the Database assembly must be added here. Do not remove.
         args.DataResetFilterPredicate = ts => ts.Schema == "db-name";   // Only reset data for the specified schema.
         return args;
     }
 }
-#endif
+// #endif

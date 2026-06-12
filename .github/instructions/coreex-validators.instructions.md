@@ -20,7 +20,7 @@ Validators live in `Application/Validators/`. They belong to the Application lay
 
 ## Unit Tests (maintain alongside the validator)
 
-Validators are the primary unit-test target, so a validator and its test are maintained together.
+Validators are the primary unit-test target, so a validator and its test are maintained together. Validator rules are proven **exhaustively here** (every rule, error + success) — the API integration tests do **not** re-enumerate them; they assert only one representative bad-request to confirm the validator is wired into the pipeline. See the test-responsibility split in `coreex-tests.instructions.md`.
 
 > **Agent instruction:** When you create or modify a validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataServiceDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
 
@@ -130,6 +130,10 @@ The table above lists the most common rules; the full set of fluent extension me
 | Always-error (guard with a clause) | `Error(text)`, `Duplicate()`, `NotFound()`, `Invalid()`, `Immutable()` |
 | Clauses (conditional execution) | `When(...)`, `WhenValue(pred)`, `WhenHasValue()`, `WhenEntity(pred)`, `DependsOn(x => x.Other)` |
 
+> **`Mandatory()` on a non-nullable value type checks `default`, not just null.** `Mandatory()` defaults to `mustNotBeDefault: true`, so on a non-nullable value type it **errors when the value equals `default(T)`** — `0` for `decimal`/`int`, `DateOnly.MinValue` for `DateOnly`, etc. (On a **nullable** type — `decimal?`, `DateOnly?` — it errors only on `null`, since a supplied `0` is non-default.) Implications:
+> - **Do not use `Mandatory()` on a non-nullable value type where the default is a legitimate value** (e.g. a `decimal Salary` where `0` is allowed) — it will wrongly reject `0`. Use a range rule instead, e.g. `GreaterThanOrEqualTo(0)` (allows `0`) or `GreaterThan(0)` (requires positive). To require presence *without* the default-check, pass `Mandatory(mustNotBeDefault: false)`.
+> - **The expected unit-test error follows the same rule:** a `Mandatory()` on a non-nullable `decimal`/`DateOnly` produces the *required* error for `0`/`MinValue`, so a test arranging that value must expect the mandatory error (not a pass).
+
 ### Comparisons
 
 Prefer the dedicated comparison rules — `.GreaterThanOrEqualTo(value)`, `.LessThanOrEqualTo(value)`, `.GreaterThan(value)`, `.LessThan(value)`, `.Equal(value)`. For the general form use the **`.Compare(...)`** extension with a `CompareOperator` value:
@@ -170,11 +174,13 @@ The optional text argument on these rules (e.g. `"zero"`, `_ => "the minimum age
 
 Use `.IsValid()` on the **typed reference-data navigation property** to validate that the value is a known active item — **not** the serialized `*Code` string property. For a contract with `GenderCode`, validate the generated `Gender` property; for `SubCategoryCode`, validate `SubCategory`; and so on.
 
+**Required vs optional:** chain **`.Mandatory().IsValid()`** when the ref-data field is **required**; use **`.IsValid()` alone** when it is **optional** (a null/unset value then passes, but a *supplied* value must still be a known active item). `IsValid()` on its own does not enforce presence.
+
 ```csharp
 // ✅ Correct — validate the typed navigation property
-Property(p => p.SubCategory).Mandatory().IsValid();
-Property(p => p.UnitOfMeasure).Mandatory().IsValid();
-Property(x => x.Gender).IsValid();
+Property(p => p.SubCategory).Mandatory().IsValid();   // required ref-data
+Property(p => p.UnitOfMeasure).Mandatory().IsValid(); // required ref-data
+Property(x => x.Gender).IsValid();                    // optional ref-data — valid-if-supplied, null allowed
 
 // ❌ Wrong — do not apply .IsValid() to the *Code string property
 Property(x => x.GenderCode).IsValid();

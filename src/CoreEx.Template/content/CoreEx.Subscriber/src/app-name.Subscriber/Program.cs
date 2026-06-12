@@ -22,7 +22,7 @@ public class Program
 
         // NOTE: Reference-data orchestrator and dynamic service registration are performed AFTER CodeGen runs.
         // See: BOOTSTRAP_PHASE_2.md in your project root for the post-CodeGen setup steps.
-        // The following will be uncommented and moved here after running: dotnet run --project tools/app-name.CodeGen
+        // The following will be uncommented and moved here after running: dotnet run --project tools/solution-name.CodeGen
         //
         // // #if refdata-enabled
         // builder.Services.AddReferenceDataOrchestrator<ReferenceDataService>();
@@ -47,7 +47,7 @@ public class Program
             .AddHybridCacheIdempotencyProvider();       // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
         // Add the repository and related database services.
-#if implement-sqlserver
+// #if implement-sqlserver
         builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
@@ -56,7 +56,7 @@ public class Program
             .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher as the IEventPublisher.
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#elif implement-postgres
+// #elif implement-postgres
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
@@ -65,9 +65,9 @@ public class Program
             .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher as the IEventPublisher.
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#endif
+// #endif
 
-#if implement-servicebus
+// #if implement-servicebus
         // Add the Azure Service Bus client and subscribe wiring.
         builder.AddAzureServiceBusClient("ServiceBus"); // Adds the Azure Service Bus client (using Aspire library).
 
@@ -85,7 +85,7 @@ public class Program
             .WithSubscribedSubscriber()                 // Adds the service bus subscriber using the SubscribedManager.
             .WithHostedService()                        // Adds the service bus receiver as a hosted service.
             .Build();                                   // Builds all the services and adds to the service collection.
-#endif
+// #endif
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();

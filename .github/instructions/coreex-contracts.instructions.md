@@ -6,6 +6,10 @@ tags: ["contracts", "dto", "source-generation", "reference-data", "etag"]
 
 # Contract (DTO) Conventions
 
+## File Placement
+
+Contracts live **flat in the root of the `*.Contracts` project** — both hand-authored (`Product.cs`) and generated (`Product.g.cs`) files. **Do not create sub-folders** such as `Entities/`, `Models/`, or `RefData/` to group them; the samples place every contract at the project root regardless of whether it is a root entity, subordinate, request/response DTO, or reference-data type. Only introduce a sub-folder if the **user explicitly asks** for one. The same flat-root convention applies to the matching files in the other layers (validators, services, repositories, mappers) unless their instructions state otherwise.
+
 ## NuGet / Project References
 
 | Package | Key types provided |
@@ -168,6 +172,21 @@ public partial class ProductBase : IIdentifier<string?>
 ```
 
 The generated code exposes a strongly-typed `SubCategory` property alongside the raw `SubCategoryCode` string. If either `[Contract]` or `partial` is missing from the class, the navigation property will not be generated and the code will not compile correctly.
+
+> **Only `[ReferenceData<T>]` properties are `partial` — not every property in the class.** The class is `partial` (it has a generated `.g.cs` part), but among its **properties** *only* the `[ReferenceData<T>]`-decorated code properties are declared `partial` (the generator supplies their implementation part — the typed navigation). Every other property is an **ordinary auto-property** with no `partial` keyword. Do **not** assume that because the class is `partial` its properties must be too — marking a plain property `partial` with no generated implementation fails to compile with **CS9248** *("partial property … must have an implementation part")*.
+>
+> ```csharp
+> public partial class Employee : IIdentifier<string?>
+> {
+>     public string? FirstName { get; set; }              // ✅ plain — NOT partial
+>     public decimal Salary { get; set; }                 // ✅ plain — NOT partial
+>
+>     [ReferenceData<Gender>]
+>     public partial string? GenderCode { get; set; }     // ✅ partial — generator emits the `Gender` navigation
+>
+>     // public partial string? FirstName { get; set; }   // ❌ CS9248 — no generated implementation for a non-ref-data property
+> }
+> ```
 
 > **Agent instruction — property type resolution:** When generating contract properties, apply this hierarchy for every property first, then generate the complete contract in a single pass. Do not ask about individual properties mid-list.
 >
@@ -381,6 +400,7 @@ Never create or edit `*.g.cs` files directly.
 - Do not hand-author a generated partial implementation (or create its `.g.cs`) because it is "missing" — it appears after a build; the generator runs automatically during compilation.
 - Do not invent a build-ordering or "circular dependency" excuse for missing generated code — Roslyn runs the generator even when other errors exist; fix the real errors and rebuild.
 - Do not emit `#nullable enable` or `#nullable restore` pragma directives — nullable is enabled project-wide via `Directory.Build.props`.
+- Do not create a sub-folder (e.g. `Entities/`, `Models/`, `RefData/`) to house contracts — place every contract flat in the `*.Contracts` root (see *File Placement*); only nest when the user explicitly asks.
 
 ## Further Reading
 

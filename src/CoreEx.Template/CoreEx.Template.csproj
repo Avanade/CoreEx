@@ -20,16 +20,6 @@
     <Compile Remove="content\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Remove="content\CoreEx.Api\tests\solution-name.Test.Api\appsettings.unittest.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="content\CoreEx.Api\tests\solution-name.Test.Api\appsettings.unittest.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
   <!-- Inline task: replace a literal string in a file and write the result to a new path. -->
   <UsingTask TaskName="ReplaceTextInFile" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>

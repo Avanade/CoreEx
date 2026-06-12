@@ -6,7 +6,7 @@ tags: ["controllers", "api", "routing", "cqrs", "dependency-injection", "minimal
 
 # API Conventions
 
-> **Precondition — the Api host must exist.** Controllers live in the `*.Api` host, which is **not** part of the base `coreex` solution. Before authoring a controller, confirm an Api host is present (`**/*.Api/*.Api.csproj`); if it is absent, run the scaffolding workflow first (see `coreex-host-setup.instructions.md` → "Scaffolding an API host") — which confirms creation, generates it via the `coreex-api` template using the recorded solution options, and hands off the `.slnx` wiring as a manual step. Also ensure the entity's application service exists (create per *Service Operations — Confirm Scope* in `coreex-application-services.instructions.md` if not).
+> **Precondition — the Api host must exist.** Controllers live in the `*.Api` host, which is **not** part of the base `coreex` solution. Before authoring a controller, confirm an Api host is present (`**/*.Api/*.Api.csproj`); if it is absent, run the scaffolding workflow first (see `coreex-host-setup.instructions.md` → "Scaffolding an API host") — which confirms creation, generates it via the `coreex-api` template using the recorded solution options, and adds the new projects to the solution (`dotnet sln add`) as the final in-session step. Also ensure the entity's application service exists (create per *Service Operations — Confirm Scope* in `coreex-application-services.instructions.md` if not).
 
 > **Maintain the API tests alongside the controller.** When you create or change a controller's operations, **offer to create or update the matching `XxxReadTests` / `XxxMutateTests`** (per-entity, one partial file per operation) in the `*.Test.Api` project — see `coreex-tests.instructions.md` → "API Tests — Structure & Generation". If accepted, co-design the seed data, tests, and `.res.json`/`.req.json` resources together; if declined, proceed but note the coverage gap.
 
@@ -135,6 +135,18 @@ public Task<IActionResult> UpdateAsync(string id) => _webApi.PutAsync<Product, P
 public Task<IActionResult> PatchAsync(string id) => _webApi.PatchAsync<Product>(Request,
     get: (ro, _) => _service.GetAsync(id.Required()),
     put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id)));
+```
+
+Because the **write** service backs the `get:` fetch, **`IXxxService` must declare a by-id `GetAsync`** (alongside the mutators) — and `XxxService` must implement it. This `GetAsync` lives on the **write** interface even though it reads; it is the controller's single dependency for PATCH (and for a write-side `GET` by id). Do **not** route the PATCH fetch through `IXxxReadService`:
+
+```csharp
+public interface IProductService
+{
+    Task<Product?> GetAsync(string id, CancellationToken ct = default);   // ← required by PATCH's get: and the write GET
+    Task<Product> CreateAsync(Product value, CancellationToken ct = default);
+    Task<Product> UpdateAsync(Product value, CancellationToken ct = default);
+    Task DeleteAsync(string id, CancellationToken ct = default);
+}
 ```
 
 ### Query Endpoints

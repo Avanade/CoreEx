@@ -1,6 +1,6 @@
-﻿namespace Contoso.Products.Test.Api;
+namespace Contoso.Products.Test.Api;
 
-public partial class OtherTests
+public partial class HostTests
 {
     [Test]
     public void RefData_Categories()

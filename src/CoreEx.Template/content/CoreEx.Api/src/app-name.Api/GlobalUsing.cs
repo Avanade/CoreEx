@@ -18,13 +18,8 @@ global using Microsoft.AspNetCore.Mvc;
 global using solution-name.Application;
 global using solution-name.Contracts;
 global using NSwag.Annotations;
-global using OpenTelemetry;
-global using OpenTelemetry.Trace;
-global using StackExchange.Redis;
 global using System.Net;
 global using System.Text.Json;
-global using ZiggyCreatures.Caching.Fusion;
-global using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
 
 // NOTE: Application layer using statements will be added after CodeGen runs.
 // See: BOOTSTRAP_PHASE_2.md in your project root.

@@ -235,6 +235,14 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
 }
 ```
 
+> **The override is `OnMap` — there is no `OnMapToPrimary` / `OnMapToSecondary` / `MapTo…`.** `BiDirectionMapper` declares **two `OnMap` overloads with the same name**, distinguished only by **source type**: `OnMap(TFrom source)` returns `TTo` (Contract → Persistence), and `OnMap(TTo source)` returns `TFrom` (Persistence → Contract). Override **both**. Do not invent differently-named methods:
+> ```csharp
+> // ❌ Wrong — no such methods on BiDirectionMapper
+> protected override Persistence.Product OnMapToSecondary(Contracts.Product source) => ...;
+> protected override Contracts.Product OnMapToPrimary(Persistence.Product source) => ...;
+> ```
+> And **`Id` is mapped explicitly** (the base does not auto-map it) — only `ETag`/`ChangeLog` are left out (see below).
+
 Generated persistence models inherit from `ModelBase<TId>` — or `ReferenceDataModelBase<TId>` for reference data (which extends `ModelBase<TId>`) — both in the `CoreEx.Data.Models` namespace. `ModelBase` supplies the standard `Id`, `CreatedBy`, `CreatedOn`, `UpdatedBy`, `UpdatedOn`, and `ETag` members; the EF code-generation maps the database `RowVersion` (`TIMESTAMP`) column onto the `string? ETag` property, so there is **no** `RowVersion` member on the model. `ReferenceDataModelBase` adds the standard reference-data members (`Code`, `Text`, `Description`, `SortOrder`, `IsActive`, `StartsOn`, `EndsOn`).
 
 Consequently, do **not** map the `IETag` (`ETag`) or `IChangeLog` (`ChangeLog`) surface in the `OnMap` overrides — the base `BiDirectionMapper` maps the inherited `ModelBase` change-log and ETag members to/from the contract automatically, in both directions. Map `Id` and the domain-specific properties explicitly (as shown above); leave the inherited base-class members to the base mapper.

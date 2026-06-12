@@ -9,15 +9,15 @@ public class EntryPoint
         // Configure the minimum services required for the unit tests.
         builder.Services.AddExecutionContext();
         builder.Services.AddMemoryCache();
-#if refdata-enabled
+// #if refdata-enabled
         builder.Services.AddReferenceDataOrchestrator<ReferenceDataServiceDecorator>();
 
         // Reuse the "real" database configured reference data.
         var jdr = JsonDataReader.ParseYaml<app-name.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
         builder.Services.AddSingleton(new ReferenceDataServiceDecorator(jdr));
-#endif
+// #endif
     }
-#if refdata-enabled
+// #if refdata-enabled
 
     /// <summary>Provides a decorator for the <see cref="ReferenceDataService"/> to use JSON data for unit tests.</summary>
     public class ReferenceDataServiceDecorator(JsonDataReader jdr) : ReferenceDataService(Mock.Of<IReferenceDataRepository>())
@@ -30,5 +30,5 @@ public class EntryPoint
             _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")
         };
     }
-#endif
+// #endif
 }

@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.Postgres.Outbox;
+using CoreEx.Database.Postgres.Outbox;
 
 namespace Contoso.Products.Test.Outbox.Relay;
 
@@ -12,7 +12,7 @@ public class RelayTests : WithApiTester<Contoso.Products.Outbox.Relay.Program>
     }
 
     [Test]
-    public async Task Outbox_Relay()
+    public void Outbox_Relay()
     {
         // Arrange the two events to publish and relay.
         var ce1 = Test.CreateCloudEventFromJsonResource("ProductCreatedCloudEvent.json");

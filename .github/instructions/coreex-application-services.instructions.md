@@ -262,7 +262,7 @@ return await _unitOfWork.TransactionAsync(async ct =>
 ```
 
 - `WhereMutated(action)` — executes `action` only when the data result records a mutation; add the event inside this callback. **Mind the overload:** `DataResult<T>` (from `Create`/`Update`) carries the value, so use `WhereMutated(v => ...)`; `DataResult` (from `Delete`) has **no value**, so use the parameterless `WhereMutated(() => ...)` — not `WhereMutated(_ => ...)`.
-- `EventData.CreateEventWith(value, action)` — a typed event **carrying the entity value** (Create/Update). For a **no-value** event (Delete), use `EventData.CreateEvent<T>(action).WithKey(id)` — the type + action + key, **no value** (avoids the awkward `CreateEventWith<T>(default, …)`).
+- `EventData.CreateEventWith(value, action)` — a typed event **carrying the entity value** (Create/Update only — pass the **real** mutated value `v`). For a **no-value** event (Delete), use `EventData.CreateEvent<T>(action).WithKey(id)` — the type + action + key, **no value**. **Never fabricate a value to feed `CreateEventWith` on a delete** (e.g. `CreateEventWith(new Employee { Id = id }, …)` or `CreateEventWith<T>(default, …)`): a delete event must have **no body** — a synthetic entity wrongly serialises a near-empty value, adds a version suffix that delete events must not have, and buries the id in the body instead of the metadata key. The id belongs in `.WithKey(id)`.
 - `EventAction.Created`, `EventAction.Updated`, `EventAction.Deleted` — use the standard constants.
 
 For delete the `DataResult` has no value, so use the parameterless `WhereMutated(() => ...)` and carry the identity via `.WithKey(id)`:
@@ -273,6 +273,13 @@ public async Task DeleteAsync(string id)
     await _unitOfWork.TransactionAsync(async () =>
     {
         var dr = await _repository.DeleteAsync(id.ThrowIfNullOrEmpty()).ConfigureAwait(false);
+
+        // ❌ Wrong — fabricates a throwaway value to carry the id; attaches a (near-empty) body,
+        //    adds a version suffix delete must not have, and puts the id in the body, not the key.
+        dr.WhereMutated(() =>
+            _unitOfWork.Events.Add(EventData.CreateEventWith(new Contracts.Employee { Id = id }, EventAction.Deleted)));
+
+        // ✅ Correct — no value; type + action + key only.
         dr.WhereMutated(() =>                                    // () — no value on a delete DataResult
             _unitOfWork.Events.Add(
                 EventData.CreateEvent<Employee>(EventAction.Deleted).WithKey(id)));

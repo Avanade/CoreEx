@@ -58,6 +58,8 @@ Running `dotnet run` reads `ref-data.yaml`, validates it against the CoreEx JSON
 
 All outputs carry the `.g.cs` suffix and must never be edited directly — regenerate by re-running `dotnet run`.
 
+> **Application project must globally import the Contracts namespace.** The generated Application artefacts (e.g. `IXxxRepository.g.cs`, the service `.g.cs`) reference contract types **unqualified** — `GenderCollection`, `Gender`, etc. For these to resolve, the Application project's `GlobalUsing.cs` must contain `global using {Solution}.Contracts;`. The `coreex` template ships this already; if a generated solution hits a build error like *"`GenderCollection` could not be found"* in the Application project after CodeGen, add that global using (do **not** edit the `.g.cs` to fully-qualify it).
+
 ### `ref-data.yaml` structure
 
 > ⚠️ **Two related but distinct reference-data files — do not confuse them:**
@@ -148,13 +150,13 @@ public static Task<int> Main(string[] args) => SqlServerMigrationConsole
 
 public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
 {
-    args.AddAssembly<SqlStatement>();   // Assembly with the requisite CoreEx EF code-generation templates (do not remove).
+    args.AddAssembly<SqlStatement>().AddAssembly<Program>();   // SqlStatement = CoreEx EF code-gen templates; Program = this project's embedded Migrations/Schema/Data. Both REQUIRED — do not remove (see below).
     args.DataResetFilterPredicate = ts => ts.Schema == "{domain-schema}";   // Only reset data for this domain's schema.
     return args;
 }
 ```
 
-`Create<Program>(...)` already registers the `Program` assembly (which carries the embedded `Migrations/`, `Schema/`, and `Data/` resources), so there is no need to add it again. The single required `AddAssembly<SqlStatement>()` brings in the CoreEx EF code-generation templates used by the `CodeGen` command.
+**Both `AddAssembly` calls are required — never drop `AddAssembly<Program>()`.** `AddAssembly<SqlStatement>()` brings in the CoreEx EF code-generation templates used by the `CodeGen` command; `AddAssembly<Program>()` registers **this** Database project's assembly, which carries the embedded `Migrations/`, `Schema/`, and `Data/` resources. It is tempting to omit `AddAssembly<Program>()` because `Create<Program>(...)` registers that assembly automatically — but that only applies when migration runs via **`Main`** (the console path). The **API integration tests call `ConfigureMigrationArgs` directly** (e.g. `MigrateXxxDataAsync<TestData>(…, DbMigration.ConfigureMigrationArgs)`) **without** the `Create<Program>` console setup, so the embedded migrations/data are found **only** because `AddAssembly<Program>()` is inside `ConfigureMigrationArgs`. Removing it leaves the tests unable to locate any migration scripts or seed data. All sample domains (SQL Server and PostgreSQL) include both calls.
 
 **Optional additions** (only when the domain needs them — not in the baseline):
 - `.DataParserArgs.RefDataColumnDefault("<Column>", _ => <value>)` — default a **domain-specific** ref-data seed column when the YAML omits it (e.g. `Scale` for a `UnitOfMeasure`). Add one per such column; omit entirely if not needed. (Do **not** do this for `SortOrder` — it is auto-assigned, see below.)
@@ -281,6 +283,8 @@ The `CodeGen` command generates `.g.cs` files into the Infrastructure project:
 | `*DbContext.g.cs` | `Infrastructure/Repositories/` | Partial `DbContext` class exposing `AddGeneratedModels(ModelBuilder)` to register all persistence models with EF Core |
 
 These files are the only `.g.cs` outputs of `*.Database`; all other generated C# comes from `*.CodeGen`. Never edit them directly.
+
+> **⚠️ Hand-written `*DbContext.cs` must not declare an `AddGeneratedModels` stub.** The generated `*DbContext.g.cs` defines `AddGeneratedModels(ModelBuilder)` as a regular **`public void`** method on the partial class. The hand-written `*DbContext.cs` must be a **`partial class`** that simply **calls** `AddGeneratedModels(modelBuilder)` from `OnModelCreating` — it must **not** also declare a `partial void AddGeneratedModels(ModelBuilder);` stub. A `partial void` declaration alongside the generated `public void` is two members with the same signature → **CS0111** ("type already defines a member …"). Remove the stub; the generated method is the sole definition. (Because there is no stub, the project only compiles once CodeGen has emitted the `.g.cs` — run CodeGen before building, per the order of operations.)
 
 ### Inspecting current database state
 

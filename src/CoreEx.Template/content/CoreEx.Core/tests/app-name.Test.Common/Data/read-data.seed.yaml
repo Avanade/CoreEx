@@ -1,0 +1,17 @@
+# Read test dataset for the 'domain-name' domain — loaded by the XxxReadTests classes via:
+#   MigrateXxxDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs)
+#
+# Contains the STABLE rows that GET/query tests assert against. Mutate tests load the separate
+# 'mutate-data.seed.yaml' so mutations never disturb these read expectations.
+#
+# DbEx YAML format: schema (top-level) -> '- <Table>:' (array item, note the leading '-') -> rows.
+#   * Identifiers and GUID foreign-keys use '^N' (deterministic: ^1 == 1.ToGuid()).
+#   * Reference data is linked by CODE (e.g. GenderCode: M), never by id/FK.
+#   * List columns explicitly, using the data provider's column casing.
+#
+# Example (replace with your domain's tables and rows):
+#
+# domain-name:
+#   - Employee:
+#     - { EmployeeId: ^1, FirstName: Bob, LastName: Smith, GenderCode: M, Salary: 50000, DateOfBirth: 1990-01-01 }
+#     - { EmployeeId: ^2, FirstName: Jane, LastName: Doe, GenderCode: F, Salary: 60000, DateOfBirth: 1985-06-15 }

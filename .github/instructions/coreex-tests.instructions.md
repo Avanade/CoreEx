@@ -28,6 +28,25 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 ---
 
+## Test Responsibility — what goes where (do not duplicate)
+
+The two test projects have **distinct, non-overlapping jobs**. Decide where a behaviour belongs by what it needs to exercise, and assert it in **one** place only.
+
+| Concern | Where | Why |
+|---|---|---|
+| **Service orchestration & repository logic** — CRUD round-trips, identifier assignment on create, persistence + mapping, query/filter behaviour, **soft-delete filtering**, eventing (outbox subject/destination), concurrency (ETag/`If-Match`), idempotency, error→HTTP mapping (404/409/412/428) | **`*.Test.Api`** (intra-domain integration) | These are *integration* behaviours — they only have meaning over the real DB/cache/outbox and the real host pipeline. Mocking them would test the mock, not the system. |
+| **Isolated component logic** — **validators**, pure mappers, calculations, value-conversion helpers, and other logic with no infrastructure dependency | **`*.Test.Unit`** | Fast, exhaustive, no DB. The natural home for enumerating every rule/branch of a validator or a pure function. |
+
+**Do not repeat the same assertion in both projects.** Concretely:
+
+- **Validator rules** are proven **exhaustively in unit tests** (every mandatory/range/format/cross-field rule). In the API tests, do **not** re-enumerate them — assert **one** representative `AssertErrors(...)` / `AssertBadRequest()` case to confirm the validator is *wired into the pipeline*, then move on. (See the validators guidance — "Unit Tests".)
+- **Service/repository behaviour** is proven in the **API tests** over the real database. Do **not** re-create it in unit tests with a mocked repository/UoW — that would assert the mock's configured behaviour, not the real persistence/mapping/eventing.
+- When a behaviour *could* sit in either, prefer the layer that exercises it **without mocking the thing under test**: validator → unit; anything touching the DB, cache, outbox, or HTTP pipeline → API.
+
+The goal is a single source of truth per behaviour: unit tests guard the rules and pure logic; API tests guard the wired-up, persisted, evented system.
+
+---
+
 ## One-Time Setup
 
 Every integration test class must have a `[OneTimeSetUp]` method. Order of operations is fixed:
@@ -312,9 +331,10 @@ The canonical delete test is a **four-step** flow that proves both the delete an
 // 1. Confirm it exists (the EmployeeId: ^2 seed).
 Test.Http().Run(HttpMethod.Get, $"/api/products/{2.ToGuid()}").AssertOK();
 
-// 2. Delete — 204, and a "deleted" outbox event. Delete has NO value body, so the subject has NO version suffix.
+// 2. Delete — 204, and a "deleted" outbox event. Delete returns NO value body → assert METADATA + KEY (not value);
+//    the key is the deleted id carried via .WithKey(id); the subject has NO version suffix.
 Test.Http()
-    .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.deleted"))
+    .ExpectPostgresOutboxEvents(e => e.AssertMetadata("contoso", "contoso.products.product.deleted", 2.ToGuid().ToString()))
     .Run(HttpMethod.Delete, $"/api/products/{2.ToGuid()}")
     .AssertNoContent();
 
@@ -332,7 +352,12 @@ A delete of a **non-existent** id behaves like step 4 — 204 No Content with no
 
 ### Outbox event assertions — destination & subject
 
-Assert published events with `ExpectXxxOutboxEvents(e => e.AssertWithValue(destination, subject))` (provider-specific). The two strings:
+Assert published events with `ExpectXxxOutboxEvents(e => …)` (provider-specific). **Pick the assertor by whether the event carries a value:**
+
+- **`.AssertWithValue(destination, subject)`** — for **value-carrying** events (Create/Update). It reconstructs the expected `EventData` **from the API's returned value** and JSON-compares the event body. Only valid when the operation returns a value.
+- **`.AssertMetadata(destination, subject, key)`** — for **no-value** events (**Delete**, or any operation returning `204 No Content`). It asserts the **metadata only** — destination + subject — plus the **`key`** (the `CloudEvent.Subject`, i.e. the `EventData.Key` set via `.WithKey(id)` in the service). There is no value to compare, so `AssertWithValue` would have nothing to reconstruct from — use `AssertMetadata` and pass the deleted id (e.g. `2.ToGuid().ToString()`) as the key.
+
+The `destination` and `subject` strings:
 
 - **`destination`** — the topic/queue the event is published to: the `CoreEx:Events:Destination` value from `appsettings.json` (the domain's messaging topic, e.g. `contoso`). Do not assume it equals the subject's first segment.
 - **`subject`** — composed as **`{solutionname}.{domainname}.{entity}.{action}`** + an **optional `.v{major}` version suffix**, all **lower-case**, dot-separated:
@@ -342,13 +367,13 @@ Assert published events with `ExpectXxxOutboxEvents(e => e.AssertWithValue(desti
   - **`.v{major}` version suffix — present *only when the event carries a value*** (e.g. Create/Update). Its value is the **major** of the contract's `[Schema("v2.0")]` attribute → `.v2`; **unannotated defaults to `.v1`**. An event with **no value** (e.g. Delete) has **no version suffix at all**.
 
 ```csharp
-// Create — has a value → version suffix (default v1, or the [Schema] major).
+// Create — has a value → AssertWithValue, version suffix (default v1, or the [Schema] major).
 .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
-// Delete — no value → no version suffix.
-.ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.deleted"))
+// Delete — no value → AssertMetadata with the key (the deleted id); no version suffix.
+.ExpectPostgresOutboxEvents(e => e.AssertMetadata("contoso", "contoso.products.product.deleted", 2.ToGuid().ToString()))
 ```
 
-So a `[Schema("v2.0")] Product` create event is `…product.created.v2`. If unsure of the exact subject, **run the test once** — the assertion failure reports the actual event subject; copy it verbatim. **Delete** events carry no value body but do carry the key (`EventData.CreateEvent<T>(EventAction.Deleted).WithKey(id)`); assert them with the unversioned `…deleted` subject (there is no value to JSON-compare).
+So a `[Schema("v2.0")] Product` create event is `…product.created.v2`. If unsure of the exact subject, **run the test once** — the assertion failure reports the actual event subject; copy it verbatim. **Delete** events carry no value body but do carry the key (`EventData.CreateEvent<T>(EventAction.Deleted).WithKey(id)`); assert them with **`AssertMetadata(destination, "…deleted", key)`** — the unversioned `…deleted` subject plus the id as the key (there is no value to JSON-compare, so `AssertWithValue` does not apply).
 
 ### HTTP assertion methods
 
@@ -479,6 +504,25 @@ public void Invalid_Product() => Test.Scoped(test =>
 
 Error text derives from the standard templates in [`ValidatorStrings.cs`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Validation/ValidatorStrings.cs) (unless a rule overrides the whole message via `.Error(...)`). Placeholders: `{0}` = the property's localized text (label), `{1}` = the value being validated, `{2}` onward = rule-specific extras (compare-to value, max length, etc.). Compose the expected string from the template + label + extras — e.g. `MandatoryFormat` "{0} is required." → `"Sku is required."`; `CompareGreaterThanEqualFormat` "{0} must be greater than or equal to {2}." with compare-text `"zero"` → `"Price must be greater than or equal to zero."`.
 
+> **⚠️ Label casing — sentence case, not Title Case.** The `{0}` label is derived from the property name by splitting on CamelCase and **capitalising only the first word** (the rest are lower-cased). Do **not** read the label as a title-cased echo of the property name:
+>
+> | Property | Label `{0}` | `… is required.` |
+> |---|---|---|
+> | `FirstName` | `First name` | `"First name is required."` (not "First Name") |
+> | `LastName` | `Last name` | `"Last name is required."` |
+> | `DateOfBirth` | `Date of birth` | `"Date of birth is required."` |
+> | `Salary` | `Salary` | `"Salary is required."` |
+> | `Gender` | `Gender` | `"Gender is required."` |
+>
+> Single-word properties are simply capitalised. Always derive the label from the **split + sentence-case** rule, not from a Title-Case reading of the identifier. (A `[Display(Name = …)]`/`.Text(…)` override replaces the derived label entirely.)
+
+> **Exact `PrecisionScale` scale message.** A scale (decimal-places) violation uses `DecimalPlacesFormat` → `"{0} exceeds the maximum decimal places ({2})."` — e.g. `Property(p => p.Salary).PrecisionScale(18, 2)` with too many decimals → `"Salary exceeds the maximum decimal places (2)."` Note the **short** form ("maximum decimal places"), **not** "maximum specified number of decimal places". If unsure of any exact string, run the test once and copy the produced message verbatim rather than guessing.
+
+> **Exact length-rule messages.** The string length rules all end with **"character(s) in length."** (the literal `(s)` is always present, regardless of the count) — do not shorten to "characters.":
+> - `MaximumLength(n)` → `MaxLengthFormat` `"{0} must not exceed {2} character(s) in length."` — e.g. `Property(p => p.Text).MaximumLength(250)` → `"Text must not exceed 250 character(s) in length."`
+> - `MinimumLength(n)` → `MinLengthFormat` `"{0} must be at least {2} character(s) in length."`
+> - `Length(exact)` → `ExactLengthFormat` `"{0} must be exactly {2} character(s) in length."`
+
 ### Reference data in unit tests
 
 Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataServiceDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, **add a new arm to** its `GetAsync` switch — inserting it **before** the final `_ => throw …` catch-all:
@@ -486,13 +530,17 @@ Validators that use reference data (`.IsValid()`, etc.) resolve it through `Entr
 ```csharp
 public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
 {
-    _ when type == typeof(Gender) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<GenderCollection>("hr.$^gender")!),
+    _ when type == typeof(Gender) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<GenderCollection>("Bar.$^Gender")!),
     // ...other ref-data arms...
     _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")   // ← never remove this catch-all
 };
 ```
 
-**Never remove or replace the final `_ => throw …` catch-all arm** — only add arms above it. It is the guard that surfaces an unhandled ref-data type; dropping it (e.g. "replacing the throw-only body") would silently break the decorator. `Gender` is the reference-data **contract type**; `"hr.$^gender"` is the appropriately-cased `schema.$^table` key into the pre-configured seed data.
+**Never remove or replace the final `_ => throw …` catch-all arm** — only add arms above it. It is the guard that surfaces an unhandled ref-data type; dropping it (e.g. "replacing the throw-only body") would silently break the decorator.
+
+`Gender` is the reference-data **contract type**; `"Bar.$^Gender"` is the `{schema}.$^{Table}` key into the pre-configured seed data. **The key must mirror the seed YAML's schema and `$^Table` entry exactly, including casing** — it is case-sensitive. So it follows the **provider's casing**: PascalCase for SQL Server (e.g. `"Bar.$^Gender"`, `"Orders.$^OrderStatus"`), lower/snake_case for PostgreSQL (e.g. `"products.$^category"`). Copy the casing from the actual seed `$^<Table>` rather than assuming lower-case.
+
+**Error path for a ref-data property is the camelCase navigation name.** A ref-data rule is written against the **typed navigation** property — `Property(x => x.Gender).IsValid()` — so its error key is the **camelCase of that navigation name**: `"gender"` (for `SubCategory` → `"subCategory"`). This is the **same** token as the serialized JSON code value (`GenderCode` serialises as `gender`), so the error path and the JSON field name coincide. Assert it as `("gender", "Gender is invalid.")` — not `("genderCode", …)` and not `("Gender", …)`. (The message label still follows the sentence-case / `[Localization]` rules above.)
 
 **Only test valid vs not-valid — not active/inactive.** A validator's reference-data rule is the `.IsValid()` extension; assert just the two outcomes: a **valid** code (use a real seeded code) and a **not-valid** code (use a code that is not in the seed — it fails naturally, no arranging required). Do **not** write tests targeting `IReferenceData.IsActive`/`IsInactive` — active/inactive handling is built into `IsValid()`, is framework behaviour we trust, and arranging inactive data just to prove it adds cost for no real coverage.
 
@@ -631,6 +679,7 @@ Basket_Checkout_Insufficient_Quantity
 - Do not omit `.WithMergePatchJsonContentType()` on a PATCH test — the request default is plain JSON, not merge-patch.
 - Do not assert `AssertNotFound()` on a `DELETE` — delete is idempotent and always returns 204 No Content (the 404 belongs to the *GET* in a get→delete→get flow). Only the first delete emits an event; assert `ExpectNoXxxOutboxEvents()` on a repeat/non-existent delete.
 - Do not add a `.vN` version suffix to a **no-value** event subject (e.g. `…deleted`) — the version applies **only** when the event carries a value (create/update). Derive the version from the contract's `[Schema("vX.Y")]` major (default `.v1`); don't guess or hard-code it.
+- Do not use `AssertWithValue` for a **no-value** event (Delete, or any `204 No Content`) — there is no returned value to reconstruct from. Use `AssertMetadata(destination, subject, key)` and pass the entity id (e.g. `2.ToGuid().ToString()`) as the `key` (the `.WithKey(id)` value). Reserve `AssertWithValue` for value-carrying Create/Update events.
 
 ## Further Reading
 

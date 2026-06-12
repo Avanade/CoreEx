@@ -7,20 +7,21 @@ This document guides you through the second phase of bootstrapping your CoreEx s
 During the initial scaffold (`dotnet new coreex`), reference-data and application-layer code doesn't yet exist. We intentionally:
 
 - **Defer** CodeGen-dependent service registrations
-- **Omit** Application layer `using` statements
+- **Omit** the Application-layer `using` statements in the host projects
 - **Provide** safe placeholder implementations
 
-This ensures your scaffolded solution compiles immediately and allows you to run the CodeGen tooling cleanly.
+This ensures your scaffolded solution compiles immediately and lets you run the CodeGen tooling cleanly.
+
+> **Hosts are added separately.** The base `coreex` scaffold creates the `Contracts`, `Application`, (optional) `Domain`, and `Infrastructure` projects plus the `*.Database` and `*.CodeGen` tooling. It does **not** create the API, Subscriber, or Outbox Relay hosts — those are added on demand with the `coreex-api`, `coreex-subscriber`, and `coreex-relay` templates. The host-wiring steps below (Steps 3–5) apply only to whichever hosts you have actually added.
 
 ## Phase 1: Initial Scaffold (Complete ✅)
 
 Your solution is now scaffolded with:
 
 ```
-✅ API host (with placeholder services)
-✅ Subscriber host (with PlaceholderSubscriber)
-✅ Relay host (for outbox publishing)
-✅ Database tooling (schema, migrations)
+✅ Contracts, Application, (optional) Domain, Infrastructure projects
+✅ Database tooling (schema, migrations) — tools/app-name.Database
+✅ Reference-data CodeGen tooling — tools/app-name.CodeGen
 ✅ Placeholder reference-data layer
 ```
 
@@ -31,47 +32,52 @@ Your solution is now scaffolded with:
 
 ## Phase 2: Code Generation & Service Wiring (Start Here)
 
-### Step 1: Run Database Migrations
+### Step 1: Apply the Database Schema (and generate persistence models)
 
-Deploy the database schema:
+From the database tooling project, run the composite `All` command (Create → Migrate → CodeGen → Schema → Data):
 
 ```bash
-cd tools/solution-name.Database
-dotnet run -- "--execute-create-database-when-not-exists" "--execute-merge-migration"
+cd tools/app-name.Database
+dotnet run -- All
 ```
 
 **Result:**
-- Schema created
-- Outbox tables created
-- Ready for reference-data seeding
+- Database created (when it does not already exist)
+- Migrations applied (schema + outbox tables)
+- EF persistence models generated from the live schema
+- Reference/seed data applied
 
-### Step 2: Run CodeGen for Reference Data
+> See `coreex-tooling.instructions.md` for the full DbEx command set (`All`, `Database`, `Migrate`, `CodeGen`, `Schema`, `Data`, `Reset`, …). Use the **commands** — not raw `--execute-*` flags.
 
-Generate reference-data controllers, services, and repositories:
+### Step 2: Run CodeGen for Reference Data (contracts & services)
+
+Generate the reference-data contracts, services, repository interfaces, repositories, and mappers:
 
 ```bash
-cd tools/solution-name.CodeGen
+cd tools/app-name.CodeGen
 dotnet run
 ```
 
 **Generated files appear in:**
-- `src/solution-name.Application/` (Services, Validators)
-- `src/solution-name.Infrastructure/Mapping/` (Mappers)
-- `src/solution-name.Infrastructure/Persistence/` (Persistence models)
-- `src/solution-name.Api/Controllers/` (ReferenceDataController.g.cs)
+- `src/app-name.Contracts/` (reference-data contract `*.g.cs`)
+- `src/app-name.Application/` (service + repository-interface `*.g.cs`)
+- `src/app-name.Infrastructure/Mapping/` (mapper `*.g.cs`)
+- `src/app-name.Infrastructure/` (repository `*.g.cs`, persistence models)
+- `src/app-name.Api/Controllers/` (`ReferenceDataController.g.cs` — once an API host exists)
 
-### Step 3: Enable Reference-Data Service Registration
+> This is the **CoreEx** CodeGen (contracts etc. from `app-name.CodeGen/ref-data.yaml`), distinct from the **DbEx** CodeGen run by `All` in Step 1 (EF persistence models from `dbex.yaml` + live schema).
 
-After CodeGen, uncomment and enable the reference-data registrations.
+### Step 3: Enable Reference-Data Service Registration — API host *(if added)*
 
-#### In `src/solution-name.Api/Program.cs`:
+After CodeGen, uncomment the reference-data registrations in the API host.
+
+#### In `src/app-name.Api/Program.cs`:
 
 Find this commented block:
 
 ```csharp
         // NOTE: Reference-data orchestrator and dynamic service registration are performed AFTER CodeGen runs.
         // See: BOOTSTRAP_PHASE_2.md in your project root for the post-CodeGen setup steps.
-        // The following will be uncommented and moved here after running: dotnet run --project tools/solution-name.CodeGen
         //
         // // #if refdata-enabled
         // builder.Services.AddReferenceDataOrchestrator<ReferenceDataService>();
@@ -79,42 +85,38 @@ Find this commented block:
         // // #endif
 ```
 
-**Uncomment and move** these lines into the main service configuration:
+**Uncomment** the two registrations (delete the NOTE):
 
 ```csharp
-        // Add CoreEx services.
-        builder.Services
-            .AddExecutionContext()
-            .AddMvcWebApi()
-            .AddHttpWebApi()
-            .AddReferenceDataOrchestrator<ReferenceDataService>()              // ← UNCOMMENTED
-            .AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();  // ← UNCOMMENTED
+        builder.Services.AddReferenceDataOrchestrator<ReferenceDataService>();
+        builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
 ```
 
-#### In `src/solution-name.Api/GlobalUsing.cs`:
+> `AddDynamicServicesUsing<…>` takes **one representative type per assembly** (one Application type + one Infrastructure type registers every `[ScopedService]` in those assemblies) — do not add a type argument per service.
+
+#### In `src/app-name.Api/GlobalUsing.cs`:
 
 Find this commented block:
 
 ```csharp
 // NOTE: Application layer using statements will be added after CodeGen runs.
 // See: BOOTSTRAP_PHASE_2.md in your project root.
-// Add the following after generating application services:
 // // #if refdata-enabled
-// global using solution-name.Application;
+// global using app-name.Application;
 // // #endif
 ```
 
 **Uncomment** this line:
 
 ```csharp
-global using solution-name.Application;  // ← UNCOMMENTED (remove conditional comment if refdata-enabled)
+global using app-name.Application;
 ```
 
-### Step 4: Do the Same for Subscriber Host
+### Step 4: Do the Same for the Subscriber Host *(if added)*
 
-Repeat Step 3 for the Subscriber host:
+The Subscriber host is a full application-layer consumer, so it has the same registrations.
 
-#### In `src/solution-name.Subscriber/Program.cs`:
+#### In `src/app-name.Subscriber/Program.cs`:
 
 Uncomment:
 ```csharp
@@ -123,24 +125,16 @@ builder.Services
     .AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
 ```
 
-#### In `src/solution-name.Subscriber/GlobalUsing.cs`:
+#### In `src/app-name.Subscriber/GlobalUsing.cs`:
 
 Uncomment:
 ```csharp
-global using solution-name.Application;
+global using app-name.Application;
 ```
 
-### Step 5: (Optional) Run Relay Host CodeGen
+### Step 5: Outbox Relay Host — nothing to uncomment *(if added)*
 
-If you're using an Outbox Relay host:
-
-#### In `src/solution-name.Outbox.Relay/Program.cs`:
-
-Uncomment the reference-data registrations (if `refdata-enabled`).
-
-#### In `src/solution-name.Outbox.Relay/GlobalUsing.cs`:
-
-Uncomment the application layer `using` statement.
+The Outbox Relay host is a minimal publisher: it polls the outbox table and forwards events to the broker. It has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF `DbContext`, and no Application-layer `using`. There is **nothing to uncomment** for the Relay host.
 
 ### Step 6: Rebuild and Test
 
@@ -167,15 +161,15 @@ With reference-data scaffolding complete, you can now:
 
 ## Checklist for Phase 2
 
-- [ ] Database schema deployed (run Database migrations)
-- [ ] CodeGen executed (run CodeGen tool)
-- [ ] API Program.cs reference-data registrations uncommented
-- [ ] API GlobalUsing.cs application using statement uncommented
-- [ ] Subscriber Program.cs reference-data registrations uncommented (if applicable)
-- [ ] Subscriber GlobalUsing.cs application using statement uncommented (if applicable)
+- [ ] Database schema deployed (`dotnet run -- All` in `tools/app-name.Database`)
+- [ ] Reference-data CodeGen executed (`dotnet run` in `tools/app-name.CodeGen`)
+- [ ] API host (if added): `Program.cs` reference-data registrations uncommented
+- [ ] API host (if added): `GlobalUsing.cs` `global using app-name.Application;` uncommented
+- [ ] Subscriber host (if added): `Program.cs` registrations + `GlobalUsing.cs` using uncommented
+- [ ] Relay host (if added): nothing to do (no application-layer dependencies)
 - [ ] Solution builds without errors
-- [ ] Tests pass (if applicable)
-- [ ] Reference-data endpoints responding at `/reference-data/*`
+- [ ] Tests pass
+- [ ] Reference-data endpoints responding at `/reference-data/*` (API host)
 
 ## Conditional Syntax Notes
 
@@ -183,28 +177,28 @@ If you scaffolded with `--refdata-enabled=false`:
 
 - **No reference-data code was generated**
 - **Leave the registrations commented out**
-- **Don't uncomment the Application layer using statements**
+- **Don't uncomment the Application-layer using statements**
 - The solution stays lightweight with just core infrastructure
 
 If you scaffolded with `--refdata-enabled=true`:
 
 - **Reference-data layer is fully generated**
-- **Uncomment all registrations in Phase 2**
-- **Application layer using statements should be active**
+- **Uncomment the registrations in Phase 2** (API and Subscriber hosts)
+- **Application-layer using statements should be active**
 
 ## Troubleshooting
 
 ### "Type or namespace 'ReferenceDataService' could not be found"
-→ You haven't uncommented the registrations in Program.cs yet. See Step 3 above.
+→ You haven't uncommented the registrations in `Program.cs` yet. See Step 3 above.
+
+### "The type or namespace name 'GenderCollection' could not be found" (Application project)
+→ The Application project's `GlobalUsing.cs` must contain `global using app-name.Contracts;` so the generated repository/service `*.g.cs` can resolve the contract types. The template ships this; if missing, add it (do not fully-qualify the `.g.cs`).
 
 ### "Using statement was not recognized"
-→ You haven't uncommented the Application layer using statement in GlobalUsing.cs. See Step 3.
-
-### "The PlaceholderSubscriber doesn't seem right"
-→ It's intentional! It's a compile-safe bootstrap placeholder. Replace it with your actual subscribers in Step 7.
+→ You haven't uncommented the Application-layer using statement in the host's `GlobalUsing.cs`. See Step 3.
 
 ### CodeGen reports "No entities defined"
-→ Normal on first run. Add entities to your `ref-data.yaml` file and run CodeGen again.
+→ Normal on first run. Add entities to your `app-name.CodeGen/ref-data.yaml` file and run CodeGen again.
 
 ## Next: Domain & Application Development
 
@@ -215,4 +209,4 @@ Once Phase 2 is complete, you're ready to:
 - Add subscribers for async event handling
 - Build out your API controllers
 
-Refer to the CoreEx documentation and samples for patterns on each layer.
+Refer to the CoreEx documentation, the `.github/instructions/*.instructions.md` files, and the samples for patterns on each layer.

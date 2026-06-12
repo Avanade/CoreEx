@@ -1,6 +1,3 @@
-using System.Text.Json.Nodes;
-using static System.Net.WebRequestMethods;
-
 namespace CoreEx.Json;
 
 /// <summary>
@@ -8,7 +5,8 @@ namespace CoreEx.Json;
 /// </summary>
 /// <remarks>The JSON path matching is exact (other than specified <see cref="StringComparison"/>) in that the path matches with no indexing or fully indexed; i.e. no mixing is supported. For example, a JSON path of 
 /// '<c>$.projects[0].technologies[1]</c>' will only match based on a filter of either '<c>$.projects[0].technologies[1]</c>' (fully indexed) or '<c>$.projects.technologies</c>' (no indexing); not on 
-/// '<c>$.projects.technologies[1]</c>' (mixed). Note that the '<c>$.</c>' JSON path prefix for the filter is optional.</remarks>
+/// '<c>$.projects.technologies[1]</c>' (mixed). Property names that contain special characters such as dots may be specified using bracket notation, e.g. <c>$.entries['stackExchange.Redis']</c> or
+/// <c>$.entries["stackExchange.Redis"]</c>. Note that the '<c>$.</c>' JSON path prefix for the filter is optional.</remarks>
 public static partial class JsonFilter
 {
     private static readonly Regex _regex = IndexesRegex();
@@ -26,7 +24,7 @@ public static partial class JsonFilter
     public static string PrependRootPath(string path) => string.IsNullOrEmpty(path) ? JsonRootPath : (!path.StartsWith(JsonRootPath) ? (path.StartsWith('[') ? $"{JsonRootPath}{path}" : $"{JsonRootPath}.{path}") : path);
 
     /// <summary>
-    /// Removes all indexes from the specified <paramref name="input"/> JSON path.
+    /// Removes all numeric (integer) array indexes from the specified <paramref name="input"/> JSON path; bracket-notation string property names (e.g. <c>['name']</c>) are preserved.
     /// </summary>
     /// <param name="input">The input JSON path.</param>
     /// <param name="path">The resulting JSON path.</param>
@@ -167,39 +165,27 @@ public static partial class JsonFilter
 
         // Add each 'specified' path.
         foreach (var path in paths)
-            dict.TryAdd(prependRootPath ? PrependRootPath(path) : path, true);
+        {
+            var normalized = NormalizeDoubleQuoteBrackets(prependRootPath ? PrependRootPath(path) : path);
+            dict.TryAdd(normalized, true);
+        }
 
         // Add each 'intermediary' path where applicable.
         if (filter == JsonFilterOption.Include)
         {
-            var sb = new StringBuilder();
             foreach (var kvp in dict.ToArray())
             {
-                sb.Clear();
-                var parts = kvp.Key.Split('.');
-                for (int i = 0; i < parts.Length; i++)
+                var depth = 0;
+                foreach (var segment in GetCumulativeSegments(kvp.Key))
                 {
-                    if (i > 0)
-                        sb.Append('.');
-
-                    sb.Append(parts[i]);
-                    dict.TryAdd(sb.ToString(), false);
-
-                    maxDepth = Math.Max(maxDepth, i + 1);
+                    dict.TryAdd(segment, false);
+                    maxDepth = Math.Max(maxDepth, ++depth);
                 }
 
                 if (TryRemovePathIndexes(kvp.Key, out var indexless))
                 {
-                    sb.Clear();
-                    parts = indexless.Split('.');
-                    for (int i = 0; i < parts.Length; i++)
-                    {
-                        if (i > 0)
-                            sb.Append('.');
-
-                        sb.Append(parts[i]);
-                        dict.TryAdd(sb.ToString(), false);
-                    }
+                    foreach (var segment in GetCumulativeSegments(indexless))
+                        dict.TryAdd(segment, false);
                 }
             }
 
@@ -210,7 +196,7 @@ public static partial class JsonFilter
             }
         }
         else
-            maxDepth = Math.Max(maxDepth, dict.Count == 0 ? 0 : dict.Max(x => x.Key.Count(c => c == '.') + 1));
+            maxDepth = Math.Max(maxDepth, dict.Count == 0 ? 0 : dict.Max(x => GetCumulativeSegments(x.Key).Count()));
 
         return dict;
     }
@@ -328,6 +314,87 @@ public static partial class JsonFilter
     }
 
     /// <summary>
+    /// Provides the generated <see cref="Regex"/> for <see cref="TryRemovePathIndexes"/>.
+    /// </summary>
+    [GeneratedRegex(@"\[\d+\]", RegexOptions.Compiled)]
+    private static partial Regex IndexesRegex();
+
+    /// <summary>
+    /// Yields the cumulative path prefix after each token in <paramref name="path"/>, correctly handling bracket-notation
+    /// string properties (e.g. <c>['name']</c>, <c>["name"]</c>) as well as numeric array indexes (e.g. <c>[0]</c>) and
+    /// standard dot-notation properties.
+    /// </summary>
+    /// <remarks>
+    /// For example, <c>$.entries['stackExchange.Redis'].enabled</c> yields:
+    /// <c>$</c>, <c>$.entries</c>, <c>$.entries['stackExchange.Redis']</c>, <c>$.entries['stackExchange.Redis'].enabled</c>.
+    /// </remarks>
+    private static IEnumerable<string> GetCumulativeSegments(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            yield break;
+
+        var sb = new StringBuilder();
+        var i = 0;
+
+        while (i < path.Length)
+        {
+            var c = path[i];
+
+            if (c == '[')
+            {
+                // Bracket token: ['name'], ["name"], or [N] — consume up to and including the closing ].
+                var start = i++;
+                if (i < path.Length && (path[i] == '\'' || path[i] == '"'))
+                {
+                    var quote = path[i++];
+                    while (i < path.Length && path[i] != quote)
+                        i++;
+                    if (i < path.Length) i++; // skip closing quote
+                }
+                else
+                {
+                    while (i < path.Length && path[i] != ']')
+                        i++;
+                }
+                if (i < path.Length) i++; // skip ']'
+                sb.Append(path, start, i - start);
+                yield return sb.ToString();
+            }
+            else if (c == '.' && sb.Length > 0)
+            {
+                // Dot-notation segment: consume '.' plus all chars up to the next '.' or '['.
+                var start = i++;
+                while (i < path.Length && path[i] != '.' && path[i] != '[')
+                    i++;
+                sb.Append(path, start, i - start);
+                yield return sb.ToString();
+            }
+            else
+            {
+                // Dollar root (or any leading non-dot/non-bracket chars).
+                while (i < path.Length && path[i] != '.' && path[i] != '[')
+                    sb.Append(path[i++]);
+                yield return sb.ToString();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Normalizes double-quote bracket-notation property segments to single-quote form so that user-supplied filter paths
+    /// match the single-quote output of <see cref="JsonNode.GetPath"/>. For example, <c>$.a["b.c"]</c> becomes <c>$.a['b.c']</c>.
+    /// </summary>
+    private static string NormalizeDoubleQuoteBrackets(string path) =>
+        path.Contains("[\"", StringComparison.Ordinal)
+            ? DoubleQuoteBracketsRegex().Replace(path, static m => $"['{m.Groups[1].Value}']")
+            : path;
+
+    /// <summary>
+    /// Provides the generated <see cref="Regex"/> for <see cref="NormalizeDoubleQuoteBrackets"/>.
+    /// </summary>
+    [GeneratedRegex(@"\[""([^""]*)""\]", RegexOptions.Compiled)]
+    private static partial Regex DoubleQuoteBracketsRegex();
+
+    /// <summary>
     /// Represents the internal arguments for the JSON filter state.
     /// </summary>
     private sealed class JsonFilterArgs
@@ -352,10 +419,4 @@ public static partial class JsonFilter
         /// </summary>
         public JsonNode? MatchedNode { get; set; }
     }
-
-    /// <summary>
-    /// Provides the generated <see cref="Regex"/> for <see cref="TryRemovePathIndexes"/>.
-    /// </summary>
-    [GeneratedRegex(@"\[(.*?)\]", RegexOptions.Compiled)]
-    private static partial Regex IndexesRegex();
 }

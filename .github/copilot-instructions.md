@@ -129,7 +129,7 @@ Connection strings for each service in development are in each host's `appsettin
 ### Testing
 - Framework: UnitTestEx + NUnit + AwesomeAssertions (the `AwesomeAssertions` NuGet package — not FluentAssertions).
 - Sample: `WithGenericTester<EntryPoint>` (unit) or `WithApiTester<Program>` (API/Subscribe/Relay).
-- Integration tests: `Data\data.yaml` (Test.Common) + `Resources\` JSON expectations.
+- Integration tests: per-class named seed files `Data\read-data.seed.yaml` / `Data\mutate-data.seed.yaml` (Products), or a single `Data\data.yaml` (Orders/Shopping), in Test.Common + `Resources\` JSON expectations.
 - **Intra-domain dependencies are real; inter-domain dependencies are always mocked.** Own database, cache, and outbox are started and seeded in `[OneTimeSetUp]`. Cross-domain HTTP calls and direct broker publishes are replaced with `MockHttpClientFactory` / `UseExpectedAzureServiceBusPublisher()`.
 - Outbox assertion helpers are database-specific: `UseExpectedPostgresOutboxPublisher()` for Products; `UseExpectedSqlServerOutboxPublisher()` for Shopping. Do not use the SQL Server helper in Products tests.
 - Mock downstream HTTP calls; do not assume live APIs.

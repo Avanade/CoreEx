@@ -26,7 +26,7 @@ public class Program
 
         // NOTE: Reference-data orchestrator and dynamic service registration are performed AFTER CodeGen runs.
         // See: BOOTSTRAP_PHASE_2.md in your project root for the post-CodeGen setup steps.
-        // The following will be uncommented and moved here after running: dotnet run --project tools/app-name.CodeGen
+        // The following will be uncommented and moved here after running: dotnet run --project tools/solution-name.CodeGen
         //
         // // #if refdata-enabled
         // builder.Services.AddReferenceDataOrchestrator<ReferenceDataService>();
@@ -51,29 +51,29 @@ public class Program
            .AddHybridCacheIdempotencyProvider();       // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
         // Add the repository and related database services.
-#if implement-sqlserver
+// #if implement-sqlserver
         builder.AddSqlServerClient("SqlServer");        // Adds the SqlServerClient (using Aspire library).
         builder.Services
            .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
            .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
            .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
-#if outbox-enabled
+// #if outbox-enabled
            .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher as the IEventPublisher.
-#endif
+// #endif
            .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
            .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#elif implement-postgres
+// #elif implement-postgres
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
-#if outbox-enabled
+// #if outbox-enabled
             .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher as the IEventPublisher.
-#endif
+// #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
-#endif
+// #endif
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();
@@ -90,11 +90,11 @@ public class Program
 
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
-#if implement-sqlserver
+// #if implement-sqlserver
             .WithCoreExSqlServerTelemetry()
-#elif implement-postgres
+// #elif implement-postgres
             .WithCoreExPostgresTelemetry()
-#endif
+// #endif
             .UseOtlpExporter();
 
         // Build the application.

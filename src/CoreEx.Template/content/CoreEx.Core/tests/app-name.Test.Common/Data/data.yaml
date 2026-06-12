@@ -1,7 +1,0 @@
-# Test seed data for the domain-name domain.
-# Populate this file with test fixtures following the DbEx YAML format.
-# Each schema is a top-level key; then table as second-level keys; rows are listed beneath it.
-# Example:
-# db-name:  
-#   table:
-#     - { id: "00000000-0000-0000-0000-000000000001", code: "P001", name: "Widget", isActive: true }

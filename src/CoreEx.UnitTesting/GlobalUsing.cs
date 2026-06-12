@@ -1,3 +1,5 @@
+global using AwesomeAssertions.Execution;
+global using AwesomeAssertions.Primitives;
 global using CloudNative.CloudEvents;
 global using CoreEx;
 global using CoreEx.Azure.Messaging.ServiceBus;
