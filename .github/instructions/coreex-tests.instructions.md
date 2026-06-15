@@ -22,7 +22,7 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 | `*.Test.Api` | `WithApiTester<Program>` | Full integration — real DB, cache, outbox, HTTP |
 | `*.Test.Unit` | `WithGenericTester<EntryPoint>` | Component/unit — isolated, no infrastructure |
 | `*.Test.Subscribe` | `WithApiTester<Program>` | Integration over subscriber host |
-| `*.Test.Outbox.Relay` | `WithApiTester<Program>` | Integration over relay host |
+| `*.Test.Relay` | `WithApiTester<Program>` | Integration over relay host |
 
 **Rule**: intra-domain dependencies (database, cache, outbox) are real; inter-domain HTTP calls and direct broker publishes are always mocked.
 
@@ -604,7 +604,7 @@ public class ProductModifySubscriberTests : WithApiTester<YourDomain.Subscribe.P
 Relay tests extend `WithApiTester<Program>` over the relay host. Use `Test.ScopedType<ExecutionContext>` to write events directly to the outbox, wait for the relay background service to forward them, then assert via `Test.GetAndClearAzureServiceBusAsync()`.
 
 ```csharp
-public class RelayTests : WithApiTester<YourDomain.Outbox.Relay.Program>
+public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 {
     [Test]
     public async Task Outbox_Relay()
@@ -637,6 +637,12 @@ Test.Http()
     .Run(HttpMethod.Post, "/hosted-services/postgres-outbox-relay-03/pause")
     .Response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 ```
+
+> **Troubleshooting — Service Bus emulator entity not found.** If a Relay (or any Service Bus) test fails with an error like:
+> ```
+> The messaging entity 'sb://sbemulatorns.servicebus.onebox.windows-int.net/<topic>/subscriptions/<subscription>' could not be found.
+> ```
+> (the topic/subscription path varies), the test host is reaching the emulator but the requested topic/subscription does not exist in it. **Emit to the chat output:** *"Check that the Service Bus emulator (container) is executing with the correct `/servicebus/Config.json` file."* — the emulator provisions its topics/subscriptions from that config at startup, so a missing or mismatched `Config.json` (or a container started without it) is the usual cause. This is an **environment** problem, not a test-code defect — do not "fix" it by editing the test, the subjects, or the emulator entity names.
 
 ---
 

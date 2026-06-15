@@ -1,6 +1,6 @@
 ---
 name: solution-scaffolder
-description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, adding missing Api/Outbox.Relay/Subscribe hosts to an existing repo, and optionally preparing a first local runnable state with local dependency assets plus database/code-generation steps. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, solution wiring, optional local dependency asset creation, focused build/test validation, and either template generation or manual retrofit work depending on repo shape."
+description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, adding missing Api/Relay/Subscribe hosts to an existing repo, and optionally preparing a first local runnable state with local dependency assets plus database/code-generation steps. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, solution wiring, optional local dependency asset creation, focused build/test validation, and either template generation or manual retrofit work depending on repo shape."
 argument-hint: "Optional: base solution name, whether this is new or retrofit, required hosts, database choice, and messaging needs."
 tags: ["coreex", "scaffolding", "retrofit", "template", "hosts"]
 ---
@@ -13,7 +13,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 
 - Starting a new CoreEx domain or service from a repository that already contains only the bootstrap AI assets.
 - Deciding whether the first cut should create just the API host or also include the outbox relay and/or subscriber hosts.
-- Adding missing `Api`, `Outbox.Relay`, or `Subscribe` hosts to an existing scaffolded CoreEx solution.
+- Adding missing `Api`, `Relay`, or `Subscribe` hosts to an existing scaffolded CoreEx solution.
 - Converting plain-English project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
 
 ## When Not to Use
@@ -118,7 +118,7 @@ dotnet new coreex-subscriber -n Avanade.Product.Books.Subscriber --data-provider
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Api
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay
-dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Outbox.Relay
+dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscriber
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe
 

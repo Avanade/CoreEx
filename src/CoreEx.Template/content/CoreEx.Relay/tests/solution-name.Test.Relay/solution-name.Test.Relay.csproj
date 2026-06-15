@@ -9,11 +9,19 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="UnitTestEx.NUnit" />
   </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\..\src\app-name.Relay\app-name.Relay.csproj" />
     <ProjectReference Include="..\solution-name.Test.Common\solution-name.Test.Common.csproj" />
   </ItemGroup>
+  
   <ItemGroup>
-    <Using Include="NUnit.Framework" />
+    <None Update="appsettings.unittest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" />
   </ItemGroup>
 </Project>

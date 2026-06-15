@@ -1,3 +1,10 @@
+// #if implement-servicebus
+global using CoreEx.Azure.Messaging.ServiceBus;
+// #endif
+global using OpenTelemetry;
+global using OpenTelemetry.Trace;
+
+
 namespace app-name.Relay;
 
 public class Program
@@ -12,6 +19,7 @@ public class Program
 
         // Add CoreEx services.
         builder.Services
+            .AddPrecisionTimeProvider()
             .AddExecutionContext()
             .AddMvcWebApi()
             .AddHttpWebApi()
@@ -27,7 +35,7 @@ public class Program
 
         builder.AddSqlServerOutboxRelayHostedService(); // Adds the SqlServerOutboxRelayHostedService.
 // #elif implement-postgres
-        builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
+        builder.AddAzureNpgsqlDataSource("Postgres");   // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
@@ -38,8 +46,11 @@ public class Program
 
 // #if implement-servicebus
         // Add the Azure Service Bus publisher.
-        builder.AddAzureServiceBusClient("ServiceBus"); // Adds the Azure Service Bus client (using Aspire library).
-        builder.Services.AddAzureServiceBusPublisher(); // Adds the Azure Service Bus as the IEventPublisher.
+        builder.AddAzureServiceBusClient("ServiceBus");        // Adds the Azure Service Bus client (using Aspire library).
+        builder.Services.AddAzureServiceBusPublisher((_, c) => // Adds the Azure Service Bus as the IEventPublisher.
+        {
+            c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;  // Use a partition-id as the session-id.
+        });
 // #endif
 
         // Post-configure all health-checks; adds the standard tags.

@@ -394,7 +394,7 @@ dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider Sql
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Outbox.Relay
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscriber
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 

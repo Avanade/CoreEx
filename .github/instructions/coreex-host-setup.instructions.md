@@ -53,6 +53,40 @@ The scaffolded `Program.cs` wiring is described below; the database/`DbContext`/
 
 ---
 
+## Scaffolding an Outbox Relay host
+
+An Outbox Relay host is **not** part of the base `coreex` solution — it is added on demand when the user **explicitly** asks to *"add/create the outbox relay"* (or similar). Creating it is an **explicit-ask action** — confirm before scaffolding (per the always-on "Do Not Create Projects" rule); never auto-create it.
+
+Unlike the Api host, the Relay is a **one-off, fully template-generated** host: it has **no controllers, no reference-data wiring, no application services, and no Phase-2 / uncomment step**. Once scaffolded there is **nothing further to author** — do **not** add any logic, registration, or test beyond what the `coreex-relay` template emits.
+
+> **Agent instruction:** When the user asks to add/create the Outbox Relay host:
+> 1. **Detect** it: look for `**/*.Relay/*.Relay.csproj`. The file system is authoritative (unlike database state) — no further checking is needed.
+> 2. **If present, STOP — it already exists.** The Relay is a single per-solution one-off; **immediately report it as pre-existing and do nothing else** — do not re-scaffold, modify, or "augment" it. (Contrast the Api host, where an existing host means "go author controllers"; the Relay has **no** follow-on work.)
+> 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Relay` and the physical location to `src/` (the template default). Do not create it without confirmation.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). The `coreex-relay` template takes **`data-provider`** and **`messaging-provider`** — default **both** from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
+>    ```
+>    dotnet new coreex-relay -n {Solution}.Relay --data-provider <X> --messaging-provider <Y>
+>    ```
+>    **Run it from the solution root** — the directory that already contains `src/` and `tests/`. The template is rooted at `src/...`/`tests/...` (and uses `preferNameDirectory: false`, so it merges into the existing folders). Running it from inside `src/` produces nested `src/src/...` paths; if that happens, **delete the misplaced output and re-run from the solution root** — do **not** hand-move the files. Summarise the output on success; relay it **verbatim** on failure.
+> 6. **Verify by building the project directly — not the solution.** The host is not yet in the `.slnx` (it is added in step 8), so a *solution-wide* build would silently skip it:
+>    ```
+>    dotnet build <path/to/Relay>.csproj
+>    dotnet test  <path/to/Test.Relay>.csproj
+>    ```
+>    Fix any errors here, in-session. There is **no** further wiring — the template output is complete as-is.
+> 7. **Update the recording:** amend the solution-root `AGENTS.md` — add the Relay host to the *Project Structure* block and note it under hosts. (The feature selections themselves do not change.)
+> 8. **Add the new project(s) to the solution — final step, in-session** (exactly as for the Api host), batched by target folder, using the **actual generated** paths:
+>    ```
+>    dotnet sln <Solution>.slnx add <path/to/Relay>.csproj --solution-folder hosts
+>    dotnet sln <Solution>.slnx add <path/to/Test.Relay>.csproj --solution-folder tests
+>    ```
+>    Always via `dotnet sln add` — **never hand-edit the `.slnx` XML**. A final `dotnet build <Solution>.slnx` confirms the wiring. **Exception — Visual Studio with the solution open:** defer these to a **Manual steps** list (the IDE-reload caveat from the Api host workflow applies identically).
+
+The scaffolded Relay `Program.cs` wiring is described in [Outbox Relay Host](#outbox-relay-host) below; the template emits it complete via the option-driven `#if` blocks (`data-provider` + `messaging-provider`), so a correctly-defaulted scaffold compiles and runs without any manual fix-up.
+
+---
+
 ## Key Registrations by Host Type
 
 ### API Host

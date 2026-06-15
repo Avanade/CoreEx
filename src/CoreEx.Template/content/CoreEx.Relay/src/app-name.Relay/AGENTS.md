@@ -33,9 +33,9 @@ This guarantees at-least-once delivery without distributed transactions.
 The relay connects to the same database as the API host -- use the **same Aspire resource name** so Aspire wires up the connection string automatically:
 
 <!-- #if implement-sqlserver -->
-- `builder.AddSqlClientConnection("SqlServer")` -- matches the Aspire SQL Server resource
+- `builder.AddSqlServerClient("SqlServer")` -- matches the Aspire SQL Server resource
 <!-- #elif implement-postgres -->
-- `builder.AddNpgsqlDataSource("Postgres")` -- matches the Aspire PostgreSQL resource
+- `builder.AddAzureNpgsqlDataSource("Postgres")` -- matches the Aspire PostgreSQL resource
 <!-- #else -->
 - No database configured -- this relay has no data provider
 <!-- #endif -->
