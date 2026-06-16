@@ -37,7 +37,7 @@ public class ProductDeleteSubscriber(IProductSyncAdapter adapter) : SubscribedBa
 
     protected override Task<Result> OnReceiveAsync(
         EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
-        => _adapter.DeleteAsync(@event.Key.Required());
+        => _adapter.DeleteAsync(@event.Key.Required(), cancellationToken);
 }
 ```
 
@@ -59,7 +59,7 @@ public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBa
 
     protected override Task<Result> OnReceiveAsync(
         Product value, EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
-        => _adapter.ModifyAsync(value);
+        => _adapter.ModifyAsync(value, cancellationToken);
 }
 ```
 
@@ -138,12 +138,12 @@ The Subscribe host `Program.cs` follows a predictable CoreEx shape. Key sections
 // 1. Execution context and dynamic service discovery
 builder.Services
     .AddExecutionContext()
-    .AddReferenceDataOrchestrator<ReferenceDataService>()
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider from DI at runtime
     .AddMvcWebApi()
     .AddHttpWebApi()
     .AddHostedServiceManager();
 
-builder.Services.AddDynamicServicesUsing<MySubscriber, ReferenceDataService, ReferenceDataRepository>();
+builder.Services.AddDynamicServicesUsing(typeof(Program).Assembly, typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);
 
 // 2. Caching — L1 memory cache + L2 Redis + FusionCache hybrid + idempotency provider
 builder.Services.AddMemoryCache();

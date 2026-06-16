@@ -104,7 +104,7 @@
           "description": "Indicates no data provider is used (e.g. a facade over an external system such as Dynamics 365)."
         }
       ],
-      "defaultValue": "SqlServer",
+      "defaultValue": "Postgres",
       "displayName": "Data provider",
       "description": "Determines the data provider technology to use."
     },

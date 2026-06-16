@@ -6,9 +6,9 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
     public async Task OneTimeSetUpAsync()
     {
 // #if implement-sqlserver
-        await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #elif implement-postgres
-        await Test.MigratePostgresDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
     }
 
@@ -61,31 +61,31 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
     public void HostedService_Pause_And_Resume()
     {
 // #if implement-sqlserver
-        const string relay = "sqlserver-outbox-relay-03";
+        const string Relay = "sqlserver-outbox-relay-03";
 // #elif implement-postgres
-        const string relay = "postgres-outbox-relay-03";
+        const string Relay = "postgres-outbox-relay-03";
 // #endif
 
         Test.Http<string>()
-            .Run(HttpMethod.Get, $"/hosted-services/{relay}/status")
+            .Run(HttpMethod.Get, $"/hosted-services/{Relay}/status")
             .Value.Should().BeOneOf("Running", "Sleeping");
 
         Test.Http()
-            .Run(HttpMethod.Post, $"/hosted-services/{relay}/pause")
+            .Run(HttpMethod.Post, $"/hosted-services/{Relay}/pause")
             .Response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
         Test.Delay(TimeSpan.FromSeconds(1))
             .Http<string>()
-            .Run(HttpMethod.Get, $"/hosted-services/{relay}/status")
+            .Run(HttpMethod.Get, $"/hosted-services/{Relay}/status")
             .Value.Should().Be("Paused");
 
         Test.Http()
-            .Run(HttpMethod.Post, $"/hosted-services/{relay}/resume")
+            .Run(HttpMethod.Post, $"/hosted-services/{Relay}/resume")
             .Response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
         Test.Delay(TimeSpan.FromSeconds(1))
             .Http<string>()
-            .Run(HttpMethod.Get, $"/hosted-services/{relay}/status")
+            .Run(HttpMethod.Get, $"/hosted-services/{Relay}/status")
             .Value.Should().BeOneOf("Running", "Sleeping");
     }
 }

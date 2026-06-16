@@ -38,6 +38,8 @@ global using System.Threading.Tasks;
 
 **Why this matters for code generation**: The `*.CodeGen` project emits no `using` statements in generated files. Every namespace referenced by generated code must already be declared in `GlobalUsing.cs`, or the generated output will not compile. When adding a new namespace dependency, add it to `GlobalUsing.cs` — not to the generated file.
 
+**Global usings follow the code (the scaffold ships clean).** A fresh `coreex` scaffold deliberately does **not** pre-declare `global using`s for its own still-empty project namespaces (`{Solution}.Contracts`, `{Solution}.Application`, `{Solution}.Application.Repositories`) — a `global using` of a namespace with no types yet is a **CS0234** compile error, and shipping placeholder/marker types just to avoid that is an anti-pattern. Instead, **add each `global using` to the consuming project's `GlobalUsing.cs` at the moment you create the code that needs it** — the first contract, the first service, or immediately after CodeGen emits the repository interfaces. This keeps the scaffold an honest, compiling starting point and is a normal, expected step when adding code. (The one exception is the `AssemblyMarker` types in Application/Infrastructure, which exist for `AddDynamicServicesUsing` assembly anchoring — not for namespace population.)
+
 ## File-Scoped Namespaces
 
 Use file-scoped namespace declarations. Never use block-scoped namespaces.
@@ -83,11 +85,11 @@ Use `=>` syntax whenever the entire body is a single expression — methods, pro
 
 ```csharp
 // Method delegation — use =>
-public Task<Product?> GetAsync(string id) => _repository.GetAsync(id);
+public Task<Product?> GetAsync(string id, CancellationToken cancellationToken = default) => _repository.GetAsync(id, cancellationToken);
 
 // Multi-line single expression — use =>
-public Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
-    => _repository.QueryAsync(query, paging);
+public Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
+    => _repository.QueryAsync(query, paging, cancellationToken);
 
 // Constructor with single expression — use =>
 public DataResult(bool wasMutated) => WasMutated = wasMutated;
@@ -96,11 +98,11 @@ public DataResult(bool wasMutated) => WasMutated = wasMutated;
 public string DisplayName => $"{First} {Last}";
 
 // Multiple statements — block body required
-public async Task<Product> UpdateAsync(Product product)
+public async Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken = default)
 {
     product.ThrowIfNull();
-    await ProductValidator.Default.ValidateAndThrowAsync(product).ConfigureAwait(false);
-    return await _repository.UpdateAsync(product).ConfigureAwait(false);
+    await ProductValidator.Default.ValidateAndThrowAsync(product, cancellationToken).ConfigureAwait(false);
+    return await _repository.UpdateAsync(product, cancellationToken).ConfigureAwait(false);
 }
 ```
 
@@ -132,6 +134,22 @@ Guid id            = Runtime.NewGuid();          // new Guid
 - Need a `DateTime` → `Runtime.UtcNow.UtcDateTime` (**never** `DateTime.UtcNow`).
 - Need a `Guid` → `Runtime.NewGuid()` (**never** `Guid.NewGuid()`).
 
+## Cancellation Tokens
+
+**Every `async`/`Task`-returning method takes a `CancellationToken` and passes it on.** Add it as the **last parameter** — `CancellationToken cancellationToken = default` on public/library methods (default so callers aren't forced to supply one). Flow it through to **every** downstream awaitable call (repositories, `HttpClient`, EF Core, `_unitOfWork`, other services) — never call an overload that accepts a token without passing it, and never silently drop it.
+
+```csharp
+public async Task<Employee> CreateAsync(Employee value, CancellationToken cancellationToken = default)
+{
+    await EmployeeValidator.Default.ValidateAndThrowAsync(value, cancellationToken).ConfigureAwait(false);
+    return await _repository.CreateAsync(value, cancellationToken).ConfigureAwait(false);   // pass it on
+}
+```
+
+- **Controllers / Minimal-API handlers** take a `CancellationToken` parameter (ASP.NET binds/injects it), pass it to the `WebApi` helper via `cancellationToken:`, and use the helper lambda's `ct` for the service call — see `coreex-api-controllers.instructions.md`.
+- **Interfaces** declare the parameter too, so implementations and callers can honour it (`Task<T> GetAsync(string id, CancellationToken cancellationToken = default);`).
+- **Tests** are the exception — `Test.Scoped(...)` / the `WebApi` lambda supply the token; you don't manufacture one.
+
 ## XML Documentation Comments
 
 Document the public surface with XML doc comments, and **never duplicate** a description that an interface already provides:
@@ -160,7 +178,7 @@ public class EmployeeService(IUnitOfWork unitOfWork, IEmployeeRepository reposit
     private readonly IEmployeeRepository _repository = repository.ThrowIfNull();
 
     /// <inheritdoc/>
-    public Task<Employee?> GetAsync(string id) => _repository.GetAsync(id);
+    public Task<Employee?> GetAsync(string id, CancellationToken cancellationToken = default) => _repository.GetAsync(id, cancellationToken);
 
     /// <inheritdoc/>
     public Task<DataResult<Employee>> CreateAsync(Employee employee) => /* ... */;
@@ -189,6 +207,7 @@ private readonly ILogger<ProductService> _logger;
 - Do not split method/constructor declarations (one parameter per line) or otherwise wrap statements across lines unless the line would exceed 250 characters.
 - Do not use `DateTime.UtcNow` or `DateTimeOffset.UtcNow` — use `Runtime.UtcNow` (or `Runtime.UtcNow.UtcDateTime` for a `DateTime`).
 - Do not use `Guid.NewGuid()` — use `Runtime.NewGuid()`.
+- Do not omit or drop `CancellationToken` — every `async`/`Task`-returning method takes one (`CancellationToken cancellationToken = default`, last parameter) and passes it to every downstream awaitable call.
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
 - Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
 - Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.

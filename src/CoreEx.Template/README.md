@@ -12,7 +12,7 @@
 | `coreex` | CoreEx domain-based microservice application | Solution scaffold: `src/` libraries + `tools/` projects + `tests/` (Test.Common + Test.Unit) |
 | `coreex-api` | CoreEx API host | `src/[name].Api/` host project + `tests/[solution].Test.Api/` integration test project |
 | `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Outbox.Relay/` integration test project |
-| `coreex-subscriber` | CoreEx Subscriber host | `src/[name].Subscriber/` host project + `tests/[solution].Test.Subscribe/` integration test project |
+| `coreex-subscribe` | CoreEx Subscriber host | `src/[name].Subscribe/` host project + `tests/[solution].Test.Subscribe/` integration test project |
 
 Parameters are consistent across templates -- the same `--data-provider`, `--messaging-provider`, and feature flags appear in every template that needs them, ensuring the generated code is coherent regardless of which templates you use.
 
@@ -56,7 +56,7 @@ Typical bootstrap flow:
 dotnet new coreex-bootstrap -n Avanade.Erp.Sales
 ```
 
-Then run `/coreex-scaffold` and answer the business-shape questions. The workflow derives the required `coreex`, `coreex-api`, `coreex-relay`, and `coreex-subscriber` commands, using `--force` only when replacing the bootstrap placeholders.
+Then run `/coreex-scaffold` and answer the business-shape questions. The workflow derives the required `coreex`, `coreex-api`, `coreex-relay`, and `coreex-subscribe` commands, using `--force` only when replacing the bootstrap placeholders.
 
 ---
 
@@ -72,7 +72,7 @@ The templates use dot-delimited names that encode the solution hierarchy. Unders
 | Product | `Erp` | Product or system |
 | Domain | `Sales` | The bounded context being scaffolded |
 
-For the **solution template** (`coreex`) the name is the three-part solution root, e.g. `Avanade.Erp.Sales`. For each **host template** (`coreex-api`, `coreex-relay`, `coreex-subscriber`) the name appends the host suffix, e.g. `Avanade.Erp.Sales.Api`.
+For the **solution template** (`coreex`) the name is the three-part solution root, e.g. `Avanade.Erp.Sales`. For each **host template** (`coreex-api`, `coreex-relay`, `coreex-subscribe`) the name appends the host suffix, e.g. `Avanade.Erp.Sales.Api`.
 
 ### Derived values (example: `Avanade.Erp.Sales.Api`)
 
@@ -180,7 +180,7 @@ tests/
 
 ### Examples
 
-Default (SQL Server, refdata, Service Bus outbox):
+Default (PostgreSQL, refdata, Service Bus outbox):
 ```sh
 dotnet new coreex -n Avanade.Erp.Sales
 ```
@@ -266,7 +266,7 @@ tests/
 
 ### Examples
 
-Default (SQL Server, refdata, outbox):
+Default (PostgreSQL, refdata, outbox):
 ```sh
 dotnet new coreex-api -n Avanade.Erp.Sales.Api
 ```
@@ -365,7 +365,7 @@ dotnet new coreex-relay -n Avanade.Erp.Sales.Relay --data-provider Postgres
 
 ---
 
-## Template 4 -- `coreex-subscriber` (Subscriber host)
+## Template 4 -- `coreex-subscribe` (Subscriber host)
 
 Scaffolds an ASP.NET Core background-service host that receives events from a messaging provider, dispatches them through the CoreEx `SubscribedManager`, and processes them via subscriber implementations. Optionally includes reference-data caching and a database connection for subscriber logic that needs persistence.
 
@@ -375,7 +375,7 @@ Run this from the **solution root** (the directory created by `coreex`). The tem
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `-n` / `--name` | string | _(required)_ | Full project name, e.g. `Avanade.Erp.Sales.Subscriber`. |
+| `-n` / `--name` | string | _(required)_ | Full project name, e.g. `Avanade.Erp.Sales.Subscribe`. |
 | `--refdata-enabled` | bool | `true` | Wires up `ReferenceDataOrchestrator` and dynamic service registration for reference-data caching. Match the value used with `coreex`. |
 | `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `SqlServer` | Database technology. When not `None`, EF Core and outbox publisher are wired so subscriber logic can persist state and emit its own events. |
 | `--messaging-provider` | `ServiceBus` \| `None` | `ServiceBus` | Messaging provider to receive events from. When `None`, no receiver is configured. |
@@ -384,8 +384,8 @@ Run this from the **solution root** (the directory created by `coreex`). The tem
 
 ```
 src/
-  [name].Subscriber/
-    [name].Subscriber.csproj
+  [name].Subscribe/
+    [name].Subscribe.csproj
     Program.cs
     GlobalUsing.cs
     appsettings.json
@@ -436,19 +436,19 @@ tests/
 
 ### Examples
 
-Default (SQL Server, refdata, Service Bus):
+Default (PostgreSQL, refdata, Service Bus):
 ```sh
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 ```
 
 PostgreSQL, no refdata:
 ```sh
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider Postgres --refdata-enabled false
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider Postgres --refdata-enabled false
 ```
 
 Messaging only (no local database):
 ```sh
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider None
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider None
 ```
 
 ---
@@ -474,7 +474,7 @@ Run from the **solution root**. Each template emits into both `src/` and `tests/
 ```sh
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 ```
 
 ### Step 3 -- Add hosts and their test projects to the solution
@@ -486,7 +486,7 @@ dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Outbox.Relay
 
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscriber
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 ```
 
@@ -502,7 +502,7 @@ Avanade.Erp.Sales/
     Avanade.Erp.Sales.Infrastructure/
     Avanade.Erp.Sales.Api/
     Avanade.Erp.Sales.Relay/
-    Avanade.Erp.Sales.Subscriber/
+    Avanade.Erp.Sales.Subscribe/
   tools/
     Avanade.Erp.Sales.Database/
     Avanade.Erp.Sales.CodeGen/
@@ -526,7 +526,7 @@ All defaults -- no flags required:
 dotnet new coreex            -n Avanade.Erp.Sales
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 ```
 
 ### PostgreSQL variant
@@ -535,7 +535,7 @@ dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber
 dotnet new coreex            -n Avanade.Erp.Sales --data-provider Postgres
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider Postgres
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider Postgres
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider Postgres
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider Postgres
 ```
 
 ### Facade over an external system (e.g. Dynamics 365)
@@ -556,14 +556,14 @@ When using an at-least-once messaging pattern without transactional outbox:
 ```sh
 dotnet new coreex            -n Avanade.Erp.Sales --outbox-enabled false
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --outbox-enabled false
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 ```
 
 ---
 
 ## Package Design Notes
 
-**Single install, four templates.** All four templates ship inside one NuGet package (`PackageType=Template`). A single `dotnet new install CoreEx.Template` makes all four short names available: `coreex`, `coreex-api`, `coreex-relay`, and `coreex-subscriber`.
+**Single install, four templates.** All four templates ship inside one NuGet package (`PackageType=Template`). A single `dotnet new install CoreEx.Template` makes all four short names available: `coreex`, `coreex-api`, `coreex-relay`, and `coreex-subscribe`.
 
 **Version stamping.** Each `template.json` carries `COREEX_VERSION` as a placeholder. During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the four `template.json` files before they are packed. The source copies in `content/` retain the placeholder and remain editable.
 

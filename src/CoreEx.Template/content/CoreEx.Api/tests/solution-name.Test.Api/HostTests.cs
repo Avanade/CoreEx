@@ -6,9 +6,9 @@ public partial class HostTests : WithApiTester<solution-name.Api.Program>
     public async Task OneTimeSetUpAsync()
     {
 // #if implement-sqlserver
-        await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #elif implement-postgres
-        await Test.MigratePostgresDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
     }

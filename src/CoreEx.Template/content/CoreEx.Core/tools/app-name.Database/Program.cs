@@ -33,7 +33,7 @@ public class Program
 {
     /// <summary>Main startup.</summary>
     public static Task<int> Main(string[] args) => PostgresMigrationConsole
-        .Create<Program>("Server=127.0.0.1;Database=domain-name;Username=postgres;Password=yourStrong#!Password")
+        .Create<Program>("Server=127.0.0.1;Database=domain-name-lower;Username=postgres;Password=yourStrong#!Password")
         .Configure(c => ConfigureMigrationArgs(c.Args))
         .RunAsync(args);
 

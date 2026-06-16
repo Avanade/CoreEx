@@ -134,7 +134,7 @@ Explain why.
 I need to implement this:
 <describe requirement>
 
-Tell me whether I should start with `dotnet new coreex`, add `coreex-api`, `coreex-relay`, or `coreex-subscriber`, or make manual changes to an existing domain.
+Tell me whether I should start with `dotnet new coreex`, add `coreex-api`, `coreex-relay`, or `coreex-subscribe`, or make manual changes to an existing domain.
 Explain the tradeoffs using the current repo guidance.
 ```
 
@@ -328,7 +328,7 @@ For the best results, include:
 - whether the code already exists
 - whether you want **explanation**, **plan**, or **implementation**
 - whether the result should align to a specific sample
-- any constraints such as “smallest safe change”, “no new host unless necessary”, or “use current SQL Server/Service Bus defaults”
+- any constraints such as “smallest safe change”, “no new host unless necessary”, or “use current Postgres/Service Bus defaults”
 
 ## Where to Go Next
 

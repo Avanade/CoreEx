@@ -1,4 +1,4 @@
-﻿#pragma warning disable IDE0130 // Namespace does not match folder structure; by design.
+#pragma warning disable IDE0130 // Namespace does not match folder structure; by design.
 namespace UnitTestEx;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 
@@ -55,6 +55,9 @@ public static partial class UnitTestExExtensions
     /// <paramref name="expectedErrors"/> with the <see cref="IValidationResult.Messages"/> using <see cref="Assertor.TryAreErrorsMatched(IEnumerable{ApiError}?, IEnumerable{ApiError}?, out string?)"/>.</remarks>
     public static async Task<IValidationResult<TValue>> AssertErrorsAsync<TValue>(this IValidator<TValue> validator, TValue value, params IEnumerable<ApiError> expectedErrors)
     {
+        if (expectedErrors == null || !expectedErrors.Any())
+            throw new ArgumentException($"At least one expected error must be provided; alternatively, use {nameof(AssertSuccess)}/{nameof(AssertSuccessAsync)} where asserting a successful validation).", nameof(expectedErrors));
+
         var vr = await validator.ValidateAsync(value).ConfigureAwait(false);
         vr.HasErrors.Should().BeTrue();
         vr.Messages.Should().NotBeNull().And.HaveCountGreaterThan(0);

@@ -13,9 +13,9 @@ public class RelayTests : WithApiTester<solution-name.Relay.Program>
     public async Task OneTimeSetUpAsync()
     {
 // #if implement-sqlserver
-        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #elif implement-postgres
-        await Test.MigratePostgresDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
 // #if implement-servicebus
         await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("domain-parent-lower", "domain-name-lower"));
@@ -61,5 +61,4 @@ public class RelayTests : WithApiTester<solution-name.Relay.Program>
         });
     }
 // #endif
-}
 }

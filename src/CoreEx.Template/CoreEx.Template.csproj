@@ -200,12 +200,12 @@
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Core\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Core\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Api\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Api\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Relay\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Relay\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
-    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Subscriber\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Subscriber\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Subscribe\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Subscribe\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ItemGroup>
       <None Include="$(_GenRoot)CoreEx.Core\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Core\.template.config\template.json" />
       <None Include="$(_GenRoot)CoreEx.Api\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Api\.template.config\template.json" />
       <None Include="$(_GenRoot)CoreEx.Relay\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Relay\.template.config\template.json" />
-      <None Include="$(_GenRoot)CoreEx.Subscriber\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Subscriber\.template.config\template.json" />
+      <None Include="$(_GenRoot)CoreEx.Subscribe\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Subscribe\.template.config\template.json" />
     </ItemGroup>
   </Target>
 

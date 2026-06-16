@@ -39,7 +39,7 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 <!-- #else -->
 - **Data provider:** None -- facade solution (e.g. over Dynamics 365 via HttpClient)
 <!-- #endif -->
-<!-- #if refdata-enabled && !implement-none-data -->
+<!-- #if (refdata-enabled && !implement-none-data) -->
 - **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataService.cs` and `tools/app-name.CodeGen/`
 <!-- #else -->
 - **Reference data:** Disabled
@@ -54,7 +54,7 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 <!-- #else -->
 - **Railway-Oriented Programming:** Disabled -- standard exception-based error handling
 <!-- #endif -->
-<!-- #if outbox-enabled && !implement-none-data -->
+<!-- #if (outbox-enabled && !implement-none-data) -->
 - **Transactional outbox:** Enabled -- events committed atomically with data via the outbox table
 <!-- #else -->
 - **Transactional outbox:** Disabled

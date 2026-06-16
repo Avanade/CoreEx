@@ -34,7 +34,7 @@ CoreEx now uses the `CoreEx.Template` `dotnet new` template pack for determinist
 - `dotnet new coreex` scaffolds the shared solution shape
 - `dotnet new coreex-api` adds an API host
 - `dotnet new coreex-relay` adds an outbox relay host
-- `dotnet new coreex-subscriber` adds a subscriber host
+- `dotnet new coreex-subscribe` adds a subscriber host
 
 **Output characteristics:**
 - Deterministic and repeatable
@@ -322,7 +322,7 @@ A: Yes, when the codebase is unfamiliar or when you are not sure whether it alre
 
 **Q: What if I only want part of the scaffolded shape?**
 
-A: Use only the templates you actually need. Start with `dotnet new coreex` for the shared solution shape, then add `coreex-api`, `coreex-relay`, or `coreex-subscriber` only if the use case requires them.
+A: Use only the templates you actually need. Start with `dotnet new coreex` for the shared solution shape, then add `coreex-api`, `coreex-relay`, or `coreex-subscribe` only if the use case requires them.
 
 ---
 

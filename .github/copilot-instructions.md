@@ -170,7 +170,7 @@ The following prompts, skills, and templates are available in this repository. T
 
 | Command | Type | When to use |
 |---------|------|-------------|
-| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding for solution, API, relay, and subscriber shapes. Use `dotnet new install CoreEx.Template` and then run `dotnet new coreex`, `coreex-api`, `coreex-relay`, or `coreex-subscriber` as needed. |
+| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding for solution, API, relay, and subscriber shapes. Use `dotnet new install CoreEx.Template` and then run `dotnet new coreex`, `coreex-api`, `coreex-relay`, or `coreex-subscribe` as needed. |
 | `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review aligned to the samples and repo instructions. |
 | `/init` | Prompt | Initialize a new CoreEx solution or workspace. |
 | `/setup` | Prompt | Configure an existing CoreEx solution with standard tooling and settings. |

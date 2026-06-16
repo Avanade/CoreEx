@@ -42,14 +42,16 @@ An API host is **not** part of the base `coreex` solution — it is added on dem
 >    Always via `dotnet sln add` — **never hand-edit the `.slnx` XML** (manual edits are error-prone and have wiped solution files). This is the **last** action, after the code is verified and `AGENTS.md` is updated, so it cannot interrupt pending work. A final `dotnet build <Solution>.slnx` confirms the wiring.
 >    **Exception — Visual Studio with the solution open:** writing the `.slnx` triggers an IDE reload that can interrupt and discard pending changes. *Only* in that case, defer these commands to an end-of-task **Manual steps** list for the user to run instead. The default environment (Claude Code / Copilot / CLI) runs them in-session.
 
-The scaffolded `Program.cs` wiring is described below; the database/`DbContext`/`EfDb`/outbox registrations are generated ready-to-compile via the option-driven `#if` blocks.
+The scaffolded `Program.cs` wiring is described below; it is generated **complete and ready-to-compile** via the option-driven `#if` blocks — there is **no post-CodeGen uncomment / "phase 2" step**.
 
-> **Post-CodeGen wiring — uncomment the reference-data registrations.** When `refdata-enabled`, the scaffolded `Program.cs` leaves these two lines **commented out** (with a `BOOTSTRAP_PHASE_2.md` note), because the `ReferenceDataService`/`ReferenceDataRepository` types only exist **after** CodeGen has generated them:
+> **Reference-data wiring is automatic — nothing to uncomment.** The host wires reference data and dynamic services **without referencing any CodeGen-generated type**, so it compiles at scaffold time *and* is correct once CodeGen runs:
 > ```csharp
-> builder.Services.AddReferenceDataOrchestrator<ReferenceDataService>();
-> builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
+> // refdata-enabled hosts only (template #if):
+> builder.Services.AddReferenceDataOrchestrator();   // non-generic — resolves the IReferenceDataProvider from DI at runtime
+> // all hosts — scans the assemblies (via the stable AssemblyMarker types) for [ScopedService] types, registering them all (incl. CodeGen-generated):
+> builder.Services.AddDynamicServicesUsing(typeof({Solution}.Application.AssemblyMarker).Assembly, typeof({Solution}.Infrastructure.AssemblyMarker).Assembly);
 > ```
-> After scaffolding the Api host, **ensure CodeGen has run (re-run it if needed), then immediately uncomment these two lines** (and delete the NOTE/`BOOTSTRAP_PHASE_2.md` reference) in `Program.cs`. This is easy to miss in the common add-on order — *scaffold host → CodeGen already done earlier → uncomment* — and if skipped, the reference-data orchestrator and the dynamically-registered application services/repositories are **never registered**, so the host fails at runtime and the API tests fail. Do this **before** the verify step (step 7) so the build/tests actually exercise the wired host.
+> The generated `ReferenceDataService` is `[ScopedService]`-decorated, so the assembly scan picks it up automatically and the orchestrator binds to it via `IReferenceDataProvider` — no manual step. Before CodeGen there are simply no ref-data entities to serve (requests return empty), which is correct. **Do not** add `AddReferenceDataOrchestrator<ReferenceDataService>()` or `AddDynamicServicesUsing<…generated types…>()` — that reintroduces the compile-time dependency the marker approach removes.
 
 ---
 
@@ -144,11 +146,11 @@ builder.AddHostSettings();
 builder.Services
     .AddPrecisionTimeProvider()
     .AddExecutionContext()
-    .AddReferenceDataOrchestrator<ReferenceDataService>()
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider (CodeGen-generated ReferenceDataService) from DI at runtime
     .AddMvcWebApi()
     .AddHttpWebApi();
 
-builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
+builder.Services.AddDynamicServicesUsing(typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);
 
 // L1/L2 caching with FusionCache + Redis backplane.
 builder.Services.AddMemoryCache();
@@ -204,8 +206,9 @@ app.Run();
 ```
 
 Key points:
-- **`AddDynamicServicesUsing<T1, T2, …>()` takes ONE representative type _per assembly_, not one per service.** It scans the **assembly** of each type argument for all `[ScopedService]`-decorated types and registers them. One Application type (`ReferenceDataService`) plus one Infrastructure type (`ReferenceDataRepository`) already register **every** service and repository in those assemblies. **Adding a new entity does not change this line** — do **not** add `EmployeeService`/`EmployeeRepository` (or any other same-assembly types); that is redundant. Add another type argument only when you introduce a **new assembly** that contains `[ScopedService]` types.
-- `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
+- **`AddDynamicServicesUsing(...)` registers per _assembly_, not per service.** It scans each supplied assembly for all `[ScopedService]`-decorated types and registers them. The template anchors each assembly on its neutral **`AssemblyMarker`** type (`typeof(MyApp.Application.AssemblyMarker).Assembly`, `…Infrastructure…`) — these are the **only** markers the clean scaffold ships, and they exist **solely** for this anchoring. Use the neutral marker, **not** a domain type like `typeof(ReferenceDataService).Assembly`: the marker reads as "scan this whole assembly," never misleads a reader into thinking the scan is scoped to one type, always exists (so there is no compile-time dependency on CodeGen output and no bootstrap/uncomment step), and survives renames. **Adding a new entity does not change this line** — the new service/repository is picked up automatically by the existing assembly scan. Add another assembly only when you introduce a **new project** containing `[ScopedService]` types (e.g. the Subscribe host passes `typeof(Program).Assembly` for its subscribers). Do **not** add per-namespace placeholder/marker types to satisfy `global using`s — those follow the code (see `coreex-conventions.instructions.md`).
+- Prefer the **non-generic `AddReferenceDataOrchestrator()`** (binds `IReferenceDataProvider` from DI at runtime) over `AddReferenceDataOrchestrator<ReferenceDataService>()` — the non-generic form needs no generated type, so it compiles from scaffold time.
+- `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
 - FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
 - `AddEventFormatter()` is required wherever events are published or parsed.
 - `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` take no generic type parameter.
@@ -222,12 +225,12 @@ The Subscribe host receives broker messages and delegates to Application-layer s
 builder.Services
     .AddPrecisionTimeProvider()
     .AddExecutionContext()
-    .AddReferenceDataOrchestrator<ReferenceDataService>()
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider from DI at runtime
     .AddMvcWebApi()
     .AddHttpWebApi()
     .AddHostedServiceManager();
 
-builder.Services.AddDynamicServicesUsing<MySubscriber, ReferenceDataService, ReferenceDataRepository>();
+builder.Services.AddDynamicServicesUsing(typeof(Program).Assembly, typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);  // this host (subscribers) + Application + Infrastructure
 
 // L1/L2 caching with FusionCache + Redis backplane.
 builder.Services.AddMemoryCache();
@@ -307,7 +310,7 @@ app.Run();
 ```
 
 Key points:
-- Subscribe hosts **do** include `AddReferenceDataOrchestrator<T>()` and `AddDynamicServicesUsing<...>()` — subscribers call application services that need reference data for validation and business logic.
+- Subscribe hosts **do** include `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` — subscribers call application services that need reference data for validation and business logic. The Subscribe host passes **three** assemblies to `AddDynamicServicesUsing`: its own (`typeof(Program).Assembly`, for the subscriber types) plus the Application and Infrastructure `AssemblyMarker` assemblies.
 - Subscribe hosts **do** include FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` — caching is required for reference data; idempotency is required to safely handle duplicate message delivery.
 - Subscribe hosts **do** include database/EF Core and outbox publisher — subscribers persist domain data and publish outbound events.
 - `AddHostedServiceManager()` must be registered before `AzureServiceBusReceiving()`.

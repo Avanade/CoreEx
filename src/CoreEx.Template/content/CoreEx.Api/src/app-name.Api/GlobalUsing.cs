@@ -15,15 +15,6 @@ global using CoreEx.RefData;
 // #endif
 global using CoreEx.Validation;
 global using Microsoft.AspNetCore.Mvc;
-global using solution-name.Application;
-global using solution-name.Contracts;
 global using NSwag.Annotations;
 global using System.Net;
 global using System.Text.Json;
-
-// NOTE: Application layer using statements will be added after CodeGen runs.
-// See: BOOTSTRAP_PHASE_2.md in your project root.
-// Add the following after generating application services:
-// // #if refdata-enabled
-// global using solution-name.Application;
-// // #endif

@@ -26,7 +26,7 @@
     <!--#if domain-driven-enabled-->
     <PackageVersion Include="CoreEx.DomainDriven" Version="coreex-version" />
     <!--#endif-->
-    <!--#if implement-sqlserver || implement-postgres-->
+    <!--#if (implement-sqlserver || implement-postgres)-->
     <PackageVersion Include="CoreEx.EntityFrameworkCore" Version="coreex-version" />
     <!--#endif-->
     <PackageVersion Include="CoreEx.Events" Version="coreex-version" />

@@ -1,7 +1,7 @@
 global using CoreEx;
 global using CoreEx.Data;
 global using CoreEx.Data.Models;
-// #if implement-sqlserver || implement-postgres
+// #if (implement-sqlserver || implement-postgres)
 global using CoreEx.Database;
 // #if implement-sqlserver
 global using CoreEx.Database.SqlServer;
@@ -20,7 +20,7 @@ global using CoreEx.DependencyInjection;
 global using CoreEx.DomainDriven;
 // #endif
 global using CoreEx.Entities;
-// #if implement-sqlserver || implement-postgres
+// #if (implement-sqlserver || implement-postgres)
 global using CoreEx.EntityFrameworkCore;
 global using CoreEx.EntityFrameworkCore.Converters;
 // #endif
@@ -29,9 +29,8 @@ global using CoreEx.Mapping;
 // #if refdata-enabled
 global using CoreEx.RefData;
 // #endif
-// #if implement-sqlserver || implement-postgres
+// #if (implement-sqlserver || implement-postgres)
 global using Microsoft.EntityFrameworkCore;
 // #endif
 global using Microsoft.Extensions.DependencyInjection;
 global using System.Text.Json.Serialization;
-global using app-name.Application.Repositories;

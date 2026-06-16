@@ -1,4 +1,4 @@
-namespace app-name.Subscriber.Subscribers;
+namespace app-name.Subscribe.Subscribers;
 
 /// <summary>Represents a placeholder subscriber for bootstrapping.</summary>
 /// <remarks>Replace this with your actual event subscribers.</remarks>

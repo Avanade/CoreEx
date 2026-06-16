@@ -59,7 +59,7 @@ Before generating a service, confirm which operations it should expose — never
 private readonly IProductRepository _repository = repository.ThrowIfNull();
 
 // Inline at point of first use in a method body
-var current = await _repository.GetAsync(product.Id.ThrowIfNullOrEmpty()).ConfigureAwait(false);
+var current = await _repository.GetAsync(product.Id.ThrowIfNullOrEmpty(), cancellationToken).ConfigureAwait(false);
 
 // Guards chain — each returns the value if it passes, so further checks can follow
 public BasketStatus Status { get; private set => field = value.ThrowIfNull().ThrowIfInactive(); }
@@ -68,11 +68,11 @@ public BasketStatus Status { get; private set => field = value.ThrowIfNull().Thr
 Use a top-of-method pre-check (non-inline) only when the value is not immediately consumed:
 
 ```csharp
-public async Task<Product> UpdateAsync(Product product)
+public async Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken = default)
 {
     product.ThrowIfNull(); // checked here; not passed anywhere yet
-    await ProductValidator.Default.ValidateAndThrowAsync(product).ConfigureAwait(false);
-    var current = await _repository.GetAsync(product.Id.ThrowIfNullOrEmpty()).ConfigureAwait(false);
+    await ProductValidator.Default.ValidateAndThrowAsync(product, cancellationToken).ConfigureAwait(false);
+    var current = await _repository.GetAsync(product.Id.ThrowIfNullOrEmpty(), cancellationToken).ConfigureAwait(false);
     // ...
 }
 ```
@@ -95,7 +95,7 @@ public class ProductValidator : Validator<Contracts.Product, ProductValidator>
 }
 
 // Call via Default singleton — never use new ProductValidator() at the call site:
-await ProductValidator.Default.ValidateAndThrowAsync(product);
+await ProductValidator.Default.ValidateAndThrowAsync(product, cancellationToken);
 ```
 
 **Choose the invocation that matches the flow — never bare `ValidateAsync`:**
@@ -134,7 +134,7 @@ public class MovementRequestValidator : Validator<MovementRequest>
         if (context.HasErrors) return; // fail fast — skip I/O if declarative phase found errors
 
         var ids = context.Value.Products!.Select(kvp => kvp.Key).ToArray();
-        var products = await _repository.GetForReservationAsync(ids).ConfigureAwait(false);
+        var products = await _repository.GetForReservationAsync(ids, cancellationToken).ConfigureAwait(false);
 
         await context.ValidateFurtherAsync(c => c
             .HasProperty(x => x.Products, c => c.Dictionary(c => c
@@ -145,13 +145,13 @@ public class MovementRequestValidator : Validator<MovementRequest>
 }
 
 // Instantiate directly — _repository is already injected into the service:
-await new MovementRequestValidator(_repository).ValidateAndThrowAsync(request);
+await new MovementRequestValidator(_repository).ValidateAndThrowAsync(request, cancellationToken);
 ```
 
 Both phases apply to both base classes. For `Result<T>` pipelines, use `ValidateWithResultAsync` instead of `ValidateAndThrowAsync`:
 
 ```csharp
-var result = await Result.GoAsync(() => MyValidator.Default.ValidateWithResultAsync(value));
+var result = await Result.GoAsync(() => MyValidator.Default.ValidateWithResultAsync(value, cancellationToken));
 if (result.IsFailure) return result.AsResult();
 ```
 
@@ -160,7 +160,7 @@ if (result.IsFailure) return result.AsResult();
 After loading an entity, throw immediately if it does not exist:
 
 ```csharp
-var current = await _repository.GetAsync(id).ConfigureAwait(false);
+var current = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
 NotFoundException.ThrowIfDefault(current);
 ```
 
@@ -207,21 +207,21 @@ if (basket.HasExpiredItems)
 The **service** assigns the new identifier on `Create` — the database does **not** generate it (the migration scaffold's value-generation default is dropped unless a key is explicitly DB-generated; see the tooling guidance). Set it from the ambient `Runtime` **after validation, before the transaction**, alongside any other server-controlled fields:
 
 ```csharp
-public async Task<Product> CreateAsync(Product product)
+public async Task<Product> CreateAsync(Product product, CancellationToken cancellationToken = default)
 {
     product.ThrowIfNull();
-    await ProductValidator.Default.ValidateAndThrowAsync(product).ConfigureAwait(false);
+    await ProductValidator.Default.ValidateAndThrowAsync(product, cancellationToken).ConfigureAwait(false);
 
     product.Id = Runtime.NewId();           // service-assigned identity — never left to the caller or the DB
     product.CategoryCode = product.SubCategory!.CategoryCode;   // derive any other server-set fields here
     product.IsInactive = true;
 
-    return await _unitOfWork.TransactionAsync(async () =>
+    return await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.CreateAsync(product).ConfigureAwait(false);
+        var dr = await _repository.CreateAsync(product, ct).ConfigureAwait(false);
         return dr.WhereMutated(v =>
             _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
@@ -234,12 +234,12 @@ public async Task<Product> CreateAsync(Product product)
 Wrap all side-effectful database operations in `_unitOfWork.TransactionAsync(...)`. Both the database write and the outbox event publication are committed atomically inside this scope — events are only dispatched if the transaction commits successfully.
 
 ```csharp
-return await _unitOfWork.TransactionAsync(async () =>
+return await _unitOfWork.TransactionAsync(async ct =>
 {
-    var dr = await _repository.CreateAsync(product).ConfigureAwait(false);
+    var dr = await _repository.CreateAsync(product, ct).ConfigureAwait(false);
     return dr.WhereMutated(v =>
         _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
-}).ConfigureAwait(false);
+}, cancellationToken).ConfigureAwait(false);
 ```
 
 **When eventing is enabled, every mutating operation must publish its event inside the transaction.** `Create`, `Update`, and `Delete` each add their event (`EventAction.Created` / `Updated` / `Deleted`) via `_unitOfWork.Events.Add(...)` within the `TransactionAsync` scope — a transaction that writes but adds no event is a bug. (Eventing is enabled when the solution was scaffolded with it, or whenever the domain publishes domain events; if a domain is genuinely event-free, omit it.)
@@ -268,11 +268,11 @@ return await _unitOfWork.TransactionAsync(async ct =>
 For delete the `DataResult` has no value, so use the parameterless `WhereMutated(() => ...)` and carry the identity via `.WithKey(id)`:
 
 ```csharp
-public async Task DeleteAsync(string id)
+public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
 {
-    await _unitOfWork.TransactionAsync(async () =>
+    await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.DeleteAsync(id.ThrowIfNullOrEmpty()).ConfigureAwait(false);
+        var dr = await _repository.DeleteAsync(id.ThrowIfNullOrEmpty(), ct).ConfigureAwait(false);
 
         // ❌ Wrong — fabricates a throwaway value to carry the id; attaches a (near-empty) body,
         //    adds a version suffix delete must not have, and puts the id in the body, not the key.
@@ -283,7 +283,7 @@ public async Task DeleteAsync(string id)
         dr.WhereMutated(() =>                                    // () — no value on a delete DataResult
             _unitOfWork.Events.Add(
                 EventData.CreateEvent<Employee>(EventAction.Deleted).WithKey(id)));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
@@ -292,28 +292,28 @@ public async Task DeleteAsync(string id)
 Using `Result<T>` chains is a developer choice — it is not restricted to DDD aggregate services. It can be applied to any service method where explicit, composable failure propagation is preferred over exceptions. Compose with `Result.GoAsync`, `.ThenAs`, `.ThenAsAsync`. The unit of work is still `TransactionAsync`:
 
 ```csharp
-public Task<Result<Basket>> CreateAsync(string customerId)
+public Task<Result<Basket>> CreateAsync(string customerId, CancellationToken cancellationToken = default)
 {
     var aggregate = Domain.Basket.CreateNew(customerId.ThrowIfNullOrEmpty());
 
-    return _unitOfWork.TransactionAsync(async () =>
+    return _unitOfWork.TransactionAsync(async ct =>
     {
-        var br = await _repository.CreateAsync(aggregate).ConfigureAwait(false);
+        var br = await _repository.CreateAsync(aggregate, ct).ConfigureAwait(false);
         return br.ThenAs(b =>
         {
             var contract = BasketMapper.Map(b);
             _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.Created));
             return contract;
         });
-    });
+    }, cancellationToken);
 }
 ```
 
 For multi-step orchestration with early exit on the first failure:
 
 ```csharp
-var pr = await Result.GoAsync(() => SomeValidator.Default.ValidateWithResultAsync(input))
-    .ThenAsAsync(v => _someAdapter.EnsureExistsAsync(v.Id!));
+var pr = await Result.GoAsync(() => SomeValidator.Default.ValidateWithResultAsync(input, cancellationToken))
+    .ThenAsAsync(v => _someAdapter.EnsureExistsAsync(v.Id!, cancellationToken));
 
 if (pr.IsFailure)
     return pr.AsResult();
@@ -356,9 +356,9 @@ public class ProductReadService(IProductRepository repository) : IProductReadSer
 {
     private readonly IProductRepository _repository = repository.ThrowIfNull();
 
-    public Task<Product?> GetAsync(string id) => _repository.GetAsync(id);
-    public Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
-        => _repository.QueryAsync(query, paging);
+    public Task<Product?> GetAsync(string id, CancellationToken cancellationToken = default) => _repository.GetAsync(id, cancellationToken);
+    public Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
+        => _repository.QueryAsync(query, paging, cancellationToken);
 }
 ```
 
@@ -374,9 +374,9 @@ Adapter interfaces live in `Application/Adapters/` (one interface per external d
 // Application/Adapters/IProductAdapter.cs — interface only (domain-idiomatic, not a mirror of the remote API)
 public interface IProductAdapter
 {
-    Task<Result<Product>> GetAsync(string id);
-    Task<Result> ReserveInventoryAsync(Domain.Basket basket);
-    Task<Result> CancelReservationAsync(Domain.Basket basket);
+    Task<Result<Product>> GetAsync(string id, CancellationToken cancellationToken = default);
+    Task<Result> ReserveInventoryAsync(Domain.Basket basket, CancellationToken cancellationToken = default);
+    Task<Result> CancelReservationAsync(Domain.Basket basket, CancellationToken cancellationToken = default);
 }
 
 // Infrastructure layer — implementation
@@ -400,15 +400,15 @@ public class ProductPolicy(IProductAdapter productAdapter)
 {
     private readonly IProductAdapter _productAdapter = productAdapter.ThrowIfNull();
 
-    public Task<Result<Product>> EnsureExistsAsync(string productId) => Result
-        .GoAsync(() => _productAdapter.GetAsync(productId))
+    public Task<Result<Product>> EnsureExistsAsync(string productId, CancellationToken cancellationToken = default) => Result
+        .GoAsync(() => _productAdapter.GetAsync(productId, cancellationToken))
         .OnFailure(r => r.IsNotFoundError
             ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(productId), "Product was not found."))
             : r);
 }
 
 // In the calling service — _productAdapter is already injected into the service:
-var result = await new ProductPolicy(_productAdapter).EnsureExistsAsync(productId);
+var result = await new ProductPolicy(_productAdapter).EnsureExistsAsync(productId, cancellationToken);
 ```
 
 ## Application-Level Mapping

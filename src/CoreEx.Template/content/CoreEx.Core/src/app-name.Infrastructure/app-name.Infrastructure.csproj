@@ -12,7 +12,7 @@
     <PackageReference Include="CoreEx.Database.Postgres" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <!--#endif-->
-    <!--#if implement-sqlserver || implement-postgres-->
+    <!--#if (implement-sqlserver || implement-postgres)-->
     <PackageReference Include="CoreEx.EntityFrameworkCore" />
     <!--#endif-->
     <!--#if refdata-enabled-->

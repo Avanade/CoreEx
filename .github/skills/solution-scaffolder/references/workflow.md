@@ -83,7 +83,7 @@ If the user gives only two parts, ask:
 Rules:
 
 - Do not continue to template commands until the name is in `[Company].[Product].[Domain]` form.
-- Do not ask for host-specific names such as `.Api` or `.Subscriber` — those are derived automatically from the base name.
+- Do not ask for host-specific names such as `.Api` or `.Subscribe` — those are derived automatically from the base name.
 
 ### 2. New domain or retrofit
 
@@ -152,7 +152,7 @@ Recommended options:
 
 Interpretation:
 
-- `Yes` means add `coreex-subscriber`.
+- `Yes` means add `coreex-subscribe`.
 
 Default: `No`.
 
@@ -261,7 +261,7 @@ Build a structured decision summary before any command is run.
 | Base solution name confirmed as `Company.Product.Domain` | `-n Company.Product.Domain` for `coreex`; can be omitted if the folder is already named `Company.Product.Domain` |
 | HTTP API needed | `dotnet new coreex-api -n Company.Product.Domain.Api ...` |
 | Publish events reliably | `dotnet new coreex-relay -n Company.Product.Domain.Relay ...` |
-| Consume events | `dotnet new coreex-subscriber -n Company.Product.Domain.Subscriber ...` |
+| Consume events | `dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...` |
 | SQL Server | `--data-provider SqlServer` |
 | Postgres | `--data-provider Postgres` |
 | No local database | `--data-provider None` |
@@ -287,7 +287,7 @@ State that the workflow will finish by wiring projects into the solution and run
 2. Install `CoreEx.Template` if it is missing.
 3. Always run `--dry-run` before the first real template invocation unless the workspace is empty and the command shape is already obvious.
 4. Stop if the dry-run shows nested root folders, incorrect host names, or a layout that conflicts with the existing repo.
-5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscriber`).
+5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscribe`).
 6. For retrofit work, add only the missing hosts unless the user explicitly asked for broader reshaping.
 7. After generating all host templates, run `dotnet sln` to add every new host project and its test project to the `.slnx` solution file.
 8. Verify that each expected generated host and test project exists on disk before moving to validation.
@@ -300,7 +300,7 @@ Each host template takes a **4-part name** with the host suffix appended. **Alwa
 ```sh
 dotnet new coreex-api        -n Company.Product.Domain.Api
 dotnet new coreex-relay      -n Company.Product.Domain.Relay
-dotnet new coreex-subscriber -n Company.Product.Domain.Subscriber
+dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe
 ```
 
 Passing the 3-part base name to host templates causes all three to emit into the same directory and overwrite each other.
@@ -389,13 +389,13 @@ dotnet new coreex --data-provider SqlServer --messaging-provider ServiceBus --re
 
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider SqlServer --messaging-provider ServiceBus
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
 
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscriber
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 
 dotnet build Avanade.Erp.Sales.slnx
@@ -418,10 +418,10 @@ dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```sh
 dotnet new coreex -n Avanade.Erp.Sales --data-provider SqlServer --messaging-provider ServiceBus --outbox-enabled false
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --outbox-enabled false
-dotnet new coreex-subscriber -n Avanade.Erp.Sales.Subscriber --data-provider SqlServer --messaging-provider ServiceBus
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscriber
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit

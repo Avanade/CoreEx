@@ -1,7 +1,7 @@
 name: domain-name-lower
 
 services:
-#if implement-sqlserver || implement-servicebus
+#if (implement-sqlserver || implement-servicebus)
   db-sql-server:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:

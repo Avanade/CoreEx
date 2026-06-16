@@ -1,16 +1,16 @@
 {
   "$schema": "http://json.schemastore.org/template",
   "author": "https://github.com/avanade/coreex",
-  "classifications": [ "CoreEx", "Microservice", "Subscriber" ],
-  "identity": "CoreEx.Subscriber",
-  "name": "CoreEx Subscriber host",
-  "description": "An ASP.NET Core Subscriber host, and test, projects for a CoreEx domain-based microservice.",
-  "shortName": "coreex-subscriber",
+  "classifications": [ "CoreEx", "Microservice", "Subscribe" ],
+  "identity": "CoreEx.Subscribe",
+  "name": "CoreEx Subscribe host",
+  "description": "An ASP.NET Core Subscribe host, and test, projects for a CoreEx domain-based microservice.",
+  "shortName": "coreex-subscribe",
   "tags": {
     "language": "C#",
     "type": "project"
   },
-  "sourceName": "app-name.Subscriber",
+  "sourceName": "app-name.Subscribe",
   "preferNameDirectory": false,
   "symbols": {
     "coreex-version": {
@@ -80,7 +80,7 @@
           "description": "Indicates no data provider is used (e.g. a facade over an external system such as Dynamics 365)."
         }
       ],
-      "defaultValue": "SqlServer",
+      "defaultValue": "Postgres",
       "displayName": "Data provider",
       "description": "Determines the data provider technology to use."
     },

@@ -11,7 +11,7 @@
     <!--#if !implement-none-data-->
     <Project Path="tools\app-name.Database\app-name.Database.csproj" />
     <!--#endif-->
-    <!--#if refdata-enabled && !implement-none-data-->
+    <!--#if (refdata-enabled && !implement-none-data)-->
     <Project Path="tools\app-name.CodeGen\app-name.CodeGen.csproj" />
     <!--#endif-->
   </Folder>

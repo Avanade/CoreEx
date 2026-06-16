@@ -28,10 +28,3 @@ global using System.Net;
 global using System.Text.Json;
 global using ZiggyCreatures.Caching.Fusion;
 global using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
-
-// NOTE: Application layer using statements will be added after CodeGen runs.
-// See: BOOTSTRAP_PHASE_2.md in your project root.
-// Add the following after generating subscriber implementations:
-// // #if refdata-enabled
-// global using solution-name.Application;
-// // #endif

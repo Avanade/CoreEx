@@ -49,7 +49,7 @@ Use this progression:
 |---|---|---|
 | New implementation solution with one or more domains and standard hosts. | `CoreEx.Template` via `dotnet new coreex*` | This is the deterministic scaffolding path for layered solution structure, package choices, standard `Program.cs` wiring, tests, and host projects. |
 | Existing domain needs new messaging or integration capability added incrementally. | Inspect first, then make a manual CoreEx-aligned change | Capability retrofits are now normal implementation work guided by the samples and instruction files rather than a dedicated scaffolding command. |
-| New domain with a conventional entity shape. | `dotnet new coreex` plus only the required `coreex-api`, `coreex-relay`, or `coreex-subscriber` hosts | Fastest path when you want deterministic output and only need to fill in the domain-specific logic. |
+| New domain with a conventional entity shape. | `dotnet new coreex` plus only the required `coreex-api`, `coreex-relay`, or `coreex-subscribe` hosts | Fastest path when you want deterministic output and only need to fill in the domain-specific logic. |
 | New domain with richer rules or more design uncertainty. | Ask `CoreEx Expert` to choose the shape, then scaffold with `dotnet new coreex*` | Best when you want sample-aligned advice before committing to a host set or capability mix. |
 
 ## Recommended Application Shapes
@@ -81,8 +81,8 @@ Pull in early:
 
 Default implementation note:
 
-- SQL Server is the default starting point because it has the strongest scaffolding and sample coverage in this repo.
-- Treat that as the recommended initial implementation, not as a rule that every CoreEx application must use SQL Server forever.
+- PostgreSQL is the default data provider for the templates; SQL Server and `None` (facade, no local database) remain fully supported and are selectable via `--data-provider`.
+- Treat that as the recommended initial implementation, not as a rule that every CoreEx application must use that provider forever — choose the one that fits the solution.
 
 Usually add immediately:
 

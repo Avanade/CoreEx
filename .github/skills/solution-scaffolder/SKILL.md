@@ -74,7 +74,7 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 |---|---|
 | "I need HTTP endpoints." | Add `coreex-api`. |
 | "I need to publish events reliably." | Add `coreex-relay`; use a messaging provider and keep outbox enabled where relevant. |
-| "I need to consume events." | Add `coreex-subscriber`; use a messaging provider. |
+| "I need to consume events." | Add `coreex-subscribe`; use a messaging provider. |
 | "This service stores its own data in SQL Server." | `--data-provider SqlServer` |
 | "This service stores its own data in Postgres." | `--data-provider Postgres` |
 | "This is a facade. No local database." | `--data-provider None` |
@@ -95,7 +95,7 @@ Assume the repository is already in one of these states before this skill runs:
 - Each **host template** takes a **4-part name** with the host suffix appended:
   - `coreex-api -n Company.Product.Domain.Api`
   - `coreex-relay -n Company.Product.Domain.Relay`
-  - `coreex-subscriber -n Company.Product.Domain.Subscriber`
+  - `coreex-subscribe -n Company.Product.Domain.Subscribe`
 - Host templates **always require `-n`** — the folder name is the 3-part base and cannot supply the host suffix automatically.
 - Do not pass the 3-part base name to host templates; doing so causes all three hosts to emit into the same `src/Company.Product.Domain/` directory, overwriting each other.
 - If the user gives only a two-part name, ask for the missing segment before running any template.
@@ -112,14 +112,14 @@ dotnet new coreex -n Avanade.Product.Books --data-provider SqlServer --messaging
 # Step 2: Add each host template using the 4-part name (base + host suffix).
 dotnet new coreex-api        -n Avanade.Product.Books.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
 dotnet new coreex-relay      -n Avanade.Product.Books.Relay      --data-provider SqlServer --messaging-provider ServiceBus
-dotnet new coreex-subscriber -n Avanade.Product.Books.Subscriber --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
+dotnet new coreex-subscribe -n Avanade.Product.Books.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
 
 # Step 3: Add host and test projects to the solution file.
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Api
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscriber
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe
 
 # Step 4: Validate the generated solution.
@@ -136,7 +136,7 @@ dotnet test tests/Avanade.Product.Books.Test.Unit
 dotnet new coreex            -n Company.Product.Domain ...
 dotnet new coreex-api        -n Company.Product.Domain.Api ...
 dotnet new coreex-relay      -n Company.Product.Domain.Relay ...
-dotnet new coreex-subscriber -n Company.Product.Domain.Subscriber ...
+dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 # Then add new projects to the solution file as in Step 3 above.
 ```
 
@@ -171,7 +171,7 @@ dotnet new coreex-subscriber -n Company.Product.Domain.Subscriber ...
 |---|---|
 | Empty repo, own data, expose HTTP only | `coreex` + `coreex-api` |
 | Empty repo, own data, expose HTTP, publish reliable events | `coreex` + `coreex-api` + `coreex-relay` |
-| Empty repo, expose HTTP, publish events, consume events | `coreex` + `coreex-api` + `coreex-relay` + `coreex-subscriber` |
+| Empty repo, expose HTTP, publish events, consume events | `coreex` + `coreex-api` + `coreex-relay` + `coreex-subscribe` |
 | Existing repo missing only runtime hosts | Infer current shape, then add only the missing hosts |
 | Facade over another system with no local database | `coreex --data-provider None --messaging-provider None` and add `coreex-api --data-provider None` only if an API is needed |
 

@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Infrastructure.Repositories;
+namespace Contoso.Products.Infrastructure.Repositories;
 
 public partial class ProductsDbContext(DbContextOptions<ProductsDbContext> options, PostgresDatabase database) : DbContext(options), IEfDbContext
 {
@@ -21,4 +21,8 @@ public partial class ProductsDbContext(DbContextOptions<ProductsDbContext> optio
         // Add the generated models to the model builder.
         AddGeneratedModels(modelBuilder);
     }
+
+    /// <summary>Adds the CodeGen-generated entity models to the <paramref name="modelBuilder"/>.</summary>
+    /// <param name="modelBuilder">The <see cref="ModelBuilder"/>.</param>
+    partial void AddGeneratedModels(ModelBuilder modelBuilder);
 }

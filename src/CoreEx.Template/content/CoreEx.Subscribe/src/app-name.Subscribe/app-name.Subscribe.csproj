@@ -3,6 +3,7 @@
     <ProjectReference Include="..\solution-name.Application\solution-name.Application.csproj" />
     <ProjectReference Include="..\solution-name.Infrastructure\solution-name.Infrastructure.csproj" />
   </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="CoreEx.AspNetCore" />
     <PackageReference Include="CoreEx.AspNetCore.NSwag" />
@@ -25,9 +26,8 @@
     <PackageReference Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" />
     <PackageReference Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" />
   </ItemGroup>
+  
   <ItemGroup>
-    <Content Update="appsettings.Development.json">
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    <RuntimeHostConfigurationOption Include="Azure.Experimental.EnableActivitySource" Value="true" />
   </ItemGroup>
 </Project>

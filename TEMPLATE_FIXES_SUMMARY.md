@@ -99,7 +99,7 @@ Created comprehensive validation scripts to catch template defects before publis
 | Full Stack | coreex | SqlServer, ServiceBus, refdata-enabled, outbox-enabled |
 | API with RefData | coreex-api | SqlServer, refdata-enabled |
 | Relay with ServiceBus | coreex-relay | SqlServer, ServiceBus |
-| Subscriber with RefData | coreex-subscriber | SqlServer, ServiceBus, refdata-enabled |
+| Subscriber with RefData | coreex-subscribe | SqlServer, ServiceBus, refdata-enabled |
 
 **Validation Checks:**
 - Template scaffolding completes successfully
@@ -175,7 +175,7 @@ Created comprehensive validation scripts to catch template defects before publis
      --data-provider SqlServer --messaging-provider ServiceBus
    
    # Subscriber template  
-   dotnet new coreex-subscriber --output test-subscriber --force \
+   dotnet new coreex-subscribe --output test-subscriber --force \
      --data-provider SqlServer --messaging-provider ServiceBus \
      --refdata-enabled true
    ```

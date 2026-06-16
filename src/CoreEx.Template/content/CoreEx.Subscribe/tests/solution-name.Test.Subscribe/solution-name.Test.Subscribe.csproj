@@ -10,7 +10,7 @@
     <PackageReference Include="UnitTestEx.NUnit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\app-name.Subscriber\app-name.Subscriber.csproj" />
+    <ProjectReference Include="..\..\src\app-name.Subscribe\app-name.Subscribe.csproj" />
     <ProjectReference Include="..\solution-name.Test.Common\solution-name.Test.Common.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -39,7 +39,7 @@ The two test projects have **distinct, non-overlapping jobs**. Decide where a be
 
 **Do not repeat the same assertion in both projects.** Concretely:
 
-- **Validator rules** are proven **exhaustively in unit tests** (every mandatory/range/format/cross-field rule). In the API tests, do **not** re-enumerate them — assert **one** representative `AssertErrors(...)` / `AssertBadRequest()` case to confirm the validator is *wired into the pipeline*, then move on. (See the validators guidance — "Unit Tests".)
+- **Validator rules** are proven **exhaustively in unit tests** (every mandatory/range/format/cross-field rule). In the API tests, do **not** re-enumerate them — assert **one** representative `AssertBadRequest()` + `AssertErrors(...)` case to confirm the validator is *wired into the pipeline*, then move on. **But `AssertErrors` is an exact match — not a subset.** It fails unless the listed errors are **exactly** the set the input produces (none missing, none extra). So "one representative case" means **craft the input to produce exactly the errors you assert** — e.g. send a value valid in every respect *except* the one rule under test — rather than posting an empty object (which fires *all* mandatory errors) and listing only some. (See the validators guidance — "Unit Tests".)
 - **Service/repository behaviour** is proven in the **API tests** over the real database. Do **not** re-create it in unit tests with a mocked repository/UoW — that would assert the mock's configured behaviour, not the real persistence/mapping/eventing.
 - When a behaviour *could* sit in either, prefer the layer that exercises it **without mocking the thing under test**: validator → unit; anything touching the DB, cache, outbox, or HTTP pipeline → API.
 
@@ -106,18 +106,30 @@ await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigrat
 
 A developer may override/extend by passing additional files in the list when a class needs bespoke data.
 
-**Format** — `Schema:` → `- <Table>:` → rows, where each row is an **inline object** keyed by **column name** (in the provider's casing). Unlike the production `ref-data.seed.yaml` (which uses `$^<Table>` + auto-id + `Code: Text` shorthand), test data uses a **plain `- <Table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**:
+**Format** — `schema:` → `- <table>:` → rows, where each row is an **inline object** keyed by column name. Unlike the production `ref-data.seed.yaml` (which uses `$^<table>` + auto-id + `code: text` shorthand), test data uses a **plain `- <table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**.
+
+> **⚠️ All identifiers — schema, table, AND column names — must match the database's actual casing for the chosen provider** (i.e. exactly what the migration scripts created). DbEx does not case-fold them, so a wrong-cased schema/table fails the seed with *"Table '…' does not exist"*:
+> - **PostgreSQL (the default provider)** → **lowercase `snake_case`**: schema `bar`, table `employee`, columns `employee_id`, `first_name`, `gender_code`.
+> - **SQL Server** → **`PascalCase`**: schema `Bar`, table `Employee`, columns `EmployeeId`, `FirstName`, `GenderCode`.
 
 ```yaml
-Bar:                                  # schema
-  - Employee:                         # table — plain, no $^ prefix
-    - { EmployeeId: ^1, FirstName: Bob, LastName: Smith, GenderCode: M, Salary: 50000, DateOfBirth: 1990-01-01 }
-    - { EmployeeId: ^2, FirstName: Jane, LastName: Doe, GenderCode: F, Salary: 60000, DateOfBirth: 1985-06-15 }
+# PostgreSQL (default) — lowercase schema/table, snake_case columns
+bar:
+  - employee:                         # table — plain, no $^ prefix
+    - { employee_id: ^1, first_name: Bob, last_name: Smith, gender_code: M, salary: 50000, date_of_birth: 1990-01-01 }
+    - { employee_id: ^2, first_name: Jane, last_name: Doe, gender_code: F, salary: 60000, date_of_birth: 1985-06-15 }
 ```
 
-- **`^N` is a deterministic GUID** — `^1` equals `1.ToGuid()`. Use it for the **identifier** and for any **GUID foreign-key reference** to another seeded row (e.g. a `Movement` row with `{ ProductId: ^1 }` points at the product seeded as `^1`). This is what lets a test target a specific row by the same `N.ToGuid()`.
-- Reference data is linked **by code** — `GenderCode: M`, not an id/FK.
-- Set scenario flags explicitly where a test needs them — e.g. `IsDeleted: true`, `IsInactive: true`.
+```yaml
+# SQL Server — PascalCase schema/table/columns
+Bar:
+  - Employee:
+    - { EmployeeId: ^1, FirstName: Bob, LastName: Smith, GenderCode: M, Salary: 50000, DateOfBirth: 1990-01-01 }
+```
+
+- **`^N` is a deterministic GUID** — `^1` equals `1.ToGuid()`. Use it for the **identifier** and for any **GUID foreign-key reference** to another seeded row (e.g. a `movement` row with `{ product_id: ^1 }` points at the product seeded as `^1`). This is what lets a test target a specific row by the same `N.ToGuid()`.
+- Reference data is linked **by code** — `gender_code: M` (PostgreSQL) / `GenderCode: M` (SQL Server), not an id/FK.
+- Set scenario flags explicitly where a test needs them — e.g. `is_deleted: true`, `is_inactive: true` (PostgreSQL casing shown).
 
 > ### ⚠️ Writing the GUID literal in resource files (`.res.json` / `.event.json`)
 >
@@ -192,7 +204,17 @@ public partial class EmployeeMutateTests
 
 **Isolation:** read and mutate are separate classes with separate seed files, so mutations never disturb read expectations. Within a `XxxMutateTests` class, write each test to be **independent** — act on a distinct seeded id or create its own data; never depend on another test's side effects or run order.
 
-**Expected `.req.json` / `.res.json` resources** (the JSON representation of the request/response) live under `Resources/{TestClass}/…` and are referenced via `.ExpectJsonFromResource(...)` / `.AssertJsonFromResource("EmployeeReadTests.Employee_Get_Found.res.json", "etag", "changelog")` (exclude volatile fields). Create one by running the test and copying the **actual** JSON into the resource file — they are intentionally copy-paste-friendly for troubleshooting and scale better than inline assertions as entities grow.
+> **One seed row per _destructive test_ — not per operation.** Every test that **writes** to the database (Update, Patch, Delete, …) must target its **own** `^N` id. It is **not** enough to give each *operation* a distinct row — two **tests** that mutate the same row fail non-deterministically because **NUnit randomises execution order** (e.g. a Delete test running before an Update test that shares the row). Provision one row per destructive test **up front** in `mutate-data.seed.yaml`; don't add rows reactively after a collision surfaces. Canonical assignment for full CRUD:
+>
+> | `^N` | Test | Notes |
+> |---|---|---|
+> | `^1` | `Update_Success` | `Update_NotFound` uses a non-existent id; `Update_ConcurrencyError` only reads `^1` (rolls back) so it may share it |
+> | `^2` | `Delete_*` (exists → idempotent flow) | the row is removed by the test |
+> | `^3` | `Patch_Success` | |
+>
+> Non-mutating tests (Get, Query, 304, validation bad-requests) can freely share read rows — the rule is specifically about tests that **commit a write**.
+
+**Expected `.req.json` / `.res.json` resources** (the JSON representation of the request/response) live under `Resources/{TestClass}/…` and are referenced via `.ExpectJsonFromResource(...)` / `.AssertJsonFromResource("EmployeeReadTests.Employee_Get_Found.res.json", "etag", "changelog")` (exclude volatile fields). **Pre-author them from the seed values** — you control the seed, so you can write the expected JSON up front (remember to exclude/expect the volatile `id`/`etag`/`changelog`); then **run once and reconcile** any remaining differences from the actual output (they are intentionally copy-paste-friendly). Expect the first run to need a small fix-up; that's normal, not a failure to avoid. They scale better than inline assertions as entities grow.
 
 > **Agent instruction — co-design seed, tests, and resources together.** These three must agree, so author them in order:
 > 1. **Seed first** — add/extend the domain's `read-data.seed.yaml` / `mutate-data.seed.yaml` with the known rows the tests will reference, as object rows with deterministic **`^N` ids** (= `N.ToGuid()`); for mutate, the baselines a test needs — e.g. an existing SKU for a duplicate-conflict test, a row to update/delete.
@@ -283,6 +305,38 @@ Test.Http<Product>()
     .AssertOK();
 ```
 
+**Concurrency error (stale ETag) → 412.** Supply a **wrong** `If-Match` and assert `AssertPreconditionFailed()`. The `If-Match` **header takes precedence** over any `ETag` in the body, so you do **not** need to clear `val.ETag` — the header value drives the concurrency check:
+
+```csharp
+var p = Test.Http<Product>().Run(HttpMethod.Get, $"/api/products/{6.ToGuid()}").AssertOK().Value!;
+p.Text += " Updated";
+Test.Http()
+    .ExpectNoSqlServerOutboxEvents()                          // a rejected update commits nothing → emits nothing
+    .Run(HttpMethod.Put, $"/api/products/{p.Id}", p, requestModifier: r => r.WithIfMatch("AAAAAAAA"))
+    .AssertPreconditionFailed();                              // 412 — NOT AssertConflict()/409
+```
+
+This is **412 Precondition Failed** (`ConcurrencyException`), not 409. Use `.AssertPreconditionFailed()`. (409/`AssertConflict()` is for duplicate-key/business conflicts only — see the HTTP assertion table.)
+
+### Conditional GET with If-None-Match → 304 Not Modified
+
+For a conditional read, use the **`WithIfNoneMatch(...)`** request-modifier helper (the read-side counterpart of `WithIfMatch`) and assert `AssertNotModified()`. **Fetch once to obtain the response ETag**, then re-GET with it:
+
+```csharp
+// 1. GET to obtain the current ETag from the response headers.
+var r = Test.Http()
+    .Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}")
+    .AssertOK()
+    .Response;
+
+// 2. Conditional GET with If-None-Match → 304.
+Test.Http()
+    .Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}", requestModifier: rm => rm.WithIfNoneMatch(r.Headers.ETag!.Tag))
+    .AssertNotModified();
+```
+
+> **Use the `WithIfNoneMatch(...)` helper — do not set the header by hand.** `If-None-Match` requires a **quoted entity-tag** (`"<value>"`, RFC 7232); `r.Headers.Add("If-None-Match", etag)` throws **`FormatException`** on an unquoted value. `WithIfNoneMatch(...)` (and passing `response.Headers.ETag.Tag`, which is already quoted) handles the format for you — mirror it rather than reaching for raw header manipulation.
+
 ### Update of a non-existent id → 404 (ETag + value still required)
 
 Concurrency is checked **before** existence. So a "PUT a non-existent id → `NotFound`" test must **still send a valid ETag and a full value body** — otherwise the precondition check fires first and you get **`428 Precondition Required`** ("*A concurrency error occurred; an ETag is required either as an If-Match header (preferred) or specified within the request body (where supported).*"), not the `404` the test intends.
@@ -306,12 +360,13 @@ The ETag value need not match anything (the row doesn't exist) — it only has t
 
 When the entity supports soft-delete (`IsDeleted` column), a row flagged deleted must be **invisible to reads** — a `GET` of it returns **`404 Not Found`**, exactly as if it never existed. This needs its own test because a row that is *present in the table* but filtered out is a different code path from a row that was never seeded.
 
-1. **Seed a deleted row** — add a row to the domain's read seed file with `IsDeleted: true`:
+1. **Seed a deleted row** — add a row to the domain's read seed file with the soft-delete flag set (provider casing — `is_deleted` PostgreSQL / `IsDeleted` SQL Server):
 
 ```yaml
-Bar:
-  - Product:
-    - { ProductId: ^9, Name: Ghost, Sku: GHOST-1, IsDeleted: true }   # soft-deleted — must not be readable
+# PostgreSQL (default)
+bar:
+  - product:
+    - { product_id: ^9, name: Ghost, sku: GHOST-1, is_deleted: true }   # soft-deleted — must not be readable
 ```
 
 2. **Assert the GET 404s** (and that it does **not** appear in a list/query):
@@ -387,7 +442,11 @@ Use the `Assert*` helper matching the expected status; for anything not listed, 
 | 304 Not Modified (ETag / If-None-Match) | `.AssertNotModified()` |
 | 400 Bad Request | `.AssertBadRequest()` + `.AssertErrors("…")` |
 | 404 Not Found | `.AssertNotFound()` |
-| 409 Conflict (duplicate) | `.AssertConflict()` |
+| 409 Conflict — **duplicate key / business conflict** (`DuplicateException` / `ConflictException`) | `.AssertConflict()` |
+| 412 Precondition Failed — **stale/mismatched ETag** (`ConcurrencyException`) | `.AssertPreconditionFailed()` |
+| 428 Precondition Required — **no ETag supplied** on a concurrency-controlled mutation | `.Assert(HttpStatusCode.PreconditionRequired)` |
+
+> **409 vs 412 — different problems, don't conflate.** A **concurrency** failure (the supplied ETag doesn't match the current row) is **412 Precondition Failed** (`ConcurrencyException`) — use `.AssertPreconditionFailed()`. **409 Conflict** is only a **duplicate-key / unique-constraint or business conflict** (`DuplicateException`/`ConflictException`) — e.g. creating a second row with an existing SKU. A stale-ETag update is **never** 409. (And a mutation that supplies **no** ETag at all fails the precondition gate with **428**, not 412 — see "Update of a non-existent id".)
 
 ### `Test.Http()` vs `Test.Http<T>()`
 
@@ -450,6 +509,10 @@ _mockHttpReserveRequest.Verify();
 Unit tests are for logic with **no external dependencies**; any injected services are **mocked**. **Validators are the primary unit-test target** — they encode the most conditional logic. Application service orchestration is exercised by the host integration tests (`*.Test.Api` / `*.Test.Subscribe`), **not** here.
 
 Maintain **one test class per validator**, under `*.Test.Unit/Validators/`, named `{Validator}Tests` and extending `WithGenericTester<EntryPoint>` — `EntryPoint` (in the template) configures the DI/host services the validator needs. Each `[Test]` runs inside `Test.Scoped(test => { ... })`. Invoke the validator exactly as the application does:
+
+> **⚠️ `Test.Scoped` takes no type parameter for validator tests.** Use the **non-generic** `Test.Scoped(test => { … })` and invoke the validator via its `Default` singleton (or `new XxxValidator(deps)`). Do **not** write `Test.Scoped<XxxValidator>(v => …)` — the generic overload **resolves `XxxValidator` from DI**, but validators are **not registered in DI** (see `coreex-validators.instructions.md`), so it fails. The validator is created explicitly (`.Default` / `new`), never resolved.
+
+> **Do not manage `ExecutionContext` in tests.** `Test.Scoped(...)` (within `WithGenericTester<EntryPoint>` / `WithApiTester<Program>`) establishes a valid `ExecutionContext` for the scope automatically — so do **not** construct, inject, mock, or otherwise set it up in a test. The ambient `Runtime` (clock/GUID) and any `ExecutionContext`-dependent rule "just work" inside the scope. Write the test as if at runtime; the harness handles the context. (The `Test.ScopedType<ExecutionContext>` you may see in **Outbox Relay** tests is a *specialised* technique for writing events directly to the outbox under a scoped context — it is **not** something validator or API tests need.)
 
 ```csharp
 public class ProductValidatorTests : WithGenericTester<EntryPoint>
@@ -523,6 +586,39 @@ Error text derives from the standard templates in [`ValidatorStrings.cs`](https:
 > - `MinimumLength(n)` → `MinLengthFormat` `"{0} must be at least {2} character(s) in length."`
 > - `Length(exact)` → `ExactLengthFormat` `"{0} must be exactly {2} character(s) in length."`
 
+> **Quick reference — rule → exact message** (`{Label}` = sentence-cased property label per the rule above; every string verified against the master `ValidatorStrings.cs` in `CoreEx.Validation`). This covers the common rules; for anything not listed, consult `ValidatorStrings.cs` — it is the authoritative source (don't guess the wording).
+>
+> | Rule (fluent) | `ValidatorStrings` key | Produced message |
+> |---|---|---|
+> | `Mandatory()` | `MandatoryFormat` | `{Label} is required.` |
+> | `None()` | `NoneFormat` | `{Label} must not be specified.` |
+> | `Equal(v)` | `CompareEqualFormat` | `{Label} must be equal to {v}.` |
+> | `NotEqual(v)` | `CompareNotEqualFormat` | `{Label} must not be equal to {v}.` |
+> | `GreaterThan(v)` | `CompareGreaterThanFormat` | `{Label} must be greater than {v}.` |
+> | `GreaterThanOrEqualTo(v)` | `CompareGreaterThanEqualFormat` | `{Label} must be greater than or equal to {v}.` |
+> | `LessThan(v)` | `CompareLessThanFormat` | `{Label} must be less than {v}.` |
+> | `LessThanOrEqualTo(v)` | `CompareLessThanEqualFormat` | `{Label} must be less than or equal to {v}.` |
+> | `Between(min,max)` / `InclusiveBetween` | `BetweenInclusiveFormat` | `{Label} must be between {min} and {max}.` |
+> | `ExclusiveBetween(min,max)` | `BetweenExclusiveFormat` | `{Label} must be between {min} and {max} (exclusive).` |
+> | `MaximumLength(n)` | `MaxLengthFormat` | `{Label} must not exceed {n} character(s) in length.` |
+> | `MinimumLength(n)` | `MinLengthFormat` | `{Label} must be at least {n} character(s) in length.` |
+> | `Length(n)` (exact) | `ExactLengthFormat` | `{Label} must be exactly {n} character(s) in length.` |
+> | `PrecisionScale(p,s)` — scale | `DecimalPlacesFormat` | `{Label} exceeds the maximum decimal places ({s}).` |
+> | `PrecisionScale(p,s)` — precision | `MaxDigitsFormat` | `{Label} exceeds the maximum digits (n).` |
+> | `Numeric(allowNegatives: false)` | `AllowNegativesFormat` | `{Label} must not be negative.` |
+> | `Email()` | `EmailFormat` | `{Label} is an invalid e-mail address.` |
+> | `Matches(regex)` | `RegexFormat` | `{Label} is invalid.` |
+> | `Wildcard()` | `WildcardFormat` | `{Label} contains invalid or non-supported wildcard selection.` |
+> | `.IsValid()` (ref-data) | `InvalidFormat` | `{Label} is invalid.` |
+> | `Collection(minCount: n)` | `MinCountFormat` | `{Label} must have at least {n} item(s).` |
+> | `Collection(maxCount: n)` | `MaxCountFormat` | `{Label} must not exceed {n} item(s).` |
+> | `Duplicate()` | `DuplicateFormat` | `{Label} already exists and would result in a duplicate.` |
+> | `NotFound()` | `NotFoundFormat` | `{Label} was not found.` |
+> | `Immutable()` | `ImmutableFormat` | `{Label} is not allowed to change; please reset value.` |
+> | `Collection(item: …)` with invalid child items | `InvalidItemsFormat` | `{Label} contains one or more invalid items.` |
+>
+> For the comparison rules, `{v}`/`{min}`/`{max}` are the literal values — **unless** a message-text delegate is supplied (e.g. `GreaterThanOrEqualTo(0, _ => "zero")` → `"… greater than or equal to zero."`); the delegate text replaces the value token. `AssertErrors` expects **`(jsonName, message)` tuples** (camelCase JSON property path, full message) — never bare message strings. Default texts can be overridden globally via `ValidatorStrings` / localization, so if a project customises them, the project's value wins — but the defaults above are what a stock CoreEx solution produces.
+
 ### Reference data in unit tests
 
 Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataServiceDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, **add a new arm to** its `GetAsync` switch — inserting it **before** the final `_ => throw …` catch-all:
@@ -537,6 +633,8 @@ public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationT
 ```
 
 **Never remove or replace the final `_ => throw …` catch-all arm** — only add arms above it. It is the guard that surfaces an unhandled ref-data type; dropping it (e.g. "replacing the throw-only body") would silently break the decorator.
+
+**Mirror `ReferenceDataService.g.cs` exactly — dispatch on the item type, not the collection.** The decorator's `switch` must match the generated `ReferenceDataService.g.cs` `GetAsync(Type type)`: it keys on the **reference-data item type** — `typeof(Gender)` — **not** the collection type `typeof(GenderCollection)`. (The collection appears only as the `Deserialize<GenderCollection>(...)` target.) Copy the case keys from the generated file rather than guessing; using `typeof(GenderCollection)` as the key means the arm never matches and the catch-all throws.
 
 `Gender` is the reference-data **contract type**; `"Bar.$^Gender"` is the `{schema}.$^{Table}` key into the pre-configured seed data. **The key must mirror the seed YAML's schema and `$^Table` entry exactly, including casing** — it is case-sensitive. So it follows the **provider's casing**: PascalCase for SQL Server (e.g. `"Bar.$^Gender"`, `"Orders.$^OrderStatus"`), lower/snake_case for PostgreSQL (e.g. `"products.$^category"`). Copy the casing from the actual seed `$^<Table>` rather than assuming lower-case.
 
@@ -679,6 +777,7 @@ Basket_Checkout_Insufficient_Quantity
 - Do not write validator tests for **length** rules (`MaximumLength`/`MinimumLength`/`Length`/`String`) — assume the declared length logic works (framework-guaranteed, like reference-data active/inactive); test conditional/business logic instead.
 - Do not put an entity's read and mutate API tests in one class — split into `XxxReadTests` (seeds `read-data.seed.yaml`) and `XxxMutateTests` (seeds `mutate-data.seed.yaml`), one partial sub-file per operation (`Xxx{Read|Mutate}Tests.{Operation}.cs`).
 - Do not load the whole dataset in an API read/mutate class — use the named-file `MigrateXxxDataAsync<TestData>(["read-data.seed.yaml"|"mutate-data.seed.yaml"], …)` overload so the class loads only its dataset.
+- Do not use the wrong identifier casing in seed YAML — schema, table, **and** column names must match the database's actual casing for the provider (PostgreSQL = lowercase `snake_case`, the default; SQL Server = `PascalCase`). A wrong-cased schema/table fails with *"Table '…' does not exist"*. Mirror exactly what the migration created.
 - Do not write order-dependent or interfering mutate tests — each must act on a distinct seeded id or create its own data.
 - Do not include `id`/`etag`/`changelog` in a `.res.json` used with `ExpectIdentifier()`/`ExpectETag()`/`ExpectChangeLogCreated()`/`ExpectChangeLogUpdated()` (or list them as manual excludes) — those helpers assert presence and auto-exclude from the compare.
 - Do not use the `Code`-suffixed name in test JSON (`.res.json`/`.req.json`/inline bodies) for a reference-data property — use the non-`Code` JSON name (`gender`, not `genderCode`).

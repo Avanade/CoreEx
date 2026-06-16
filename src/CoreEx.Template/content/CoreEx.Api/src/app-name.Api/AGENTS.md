@@ -58,7 +58,7 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 <!-- #else -->
 - **Data provider:** None -- this host uses no database; services call external systems directly
 <!-- #endif -->
-<!-- #if outbox-enabled && !implement-none-data -->
+<!-- #if (outbox-enabled && !implement-none-data) -->
 - **Transactional outbox:** Enabled -- events are written to the DB outbox by `domain-nameOutboxPublisher`; the Relay host reads and forwards them
 <!-- #else -->
 - **Transactional outbox:** Disabled -- events are published directly to the message broker

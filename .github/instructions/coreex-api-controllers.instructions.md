@@ -61,6 +61,18 @@ public class ProductReadController(WebApi webApi, IProductReadService service) :
 
 All action methods return `Task<IActionResult>` using the `WebApi` helper. Do not return typed `ActionResult<T>` directly.
 
+**Every action method takes a trailing `CancellationToken cancellationToken = default` and flows it through.** MVC binds it to `HttpContext.RequestAborted` automatically. Pass it to the `WebApi` helper via the named `cancellationToken:` argument, and use the **lambda's** `ct` parameter (`(ro, ct) => …`) when calling the service — never discard it with `(ro, _)`:
+
+```csharp
+public Task<IActionResult> PostAsync(CancellationToken cancellationToken = default) => _webApi.PostAsync<Employee, Employee>(Request, (ro, ct) =>
+{
+    ro.WithLocationUri(e => new Uri($"/api/employees/{e.Id}", UriKind.Relative));
+    return _service.CreateAsync(ro.Value, ct);
+}, cancellationToken: cancellationToken);
+```
+
+This is an instance of the universal rule — **every `async`/`Task`-returning method takes a `CancellationToken` and passes it on** (see `coreex-conventions.instructions.md`). The examples below all follow it.
+
 #### Standard (exception-based services)
 
 | HTTP Verb | WebApi helper | Notes |
@@ -90,8 +102,8 @@ Use `.Required()` to validate route parameters at the point of first use. It **r
 
 ```csharp
 [HttpGet("{id}"), HttpHead("{id}")]
-public Task<IActionResult> GetAsync(string id) =>
-    _webApi.GetAsync(Request, (_, _) => _service.GetAsync(id.Required()));
+public Task<IActionResult> GetAsync(string id, CancellationToken cancellationToken = default) =>
+    _webApi.GetAsync(Request, (_, ct) => _service.GetAsync(id.Required(), ct), cancellationToken: cancellationToken);
 ```
 
 Do not use `.ThrowIfNull()` / `.ThrowIfNullOrEmpty()` on route parameters — those throw `ArgumentNullException`, which results in a 500 rather than a 400.
@@ -105,11 +117,11 @@ Use `ro.WithLocationUri(...)` to set the `Location` response header:
 [Accepts<Product>]
 [ProducesResponseType<Product>(201)]
 [IdempotencyKey]
-public Task<IActionResult> PostAsync() => _webApi.PostAsync<Product, Product>(Request, (ro, _) =>
+public Task<IActionResult> PostAsync(CancellationToken cancellationToken = default) => _webApi.PostAsync<Product, Product>(Request, (ro, ct) =>
 {
     ro.WithLocationUri(p => new Uri($"/api/products/{p.Id}", UriKind.Relative));
-    return _service.CreateAsync(ro.Value);
-});
+    return _service.CreateAsync(ro.Value, ct);
+}, cancellationToken: cancellationToken);
 ```
 
 > **Agent instruction — confirm idempotency for every POST.** When adding a `POST`, ask whether the operation should be **idempotent** (safe to retry without creating a duplicate). A general **create-style** POST is a strong candidate — default to offering it. If confirmed, decorate the action with **`[IdempotencyKey]`** (MVC) or `.WithIdempotencyKey()` (Minimal API): a retried request carrying the same key then returns the original result instead of creating a second resource. Omit it only when the user confirms the POST is **not** idempotent (e.g. a deliberately non-repeatable command). This applies to `POST` specifically; `PUT`/`PATCH`/`DELETE` are inherently idempotent and do not take the attribute.
@@ -123,8 +135,8 @@ Only implement **specialized/partial** update or patch endpoints when the user *
 ```csharp
 [HttpPut("{id}")]
 [Accepts<Product>]
-public Task<IActionResult> UpdateAsync(string id) => _webApi.PutAsync<Product, Product>(Request,
-    (ro, _) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id)));
+public Task<IActionResult> UpdateAsync(string id, CancellationToken cancellationToken = default) => _webApi.PutAsync<Product, Product>(Request,
+    (ro, ct) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id), ct), cancellationToken: cancellationToken);
 ```
 
 `PATCH` always supplies both `get:` and `put:` delegates: it **fetches** the current entity, merges the patch document over it, then calls `put`. The fetch uses the write service's own primary `GetAsync` (`XxxService` exposes a by-id `GetAsync` for exactly this), so the mutating controller depends on a **single** service — no need to also inject `IXxxReadService`:
@@ -132,9 +144,10 @@ public Task<IActionResult> UpdateAsync(string id) => _webApi.PutAsync<Product, P
 ```csharp
 [HttpPatch("{id}")]
 [Accepts<Product>(HttpNames.MergePatchJsonMediaTypeName)]
-public Task<IActionResult> PatchAsync(string id) => _webApi.PatchAsync<Product>(Request,
-    get: (ro, _) => _service.GetAsync(id.Required()),
-    put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id)));
+public Task<IActionResult> PatchAsync(string id, CancellationToken cancellationToken = default) => _webApi.PatchAsync<Product>(Request,
+    get: (ro, ct) => _service.GetAsync(id.Required(), ct),
+    put: (ro, ct) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id), ct),
+    cancellationToken: cancellationToken);
 ```
 
 Because the **write** service backs the `get:` fetch, **`IXxxService` must declare a by-id `GetAsync`** (alongside the mutators) — and `XxxService` must implement it. This `GetAsync` lives on the **write** interface even though it reads; it is the controller's single dependency for PATCH (and for a write-side `GET` by id). Do **not** route the PATCH fetch through `IXxxReadService`:
@@ -156,8 +169,8 @@ Expose `QueryArgs` and `PagingArgs` via `[Query]` and `[Paging]` action attribut
 ```csharp
 [HttpGet]
 [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-public Task<IActionResult> QueryAsync() =>
-    _webApi.GetAsync(Request, (ro, _) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs));
+public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = default) =>
+    _webApi.GetAsync(Request, (ro, ct) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 ```
 
 ### Reference Data Endpoints
@@ -166,8 +179,8 @@ Delegate to `ReferenceDataOrchestrator.Current.GetWithFilterAsync<T>()`. Support
 
 ```csharp
 [HttpGet("categories")]
-public Task<IActionResult> GetCategoriesAsync([FromQuery] IEnumerable<string>? codes = default, string? text = default)
-    => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetWithFilterAsync<Category>(codes, text, ro.IsIncludeInactive, ct));
+public Task<IActionResult> GetCategoriesAsync([FromQuery] IEnumerable<string>? codes = default, string? text = default, CancellationToken cancellationToken = default)
+    => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetWithFilterAsync<Category>(codes, text, ro.IsIncludeInactive, ct), cancellationToken: cancellationToken);
 ```
 
 ### Response Metadata Attributes
@@ -186,8 +199,8 @@ Read controllers that expose a `QueryAsync` should also expose a `$query` schema
 ```csharp
 [HttpGet("$query")]
 [ProducesResponseType(typeof(JsonElement), 200)]
-public Task<IActionResult> QuerySchemaAsync() =>
-    _webApi.GetAsync(Request, (ro, _) => _service.QuerySchemaAsync());
+public Task<IActionResult> QuerySchemaAsync(CancellationToken cancellationToken = default) =>
+    _webApi.GetAsync(Request, (ro, ct) => _service.QuerySchemaAsync(ct), cancellationToken: cancellationToken);
 ```
 
 ### Result-Based Services
@@ -198,17 +211,17 @@ When the service returns `Result<T>`, use the `WithResult` variants:
 [HttpPost("{basketId}/checkout")]
 [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-public Task<IActionResult> CheckoutAsync(string basketId) =>
-    _webApi.PostWithResultAsync<Basket>(Request, (_, _) =>
-        _service.CheckoutAsync(basketId.Required()), HttpStatusCode.OK);
+public Task<IActionResult> CheckoutAsync(string basketId, CancellationToken cancellationToken = default) =>
+    _webApi.PostWithResultAsync<Basket>(Request, (_, ct) =>
+        _service.CheckoutAsync(basketId.Required(), ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 
 [HttpPost("{basketId}/items")]
 [IdempotencyKey]
 [Accepts<BasketItemAddRequest>]
 [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
-public Task<IActionResult> ItemAddAsync(string basketId) =>
-    _webApi.PostWithResultAsync<BasketItemAddRequest, Basket>(Request, (ro, _) =>
-        _service.ItemAddAsync(basketId.Required(), ro.Value), HttpStatusCode.OK);
+public Task<IActionResult> ItemAddAsync(string basketId, CancellationToken cancellationToken = default) =>
+    _webApi.PostWithResultAsync<BasketItemAddRequest, Basket>(Request, (ro, ct) =>
+        _service.ItemAddAsync(basketId.Required(), ro.Value, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 ```
 
 ---
@@ -239,59 +252,60 @@ MVC action attributes have direct `RouteHandlerBuilder` extension equivalents �
 **GET by id:**
 ```csharp
 app.MapGet("api/products/{id}",
-    (HttpRequest request, WebApi webApi, IProductReadService service, string id)
-        => webApi.GetWithResultAsync(request, (_, _) => service.GetAsync(id.Required())))
+    (HttpRequest request, WebApi webApi, IProductReadService service, string id, CancellationToken cancellationToken)
+        => webApi.GetWithResultAsync(request, (_, ct) => service.GetAsync(id.Required(), ct), cancellationToken: cancellationToken))
     .Produces<Product>().ProducesNotFoundProblem();
 ```
 
 **POST — create with Location header:**
 ```csharp
 app.MapPost("api/products",
-    (HttpRequest request, WebApi webApi, IProductService service)
-        => webApi.PostWithResultAsync<Product, Product>(request, async (ro, _) =>
+    (HttpRequest request, WebApi webApi, IProductService service, CancellationToken cancellationToken)
+        => webApi.PostWithResultAsync<Product, Product>(request, async (ro, ct) =>
         {
             ro.WithLocationUri(p => new Uri($"api/products/{p.Id}", UriKind.Relative));
-            return await service.CreateAsync(ro.Value).ConfigureAwait(false);
-        }))
+            return await service.CreateAsync(ro.Value, ct).ConfigureAwait(false);
+        }, cancellationToken: cancellationToken))
     .Accepts<Product>().ProducesCreated<Product>().WithIdempotencyKey();
 ```
 
 **PUT:**
 ```csharp
 app.MapPut("api/products/{id}",
-    (HttpRequest request, WebApi webApi, IProductService service, string id)
-        => webApi.PutWithResultAsync<Product, Product>(request, (ro, _) =>
-            service.UpdateAsync(ro.Value.Adjust(p => p.Id = id))))
+    (HttpRequest request, WebApi webApi, IProductService service, string id, CancellationToken cancellationToken)
+        => webApi.PutWithResultAsync<Product, Product>(request, (ro, ct) =>
+            service.UpdateAsync(ro.Value.Adjust(p => p.Id = id), ct), cancellationToken: cancellationToken))
     .Accepts<Product>().Produces<Product>().ProducesNotFoundProblem();
 ```
 
 **PATCH — JSON Merge-Patch:**
 ```csharp
 app.MapPatch("api/products/{id}",
-    (HttpRequest request, WebApi webApi, IProductService service, string id)
+    (HttpRequest request, WebApi webApi, IProductService service, string id, CancellationToken cancellationToken)
         => webApi.PatchWithResultAsync<Product>(request,
-            get: (_, _) => service.GetAsync(id.Required()),
-            put: (ro, _) => service.UpdateAsync(ro.Value.Adjust(p => p.Id = id))))
+            get: (_, ct) => service.GetAsync(id.Required(), ct),
+            put: (ro, ct) => service.UpdateAsync(ro.Value.Adjust(p => p.Id = id), ct),
+            cancellationToken: cancellationToken))
     .Accepts<Product>(HttpNames.MergePatchJsonMediaTypeName).Produces<Product>().ProducesNotFoundProblem();
 ```
 
 **DELETE:**
 ```csharp
 app.MapDelete("api/products/{id}",
-    (HttpRequest request, WebApi webApi, IProductService service, string id)
-        => webApi.DeleteWithResultAsync(request, (_, _) => service.DeleteAsync(id.Required())))
+    (HttpRequest request, WebApi webApi, IProductService service, string id, CancellationToken cancellationToken)
+        => webApi.DeleteWithResultAsync(request, (_, ct) => service.DeleteAsync(id.Required(), ct), cancellationToken: cancellationToken))
     .ProducesNoContent();
 ```
 
 **Query with filtering and paging:**
 ```csharp
 app.MapGet("api/products",
-    (HttpRequest request, WebApi webApi, IProductReadService service)
-        => webApi.GetWithResultAsync(request, (ro, _) => service.QueryAsync(ro.QueryArgs, ro.PagingArgs)))
+    (HttpRequest request, WebApi webApi, IProductReadService service, CancellationToken cancellationToken)
+        => webApi.GetWithResultAsync(request, (ro, ct) => service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken))
     .Produces<ProductLite[]>().WithQuery(supportsOrderBy: true).WithPaging(supportsCount: true);
 ```
 
-All the same rules apply as for MVC controllers: no business logic in the handler, delegate immediately to the application service, use `.Required()` on route parameters.
+All the same rules apply as for MVC controllers: no business logic in the handler, delegate immediately to the application service, use `.Required()` on route parameters, and **take a `CancellationToken` handler parameter** (ASP.NET injects it) that is passed to the `WebApi` helper (`cancellationToken:`) and on to the service via the lambda's `ct`.
 
 ---
 
@@ -306,6 +320,7 @@ All the same rules apply as for MVC controllers: no business logic in the handle
 - Do not expose the CQRS split externally — give both controllers the **same** `[OpenApiTag("Xxx")]` so they surface as one OpenAPI group; do not use distinct tags/route bases per controller.
 - Do not omit the `PATCH` when exposing a full `PUT` update — offer both by default; add specialized/partial update or patch endpoints only on explicit request.
 - Do not add a `POST` without confirming idempotency — apply `[IdempotencyKey]` (`.WithIdempotencyKey()` for Minimal APIs) when it is idempotent (create-style POSTs almost always are); omit only when the user confirms it is not.
+- Do not omit or discard the `CancellationToken` — **every** action/handler takes `CancellationToken cancellationToken = default` (MVC) or a `CancellationToken` handler parameter (Minimal API), passes it to the `WebApi` helper via `cancellationToken:`, and calls the service with the **lambda's** `ct` (`(ro, ct) => …`). Do not write `(ro, _) => _service.XxxAsync(…)` (drops the token) or call the service without a token argument.
 
 ## Further Reading
 
