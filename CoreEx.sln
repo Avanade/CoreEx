@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.3.11206.111
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -239,6 +239,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Template", "src\CoreEx.Template\CoreEx.Template.csproj", "{5696566F-8FE2-4D5B-B82D-8A4CEEDAE28A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Contoso.Shopping.Test.Unit", "samples\tests\Contoso.Shopping.Test.Unit\Contoso.Shopping.Test.Unit.csproj", "{F7C77B93-AC41-44DC-A182-6D1E11CAEFBA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Contoso.Shopping.Test.Subscribe", "samples\tests\Contoso.Shopping.Test.Subscribe\Contoso.Shopping.Test.Subscribe.csproj", "{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1114,6 +1116,18 @@ Global
 		{F7C77B93-AC41-44DC-A182-6D1E11CAEFBA}.Release|x64.Build.0 = Release|Any CPU
 		{F7C77B93-AC41-44DC-A182-6D1E11CAEFBA}.Release|x86.ActiveCfg = Release|Any CPU
 		{F7C77B93-AC41-44DC-A182-6D1E11CAEFBA}.Release|x86.Build.0 = Release|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Debug|x64.Build.0 = Debug|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Debug|x86.Build.0 = Debug|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Release|x64.ActiveCfg = Release|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Release|x64.Build.0 = Release|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Release|x86.ActiveCfg = Release|Any CPU
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1208,6 +1222,7 @@ Global
 		{4BE535E8-747F-4CC5-85D6-CF1460964AA3} = {5B5342D2-2392-4EB8-9933-A21DB9416534}
 		{5696566F-8FE2-4D5B-B82D-8A4CEEDAE28A} = {F31B53BC-66DD-4844-8349-D4B0CB04EA12}
 		{F7C77B93-AC41-44DC-A182-6D1E11CAEFBA} = {40501BBE-C1F6-421F-A251-0DFCC3B69DB1}
+		{3B5EEFBF-871A-4607-87B2-26AF6B287CD9} = {40501BBE-C1F6-421F-A251-0DFCC3B69DB1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {99046729-5A7F-41B6-9415-F77D8E9C44F1}

@@ -37,7 +37,7 @@ public class JsonDefaults
                 WriteIndented = false, 
                 PropertyNamingPolicy = _jsonSubstituteNamingPolicy,
                 DictionaryKeyPolicy = _jsonSubstituteNamingPolicy,
-                Converters = { new JsonStringEnumConverter(), new JsonReferenceDataConverter(), new JsonDataMapConverterFactory() }
+                Converters = { new JsonStringEnumConverter(), new JsonReferenceDataConverter(), new JsonResultConverter(), new JsonDataMapConverterFactory() }
             };
         }
 

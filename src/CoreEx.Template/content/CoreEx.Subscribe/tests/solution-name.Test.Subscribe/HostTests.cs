@@ -1,6 +1,6 @@
-namespace solution-name.Test.Relay;
+namespace solution-name.Test.Subscribe;
 
-public partial class HostTests : WithApiTester<solution-name.Relay.Program>
+public partial class HostTests : WithApiTester<solution-name.Relay.Subscribe>
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
@@ -10,6 +10,7 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
 // #elif implement-postgres
         await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
+        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
     }
 
     [TestCase("/health/live")]
@@ -29,18 +30,17 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
     {
         string[] _paths =
         [
+// #if refdata-enabled
+            "$.entries.reference-data-orchestrator",
+// #endif
+            "$.entries['stackExchange.Redis']",
 // #if implement-sqlserver
             "$.entries.sqlServer",
-            "$.entries.sqlserver-outbox-relay-00",
-            "$.entries.sqlserver-outbox-relay-01",
-            "$.entries.sqlserver-outbox-relay-02",
-            "$.entries.sqlserver-outbox-relay-03"
 // #elif implement-postgres
             "$.entries.postgreSql",
-            "$.entries.postgres-outbox-relay-00",
-            "$.entries.postgres-outbox-relay-01",
-            "$.entries.postgres-outbox-relay-02",
-            "$.entries.postgres-outbox-relay-03"
+// #endif
+// #if implement-servicebus
+            "$.entries.azure-service-bus-session-receiver"
 // #endif
         ];
 
@@ -60,10 +60,8 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
     [Test]
     public void HostedService_Pause_And_Resume()
     {
-// #if implement-sqlserver
-        const string Service = "sqlserver-outbox-relay-03";
-// #elif implement-postgres
-        const string Service = "postgres-outbox-relay-03";
+// #if implement-servicebus
+        const string Service = "azure-service-bus-session-receiver";
 // #endif
 
         Test.Http<string>()

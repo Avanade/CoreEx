@@ -7,17 +7,7 @@ public class ProductSyncAdapter(ShoppingEfDb ef) : IProductSyncAdapter
 
     /// <inheritdoc/>
     /// <remarks>Persists to the internal event-based replication store.</remarks>
-    public async Task<Result> ModifyAsync(Product product)
-    {
-        var model = ProductMapper.To.Map(product);
-        var exists = await ExistsAsync(model.Id!).ConfigureAwait(false);
-        if (!exists)
-            return (await _ef.Products.CreateWithResultAsync(model).ConfigureAwait(false)).AsResult();
-        else
-            return (await _ef.Products.UpdateWithResultAsync(model).ConfigureAwait(false)).AsResult();
-    }
-
-    private Task<bool> ExistsAsync(string id) => _ef.Products.Query().AnyAsync(p => p.Id == id);
+    public async Task<Result> ModifyAsync(Product product) => (await _ef.Products.UpsertWithResultAsync(ProductMapper.To.Map(product)).ConfigureAwait(false)).AsResult();
 
     /// <inheritdoc/>
     /// <remarks>Removes the product from the internal event-based replication store.</remarks>

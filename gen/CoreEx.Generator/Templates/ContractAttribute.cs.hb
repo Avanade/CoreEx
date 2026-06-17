@@ -4,7 +4,7 @@
 
 namespace CoreEx.Entities;
 
-/// <summary>Enables source generation of the <i>CoreEx<i> extended contract functionality; specifically the implementation of <see cref="CoreEx.Entities.IContract{T}"/>.</summary>
+/// <summary>Enables source generation of the <i>CoreEx</i> extended contract functionality; specifically the implementation of <see cref="CoreEx.Entities.IContract{T}"/>.</summary>
 /// <remarks>Supports both <see langword="class"/> and <see langword="record"/> types; however, the equality for a <see langword="record"/> is not implemented as the native <see langword="record"/> compiler generated equality must be used instead. 
 /// The <see langword="class"/> equality is implemented using the <see cref="CoreEx.Entities.Extended.RuntimeMetadata"/> functionality which supports deep equality (where possible).
 /// <para>Usage is all or nothing, no partial implementation of the <see cref="CoreEx.Entities.IContract<T>"/> is supported.</para></remarks>

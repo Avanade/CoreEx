@@ -1,4 +1,4 @@
-name: domain-name-lower
+name: app-name-lower
 
 services:
 #if (implement-sqlserver || implement-servicebus)

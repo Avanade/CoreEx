@@ -54,6 +54,12 @@
       "fileRename": "solution-name",
       "replaces": "solution-name"
     },
+    "app-name-lower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "LowerCase",
+      "replaces": "app-name-lower"
+    },
     "date-now": {
       "type": "generated",
       "generator": "now",
