@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Publishing;
+namespace CoreEx.Events.Publishing;
 
 /// <summary>
 /// Provides the <see cref="EventPublisherBase"/> invoker.

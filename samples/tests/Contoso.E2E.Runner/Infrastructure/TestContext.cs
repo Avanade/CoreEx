@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Infrastructure;
+namespace Contoso.E2E.Runner.Infrastructure;
 
 /// <summary>
 /// Provides the context for end-to-end testing, including configuration, HTTP clients, and scenario management.

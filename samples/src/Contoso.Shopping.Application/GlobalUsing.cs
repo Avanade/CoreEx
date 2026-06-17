@@ -1,4 +1,4 @@
-﻿global using Contoso.Shopping.Application.Adapters.Products;
+global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Interfaces;
 global using Contoso.Shopping.Application.Mapping;
 global using Contoso.Shopping.Application.Policies;

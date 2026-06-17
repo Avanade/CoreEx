@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Infrastructure.Repositories;
+namespace Contoso.Products.Infrastructure.Repositories;
 
 [ScopedService<IProductRepository>]
 public class ProductRepository(ProductsEfDb ef) : IProductRepository

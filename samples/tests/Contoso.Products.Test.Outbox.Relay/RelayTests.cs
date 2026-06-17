@@ -7,7 +7,7 @@ public class RelayTests : WithApiTester<Contoso.Products.Outbox.Relay.Program>
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigratePostgresDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("contoso", "products"));
     }
 

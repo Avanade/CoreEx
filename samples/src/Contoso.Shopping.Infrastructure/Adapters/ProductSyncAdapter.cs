@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Adapters;
+namespace Contoso.Shopping.Infrastructure.Adapters;
 
 [ScopedService<IProductSyncAdapter>]
 public class ProductSyncAdapter(ShoppingEfDb ef) : IProductSyncAdapter

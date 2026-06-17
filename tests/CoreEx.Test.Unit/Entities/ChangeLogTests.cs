@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 
 namespace CoreEx.Test.Unit.Entities;
 

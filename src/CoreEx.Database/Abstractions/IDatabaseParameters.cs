@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Abstractions;
+namespace CoreEx.Database.Abstractions;
 
 /// <summary>
 /// Enables standardized access to the underlying <see cref="Parameters"/>.

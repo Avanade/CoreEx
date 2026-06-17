@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 /// <summary>
 /// Represents a <b>Transient</b> exception; i.e. is a candidate for a retry.

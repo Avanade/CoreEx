@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.DomainDriven\CoreEx.DomainDriven.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.RefData\CoreEx.RefData.csproj" />

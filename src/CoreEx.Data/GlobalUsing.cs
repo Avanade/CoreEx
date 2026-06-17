@@ -1,4 +1,4 @@
-﻿global using CoreEx.Abstractions;
+global using CoreEx.Abstractions;
 global using CoreEx.Data.Querying;
 global using CoreEx.Data.Querying.Expressions;
 global using CoreEx.Entities;

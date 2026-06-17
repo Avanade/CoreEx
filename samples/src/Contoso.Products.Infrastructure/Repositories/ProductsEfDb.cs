@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Infrastructure.Repositories;
+namespace Contoso.Products.Infrastructure.Repositories;
 
 public sealed class ProductsEfDb(ProductsDbContext dbContext) : EfDb<ProductsDbContext>(dbContext, _options)
 {

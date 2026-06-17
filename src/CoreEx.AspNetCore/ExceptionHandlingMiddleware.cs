@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore;
+namespace CoreEx.AspNetCore;
 
 /// <summary>
 /// Provides unhandled <see cref="Exception"/> handling to be used by standard middleware to convert into a <see cref="Microsoft.AspNetCore.Mvc.ProblemDetails"/>.

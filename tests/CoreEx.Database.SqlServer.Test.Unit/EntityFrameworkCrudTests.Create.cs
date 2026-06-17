@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.SqlServer.Test.Unit.Contracts;
+using CoreEx.Database.SqlServer.Test.Unit.Contracts;
 using CoreEx.Database.SqlServer.Test.Unit.Models;
 using CoreEx.Database.SqlServer.Test.Unit.Repository;
 using CoreEx.Results;

@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Adapters;
+namespace Contoso.Shopping.Infrastructure.Adapters;
 
 [ScopedService<IProductAdapter>]
 public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, ProductsHttpClient client, [FromKeyedServices("AzureServiceBus")] IEventPublisher serviceBusPublisher) : IProductAdapter

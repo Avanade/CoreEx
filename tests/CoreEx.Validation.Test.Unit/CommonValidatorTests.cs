@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Test.Unit;
+namespace CoreEx.Validation.Test.Unit;
 
 [TestFixture]
 public class CommonValidatorTests

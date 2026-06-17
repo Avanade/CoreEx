@@ -1,4 +1,4 @@
-﻿namespace CoreEx.CodeGen.RefData.Generators;
+namespace CoreEx.CodeGen.RefData.Generators;
 
 /// <summary>
 /// Provides the mappers code-generator.

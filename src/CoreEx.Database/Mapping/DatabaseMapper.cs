@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Mapping;
+namespace CoreEx.Database.Mapping;
 
 /// <summary>
 /// Provides utility capabilities for database mapping.

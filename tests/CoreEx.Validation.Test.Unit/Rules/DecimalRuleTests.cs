@@ -1,4 +1,4 @@
-﻿using CoreEx.Validation.Abstractions;
+using CoreEx.Validation.Abstractions;
 
 namespace CoreEx.Validation.Test.Unit.Rules;
 

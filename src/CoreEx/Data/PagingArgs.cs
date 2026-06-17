@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Represents position-based paging arguments; specifically <see cref="Skip"/> and <see cref="Take"/>.

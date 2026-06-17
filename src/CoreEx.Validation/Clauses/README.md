@@ -1,4 +1,4 @@
-﻿# CoreEx.Validation.Clauses
+# CoreEx.Validation.Clauses
 
 > Provides the conditional clause implementations that guard whether a property rule executes — allowing rules to be skipped based on boolean conditions, async predicates, or sibling-property state.
 

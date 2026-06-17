@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 /// <summary>
 /// Represents an <b>Unexpected</b> (internal server error) exception.

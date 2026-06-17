@@ -1,4 +1,4 @@
-﻿# CoreEx.DomainDriven
+# CoreEx.DomainDriven
 
 > Provides the foundational Domain-Driven Design (DDD) building blocks for CoreEx: typed entities, aggregate roots with integration-event support, persistence-state tracking, and mutation-guard helpers.
 

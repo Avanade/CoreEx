@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\gen\CoreEx.Generator\CoreEx.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

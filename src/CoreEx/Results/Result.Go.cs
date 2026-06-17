@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Results;
+namespace CoreEx.Results;
 
 partial struct Result
 {

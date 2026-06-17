@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Models;
+namespace CoreEx.Data.Models;
 
 /// <summary>
 /// Provides a convenience base class for data models implementing the common properties and interfaces such as <see cref="IIdentifier{T}"/>, <see cref="IChangeLogEx"/>, and <see cref="IETag"/>.

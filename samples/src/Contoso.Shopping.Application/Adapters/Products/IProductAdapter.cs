@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Adapters.Products;
+namespace Contoso.Shopping.Application.Adapters.Products;
 
 /// <summary>
 /// Enables the Products domain integration, serving as the external dependency boundary (anti-corruption layer) for product-related operations.

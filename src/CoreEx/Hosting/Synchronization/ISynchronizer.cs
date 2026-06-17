@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting.Synchronization;
+namespace CoreEx.Hosting.Synchronization;
 
 /// <summary>
 /// Enables concurrency management to synchronize the underlying execution.

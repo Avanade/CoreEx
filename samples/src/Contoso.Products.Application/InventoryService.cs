@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Application;
+namespace Contoso.Products.Application;
 
 [ScopedService<IInventoryService>]
 public class InventoryService(IInventoryRepository repository) : IInventoryService

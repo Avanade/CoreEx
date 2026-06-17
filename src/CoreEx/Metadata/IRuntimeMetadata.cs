@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Metadata;
+namespace CoreEx.Metadata;
 
 /// <summary>
 /// Enables access to the <see cref="IPropertyRuntimeMetadata"/> for each property via the static <see cref="GetStaticPropertyRuntimeMetadata"/>.

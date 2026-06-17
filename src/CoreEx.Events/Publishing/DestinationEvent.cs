@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Publishing;
+namespace CoreEx.Events.Publishing;
 
 /// <summary>
 /// Provides the <see cref="Destination"/> and <see cref="Event"/> pairing for the <see cref="EventPublisherBase.OnPublishAsync(CoreEx.Events.Publishing.DestinationEvent[], CancellationToken)"/>.

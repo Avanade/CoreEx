@@ -1,4 +1,4 @@
-﻿using CoreEx.Azure.Messaging.ServiceBus.Test.Unit.Subscribers;
+using CoreEx.Azure.Messaging.ServiceBus.Test.Unit.Subscribers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

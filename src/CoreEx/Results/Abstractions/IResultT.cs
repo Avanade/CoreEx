@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Results.Abstractions;
+namespace CoreEx.Results.Abstractions;
 
 /// <summary>
 /// Enables the use of a <c>Result</c> type with a <see cref="Value"/> to represent the success outcome of an operation.

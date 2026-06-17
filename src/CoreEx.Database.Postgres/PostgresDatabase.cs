@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres;
+namespace CoreEx.Database.Postgres;
 
 /// <summary>
 /// Provides the <see href="https://www.npgsql.org/">Npgsql (PostgreSQL)</see> <see cref="IDatabase"/> functionality.

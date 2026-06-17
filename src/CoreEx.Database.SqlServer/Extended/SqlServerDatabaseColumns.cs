@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer.Extended;
+namespace CoreEx.Database.SqlServer.Extended;
 
 /// <summary>
 /// Extends the <see cref="DatabaseColumns"/> configuring/adding SQL Server specific columns.

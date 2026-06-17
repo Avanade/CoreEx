@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.Postgres.Test.Unit.Contracts;
+using CoreEx.Database.Postgres.Test.Unit.Contracts;
 using CoreEx.Database.Postgres.Test.Unit.Models;
 using CoreEx.Database.Postgres.Test.Unit.Repository;
 using CoreEx.Results;

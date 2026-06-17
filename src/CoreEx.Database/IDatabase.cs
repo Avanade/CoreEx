@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database;
+namespace CoreEx.Database;
 
 /// <summary>
 /// Enables database (relational) access.

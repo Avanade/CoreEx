@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Http;
+namespace CoreEx.Http;
 
 /// <summary>
 /// Provides the standard names for HTTP headers and query strings.

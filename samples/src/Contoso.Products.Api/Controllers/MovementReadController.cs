@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Api.Controllers;
+namespace Contoso.Products.Api.Controllers;
 
 [ApiController, Route("/api/inventory/movements"), OpenApiTag("Inventory")]
 public class MovementReadController(WebApi webApi, IMovementReadService service) : ControllerBase

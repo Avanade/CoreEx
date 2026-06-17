@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping.Converters;
+namespace CoreEx.Mapping.Converters;
 
 /// <summary>
 /// Represents a <see cref="JsonElement"/> to <see cref="string"/> converter.

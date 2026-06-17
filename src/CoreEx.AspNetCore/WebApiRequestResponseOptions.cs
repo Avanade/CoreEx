@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore;
+namespace CoreEx.AspNetCore;
 
 /// <summary>
 /// Represents the <see cref="WebApi{TResult}"/> request and response options.

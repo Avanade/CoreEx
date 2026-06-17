@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore;
+namespace CoreEx.EntityFrameworkCore;
 
 /// <summary>
 /// Provides the extended <see href="https://learn.microsoft.com/en-us/ef/core/">Entity Framework Core</see> <i>mapped</i> value to/from model functionality.

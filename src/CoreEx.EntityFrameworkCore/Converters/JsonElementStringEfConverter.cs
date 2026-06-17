@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore.Converters;
+namespace CoreEx.EntityFrameworkCore.Converters;
 
 /// <summary>
 /// Provides a <see cref="JsonElement"/> and <see cref="string"/> entity-framework (EF) <see cref="ValueConverter{TModel, TProvider}"/>.

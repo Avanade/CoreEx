@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying;
+namespace CoreEx.Data.Querying;
 
 /// <summary>
 /// The <see cref="QueryFilterParserWriter"/> function that will be used to write the <paramref name="expression"/> as dynamic LINQ.

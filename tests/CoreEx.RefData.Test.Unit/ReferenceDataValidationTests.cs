@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.Validation;
 
 namespace CoreEx.RefData.Test.Unit;

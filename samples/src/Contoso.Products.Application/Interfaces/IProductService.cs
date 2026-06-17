@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Application.Interfaces;
+namespace Contoso.Products.Application.Interfaces;
 
 public interface IProductService
 {

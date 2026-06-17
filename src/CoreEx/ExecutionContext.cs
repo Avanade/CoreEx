@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 /// <summary>
 /// Represents a thread-bound (request) execution context using <see cref="AsyncLocal{ExecutionContext}"/>.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData.HealthChecks;
+namespace CoreEx.RefData.HealthChecks;
 
 /// <summary>
 /// Provides a <see cref="ReferenceDataOrchestrator"/> <see cref="IHealthCheck"/>.

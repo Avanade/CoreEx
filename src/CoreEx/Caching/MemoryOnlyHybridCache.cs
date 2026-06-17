@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Caching;
+namespace CoreEx.Caching;
 
 /// <summary>
 /// Provides an <see cref="IHybridCache"/> implementation that uses in-memory caching only regardless of the specified <see cref="HybridCacheEntryOptions.Strategy"/>.

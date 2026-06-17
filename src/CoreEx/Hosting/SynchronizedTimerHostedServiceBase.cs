@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting;
+namespace CoreEx.Hosting;
 
 /// <summary>
 /// Extends the <see cref="TimerHostedServiceBase"/> and adds <see cref="ISynchronizer"/> support to the <see cref="TimerHostedServiceBase.OnExecuteAsync(CoreEx.ExecutionContext, CancellationToken)"/> to manage synchronized concurrency of execution.

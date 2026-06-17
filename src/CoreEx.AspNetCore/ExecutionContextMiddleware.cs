@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore;
+namespace CoreEx.AspNetCore;
 
 /// <summary>
 /// Provides an <see cref="ExecutionContext"/> handling middleware that (using dependency injection) enables additional configuration where required.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Provides an <see cref="IItemsResult{TItem}"/> that supports <see cref="Items"/> and corresponding <see cref="Paging"/>.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping;
+namespace CoreEx.Mapping;
 
 /// <summary>
 /// Provides mapping (<see cref="IIntoMapper"/>) from a <typeparamref name="TSource"/> value into an existing <typeparamref name="TDestination"/> value.

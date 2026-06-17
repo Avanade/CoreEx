@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Text;
+namespace CoreEx.Text;
 
 /// <summary>
 /// Provides common sentence case capabilities.

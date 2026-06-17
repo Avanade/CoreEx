@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping.Converters;
+namespace CoreEx.Mapping.Converters;
 
 /// <summary>
 /// Provides conversion from a source to a destination value.

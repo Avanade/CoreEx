@@ -1,4 +1,4 @@
-﻿# CoreEx.Caching.FusionCache
+# CoreEx.Caching.FusionCache
 
 > Provides a `FusionHybridCache` implementation of `IHybridCache` backed by the ZiggyCreatures FusionCache library, bridging CoreEx caching contracts to FusionCache's L1/L2 hybrid and backplane capabilities.
 

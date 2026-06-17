@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Abstractions;
+namespace CoreEx.Database.Abstractions;
 
 /// <summary>
 /// Provides <see cref="IDatabase"/> arguments.

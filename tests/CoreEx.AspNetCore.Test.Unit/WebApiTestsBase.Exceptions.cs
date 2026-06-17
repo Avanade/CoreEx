@@ -1,4 +1,4 @@
-﻿using CoreEx.Localization;
+using CoreEx.Localization;
 using System.Net;
 using System.Net.Mime;
 

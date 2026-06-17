@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Metadata;
+namespace CoreEx.Metadata;
 
 /// <summary>
 /// Provides functionality to create runtime metadata using reflection.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events;
+namespace CoreEx.Events;
 
 /// <summary>
 /// Provides the core event (message) data in a format agnostic manner.

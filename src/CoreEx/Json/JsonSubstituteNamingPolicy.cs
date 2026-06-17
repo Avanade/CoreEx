@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Json;
+namespace CoreEx.Json;
 
 /// <summary>
 /// Provides JSON naming substitution.

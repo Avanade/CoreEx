@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.NSwag;
+namespace CoreEx.AspNetCore.NSwag;
 
 /// <summary>
 /// Provides the <i>NSwag</i> <see cref="IOperationProcessor"/> implementation that leverages the <see cref="OpenApiOptions"/> and applies the relevant attributes to the generated output.

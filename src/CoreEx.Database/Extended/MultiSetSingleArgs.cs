@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Extended;
+namespace CoreEx.Database.Extended;
 
 /// <summary>
 /// Provides the base <see cref="IDatabase"/> multi-set arguments when expecting a single item/record only.

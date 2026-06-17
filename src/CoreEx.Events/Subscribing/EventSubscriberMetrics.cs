@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Subscribing;
+namespace CoreEx.Events.Subscribing;
 
 /// <summary>
 /// Defines the <see cref="EventSubscriberBase"/> metrics.

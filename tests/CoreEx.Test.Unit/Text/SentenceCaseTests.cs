@@ -1,4 +1,4 @@
-﻿using CoreEx.Text;
+using CoreEx.Text;
 
 namespace CoreEx.Test.Unit.Text;
 

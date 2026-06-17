@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Abstractions;
+namespace CoreEx.AspNetCore.Abstractions;
 
 /// <summary>
 /// Provides the standard <see cref="HttpResponse"/> headers specification and corresponding <see cref="ApplyTo"/>.

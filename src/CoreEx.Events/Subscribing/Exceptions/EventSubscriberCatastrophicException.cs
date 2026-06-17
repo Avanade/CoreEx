@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Subscribing.Exceptions;
+namespace CoreEx.Events.Subscribing.Exceptions;
 
 /// <summary>
 /// Represents an exception that occurs when an <see cref="EventSubscriberBase"/> encounters a <see cref="ErrorHandling.Catastrophic"/> error while processing a message/event.

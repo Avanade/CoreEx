@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Application;
+namespace Contoso.Products.Application;
 
 [ScopedService<IMovementService>]
 public class MovementService(IUnitOfWork unitOfWork, IProductRepository productRepository, IMovementRepository movementRepository) : IMovementService

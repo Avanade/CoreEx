@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Mvc;
+namespace CoreEx.AspNetCore.Mvc;
 
 /// <summary>
 /// An attribute that specifies the expected request <b>body</b> <see cref="Type"/> that the action/operation accepts and the supported request content types.

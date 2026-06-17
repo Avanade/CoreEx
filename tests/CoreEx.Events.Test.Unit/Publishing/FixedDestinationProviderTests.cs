@@ -1,4 +1,4 @@
-﻿using CoreEx.Events.Publishing;
+using CoreEx.Events.Publishing;
 
 namespace CoreEx.Events.Test.Unit.Publishing;
 

@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Policies;
+namespace Contoso.Shopping.Application.Policies;
 
 public class ProductPolicy(IProductAdapter productAdapter)
 {

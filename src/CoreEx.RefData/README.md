@@ -1,4 +1,4 @@
-﻿# CoreEx.RefData
+# CoreEx.RefData
 
 > Provides the CoreEx reference data framework: typed base classes for reference data items and collections, a hybrid-cache-backed orchestrator, contextual date-validity checking, and a code-serialization collection.
 

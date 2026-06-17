@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore.Converters;
+namespace CoreEx.EntityFrameworkCore.Converters;
 
 /// <summary>
 /// Provides a <see cref="ValueConverter{TModel, TProvider}"/> implementation that uses the specified <see cref="Mapping.Converters.IConverter{TModel, TProvider}"/> bridging the conversion logic.

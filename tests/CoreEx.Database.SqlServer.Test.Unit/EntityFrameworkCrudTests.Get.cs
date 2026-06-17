@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.SqlServer.Test.Unit.Repository;
+using CoreEx.Database.SqlServer.Test.Unit.Repository;
 using CoreEx.Results;
 
 namespace CoreEx.Database.SqlServer.Test.Unit;

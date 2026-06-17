@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.Postgres.Test.Unit.Models;
+using CoreEx.Database.Postgres.Test.Unit.Models;
 using CoreEx.EntityFrameworkCore;
 using CoreEx.EntityFrameworkCore.Converters;
 using Microsoft.EntityFrameworkCore;

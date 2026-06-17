@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData.Abstractions;
+namespace CoreEx.RefData.Abstractions;
 
 /// <summary>
 /// Represents the core <see cref="IReferenceDataCollection{TId, TRef}"/> implementation.

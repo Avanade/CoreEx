@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Subscribing.Exceptions;
+namespace CoreEx.Events.Subscribing.Exceptions;
 
 /// <summary>
 /// Represents an exception that occurs when an <see cref="EventSubscriberBase"/> needs to perform a <see cref="ErrorHandling.Retry"/>.

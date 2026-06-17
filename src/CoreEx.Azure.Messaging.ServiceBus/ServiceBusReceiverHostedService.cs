@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus;
+namespace CoreEx.Azure.Messaging.ServiceBus;
 
 /// <summary>
 /// Provides the Azure Service Bus receiver hosted service functionality.

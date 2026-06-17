@@ -1,4 +1,4 @@
-﻿using CoreEx.Generator.Utility;
+using CoreEx.Generator.Utility;
 
 namespace CoreEx.Generator;
 

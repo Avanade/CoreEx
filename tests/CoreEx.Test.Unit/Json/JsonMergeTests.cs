@@ -1,4 +1,4 @@
-﻿using CoreEx.Json;
+using CoreEx.Json;
 
 namespace CoreEx.Test.Unit.Json;
 

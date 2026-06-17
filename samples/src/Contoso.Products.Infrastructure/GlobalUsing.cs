@@ -1,4 +1,4 @@
-﻿global using Contoso.Products.Application.Repositories;
+global using Contoso.Products.Application.Repositories;
 global using Contoso.Products.Infrastructure.Mapping;
 global using CoreEx;
 global using CoreEx.Data;

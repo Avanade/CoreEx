@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres.Extended;
+namespace CoreEx.Database.Postgres.Extended;
 
 /// <summary>
 /// Extends the <see cref="DatabaseColumns"/> configuring/adding PostgreSQL specific columns.

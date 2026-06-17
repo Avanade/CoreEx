@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 /// <summary>
 /// Represents the method signature for an <see cref="IPropertyRule{TEntity, TProperty}"/> context-based asynchronous predicate.

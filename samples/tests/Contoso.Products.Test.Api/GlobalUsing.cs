@@ -1,4 +1,4 @@
-﻿global using Contoso.Products.Contracts;
+global using Contoso.Products.Contracts;
 global using CoreEx;
 global using CoreEx.Http.Abstractions;
 global using AwesomeAssertions;

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer.Outbox;
+namespace CoreEx.Database.SqlServer.Outbox;
 
 /// <summary>
 /// Provides the <see href="https://learn.microsoft.com/en-us/sql/">SQL Server</see> <see cref="IDatabaseOutboxRelay.RelayAsync"/> execution leveraging an underlying <see cref="TimerHostedServiceBase"/>.

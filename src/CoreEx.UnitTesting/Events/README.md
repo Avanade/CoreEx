@@ -1,4 +1,4 @@
-﻿# CoreEx.UnitTesting.Events
+# CoreEx.UnitTesting.Events
 
 > Provides the event-capture and assertion infrastructure for CoreEx unit tests: the `EventPublisherDecorator` that intercepts published events during a test run, and the `EventExpectations`/`EventExpectationsConfig`/`EventExpectationAssertor` types that declare and verify them.
 

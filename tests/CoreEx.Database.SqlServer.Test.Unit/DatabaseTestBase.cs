@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.SqlServer.Test.Console;
+using CoreEx.Database.SqlServer.Test.Console;
 using DbEx;
 using DbEx.Migration;
 using DbEx.SqlServer.Migration;

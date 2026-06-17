@@ -1,4 +1,4 @@
-﻿using CoreEx.Results;
+using CoreEx.Results;
 using System.Net;
 using System.Net.Mime;
 

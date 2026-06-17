@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Caching;
+namespace CoreEx.Caching;
 
 /// <summary>
 /// Provides the <see cref="IHybridCache"/> entry options, including strategy, expiration and tags.

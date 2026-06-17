@@ -1,4 +1,4 @@
-﻿using CoreEx.Json;
+using CoreEx.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;

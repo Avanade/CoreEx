@@ -1,4 +1,4 @@
-﻿using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus;
 using CloudNative.CloudEvents;
 using CoreEx.Entities;
 using CoreEx.Events;

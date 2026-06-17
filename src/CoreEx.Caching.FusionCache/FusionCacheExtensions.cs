@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Caching.FusionCache;
+namespace CoreEx.Caching.FusionCache;
 
 /// <summary>
 /// Provides standard extensions for <i>FusionCache</i>.

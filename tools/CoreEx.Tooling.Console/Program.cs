@@ -1,4 +1,4 @@
-﻿using OnRamp.Utility;
+using OnRamp.Utility;
 using CoreEx.CodeGen.RefData.Config;
 
 if (args.Length == 1)

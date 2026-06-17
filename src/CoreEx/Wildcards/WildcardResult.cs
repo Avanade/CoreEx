@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Wildcards;
+namespace CoreEx.Wildcards;
 
 /// <summary>
 /// Represents the <see cref="Wildcard"/> <see cref="Wildcard.Parse"/> result.

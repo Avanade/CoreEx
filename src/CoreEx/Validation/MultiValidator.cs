@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 /// <summary>
 /// Enables multiple validations to be performed (<see cref="ValidateAsync(CancellationToken)"/>) resulting in a single consolidated <see cref="MultiValidatorResult"/>.

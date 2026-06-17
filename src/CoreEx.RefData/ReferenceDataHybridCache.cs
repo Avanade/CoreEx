@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Provides <see cref="IReferenceDataCache"/> implementation using an <see cref="IHybridCache"/>.

@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.Events;
 
 namespace CoreEx.DomainDriven.Test.Unit;

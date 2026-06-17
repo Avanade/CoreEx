@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Specifies the intended writable state of an entity property, indicating whether it can be modified and under what conditions.

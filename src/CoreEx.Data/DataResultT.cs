@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Represents the result of a data mutation with a <see cref="Value"/>; typically, a <see cref="OperationType.Create"/> or <see cref="OperationType.Update"/>.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database;
+namespace CoreEx.Database;
 
 /// <summary>
 /// Provides the common/base <see cref="IDatabase"/> access functionality.

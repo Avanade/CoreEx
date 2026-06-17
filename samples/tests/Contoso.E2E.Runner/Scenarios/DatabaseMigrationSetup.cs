@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Scenarios;
+namespace Contoso.E2E.Runner.Scenarios;
 
 /// <summary>
 /// Provides scenario setup for performing database migrations and refreshing base data for the Products, Shopping and Orders databases.

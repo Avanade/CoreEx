@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Clauses;
+namespace CoreEx.Validation.Clauses;
 
 /// <summary>
 /// Represents a <i>when</i> test clause; in that the condition must be <see langword="true"/> to continue.

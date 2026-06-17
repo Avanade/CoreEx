@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Subscribing.Exceptions;
+namespace CoreEx.Events.Subscribing.Exceptions;
 
 /// <summary>
 /// Defines an <see cref="EventSubscriberBase"/>-specific <see cref="Exception"/>.

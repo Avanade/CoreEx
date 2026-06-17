@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Repositories;
+namespace Contoso.Shopping.Infrastructure.Repositories;
 
 [ScopedService<IBasketRepository>]
 public class BasketRepository(ShoppingEfDb ef) : IBasketRepository

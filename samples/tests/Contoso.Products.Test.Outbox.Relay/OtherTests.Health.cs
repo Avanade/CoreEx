@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Test.Outbox.Relay;
+namespace Contoso.Products.Test.Outbox.Relay;
 
 public partial class OtherTests
 {

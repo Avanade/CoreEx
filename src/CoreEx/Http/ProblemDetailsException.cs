@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Http;
+namespace CoreEx.Http;
 
 /// <summary>
 /// Represents a <see cref="Abstractions.ProblemDetails"/> <see cref="Exception"/>.

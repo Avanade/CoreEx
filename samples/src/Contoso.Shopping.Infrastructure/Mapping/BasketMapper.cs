@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Mapping;
+namespace Contoso.Shopping.Infrastructure.Mapping;
 
 public class BasketMapper : Mapper<Persistence.Basket, Domain.Basket, BasketMapper>
 {

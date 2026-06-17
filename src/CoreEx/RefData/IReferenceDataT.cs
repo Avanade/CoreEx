@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Enables the core <b>Reference Data</b> properties with a typed <see cref="IReadOnlyIdentifier{T}.Id"/>.

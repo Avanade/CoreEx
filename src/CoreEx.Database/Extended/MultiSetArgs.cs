@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Extended;
+namespace CoreEx.Database.Extended;
 
 /// <summary>
 /// Provides <see cref="IMultiSetArgs"/> helpers.

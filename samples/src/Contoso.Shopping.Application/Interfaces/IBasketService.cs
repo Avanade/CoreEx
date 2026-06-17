@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Interfaces;
+namespace Contoso.Shopping.Application.Interfaces;
 
 public interface IBasketService
 {

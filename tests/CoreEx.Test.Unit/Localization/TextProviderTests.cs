@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using CoreEx.Localization;
 using Microsoft.Extensions.DependencyInjection;
 

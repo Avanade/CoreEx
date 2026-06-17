@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
+namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 
 /// <summary>
 /// Provides the base Azure Service Bus receiver functionality including underlying <typeparamref name="TSubscriber"/>.

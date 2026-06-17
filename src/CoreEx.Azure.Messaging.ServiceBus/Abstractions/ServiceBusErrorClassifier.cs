@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
+namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 
 /// <summary>
 /// Provides utility methods for classifying and interpreting a <see cref="ServiceBusException"/>.

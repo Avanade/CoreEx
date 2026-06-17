@@ -1,4 +1,4 @@
-﻿using CoreEx.Http;
+using CoreEx.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Net;

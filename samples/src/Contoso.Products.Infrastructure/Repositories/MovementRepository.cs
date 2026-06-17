@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Infrastructure.Repositories;
+namespace Contoso.Products.Infrastructure.Repositories;
 
 [ScopedService<IMovementRepository>]
 public class MovementRepository(ProductsEfDb ef) : IMovementRepository

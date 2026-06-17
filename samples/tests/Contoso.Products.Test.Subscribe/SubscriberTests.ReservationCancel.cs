@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Test.Subscribe;
+namespace Contoso.Products.Test.Subscribe;
 
 public partial class SubscriberTests 
 {

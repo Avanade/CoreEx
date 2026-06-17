@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Represents a dictionary where the key is the <see cref="IReferenceData"/> <see cref="Type"/> and the value is the corresponding <see cref="IReferenceData"/> items.

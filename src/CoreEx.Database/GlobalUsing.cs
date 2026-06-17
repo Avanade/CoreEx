@@ -1,4 +1,4 @@
-﻿global using CloudNative.CloudEvents.Extensions;
+global using CloudNative.CloudEvents.Extensions;
 global using CoreEx.Abstractions;
 global using CoreEx.Data;
 global using CoreEx.Database.Abstractions;

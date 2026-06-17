@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Publishing;
+namespace CoreEx.Events.Publishing;
 
 /// <summary>
 /// Defines the standardized <i>event</i> adding/queueing. 

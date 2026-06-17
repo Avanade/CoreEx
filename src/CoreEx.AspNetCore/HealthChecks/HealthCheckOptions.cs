@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.HealthChecks;
+namespace CoreEx.AspNetCore.HealthChecks;
 
 /// <summary>
 /// Provides configuration options for health checks.

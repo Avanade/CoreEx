@@ -1,4 +1,4 @@
-﻿# CoreEx.Validation
+# CoreEx.Validation
 
 > Provides a fluent, property-centric validation framework for .NET classes: composable rules, conditional clauses, strongly-typed error messages, and deep integration with the CoreEx execution and exception model.
 

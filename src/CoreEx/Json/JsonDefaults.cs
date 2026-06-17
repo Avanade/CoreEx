@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Json;
+namespace CoreEx.Json;
 
 /// <summary>
 /// Provides <see cref="System.Text.Json"/> defaults; such as the primary <see cref="Configuration"/> and runtime <see cref="SerializerOptions"/> accessor.

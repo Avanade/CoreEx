@@ -1,4 +1,4 @@
-﻿namespace CoreEx.HealthChecks;
+namespace CoreEx.HealthChecks;
 
 /// <summary>
 /// Provides the standard health check tags.

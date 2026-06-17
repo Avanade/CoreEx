@@ -1,4 +1,4 @@
-﻿namespace CoreEx.DomainDriven;
+namespace CoreEx.DomainDriven;
 
 /// <summary>
 /// Provides standard extension methods for domain-driven design (DDD) related functionality.

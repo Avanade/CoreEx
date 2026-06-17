@@ -1,4 +1,4 @@
-﻿# CoreEx.RefData.HealthChecks
+# CoreEx.RefData.HealthChecks
 
 > Provides ASP.NET Core health-check integration for the `ReferenceDataOrchestrator`, reporting the full list of registered reference data types as health-check data.
 

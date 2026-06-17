@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Persistence;
+namespace Contoso.Shopping.Infrastructure.Persistence;
 
 public partial class Basket
 {

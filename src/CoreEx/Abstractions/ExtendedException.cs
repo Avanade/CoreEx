@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Abstractions;
+namespace CoreEx.Abstractions;
 
 /// <summary>
 /// Provides the base <see cref="IExtendedException"/> implementation.

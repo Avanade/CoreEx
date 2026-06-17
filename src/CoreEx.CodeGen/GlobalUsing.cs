@@ -1,4 +1,4 @@
-﻿global using CoreEx.CodeGen.RefData.Config;
+global using CoreEx.CodeGen.RefData.Config;
 global using Microsoft.Extensions.Logging;
 global using OnRamp;
 global using OnRamp.Config;

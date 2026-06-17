@@ -1,4 +1,4 @@
-﻿# CoreEx.UnitTesting.Data
+# CoreEx.UnitTesting.Data
 
 > Provides `JsonDataReader` — a hierarchical mutating reader for JSON or YAML data with dynamic property substitution — and supporting option and argument types that configure its behaviour.
 

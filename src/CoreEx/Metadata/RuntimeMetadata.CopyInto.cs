@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Metadata;
+namespace CoreEx.Metadata;
 
 public static partial class RuntimeMetadata
 {

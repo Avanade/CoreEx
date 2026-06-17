@@ -1,4 +1,4 @@
-﻿# CoreEx.UnitTesting
+# CoreEx.UnitTesting
 
 > Provides the complete CoreEx unit- and integration-testing toolkit: fluent expectations, event-capture assertions, JSON seed-data loading, and convenience extensions that bridge UnitTestEx with every major CoreEx subsystem.
 

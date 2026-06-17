@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Results;
+namespace CoreEx.Results;
 
 /// <summary>
 /// Represents the outcome of an operation with no value.

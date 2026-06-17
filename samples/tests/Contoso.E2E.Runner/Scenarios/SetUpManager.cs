@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Scenarios;
+namespace Contoso.E2E.Runner.Scenarios;
 
 /// <summary>
 /// Provides functionality to discover and manage one-off set-up scenario definitions from assemblies using scenario attributes.

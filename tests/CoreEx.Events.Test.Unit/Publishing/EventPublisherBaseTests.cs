@@ -1,4 +1,4 @@
-﻿using CloudNative.CloudEvents;
+using CloudNative.CloudEvents;
 using CoreEx.Events.Publishing;
 
 namespace CoreEx.Events.Test.Unit.Publishing;

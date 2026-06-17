@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Contracts;
+namespace Contoso.Products.Contracts;
 
 [Contract]
 public partial class MovementRequestProduct

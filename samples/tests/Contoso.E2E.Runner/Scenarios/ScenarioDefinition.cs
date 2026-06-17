@@ -1,4 +1,4 @@
-﻿using Contoso.E2E.Runner.Infrastructure;
+using Contoso.E2E.Runner.Infrastructure;
 
 namespace Contoso.E2E.Runner.Scenarios;
 

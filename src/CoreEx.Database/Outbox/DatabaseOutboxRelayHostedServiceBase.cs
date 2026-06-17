@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Outbox;
+namespace CoreEx.Database.Outbox;
 
 /// <summary>
 /// Provides the base <see cref="IDatabaseOutboxRelay.RelayAsync(CoreEx.Database.Outbox.DatabaseOutboxRelayArgs, CancellationToken)"/> execution leveraging a <see cref="TimerHostedServiceBase"/>.

@@ -1,4 +1,4 @@
-﻿# CoreEx.RefData.Abstractions
+# CoreEx.RefData.Abstractions
 
 > Provides the core abstract implementations for reference data items and collections: the identity, validity, mapping, and thread-safe indexing infrastructure from which all concrete reference data types derive.
 

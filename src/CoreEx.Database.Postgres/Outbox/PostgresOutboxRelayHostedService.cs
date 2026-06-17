@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres.Outbox;
+namespace CoreEx.Database.Postgres.Outbox;
 
 /// <summary>
 /// Provides the <see href="https://www.postgresql.org/docs/">PostgreSQL</see> <see cref="IDatabaseOutboxRelay.RelayAsync"/> execution leveraging an underlying <see cref="TimerHostedServiceBase"/>.

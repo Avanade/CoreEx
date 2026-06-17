@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Clauses;
+namespace CoreEx.Validation.Clauses;
 
 /// <summary>
 /// Represents a depends on clause; in that specified property (<paramref name="dependsOnExpression"/>) of the entity must have a non-default value, and not have a validation error, to continue.

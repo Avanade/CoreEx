@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Api.Controllers;
+namespace Contoso.Products.Api.Controllers;
 
 [ApiController, Route("/api/products"), OpenApiTag("Products")]
 public class ProductReadController(WebApi webApi, IProductReadService service) : ControllerBase

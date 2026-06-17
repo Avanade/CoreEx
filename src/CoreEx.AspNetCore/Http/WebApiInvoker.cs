@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Http;
+namespace CoreEx.AspNetCore.Http;
 
 /// <summary>
 /// Provides the ASP.NET Core Minimal Web API <see cref="WebApi{TResult}"/> invoker.

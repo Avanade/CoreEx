@@ -1,4 +1,4 @@
-﻿# CoreEx.CodeGen
+# CoreEx.CodeGen
 
 > Provides the CoreEx development-time code-generation tooling: a deterministic, schema-driven pipeline that scaffolds the full reference-data implementation — contract, controller, service, repository interface, repository, and mapper — from a single YAML configuration file.
 

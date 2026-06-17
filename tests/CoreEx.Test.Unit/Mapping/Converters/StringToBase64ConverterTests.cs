@@ -1,4 +1,4 @@
-﻿using CoreEx.Mapping.Converters;
+using CoreEx.Mapping.Converters;
 
 namespace CoreEx.Test.Unit.Mapping.Converters;
 

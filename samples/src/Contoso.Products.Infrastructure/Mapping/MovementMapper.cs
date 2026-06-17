@@ -1,4 +1,4 @@
-﻿
+
 namespace Contoso.Products.Infrastructure.Mapping;
 
 public class MovementMapper : BiDirectionMapper<Contracts.Movement, Persistence.Movement, MovementMapper>

@@ -1,4 +1,4 @@
-﻿# CoreEx
+# CoreEx
 
 > The foundational `CoreEx` package providing the core runtime primitives, patterns, and abstractions used across all other CoreEx libraries and consuming services.
 

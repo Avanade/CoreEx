@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying;
+namespace CoreEx.Data.Querying;
 
 /// <summary>
 /// Provides the <see cref="QueryFilterParser"/> <see cref="IReferenceData"/> field configuration.

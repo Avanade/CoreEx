@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Results.Abstractions;
+namespace CoreEx.Results.Abstractions;
 
 /// <summary>
 /// Enables the creation of a <see cref="Result{T}"/> representing the current state.

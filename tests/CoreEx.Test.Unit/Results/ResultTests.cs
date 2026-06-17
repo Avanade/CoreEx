@@ -1,4 +1,4 @@
-﻿using CoreEx.Results;
+using CoreEx.Results;
 using CoreEx.Results.Abstractions;
 
 namespace CoreEx.Test.Unit.Results;

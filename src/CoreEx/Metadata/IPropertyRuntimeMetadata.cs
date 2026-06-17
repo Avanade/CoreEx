@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Metadata;
+namespace CoreEx.Metadata;
 
 /// <summary>
 /// Enables the runtime metadata definition for a property within an entity.

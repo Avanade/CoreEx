@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Enables standardized repository-agnostic transactional <i>unit-of-work</i> orchestration.

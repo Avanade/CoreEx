@@ -1,4 +1,4 @@
-﻿using CoreEx.Localization;
+using CoreEx.Localization;
 using CoreEx.Results;
 
 namespace CoreEx.Test.Unit.Results;

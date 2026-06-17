@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Test.Unit.Querying;
+namespace CoreEx.Data.Test.Unit.Querying;
 
 [TestFixture]
 public class QueryOrderByParserTests

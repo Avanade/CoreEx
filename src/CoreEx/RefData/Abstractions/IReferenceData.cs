@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData.Abstractions;
+namespace CoreEx.RefData.Abstractions;
 
 /// <summary>
 /// Enables the core <i>Reference Data</i> properties.

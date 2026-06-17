@@ -1,4 +1,4 @@
-﻿namespace CoreEx.UnitTesting.Events;
+namespace CoreEx.UnitTesting.Events;
 
 /// <summary>
 /// Provides the <see cref="EventExpectations{TTester}"/> configuration for a specific <see cref="IEventPublisher"/> service key, enabling the configuration of expected events and their assertion during testing.

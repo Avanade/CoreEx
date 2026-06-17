@@ -1,4 +1,4 @@
-﻿global using Contoso.Products.Infrastructure.Repositories;
+global using Contoso.Products.Infrastructure.Repositories;
 global using CoreEx.Azure.Messaging.ServiceBus;
 global using CoreEx.Events;
 global using CoreEx.UnitTesting;

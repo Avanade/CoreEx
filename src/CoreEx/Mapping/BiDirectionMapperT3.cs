@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping;
+namespace CoreEx.Mapping;
 
 /// <summary>
 /// Provides a bi-directional singleton mapper between <typeparamref name="TSource"/> and <typeparamref name="TDestination"/>.

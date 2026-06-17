@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.SqlServer.Test.Unit.Repository;
+using CoreEx.Database.SqlServer.Test.Unit.Repository;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

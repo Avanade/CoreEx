@@ -1,4 +1,4 @@
-﻿namespace CoreEx.CodeGen.Counting;
+namespace CoreEx.CodeGen.Counting;
 
 internal class CodeGenCounter(CodeGeneratorArgs args)
 {

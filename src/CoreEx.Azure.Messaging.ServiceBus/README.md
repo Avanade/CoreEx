@@ -1,4 +1,4 @@
-﻿# CoreEx.Azure.Messaging.ServiceBus
+# CoreEx.Azure.Messaging.ServiceBus
 
 > Provides Azure Service Bus integration for CoreEx: a `ServiceBusPublisher` implementing `IEventPublisher`, subscriber bases wired to `EventSubscriberBase`, and receiver hosts with built-in resiliency, metrics, and session support.
 

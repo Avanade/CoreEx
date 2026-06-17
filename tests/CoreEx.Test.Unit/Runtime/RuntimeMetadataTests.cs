@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.Localization;
 using CoreEx.Metadata;
 using System.ComponentModel.DataAnnotations;

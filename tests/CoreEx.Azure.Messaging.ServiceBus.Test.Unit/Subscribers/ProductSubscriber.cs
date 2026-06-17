@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.Events;
 using CoreEx.Events.Subscribing;
 using CoreEx.Results;

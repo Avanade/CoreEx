@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Idempotency;
+namespace CoreEx.AspNetCore.Idempotency;
 
 /// <summary>
 /// Provides the <see cref="Mvc.IdempotencyKeyAttribute"/> handling middleware to enable idempotent operations via a pluggable <see cref="IIdempotencyProvider"/>.

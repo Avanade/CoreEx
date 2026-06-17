@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a validation rule set for an entity, in that it groups <see cref="Rules"/> together that are only validated when the specified condition (predicate) is <see langword="true"/>.

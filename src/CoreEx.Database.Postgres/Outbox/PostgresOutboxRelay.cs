@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres.Outbox;
+namespace CoreEx.Database.Postgres.Outbox;
 
 /// <summary>
 /// Provides the <see href="https://www.postgresql.org/docs/">PostgreSQL</see> <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see> <i>relay</i> using the destination <see cref="IEventPublisher"/>.

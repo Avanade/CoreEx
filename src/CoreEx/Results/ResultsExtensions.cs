@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Results;
+namespace CoreEx.Results;
 
 /// <summary>
 /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> extension methods.

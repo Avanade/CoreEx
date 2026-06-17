@@ -1,4 +1,4 @@
-﻿namespace CoreEx.DomainDriven;
+namespace CoreEx.DomainDriven;
 
 /// <summary>
 /// Provides the typed <see href="https://en.wikipedia.org/wiki/Domain-driven_design">domain-driven</see> entity functionality.

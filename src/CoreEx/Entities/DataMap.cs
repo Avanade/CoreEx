@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Provides a simple extension of <see cref="Dictionary{TKey, TValue}"/> for use as a data map with <see cref="string"/>-based keys and <typeparamref name="TValue"/> values.

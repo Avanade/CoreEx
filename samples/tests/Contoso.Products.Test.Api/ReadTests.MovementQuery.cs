@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 namespace Contoso.Products.Test.Api;
 
 public partial class ReadTests

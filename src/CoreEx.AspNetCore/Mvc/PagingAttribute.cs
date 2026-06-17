@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Mvc;
+namespace CoreEx.AspNetCore.Mvc;
 
 /// <summary>
 /// An attribute that specifies that the action/operation supports <see cref="PagingArgs"/> (not explicitly defined as a parameter).

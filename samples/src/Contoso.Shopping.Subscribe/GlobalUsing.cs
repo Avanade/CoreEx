@@ -1,4 +1,4 @@
-﻿global using Contoso.Shopping.Application.Adapters.Products;
+global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Validators;
 global using CoreEx;
 global using CoreEx.DependencyInjection;

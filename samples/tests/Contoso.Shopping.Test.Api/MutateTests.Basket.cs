@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Test.Api;
+namespace Contoso.Shopping.Test.Api;
 
 public partial class MutateTests
 {

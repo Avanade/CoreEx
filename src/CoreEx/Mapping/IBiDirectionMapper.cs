@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping;
+namespace CoreEx.Mapping;
 
 /// <summary>
 /// Enables the bi-directional mapping between a <typeparamref name="TSource"/> value and a <typeparamref name="TDestination"/> value.

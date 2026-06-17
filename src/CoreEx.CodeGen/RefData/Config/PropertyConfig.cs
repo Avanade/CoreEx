@@ -1,4 +1,4 @@
-﻿namespace CoreEx.CodeGen.RefData.Config;
+namespace CoreEx.CodeGen.RefData.Config;
 
 /// <summary>
 /// Provides the property code-generation configuration.

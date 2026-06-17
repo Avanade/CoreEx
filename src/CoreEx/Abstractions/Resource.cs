@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Abstractions;
+namespace CoreEx.Abstractions;
 
 /// <summary>
 /// Provides utility functionality for embedded resources. 

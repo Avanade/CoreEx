@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Publishing;
+namespace CoreEx.Events.Publishing;
 
 /// <summary>
 /// Provides a no-operation event publisher; whereby the events are simply swallowed/discarded during final <see cref="OnPublishAsync(DestinationEvent[], CancellationToken)"/>.

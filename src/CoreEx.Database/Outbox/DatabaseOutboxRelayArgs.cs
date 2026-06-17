@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Outbox;
+namespace CoreEx.Database.Outbox;
 
 /// <summary>
 /// Provides the <see cref="IDatabaseOutboxRelay.RelayAsync"/> arguments.

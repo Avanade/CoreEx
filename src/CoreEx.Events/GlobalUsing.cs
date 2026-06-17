@@ -1,4 +1,4 @@
-﻿global using CloudNative.CloudEvents;
+global using CloudNative.CloudEvents;
 global using CloudNative.CloudEvents.Extensions;
 global using CloudNative.CloudEvents.SystemTextJson;
 global using CoreEx;

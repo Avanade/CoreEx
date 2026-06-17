@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.Metadata;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;

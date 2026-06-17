@@ -1,4 +1,4 @@
-﻿using CoreEx.AspNetCore.Test.Api.Entities;
+using CoreEx.AspNetCore.Test.Api.Entities;
 using CoreEx.AspNetCore.Test.Api.Services;
 
 namespace CoreEx.AspNetCore.Test.Unit;

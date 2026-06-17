@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Infrastructure;
+namespace Contoso.E2E.Runner.Infrastructure;
 
 /// <summary>
 /// Provides a menu of choices for the user to select which scenario or set-up to run, and manages the execution of those choices.

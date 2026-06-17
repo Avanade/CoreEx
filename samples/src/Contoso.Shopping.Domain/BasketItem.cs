@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Domain;
+namespace Contoso.Shopping.Domain;
 
 public sealed class BasketItem : Entity<string, BasketItem>
 {

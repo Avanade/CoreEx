@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Provides the <see cref="IReadOnlyPartitionKey.PartitionKey"/> capabilities.

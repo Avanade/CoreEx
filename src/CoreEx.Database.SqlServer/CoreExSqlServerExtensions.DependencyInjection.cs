@@ -1,4 +1,4 @@
-﻿#pragma warning disable IDE0130 // Namespace does not match folder structure - this is by design.
+#pragma warning disable IDE0130 // Namespace does not match folder structure - this is by design.
 namespace Microsoft.Extensions.DependencyInjection;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 

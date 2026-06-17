@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.Invokers;
 using CoreEx.Validation.Abstractions;
 using System.Text.Json;

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting;
+namespace CoreEx.Hosting;
 
 /// <summary>
 /// Provides an <see cref="IHealthCheck"/> for a <see cref="HostedServiceBase"/> reporting its <see cref="HostedServiceBase.Status"/>.

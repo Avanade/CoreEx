@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting.Work;
+namespace CoreEx.Hosting.Work;
 
 /// <summary>
 /// Represents the status and result of a long-running <see cref="WorkOrchestrator"/>-tracked work instance.

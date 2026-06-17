@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Scenarios;
+namespace Contoso.E2E.Runner.Scenarios;
 
 /// <summary>
 /// Scenario: Product query lifecycle.

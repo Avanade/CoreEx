@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore;
+namespace CoreEx.EntityFrameworkCore;
 
 /// <summary>
 /// Enables the extended <see cref="IDatabase"/>-based <see href="https://learn.microsoft.com/en-us/ef/core/">Entity Framework Core</see> capabilities.

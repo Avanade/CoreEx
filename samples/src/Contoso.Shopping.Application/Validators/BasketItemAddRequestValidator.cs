@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Validators;
+namespace Contoso.Shopping.Application.Validators;
 
 public class BasketItemAddRequestValidator : Validator<BasketItemAddRequest, BasketItemAddRequestValidator>
 {

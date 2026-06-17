@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer;
+namespace CoreEx.Database.SqlServer;
 
 public partial class SqlServerDatabase
 {

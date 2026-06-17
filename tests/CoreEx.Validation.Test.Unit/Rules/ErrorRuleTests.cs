@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Test.Unit.Rules;
+namespace CoreEx.Validation.Test.Unit.Rules;
 
 [TestFixture]
 public class ErrorRuleTests

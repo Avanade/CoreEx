@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Abstractions;
+namespace CoreEx.Validation.Abstractions;
 
 public abstract partial class ValidatorBase<TEntity, TSelf>
 {

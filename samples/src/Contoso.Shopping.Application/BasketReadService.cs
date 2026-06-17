@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application;
+namespace Contoso.Shopping.Application;
 
 [ScopedService<IBasketReadService>]
 public class BasketReadService(IBasketRepository repository) : IBasketReadService

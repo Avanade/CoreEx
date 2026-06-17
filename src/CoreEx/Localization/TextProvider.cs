@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Localization;
+namespace CoreEx.Localization;
 
 /// <summary>
 /// Provides access to the global/static <see cref="Current"/> and <see cref="GetUICulture"/>, etc.

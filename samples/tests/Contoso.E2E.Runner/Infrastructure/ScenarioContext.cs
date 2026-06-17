@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Infrastructure;
+namespace Contoso.E2E.Runner.Infrastructure;
 
 /// <summary>
 /// Provides the context passed to scenario execution for step tracking.

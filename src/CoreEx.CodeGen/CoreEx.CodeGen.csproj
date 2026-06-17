@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Title>CoreEx .NET Code-Generation extensions.</Title>
     <Description>Core .NET extensions and abstractions for the code-generation of backend services.</Description>

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer.Outbox;
+namespace CoreEx.Database.SqlServer.Outbox;
 
 /// <summary>
 /// Provides the <see href="https://learn.microsoft.com/en-us/sql/">SQL Server</see> <see cref="IEventPublisher"/> to be used as a <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see>.

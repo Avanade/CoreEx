@@ -1,4 +1,4 @@
-﻿using CoreEx.Generator.Utility;
+using CoreEx.Generator.Utility;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;

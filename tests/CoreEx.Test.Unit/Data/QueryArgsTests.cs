@@ -1,4 +1,4 @@
-﻿using CoreEx.Data;
+using CoreEx.Data;
 
 namespace CoreEx.Test.Unit.Data;
 

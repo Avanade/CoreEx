@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Generator.Utility;
+namespace CoreEx.Generator.Utility;
 
 /// <summary>
 /// Enables access to the pluralization services.

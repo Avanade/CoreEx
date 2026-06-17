@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Provides the <see cref="ReferenceDataOrchestrator"/> invoker.
