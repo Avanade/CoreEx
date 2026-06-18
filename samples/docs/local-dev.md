@@ -12,6 +12,16 @@ This guide covers everything needed to run the Contoso sample hosts locally: the
 | **.NET SDK** | Match the `TargetFramework` in `Directory.Build.props` |
 | **Aspire workload** | `dotnet workload install aspire` — required only when running the full Aspire AppHost |
 
+### Git line-ending configuration (Windows)
+
+This repository enforces LF line endings via `.gitattributes`. The default Git for Windows setting (`core.autocrlf=true`) overrides this and expands LF to CRLF on checkout. Set the following once on your machine to prevent it:
+
+```bash
+git config --global core.autocrlf input
+```
+
+`input` converts CRLF → LF on commit (safety net) and does not expand LF → CRLF on checkout, allowing `.gitattributes` to remain authoritative. macOS and Linux users are unaffected.
+
 ---
 
 ## Infrastructure services

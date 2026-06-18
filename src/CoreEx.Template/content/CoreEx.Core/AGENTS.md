@@ -78,3 +78,4 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 - `.github/docs/coreex/testing.md` -- test project setup, `WithGenericTester`, `WithApiTester`
 - `.github/docs/coreex/local-dev.md` -- running locally with .NET Aspire
 - `.github/docs/coreex/tooling.md` -- Database and CodeGen tool projects
+

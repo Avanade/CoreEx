@@ -167,6 +167,7 @@
         "_Directory.Build.props": "Directory.Build.props",
         "_Directory.Packages.props": "Directory.Packages.props",
         "_editorconfig": ".editorconfig",
+        "_gitattributes": ".gitattributes",
         "_gitignore": ".gitignore",
         "_.filenesting.json": ".filenesting.json"
       },
