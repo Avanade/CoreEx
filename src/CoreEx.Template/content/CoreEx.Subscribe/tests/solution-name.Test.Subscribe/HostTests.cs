@@ -1,6 +1,6 @@
 namespace solution-name.Test.Subscribe;
 
-public partial class HostTests : WithApiTester<solution-name.Relay.Subscribe>
+public partial class HostTests : WithApiTester<solution-name.Subscribe.Program>
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()

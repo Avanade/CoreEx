@@ -55,6 +55,51 @@ The scaffolded `Program.cs` wiring is described below; it is generated **complet
 
 ---
 
+## Scaffolding a Subscribe host
+
+A Subscribe host is **not** part of the base `coreex` solution — it is added on demand when the user **explicitly** asks to *"add/create the subscribe host"*, *"consume events"*, or similar. Creating it is an **explicit-ask action** — confirm before scaffolding (per the always-on "Do Not Create Projects" rule); never auto-create it.
+
+Like the Relay host, the Subscribe host is **fully template-generated**: the `coreex-subscribe` template emits a complete, compilable `Program.cs` and test project with no Phase-2 / uncomment step. Unlike the Relay, the Subscribe host **does** have follow-on authoring work — subscribers are added to it over time as new event types are consumed.
+
+> **Critical naming rule — always pass `-n` with the full host-suffixed name:**
+> The `coreex-subscribe` template's `sourceName` is `app-name.Subscribe` — the `.Subscribe` suffix is **part of the template source token**, not appended automatically. The `-n` value replaces that entire token, so you **must** include the suffix:
+> ```
+> dotnet new coreex-subscribe -n {Solution}.Subscribe ...   ✓ correct
+> dotnet new coreex-subscribe -n {Solution} ...             ✗ wrong — project loses the .Subscribe suffix
+>                                                              and derived solution-name / domain-name tokens
+>                                                              resolve incorrectly, breaking cross-project references
+> ```
+> Omitting `-n` entirely is equally wrong — `dotnet new` falls back to the directory name (typically the solution root, e.g. `Foo.Bar`), which has the same effect as passing the bare solution name.
+
+> **Agent instruction:** When the user asks to add/create the Subscribe host:
+> 1. **Detect** it: look for `**/*.Subscribe/*.Subscribe.csproj`. The file system is authoritative (unlike database state) — no further checking is needed.
+> 2. **If present**, skip to authoring subscribers (see [coreex-event-subscribers](./coreex-event-subscribers.instructions.md)).
+> 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Subscribe` and the physical location to `src/` (the template default). Do not create it without confirmation.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). The `coreex-subscribe` template takes **`data-provider`**, **`messaging-provider`**, and **`refdata-enabled`** — default all three from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
+>    ```
+>    dotnet new coreex-subscribe -n {Solution}.Subscribe --data-provider <X> --messaging-provider <Y> --refdata-enabled <bool>
+>    ```
+>    **Run it from the solution root** — the directory that already contains `src/` and `tests/`. The template is rooted at `src/...`/`tests/...` (and uses `preferNameDirectory: false`, so it merges into the existing folders). Running it from inside `src/` produces nested `src/src/...` paths; if that happens, **delete the misplaced output and re-run from the solution root** — do **not** hand-move the files. Summarise the output on success; relay it **verbatim** on failure.
+> 6. **Author the subscriber(s)** for any event types the user has asked to consume, per [coreex-event-subscribers](./coreex-event-subscribers.instructions.md).
+> 7. **Verify by building the project directly — not the solution.** The host is not yet in the `.slnx` (it is added in step 9), so a *solution-wide* build would silently skip it:
+>    ```
+>    dotnet build <path/to/Subscribe>.csproj
+>    dotnet test  <path/to/Test.Subscribe>.csproj
+>    ```
+>    Fix any errors here, in-session, before handing off — compilation does **not** require the project to be in the solution.
+> 8. **Update the recording:** amend the solution-root `AGENTS.md` — add the Subscribe host to the *Project Structure* block and note it under hosts. (The feature selections themselves do not change.)
+> 9. **Add the new project(s) to the solution — final step, in-session.** Once the changes are verified (step 7), wire the projects into the `.slnx` from the solution root:
+>    ```
+>    dotnet sln <Solution>.slnx add <path/to/Subscribe>.csproj --solution-folder hosts
+>    dotnet sln <Solution>.slnx add <path/to/Test.Subscribe>.csproj --solution-folder tests
+>    ```
+>    Always via `dotnet sln add` — **never hand-edit the `.slnx` XML**. A final `dotnet build <Solution>.slnx` confirms the wiring. **Exception — Visual Studio with the solution open:** defer these to a **Manual steps** list (the IDE-reload caveat from the Api host workflow applies identically).
+
+The scaffolded Subscribe `Program.cs` wiring is described in [Subscribe Host](#subscribe-host) below; the template emits it complete via the option-driven `#if` blocks — there is **no post-CodeGen uncomment / "phase 2" step**.
+
+---
+
 ## Scaffolding an Outbox Relay host
 
 An Outbox Relay host is **not** part of the base `coreex` solution — it is added on demand when the user **explicitly** asks to *"add/create the outbox relay"* (or similar). Creating it is an **explicit-ask action** — confirm before scaffolding (per the always-on "Do Not Create Projects" rule); never auto-create it.
@@ -222,6 +267,9 @@ Key points:
 The Subscribe host receives broker messages and delegates to Application-layer services. Subscribers are **full application-layer consumers** — they invoke application services that may validate, persist data, and publish outbound events. Therefore, Subscribe hosts include reference data, caching, database, and idempotency support.
 
 ```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.AddHostSettings();
+
 builder.Services
     .AddPrecisionTimeProvider()
     .AddExecutionContext()
