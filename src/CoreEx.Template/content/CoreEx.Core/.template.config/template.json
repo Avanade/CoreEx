@@ -175,6 +175,8 @@
         {
           "condition": "(!refdata-enabled)",
           "exclude": [
+            "src/app-name.Application/ReferenceDataService.g.cs",
+            "src/app-name.Application/Repositories/IReferenceDataRepository.g.cs",
             "src/app-name.Infrastructure/Repositories/ReferenceDataRepository.cs",
             "tools/app-name.CodeGen/**",
             "tools/app-name.Database/Data/ref-data.seed.yaml"

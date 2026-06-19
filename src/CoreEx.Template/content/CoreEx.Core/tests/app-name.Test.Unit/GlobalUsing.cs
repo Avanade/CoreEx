@@ -16,10 +16,8 @@ global using Moq;
 global using NUnit.Framework;
 global using UnitTestEx;
 global using UnitTestEx.NUnit;
-global using app-name.Contracts;
-global using app-name.Application;
-global using app-name.Application.Validators;
 // #if refdata-enabled
+global using app-name.Application;
 global using app-name.Application.Repositories;
 // #endif
 global using ExecutionContext = CoreEx.ExecutionContext;
