@@ -1,6 +1,6 @@
 {
   "solution": {
-    "path": "CoreEx.sln",
+    "path": "CoreEx.slnx",
     "projects": [
       "tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj",
       "tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj",

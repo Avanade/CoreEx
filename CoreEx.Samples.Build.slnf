@@ -1,6 +1,6 @@
 {
   "solution": {
-    "path": "CoreEx.sln",
+    "path": "CoreEx.slnx",
     "projects": [
       "samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj",
       "samples/src/Contoso.Order.Workflow.Client/Contoso.Order.Workflow.Client.csproj",

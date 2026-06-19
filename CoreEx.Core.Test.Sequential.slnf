@@ -1,6 +1,6 @@
 {
   "solution": {
-    "path": "CoreEx.sln",
+    "path": "CoreEx.slnx",
     "projects": [
       "tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj",
       "tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj",
