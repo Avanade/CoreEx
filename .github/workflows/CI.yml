@@ -12,7 +12,7 @@ on:
       - 'Directory.Packages.props'
       - 'docker-compose.yml'
       - '*.slnf'
-      - '*.sln'
+      - '*.slnx'
       - '.config/dotnet-tools.json'
       - '.github/workflows/CI.yml'
   pull_request:
@@ -25,7 +25,7 @@ on:
       - 'Directory.Packages.props'
       - 'docker-compose.yml'
       - '*.slnf'
-      - '*.sln'
+      - '*.slnx'
       - '.config/dotnet-tools.json'
       - '.github/workflows/CI.yml'
   workflow_dispatch:
@@ -67,7 +67,7 @@ jobs:
       run: dotnet tool restore
 
     - name: Restore (all)
-      run: dotnet restore CoreEx.sln --verbosity minimal
+      run: dotnet restore CoreEx.slnx --verbosity minimal
 
     # --- Core ---
 
