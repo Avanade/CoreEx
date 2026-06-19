@@ -15,6 +15,7 @@
       "src/CoreEx.EntityFrameworkCore/CoreEx.EntityFrameworkCore.csproj",
       "src/CoreEx.Events/CoreEx.Events.csproj",
       "src/CoreEx.RefData/CoreEx.RefData.csproj",
+      "src/CoreEx.Template/CoreEx.Template.csproj",
       "src/CoreEx.UnitTesting/CoreEx.UnitTesting.csproj",
       "src/CoreEx.Validation/CoreEx.Validation.csproj",
       "tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj",
