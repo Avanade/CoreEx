@@ -153,7 +153,7 @@ Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each ge
 | `*.g.cs` (ref-data layer — controller, service, repository, mapper) | `*.CodeGen` project (CoreEx.CodeGen + `ref-data.yaml`) | `ref-data.yaml` config or the Handlebars templates in `CoreEx.CodeGen/RefData/Templates/` |
 | `*.g.sql`, `*.g.pgsql`, `*DbContext.g.cs`, `Persistence/*.g.cs` | `*.Database` project (DbEx) | DbEx YAML config or SQL migration scripts |
 
-See [INSTRUCTION_AUTHORING.md](.github/INSTRUCTION_AUTHORING.md#generated-code) for full generator ownership detail.
+See [INSTRUCTION_AUTHORING.md](INSTRUCTION_AUTHORING.md#generated-code) for full generator ownership detail.
 
 ## Key Docs to Read Before Large Changes
 - `README.md` — repo-level positioning and top-level commands.

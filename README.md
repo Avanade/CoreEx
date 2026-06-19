@@ -116,6 +116,10 @@ Project/Package | Description | Source | Status
 
 The included [change log](CHANGELOG.md) details all key changes per published version.
 
+## Getting Started
+
+→ **[Getting Started Guide](./docs/getting-started.md)** — install the template pack, scaffold a new solution, start local infrastructure, add API/Relay/Subscribe hosts, and run your first build.
+
 ## Samples
 
 The repository includes [Contoso reference samples](./samples/README.md) that implement a fully working multi-domain service topology — Products, Shopping, and Orders — each with an API host, an Outbox Relay host, and an Event Subscriber host.
@@ -144,11 +148,8 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) | Cache CoreEx docs and per-package AI guides locally | `/coreex-docs-sync` | `#file:.github/skills/coreex-docs-sync/SKILL.md` |
 | [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) | Map and document an existing codebase | `/acquire-codebase-knowledge` | `#file:.github/skills/acquire-codebase-knowledge/SKILL.md` |
 | [`/aspire`](./.github/skills/aspire/README.md) | Orchestrate Aspire apps locally (start, stop, logs) | `/aspire` | `#file:.github/skills/aspire/SKILL.md` |
-| `/init` · `/setup` | Initialize or configure a solution | `/init` · `/setup` | `/init` · `/setup` |
 
 **Instructions** — 10 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
-
-**Domain templates** — 77 ready-made templates covering all layers, both SQL Server and PostgreSQL, and optional features (CodeGen, Domain, Outbox Relay, Subscribe, ROP). See the [domain templates README](./.github/templates/domain/README.md).
 
 → **[Full AI workflow overview](./.github/README.md)**
 
