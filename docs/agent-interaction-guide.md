@@ -146,7 +146,7 @@ Use existing CoreEx patterns and align to the Product sample.
 ### Learn the architecture
 
 - `Map the Products sample and explain the role of each project.`
-- `Explain how Contracts, Application, Infrastructure, Api, Subscribe, and Outbox.Relay fit together here.`
+- `Explain how Contracts, Application, Infrastructure, Api, Subscribe, and Relay fit together here.`
 - `Show me the request flow for a Product create in the samples.`
 
 ### Learn a practice

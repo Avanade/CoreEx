@@ -29,7 +29,7 @@ The starter and sample architecture support a modular domain layout built from:
 - `Api`
 - `Database`
 - optionally `Subscribe`
-- optionally `Outbox.Relay`
+- optionally `Relay`
 - optionally a separate worker or orchestration host
 
 The sample host shapes also include **OpenTelemetry-compatible telemetry wiring** via the standard CoreEx/OpenTelemetry setup shown in the sample `Program.cs` files, so observability can be added as part of the normal host composition rather than as a separate architecture track.
@@ -106,7 +106,7 @@ Choose this when:
 
 Scaffold:
 
-- API-only domain shape, plus `Outbox.Relay`
+- API-only domain shape, plus `Relay`
 
 Pull in early:
 
@@ -147,7 +147,7 @@ Scaffold:
 - `Api`
 - `Database`
 - `Subscribe`
-- `Outbox.Relay`
+- `Relay`
 
 Pull in early:
 
@@ -357,4 +357,4 @@ Those answers usually determine the host set, package set, and scaffold depth mo
 - `docs/orchestration.md`
 - `samples/src/Contoso.Products.Api/Program.cs`
 - `samples/src/Contoso.Products.Subscribe/Program.cs`
-- `samples/src/Contoso.Products.Outbox.Relay/Program.cs`
+- `samples/src/Contoso.Products.Relay/Program.cs`

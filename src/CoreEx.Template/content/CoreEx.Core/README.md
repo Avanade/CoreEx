@@ -71,7 +71,7 @@ app-name/
     └── app-name.Test.Unit/        # Fast isolated unit tests (no I/O)
 ```
 
-Host projects (`app-name.Api`, `app-name.Outbox.Relay`, `app-name.Subscribe`) are added separately with `dotnet new coreex-api`, `coreex-relay`, and `coreex-subscribe`. See [Adding hosts](#adding-hosts) below.
+Host projects (`app-name.Api`, `app-name.Relay`, `app-name.Subscribe`) are added separately with `dotnet new coreex-api`, `coreex-relay`, and `coreex-subscribe`. See [Adding hosts](#adding-hosts) below.
 
 ---
 
@@ -204,7 +204,7 @@ Use the CoreEx templates to add host projects into this solution:
 
 ```bash
 dotnet new coreex-api       -n app-name.Api              -o .   # HTTP API + test project
-dotnet new coreex-relay     -n app-name.Outbox.Relay     -o .   # Outbox relay + test project
+dotnet new coreex-relay     -n app-name.Relay     -o .   # Outbox relay + test project
 dotnet new coreex-subscribe -n app-name.Subscribe        -o .   # Event subscriber + test project
 ```
 

@@ -181,16 +181,16 @@ This adds `src/Avanade.Hr.People.Api/` and `tests/Avanade.Hr.People.Test.Api/` a
 ```
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
 
-Add the Outbox Relay host to the solution. Run the existing relay integration tests and correct any failures.
+Add the Outbox Relay host to the solution. Run the existing relay integration tests; do not attempt to correct any failures.
 ```
 
 ### Manual alternative
 
 ```bash
-dotnet new coreex-relay -n Avanade.Hr.People.Outbox.Relay --data-provider Postgres --messaging-provider ServiceBus
+dotnet new coreex-relay -n Avanade.Hr.People.Relay --data-provider Postgres --messaging-provider ServiceBus
 ```
 
-This adds `src/Avanade.Hr.People.Outbox.Relay/` and `tests/Avanade.Hr.People.Test.Outbox.Relay/`.
+This adds `src/Avanade.Hr.People.Relay/` and `tests/Avanade.Hr.People.Test.Relay/`.
 
 ---
 
@@ -203,7 +203,7 @@ This adds `src/Avanade.Hr.People.Outbox.Relay/` and `tests/Avanade.Hr.People.Tes
 ```
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
 
-Add the Subscribe host to the solution. Run the existing subscriber integration tests and correct any failures.
+Add the Subscribe host to the solution. Run the existing subscriber integration tests; do not attempt to correct any failures.
 ```
 
 ### Manual alternative

@@ -1,6 +1,6 @@
-@Contoso.Shopping.Outbox.Relay_HostAddress = http://localhost:5090
+@Contoso.Shopping.Relay_HostAddress = http://localhost:5090
 
-GET {{Contoso.Shopping.Outbox.Relay_HostAddress}}/weatherforecast/
+GET {{Contoso.Shopping.Relay_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###

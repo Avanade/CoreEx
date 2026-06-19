@@ -1,6 +1,6 @@
-namespace Contoso.Products.Test.Outbox.Relay;
+namespace Contoso.Products.Test.Relay;
 
-public partial class OtherTests : WithApiTester<Contoso.Products.Outbox.Relay.Program>
+public partial class OtherTests : WithApiTester<Contoso.Products.Relay.Program>
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()

@@ -1,8 +1,8 @@
 using CoreEx.Database.Postgres.Outbox;
 
-namespace Contoso.Products.Test.Outbox.Relay;
+namespace Contoso.Products.Test.Relay;
 
-public class RelayTests : WithApiTester<Contoso.Products.Outbox.Relay.Program>
+public class RelayTests : WithApiTester<Contoso.Products.Relay.Program>
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()

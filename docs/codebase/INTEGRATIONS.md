@@ -8,9 +8,9 @@
 |--------|---------------------------|---------|------------|-------------|----------|
 | SQL Server | DB | Primary persistence for sample domains, outbox tables, and migration utilities | Connection string-based | High | docker-compose.yml; samples/src/Contoso.Products.Database/Program.cs; samples/src/Contoso.Products.Api/Program.cs |
 | Redis | Cache/backplane | L2 distributed cache and FusionCache backplane | Connection configured through Aspire/registered ConfigurationOptions | Medium | docker-compose.yml; samples/src/Contoso.Products.Api/Program.cs; samples/src/Contoso.Shopping.Api/Program.cs |
-| Azure Service Bus | Queue/topic broker | Async event publishing, relay, and subscriber processing | Connection configured through Aspire/host config; emulator config committed for local use | High | servicebus/Config.json; samples/src/Contoso.Products.Outbox.Relay/Program.cs; samples/src/Contoso.Products.Subscribe/Program.cs |
+| Azure Service Bus | Queue/topic broker | Async event publishing, relay, and subscriber processing | Connection configured through Aspire/host config; emulator config committed for local use | High | servicebus/Config.json; samples/src/Contoso.Products.Relay/Program.cs; samples/src/Contoso.Products.Subscribe/Program.cs |
 | Products API from Shopping | Internal HTTP API | Real-time inventory reservation during checkout | [TODO] no explicit auth configuration was found in the inspected Shopping client code | High | samples/src/Contoso.Shopping.Infrastructure/Clients/ProductsHttpClient.cs; samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs |
-| OTLP / Aspire dashboard | Observability endpoint | Export traces from sample hosts and inspect them locally | No auth found in local compose config; dashboard is configured for anonymous local access | Medium | docker-compose.yml; samples/src/Contoso.Products.Api/Program.cs; samples/src/Contoso.Products.Outbox.Relay/Program.cs |
+| OTLP / Aspire dashboard | Observability endpoint | Export traces from sample hosts and inspect them locally | No auth found in local compose config; dashboard is configured for anonymous local access | Medium | docker-compose.yml; samples/src/Contoso.Products.Api/Program.cs; samples/src/Contoso.Products.Relay/Program.cs |
 | Durable Task Scheduler | Workflow runtime | Order workflow worker orchestration sample | Connection string assembled from endpoint/task hub and auth mode | Medium | samples/src/Contoso.Order.Workflow.Worker/Program.cs |
 
 ### 2) Data Stores
@@ -45,7 +45,7 @@
 - samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj
 - samples/src/Contoso.Products.Api/Program.cs
 - samples/src/Contoso.Shopping.Api/Program.cs
-- samples/src/Contoso.Products.Outbox.Relay/Program.cs
+- samples/src/Contoso.Products.Relay/Program.cs
 - samples/src/Contoso.Products.Subscribe/Program.cs
 - samples/src/Contoso.Shopping.Infrastructure/Clients/ProductsHttpClient.cs
 - samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs

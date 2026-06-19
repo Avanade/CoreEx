@@ -65,7 +65,7 @@ Check `.github/docs/coreex/` for a local cache first (see [Local doc cache](#loc
 - [Domain Layer](https://github.com/Avanade/CoreEx/blob/main/samples/docs/domain-layer.md) — aggregates, mutation guards, integration-event accumulation, `Result<T>` pipelines.
 - [Application Layer](https://github.com/Avanade/CoreEx/blob/main/samples/docs/application-layer.md) — service orchestration, `TransactionAsync`, `IUnitOfWork.Events`, validators, policies, adapters.
 - [Infrastructure Layer](https://github.com/Avanade/CoreEx/blob/main/samples/docs/infrastructure-layer.md) — EF Core repositories, `IBiDirectionMapper`, outbox table wiring, relay publisher.
-- [Hosts Layer](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) — API, Subscribe, and Outbox.Relay `Program.cs` shapes, middleware ordering, Service Bus wiring.
+- [Hosts Layer](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) — API, Subscribe, and Relay `Program.cs` shapes, middleware ordering, Service Bus wiring.
 - [Testing](https://github.com/Avanade/CoreEx/blob/main/samples/docs/testing.md) — unit, integration, API, Subscribe, and Relay test patterns with concrete examples.
 - [Tooling](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md) — `*.CodeGen` and `*.Database` project run order, generated-file ownership, schema generation.
 - [Aspire](https://github.com/Avanade/CoreEx/blob/main/samples/docs/aspire.md) — Aspire orchestration for local distributed development and E2E testing.

@@ -90,6 +90,6 @@ internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
 
 - [README](./README.md) — full publisher, subscriber, and receiver API reference.
 - [CoreEx.Events](../CoreEx.Events/README.md) — `IEventPublisher`, `EventSubscriberBase`, and `SubscribedManager` that this package binds to Service Bus.
-- [Hosts layer](../../samples/docs/hosts-layer.md) — Subscribe and Outbox.Relay host `Program.cs` shapes and Azure Service Bus wiring.
+- [Hosts layer](../../samples/docs/hosts-layer.md) — Subscribe and Relay host `Program.cs` shapes and Azure Service Bus wiring.
 - [Infrastructure layer](../../samples/docs/infrastructure-layer.md) — outbox table setup and relay publisher integration.
 - [Patterns](../../samples/docs/patterns.md) — transactional outbox, event publishing, and subscriber error-handling patterns.

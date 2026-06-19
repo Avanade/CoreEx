@@ -56,13 +56,13 @@
   </Folder>
   <Folder Name="/samples/Products/src/hosts/">
     <Project Path="samples/src/Contoso.Products.Api/Contoso.Products.Api.csproj" />
-    <Project Path="samples/src/Contoso.Products.Outbox.Relay/Contoso.Products.Outbox.Relay.csproj" />
+    <Project Path="samples/src/Contoso.Products.Relay/Contoso.Products.Relay.csproj" />
     <Project Path="samples/src/Contoso.Products.Subscribe/Contoso.Products.Subscribe.csproj" />
   </Folder>
   <Folder Name="/samples/Products/tests/">
     <Project Path="samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj" />
     <Project Path="samples/tests/Contoso.Products.Test.Common/Contoso.Products.Test.Common.csproj" />
-    <Project Path="samples/tests/Contoso.Products.Test.Outbox.Relay/Contoso.Products.Test.Outbox.Relay.csproj" />
+    <Project Path="samples/tests/Contoso.Products.Test.Relay/Contoso.Products.Test.Relay.csproj" />
     <Project Path="samples/tests/Contoso.Products.Test.Subscribe/Contoso.Products.Test.Subscribe.csproj" />
     <Project Path="samples/tests/Contoso.Products.Test.Unit/Contoso.Products.Test.Unit.csproj" />
   </Folder>
@@ -79,7 +79,7 @@
   </Folder>
   <Folder Name="/samples/Shopping/src/hosts/">
     <Project Path="samples/src/Contoso.Shopping.Api/Contoso.Shopping.Api.csproj" />
-    <Project Path="samples/src/Contoso.Shopping.Outbox.Relay/Contoso.Shopping.Outbox.Relay.csproj" />
+    <Project Path="samples/src/Contoso.Shopping.Relay/Contoso.Shopping.Relay.csproj" />
     <Project Path="samples/src/Contoso.Shopping.Subscribe/Contoso.Shopping.Subscribe.csproj" />
   </Folder>
   <Folder Name="/samples/Shopping/tests/">

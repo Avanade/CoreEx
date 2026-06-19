@@ -49,7 +49,7 @@ podman compose -f docker-compose.yml down
 | `db-sql-server` | `mssql/server:2022-latest` | 1433 | Shopping domain; Service Bus emulator | SA password: `yourStrong(!)Password` |
 | `db-postgres` | `postgres` | 5432 | Products domain | Password: `yourStrong#!Password` |
 | `redis-cache` | `redis:latest` | 6379 | All domains (FusionCache backplane) | No auth by default |
-| `servicebus-emulator` | `azure-messaging/servicebus-emulator:latest` | 5672 (AMQP), 5300 (mgmt) | Products.Subscribe, Shopping.Subscribe, all Outbox.Relay hosts | Depends on `db-sql-server`; config mounted from `servicebus/Config.json` |
+| `servicebus-emulator` | `azure-messaging/servicebus-emulator:latest` | 5672 (AMQP), 5300 (mgmt) | Products.Subscribe, Shopping.Subscribe, all Relay hosts | Depends on `db-sql-server`; config mounted from `servicebus/Config.json` |
 | `dts-emulator` | `dts/dts-emulator:latest` | 8080, 8082 | Orders.Workflow.Worker, Orders.Api | Task hubs: `default`, `order` |
 | `aspire-dashboard` | `aspire-dashboard:latest` | 18888 (UI), 4317 (OTLP) | Optional — any host with OTLP configured | Usable standalone; no need to run the full Aspire AppHost just for traces |
 
@@ -161,12 +161,12 @@ Use this when working on a single domain or running intra-domain integration tes
 ```bash
 # Products
 dotnet run --project samples/src/Contoso.Products.Api
-dotnet run --project samples/src/Contoso.Products.Outbox.Relay
+dotnet run --project samples/src/Contoso.Products.Relay
 dotnet run --project samples/src/Contoso.Products.Subscribe
 
 # Shopping
 dotnet run --project samples/src/Contoso.Shopping.Api
-dotnet run --project samples/src/Contoso.Shopping.Outbox.Relay
+dotnet run --project samples/src/Contoso.Shopping.Relay
 dotnet run --project samples/src/Contoso.Shopping.Subscribe
 
 # Orders (WIP)
@@ -174,7 +174,7 @@ dotnet run --project samples/src/Contoso.Order.Workflow.Worker
 dotnet run --project samples/src/Contoso.Orders.Api
 ```
 
-Intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Outbox.Relay`) start their own in-process test host — they do not require any host process to be running. Infrastructure containers must still be up.
+Intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Relay`) start their own in-process test host — they do not require any host process to be running. Infrastructure containers must still be up.
 
 ---
 

@@ -11,7 +11,7 @@
 | `coreex-bootstrap` | CoreEx AI-ready bootstrap repository | Minimal repository shell + packaged AI workflow assets for `/coreex-scaffold` |
 | `coreex` | CoreEx domain-based microservice application | Solution scaffold: `src/` libraries + `tools/` projects + `tests/` (Test.Common + Test.Unit) |
 | `coreex-api` | CoreEx API host | `src/[name].Api/` host project + `tests/[solution].Test.Api/` integration test project |
-| `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Outbox.Relay/` integration test project |
+| `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Relay/` integration test project |
 | `coreex-subscribe` | CoreEx Subscriber host | `src/[name].Subscribe/` host project + `tests/[solution].Test.Subscribe/` integration test project |
 
 Parameters are consistent across templates -- the same `--data-provider`, `--messaging-provider`, and feature flags appear in every template that needs them, ensuring the generated code is coherent regardless of which templates you use.
@@ -310,8 +310,8 @@ src/
     appsettings.Development.json
     AGENTS.md
 tests/
-  [solution-name].Test.Outbox.Relay/
-    [solution-name].Test.Outbox.Relay.csproj
+  [solution-name].Test.Relay/
+    [solution-name].Test.Relay.csproj
 ```
 
 **`appsettings.json`** (illustrative):
@@ -484,7 +484,7 @@ dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
 
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Outbox.Relay
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
 
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
@@ -510,7 +510,7 @@ Avanade.Erp.Sales/
     Avanade.Erp.Sales.Test.Common/
     Avanade.Erp.Sales.Test.Unit/
     Avanade.Erp.Sales.Test.Api/
-    Avanade.Erp.Sales.Test.Outbox.Relay/
+    Avanade.Erp.Sales.Test.Relay/
     Avanade.Erp.Sales.Test.Subscribe/
 ```
 

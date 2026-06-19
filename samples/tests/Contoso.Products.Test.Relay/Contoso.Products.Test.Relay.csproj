@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Products.Outbox.Relay\Contoso.Products.Outbox.Relay.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Relay\Contoso.Products.Relay.csproj" />
     <ProjectReference Include="..\Contoso.Products.Test.Common\Contoso.Products.Test.Common.csproj" />
   </ItemGroup>
 

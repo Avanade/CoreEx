@@ -9,7 +9,7 @@ The host is the **composition root** of the application. It sits above all layer
 | Host type | Products | Shopping |
 |---|---|---|
 | API | [`Contoso.Products.Api`](../src/Contoso.Products.Api) | [`Contoso.Shopping.Api`](../src/Contoso.Shopping.Api) |
-| Outbox Relay | [`Contoso.Products.Outbox.Relay`](../src/Contoso.Products.Outbox.Relay) | [`Contoso.Shopping.Outbox.Relay`](../src/Contoso.Shopping.Outbox.Relay) |
+| Outbox Relay | [`Contoso.Products.Relay`](../src/Contoso.Products.Relay) | [`Contoso.Shopping.Relay`](../src/Contoso.Shopping.Relay) |
 | Subscribe | [`Contoso.Products.Subscribe`](../src/Contoso.Products.Subscribe) | [`Contoso.Shopping.Subscribe`](../src/Contoso.Shopping.Subscribe) |
 
 ---
@@ -101,8 +101,8 @@ app.MapHealthChecks();
 The Outbox Relay host performs the **transactional outbox relay function** — it polls the outbox table, reads committed event records, and forwards them to the configured message broker (Azure Service Bus in the samples, but the broker is swappable: RabbitMQ, Kafka, etc. are equally supported). There is no business logic in this host; it is a relay only.
 
 **Example projects**
-- [`samples/src/Contoso.Products.Outbox.Relay`](../src/Contoso.Products.Outbox.Relay)
-- [`samples/src/Contoso.Shopping.Outbox.Relay`](../src/Contoso.Shopping.Outbox.Relay)
+- [`samples/src/Contoso.Products.Relay`](../src/Contoso.Products.Relay)
+- [`samples/src/Contoso.Shopping.Relay`](../src/Contoso.Shopping.Relay)
 
 The relay runs as a `BackgroundService` (hosted service) registered via `AddPostgresOutboxRelayHostedService()` / `AddSqlServerOutboxRelayHostedService()`. It uses **partitioning** to improve throughput and scalability — multiple relay instances can each own a subset of partitions and process them independently without coordination.
 
@@ -112,7 +112,7 @@ Because it is implemented as an ASP.NET Core host, it can expose additional HTTP
 - **`MapHostedServices()`** — runtime management endpoints that allow the relay to be **paused and resumed** per partition/tenant ID without restarting the process.
 
 ```csharp
-// samples/src/Contoso.Products.Outbox.Relay/Program.cs  (abridged)
+// samples/src/Contoso.Products.Relay/Program.cs  (abridged)
 builder.Services
     .AddPostgresDatabase()
     .AddPostgresUnitOfWork()

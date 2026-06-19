@@ -2,7 +2,7 @@ using CoreEx.Azure.Messaging.ServiceBus;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 
-namespace Contoso.Products.Outbox.Relay;
+namespace Contoso.Products.Relay;
 
 public class Program
 {

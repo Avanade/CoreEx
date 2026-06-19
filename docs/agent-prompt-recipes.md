@@ -10,7 +10,7 @@ If you want to ask one of these as a quick side question in Copilot CLI without 
 
 ```text
 Map the <Domain> area of this repo for me.
-Explain the role of Contracts, Application, Infrastructure, Api, Database, Subscribe, and Outbox.Relay if present.
+Explain the role of Contracts, Application, Infrastructure, Api, Database, Subscribe, and Relay if present.
 Use concrete file references from this repo.
 No code changes.
 ```

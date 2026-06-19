@@ -22,7 +22,7 @@ List only meaningful top-level directories and files.
 ### 2) Entry Points
 
 - Main runtime entry: there is no single root application entry; runnable entry points are sample host Program.cs files under samples/src/ plus the Aspire AppHost in samples/aspire/Contoso.Aspire.
-- Secondary entry points (worker/cli/jobs): database console utilities in samples/src/*Database/Program.cs, outbox relays in samples/src/*.Outbox.Relay/Program.cs, subscriber hosts in samples/src/*.Subscribe/Program.cs, and the order workflow worker in samples/src/Contoso.Order.Workflow.Worker/Program.cs.
+- Secondary entry points (worker/cli/jobs): database console utilities in samples/src/*Database/Program.cs, outbox relays in samples/src/*.Relay/Program.cs, subscriber hosts in samples/src/*.Subscribe/Program.cs, and the order workflow worker in samples/src/Contoso.Order.Workflow.Worker/Program.cs.
 - How entry is selected (script/config): projects are selected explicitly via dotnet run --project ..., as shown in README.md and samples/README.md.
 
 ### 3) Module Boundaries
@@ -39,7 +39,7 @@ List only meaningful top-level directories and files.
 ### 4) Naming and Organization Rules
 
 - File naming pattern: PascalCase .cs filenames such as ProductService.cs, BasketRepository.cs, ProductController.cs, and ExceptionTests.cs.
-- Directory organization pattern: mostly layer-first under samples (Api, Application, Infrastructure, Domain, Database, Subscribe, Outbox.Relay) and package-first under src (CoreEx.*, CoreEx.AspNetCore.*, CoreEx.Database.*).
+- Directory organization pattern: mostly layer-first under samples (Api, Application, Infrastructure, Domain, Database, Subscribe, Relay) and package-first under src (CoreEx.*, CoreEx.AspNetCore.*, CoreEx.Database.*).
 - Import aliasing or path conventions: standard C# project references and global using files are used; no TypeScript-style path alias system exists in the inspected files.
 
 ### 5) Evidence
@@ -50,7 +50,7 @@ List only meaningful top-level directories and files.
 - samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj
 - samples/src/Contoso.Products.Api/Program.cs
 - samples/src/Contoso.Products.Database/Program.cs
-- samples/src/Contoso.Products.Outbox.Relay/Program.cs
+- samples/src/Contoso.Products.Relay/Program.cs
 - samples/src/Contoso.Products.Subscribe/Program.cs
 - samples/src/Contoso.Shopping.Domain/Basket.cs
 - gen/CoreEx.Generator/CoreEx.Generator.csproj

@@ -866,7 +866,7 @@ In this repository, Azure Service Bus is the **default initial broker implementa
 Each domain has its own relay process:
 
 1. Business logic writes events to `[Schema].[Outbox]` table within transaction.
-2. Separate **Outbox.Relay** host polls the table every N seconds.
+2. Separate **Relay** host polls the table every N seconds.
 3. Relay fetches unpublished outbox rows and publishes to Service Bus.
 4. On success, marks rows as published.
 5. On failure, retries with exponential backoff.
@@ -881,7 +881,7 @@ Each domain has its own relay process:
     [DB Outbox]
          │
 ┌────────▼────────┐
-│ Outbox.Relay    │
+│ Relay    │
 │   Polls every   │
 │   5 seconds     │
 └────────┬────────┘
@@ -1041,7 +1041,7 @@ This example assumes the samples' **full outboxing and messaging setup**:
 
 - an API host handling the request
 - a database-backed unit-of-work writing to an outbox table
-- a separate `Outbox.Relay` host publishing to Azure Service Bus
+- a separate `Relay` host publishing to Azure Service Bus
 - another service consuming the resulting integration event
 
 ```
@@ -1071,7 +1071,7 @@ This example assumes the samples' **full outboxing and messaging setup**:
    - Assign ETag, ChangeLog
    - Transaction commits
 
-6. Separate Outbox.Relay Process:
+6. Separate Relay Process:
    - Poll [Products].[Outbox] every N seconds
    - Find unpublished events
    - Publish to Service Bus
