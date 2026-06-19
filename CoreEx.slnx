@@ -1,0 +1,159 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/gen/">
+    <Project Path="gen/CoreEx.Generator/CoreEx.Generator.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <File Path="samples/Directory.Build.props" />
+    <File Path="samples/README.md" />
+  </Folder>
+  <Folder Name="/samples/Aspire/">
+    <Project Path="samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj" />
+    <Project Path="samples/tests/Contoso.E2E.Runner/Contoso.E2E.Runner.csproj" />
+  </Folder>
+  <Folder Name="/samples/docs/">
+    <File Path="samples/docs/application-layer.md" />
+    <File Path="samples/docs/aspire.md" />
+    <File Path="samples/docs/contracts-layer.md" />
+    <File Path="samples/docs/domain-layer.md" />
+    <File Path="samples/docs/hosts-layer.md" />
+    <File Path="samples/docs/infrastructure-layer.md" />
+    <File Path="samples/docs/layers.md" />
+    <File Path="samples/docs/local-dev.md" />
+    <File Path="samples/docs/patterns.md" />
+    <File Path="samples/docs/testing.md" />
+    <File Path="samples/docs/tooling.md" />
+  </Folder>
+  <Folder Name="/samples/Orders/" />
+  <Folder Name="/samples/Orders/hosts/">
+    <Project Path="samples/src/Contoso.Order.Workflow.Worker/Contoso.Order.Workflow.Worker.csproj" />
+    <Project Path="samples/src/Contoso.Orders.Api/Contoso.Orders.Api.csproj" />
+  </Folder>
+  <Folder Name="/samples/Orders/src/">
+    <Project Path="samples/src/Contoso.Order.Workflow.Client/Contoso.Order.Workflow.Client.csproj" />
+    <Project Path="samples/src/Contoso.Order.Workflow.Workflow/Contoso.Order.Workflow.Workflow.csproj" />
+    <Project Path="samples/src/Contoso.Orders.Application/Contoso.Orders.Application.csproj" />
+    <Project Path="samples/src/Contoso.Orders.Contracts/Contoso.Orders.Contracts.csproj" />
+    <Project Path="samples/src/Contoso.Orders.Infrastructure/Contoso.Orders.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/samples/Orders/tests/">
+    <Project Path="samples/tests/Contoso.Orders.Test.Api/Contoso.Orders.Test.Api.csproj" />
+    <Project Path="samples/tests/Contoso.Orders.Test.Common/Contoso.Orders.Test.Common.csproj" />
+    <Project Path="samples/tests/Contoso.Orders.Test.Unit/Contoso.Orders.Test.Unit.csproj" />
+  </Folder>
+  <Folder Name="/samples/Orders/tools/">
+    <Project Path="samples/src/Contoso.Orders.Database/Contoso.Orders.Database.csproj" />
+  </Folder>
+  <Folder Name="/samples/Products/" />
+  <Folder Name="/samples/Products/src/">
+    <Project Path="samples/src/Contoso.Products.Application/Contoso.Products.Application.csproj" />
+    <Project Path="samples/src/Contoso.Products.Contracts/Contoso.Products.Contracts.csproj" />
+    <Project Path="samples/src/Contoso.Products.Infrastructure/Contoso.Products.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/samples/Products/src/hosts/">
+    <Project Path="samples/src/Contoso.Products.Api/Contoso.Products.Api.csproj" />
+    <Project Path="samples/src/Contoso.Products.Outbox.Relay/Contoso.Products.Outbox.Relay.csproj" />
+    <Project Path="samples/src/Contoso.Products.Subscribe/Contoso.Products.Subscribe.csproj" />
+  </Folder>
+  <Folder Name="/samples/Products/tests/">
+    <Project Path="samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj" />
+    <Project Path="samples/tests/Contoso.Products.Test.Common/Contoso.Products.Test.Common.csproj" />
+    <Project Path="samples/tests/Contoso.Products.Test.Outbox.Relay/Contoso.Products.Test.Outbox.Relay.csproj" />
+    <Project Path="samples/tests/Contoso.Products.Test.Subscribe/Contoso.Products.Test.Subscribe.csproj" />
+    <Project Path="samples/tests/Contoso.Products.Test.Unit/Contoso.Products.Test.Unit.csproj" />
+  </Folder>
+  <Folder Name="/samples/Products/tools/">
+    <Project Path="samples/src/Contoso.Products.CodeGen/Contoso.Products.CodeGen.csproj" />
+    <Project Path="samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj" />
+  </Folder>
+  <Folder Name="/samples/Shopping/" />
+  <Folder Name="/samples/Shopping/src/">
+    <Project Path="samples/src/Contoso.Shopping.Application/Contoso.Shopping.Application.csproj" />
+    <Project Path="samples/src/Contoso.Shopping.Contracts/Contoso.Shopping.Contracts.csproj" />
+    <Project Path="samples/src/Contoso.Shopping.Domain/Contoso.Shopping.Domain.csproj" />
+    <Project Path="samples/src/Contoso.Shopping.Infrastructure/Contoso.Shopping.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/samples/Shopping/src/hosts/">
+    <Project Path="samples/src/Contoso.Shopping.Api/Contoso.Shopping.Api.csproj" />
+    <Project Path="samples/src/Contoso.Shopping.Outbox.Relay/Contoso.Shopping.Outbox.Relay.csproj" />
+    <Project Path="samples/src/Contoso.Shopping.Subscribe/Contoso.Shopping.Subscribe.csproj" />
+  </Folder>
+  <Folder Name="/samples/Shopping/tests/">
+    <Project Path="samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj" />
+    <Project Path="samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj" />
+    <Project Path="samples/tests/Contoso.Shopping.Test.Subscribe/Contoso.Shopping.Test.Subscribe.csproj" />
+    <Project Path="samples/tests/Contoso.Shopping.Test.Unit/Contoso.Shopping.Test.Unit.csproj" />
+  </Folder>
+  <Folder Name="/samples/Shopping/tools/">
+    <Project Path="samples/src/Contoso.Shopping.CodeGen/Contoso.Shopping.CodeGen.csproj" />
+    <Project Path="samples/src/Contoso.Shopping.Database/Contoso.Shopping.Database.csproj" />
+  </Folder>
+  <Folder Name="/schema/">
+    <File Path="schema/coreex-refdata.json" />
+  </Folder>
+  <Folder Name="/servicebus/">
+    <File Path="servicebus/Config.json" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".filenesting.json" />
+    <File Path=".gitignore" />
+    <File Path="CHANGELOG.md" />
+    <File Path="CODE_OF_CONDUCT.md" />
+    <File Path="CONTRIBUTING.md" />
+    <File Path="Directory.Packages.props" />
+    <File Path="docker-compose.yml" />
+    <File Path="LICENCE" />
+    <File Path="nuget-publish.ps1" />
+    <File Path="README.md" />
+    <File Path="SECURITY.md" />
+    <File Path="strong-name-key.snk" />
+    <File Path="Version.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="NAMESPACE_README_TEMPLATE.md" />
+    <File Path="src/Directory.Build.props" />
+    <File Path="src/Directory.Build.targets" />
+    <Project Path="src/CoreEx.AspNetCore.NSwag/CoreEx.AspNetCore.NSwag.csproj" />
+    <Project Path="src/CoreEx.AspNetCore/CoreEx.AspNetCore.csproj" />
+    <Project Path="src/CoreEx.Azure.Messaging.ServiceBus/CoreEx.Azure.Messaging.ServiceBus.csproj" />
+    <Project Path="src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj" />
+    <Project Path="src/CoreEx.CodeGen/CoreEx.CodeGen.csproj" />
+    <Project Path="src/CoreEx.Data/CoreEx.Data.csproj" />
+    <Project Path="src/CoreEx.Database.Postgres/CoreEx.Database.Postgres.csproj" />
+    <Project Path="src/CoreEx.Database.SqlServer/CoreEx.Database.SqlServer.csproj" />
+    <Project Path="src/CoreEx.Database/CoreEx.Database.csproj" />
+    <Project Path="src/CoreEx.DomainDriven/CoreEx.DomainDriven.csproj" />
+    <Project Path="src/CoreEx.EntityFrameworkCore/CoreEx.EntityFrameworkCore.csproj" />
+    <Project Path="src/CoreEx.Events/CoreEx.Events.csproj" />
+    <Project Path="src/CoreEx.RefData/CoreEx.RefData.csproj" />
+    <Project Path="src/CoreEx.Template/CoreEx.Template.csproj" />
+    <Project Path="src/CoreEx.UnitTesting/CoreEx.UnitTesting.csproj" />
+    <Project Path="src/CoreEx.Validation/CoreEx.Validation.csproj" />
+    <Project Path="src/CoreEx/CoreEx.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj" />
+    <Project Path="tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Database.Postgres.Test.Console/CoreEx.Database.Postgres.Test.Console.csproj" />
+    <Project Path="tests/CoreEx.Database.Postgres.Test.Unit/CoreEx.Database.Postgres.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Database.SqlServer.Test.Console/CoreEx.Database.SqlServer.Test.Console.csproj" />
+    <Project Path="tests/CoreEx.Database.SqlServer.Test.Unit/CoreEx.Database.SqlServer.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Database.Test.Unit/CoreEx.Database.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.DomainDriven.Test.Unit/CoreEx.DomainDriven.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Validation.Test.Unit/CoreEx.Validation.Test.Unit.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/CoreEx.Tooling.Console/CoreEx.Tooling.Console.csproj" />
+  </Folder>
+</Solution>

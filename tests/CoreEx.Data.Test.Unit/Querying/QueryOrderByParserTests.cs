@@ -18,7 +18,7 @@ public class QueryOrderByParserTests
     [Test]
     public void Config_ToString()
     {
-        var s = TestUtility.Config.OrderByParser.ToString();
+        var s = TestUtility.Config.OrderByParser.ToString().ReplaceLineEndings("\n");
         s.Should().NotBeNull();
 
         Console.WriteLine(s);
